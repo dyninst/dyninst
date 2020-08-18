@@ -73,82 +73,10 @@ boost::shared_ptr<Type> Variable::getType(Type::do_share_t)
 	return type_;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	if (!sb)
-	{
-		SER_ERR("bad paramater sb");
-	}
-
-	//  Use typeID as unique identifier
-	//  magic numbers stink, but we use both positive and negative numbers for type ids
-	unsigned int t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
-
-	try 
-	{
-		ifxml_start_element(sb, tag);
-		gtranslate(sb, t_id, "typeID");
-		Aggregate::serialize_aggregate(sb);
-		ifxml_end_element(sb, tag);
-
-		serialize_printf("%s[%d]:  %sSERIALIZED VARIABLE %s, %lu syms\n", 
-				FILE__, __LINE__, 
-				sb->isInput() ? "DE" : "", 
-				getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "no_name",
-				symbols_.size()); 
-
-		if (sb->isInput())
-		{
-		   if (t_id == 0xdeadbeef)
-		   {
-			   type_ = NULL;
-		   }
-		   else
-		   {
-			   restore_type_by_id(sb, type_, t_id);
-		   }
-		} 
-		else
-		{
-#if 0
-			Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb);
-
-			if (!ssb)
-			{
-				SerializerBin<Symtab> *sbst = dynamic_cast<SerializerBin<Symtab> *> (sb);
-				SER_ERR("FIXME");
-			}
-
-			Symtab *st = ssb->getScope();
-#endif
-			SerContextBase *scb = sb->getContext();
-			if (!scb)
-			{
-				SER_ERR("FIXME");
-			}
-
-			SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-			if (!scs)
-			{
-				SER_ERR("FIXME");
-			}
-
-			Symtab *st = scs->getScope();
-
-		}
-	}
-	SER_CATCH(tag);
-
-	return NULL;
-}
-#else
 Serializable *Variable::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    return NULL;
 }
-#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
 {
@@ -399,69 +327,7 @@ bool localVar::operator==(const localVar &l)
 	return true;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
-{
-	serialize_printf("%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
-	//  Use typeID as unique identifier
-	//  magic numbers stink, but we use both positive and negative numbers for type ids
-	unsigned int t_id = (unsigned int) 0xdeadbeef;
-	if (sb->isOutput()) t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
-
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, name_, "Name");
-	gtranslate(sb, fileName_, "FileName");
-	gtranslate(sb, lineNum_, "LineNumber");
-	gtranslate(sb, t_id, "TypeID");
-	gtranslate(sb, locs_, "Locations", "Location");
-	ifxml_end_element(sb, tag);
-
-	serialize_printf("%s[%d]:  %sserialize localVar %s\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
-
-	if (sb->isInput())
-	{
-		if (t_id == 0xdeadbeef)
-		{
-			type_ = NULL;
-		}
-		else 
-		{
-			SerContextBase *scb = sb->getContext();
-			if (!scb)
-			{
-				SER_ERR("FIXME");
-			}
-
-			SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-			if (!scs)
-			{
-				SER_ERR("FIXME");
-			}
-
-			Symtab *st = scs->getScope();
-
-			if (!st)
-			{
-				SER_ERR("FIXME");
-			}
-
-			type_ = st->findType(t_id);
-
-			if (!type_)
-			{
-				//  This should probably throw, but let's play nice for now
-				serialize_printf("%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
-			}
-		}
-
-	}
-	serialize_printf("%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
-	return NULL;
-}
-#else
 Serializable *localVar::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
 {
    return NULL;
 }
-#endif

@@ -1870,103 +1870,6 @@ Symtab::~Symtab()
 
 }	
 
-#if !defined(SERIALIZATION_DISABLED)
-bool Symtab::exportXML(string file)
-{
-#if defined (cap_serialization)
-   try 
-   {
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(this, file);
-	   serialize(file, scs, ser_xml);
-#if 0
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
-	   SerializerXML *ser = new SerializerXML(scs, "XMLTranslator", file, sd_serialize, true);
-	   serialize(ser, "Symtab");
-#endif
-#if 0
-      SerializerXML sb("XMLTranslator", file, sd_serialize, true);
-      serialize(&sb, "Symtab");
-#endif
-   } 
-   catch (const SerializerError &err) 
-   {
-      return false;
-   }
-
-   return false;
-#else
-   return false;
-#endif
-}
-
-bool Symtab::exportBin(string file)
-{
-   try
-   {
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(this, file);
-	   serialize(file, scs, ser_bin);
-	   return true;
-   }
-
-   catch (const SerializerError &err)
-   {
-      if (err.code() == SerializerError::ser_err_disabled) 
-      {
-         return false;
-      }
-
-   }
-
-   return false;
-}
-
-Symtab *Symtab::importBin(std::string file)
-{
-#if defined (cap_serialization)
-   MappedFile *mf= MappedFile::createMappedFile(file);
-   if (!mf) 
-   {
-      return NULL;
-   }
-
-   Symtab *st = new Symtab(mf);
-
-   try
-   {
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(st, file);
-	   if (!st->deserialize(file, scs))
-	   {
-		   delete st;
-		   return NULL;
-	   }
-
-	   return st;
-   }
-
-   catch (const SerializerError &err)
-   {
-      if (err.code() == SerializerError::ser_err_disabled) 
-      {
-         serialize_printf("%s[%d]:  WARN:  serialization is disabled for file %s\n",
-               FILE__, __LINE__, file.c_str());
-         return NULL;
-      }
-
-      serialize_printf("%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
-            err.what(), err.file().c_str(), err.line());
-   }
-
-
-   serialize_printf("%s[%d]:  error doing binary deserialization\n", __FILE__, __LINE__);
-   delete st;
-   return NULL;
-#else
-   serialize_printf("%s[%d]:  WARNING:  cannot produce %s, serialization not available\n", FILE__, __LINE__, file.c_str());
-   return NULL;
-#endif
-}
-
-#else
 bool Symtab::exportXML(string)
 {
    return false;
@@ -1981,7 +1884,6 @@ Symtab *Symtab::importBin(std::string)
 {
    return NULL;
 }
-#endif
 
 bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size, 
                       std::string name, def_t def_bin)
@@ -2924,23 +2826,10 @@ SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable * ExceptionBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, tryStart_, "tryStart");
-	gtranslate(sb, trySize_, "trySize");
-	gtranslate(sb, catchStart_, "catchStart");
-	gtranslate(sb, hasTry_, "hasTry");
-	ifxml_end_element(sb, tag);
-	return NULL;
-}
-#else
 Serializable * ExceptionBlock::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    return NULL;
 }
-#endif
 
 SYMTAB_EXPORT relocationEntry::relocationEntry() :
    target_addr_(0), 
@@ -3091,72 +2980,10 @@ bool relocationEntry::operator==(const relocationEntry &r) const
 	return true;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	//  on deserialize need to rebuild symtab::undefDynSyms before deserializing relocations
-
-	std::string symname = dynref_ ? dynref_->getName() : std::string("");
-	Offset symoff = dynref_ ? dynref_->getOffset() : (Offset) -1;
-
-      ifxml_start_element(sb, tag);
-      gtranslate(sb, target_addr_, "targetAddress");
-      gtranslate(sb, rel_addr_, "relocationAddress");
-      gtranslate(sb, addend_, "Addend");
-      gtranslate(sb, name_, "relocationName");
-      gtranslate(sb,  rtype_, Region::regionType2Str, "regionType");
-      gtranslate(sb, relType_, "relocationType");
-      gtranslate(sb, symname, "SymbolName");
-      gtranslate(sb, symoff, "SymbolOffset");
-      ifxml_end_element(sb, tag);
-
-	  if (sb->isInput())
-	  {
-		  dynref_ = NULL;
-		  if (symname != std::string(""))
-		  {
-			  SerContextBase *scb = sb->getContext();
-			  if (!scb)
-			  {
-				  SER_ERR("FIXME");
-			  }
-
-			  SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-			  if (!scs)
-			  {
-				  SER_ERR("FIXME");
-			  }
-
-			  Symtab *st = scs->getScope();
-
-			  if (!st)
-			  {
-				  SER_ERR("FIXME");
-			  }
-
-			  std::vector<Symbol *> *syms = st->findSymbolByOffset(symoff);
-			  if (!syms || !syms->size())
-			  {
-				  serialize_printf("%s[%d]:  cannot find symbol by offset %p\n", 
-						  FILE__, __LINE__, (void *)symoff);
-				  return NULL;
-			  }
-
-			  //  Might want to try to select the "best" symbol here if there is
-			  //  more than one.  Or Maybe just returning the first is sufficient.
-
-			  dynref_ = (*syms)[0];
-		  }
-	  }
-	  return NULL;
-}
-#else
 Serializable *relocationEntry::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    return NULL;
 }
-#endif
 
 ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r) 
 {
@@ -3315,33 +3142,6 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
 #endif
 
 
-#if !defined(SERIALIZATION_DISABLED)
-SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
-{
-	SerializerBin *ser;
-	SerContext<Symtab> *scs = new SerContext<Symtab>(t, file);
-	ser = new SerializerBin(scs, "SerializerBin", file, sd_serialize, false);
-	return ser;
-}
-
-SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
-{
-	SerializerBin *ser;
-	SerContext<Symtab> *scs = new SerContext<Symtab>(t, file);
-	ser = new SerializerBin(scs, "DeserializerBin", file, sd_deserialize, false);
-	return ser;
-}
-
-SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
-{
-	SerializerBin *sbin = dynamic_cast<SerializerBin *>(sb);
-	if (sbin)
-	{
-		delete(sbin);
-	}
-
-}
-#endif
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 {

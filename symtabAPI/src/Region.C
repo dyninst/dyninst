@@ -74,9 +74,6 @@ Region::Region(unsigned regnum, std::string name, Offset diskOff,
 }
 
 Region::Region(const Region &reg) :
-#if !defined(SERIALIZATION_DISABLED)
-   Serializable(),
-#endif
    regNum_(reg.regNum_), name_(reg.name_),
    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
    memSize_(reg.memSize_), fileOff_(reg.fileOff_), rawDataPtr_(reg.rawDataPtr_),
@@ -191,40 +188,10 @@ const char *Region::regionType2Str(RegionType rt)
    return "bad_RegionTypeype";
 };
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable * Region::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-   ifxml_start_element(sb, tag);
-   gtranslate(sb, regNum_, "RegionNumber");
-   gtranslate(sb, name_, "RegionName");
-   gtranslate(sb, diskOff_, "DiskOffset");
-   gtranslate(sb, diskSize_, "RegionDiskSize");
-   gtranslate(sb, memOff_, "MemoryOffset");
-   gtranslate(sb, memSize_, "RegionMemorySize");
-   gtranslate(sb, permissions_, permissions2Str, "Permissions");
-   gtranslate(sb, rType_, regionType2Str, "RegionType");
-   gtranslate(sb, isDirty_, "Dirty");
-   gtranslate(sb, rels_, "Relocations", "Relocation");
-   gtranslate(sb, isLoadable_, "isLoadable");
-   gtranslate(sb, isTLS_, "isTLS");
-   gtranslate(sb, memAlign_, "memAlign");
-   ifxml_end_element(sb, tag);
-   if (sb->isInput())
-   {
-	   //  Might need to put in checks in region-using code for these
-	   //  conditions -- i.e. re-initialize elf, or whatever else for
-	   //  other platforms
-	   buffer_ = NULL;
-	   rawDataPtr_ = NULL;
-   }
-   return NULL;
-}
-#else
 Serializable *Region::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    return NULL;
 }
-#endif
 
 unsigned Region::getRegionNumber() const
 {
