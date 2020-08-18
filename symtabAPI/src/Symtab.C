@@ -1979,27 +1979,6 @@ bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
    }
    }
 
-
-#if defined (cap_serialization)
-#if 0
-   obj = importBin(filename);
-
-   if (NULL == obj) 
-   {
-	   if (deserializeEnforced<Symtab>(filename))
-	  {
-			  serialize_printf("%s[%d]: aborting new symtab, expected deserialize failed\n",
-					  FILE__, __LINE__);
-			  return false;
-	  }
-   }
-   else 
-   {
-      return true;
-   }
-#endif
-#endif
-
    obj = new Symtab(filename, (def_binary == Defensive), err);
 
 #if defined(TIMED_PARSE)
@@ -3121,27 +3100,6 @@ void Symtab::parseTypesNow()
 
    parseTypes();
 }
-
-#if defined (cap_serialization)
-//  Not sure this is strictly necessary, problems only seem to exist with Module 
-// annotations when the file was split off, so there's probably something else that
-//  can be done to instantiate the relevant functions.
-
-bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
-{
-   if (file == std::string("no_such_file")) 
-   {
-      if (!sb) 
-      {
-         return false;
-      }
-   }
-   return true;
-}
-
-#endif
-
-
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 {
