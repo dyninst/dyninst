@@ -3055,17 +3055,7 @@ bool Symtab::getRegValueAtFrame(Address pc,
 
 Object *Symtab::getObject()
 {
-   if (obj_private)
-      return obj_private;
-
-   //TODO: This likely triggered because we serialized in an object
-   // from cache, but now the user is requesting more information from
-   // the on disk object.  We should create a new 'Object' from data
-   // (likely a file path) serialized in.
-   
-   return NULL;
-   //obj_private = new Object();
-   //return obj_private;
+   return obj_private;
 }
 
 const Object *Symtab::getObject() const
