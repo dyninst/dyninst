@@ -40,7 +40,6 @@
 #include "Module.h"
 #include "Collections.h"
 #include "Function.h"
-#include "common/src/serialize.h"
 
 #include "Type-mem.h"
 #include <iostream>
@@ -1660,7 +1659,6 @@ unsigned int Field::getSize()
 }
 
 Field::Field(Field &oField) :
-	Serializable(),
 	FIELD_ANNOTATABLE_CLASS()
 {
    type_ = oField.type_;
@@ -1733,74 +1731,3 @@ typeTypedef::typeTypedef() : sizeHint_(0) {}
 typeRef::typeRef() {}
 typeSubrange::typeSubrange() {}
 typeArray::typeArray() : arrayElem(NULL), sizeHint_(0) {}
-
-Serializable * Type::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
-
-void typeEnum::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typePointer::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeFunction::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeSubrange::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeArray::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeStruct::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeUnion::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeScalar::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeCommon::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeTypedef::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void typeRef::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
-{
-}
-
-void fieldListType::serialize_fieldlist(SerializerBase *, const char *) THROW_SPEC(SerializerError)
-{
-}
-
-void derivedType::serialize_derived(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-}
-
-void rangedType::serialize_ranged(SerializerBase *, const char *) THROW_SPEC(SerializerError)
-{
-}
-
-Serializable *Field::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
-{
-   return NULL;
-}
-
-Serializable * CBlock::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
-{
-   return NULL;
-}

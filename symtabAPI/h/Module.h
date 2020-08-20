@@ -35,7 +35,6 @@
 #include "Symbol.h"
 
 #include "Annotatable.h"
-#include "Serialization.h"
 #include "IBSTree.h"
 #include "IBSTree-fast.h"
 #if defined(cap_dwarf)

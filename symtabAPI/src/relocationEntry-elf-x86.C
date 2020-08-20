@@ -30,7 +30,6 @@
 
 /* Functions of the relocationEntry class specific to x86 ELF */
 #include "Symtab.h"
-#include "Serialization.h"
 #include "annotations.h"
 #include <elf.h>
 

@@ -34,7 +34,6 @@
 #include "concurrent.h"
 #include "Type.h"
 #include "Variable.h"
-#include "Serialization.h"
 #include <boost/core/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
 
@@ -55,7 +54,7 @@ class DwarfWalker;
  */
 
 
-class SYMTAB_EXPORT localVarCollection : public AnnotationContainer<localVar *> {
+class SYMTAB_EXPORT localVarCollection {
 
   dyn_c_vector<localVar* > localVars;
 
@@ -67,8 +66,6 @@ public:
   void addLocalVar(localVar * var);
   localVar * findLocalVar(std::string &name);
   const dyn_c_vector<localVar *> &getAllVars() const;
-
-  Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
 
 
@@ -77,7 +74,7 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSparse
+class SYMTAB_EXPORT typeCollection
 {
     friend class Symtab;
     friend class Object;
@@ -99,7 +96,6 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     // DWARF...
     bool dwarfParsed_;
 
-	Serializable *serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
 	public:
     typeCollection();
     ~typeCollection();

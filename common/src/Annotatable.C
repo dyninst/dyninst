@@ -33,8 +33,6 @@
 #include "common/src/headers.h"
 #include "dyntypes.h"
 #include "Annotatable.h"
-#include "Serialization.h"
-#include "common/src/serialize.h"
 
 using namespace Dyninst;
 
@@ -121,10 +119,8 @@ std::vector<AnnotationClassBase *> *AnnotationClassBase::annotation_types = NULL
 dyn_hash_map<std::string, AnnotationClassID> *AnnotationClassBase::annotation_ids_by_name = NULL;
 
 AnnotationClassBase::AnnotationClassBase(std::string n, 
-		anno_cmp_func_t cmp_func_, 
-		ser_func_t sf_) :
-   name(n),
-   serialize_func(sf_)
+		anno_cmp_func_t cmp_func_) :
+   name(n)
 {
 	annotations_debug_init();
     // Using a static vector led to the following pattern on AIX:
@@ -239,34 +235,6 @@ void AnnotationClassBase::dumpAnnotationClasses()
 	}
 }
 
-namespace Dyninst {
-
-bool is_input(SerializerBase *)
-{
-   return false;
-}
-
-bool is_output(SerializerBase *) {
-   return false;
-}
-
-bool serialize_annotation_list(void *, std::vector<ser_rec_t> &, SerializerBase *, const char *) {
-   return false;
-}
-
-bool serialize_post_annotation(void *, void *, SerializerBase *, AnnotationClassBase *, sparse_or_dense_anno_t, const char *) {
-   return false;
-}
-
-bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &) {
-   return false;
-}
-
-bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &) {
-   return false;
-}
-
-}
 bool dummy_bs()
 {
    fprintf(stderr, "%s[%d]:  \n", FILE__, __LINE__);

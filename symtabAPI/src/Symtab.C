@@ -40,10 +40,8 @@
 
 #include "common/src/Timer.h"
 #include "common/src/debugOstream.h"
-#include "common/src/serialize.h"
 #include "common/src/pathName.h"
 
-#include "Serialization.h"
 #include "Symtab.h"
 #include "Module.h"
 #include "Collections.h"
@@ -355,7 +353,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
 
 SYMTAB_EXPORT Symtab::Symtab() :
    LookupInterface(),
-   Serializable(),
    AnnotatableSparse(),
    member_offset_(0),
    parentArchive_(NULL),
@@ -1230,7 +1227,6 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
 
 Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    LookupInterface(),
-   Serializable(),
    AnnotatableSparse(),
    member_offset_(0),
    parentArchive_(NULL),
@@ -1305,7 +1301,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
 Symtab::Symtab(unsigned char *mem_image, size_t image_size, 
                const std::string &name, bool defensive_bin, bool &err) :
    LookupInterface(),
-   Serializable(),
    AnnotatableSparse(),
    member_offset_(0),
    parentArchive_(NULL),
@@ -1596,7 +1591,6 @@ bool Symtab::extractInfo(Object *linkedFile)
 
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
-   Serializable(),
    AnnotatableSparse(),
    member_name_(obj.member_name_),
    member_offset_(obj.member_offset_),
@@ -2082,8 +2076,6 @@ bool Symtab::addUserType(Type *t)
 {
    std::vector<Type *> *user_types = NULL;
 
-   //  need to change this to something based on AnnotationContainer
-   //  for it to work with serialization
    if (!getAnnotation(user_types, UserTypesAnno))
    {
       user_types = new std::vector<Type *>();
@@ -2770,7 +2762,6 @@ SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart,
 }
 
 SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(const ExceptionBlock &eb) :
-   Serializable(),
    tryStart_(eb.tryStart_), trySize_(eb.trySize_), 
    catchStart_(eb.catchStart_), hasTry_(eb.hasTry_),
    tryStart_ptr(eb.tryStart_ptr),
@@ -2803,11 +2794,6 @@ SYMTAB_EXPORT Offset ExceptionBlock::trySize() const
 SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
 { 
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
-}
-
-Serializable * ExceptionBlock::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
 }
 
 SYMTAB_EXPORT relocationEntry::relocationEntry() :
@@ -2957,11 +2943,6 @@ bool relocationEntry::operator==(const relocationEntry &r) const
 	}
 
 	return true;
-}
-
-Serializable *relocationEntry::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
 }
 
 ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r) 

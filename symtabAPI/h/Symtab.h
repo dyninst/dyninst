@@ -38,7 +38,6 @@
 #include "Region.h"
 
 #include "Annotatable.h"
-#include "Serialization.h"
 #include "ProcReader.h"
 #include "IBSTree.h"
 #include "Type.h"
@@ -94,7 +93,6 @@ typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
 class SYMTAB_EXPORT Symtab : public LookupInterface,
-               public Serializable,
                public AnnotatableSparse
 {
    friend class Archive;
@@ -683,12 +681,10 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
  **/
 SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 
-class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSparse {
+class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
   // Accessors provide consistent access to the *original* offsets.
   // We allow this to be updated (e.g. to account for relocated code
    public:
-	  Serializable * serialize_impl(SerializerBase *sb, 
-			  const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
       ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       ExceptionBlock(Offset cStart);
       ExceptionBlock(const ExceptionBlock &eb);
@@ -742,7 +738,7 @@ class SYMTAB_EXPORT ExceptionBlock : public Serializable, public AnnotatableSpar
 // relocation information for calls to functions not in this image
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
-class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSparse {
+class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
    public:
 
       relocationEntry();
@@ -755,9 +751,6 @@ class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSpa
       relocationEntry(Offset ta, Offset ra, Offset add,
                           std::string n, Symbol *dynref = NULL, unsigned long relType = 0,
                           Region::RegionType rtype = Region::RT_REL);
-
-	  Serializable * serialize_impl(SerializerBase *sb, 
-			  const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
       Offset target_addr() const;
       Offset rel_addr() const;
@@ -800,10 +793,6 @@ class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSpa
       unsigned long relType_;
       Offset rel_struct_addr_;
 };
-
-SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file);
-SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file);
-SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb);
 
 }//namespace SymtabAPI
 

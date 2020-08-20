@@ -43,16 +43,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "Serialization.h"
 #include "util.h"
 
 namespace Dyninst
 {
-
-
-class SerializerBase;
-class Serializable;
-typedef Serializable * (*ser_func_t) (void *, SerializerBase *, const char *);
 
 COMMON_EXPORT bool annotation_debug_flag();
 COMMON_EXPORT int annotatable_printf(const char *format, ...);
@@ -65,7 +59,6 @@ extern bool void_ptr_cmp_func(void *, void *);
 
 class COMMON_EXPORT AnnotationClassBase
 {
-	friend class Serializable;
    private:
       static std::vector<AnnotationClassBase *> *annotation_types;
       static dyn_hash_map<std::string, AnnotationClassID> *annotation_ids_by_name;
@@ -75,11 +68,8 @@ class COMMON_EXPORT AnnotationClassBase
 
    protected:
 
-	  ser_func_t serialize_func;
-
      AnnotationClassBase(std::string n, 
-                                       anno_cmp_func_t cmp_func_ = NULL, 
-                                       ser_func_t sf_ = NULL);
+                                       anno_cmp_func_t cmp_func_ = NULL);
 
      virtual ~AnnotationClassBase(); 
 
@@ -91,7 +81,6 @@ class COMMON_EXPORT AnnotationClassBase
        AnnotationClassID getID() { return id; }
        std::string &getName() {return name;}
        anno_cmp_func_t getCmpFunc() {return cmp_func;}
-	   ser_func_t getSerializeFunc() {return serialize_func;}
 	   virtual const char *getTypeName() = 0;
 	   virtual void *allocate() = 0;
 };
@@ -101,9 +90,8 @@ class AnnotationClass : public AnnotationClassBase {
    public:
 
 	  AnnotationClass(std::string n, 
-			  anno_cmp_func_t cmp_func_ = NULL, 
-			  ser_func_t s = NULL) :
-		  AnnotationClassBase(n, cmp_func_, s)
+			  anno_cmp_func_t cmp_func_ = NULL) :
+		  AnnotationClassBase(n, cmp_func_)
 	  {
 	  }
 
@@ -142,21 +130,8 @@ typedef enum {
 
 COMMON_EXPORT const char *serPostOp2Str(ser_post_op_t);
 
-
-class AnnotatableDense;
-class AnnotatableSparse;
-COMMON_EXPORT bool is_input(SerializerBase *sb);
-COMMON_EXPORT bool is_output(SerializerBase *sb);
-COMMON_EXPORT unsigned short get_serializer_index(SerializerBase *sb);
-COMMON_EXPORT bool ser_operation(SerializerBase *, ser_post_op_t &, const char *);
-COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
-COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &);
-
 class COMMON_EXPORT AnnotatableDense
 {
-	friend  bool COMMON_EXPORT add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
-	friend class SerializerBase;
-	friend class Serializable;
 	typedef void *anno_list_t;
 
 	/**
@@ -172,14 +147,9 @@ class COMMON_EXPORT AnnotatableDense
       struct aInfo {
          anno_map_t *data;
          AnnotationClassID max;
-		 unsigned short serializer_index;
       };
 
       aInfo *annotations;
-
-	  //  private version of addAnnotation exists for deserialize functions
-	  //  to reconstruct annotations without explicit type info -- don't use in 
-	  //  other contexts
 
       bool addAnnotation(const void *a, AnnotationClassID id) 
 	  {
@@ -196,7 +166,6 @@ class COMMON_EXPORT AnnotatableDense
          {
             annotations = (aInfo *) malloc(sizeof(aInfo));
 			annotations->data = NULL;
-			annotations->serializer_index = (unsigned short) -1;
 		 }
 
 		 //  can have case where we have allocated annotations struct but not the
@@ -303,8 +272,6 @@ class COMMON_EXPORT AnnotatableDense
          return true;
       }
 
-	  void serializeAnnotations(SerializerBase *, const char *) {}
-
 	  void annotationsReport()
 	  {
 		  std::vector<AnnotationClassBase *> atypes;
@@ -343,11 +310,6 @@ class COMMON_EXPORT AnnotatableDense
 
 class COMMON_EXPORT AnnotatableSparse
 {
-	friend class SerializerBase;
-	friend class Serializable;
-	friend  bool COMMON_EXPORT add_annotations(SerializerBase *, 
-			AnnotatableSparse *, std::vector<ser_rec_t> &);
-
    public:
       struct void_ptr_hasher
       {
@@ -479,8 +441,6 @@ class COMMON_EXPORT AnnotatableSparse
          return target;
       }
 
-	  //  private version of addAnnotation used by deserialize function to restore
-	  //  annotation set without explicitly specifying types
 	  AN_INLINE bool addAnnotation(const void *a, AnnotationClassID aid)
 	  {
 		  if (annotation_debug_flag())
@@ -697,61 +657,6 @@ class COMMON_EXPORT AnnotatableSparse
 			  return true;
 		  }
 	      return false;
-	  }
-
-    void serializeAnnotations(SerializerBase *sb, const char *)
-	  {
-		  annos_t &l_annos = *getAnnos();
-		  std::vector<ser_rec_t> my_sers;
-            void *obj = this;
-			if (is_output(sb))
-			{
-				for (AnnotationClassID id = 0; id < l_annos.size(); ++id)
-				{
-					annos_by_type_t *abt = getAnnosOfType(id, false /*don't do create */);
-					if (NULL == abt) continue;
-
-					annos_by_type_t::iterator iter = abt->find(obj);
-
-					if (iter == abt->end()) 
-					{
-						//	fprintf(stderr, "%s[%d]:  nothing for this obj\n", FILE__, __LINE__);
-						continue;
-					}
-
-					//  we have an annotation of this type for this object, find the serialization
-					//  function and call it (if it exists)
-
-					AnnotationClassBase *acb =  AnnotationClassBase::findAnnotationClass(id);
-					if (!acb)
-					{
-						fprintf(stderr, "%s[%d]:  FIXME, cannot find annotation class base for id %d, mode = %s\n", FILE__, __LINE__, id, is_input(sb) ? "deserialize" : "serialize");
-						continue;
-					}
-
-					ser_func_t sf = acb->getSerializeFunc();
-
-					if (NULL == sf)
-					{
-						continue;
-					}
-
-					ser_rec_t sr;
-					sr.acb = acb;
-					sr.data = iter->second;
-					sr.parent_id = (void *) this;
-					sr.sod = sparse;
-					my_sers.push_back(sr);
-				}
-
-					ser_ndx_map[this] = get_serializer_index(sb);
-			}
-
-			if (!add_annotations(sb, this, my_sers))
-			{
-				fprintf(stderr, "%s[%d]:  failed to update annotation list after deserialize\n", 
-						FILE__, __LINE__);
-			}
 	  }
 
 	  void annotationsReport()

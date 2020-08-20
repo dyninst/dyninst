@@ -37,10 +37,8 @@
 #include "Symtab.h"
 #include "Module.h"
 #include "Variable.h"
-#include "Serialization.h"
 
 #include "common/src/headers.h"
-#include "common/src/serialize.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -80,7 +78,7 @@ bool localVarCollection::addItem_impl(localVar * var)
 
 void localVarCollection::addLocalVar(localVar * var)
 {
-	if (!addItem(var))
+	if (!addItem_impl(var))
 	{
            create_printf("%s[%d]:  ERROR adding localVar\n", FILE__, __LINE__);
 	}
@@ -111,11 +109,6 @@ localVar *localVarCollection::findLocalVar(std::string &name){
 const dyn_c_vector<localVar *> &localVarCollection::getAllVars() const
 {
     return localVars;
-}
-
-Serializable *localVarCollection::ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
 }
 
 // Could be somewhere else... for DWARF-work.
@@ -402,11 +395,6 @@ void typeCollection::getAllGlobalVariables(vector<pair<string, boost::shared_ptr
         it != globalVarsByName.end(); it++) {
 	vec.push_back(make_pair(it->first, it->second));
    }
-}
-
-Serializable *typeCollection::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
 }
 
 /*

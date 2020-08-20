@@ -31,7 +31,6 @@
 // $Id: Object.C,v 1.31 2008/11/03 15:19:25 jaw Exp $
 
 #include "Annotatable.h"
-#include "common/src/serialize.h"
 
 #include "Symtab.h"
 #include "symutil.h"
@@ -71,11 +70,6 @@ boost::shared_ptr<Type> Variable::getType(Type::do_share_t)
 {
 	module_->exec()->parseTypesNow();
 	return type_;
-}
-
-Serializable *Variable::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
 }
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
@@ -118,7 +112,6 @@ bool Variable::removeSymbol(Symbol *sym)
 
 localVar::localVar(std::string name,  boost::shared_ptr<Type> typ, std::string fileName, 
 		int lineNum, FunctionBase *f, std::vector<VariableLocation> *locs) :
-	Serializable(),
 	name_(name), 
 	type_(typ), 
 	fileName_(fileName), 
@@ -132,8 +125,7 @@ localVar::localVar(std::string name,  boost::shared_ptr<Type> typ, std::string f
 	}
 }
 
-localVar::localVar(localVar &lvar) :
-	Serializable()
+localVar::localVar(localVar &lvar)
 {
 	name_ = lvar.name_;
 	type_ = lvar.type_;
@@ -325,9 +317,4 @@ bool localVar::operator==(const localVar &l)
         if (locs_ != l.locs_) return false;
 
 	return true;
-}
-
-Serializable *localVar::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
-{
-   return NULL;
 }

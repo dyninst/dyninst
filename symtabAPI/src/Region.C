@@ -30,7 +30,6 @@
 
 #include "Region.h"
 #include "Symtab.h"
-#include "common/src/serialize.h"
 #include <iostream>
 
 using namespace Dyninst;
@@ -187,11 +186,6 @@ const char *Region::regionType2Str(RegionType rt)
    };
    return "bad_RegionTypeype";
 };
-
-Serializable *Region::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
 
 unsigned Region::getRegionNumber() const
 {

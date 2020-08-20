@@ -34,7 +34,6 @@
 #define _ANNOTATIONS_H_
 
 #include "Annotatable.h"
-#include "common/src/serialize.h"
 
 #include <string>
 #include <vector>

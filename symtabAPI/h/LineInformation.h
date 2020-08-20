@@ -33,7 +33,6 @@
 
 #include "symutil.h"
 #include "RangeLookup.h"
-#include "Serialization.h"
 #include "Annotatable.h"
 #include "Module.h"
 
