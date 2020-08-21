@@ -51,7 +51,6 @@ class PCProcess;
 class AddressSpace;
 class PCThread;
 class miniTrampHandle;
-class miniTramp;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;

@@ -37,7 +37,6 @@
 #include "BPatch_enums.h"
 class InstrucIter;
 class instPoint;
-class miniTramp;
 class BPatch_thread;
 class BPatch_image;
 class BPatch_function;
