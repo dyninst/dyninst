@@ -34,6 +34,7 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include <boost/format.hpp>
 
 #include <iostream>
 
@@ -90,7 +91,22 @@ MachRegister MachRegister::getBaseRegister() const {
          return *this;
       case Arch_cuda:
       case Arch_amdgpu:
-	 assert(0);
+         switch (category){
+            case amdgpu::SGPR:
+            case amdgpu::SGPR_VEC2:
+            case amdgpu::SGPR_VEC4:
+            case amdgpu::SGPR_VEC8:
+            case amdgpu::SGPR_VEC16:
+                return MachRegister( (reg & 0x000000ff) | amdgpu::sgpr0); 
+            case amdgpu::VGPR:
+            case amdgpu::VGPR_VEC2:
+            case amdgpu::VGPR_VEC4:
+            case amdgpu::VGPR_VEC8:
+            case amdgpu::VGPR_VEC16:
+                return MachRegister( (reg & 0x000000ff) | amdgpu::vgpr0); 
+            default:
+	            assert(0);
+         }
 		case Arch_aarch32:
 		case Arch_aarch64:
 				  //not verified
@@ -129,10 +145,48 @@ MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg,
 std::string MachRegister::name() const {
 	assert(names() != NULL);
 	NameMap::const_iterator iter = names()->find(reg);
+    
+    std::string ret;
 	if (iter != names()->end()) {
-		return iter->second;
+
+        signed int category = reg & 0x00ff0000;
+        signed int base_val = reg & 0x000000ff;
+        switch(category){
+            case amdgpu::SGPR_VEC2:
+                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
+                break;
+            case amdgpu::VGPR_VEC2:
+                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
+                break;
+            case amdgpu::SGPR_VEC4:
+                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
+                break;
+            case amdgpu::VGPR_VEC4:
+                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
+                break;
+            case amdgpu::SGPR_VEC8:
+                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
+
+                break;
+            case amdgpu::VGPR_VEC8:
+                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
+
+                break;
+            case amdgpu::SGPR_VEC16:
+                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
+                break;
+            case amdgpu::VGPR_VEC16:
+                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
+                break;
+            default:
+                ret = iter->second;
+                break;
+        }
+        return ret;
 	}
+   std::cout << " can't find " << reg << std::endl;
 	return std::string("<INVALID_REG>");
+
 }
 
 unsigned int MachRegister::size() const {
@@ -197,14 +251,30 @@ unsigned int MachRegister::size() const {
             return 8;
          return 4;
       }
-      case Arch_ppc64:
+      case Arch_ppc64: {
         if((reg & 0x00ff0000) == aarch64::FPR)
           return 16;
         return 8;
+      }
       case Arch_aarch32:
       case Arch_cuda:
-      case Arch_amdgpu:
-        assert(0);
+      case Arch_amdgpu:{
+        int reg_class = (reg&0x00ff0000 ) ;
+        if ( reg_class == amdgpu::SGPR || reg_class == amdgpu::VGPR){
+            return 4;
+        }else if (reg_class == amdgpu::SGPR_VEC2 || reg_class == amdgpu::VGPR_VEC2){
+            return 8;
+        }else if (reg_class == amdgpu::SGPR_VEC4 || reg_class == amdgpu::VGPR_VEC4){
+            return 16;
+        }else if (reg_class == amdgpu::SGPR_VEC8 || reg_class == amdgpu::VGPR_VEC8){
+            return 32;
+        }else if (reg_class == amdgpu::SGPR_VEC16 || reg_class == amdgpu::VGPR_VEC16){
+            return 64;
+        }
+        else{
+            assert(0);
+        }
+      }
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
 		{
@@ -271,8 +341,11 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
          return aarch64::pc;
       case Arch_aarch32:
       case Arch_cuda:
-      case Arch_amdgpu:
+         
          assert(0);
+
+      case Arch_amdgpu:
+         return amdgpu::pc;
       case Arch_none:
          return InvalidReg;
    }
@@ -532,8 +605,11 @@ bool MachRegister::isFlag() const
          // For power, we have a different register representation.
 	 // We do not use the subrange field for MachReigsters
 	 // and all lower 32 bits are base ID
-	 int baseID = reg & 0x0000FFFF;
+	    int baseID = reg & 0x0000FFFF;
          return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
+      }
+      case Arch_amdgpu:{
+        return (reg & 0x0000F000);
       }
       default:
          assert(!"Not implemented!");
@@ -2000,9 +2076,8 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
       case Arch_ppc64:
       case Arch_aarch64:
       case Arch_cuda:
-         return 8;
       case Arch_amdgpu:
-         // according to the manual of vega, amdgpu can have 32 bit / 64 bit address
+         return 8;
          assert(0);
       default:
          assert(0);

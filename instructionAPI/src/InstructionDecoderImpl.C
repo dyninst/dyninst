@@ -33,6 +33,8 @@
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
+#include "InstructionDecoder-amdgpu.h"
+
 #include "BinaryFunction.h"
 #include "Dereference.h"
 
@@ -52,6 +54,7 @@ namespace Dyninst
         Instruction InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
         {
             //setMode(m_Arch == Arch_x86_64);
+            assert( 0 && "why am i here ?" );
             const unsigned char* start = b.start;
             decodeOpcode(b);
             unsigned int decodedSize = b.start - start;
@@ -72,6 +75,8 @@ namespace Dyninst
                 case Arch_aarch32:
                 case Arch_aarch64:
                     return Ptr(new InstructionDecoder_aarch64(a));
+                case Arch_amdgpu:
+                    return Ptr(new InstructionDecoder_amdgpu(a));
                 default:
                     assert(0);
                     return Ptr();
@@ -127,6 +132,7 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
+
         Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, Result_Type extendFrom)
         {
             int newID = registerID.val();

@@ -32,90 +32,90 @@
 
 namespace Dyninst
 {
-  namespace InstructionAPI
-  {
-    Expression::Expression(Result_Type t) :
-      InstructionAST(), userSetValue(t)
+    namespace InstructionAPI
     {
-    } 
-    Expression::Expression(MachRegister r) :
-        InstructionAST()
-    {
-        switch(r.size())
+        Expression::Expression(Result_Type t) :
+            InstructionAST(), userSetValue(t)
         {
-            case 1:
-                userSetValue = Result(u8);
-                break;
-            case 2:
-                userSetValue = Result(u16);
-                break;
-            case 4:
-                userSetValue = Result(u32);
-                break;
-            case 8:
-                userSetValue = Result(u64);
-                break;
-            case 10:
-                userSetValue = Result(dp_float);
-		break;
-            case 16:
-                userSetValue = Result(dbl128);
-                break;
-            case 32:
-                userSetValue = Result(m256);
-                break;
-            case 64:
-                userSetValue = Result(m512);
-                break;
-	case 0:
-	  // Special case for bitfields
-	  userSetValue = Result(bit_flag);
-	  break;
-            default:
-                assert(!"unexpected machine register size!");
+        } 
+        Expression::Expression(MachRegister r) :
+            InstructionAST()
+        {
+            switch(r.size())
+            {
+                case 1:
+                    userSetValue = Result(u8);
+                    break;
+                case 2:
+                    userSetValue = Result(u16);
+                    break;
+                case 4:
+                    userSetValue = Result(u32);
+                    break;
+                case 8:
+                    userSetValue = Result(u64);
+                    break;
+                case 10:
+                    userSetValue = Result(dp_float);
+                    break;
+                case 16:
+                    userSetValue = Result(dbl128);
+                    break;
+                case 32:
+                    userSetValue = Result(m256);
+                    break;
+                case 64:
+                    userSetValue = Result(m512);
+                    break;
+                case 0:
+                    // Special case for bitfields
+                    userSetValue = Result(bit_flag);
+                    break;
+                default:
+                    assert(!"unexpected machine register size!");
+            }
         }
-    }
-    Expression::~Expression()
-    {
-    }
-    const Result& Expression::eval() const
-    {
-      return userSetValue;
-    }
-    void Expression::setValue(const Result& knownValue) 
-    {
-      userSetValue = knownValue;
-    }
-    void Expression::clearValue()
-    {
-      userSetValue.defined = false;
-    }
-    int Expression::size() const
-    {
-      return userSetValue.size();
-    }
-    bool Expression::bind(Expression* expr, const Result& value)
-    {
-      //bool retVal = false;
-      if(*expr == *this)
-      {
-          setValue(value);
-	return true;
-      }
-      return false;
-    }
-    bool Expression::isFlag() const
-    {
-      return false;
-    }
-    bool DummyExpr::isStrictEqual(const InstructionAST& ) const
-    {
-        return true;
-    }
-    bool DummyExpr::checkRegID(MachRegister, unsigned int, unsigned int) const
-    {
-        return true;
-    }
+        Expression::~Expression()
+        {
+        }
+        const Result& Expression::eval() const
+        {
+            return userSetValue;
+        }
+        void Expression::setValue(const Result& knownValue) 
+        {
+            userSetValue = knownValue;
+        }
+        void Expression::clearValue()
+        {
+            userSetValue.defined = false;
+        }
+        int Expression::size() const
+        {
+            return userSetValue.size();
+        }
+        bool Expression::bind(Expression* expr, const Result& value)
+        {
+            //bool retVal = false;
+            if(*expr == *this)
+            {
+                setValue(value);
+                return true;
+            }
+            return false;
+        }
+        bool Expression::isFlag() const
+        {
+            return false;
+        }
+        bool DummyExpr::isStrictEqual(const InstructionAST& ) const
+        {
+            return true;
+        }
+        bool DummyExpr::checkRegID(MachRegister, unsigned int, unsigned int) const
+        {
+            return true;
+        }
 
-  };
+    };
 };

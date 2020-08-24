@@ -78,6 +78,7 @@ namespace Dyninst
       case aarch64_op_cbz:
       case aarch64_op_cbnz:
       case aarch64_op_br: 
+#include "amdgpu_branchinsn_table.h"
 	return c_BranchInsn;
           case e_cmp:
           case e_cmppd:

@@ -49,6 +49,7 @@
 #include "IA_x86.h"
 #include "IA_power.h"
 #include "IA_aarch64.h"
+#include "IA_amdgpu.h"
 
 #if defined(os_vxworks)
 #include "common/src/wtxKludges.h"
@@ -123,6 +124,9 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
 	    return new IA_power(dec_, where_, o, r, isrc, curBlk_);
 	case Arch_aarch64:
 	    return new IA_aarch64(dec_, where_, o, r, isrc, curBlk_);
+    case Arch_amdgpu:
+
+	    return new IA_amdgpu(dec_, where_, o, r, isrc, curBlk_);
 	default:
 	    assert(!"unimplemented architecture");
     }

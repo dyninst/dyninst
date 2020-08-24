@@ -1561,6 +1561,50 @@ namespace Dyninst
       DEF_REGISTER(fpsr,     5 | D_REG  |SPR | Arch_aarch64, "aarch64");
 
 	}	//end of aarch64 namespace
+	namespace amdgpu{
+      //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
+      //arch        reg cat:GPR     alias&subrange  reg ID
+      const signed int SGPR           = 0x00010000;
+      const signed int SGPR_VEC2      = 0x00020000;
+      const signed int SGPR_VEC4      = 0x00030000;
+      const signed int SGPR_VEC8      = 0x00040000;
+      const signed int SGPR_VEC16     = 0x00050000;
+
+      const signed int VGPR           = 0x00060000;
+      const signed int VGPR_VEC2      = 0x00070000;
+      const signed int VGPR_VEC4      = 0x00080000;
+      const signed int VGPR_VEC8      = 0x00090000;
+      const signed int VGPR_VEC16     = 0x000A0000;
+      
+      const signed int HWR            = 0x000B0000;
+      const signed int TTMP_SGPR      = 0x000C0000;
+      const signed int SYSREG         = 0x00100000;
+
+      // aliasing for flags
+      // if we found out that it is a flag, we no longer need to use hte cat  0x00ff0000
+      // so we use thhat part to encode the low offset in the base register
+      const signed int BIT     = 0x00001000;
+      const signed int D_BIT   = 0x00002000;
+      const signed int T_BIT   = 0x00003000;
+      const signed int Q_BIT   = 0x00004000;
+      const signed int H_BIT   = 0x00006000;
+      const signed int S_BIT   = 0x00007000;
+      const signed int O_BIT   = 0x00008000;
+      const signed int N_BIT   = 0x00009000;
+
+      const signed int B_REG   = 0x00000100;      //8bit  byte reg
+      const signed int W_REG   = 0x00000200;      //16bit half-wor reg
+      const signed int D_REG   = 0x00000300;      //32bit single-word reg
+      const signed int FE_REG  = 0x00000400;     //48bit reg
+      const signed int FULL    = 0x00000500;      //64bit double-word reg
+      const signed int Q_REG   = 0x00000600;      //128bit reg
+      const signed int YMMS    = 0x00000700;       //256bit reg
+      const signed int ZMMS    = 0x00000800;       //512bit reg
+      const signed int HQ_REG  = 0x00000900;      //second 64bit in 128bit reg
+
+      #include "amdgpu_sys_regs.h"
+    }
+
 }
 
 #endif

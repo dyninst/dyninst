@@ -3002,6 +3002,8 @@ power_op_dxex,
   aarch64_op_yield_hint,
   aarch64_op_zip1_advsimd,
   aarch64_op_zip2_advsimd,
+  amdgpu_op_sop1_nop,
+#include "amdgpu_op_table.h"
   _entry_ids_max_
 };
 enum prefixEntryID {

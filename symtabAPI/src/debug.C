@@ -35,7 +35,7 @@
 #include "debug.h"
 
 int sym_debug_create = 0;
-int sym_debug_parsing = 0;
+int sym_debug_parsing = 1;
 int sym_debug_aggregate = 0;
 int sym_debug_object = 0;
 int sym_debug_types = 0;

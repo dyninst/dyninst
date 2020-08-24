@@ -21,6 +21,7 @@ set (SRC_LIST
 	src/IA_x86.C
 	src/IA_power.C
 	src/IA_aarch64.C
+    src/IA_amdgpu.C
         src/CFGModifier.C
         src/StackTamperVisitor.C
 	src/JumpTableFormatPred.C
