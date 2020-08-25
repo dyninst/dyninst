@@ -154,7 +154,3 @@ include_directories(${ElfUtils_INCLUDE_DIRS})
 message(STATUS "ElfUtils includes: ${ElfUtils_INCLUDE_DIRS}")
 message(STATUS "ElfUtils library dirs: ${ElfUtils_LIBRARY_DIRS}")
 message(STATUS "ElfUtils libraries: ${ElfUtils_LIBRARIES}")
-
-if(USE_COTIRE)
-  cotire(ElfUtils)
-endif()

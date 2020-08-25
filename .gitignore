@@ -94,7 +94,6 @@ CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
 */cmake_install.cmake
-*/*_CXX_cotire.cmake
 Makefile
 */Makefile
 *.eps
@@ -118,7 +117,6 @@ doxyfiles/*
 *.dir/
 */Debug/
 */Release/
-cotire/
 .idea/*
 .vscode/*
 build*/

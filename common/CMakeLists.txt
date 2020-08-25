@@ -122,7 +122,3 @@ if(USE_OpenMP)
   set_target_properties(common PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} LINK_FLAGS ${OpenMP_CXX_FLAGS})
 endif()
 
-IF (USE_COTIRE)
-    cotire(common)
-ENDIF()
-
