@@ -92,31 +92,6 @@ include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
 include (${DYNINST_ROOT}/cmake/endian.cmake)
 
-# Check for cotire-gcc compatibility
-IF(CMAKE_COMPILER_IS_GNUCC)
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-    string(REGEX MATCHALL "[0-9]+" GCC_VERSION_COMPONENTS ${GCC_VERSION})
-    IF(GCC_VERSION VERSION_LESS 4.5)
-        SET(USE_COTIRE OFF)
-    ENDIF()
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
-
-# If we're compiling for unix, cotire only supports Intel, GCC and Clang.
-IF (UNIX AND NOT ((${CMAKE_CXX_COMPILER_ID} MATCHES Clang) OR (${CMAKE_CXX_COMPILER_ID} MATCHES GNU) OR (${CMAKE_CXX_COMPILER_ID} MATCHES Intel)))
-	set(USE_COTIRE OFF)
-ENDIF()
-
-# Make sure our CMake version is actually supported by cotire
-IF(CMAKE_VERSION VERSION_LESS 2.8.12)
-    SET(USE_COTIRE OFF)
-ENDIF()
-
-if (USE_COTIRE)
-    include (${DYNINST_ROOT}/cmake/cotire.cmake)
-    set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
-endif()
-
-
 set (BUILD_SHARED_LIBS ON)
 
 set (INSTALL_BIN_DIR bin CACHE PATH "Installation directory for executables")

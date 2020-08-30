@@ -101,7 +101,4 @@ if (UNIX)
 # Boost auto-links on Windows; don't double-link
 target_link_private_libraries(pcontrol pthread)
 endif()
-if (USE_COTIRE)
-    cotire(pcontrol)
-endif()
 

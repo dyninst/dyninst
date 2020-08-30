@@ -118,7 +118,3 @@ set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
 
 message(STATUS "LibIberty library dirs: ${LibIberty_LIBRARY_DIRS}")
 message(STATUS "LibIberty libraries: ${LibIberty_LIBRARIES}")
-
-if(USE_COTIRE)
-  cotire(LibIberty)
-endif()
