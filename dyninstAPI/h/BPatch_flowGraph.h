@@ -93,7 +93,6 @@ public:
   BPatch_basicBlock *findBlock(block_instance *b);
   BPatch_edge *findEdge(edge_instance *e);
   void invalidate(); // invoked when additional parsing takes place
-  //  End of deprecated function
 
   //  Functions for use by Dyninst users
 
@@ -144,16 +143,8 @@ public:
 
   BPatch_basicBlockLoop * findLoop(const char *name);
 
-  // Deprecated - this should not be an API method
-  //void, initLivenessInfo();
-
   bool isValid(); 
 
-  /*
-  BPatch_point * createInstPointAtEdge(BPatch_edge *edge);
-  */
-  // Deprecated... use BPatch_edge->point() instead
-  
   /** find instrumentation points specified by loc, add to points*/
   BPatch_Vector<BPatch_point*> * 
       findLoopInstPoints(const BPatch_procedureLocation loc, 
