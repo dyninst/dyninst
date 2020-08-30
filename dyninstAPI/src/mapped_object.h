@@ -183,7 +183,6 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     bool isCode(Address addr) const;
     bool isData(Address addr) const;
 
-    // Deprecated...
     Address getBaseAddress() const { return codeBase(); }
 
     Address dataAbs() const;
