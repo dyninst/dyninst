@@ -459,10 +459,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 #if 0
   void  printDefensiveStats();
 #endif
-  //  BPatch_process::enableDumpPatchedImage
-  //  
-  //  
-  void enableDumpPatchedImage();
 
 #ifdef IBM_BPATCH_COMPAT
   bool addSharedObject(const char *name, const unsigned long loadaddr);
