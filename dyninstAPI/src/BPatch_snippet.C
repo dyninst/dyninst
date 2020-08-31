@@ -133,25 +133,6 @@ BPatch_type *BPatch_snippet::getType(){
    return ast_wrapper->getType();
 }
 
-/*
- * BPatch_snippet:getCost
- *
- * Deprecated.
- */
-float BPatch_snippet::getCost()
-{
-    return 0.0;
-}
-/*
- * BPatch_snippet:getCostAtPoint
- *
- * Deprecated.
- */
-float BPatch_snippet::getCostAtPoint(BPatch_point *)
-{
-    return 0.0;
-}
-
 bool BPatch_snippet::is_trivial()
 {
   return (ast_wrapper == NULL);
