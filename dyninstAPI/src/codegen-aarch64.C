@@ -675,17 +675,6 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-bool insnCodeGen::generate(codeGen &gen,
-                           instruction &insn,
-                           AddressSpace * /*proc*/,
-                           Address /*origAddr*/,
-                           Address /*relocAddr*/,
-                           patchTarget * /*fallthroughOverride*/,
-                           patchTarget * /*targetOverride*/) {
-  assert(0 && "Deprecated!");
-  return false;
-}
-
 bool insnCodeGen::generateMem(codeGen &,
                               instruction&,
                               Address,
