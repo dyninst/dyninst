@@ -168,16 +168,6 @@ class BPATCH_DLL_EXPORT BPatch_snippet {
     
     virtual ~BPatch_snippet();
 
-    //  BPatch_snippet::getCost
-    //  Returns an estimated cost of executing the snippet, in seconds.
-
-    float getCost();
-
-    //  BPatch_snippet::getCostAtPoint
-    //  Returns an estimated cost of executing the snippet at a specified point, in seconds.
-
-    float getCostAtPoint(BPatch_point *pt);
-
     //  BPatch_snippet::is_trivial
     //  allows users to check to see if
     //  a snippet operation failed (leaving ast NULL)
