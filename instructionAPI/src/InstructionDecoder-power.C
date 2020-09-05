@@ -98,7 +98,7 @@ namespace Dyninst
 
     InstructionDecoder_power::InstructionDecoder_power(Architecture a)
       : InstructionDecoderImpl(a),
-        insn(0), insn_in_progress(NULL),
+        insn(0),
 	isRAWritten(false), invertBranchCondition(false),
         isFPInsn(false), bcIsConditional(false)
     {
@@ -272,7 +272,7 @@ namespace Dyninst
 #endif
         mainDecode();
         b.start += 4;
-        return *insn_in_progress;
+        return *(insn_in_progress.get());
     }
 
     bool InstructionDecoder_power::decodeOperands(const Instruction*)
@@ -843,7 +843,6 @@ namespace Dyninst
 	if (findRAAndRS(current)) {
 	    isRAWritten = true;
 	}
-        insn_in_progress = const_cast<Instruction*>(insn_to_complete);
         if(current->op == power_op_b ||
            current->op == power_op_bc ||
            current->op == power_op_bclr ||
@@ -1433,7 +1432,7 @@ using namespace boost::assign;
           current->op == power_op_bcctr)
         {
             // decode control-flow operands immediately; we're all but guaranteed to need them
-            doDelayedDecode(insn_in_progress);
+            doDelayedDecode(insn_in_progress.get());
         }
 	// FIXME in parsing
         insn_in_progress->arch_decoded_from = m_Arch;

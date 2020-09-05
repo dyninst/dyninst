@@ -71,7 +71,7 @@ class InstructionDecoderImpl
         virtual Expression::Ptr makeMaskRegisterExpression(MachRegister reg);
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, Result_Type extendFrom);
         virtual Result_Type makeSizeType(unsigned int opType) = 0;
-        Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
+        boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
       
     protected:

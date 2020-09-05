@@ -321,7 +321,7 @@ namespace Dyninst {
                 Expression::Ptr makeFallThroughExpr();
 
                 unsigned int insn;
-                Instruction* insn_in_progress;
+                boost::shared_ptr<Instruction> insn_in_progress;
                 bool isRAWritten;
                 bool invertBranchCondition;
                 bool isFPInsn;
