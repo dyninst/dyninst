@@ -192,7 +192,7 @@ class AddressSpace : public InstructionSource {
     virtual bool isValidAddress(const Address) const;
     virtual void *getPtrToInstruction(const Address) const;
     virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
-    virtual unsigned getAddressWidth() const = 0;
+
     bool usesDataLoadAddress() const; // OS-specific
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
@@ -367,6 +367,8 @@ class AddressSpace : public InstructionSource {
     bool needsPIC(int_variable *v); 
     bool needsPIC(func_instance *f);
     bool needsPIC(AddressSpace *s);
+    
+    unsigned getAddressWidth() const;
     
     //////////////////////////////////////////////////////
     // BPatch-level stuff
