@@ -2898,7 +2898,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
             //insn_to_complete->m_Operands.reserve(4);
             decode(b);
-            decodeOperands(insn_to_complete);
+            decodeOperands(insn_in_progress.get());
+
+            Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
+            *iptr = *(insn_in_progress.get());
         }
 
         bool InstructionDecoder_aarch64::pre_process_checks(const aarch64_insn_entry &entry) {
