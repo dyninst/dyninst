@@ -299,7 +299,7 @@ BinaryEdit::~BinaryEdit()
 
 BinaryEdit *BinaryEdit::openFile(const std::string &file, 
                                  PatchMgrPtr mgr, 
-                                 Dyninst::PatchAPI::Patcher *patch,
+                                 Dyninst::PatchAPI::Patcher::Ptr patch,
                                  const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());

@@ -81,8 +81,9 @@ class PATCHAPI_EXPORT BatchCommand : public Command {
 
 class PATCHAPI_EXPORT Patcher : public BatchCommand {
   public:
-   static Patcher* create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
-      return new Patcher(mgr);
+   using Ptr = boost::shared_ptr<Patcher>;
+   static Ptr create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
+      return boost::make_shared<Patcher>(mgr);
     }
     Patcher(Dyninst::PatchAPI::PatchMgrPtr mgr) : mgr_(mgr) {}
     virtual ~Patcher() {}
