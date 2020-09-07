@@ -276,16 +276,6 @@ class BPATCH_DLL_EXPORT BPatch_whileExpr : public BPatch_snippet {
                     const BPatch_snippet &body);
 };
 
-class BPATCH_DLL_EXPORT BPatch_regExpr : public BPatch_snippet {
- public:
-    // DEPRECATED!!!
-
-    //  BPatch_regExpr::BPatch_regExpr
-    //  Creates a representation of the contents of a particular register
-    //  specified by <value>
-    BPatch_regExpr(unsigned int value);
-};
-
 class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
  public:
     //  BPatch_funcCallExpr::BPatch_funcCallExpr
