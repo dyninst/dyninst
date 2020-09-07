@@ -89,10 +89,10 @@ BPatch_function *BPatch_frame::findFunction()
   /* 
    * When we generate a BPatch_frame, we store the return address for the call
    * as the PC. When we try to get the function associated with the frame, we
-   * use the PC to identify the function (via findFunctionByAddr). However, if
+   * use the PC to identify the function (via findFunctionByEntry). However, if
    * the function made a non-returning call, the corresponding return address
    * is never parsed, since it is unreachable code. This means that
-   * findFunctionByAddr will return NULL. 
+   * findFunctionByEntry will return NULL.
    *
    * To compensate, we'll instead look up the function by the address of the
    * callsite itself, which is the instruction prior to the return address.
@@ -100,8 +100,8 @@ BPatch_function *BPatch_frame::findFunction()
    * use PC-1, which is within the call instruction.
    */
 
-  void * callSite = (void*)((Address)(getPC()) - 1);
-  return thread->getProcess()->findFunctionByAddr(callSite);
+  Address callSite = reinterpret_cast<Address>(getPC()) - 1;
+  return thread->getProcess()->findFunctionByEntry(callSite);
 }
 
 BPatch_frame::BPatch_frame() : 

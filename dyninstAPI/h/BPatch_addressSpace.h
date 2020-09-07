@@ -324,13 +324,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   statement_iter getAddressRanges_begin(const char* file, unsigned long line);
   statement_iter getAddressRanges_end(const char* file, unsigned long line);
 
-  //  DEPRECATED:
-  //  BPatch_addressSpace::findFunctionByAddr
-  //  
-  //  Returns the function containing an address
-
-  BPatch_function * findFunctionByAddr(void *addr);
-
   //  BPatch_addressSpace::findFunctionByEntry
   //  
   //  Returns the function starting at the given address
