@@ -1565,8 +1565,8 @@ namespace Dyninst
     const signed int GPR   = 0x00000000;
     const signed int PR    = 0x00010000;
     const signed int BR    = 0x00020000;
-    const signed int UR    = 0x00030000;
-    const signed int UPR   = 0x00040000;
+    const signed int UR    = 0x00040000;
+    const signed int UPR   = 0x00080000;
 
     // General purpose registers
     DEF_REGISTER(r0,       0 | GPR | Arch_cuda, "cuda");
