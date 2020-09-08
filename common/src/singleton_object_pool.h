@@ -57,6 +57,7 @@ public:
     static void destroy(typename Alloc::pointer p)
     {
         Alloc().destroy(p);
+        deallocate(p);
     };
 
 };

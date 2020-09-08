@@ -98,7 +98,7 @@ namespace Dyninst
 
     InstructionDecoder_power::InstructionDecoder_power(Architecture a)
       : InstructionDecoderImpl(a),
-        insn(0), insn_in_progress(NULL),
+        insn(0),
 	isRAWritten(false), invertBranchCondition(false),
         isFPInsn(false), bcIsConditional(false)
     {
@@ -272,13 +272,81 @@ namespace Dyninst
 #endif
         mainDecode();
         b.start += 4;
-        return *insn_in_progress;
+        return *(insn_in_progress.get());
     }
 
-    bool InstructionDecoder_power::decodeOperands(const Instruction*)
+    bool InstructionDecoder_power::decodeOperands(const Instruction* insn_to_complete)
     {
-      assert(!"not implemented");
-      return false;
+				/* Yuhan's notes for implementation
+					 For all instructions in opcode 60, the extended opcode is 21-29th bit.
+					 special case for opcode 60: (Opcode table on Page 1190)
+			  I. Decision Tree:
+				  (1) For XX4 format, the 26&27 bits are 1. (only for opcde "xxsel" P773)
+			    (2) Two special XX3 cases: 0..00 010.. & 0..01 010.., started from 21th bit. (manual 1208)
+				  (3) Other instruction are all implemented normally, 
+				    the "." bits are treated as 0 and 1 respectively in the opcode table
+				II. The Rc bit for opcode 60 is the 21st bit
+
+			   **	There are 2 XX1 instructions, the last bit of the extended opcodes are ignored (30th bit, which are both 0).
+				*/
+
+        isRAWritten = false;
+        isFPInsn = false;
+        bcIsConditional = false;
+        insn = insn_to_complete->m_RawInsn.small_insn;
+        const power_entry* current = &power_entry::main_opcode_table[field<0,5>(insn)];
+        while(current->next_table)
+        {
+            current = &(std::mem_fun(current->next_table)(this));
+        }
+	if (findRAAndRS(current)) {
+	    isRAWritten = true;
+	}
+        if(current->op == power_op_b ||
+           current->op == power_op_bc ||
+           current->op == power_op_bclr ||
+           current->op == power_op_bcctr)
+        {
+            insn_in_progress->appendOperand(makeRegisterExpression(ppc32::pc), false, true);
+        }
+        
+        for(operandSpec::const_iterator curFn = current->operands.begin();
+            curFn != current->operands.end();
+            ++curFn)
+        {
+            std::mem_fun(*curFn)(this);
+        }
+        if(current->op == power_op_bclr)
+        {
+	  // blrl is in practice a return-and-link, not a call-through-LR
+	  // so we'll treat it as such
+            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::lr),
+                                           /*field<31,31>(insn) == 1*/ false, true, 
+					   bcIsConditional, false);
+            if(bcIsConditional)
+            {
+                insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+            }
+        }
+        if(current->op == power_op_bcctr)
+        {
+            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::ctr),
+                                           field<31,31>(insn) == 1, true, bcIsConditional, false);
+            if(bcIsConditional)
+            {
+                insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+            }
+        }
+        if(current->op == power_op_addic_rc ||
+           current->op == power_op_andi_rc ||
+           current->op == power_op_andis_rc ||
+           current->op == power_op_stwcx_rc ||
+           current->op == power_op_stdcx_rc)
+        {
+            insn_in_progress->appendOperand(makeCR0Expr(), false, true);
+        }
+
+        return true;
     }
     void InstructionDecoder_power::OE()
     {
@@ -819,76 +887,11 @@ namespace Dyninst
     void InstructionDecoder_power::doDelayedDecode(const Instruction* insn_to_complete)
     {
 
-				/* Yuhan's notes for implementation
-					 For all instructions in opcode 60, the extended opcode is 21-29th bit.
-					 special case for opcode 60: (Opcode table on Page 1190)
-			  I. Decision Tree:
-				  (1) For XX4 format, the 26&27 bits are 1. (only for opcde "xxsel" P773)
-			    (2) Two special XX3 cases: 0..00 010.. & 0..01 010.., started from 21th bit. (manual 1208)
-				  (3) Other instruction are all implemented normally, 
-				    the "." bits are treated as 0 and 1 respectively in the opcode table
-				II. The Rc bit for opcode 60 is the 21st bit
+        insn_in_progress = boost::shared_ptr<Instruction>(new Instruction(*insn_to_complete));
+        decodeOperands(insn_in_progress.get());
+        Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
+        *iptr = *(insn_in_progress.get());
 
-			   **	There are 2 XX1 instructions, the last bit of the extended opcodes are ignored (30th bit, which are both 0).
-				*/
-        isRAWritten = false;
-        isFPInsn = false;
-        bcIsConditional = false;
-        insn = insn_to_complete->m_RawInsn.small_insn;
-        const power_entry* current = &power_entry::main_opcode_table[field<0,5>(insn)];
-        while(current->next_table)
-        {
-            current = &(std::mem_fun(current->next_table)(this));
-        }
-	if (findRAAndRS(current)) {
-	    isRAWritten = true;
-	}
-        insn_in_progress = const_cast<Instruction*>(insn_to_complete);
-        if(current->op == power_op_b ||
-           current->op == power_op_bc ||
-           current->op == power_op_bclr ||
-           current->op == power_op_bcctr)
-        {
-            insn_in_progress->appendOperand(makeRegisterExpression(ppc32::pc), false, true);
-        }
-        
-        for(operandSpec::const_iterator curFn = current->operands.begin();
-            curFn != current->operands.end();
-            ++curFn)
-        {
-            std::mem_fun(*curFn)(this);
-        }
-        if(current->op == power_op_bclr)
-        {
-	  // blrl is in practice a return-and-link, not a call-through-LR
-	  // so we'll treat it as such
-            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::lr),
-                                           /*field<31,31>(insn) == 1*/ false, true, 
-					   bcIsConditional, false);
-            if(bcIsConditional)
-            {
-                insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
-            }
-        }
-        if(current->op == power_op_bcctr)
-        {
-            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::ctr),
-                                           field<31,31>(insn) == 1, true, bcIsConditional, false);
-            if(bcIsConditional)
-            {
-                insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
-            }
-        }
-        if(current->op == power_op_addic_rc ||
-           current->op == power_op_andi_rc ||
-           current->op == power_op_andis_rc ||
-           current->op == power_op_stwcx_rc ||
-           current->op == power_op_stdcx_rc)
-        {
-            insn_in_progress->appendOperand(makeCR0Expr(), false, true);
-        }
-
-        return;
     }
     MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding, int field)
     {
@@ -1433,7 +1436,7 @@ using namespace boost::assign;
           current->op == power_op_bcctr)
         {
             // decode control-flow operands immediately; we're all but guaranteed to need them
-            doDelayedDecode(insn_in_progress);
+            decodeOperands(insn_in_progress.get());
         }
 	// FIXME in parsing
         insn_in_progress->arch_decoded_from = m_Arch;
