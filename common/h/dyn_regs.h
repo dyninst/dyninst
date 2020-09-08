@@ -1565,6 +1565,8 @@ namespace Dyninst
     const signed int GPR   = 0x00000000;
     const signed int PR    = 0x00010000;
     const signed int BR    = 0x00020000;
+    const signed int UR    = 0x00030000;
+    const signed int UPR   = 0x00040000;
 
     // General purpose registers
     DEF_REGISTER(r0,       0 | GPR | Arch_cuda, "cuda");
@@ -1824,6 +1826,72 @@ namespace Dyninst
     DEF_REGISTER(r254,    254 | GPR| Arch_cuda, "cuda");
     DEF_REGISTER(r255,    255 | GPR| Arch_cuda, "cuda");
 
+    // uniform registers
+    DEF_REGISTER(ur0,       0 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur1,       1 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur2,       2 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur3,       3 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur4,       4 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur5,       5 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur6,       6 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur7,       7 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur8,       8 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur9,       9 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur10,     10 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur11,     11 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur12,     12 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur13,     13 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur14,     14 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur15,     15 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur16,     16 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur17,     17 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur18,     18 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur19,     19 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur20,     20 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur21,     21 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur22,     22 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur23,     23 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur24,     24 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur25,     25 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur26,     26 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur27,     27 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur28,     28 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur29,     29 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur30,     30 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur31,     31 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur32,     32 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur33,     33 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur34,     34 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur35,     35 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur36,     36 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur37,     37 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur38,     38 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur39,     39 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur40,     40 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur41,     41 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur42,     42 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur43,     43 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur44,     44 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur45,     45 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur46,     46 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur47,     47 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur48,     48 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur49,     49 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur50,     50 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur51,     51 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur52,     52 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur53,     53 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur54,     54 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur55,     55 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur56,     56 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur57,     57 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur58,     58 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur59,     59 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur60,     60 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur61,     61 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur62,     62 | UR | Arch_cuda, "cuda");
+    DEF_REGISTER(ur63,     63 | UR | Arch_cuda, "cuda");
+
     // Placeholder for a pc register, so that we don't assert
     DEF_REGISTER(pc,    256 | GPR| Arch_cuda, "cuda");
 
@@ -1844,6 +1912,24 @@ namespace Dyninst
     DEF_REGISTER(b4,    4 | BR | Arch_cuda, "cuda");
     DEF_REGISTER(b5,    5 | BR | Arch_cuda, "cuda");
     DEF_REGISTER(b6,    6 | BR | Arch_cuda, "cuda");
+
+    // XXX(Keren): not sure how many uprs, use 16 for safety
+    DEF_REGISTER(up0,    0 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up1,    1 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up2,    2 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up3,    3 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up4,    4 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up5,    5 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up6,    6 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up7,    7 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up8,    8 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up9,    9 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up10,  10 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up11,  11 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up12,  12 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up13,  13 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up14,  14 | UPR | Arch_cuda, "cuda");
+    DEF_REGISTER(up15,  15 | UPR | Arch_cuda, "cuda");
   } //end of cuda namespace
 }
 
