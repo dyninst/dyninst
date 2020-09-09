@@ -59,10 +59,8 @@
   #include <unordered_map>  
   #define dyn_hash_map std::unordered_map
   #define dyn_hash_set std::unordered_set
-  #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #include <functional>
-  #define DECLTHROW(x) throw(x)
   //*****************libcxx**********************
   #if defined(_LIBCPP_VERSION)
       #include <unordered_set>
@@ -116,7 +114,6 @@
   #include <unordered_map>
   #define dyn_hash_set std::tr1::unordered_set
   #define dyn_hash_map std::tr1::unordered_map
-  #define DECLTHROW(x)
 #else
    #error Unknown compiler
 #endif
