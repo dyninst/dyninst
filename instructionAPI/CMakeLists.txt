@@ -11,6 +11,7 @@ set (SRC_LIST
      src/Operation.C 
      src/Operand.C 
      src/Register.C 
+     src/Ternary.C 
      src/Expression.C 
      src/BinaryFunction.C 
      src/InstructionCategories.C

@@ -354,7 +354,7 @@ namespace Dyninst
                 }
                 else
                 {
-                    retVal = m_arg1->format() + " " + m_funcPtr->format() + " " + m_arg2->format();
+                    retVal = "("+m_arg1->format() + " " + m_funcPtr->format() + " " + m_arg2->format()+")";
                 }
 
                 return retVal;

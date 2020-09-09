@@ -270,8 +270,37 @@ unsigned int MachRegister::size() const {
             return 32;
         }else if (reg_class == amdgpu::SGPR_VEC16 || reg_class == amdgpu::VGPR_VEC16){
             return 64;
-        }
-        else{
+        }else{
+            switch(reg & 0x0000ff00){
+                case amdgpu::BIT:
+                case amdgpu::D_BIT:
+                case amdgpu::T_BIT:
+                case amdgpu::Q_BIT:
+                case amdgpu::H_BIT:
+                case amdgpu::O_BIT:
+                    return 1;
+                case amdgpu::N_BIT:
+                    return 2;
+                case amdgpu::D_REG_BIT:
+                    return 4;
+                case amdgpu::B_REG:
+                    return 1; 
+                case amdgpu::W_REG:
+                    return 2;
+                case amdgpu::D_REG:
+                    return 4;
+                case amdgpu::FE_REG:
+                    return 6;
+               case amdgpu::FULL:
+               case amdgpu::HQ_REG:
+                    return 8;
+               case amdgpu::Q_REG:
+                    return 16;
+               case amdgpu::YMMS:
+                    return 32;
+               case amdgpu::ZMMS:
+                    return 64;
+            }
             assert(0);
         }
       }

@@ -1,3 +1,49 @@
+typedef struct vop_literal_layout_sdwa{
+	unsigned int src0 : 8;
+	unsigned int dst_sel : 3;
+	unsigned int dst_u : 2;
+	unsigned int clmp : 1;
+	unsigned int omod : 2;
+	unsigned int src0_sel : 3;
+	unsigned int src0_next : 1;
+	unsigned int src0_neg : 1;
+	unsigned int src0_abs : 1;
+	unsigned int s0 : 1;
+	unsigned int src1_sel : 3;
+	unsigned int src_sext : 1;
+	unsigned int src1_neg : 1;
+	unsigned int s1 : 1;
+}vop_literal_layout_sdwa;
+typedef struct vop_literal_layout_sdwab{
+	unsigned int src0 : 8;
+	unsigned int sdst : 7;
+	unsigned int sd : 1;
+	unsigned int src0_sel : 3;
+	unsigned int src0_next : 1;
+	unsigned int src0_neg : 1;
+	unsigned int src0_abs : 1;
+	unsigned int s0 : 1;
+	unsigned int src1_sel : 3;
+	unsigned int src_sext : 1;
+	unsigned int src1_neg : 1;
+	unsigned int s1 : 1;
+}vop_literal_layout_sdwab;
+typedef struct vop_literal_layout_dpp{
+	unsigned int src0 : 8;
+	unsigned int dpp_ctrl : 9;
+	unsigned int bc : 1;
+	unsigned int src0_neg : 1;
+	unsigned int src0_abs : 1;
+	unsigned int src1_neg : 1;
+	unsigned int src1_abs : 1;
+	unsigned int bank_mask : 4;
+	unsigned int row_mask : 4;
+}vop_literal_layout_dpp;
+typedef union vop_literal_layout {
+	vop_literal_layout_sdwa sdwa;
+	vop_literal_layout_sdwab sdwab;
+	vop_literal_layout_dpp dpp;
+} vop_literal_layout;
 #define IS_SOP2(I) ((longfield<30,31>(I) == 0x2)&&(longfield<28,29>(I) != 0x3)&&(longfield<23,29>(I) != 0x3d)&&(longfield<23,29>(I) != 0x3e)&&(longfield<23,29>(I) != 0x3f))
 #define IS_SOP1(I) ((longfield<23,31>(I) == 0x17d))
 #define IS_SOPK(I) ((longfield<30,31>(I) == 0x2)&&(longfield<28,31>(I) == 0xb)&&(longfield<23,27>(I) != 0x1d)&&(longfield<23,27>(I) != 0x1e)&&(longfield<23,27>(I) != 0x1f))
@@ -16,9 +62,9 @@
 #define IS_FLAT(I) ((longfield<26,31>(I) == 0x37))
 typedef struct layout_sop2{
 	unsigned int op : 7;
-	unsigned int vdst : 7;
-	unsigned int vsrc1 : 8;
-	unsigned int src0 : 8;
+	unsigned int sdst : 7;
+	unsigned int ssrc1 : 8;
+	unsigned int ssrc0 : 8;
 }layout_sop2;
 typedef struct layout_sop1{
 	unsigned int sdst : 7;
@@ -55,16 +101,19 @@ typedef struct layout_vop2{
 	unsigned int vdst : 8;
 	unsigned int vsrc1 : 8;
 	unsigned int src0 : 9;
+	unsigned literal;
 }layout_vop2;
 typedef struct layout_vop1{
 	unsigned int src0 : 10;
 	unsigned int op : 8;
 	unsigned int vdst : 8;
+	unsigned literal;
 }layout_vop1;
 typedef struct layout_vopc{
 	unsigned int src0 : 9;
 	unsigned int vsrc1 : 8;
 	unsigned int op : 8;
+	unsigned literal;
 }layout_vopc;
 typedef struct layout_vintrp{
 	unsigned int vsrc : 8;
@@ -85,6 +134,9 @@ typedef struct layout_ds{
 }layout_ds;
 typedef struct layout_mtbuf{
 	unsigned int offset : 12;
+	unsigned int offen : 1;
+	unsigned int idxen : 1;
+	unsigned int glc : 1;
 	unsigned int op : 4;
 	unsigned int dfmt : 4;
 	unsigned int nfmt : 3;
@@ -97,6 +149,8 @@ typedef struct layout_mtbuf{
 }layout_mtbuf;
 typedef struct layout_mubuf{
 	unsigned int offset : 12;
+	unsigned int offen : 1;
+	unsigned int idxen : 1;
 	unsigned int glc : 1;
 	unsigned int lds : 1;
 	unsigned int slc : 1;

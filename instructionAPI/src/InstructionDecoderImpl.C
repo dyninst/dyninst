@@ -37,6 +37,7 @@
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
+#include "Ternary.h"
 
 using namespace std;
 namespace Dyninst
@@ -54,7 +55,6 @@ namespace Dyninst
         Instruction InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
         {
             //setMode(m_Arch == Arch_x86_64);
-            assert( 0 && "why am i here ?" );
             const unsigned char* start = b.start;
             decodeOpcode(b);
             unsigned int decodedSize = b.start - start;
@@ -119,6 +119,11 @@ namespace Dyninst
             BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
         }
+
+        Expression::Ptr InstructionDecoderImpl::makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second,Result_Type result_type){
+            return make_shared(singleton_object_pool<TernaryAST>::construct(cond,first,second,result_type));
+        }
+
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)
         {
@@ -132,6 +137,17 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
+        
+
+        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, unsigned int start , unsigned int end)
+        {
+            int newID = registerID.val();
+            int minusArch = newID & ~(registerID.getArchitecture());
+            int convertedID = minusArch | m_Arch;
+            MachRegister converted(convertedID);
+            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, start, end));
+        }
+
 
         Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, Result_Type extendFrom)
         {

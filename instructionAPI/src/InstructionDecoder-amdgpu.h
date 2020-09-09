@@ -483,9 +483,17 @@ namespace Dyninst {
             Expression::Ptr makeRegisterPairExpr(MachRegister & baseReg,unsigned int index,  unsigned length);
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
             
+            void decodeFLATOperands();
             void decodeSMEMOperands();
+            void decodeMUBUFOperands();
+            void decodeMTBUFOperands();
+            void decodeSOP2Operands();
+            void decodeSOP1Operands();
+            void decodeVOP1Operands();
             bool useImm;
             bool setSCC;
+
+#define IS_LD_ST() (isLoad || isStore )
 
             bool isSMEM;
             bool isLoad;
@@ -504,6 +512,26 @@ namespace Dyninst {
             void setScratch() {isScratch = true;};
 
             void setBuffer() {isBuffer = true;};
+            
+            typedef struct buffer_resource_desc{
+                unsigned long long base_address;
+                unsigned stride;
+                unsigned cache_swizzle;
+                unsigned swizzle_enable;
+                unsigned num_records;
+                unsigned dst_sel_x;
+                unsigned dst_sel_y;
+                unsigned dst_sel_z;
+                unsigned dst_sel_w;
+                unsigned num_format;
+                unsigned data_format;
+                unsigned user_vm_enable;
+                unsigned user_vm_mode;
+                unsigned index_stride;
+                unsigned add_tid_enable;
+                unsigned non_volatile;
+                unsigned type;
+            }buffer_resource_desc;
         
 #include "amdgpu_decoder_impl_vega.h"
         };

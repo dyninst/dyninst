@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "Ternary.h"
 #include "InstructionDecoder-amdgpu.h"
 
 namespace Dyninst {
@@ -927,13 +928,271 @@ namespace Dyninst {
                 return makeRegisterExpression(amdgpu::m0);
             assert(0 && "shouldn't reach here");
         }
+       
+        static Expression::Ptr conditionalAssignment(unsigned int cond, Expression::Ptr first, Result_Type result_type){
+            if(cond)
+                return first;
+            return Immediate::makeImmediate(Result(result_type,0));
+        }
 
+        void InstructionDecoder_amdgpu::decodeFLATOperands(){
+            layout_flat & layout = insn_layout.flat;
+            //const amdgpu_insn_entry & insn_entry = amdgpu::flat_insn_table[layout.op];
+
+            Expression::Ptr addr_ast = 
+                makeTernaryExpression(
+                        makeRegisterExpression(amdgpu::address_mode_32), // TODO: type needs to be fixed
+                        makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.addr)),
+                        makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.addr,2)),
+                        u64
+                        );
+            switch(layout.seg){
+                case 1:
+                    insn_in_progress->getOperation().mnemonic += "_scratch";
+                    break;
+                case 2:
+                    insn_in_progress->getOperation().mnemonic += "_global";
+                    break;
+                default:
+                    break;
+            }
+
+            insn_in_progress->appendOperand(addr_ast,false,true);
+
+        }
+        void InstructionDecoder_amdgpu::decodeMUBUFOperands(){
+            layout_mubuf & layout = insn_layout.mubuf;
+            const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mubuf_insn_table[layout.op];
+
+            MachRegister vsharp = makeAmdgpuRegID(amdgpu::sgpr0,layout.srsrc<<2,4);
+            Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
+            Expression::Ptr const_stride_ast = makeRegisterExpression(vsharp,48,65); 
+            Expression::Ptr num_records = makeRegisterExpression(vsharp,66,97); 
+            Expression::Ptr add_tid_enable = makeRegisterExpression(vsharp,98,98); 
+            Expression::Ptr swizzle_enable = makeRegisterExpression(vsharp,99,99); 
+            Expression::Ptr element_size = makeRegisterExpression(vsharp,100,101); 
+            Expression::Ptr index_stride = makeRegisterExpression(vsharp,102,103); 
+            
+            Expression::Ptr offset_expr = Immediate::makeImmediate(Result(u32,0)) ;
+            Expression::Ptr index_expr = Immediate::makeImmediate(Result(u32,0)) ;
+
+            if(layout.idxen){
+                if(layout.offen){
+                    index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+                    offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr+1));
+                }else{
+                    index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+                }
+
+            }else{
+                if(layout.offen){
+                    offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+                }else{
+                    // do nothing
+                }
+            }
+
+
+            Expression::Ptr index_ast = 
+                makeAddExpression(
+                    index_expr
+                    ,
+                    makeTernaryExpression(
+                        add_tid_enable,
+                        makeRegisterExpression(amdgpu::tid),
+                        Immediate::makeImmediate(Result(u32,0)),
+                        u32
+                    ),
+                    u32
+                );
+            
+            Expression::Ptr offset_ast = 
+                makeAddExpression(
+                    offset_expr,
+                    Immediate::makeImmediate(Result(u32,layout.offset)),
+                    u32
+                );
+
+            Expression::Ptr buffer_offset = makeAddExpression(
+                    offset_ast,
+                    makeMultiplyExpression(
+                        const_stride_ast,
+                        index_ast,
+                        u64
+                     ),
+                    u64         
+                );
+
+            Expression::Ptr sgpr_offset_ast = decodeSGPRorM0(layout.soffset);
+            Expression::Ptr addr_ast = makeAddExpression(
+                    makeAddExpression(
+                        const_base_ast,
+                        sgpr_offset_ast,
+                        u64),
+                    buffer_offset,
+                    u64
+                    );
+            
+            Expression::Ptr vdata_ast = makeRegisterExpression(
+                    makeAmdgpuRegID(amdgpu::vgpr0,layout.vdata,
+                        num_elements// TODO: This depends on number of elements, which is available from opcode
+                        ));
+
+            insn_in_progress->appendOperand(addr_ast,true,true);
+            insn_in_progress->appendOperand(vdata_ast,true,true);
+            
+            if(layout.lds){
+                Expression::Ptr lds_offset_ast = makeRegisterExpression(amdgpu::m0,0,15);
+                Expression::Ptr mem_offset_ast = makeRegisterExpression(
+                        makeAmdgpuRegID(amdgpu::sgpr0,layout.soffset));
+                Expression::Ptr inst_offset_ast = Immediate::makeImmediate(Result(u32,layout.offset));
+                Expression::Ptr lds_addr_ast =
+                    makeAddExpression(
+                        makeAddExpression(
+                            makeAddExpression(
+                                makeRegisterExpression(amdgpu::lds_base),
+                                lds_offset_ast,
+                                u32
+                            ),
+                            inst_offset_ast,
+                            u32
+                        ),
+                        makeMultiplyExpression(
+                            makeRegisterExpression(amdgpu::tid),
+                            Immediate::makeImmediate(Result(u16,4)),
+                            u32
+                        ),
+                        u32
+                    );
+                insn_in_progress->getOperation().mnemonic+="_lds";
+                insn_in_progress->appendOperand(lds_addr_ast,false,true);
+
+            }
+        }
+
+
+        void InstructionDecoder_amdgpu::decodeMTBUFOperands(){
+            layout_mtbuf & layout = insn_layout.mtbuf;
+            const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mtbuf_insn_table[layout.op];
+
+            MachRegister vsharp = makeAmdgpuRegID(amdgpu::sgpr0,layout.srsrc<<2,4);
+            Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
+            Expression::Ptr const_stride_ast = makeRegisterExpression(vsharp,48,65); 
+            Expression::Ptr num_records = makeRegisterExpression(vsharp,66,97); 
+            Expression::Ptr add_tid_enable = makeRegisterExpression(vsharp,98,98); 
+            Expression::Ptr swizzle_enable = makeRegisterExpression(vsharp,99,99); 
+            Expression::Ptr element_size = makeRegisterExpression(vsharp,100,101); 
+            Expression::Ptr index_stride = makeRegisterExpression(vsharp,102,103); 
+            
+            Expression::Ptr offset_expr = Immediate::makeImmediate(Result(u32,0)) ;
+            Expression::Ptr index_expr = Immediate::makeImmediate(Result(u32,0)) ;
+
+            if(layout.idxen){
+                if(layout.offen){
+                    index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+                    offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr+1));
+                }else{
+                    index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+                }
+
+            }else{
+                if(layout.offen){
+                    offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+                }else{
+                    // do nothing
+                }
+            }
+
+
+            Expression::Ptr index_ast = 
+                makeAddExpression(
+                    index_expr
+                    ,
+                    makeTernaryExpression(
+                        add_tid_enable,
+                        makeRegisterExpression(amdgpu::tid),
+                        Immediate::makeImmediate(Result(u32,0)),
+                        u32
+                    ),
+                    u32
+                );
+            
+            Expression::Ptr offset_ast = 
+                makeAddExpression(
+                    offset_expr,
+                    Immediate::makeImmediate(Result(u32,layout.offset)),
+                    u32
+                );
+
+            Expression::Ptr buffer_offset = makeAddExpression(
+                    offset_ast,
+                    makeMultiplyExpression(
+                        const_stride_ast,
+                        index_ast,
+                        u64
+                     ),
+                    u64         
+                );
+
+            Expression::Ptr sgpr_offset_ast = decodeSGPRorM0(layout.soffset);
+            Expression::Ptr addr_ast = makeAddExpression(
+                    makeAddExpression(
+                        const_base_ast,
+                        sgpr_offset_ast,
+                        u64),
+                    buffer_offset,
+                    u64
+                    );
+            
+            Expression::Ptr vdata_ast = makeRegisterExpression(
+                    makeAmdgpuRegID(amdgpu::vgpr0,layout.vdata,
+                        num_elements// TODO: This depends on number of elements, which is available from opcode
+                        ));
+
+            insn_in_progress->appendOperand(addr_ast,true,true);
+            insn_in_progress->appendOperand(vdata_ast,true,true);
+
+            
+        }
+        void InstructionDecoder_amdgpu::decodeVOP1Operands(){
+
+            layout_vop1 & layout = insn_layout.vop1;
+            const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
+
+            InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
+            insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.vdst),false,true);
+            insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.src0),true,false);
+
+        }
+
+       
+        void InstructionDecoder_amdgpu::decodeSOP1Operands(){
+
+            layout_sop1 & layout = insn_layout.sop1;
+            const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop1_insn_table[layout.op];
+
+            InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
+            insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.sdst),false,true);
+            insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc0),true,false);
+
+        }
+
+        void InstructionDecoder_amdgpu::decodeSOP2Operands(){
+
+            layout_sop2 & layout = insn_layout.sop2;
+            const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
+
+            InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
+            insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.sdst),false,true);
+            insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc1),true,false);
+            insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc0),true,false);
+
+        }
         void InstructionDecoder_amdgpu::decodeSMEMOperands(){
             layout_smem & layout = insn_layout.smem;
 
             const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::smem_insn_table[layout.op];
-            if(!isScratch){
-                // sgpr[124] == m0
+            if(IS_LD_ST()){
                 Expression::Ptr offset_expr ;
                 Expression::Ptr inst_offset_expr ;
                 if(layout.imm==0){
@@ -946,10 +1205,13 @@ namespace Dyninst {
                     offset_expr = layout.soe ? 
                         decodeSGPRorM0(layout.soffset) : Immediate::makeImmediate(Result(u64,0));
                 }
-                cout << "layout.sbase = " << std::hex << layout.sbase << endl;
+//                cout << "layout.sbase = " << std::hex << layout.sbase << endl;
                 MachRegister mr = makeAmdgpuRegID(amdgpu::sgpr0,4,2);
-                cout << " shouldn't it be " << amdgpu::sgpr_vec2_0 << " " << mr << endl; 
+//                cout << " shouldn't it be " << amdgpu::sgpr_vec2_0 << " " << mr << endl; 
                 Expression::Ptr sbase_expr = makeRegisterExpression(makeAmdgpuRegID(amdgpu::sgpr0,layout.sbase << 1,2));
+                if(isScratch)
+                    offset_expr = makeMultiplyExpression(offset_expr,
+                            Immediate::makeImmediate(Result(u64,64)),u64);
 
                 Expression::Ptr remain_expr = makeAddExpression(inst_offset_expr,offset_expr,u64);
                 Expression::Ptr addr_expr = makeDereferenceExpression(makeAddExpression(sbase_expr,remain_expr,u64),u64);
@@ -963,6 +1225,7 @@ namespace Dyninst {
                 insn_in_progress->appendOperand(sdata_expr,true,false);
 
                 insn_in_progress->appendOperand(addr_expr,false,true);
+
             }
 
         }
@@ -1009,311 +1272,67 @@ namespace Dyninst {
             if (index < 102){
                 MachRegister mr = makeAmdgpuRegID(amdgpu::sgpr0,index);
                 return makeRegisterExpression(mr);
-            }else if (index == 128){
+            }else if ( 106 == index ){
+                return makeRegisterExpression(amdgpu::vcc_lo);
+            }else if ( 107 == index ){
 
-                return Immediate::makeImmediate(Result(u32,0));
-            }else if(index == 0xff){
+                return makeRegisterExpression(amdgpu::vcc_hi);
+            }else if (124 == index ){
+                
+                return makeRegisterExpression(amdgpu::m0);
+            }else if ( 126 == index ){
+                return makeRegisterExpression(amdgpu::exec_lo);
+            }else if ( 127 == index ){
+
+                return makeRegisterExpression(amdgpu::exec_hi);
+            }else if( 128 <= index && index <= 192){
+                return Immediate::makeImmediate(Result(u32, unsign_extend32(32,index - 128 )));
+            }else if( 193 <= index && index <= 208 ){
+                return Immediate::makeImmediate(Result(s32, sign_extend32(32,-(index - 192) )));
+            }else if( 209 <= index && index <= 234){
+                assert ( 0 && "reserved index " ) ;
+            }else if (240 == index){
+                return Immediate::makeImmediate(Result(sp_float, 0.5) );
+            }else if (241 == index){
+                return Immediate::makeImmediate(Result(sp_float, -0.5) );
+            }else if (242 == index){
+                return Immediate::makeImmediate(Result(sp_float, 1.0) );
+            }else if (243 == index){
+                return Immediate::makeImmediate(Result(sp_float, -1.0) );
+            }else if (244 == index){
+                return Immediate::makeImmediate(Result(sp_float, 2.0) );
+            }else if (245 == index){
+                return Immediate::makeImmediate(Result(sp_float, -2.0) );
+            }else if (246 == index){
+                return Immediate::makeImmediate(Result(sp_float, 4.0) );
+            }else if (247 == index){
+                return Immediate::makeImmediate(Result(sp_float, -4.0) );
+            }else if (248 == index){
+                return Immediate::makeImmediate(Result(dp_float, (1.0f / (3.1415926535*2)) ) );
+            }else if (249 == index  || 250 == index){
+                assert ( 0 && "reserved index " ) ;
+            }else if ( 251 == index ){
+                return makeRegisterExpression(amdgpu::vccz);
+            }else if ( 252 == index ){
+                return makeRegisterExpression(amdgpu::execz);
+            }else if ( 254 == index ){
+                assert ( 0 && "reserved index " ) ;
+            }
+            else if(index == 0xff){
+
                 unsigned int imm = get32bit(b,4);
                 //std::cerr << "\nusing imm " << imm << std::endl;
                 useImm = true;
                 return Immediate::makeImmediate(Result(u32, unsign_extend32(32,imm )));
             } 
-
+            cerr << std::dec << index << endl;
+            
+            assert(0 && "unknown register value ");
             MachRegister mr = makeAmdgpuRegID(amdgpu::sgpr0,0);
             return makeRegisterExpression(mr);
         }
 #include "amdgpu_decoder_impl_vega.C"
 
-/*        void InstructionDecoder_amdgpu::decodeSOP2(InstructionDecoder::buffer &b){
-            unsigned int insn_size = 4;
-            layout_sop2 & sop2 = insn_layout.sop2;
-            sop2.op = longfield<23,29>(insn_long);
-            sop2.sdst = longfield<16,22>(insn_long);
-            sop2.ssrc1 = longfield<8,15>(insn_long);
-            sop2.ssrc0 = longfield<0,7>(insn_long);
-
-            Expression::Ptr dst_expr = decodeSSRC(b,sop2.sdst );
-            Expression::Ptr src1_expr = decodeSSRC(b,sop2.ssrc1);
-            Expression::Ptr src0_expr = decodeSSRC(b,sop2.ssrc0);
-            if(useImm)
-                insn_size += 4;
-
-            const amdgpu_insn_entry  &insn_entry = sop2_insn_table[sop2.op];
-
-            this->insn_in_progress =makeInstruction(insn_entry.op, insn_entry.mnemonic , insn_size ,reinterpret_cast<unsigned char *>(&insn));
-
-
-            //this->insn_in_progress =makeInstruction(amdgpu_op_sop1_nop, "sop2", insn_size ,reinterpret_cast<unsigned char *>(&insn));
-
-            this->insn_in_progress->appendOperand(src1_expr,true,false);
-            this->insn_in_progress->appendOperand(dst_expr,false,true);
-            this->insn_in_progress->appendOperand(src0_expr,true,false);
-
-
-        }
-
-        void InstructionDecoder_amdgpu::decodeSOP1(InstructionDecoder::buffer &b){
-            layout_sop1 & sop1 = insn_layout.sop1;
-            sop1.sdst = longfield<16,22>(insn_long); 
-            sop1.op = longfield<8,15>(insn_long); 
-            sop1.ssrc0 = longfield<0,7>(insn_long); 
-
-            unsigned int insn_size = 4;
-
-            Expression::Ptr dst_expr = decodeSSRC(b,sop1.sdst);
-            Expression::Ptr src_expr = decodeSSRC(b,sop1.ssrc0);
-
-            // TODO use a lookup table to make sure we simply parse the srcfield and get a expression, simplify logic
-            if (useImm){
-                insn_size += 4;
-            } 
-
-            const amdgpu_insn_entry  &insn_entry = sop1_insn_table[sop1.op];
-
-            this->insn_in_progress =makeInstruction(insn_entry.op, insn_entry.mnemonic , insn_size ,reinterpret_cast<unsigned char *>(&insn));
-
-            //this->insn_in_progress =makeInstruction(amdgpu_op_sop1_nop, "sop1", insn_size ,reinterpret_cast<unsigned char *>(&insn));
-            this->insn_in_progress->appendOperand(dst_expr,false,true);
-            this->insn_in_progress->appendOperand(src_expr,true,false);
-
-        }
-        void InstructionDecoder_amdgpu::decodeSOPP(InstructionDecoder::buffer &b){
-            layout_sopp & sopp = insn_layout.sopp;
-            sopp.op = longfield<16,22>(insn_long); 
-            sopp.simm16 = longfield<0,15>(insn_long); 
-            unsigned int insn_size = 4;
-            Expression::Ptr simm_expr =  Immediate::makeImmediate(Result(u32, unsign_extend32(32,sopp.simm16 )));
-
-            const amdgpu_insn_entry  &insn_entry = sopp_insn_table[sopp.op];
-
-            this->insn_in_progress =makeInstruction(insn_entry.op, insn_entry.mnemonic , insn_size ,reinterpret_cast<unsigned char *>(&insn));
-            this->insn_in_progress->appendOperand(simm_expr,true,false);
-
-        }
-
-        void InstructionDecoder_amdgpu::decodeSOPK(InstructionDecoder::buffer &b){
-            layout_sopk & sopk = insn_layout.sopk;
-            sopk.op = longfield<23,27>(insn_long);
-            sopk.sdst = longfield<16,22>(insn_long);
-            sopk.simm16 = longfield<0,15>(insn_long);
-
-            const amdgpu_insn_entry  &insn_entry = sopp_insn_table[sopk.op];
-            this->insn_in_progress =makeInstruction(insn_entry.op, insn_entry.mnemonic , insn_size ,reinterpret_cast<unsigned char *>(&insn));
-            //this->insn_in_progress->appendOperand(simm_expr,true,false);
-
-
-
-        }
-        void InstructionDecoder_amdgpu::decodeSOPC(InstructionDecoder::buffer &b){
-            layout_sopc & sopc = insn_layout.sopc;
-
-        }
-
-
-        void InstructionDecoder_amdgpu::decodeSALU(InstructionDecoder::buffer &b){
-            if(IS_SOP1(this->insn)){
-                decodeSOP1(b);
-                return;
-            } 
-            else if(IS_SOP2(this->insn)){
-                decodeSOP2(b);
-                return;
-            } 
-
-            else iflayoutSOPC(this->insn)){
-
-                decodeSOPC(b);
-                return;
-            } 
-            else if(IS_SOPP(this->insn)){
-                decodeSOPP(b);return;
-            } 
-            else if(IS_SOPK(this->insn)){
-                decodeSOPK(b);
-                return;
-            }else{
-                assert(0 && "shouldn't reach here" ) ;
-            }        
-        }
-
-        void InstructionDecoder_amdgpu::decodeSMEM(InstructionDecoder::buffer &b){
-            unsigned insn_size = 8 ;
-            layout_smem & layout = insn_layout.smem;
-            layout.soffset = longfield<57,63>(insn_long);
-            layout.offset = longfield<32,52>(insn_long);
-            layout.op = longfield<18,25>(insn_long);
-            layout.imm = longfield<17,17>(insn_long);
-            layout.glc = longfield<16,16>(insn_long); // TODO : for cache coherence, not related for now
-            layout.nv = longfield<15,15>(insn_long);
-            layout.soe = longfield<14,14>(insn_long);
-            layout.sdata =longfield<6,12>(insn_long);
-            layout.sbase =longfield<0,5>(insn_long);
-            
-            const amdgpu_insn_entry  &insn_entry = smem_insn_table[layout.op];
-            this->insn_in_progress =makeInstruction(insn_entry.op, insn_entry.mnemonic , insn_size ,reinterpret_cast<unsigned char *>(&insn));
-
-            //cout<< "insn = " << std::hex << insn_long << "offsset = " << std::hex << layout.offset << " soffset = " << std::hex << layout.soffset  << "end" << endl; 
-
-            Expression::Ptr offset_expr ;
-            if(layout.imm==0){
-                MachRegister mr;
-                if(layout.soe == 0){
-                    //cout << " SGPR [base ] + SGPR[offset] " << endl;
-                    mr = makeAmdgpuRegID(amdgpu::sgpr0,layout.offset); // TODO : We should be dealing with a pair/quad of SGPRs instead of single one
-                }else{
-
-                    //cout << " SGPR [base ] + SGPR[soffset] " << endl;
-                    mr = makeAmdgpuRegID(amdgpu::sgpr0,layout.soffset); // TODO : We should be dealing with a pair/quad of SGPRs instead of single one
-                }
-                offset_expr = makeRegisterExpression(mr);
-            }else{
-                if(layout.soe ==0){
-                    offset_expr = Immediate::makeImmediate(Result(u32,layout.offset));
-
-                    //cout << " SGPR [base ] + IMM[soffset] " << endl;
-                }else{
-                    // BinaryFunction(); addition of two expressions
-                    // 
-                    cout << " SGPR [base ] + +IMM[offset] + SGPR[soffset] " << endl;
-                    offset_expr = makeAddExpression(
-                            Immediate::makeImmediate(Result(u32,layout.offset)),
-                            makeRegisterExpression(makeAmdgpuRegID(amdgpu::sgpr0,layout.soffset)),u64);
-                }
-            }
-
-            Expression::Ptr soffset_expr = Immediate::makeImmediate(Result(u32,layout.soffset));
-            Expression::Ptr sdata_expr = decodeSSRC(b,layout.sdata);
-            Expression::Ptr sbase_expr = makeRegisterPairExpr(amdgpu::sgpr0,layout.sbase << 1,2);
-            if (layout.op == 2){
-                sdata_expr = makeRegisterPairExpr(amdgpu::sgpr0,layout.sdata,4);
-            } 
-            Expression::Ptr addr_expr = makeAddExpression(sbase_expr,offset_expr,u64); 
-
-
-            this->insn_in_progress->appendOperand(sdata_expr,true,false);
-            //this->insn_in_progress->appendOperand(sbase_expr,false,true);
-
-            this->insn_in_progress->appendOperand(addr_expr,false,true);
-            //this->insn_in_progress->appendOperand(soffset_expr,false,true);
-            //this->insn_in_progress->appendOperand(offset_expr,false,true);
-
-
-
-        }
-
-        void InstructionDecoder_amdgpu::decodeVOP1(InstructionDecoder::buffer &b){
-            this->insn_in_progress =makeInstruction(e_nop, "vop1", 4,reinterpret_cast<unsigned char *>(&insn));
-            insn_high = get32bit(b,4);
-            unsigned int vdst_index = field<17,24>(insn);
-            unsigned int src_index = field<0,8>(insn);
-
-            Expression::Ptr vdst_expr = decodeVSRC(b,vdst_index);
-            Expression::Ptr src_expr = decodeSSRC(b,src_index);
-            this->insn_in_progress->appendOperand(vdst_expr,false,true);
-            this->insn_in_progress->appendOperand(src_expr,true,false);
-
-
-        }
-        void InstructionDecoder_amdgpu::decodeVOP2(InstructionDecoder::buffer &b){
-            unsigned insn_size = 4;
-            layout_vop2 & vop2 = insn_layout.vop2;
-            vop2.op = longfield<25,30>(insn_long);
-            vop2.vdst = longfield<17,24>(insn_long);
-            vop2.vsrc1 = longfield<9,16>(insn_long);
-            vop2.src0 = longfield<0,8>(insn_long);
-
-            const amdgpu_insn_entry  &insn_entry = vop2_insn_table[vop2.op];
-            this->insn_in_progress =makeInstruction(insn_entry.op, insn_entry.mnemonic , insn_size ,reinterpret_cast<unsigned char *>(&insn));
-
-
-            insn_high = get32bit(b,4);
-            unsigned int vdst_index = field<17,24>(insn);
-            unsigned int vsrc1_index = field<9,16>(insn);
-            unsigned int src0_index = field<0,8>(insn);
-
-            Expression::Ptr vdst_expr = decodeVSRC(b,vdst_index);
-            Expression::Ptr vsrc1_expr = decodeVSRC(b,vsrc1_index);
-            Expression::Ptr src0_expr = decodeSSRC(b,src0_index);
-
-            this->insn_in_progress->appendOperand(vdst_expr,false,true);
-            this->insn_in_progress->appendOperand(vsrc1_expr,true,false);
-            this->insn_in_progress->appendOperand(src0_expr,true,false);
-
-
-        }
-        void InstructionDecoder_amdgpu::decodeVOPC(InstructionDecoder::buffer &b){
-            this->insn_in_progress =makeInstruction(e_nop, "vopc", 4,reinterpret_cast<unsigned char *>(&insn));
-            insn_high = get32bit(b,4);
-            unsigned int vsrc_index = field<9,16>(insn);
-            unsigned int src0_index = field<0,8>(insn);
-
-            Expression::Ptr vsrc_expr = decodeVSRC(b,vsrc_index);
-            Expression::Ptr src0_expr = decodeSSRC(b,src0_index);
-
-            this->insn_in_progress->appendOperand(vsrc_expr,true,false);
-            this->insn_in_progress->appendOperand(src0_expr,true,false);
-
-
-        }
-        void InstructionDecoder_amdgpu::decodeVOP3A(InstructionDecoder::buffer &b){
-            this->insn_in_progress =makeInstruction(e_nop, "vop3a", 4,reinterpret_cast<unsigned char *>(&insn));
-        }
-        void InstructionDecoder_amdgpu::decodeVOP3B(InstructionDecoder::buffer &b){
-            this->insn_in_progress =makeInstruction(e_nop, "vop3b", 4,reinterpret_cast<unsigned char *>(&insn));
-        }
-
-
-        void InstructionDecoder_amdgpu::decodeVOP3AB(InstructionDecoder::buffer &b){
-            // 480, 481, 488 ,489 is for VOP3B
-            unsigned int vop3ab_op = field<16,25>(insn);
-            switch(vop3ab_op){
-                case 480:
-                case 481:
-                case 488:
-                case 489:
-                    decodeVOP3B(b);
-                    break;
-                default:
-                    decodeVOP3A(b);
-                    break;
-            }
-        }
-        void InstructionDecoder_amdgpu::decodeVOP3P(InstructionDecoder::buffer &b){
-            this->insn_in_progress =makeInstruction(e_nop, "vop3p", 4,reinterpret_cast<unsigned char *>(&insn));
-        }
-        void InstructionDecoder_amdgpu::decodeFLAT(InstructionDecoder::buffer &b){
-            this->insn_in_progress =makeInstruction(e_nop, "flat", 8,reinterpret_cast<unsigned char *>(&insn));
-        }
-
-
-
-
-
-        void InstructionDecoder_amdgpu::mainDecode(InstructionDecoder::buffer & b) {
-
-            if (IS_SALU(this->insn)){
-                decodeSALU(b);
-            }else if (IS_SMEM(this->insn)){
-                decodeSMEM(b);
-            }else if (IS_VOP1(this->insn)){
-                decodeVOP1(b);
-            }else if(IS_VOP2(this->insn)){
-                decodeVOP2(b);
-            }else if(IS_VOPC(this->insn)){
-                decodeVOPC(b);
-            }else if(IS_VOP3AB(this->insn)){
-                decodeVOP3AB(b);
-            }else if(IS_VOP3P(this->insn)){
-                decodeVOP3P(b);
-
-            }else if(IS_FLAT(this->insn)){
-                decodeFLAT(b);
-            }else 
-
-                this->insn_in_progress =makeInstruction(e_nop, "else", 4,reinterpret_cast<unsigned char *>(&insn));
-            return;
-        }
-*/
         Instruction InstructionDecoder_amdgpu::decode(InstructionDecoder::buffer &b) {
             num_elements = 1;
             useImm = false;

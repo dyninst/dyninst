@@ -159,12 +159,7 @@ std::string AmdgpuFormatter::formatImmediate(std::string evalString) {
 }
 
 std::string AmdgpuFormatter::formatRegister(std::string regName) {
-    std::string::size_type substr = regName.rfind(':');
     std::string ret = regName;
-
-    if (substr != std::string::npos) {
-        ret = ret.substr(substr + 1, ret.length());
-    }
     std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
     return ret;
 }
@@ -200,11 +195,11 @@ std::string AmdgpuFormatter::getInstructionString(std::vector<std::string> opera
 
 std::string AmdgpuFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
     if(binaryFuncModifier.count(func) > 0)
-	    return left + ", " + binaryFuncModifier[func] + " " + right;
+	    return "("+left + ", " + binaryFuncModifier[func] + " " + right+")";
     /*else if(left == "PC")
 	    return right;*/
     else
-        return left + " " + func + " " + right;
+        return "("+left + " " + func + " " + right+")";
 }
 
 
@@ -390,6 +385,7 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
     switch(a) {
         case Arch_amdgpu:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new AmdgpuFormatter());
+            break;
         case Arch_aarch32:
         case Arch_aarch64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());

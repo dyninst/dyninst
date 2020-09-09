@@ -6,61 +6,187 @@ const operandFactory amdgpu_insn_entry::operandTable[] = {
 	fn(setSMEM),fn(setLoad<4>),fn(decodeSMEMOperands),//s_load_dwordx4
 	fn(setSMEM),fn(setLoad<8>),fn(decodeSMEMOperands),//s_load_dwordx8
 	fn(setSMEM),fn(setLoad<16>),fn(decodeSMEMOperands),//s_load_dwordx16
+	fn(decodeSOP2Operands),//s_min_u32
+	fn(setSMEM),fn(setLoad<1>),fn(decodeMUBUFOperands),//buffer_load_format_x
+	fn(setSMEM),fn(setLoad<2>),fn(decodeMUBUFOperands),//buffer_load_format_xy
+	fn(setSMEM),fn(setLoad<3>),fn(decodeMUBUFOperands),//buffer_load_format_xyz
+	fn(setSMEM),fn(setLoad<4>),fn(decodeMUBUFOperands),//buffer_load_format_xyzw
+	fn(setSMEM),fn(setStore<1>),fn(decodeMUBUFOperands),//buffer_store_format_x
+	fn(setSMEM),fn(setStore<2>),fn(decodeMUBUFOperands),//buffer_store_format_xy
+	fn(setSMEM),fn(setStore<3>),fn(decodeMUBUFOperands),//buffer_store_format_xyz
+	fn(setSMEM),fn(setStore<4>),fn(decodeMUBUFOperands),//buffer_store_format_xyzw
+	fn(setSMEM),fn(setLoad<1>),fn(decodeMTBUFOperands),//tbuffer_load_format_x
+	fn(setSMEM),fn(setLoad<2>),fn(decodeMTBUFOperands),//tbuffer_load_format_xy
+	fn(setSMEM),fn(setLoad<3>),fn(decodeMTBUFOperands),//tbuffer_load_format_xyz
+	fn(setSMEM),fn(setLoad<4>),fn(decodeMTBUFOperands),//tbuffer_load_format_xyzw
+	fn(setSMEM),fn(setStore<1>),fn(decodeMTBUFOperands),//tbuffer_store_format_x
+	fn(setSMEM),fn(setStore<2>),fn(decodeMTBUFOperands),//tbuffer_store_format_xy
+	fn(setSMEM),fn(setStore<3>),fn(decodeMTBUFOperands),//tbuffer_store_format_xyz
+	fn(setSMEM),fn(setStore<4>),fn(decodeMTBUFOperands),//tbuffer_store_format_xyzw
+	fn(decodeFLATOperands),//flat_load_dword
+	fn(decodeSOP2Operands),//s_add_u32
+	fn(decodeSOP2Operands),//s_sub_u32
+	fn(decodeSOP2Operands),//s_add_i32
+	fn(decodeSOP2Operands),//s_sub_i32
+	fn(decodeSOP2Operands),//s_addc_u32
+	fn(decodeSOP2Operands),//s_subb_u32
+	fn(decodeSOP2Operands),//s_min_i32
+	fn(decodeSOP2Operands),//s_max_i32
+	fn(decodeSOP2Operands),//s_max_u32
+	fn(decodeSOP2Operands),//s_cslect_b32
+	fn(decodeSOP2Operands),//s_cslect_b64
+	fn(decodeSOP2Operands),//s_and_b32
+	fn(decodeSOP2Operands),//s_and_b64
+	fn(decodeSOP2Operands),//s_or_b32
+	fn(decodeSOP2Operands),//s_or_b64
+	fn(decodeSOP2Operands),//s_xor_b32
+	fn(decodeSOP2Operands),//s_xor_b64
+	fn(decodeSOP2Operands),//s_andn2_b32
+	fn(decodeSOP2Operands),//s_andn2_b64
+	fn(decodeSOP2Operands),//s_orn2_b32
+	fn(decodeSOP2Operands),//s_orn2_b64
+	fn(decodeSOP2Operands),//s_nand_b32
+	fn(decodeSOP2Operands),//s_nand_b64
+	fn(decodeSOP2Operands),//s_nor_b32
+	fn(decodeSOP2Operands),//s_nor_b64
+	fn(decodeSOP2Operands),//s_xnor_b32
+	fn(decodeSOP2Operands),//s_xnor_b64
+	fn(decodeSOP2Operands),//s_lshl_b32
+	fn(decodeSOP2Operands),//s_lshl_b64
+	fn(decodeSOP2Operands),//s_lshr_b32
+	fn(decodeSOP2Operands),//s_lshr_b64
+	fn(decodeSOP2Operands),//s_ashr_i32
+	fn(decodeSOP2Operands),//s_ashr_i64
+	fn(decodeSOP2Operands),//s_bfm_b32
+	fn(decodeSOP2Operands),//s_bfm_b64
+	fn(decodeSOP2Operands),//s_mul_i32
+	fn(decodeSOP2Operands),//s_bfe_u32
+	fn(decodeSOP2Operands),//s_bfe_i32
+	fn(decodeSOP2Operands),//s_bfe_u64
+	fn(decodeSOP2Operands),//s_bfe_i64
+	fn(decodeSOP2Operands),//s_cbranch_g_fork
+	fn(decodeSOP2Operands),//s_absdiff_i32
+	fn(decodeSOP2Operands),//s_rfe_restore_b64
+	fn(decodeSOP2Operands),//s_mul_hi_u32
+	fn(decodeSOP2Operands),//s_mul_hi_i32
+	fn(decodeSOP2Operands),//s_lshl1_add_u32
+	fn(decodeSOP2Operands),//s_lshsl2_add_u32
+	fn(decodeSOP2Operands),//s_lshl3_add_u32
+	fn(decodeSOP2Operands),//s_lshl4_add_u32
+	fn(decodeSOP2Operands),//s_pack_ll_b32_b16
+	fn(decodeSOP2Operands),//s_pack_lh_b32_b16
+	fn(decodeSOP2Operands),//s_pack_hh_b32_B16
+	fn(decodeSOP1Operands),//s_mov_b32
+	fn(decodeSOP1Operands),//s_mov_b64
+	fn(decodeSOP1Operands),//s_cmov_b32
+	fn(decodeSOP1Operands),//s_cmov_b64
+	fn(decodeSOP1Operands),//s_not_b32
+	fn(decodeSOP1Operands),//s_not_b64
+	fn(decodeSOP1Operands),//s_wqm_b32
+	fn(decodeSOP1Operands),//s_wqm_b64
+	fn(decodeSOP1Operands),//s_brev_b32
+	fn(decodeSOP1Operands),//s_brev_b64
+	fn(decodeSOP1Operands),//s_bcnt0_i32_b32
+	fn(decodeSOP1Operands),//s_bcnt0_i32_b64
+	fn(decodeSOP1Operands),//s_bcnt1_i32_b32
+	fn(decodeSOP1Operands),//s_bcnt1_i32_b64
+	fn(decodeSOP1Operands),//s_ff0_i32_b32
+	fn(decodeSOP1Operands),//s_ff0_i32_b64
+	fn(decodeSOP1Operands),//s_ff1_i32_b32
+	fn(decodeSOP1Operands),//s_ff1_i32_b64
+	fn(decodeSOP1Operands),//s_flbit_i32_b32
+	fn(decodeSOP1Operands),//s_flbit_i32_b64
+	fn(decodeSOP1Operands),//s_fltbit_i32
+	fn(decodeSOP1Operands),//s_fltbit_i32_i64
+	fn(decodeSOP1Operands),//s_sext_i32_i8
+	fn(decodeSOP1Operands),//s_sext_i32_i16
+	fn(decodeSOP1Operands),//s_bitset0_b32
+	fn(decodeSOP1Operands),//s_bitset0_b64
+	fn(decodeSOP1Operands),//s_bitset1_b32
+	fn(decodeSOP1Operands),//s_bitset1_b64
+	fn(decodeSOP1Operands),//s_getpc_b64
+	fn(decodeSOP1Operands),//s_setpc_b64
+	fn(decodeSOP1Operands),//s_swappc_b64
+	fn(decodeSOP1Operands),//s_rfe_b64
+	fn(decodeSOP1Operands),//s_and_saveexec_b64
+	fn(decodeSOP1Operands),//s_or_savexec_b64
+	fn(decodeSOP1Operands),//s_xor_savexec_b64
+	fn(decodeSOP1Operands),//s_andn2_savexec_b64
+	fn(decodeSOP1Operands),//s_orn2_savexec_b64
+	fn(decodeSOP1Operands),//s_nand_savexec_b64
+	fn(decodeSOP1Operands),//s_nor_savexec_b64
+	fn(decodeSOP1Operands),//s_xnor_savexec_b64
+	fn(decodeSOP1Operands),//s_quadmask_b32
+	fn(decodeSOP1Operands),//s_quadmask_b64
+	fn(decodeSOP1Operands),//s_movrels_b32
+	fn(decodeSOP1Operands),//s_movrels_b64
+	fn(decodeSOP1Operands),//s_movreld_b32
+	fn(decodeSOP1Operands),//s_movreld_b64
+	fn(decodeSOP1Operands),//s_cbranch_join
+	fn(decodeSOP1Operands),//s_invalid_1
+	fn(decodeSOP1Operands),//s_abs_i32
+	fn(decodeSOP1Operands),//s_invalid_2
+	fn(decodeSOP1Operands),//s_set_gpr_idx_idx
+	fn(decodeSOP1Operands),//s_andn1_saveexec_b64
+	fn(decodeSOP1Operands),//s_orn1_saveexec_b64
+	fn(decodeSOP1Operands),//s_andn1_wrexec_b64
+	fn(decodeSOP1Operands),//s_andn2_wrexec_b64
+	fn(decodeSOP1Operands),//s_bitreplicate_b64_b32
 };
 const amdgpu_insn_table amdgpu_insn_entry::sop2_insn_table = {
-	{amdgpu_op_s_add_u32,"s_add_u32",0,&operandTable[0]} ,//0
-	{amdgpu_op_s_sub_u32,"s_sub_u32",0,&operandTable[0]} ,//1
-	{amdgpu_op_s_add_i32,"s_add_i32",0,&operandTable[0]} ,//2
-	{amdgpu_op_s_sub_i32,"s_sub_i32",0,&operandTable[0]} ,//3
-	{amdgpu_op_s_addc_u32,"s_addc_u32",0,&operandTable[0]} ,//4
-	{amdgpu_op_s_subb_u32,"s_subb_u32",0,&operandTable[0]} ,//5
-	{amdgpu_op_s_min_i32,"s_min_i32",0,&operandTable[0]} ,//6
-	{amdgpu_op_s_min_u32,"s_min_u32",0,&operandTable[0]} ,//7
-	{amdgpu_op_s_max_i32,"s_max_i32",0,&operandTable[0]} ,//8
-	{amdgpu_op_s_max_u32,"s_max_u32",0,&operandTable[0]} ,//9
-	{amdgpu_op_s_cslect_b32,"s_cslect_b32",0,&operandTable[0]} ,//10
-	{amdgpu_op_s_cslect_b64,"s_cslect_b64",0,&operandTable[0]} ,//11
-	{amdgpu_op_s_and_b32,"s_and_b32",0,&operandTable[0]} ,//12
-	{amdgpu_op_s_and_b64,"s_and_b64",0,&operandTable[0]} ,//13
-	{amdgpu_op_s_or_b32,"s_or_b32",0,&operandTable[0]} ,//14
-	{amdgpu_op_s_or_b64,"s_or_b64",0,&operandTable[0]} ,//15
-	{amdgpu_op_s_xor_b32,"s_xor_b32",0,&operandTable[0]} ,//16
-	{amdgpu_op_s_xor_b64,"s_xor_b64",0,&operandTable[0]} ,//17
-	{amdgpu_op_s_andn2_b32,"s_andn2_b32",0,&operandTable[0]} ,//18
-	{amdgpu_op_s_andn2_b64,"s_andn2_b64",0,&operandTable[0]} ,//19
-	{amdgpu_op_s_orn2_b32,"s_orn2_b32",0,&operandTable[0]} ,//20
-	{amdgpu_op_s_orn2_b64,"s_orn2_b64",0,&operandTable[0]} ,//21
-	{amdgpu_op_s_nand_b32,"s_nand_b32",0,&operandTable[0]} ,//22
-	{amdgpu_op_s_nand_b64,"s_nand_b64",0,&operandTable[0]} ,//23
-	{amdgpu_op_s_nor_b32,"s_nor_b32",0,&operandTable[0]} ,//24
-	{amdgpu_op_s_nor_b64,"s_nor_b64",0,&operandTable[0]} ,//25
-	{amdgpu_op_s_xnor_b32,"s_xnor_b32",0,&operandTable[0]} ,//26
-	{amdgpu_op_s_xnor_b64,"s_xnor_b64",0,&operandTable[0]} ,//27
-	{amdgpu_op_s_lshl_b32,"s_lshl_b32",0,&operandTable[0]} ,//28
-	{amdgpu_op_s_lshl_b64,"s_lshl_b64",0,&operandTable[0]} ,//29
-	{amdgpu_op_s_lshr_b32,"s_lshr_b32",0,&operandTable[0]} ,//30
-	{amdgpu_op_s_lshr_b64,"s_lshr_b64",0,&operandTable[0]} ,//31
-	{amdgpu_op_s_ashr_i32,"s_ashr_i32",0,&operandTable[0]} ,//32
-	{amdgpu_op_s_ashr_i64,"s_ashr_i64",0,&operandTable[0]} ,//33
-	{amdgpu_op_s_bfm_b32,"s_bfm_b32",0,&operandTable[0]} ,//34
-	{amdgpu_op_s_bfm_b64,"s_bfm_b64",0,&operandTable[0]} ,//35
-	{amdgpu_op_s_mul_i32,"s_mul_i32",0,&operandTable[0]} ,//36
-	{amdgpu_op_s_bfe_u32,"s_bfe_u32",0,&operandTable[0]} ,//37
-	{amdgpu_op_s_bfe_i32,"s_bfe_i32",0,&operandTable[0]} ,//38
-	{amdgpu_op_s_bfe_u64,"s_bfe_u64",0,&operandTable[0]} ,//39
-	{amdgpu_op_s_bfe_i64,"s_bfe_i64",0,&operandTable[0]} ,//40
-	{amdgpu_op_s_cbranch_g_fork,"s_cbranch_g_fork",0,&operandTable[0]} ,//41
-	{amdgpu_op_s_absdiff_i32,"s_absdiff_i32",0,&operandTable[0]} ,//42
-	{amdgpu_op_s_rfe_restore_b64,"s_rfe_restore_b64",0,&operandTable[0]} ,//43
-	{amdgpu_op_s_mul_hi_u32,"s_mul_hi_u32",0,&operandTable[0]} ,//44
-	{amdgpu_op_s_mul_hi_i32,"s_mul_hi_i32",0,&operandTable[0]} ,//45
-	{amdgpu_op_s_lshl1_add_u32,"s_lshl1_add_u32",0,&operandTable[0]} ,//46
-	{amdgpu_op_s_lshsl2_add_u32,"s_lshsl2_add_u32",0,&operandTable[0]} ,//47
-	{amdgpu_op_s_lshl3_add_u32,"s_lshl3_add_u32",0,&operandTable[0]} ,//48
-	{amdgpu_op_s_lshl4_add_u32,"s_lshl4_add_u32",0,&operandTable[0]} ,//49
-	{amdgpu_op_s_pack_ll_b32_b16,"s_pack_ll_b32_b16",0,&operandTable[0]} ,//50
-	{amdgpu_op_s_pack_lh_b32_b16,"s_pack_lh_b32_b16",0,&operandTable[0]} ,//51
-	{amdgpu_op_s_pack_hh_b32_B16,"s_pack_hh_b32_B16",0,&operandTable[0]} ,//52
+	{amdgpu_op_s_add_u32,"s_add_u32",1,&operandTable[66]} ,//0
+	{amdgpu_op_s_sub_u32,"s_sub_u32",1,&operandTable[67]} ,//1
+	{amdgpu_op_s_add_i32,"s_add_i32",1,&operandTable[68]} ,//2
+	{amdgpu_op_s_sub_i32,"s_sub_i32",1,&operandTable[69]} ,//3
+	{amdgpu_op_s_addc_u32,"s_addc_u32",1,&operandTable[70]} ,//4
+	{amdgpu_op_s_subb_u32,"s_subb_u32",1,&operandTable[71]} ,//5
+	{amdgpu_op_s_min_i32,"s_min_i32",1,&operandTable[72]} ,//6
+	{amdgpu_op_s_min_u32,"s_min_u32",1,&operandTable[16]} ,//7
+	{amdgpu_op_s_max_i32,"s_max_i32",1,&operandTable[73]} ,//8
+	{amdgpu_op_s_max_u32,"s_max_u32",1,&operandTable[74]} ,//9
+	{amdgpu_op_s_cslect_b32,"s_cslect_b32",1,&operandTable[75]} ,//10
+	{amdgpu_op_s_cslect_b64,"s_cslect_b64",1,&operandTable[76]} ,//11
+	{amdgpu_op_s_and_b32,"s_and_b32",1,&operandTable[77]} ,//12
+	{amdgpu_op_s_and_b64,"s_and_b64",1,&operandTable[78]} ,//13
+	{amdgpu_op_s_or_b32,"s_or_b32",1,&operandTable[79]} ,//14
+	{amdgpu_op_s_or_b64,"s_or_b64",1,&operandTable[80]} ,//15
+	{amdgpu_op_s_xor_b32,"s_xor_b32",1,&operandTable[81]} ,//16
+	{amdgpu_op_s_xor_b64,"s_xor_b64",1,&operandTable[82]} ,//17
+	{amdgpu_op_s_andn2_b32,"s_andn2_b32",1,&operandTable[83]} ,//18
+	{amdgpu_op_s_andn2_b64,"s_andn2_b64",1,&operandTable[84]} ,//19
+	{amdgpu_op_s_orn2_b32,"s_orn2_b32",1,&operandTable[85]} ,//20
+	{amdgpu_op_s_orn2_b64,"s_orn2_b64",1,&operandTable[86]} ,//21
+	{amdgpu_op_s_nand_b32,"s_nand_b32",1,&operandTable[87]} ,//22
+	{amdgpu_op_s_nand_b64,"s_nand_b64",1,&operandTable[88]} ,//23
+	{amdgpu_op_s_nor_b32,"s_nor_b32",1,&operandTable[89]} ,//24
+	{amdgpu_op_s_nor_b64,"s_nor_b64",1,&operandTable[90]} ,//25
+	{amdgpu_op_s_xnor_b32,"s_xnor_b32",1,&operandTable[91]} ,//26
+	{amdgpu_op_s_xnor_b64,"s_xnor_b64",1,&operandTable[92]} ,//27
+	{amdgpu_op_s_lshl_b32,"s_lshl_b32",1,&operandTable[93]} ,//28
+	{amdgpu_op_s_lshl_b64,"s_lshl_b64",1,&operandTable[94]} ,//29
+	{amdgpu_op_s_lshr_b32,"s_lshr_b32",1,&operandTable[95]} ,//30
+	{amdgpu_op_s_lshr_b64,"s_lshr_b64",1,&operandTable[96]} ,//31
+	{amdgpu_op_s_ashr_i32,"s_ashr_i32",1,&operandTable[97]} ,//32
+	{amdgpu_op_s_ashr_i64,"s_ashr_i64",1,&operandTable[98]} ,//33
+	{amdgpu_op_s_bfm_b32,"s_bfm_b32",1,&operandTable[99]} ,//34
+	{amdgpu_op_s_bfm_b64,"s_bfm_b64",1,&operandTable[100]} ,//35
+	{amdgpu_op_s_mul_i32,"s_mul_i32",1,&operandTable[101]} ,//36
+	{amdgpu_op_s_bfe_u32,"s_bfe_u32",1,&operandTable[102]} ,//37
+	{amdgpu_op_s_bfe_i32,"s_bfe_i32",1,&operandTable[103]} ,//38
+	{amdgpu_op_s_bfe_u64,"s_bfe_u64",1,&operandTable[104]} ,//39
+	{amdgpu_op_s_bfe_i64,"s_bfe_i64",1,&operandTable[105]} ,//40
+	{amdgpu_op_s_cbranch_g_fork,"s_cbranch_g_fork",1,&operandTable[106]} ,//41
+	{amdgpu_op_s_absdiff_i32,"s_absdiff_i32",1,&operandTable[107]} ,//42
+	{amdgpu_op_s_rfe_restore_b64,"s_rfe_restore_b64",1,&operandTable[108]} ,//43
+	{amdgpu_op_s_mul_hi_u32,"s_mul_hi_u32",1,&operandTable[109]} ,//44
+	{amdgpu_op_s_mul_hi_i32,"s_mul_hi_i32",1,&operandTable[110]} ,//45
+	{amdgpu_op_s_lshl1_add_u32,"s_lshl1_add_u32",1,&operandTable[111]} ,//46
+	{amdgpu_op_s_lshsl2_add_u32,"s_lshsl2_add_u32",1,&operandTable[112]} ,//47
+	{amdgpu_op_s_lshl3_add_u32,"s_lshl3_add_u32",1,&operandTable[113]} ,//48
+	{amdgpu_op_s_lshl4_add_u32,"s_lshl4_add_u32",1,&operandTable[114]} ,//49
+	{amdgpu_op_s_pack_ll_b32_b16,"s_pack_ll_b32_b16",1,&operandTable[115]} ,//50
+	{amdgpu_op_s_pack_lh_b32_b16,"s_pack_lh_b32_b16",1,&operandTable[116]} ,//51
+	{amdgpu_op_s_pack_hh_b32_B16,"s_pack_hh_b32_B16",1,&operandTable[117]} ,//52
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//53
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//54
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//55
@@ -112,62 +238,62 @@ const amdgpu_insn_table amdgpu_insn_entry::sop2_insn_table = {
 }; // end sop2_insn_table
 
 const amdgpu_insn_table amdgpu_insn_entry::sop1_insn_table = {
-	{amdgpu_op_s_mov_b32,"s_mov_b32",0,&operandTable[0]} ,//0
-	{amdgpu_op_s_mov_b64,"s_mov_b64",0,&operandTable[0]} ,//1
-	{amdgpu_op_s_cmov_b32,"s_cmov_b32",0,&operandTable[0]} ,//2
-	{amdgpu_op_s_cmov_b64,"s_cmov_b64",0,&operandTable[0]} ,//3
-	{amdgpu_op_s_not_b32,"s_not_b32",0,&operandTable[0]} ,//4
-	{amdgpu_op_s_not_b64,"s_not_b64",0,&operandTable[0]} ,//5
-	{amdgpu_op_s_wqm_b32,"s_wqm_b32",0,&operandTable[0]} ,//6
-	{amdgpu_op_s_wqm_b64,"s_wqm_b64",0,&operandTable[0]} ,//7
-	{amdgpu_op_s_brev_b32,"s_brev_b32",0,&operandTable[0]} ,//8
-	{amdgpu_op_s_brev_b64,"s_brev_b64",0,&operandTable[0]} ,//9
-	{amdgpu_op_s_bcnt0_i32_b32,"s_bcnt0_i32_b32",0,&operandTable[0]} ,//10
-	{amdgpu_op_s_bcnt0_i32_b64,"s_bcnt0_i32_b64",0,&operandTable[0]} ,//11
-	{amdgpu_op_s_bcnt1_i32_b32,"s_bcnt1_i32_b32",0,&operandTable[0]} ,//12
-	{amdgpu_op_s_bcnt1_i32_b64,"s_bcnt1_i32_b64",0,&operandTable[0]} ,//13
-	{amdgpu_op_s_ff0_i32_b32,"s_ff0_i32_b32",0,&operandTable[0]} ,//14
-	{amdgpu_op_s_ff0_i32_b64,"s_ff0_i32_b64",0,&operandTable[0]} ,//15
-	{amdgpu_op_s_ff1_i32_b32,"s_ff1_i32_b32",0,&operandTable[0]} ,//16
-	{amdgpu_op_s_ff1_i32_b64,"s_ff1_i32_b64",0,&operandTable[0]} ,//17
-	{amdgpu_op_s_flbit_i32_b32,"s_flbit_i32_b32",0,&operandTable[0]} ,//18
-	{amdgpu_op_s_flbit_i32_b64,"s_flbit_i32_b64",0,&operandTable[0]} ,//19
-	{amdgpu_op_s_fltbit_i32,"s_fltbit_i32",0,&operandTable[0]} ,//20
-	{amdgpu_op_s_fltbit_i32_i64,"s_fltbit_i32_i64",0,&operandTable[0]} ,//21
-	{amdgpu_op_s_sext_i32_i8,"s_sext_i32_i8",0,&operandTable[0]} ,//22
-	{amdgpu_op_s_sext_i32_i16,"s_sext_i32_i16",0,&operandTable[0]} ,//23
-	{amdgpu_op_s_bitset0_b32,"s_bitset0_b32",0,&operandTable[0]} ,//24
-	{amdgpu_op_s_bitset0_b64,"s_bitset0_b64",0,&operandTable[0]} ,//25
-	{amdgpu_op_s_bitset1_b32,"s_bitset1_b32",0,&operandTable[0]} ,//26
-	{amdgpu_op_s_bitset1_b64,"s_bitset1_b64",0,&operandTable[0]} ,//27
-	{amdgpu_op_s_getpc_b64,"s_getpc_b64",0,&operandTable[0]} ,//28
-	{amdgpu_op_s_setpc_b64,"s_setpc_b64",0,&operandTable[0]} ,//29
-	{amdgpu_op_s_swappc_b64,"s_swappc_b64",0,&operandTable[0]} ,//30
-	{amdgpu_op_s_rfe_b64,"s_rfe_b64",0,&operandTable[0]} ,//31
-	{amdgpu_op_s_and_saveexec_b64,"s_and_saveexec_b64",0,&operandTable[0]} ,//32
-	{amdgpu_op_s_or_savexec_b64,"s_or_savexec_b64",0,&operandTable[0]} ,//33
-	{amdgpu_op_s_xor_savexec_b64,"s_xor_savexec_b64",0,&operandTable[0]} ,//34
-	{amdgpu_op_s_andn2_savexec_b64,"s_andn2_savexec_b64",0,&operandTable[0]} ,//35
-	{amdgpu_op_s_orn2_savexec_b64,"s_orn2_savexec_b64",0,&operandTable[0]} ,//36
-	{amdgpu_op_s_nand_savexec_b64,"s_nand_savexec_b64",0,&operandTable[0]} ,//37
-	{amdgpu_op_s_nor_savexec_b64,"s_nor_savexec_b64",0,&operandTable[0]} ,//38
-	{amdgpu_op_s_xnor_savexec_b64,"s_xnor_savexec_b64",0,&operandTable[0]} ,//39
-	{amdgpu_op_s_quadmask_b32,"s_quadmask_b32",0,&operandTable[0]} ,//40
-	{amdgpu_op_s_quadmask_b64,"s_quadmask_b64",0,&operandTable[0]} ,//41
-	{amdgpu_op_s_movrels_b32,"s_movrels_b32",0,&operandTable[0]} ,//42
-	{amdgpu_op_s_movrels_b64,"s_movrels_b64",0,&operandTable[0]} ,//43
-	{amdgpu_op_s_movreld_b32,"s_movreld_b32",0,&operandTable[0]} ,//44
-	{amdgpu_op_s_movreld_b64,"s_movreld_b64",0,&operandTable[0]} ,//45
-	{amdgpu_op_s_cbranch_join,"s_cbranch_join",0,&operandTable[0]} ,//46
-	{amdgpu_op_s_invalid_1,"s_invalid_1",0,&operandTable[0]} ,//47
-	{amdgpu_op_s_abs_i32,"s_abs_i32",0,&operandTable[0]} ,//48
-	{amdgpu_op_s_invalid_2,"s_invalid_2",0,&operandTable[0]} ,//49
-	{amdgpu_op_s_set_gpr_idx_idx,"s_set_gpr_idx_idx",0,&operandTable[0]} ,//50
-	{amdgpu_op_s_andn1_saveexec_b64,"s_andn1_saveexec_b64",0,&operandTable[0]} ,//51
-	{amdgpu_op_s_orn1_saveexec_b64,"s_orn1_saveexec_b64",0,&operandTable[0]} ,//52
-	{amdgpu_op_s_andn1_wrexec_b64,"s_andn1_wrexec_b64",0,&operandTable[0]} ,//53
-	{amdgpu_op_s_andn2_wrexec_b64,"s_andn2_wrexec_b64",0,&operandTable[0]} ,//54
-	{amdgpu_op_s_bitreplicate_b64_b32,"s_bitreplicate_b64_b32",0,&operandTable[0]} ,//55
+	{amdgpu_op_s_mov_b32,"s_mov_b32",1,&operandTable[118]} ,//0
+	{amdgpu_op_s_mov_b64,"s_mov_b64",1,&operandTable[119]} ,//1
+	{amdgpu_op_s_cmov_b32,"s_cmov_b32",1,&operandTable[120]} ,//2
+	{amdgpu_op_s_cmov_b64,"s_cmov_b64",1,&operandTable[121]} ,//3
+	{amdgpu_op_s_not_b32,"s_not_b32",1,&operandTable[122]} ,//4
+	{amdgpu_op_s_not_b64,"s_not_b64",1,&operandTable[123]} ,//5
+	{amdgpu_op_s_wqm_b32,"s_wqm_b32",1,&operandTable[124]} ,//6
+	{amdgpu_op_s_wqm_b64,"s_wqm_b64",1,&operandTable[125]} ,//7
+	{amdgpu_op_s_brev_b32,"s_brev_b32",1,&operandTable[126]} ,//8
+	{amdgpu_op_s_brev_b64,"s_brev_b64",1,&operandTable[127]} ,//9
+	{amdgpu_op_s_bcnt0_i32_b32,"s_bcnt0_i32_b32",1,&operandTable[128]} ,//10
+	{amdgpu_op_s_bcnt0_i32_b64,"s_bcnt0_i32_b64",1,&operandTable[129]} ,//11
+	{amdgpu_op_s_bcnt1_i32_b32,"s_bcnt1_i32_b32",1,&operandTable[130]} ,//12
+	{amdgpu_op_s_bcnt1_i32_b64,"s_bcnt1_i32_b64",1,&operandTable[131]} ,//13
+	{amdgpu_op_s_ff0_i32_b32,"s_ff0_i32_b32",1,&operandTable[132]} ,//14
+	{amdgpu_op_s_ff0_i32_b64,"s_ff0_i32_b64",1,&operandTable[133]} ,//15
+	{amdgpu_op_s_ff1_i32_b32,"s_ff1_i32_b32",1,&operandTable[134]} ,//16
+	{amdgpu_op_s_ff1_i32_b64,"s_ff1_i32_b64",1,&operandTable[135]} ,//17
+	{amdgpu_op_s_flbit_i32_b32,"s_flbit_i32_b32",1,&operandTable[136]} ,//18
+	{amdgpu_op_s_flbit_i32_b64,"s_flbit_i32_b64",1,&operandTable[137]} ,//19
+	{amdgpu_op_s_fltbit_i32,"s_fltbit_i32",1,&operandTable[138]} ,//20
+	{amdgpu_op_s_fltbit_i32_i64,"s_fltbit_i32_i64",1,&operandTable[139]} ,//21
+	{amdgpu_op_s_sext_i32_i8,"s_sext_i32_i8",1,&operandTable[140]} ,//22
+	{amdgpu_op_s_sext_i32_i16,"s_sext_i32_i16",1,&operandTable[141]} ,//23
+	{amdgpu_op_s_bitset0_b32,"s_bitset0_b32",1,&operandTable[142]} ,//24
+	{amdgpu_op_s_bitset0_b64,"s_bitset0_b64",1,&operandTable[143]} ,//25
+	{amdgpu_op_s_bitset1_b32,"s_bitset1_b32",1,&operandTable[144]} ,//26
+	{amdgpu_op_s_bitset1_b64,"s_bitset1_b64",1,&operandTable[145]} ,//27
+	{amdgpu_op_s_getpc_b64,"s_getpc_b64",1,&operandTable[146]} ,//28
+	{amdgpu_op_s_setpc_b64,"s_setpc_b64",1,&operandTable[147]} ,//29
+	{amdgpu_op_s_swappc_b64,"s_swappc_b64",1,&operandTable[148]} ,//30
+	{amdgpu_op_s_rfe_b64,"s_rfe_b64",1,&operandTable[149]} ,//31
+	{amdgpu_op_s_and_saveexec_b64,"s_and_saveexec_b64",1,&operandTable[150]} ,//32
+	{amdgpu_op_s_or_savexec_b64,"s_or_savexec_b64",1,&operandTable[151]} ,//33
+	{amdgpu_op_s_xor_savexec_b64,"s_xor_savexec_b64",1,&operandTable[152]} ,//34
+	{amdgpu_op_s_andn2_savexec_b64,"s_andn2_savexec_b64",1,&operandTable[153]} ,//35
+	{amdgpu_op_s_orn2_savexec_b64,"s_orn2_savexec_b64",1,&operandTable[154]} ,//36
+	{amdgpu_op_s_nand_savexec_b64,"s_nand_savexec_b64",1,&operandTable[155]} ,//37
+	{amdgpu_op_s_nor_savexec_b64,"s_nor_savexec_b64",1,&operandTable[156]} ,//38
+	{amdgpu_op_s_xnor_savexec_b64,"s_xnor_savexec_b64",1,&operandTable[157]} ,//39
+	{amdgpu_op_s_quadmask_b32,"s_quadmask_b32",1,&operandTable[158]} ,//40
+	{amdgpu_op_s_quadmask_b64,"s_quadmask_b64",1,&operandTable[159]} ,//41
+	{amdgpu_op_s_movrels_b32,"s_movrels_b32",1,&operandTable[160]} ,//42
+	{amdgpu_op_s_movrels_b64,"s_movrels_b64",1,&operandTable[161]} ,//43
+	{amdgpu_op_s_movreld_b32,"s_movreld_b32",1,&operandTable[162]} ,//44
+	{amdgpu_op_s_movreld_b64,"s_movreld_b64",1,&operandTable[163]} ,//45
+	{amdgpu_op_s_cbranch_join,"s_cbranch_join",1,&operandTable[164]} ,//46
+	{amdgpu_op_s_invalid_1,"s_invalid_1",1,&operandTable[165]} ,//47
+	{amdgpu_op_s_abs_i32,"s_abs_i32",1,&operandTable[166]} ,//48
+	{amdgpu_op_s_invalid_2,"s_invalid_2",1,&operandTable[167]} ,//49
+	{amdgpu_op_s_set_gpr_idx_idx,"s_set_gpr_idx_idx",1,&operandTable[168]} ,//50
+	{amdgpu_op_s_andn1_saveexec_b64,"s_andn1_saveexec_b64",1,&operandTable[169]} ,//51
+	{amdgpu_op_s_orn1_saveexec_b64,"s_orn1_saveexec_b64",1,&operandTable[170]} ,//52
+	{amdgpu_op_s_andn1_wrexec_b64,"s_andn1_wrexec_b64",1,&operandTable[171]} ,//53
+	{amdgpu_op_s_andn2_wrexec_b64,"s_andn2_wrexec_b64",1,&operandTable[172]} ,//54
+	{amdgpu_op_s_bitreplicate_b64_b32,"s_bitreplicate_b64_b32",1,&operandTable[173]} ,//55
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//56
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//57
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//58
@@ -1288,14 +1414,14 @@ const amdgpu_insn_table amdgpu_insn_entry::ds_insn_table = {
 }; // end ds_insn_table
 
 const amdgpu_insn_table amdgpu_insn_entry::mtbuf_insn_table = {
-	{amdgpu_op_tbuffer_load_format_x,"tbuffer_load_format_x",0,&operandTable[0]} ,//0
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//1
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//2
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//3
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//4
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//5
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//6
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//7
+	{amdgpu_op_tbuffer_load_format_x,"tbuffer_load_format_x",3,&operandTable[41]} ,//0
+	{amdgpu_op_tbuffer_load_format_xy,"tbuffer_load_format_xy",3,&operandTable[44]} ,//1
+	{amdgpu_op_tbuffer_load_format_xyz,"tbuffer_load_format_xyz",3,&operandTable[47]} ,//2
+	{amdgpu_op_tbuffer_load_format_xyzw,"tbuffer_load_format_xyzw",3,&operandTable[50]} ,//3
+	{amdgpu_op_tbuffer_store_format_x,"tbuffer_store_format_x",3,&operandTable[53]} ,//4
+	{amdgpu_op_tbuffer_store_format_xy,"tbuffer_store_format_xy",3,&operandTable[56]} ,//5
+	{amdgpu_op_tbuffer_store_format_xyz,"tbuffer_store_format_xyz",3,&operandTable[59]} ,//6
+	{amdgpu_op_tbuffer_store_format_xyzw,"tbuffer_store_format_xyzw",3,&operandTable[62]} ,//7
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//8
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//9
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//10
@@ -1392,14 +1518,14 @@ const amdgpu_insn_table amdgpu_insn_entry::mtbuf_insn_table = {
 }; // end mtbuf_insn_table
 
 const amdgpu_insn_table amdgpu_insn_entry::mubuf_insn_table = {
-	{amdgpu_op_buffer_load_format_x,"buffer_load_format_x",0,&operandTable[0]} ,//0
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//1
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//2
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//3
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//4
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//5
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//6
-	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//7
+	{amdgpu_op_buffer_load_format_x,"buffer_load_format_x",3,&operandTable[17]} ,//0
+	{amdgpu_op_buffer_load_format_xy,"buffer_load_format_xy",3,&operandTable[20]} ,//1
+	{amdgpu_op_buffer_load_format_xyz,"buffer_load_format_xyz",3,&operandTable[23]} ,//2
+	{amdgpu_op_buffer_load_format_xyzw,"buffer_load_format_xyzw",3,&operandTable[26]} ,//3
+	{amdgpu_op_buffer_store_format_x,"buffer_store_format_x",3,&operandTable[29]} ,//4
+	{amdgpu_op_buffer_store_format_xy,"buffer_store_format_xy",3,&operandTable[32]} ,//5
+	{amdgpu_op_buffer_store_format_xyz,"buffer_store_format_xyz",3,&operandTable[35]} ,//6
+	{amdgpu_op_buffer_store_format_xyzw,"buffer_store_format_xyzw",3,&operandTable[38]} ,//7
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//8
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//9
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//10
@@ -2296,7 +2422,7 @@ const amdgpu_insn_table amdgpu_insn_entry::flat_insn_table = {
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//17
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//18
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//19
-	{amdgpu_op_flat_load_dword,"flat_load_dword",0,&operandTable[0]} ,//20
+	{amdgpu_op_flat_load_dword,"flat_load_dword",1,&operandTable[65]} ,//20
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//21
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//22
 	{amdgpu_op_s_nop,"s_nop",0,&operandTable[0]} ,//23

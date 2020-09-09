@@ -1581,7 +1581,7 @@ namespace Dyninst
       const signed int SYSREG         = 0x00100000;
 
       // aliasing for flags
-      // if we found out that it is a flag, we no longer need to use hte cat  0x00ff0000
+      // if we found out that it is a flag, we no longer need to use the cat  0x00ff0000
       // so we use thhat part to encode the low offset in the base register
       const signed int BIT     = 0x00001000;
       const signed int D_BIT   = 0x00002000;
@@ -1591,6 +1591,7 @@ namespace Dyninst
       const signed int S_BIT   = 0x00007000;
       const signed int O_BIT   = 0x00008000;
       const signed int N_BIT   = 0x00009000;
+      const signed int D_REG_BIT   = 0x0000A000;
 
       const signed int B_REG   = 0x00000100;      //8bit  byte reg
       const signed int W_REG   = 0x00000200;      //16bit half-wor reg

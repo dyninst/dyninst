@@ -1,9 +1,9 @@
 void InstructionDecoder_amdgpu::decodeSOP2(InstructionDecoder::buffer & b){
 	unsigned insn_size = 4;
 	layout_sop2 & layout = insn_layout.sop2;
-	layout.src0      = longfield<0,7>(insn_long);
-	layout.vsrc1     = longfield<8,15>(insn_long);
-	layout.vdst      = longfield<16,22>(insn_long);
+	layout.ssrc0     = longfield<0,7>(insn_long);
+	layout.ssrc1     = longfield<8,15>(insn_long);
+	layout.sdst      = longfield<16,22>(insn_long);
 	layout.op        = longfield<23,29>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size,reinterpret_cast<unsigned char *>(&insn));
@@ -71,34 +71,37 @@ void InstructionDecoder_amdgpu::decodeSMEM(InstructionDecoder::buffer & b){
 	decodeOperands(this->insn_in_progress,insn_entry);
 }
 void InstructionDecoder_amdgpu::decodeVOP2(InstructionDecoder::buffer & b){
-	unsigned insn_size = 4;
+	unsigned insn_size = 8;
 	layout_vop2 & layout = insn_layout.vop2;
 	layout.src0      = longfield<0,8>(insn_long);
 	layout.vsrc1     = longfield<9,16>(insn_long);
 	layout.vdst      = longfield<17,24>(insn_long);
 	layout.op        = longfield<25,30>(insn_long);
+	layout.literal   = longfield<32,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop2_insn_table[layout.op];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size,reinterpret_cast<unsigned char *>(&insn));
 	cout << "type = vop2 , op = " << std::hex << layout.op << endl;
 	decodeOperands(this->insn_in_progress,insn_entry);
 }
 void InstructionDecoder_amdgpu::decodeVOP1(InstructionDecoder::buffer & b){
-	unsigned insn_size = 4;
+	unsigned insn_size = 8;
 	layout_vop1 & layout = insn_layout.vop1;
 	layout.src0      = longfield<0,9>(insn_long);
 	layout.op        = longfield<9,16>(insn_long);
 	layout.vdst      = longfield<17,24>(insn_long);
+	layout.literal   = longfield<32,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size,reinterpret_cast<unsigned char *>(&insn));
 	cout << "type = vop1 , op = " << std::hex << layout.op << endl;
 	decodeOperands(this->insn_in_progress,insn_entry);
 }
 void InstructionDecoder_amdgpu::decodeVOPC(InstructionDecoder::buffer & b){
-	unsigned insn_size = 4;
+	unsigned insn_size = 8;
 	layout_vopc & layout = insn_layout.vopc;
 	layout.src0      = longfield<0,8>(insn_long);
 	layout.vsrc1     = longfield<9,16>(insn_long);
 	layout.op        = longfield<17,24>(insn_long);
+	layout.literal   = longfield<32,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vopc_insn_table[layout.op];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size,reinterpret_cast<unsigned char *>(&insn));
 	cout << "type = vopc , op = " << std::hex << layout.op << endl;
@@ -137,6 +140,9 @@ void InstructionDecoder_amdgpu::decodeMTBUF(InstructionDecoder::buffer & b){
 	unsigned insn_size = 8;
 	layout_mtbuf & layout = insn_layout.mtbuf;
 	layout.offset    = longfield<0,11>(insn_long);
+	layout.offen     = longfield<12,12>(insn_long);
+	layout.idxen     = longfield<13,13>(insn_long);
+	layout.glc       = longfield<14,14>(insn_long);
 	layout.op        = longfield<15,18>(insn_long);
 	layout.dfmt      = longfield<19,22>(insn_long);
 	layout.nfmt      = longfield<23,25>(insn_long);
@@ -155,6 +161,8 @@ void InstructionDecoder_amdgpu::decodeMUBUF(InstructionDecoder::buffer & b){
 	unsigned insn_size = 8;
 	layout_mubuf & layout = insn_layout.mubuf;
 	layout.offset    = longfield<0,11>(insn_long);
+	layout.offen     = longfield<12,12>(insn_long);
+	layout.idxen     = longfield<13,13>(insn_long);
 	layout.glc       = longfield<14,14>(insn_long);
 	layout.lds       = longfield<16,16>(insn_long);
 	layout.slc       = longfield<17,17>(insn_long);
