@@ -726,33 +726,6 @@ BPatch_whileExpr::BPatch_whileExpr(const BPatch_snippet &conditional,
 }
 
 /*
- * BPatch_regExpr::BPatch_regExpr
- *
- * Constructs a snippet representing a register.
- *
- * value        index of register.
- *
- * Note:  introduced for paradyn-seperation (paradyn needs access
- *        to register REG_MT_POS)  -- there are other ways to do this.
- *        This happens to be expedient -- not sure if we want to be
- *        really exposing this to API users.  Thus this class may be
- *        temporary -- avoid using it.
- */
-
-BPatch_regExpr::BPatch_regExpr(unsigned int value)
-{
-    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::DataReg, (void *)(unsigned long int) value));
-
-    assert(BPatch::bpatch != NULL);
-    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
-    assert(type != NULL);
-
-    ast_wrapper->setType(type);
-}
-
-/*
  * BPatch_funcCallExpr::BPatch_funcCallExpr
  *
  * Constructs a snippet representing a function call.
