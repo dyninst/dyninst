@@ -198,16 +198,6 @@
 #endif
 #endif
 
-#if !defined(THROW) && !defined(THROW_SPEC)
-#if defined(_MSC_VER)
-#define THROW_SPEC(x)
-#define THROW
-#else
-#define THROW_SPEC(x) throw (x)
-#define THROW throw ()
-#endif
-#endif
-
 #ifndef TLS_VAR
 #if defined(_MSC_VER)
 #define TLS_VAR __declspec(thread)

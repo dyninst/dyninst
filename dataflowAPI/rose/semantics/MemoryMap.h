@@ -131,7 +131,7 @@ public:
     class Exception: public std::runtime_error {
     public:
         Exception(const std::string &mesg, const MemoryMap *map): std::runtime_error(mesg), map(map) {}
-        virtual ~Exception() throw() {}
+        virtual ~Exception() {}
         virtual std::string leader(std::string dflt="memory map problem") const;   /**< Leading part of the error message. */
         virtual std::string details(bool) const; /**< Details emitted on following lines, indented two spaces. */
         virtual void print(std::ostream&, bool verbose=true) const;
@@ -151,7 +151,7 @@ public:
             : Exception(mesg, map),
               new_range(new_range), old_range(old_range),
               new_segment(new_segment), old_segment(old_segment) {}
-        virtual ~Inconsistent() throw() {}
+        virtual ~Inconsistent() {}
         virtual void print(std::ostream&, bool verbose=true) const;
         friend std::ostream& operator<<(std::ostream&, const Inconsistent&);
         AddressInterval new_range, old_range;
@@ -162,7 +162,7 @@ public:
     struct NotMapped : public Exception {
         NotMapped(const std::string &mesg, const MemoryMap *map, rose_addr_t va)
             : Exception(mesg, map), va(va) {}
-        virtual ~NotMapped() throw() {}
+        virtual ~NotMapped() {}
         virtual void print(std::ostream&, bool verbose=true) const;
         friend std::ostream& operator<<(std::ostream&, const NotMapped&);
         rose_addr_t va;
@@ -172,7 +172,7 @@ public:
     struct NoFreeSpace : public Exception {
         NoFreeSpace(const std::string &mesg, const MemoryMap *map, size_t size)
             : Exception(mesg, map), size(size) {}
-        virtual ~NoFreeSpace() throw() {}
+        virtual ~NoFreeSpace() {}
         virtual void print(std::ostream&, bool verbose=true) const;
         friend std::ostream& operator<<(std::ostream&, const NoFreeSpace&);
         size_t size;
@@ -182,7 +182,7 @@ public:
     struct SyntaxError: public Exception {
         SyntaxError(const std::string &mesg, const MemoryMap *map, const std::string &filename, unsigned linenum, int colnum=-1)
             : Exception(mesg, map), filename(filename), linenum(linenum), colnum(colnum) {}
-        virtual ~SyntaxError() throw() {}
+        virtual ~SyntaxError() {}
         virtual void print(std::ostream&, bool verbose=true) const;
         friend std::ostream& operator<<(std::ostream&, const SyntaxError&);
         std::string filename;                   /**< Name of index file where error occurred. */
