@@ -33,6 +33,7 @@
 
 #include "Object.h"
 #include "debug.h"
+#include "Elf_X.h"
 #include <iostream>
 
 #include <unordered_map>
@@ -157,7 +158,7 @@ namespace Dyninst {
             typedef typename ElfTypes::Elf_Verdaux Elf_Verdaux;
 
             ~emitElf() {
-                if( linkedStaticData ) delete linkedStaticData;
+                if( linkedStaticData ) delete[] linkedStaticData;
             }
 
             bool createSymbolTables(std::set<Symbol *> &allSymbols);

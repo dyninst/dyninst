@@ -40,10 +40,6 @@
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/ast.h"
 
-extern bool getInheritedMiniTramp(const miniTramp *parentMT,
-                                  miniTramp *&childMT,
-                                  PCProcess *childProc);
-
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          PCProcess *child) : preForkInst(NULL),
                                                            postForkInst(NULL),

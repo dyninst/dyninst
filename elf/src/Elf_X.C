@@ -314,11 +314,11 @@ unsigned short Elf_X::e_phentsize() const {
             static_cast<unsigned short>(ehdr64->e_phentsize));
 }
 
-unsigned short Elf_X::e_phnum() const
+unsigned long Elf_X::e_phnum()
 {
-    return (!is64 ?
-            static_cast<unsigned short>(ehdr32->e_phnum) :
-            static_cast<unsigned short>(ehdr64->e_phnum));
+    size_t ret;
+    elf_getphdrnum(elf, &ret);
+    return (unsigned long)ret;
 }
 
 unsigned short Elf_X::e_shentsize() const
@@ -328,18 +328,18 @@ unsigned short Elf_X::e_shentsize() const
             static_cast<unsigned short>(ehdr64->e_shentsize));
 }
 
-unsigned short Elf_X::e_shnum() const
+unsigned long Elf_X::e_shnum()
 {
-    return (!is64 ?
-            static_cast<unsigned short>(ehdr32->e_shnum) :
-            static_cast<unsigned short>(ehdr64->e_shnum));
+    size_t ret;
+    elf_getshdrnum(elf, &ret);
+    return (unsigned long)ret;
 }
 
-unsigned short Elf_X::e_shstrndx() const
+unsigned long Elf_X::e_shstrndx()
 {
-    return (!is64 ?
-            static_cast<unsigned short>(ehdr32->e_shstrndx) :
-            static_cast<unsigned short>(ehdr64->e_shstrndx));
+    size_t ret;
+    elf_getshdrstrndx(elf, &ret);
+    return (unsigned long)ret;
 }
 
 const char *Elf_X::e_rawfile(size_t &nbytes) const

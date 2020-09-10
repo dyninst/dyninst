@@ -101,7 +101,7 @@ namespace Dyninst {
             unsigned int imm32;
             unsigned int imm64;
 
-            Instruction *insn_in_progress;
+            boost::shared_ptr<Instruction> insn_in_progress;
 
             template<int start, int end>
             int field(unsigned int raw) {

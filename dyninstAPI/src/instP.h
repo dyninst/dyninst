@@ -42,7 +42,6 @@
 #include "dyninstAPI/src/frame.h"
 
 class baseTramp;
-class miniTramp;
 class AddressSpace;
 
 #if 0

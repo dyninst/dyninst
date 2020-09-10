@@ -37,6 +37,7 @@
 #include "RegisterConversion.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "dynThread.h"
 
 #include "Mailbox.h"
 #include "PCErrors.h"
@@ -382,14 +383,14 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
 
     // Ignore events for the initial thread
     if( pcThr->isInitialThread() ) {
-        proccontrol_printf("%s[%d]: event corresponds to initial thread, ignoring thread create\n",
+        proccontrol_printf("%s[%d]: event corresponds to initial thread, ignoring thread create for thread %d/%d\n",
                 FILE__, __LINE__, evProc->getPid(), ev->getLWP());
         return true;
     }
 
     if( evProc->getThread(pcThr->getTID()) != NULL ) {
-        proccontrol_printf("%s[%d]: thread already created with TID 0x%lx, ignoring thread create\n",
-                FILE__, __LINE__, pcThr->getTID());
+        proccontrol_printf("%s[%d]: thread already created with TID 0x%lx, ignoring thread create on thread %d/%d\n",
+                FILE__, __LINE__, pcThr->getTID(), evProc->getPid(), ev->getLWP());
         return true;
     }
 

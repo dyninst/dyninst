@@ -69,9 +69,6 @@ foreach (dir ${HEADER_DIRS})
   include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
 
-set(DYNINST_RT_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-set(DYNINST_RT_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
 set(ADD_VALGRIND_ANNOTATIONS OFF CACHE BOOL "Enable annotations for Valgrind analysis")
 if(ADD_VALGRIND_ANNOTATIONS)
   find_package(Valgrind REQUIRED)
@@ -99,7 +96,7 @@ add_subdirectory (parseAPI)
 add_subdirectory (proccontrol)
 add_subdirectory (stackwalk)
 add_subdirectory (patchAPI)
-add_subdirectory(examples)
+
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
   add_subdirectory (dynC_API)

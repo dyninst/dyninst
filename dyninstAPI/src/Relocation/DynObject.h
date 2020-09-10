@@ -49,7 +49,7 @@ class DynObject : public PatchObject {
     }
     DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base);
     DynObject(const DynObject *par_obj, AddressSpace* child, Address base);
-    ~DynObject();
+    virtual ~DynObject();
 
     // Getters
     AddressSpace* as() const { return as_; }

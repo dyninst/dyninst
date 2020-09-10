@@ -2515,19 +2515,26 @@ bool indep_lwp_control_process::plat_syncRunState()
       int_thread::State target_state = thr->getTargetState();
       bool result = true;
 
+      pthrd_printf("plat_syncRunState for thread %d/%d\n", thr->proc()->getPid(), thr->getLWP());
+
       if (handler_state == target_state) {
+    	 pthrd_printf("plat_syncRunState: thread is in desired state\n");
          continue;
       }
       else if (handler_state == int_thread::stopped && RUNNING_STATE(target_state)) {
          result = thr->intCont();
+         pthrd_printf("plat_syncRunState: trying to continue; res=%d\n", result);
       }
       else if (RUNNING_STATE(handler_state) && target_state == int_thread::stopped) {
          result = thr->intStop();
+         pthrd_printf("plat_syncRunState: trying to stop; res=%d\n", result);
       }
+
       if (!result && getLastError() == err_exited) {
-         pthrd_printf("Suppressing error of continue on exited process\n");
-	 pthrd_printf("TESTING: setting handler to running anyway\n");
-	 thr->getHandlerState().setState(int_thread::running);
+    	  pthrd_printf("Suppressing error of continue/stop on exited process\n");
+    	  if(thr->plat_handle_ghost_thread()) {
+    		  thr->getHandlerState().setState(int_thread::running);
+    	  }
       }
       else if (!result) {
          pthrd_printf("Error changing process state from plat_syncRunState\n");
@@ -3989,6 +3996,8 @@ bool int_thread::plat_setRegisterAsync(Dyninst::MachRegister,
    assert(0);
    return false;
 }
+
+bool int_thread::plat_handle_ghost_thread() { return true; }
 
 void int_thread::addPostedRPC(int_iRPC::ptr rpc_)
 {

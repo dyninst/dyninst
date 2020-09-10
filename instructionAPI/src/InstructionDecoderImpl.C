@@ -44,11 +44,11 @@ namespace Dyninst
 {
     namespace InstructionAPI
     {
-        Instruction* InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
+        boost::shared_ptr<Instruction> InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
             unsigned int decodedSize, const unsigned char* raw)
         {
             Operation tmp(opcode, mnem, m_Arch);
-            return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw, m_Arch);
+            return make_shared(singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw, m_Arch));
         }
 
 

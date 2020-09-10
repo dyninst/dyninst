@@ -1819,7 +1819,6 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
       inst_printf("%s[%d]: handling request %d of %d\n", FILE__, __LINE__, lcv+1, requests.size());
 
         instMapping *req = requests[lcv];
-        pdvector<miniTramp *> minis;
         
         if(!multithread_capable() && req->is_MTonly())
             continue;

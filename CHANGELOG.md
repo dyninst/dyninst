@@ -1,5 +1,97 @@
 # Change Log
 
+## [10.2.1](https://github.com/dyninst/dyninst/tree/10.2.1) (2020-09-09)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v10.2.0...v10.2.1)
+
+**Implemented enhancements:**
+
+- Remove exception specifications ([841](https://github.com/dyninst/dyninst/issues/841))
+- Remove unused Doxygen files from instructionAPI ([829](https://github.com/dyninst/dyninst/issues/829))
+- Remove deprecated members of BPatch_flowGraph ([828](https://github.com/dyninst/dyninst/issues/828))
+- Undeprecate mapped_object::getBaseAddress ([827](https://github.com/dyninst/dyninst/issues/827))
+- Remove unused symtabAPI/doc/symtab-text.txt ([826](https://github.com/dyninst/dyninst/issues/826))
+- Make ~DynObject virtual ([813](https://github.com/dyninst/dyninst/issues/813))
+- Remove cotire ([816](https://github.com/dyninst/dyninst/issues/816))
+- Fix cmake configuration with -pie ([817](https://github.com/dyninst/dyninst/issues/817))
+- Remove usage of miniTramp class ([801](https://github.com/dyninst/dyninst/issues/801))
+- Add include for Elf_X in emitElf.h ([790](https://github.com/dyninst/dyninst/issues/790))
+- Clean up some includes ([796](https://github.com/dyninst/dyninst/issues/796))
+
+**Fixed bugs:**
+
+- Fix memory leak in singleton_object_pool ([835](https://github.com/dyninst/dyninst/issues/835))
+- Fix power instruction decoding regression
+- Fix aarch64 instruction decoding regression
+- Fix memory leak in singleton_object_pool
+- Fix memory leak in SymEval::expandInsn ([793](https://github.com/dyninst/dyninst/issues/793))
+- Fix aliasing bug of Region::buffer on copy ([791](https://github.com/dyninst/dyninst/issues/791))
+- Cleanup memory handling when emitting Elf for static libraries ([789](https://github.com/dyninst/dyninst/issues/789))
+
+## [10.2.0](https://github.com/dyninst/dyninst/tree/10.2.0) (2020-07-30)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v10.1.0...v10.2.0)
+
+**Implemented enhancements:**
+
+- Fix Variable location parsing ([781](https://github.com/dyninst/dyninst/issues/781))
+- Fix proccontrol hangs in test_thread_X ([780](https://github.com/dyninst/dyninst/issues/780))
+- proccontrol: Handle "ghost" threads ([742](https://github.com/dyninst/dyninst/issues/742))
+- Elf extended numbering ([776](https://github.com/dyninst/dyninst/issues/776))
+- Expand the list of non-returning functions in CodeSource.C. ([748](https://github.com/dyninst/dyninst/issues/748))
+- Memory leak fixes ([758](https://github.com/dyninst/dyninst/issues/758))
+- C++ cleanup ([610](https://github.com/dyninst/dyninst/issues/610))
+- Libxul fixes ([755](https://github.com/dyninst/dyninst/issues/755))
+- Potential fixes needed for relocating libraries ([754](https://github.com/dyninst/dyninst/issues/754))
+- Add compiler-specific search directories in getResolvedLibraryPath ([732](https://github.com/dyninst/dyninst/issues/732))
+- More parallel parsing optimization and fixes ([729](https://github.com/dyninst/dyninst/issues/729))
+- Add search of libgcc.a to x86 and aarch64 ([731](https://github.com/dyninst/dyninst/issues/731))
+- PIE/PIC aarch64 rewrite implementation ([698](https://github.com/dyninst/dyninst/issues/698))
+- Fixes for AbsRegion and jump table index slicing involving global variable ([695](https://github.com/dyninst/dyninst/issues/695))
+- Parallel DWARF parsing and improved parallel code parsing ([651](https://github.com/dyninst/dyninst/issues/651))
+- Allow same address range to map to different source lines in DWARF ([643](https://github.com/dyninst/dyninst/issues/643))
+- Parse dwarf variables with abstract origin attribute ([642](https://github.com/dyninst/dyninst/issues/642))
+- Fix instrumentation regressions for libc-2.29 on ARM ([653](https://github.com/dyninst/dyninst/issues/653))
+- Implement the check of ThreadDB at BPatch level ([667](https://github.com/dyninst/dyninst/issues/667))
+- Use static AArch64 decoder tables. ([633](https://github.com/dyninst/dyninst/issues/633))
+- Don't use software breakpoints when creating traps for springboards ([637](https://github.com/dyninst/dyninst/issues/637))
+- ARMv8 initial work on rewriter ([612](https://github.com/dyninst/dyninst/issues/612))
+
+**Fixed bugs:**
+
+- Revert CUDA binaries openning to libdw ([787](https://github.com/dyninst/dyninst/issues/787))
+- Updates for #780 ([783](https://github.com/dyninst/dyninst/issues/783))
+- Improve detection of ghost threads ([784](https://github.com/dyninst/dyninst/issues/784))
+- Remove Aggregate::setModule declaration ([779](https://github.com/dyninst/dyninst/issues/779))
+- Remove examples ([764](https://github.com/dyninst/dyninst/issues/764))
+- Improve logging in PCEventHandler::handleThreadCreate ([772](https://github.com/dyninst/dyninst/issues/772))
+- Retain hint function from CodeSource even if we do not parse the code object. ([768](https://github.com/dyninst/dyninst/issues/768))
+- remove unnecessary assertion for unknown phdr_type ([757](https://github.com/dyninst/dyninst/issues/757))
+- Use register x30 (Link Register) to generate long branch ([720](https://github.com/dyninst/dyninst/issues/720))
+- Do not use non-trivial types in varargs ([704](https://github.com/dyninst/dyninst/issues/704))
+- Remove undefined behavior from Symtab::Type ([706](https://github.com/dyninst/dyninst/issues/706))
+- Update Examples in dataflowAPI ([700](https://github.com/dyninst/dyninst/issues/700))
+- Prevent corruption to rax during stack alignment on x86-64 ([670](https://github.com/dyninst/dyninst/issues/670))
+- Ignore additional Eclipse file and spurious .gitignore ([681](https://github.com/dyninst/dyninst/issues/681))
+- Add explicit ElfUtils dependency for ParseThat and examples ([678](https://github.com/dyninst/dyninst/issues/678))
+- Add $INSTALL/lib/elfutils subdirectory to build paths ([680](https://github.com/dyninst/dyninst/issues/680))
+- Allow sterile builds ([641](https://github.com/dyninst/dyninst/issues/641))
+- Reorder includes to fix hidden build dependencies ([665](https://github.com/dyninst/dyninst/issues/665))
+- Deprecate Blue Gene/Q support ([662](https://github.com/dyninst/dyninst/issues/662))
+- Delete duplicate friend declaration of Parser in Block ([649](https://github.com/dyninst/dyninst/issues/649))
+- Rename getType() -> getDataClass() in Section 8.1 of SymtabAPI docs ([661](https://github.com/dyninst/dyninst/issues/661))
+- Fix spelling of getTypedefType in Section 8.1 of SymtabAPI docs ([660](https://github.com/dyninst/dyninst/issues/660))
+- Update handling of TBB CMake file for clang ([654](https://github.com/dyninst/dyninst/issues/654))
+- Fix typo in declaration of 'create' in Section 8.3 ([659](https://github.com/dyninst/dyninst/issues/659))
+- Change dataTypeDefine -> DataTypedef in DataClass enum documentation ([650](https://github.com/dyninst/dyninst/issues/650))
+- Use CMAKE_xx_COMPILER when building external dependencies ([636](https://github.com/dyninst/dyninst/issues/636))
+- Allow CMake files for dependencies to be included multiple times ([639](https://github.com/dyninst/dyninst/issues/639))
+- Fix overlapping bug of program header segments on fixPhdr. ([618](https://github.com/dyninst/dyninst/issues/618))
+- Updates TLS descriptors values in .dynamic section (ARMv8, #614)
+- Use private writable mmap when opening binaries and debug files ([624](https://github.com/dyninst/dyninst/issues/624))
+- Convert snprintf with PRIx64 to std::to_string ([627](https://github.com/dyninst/dyninst/issues/627))
+- Use PRIx64 macros for long long results for i686. ([517](https://github.com/dyninst/dyninst/issues/517))
+- Delete .syntastic_cpp_config
+- Add note on TBB usage when built from source
+
 ## [10.1.0](https://github.com/dyninst/dyninst/tree/10.1.0) (2019-05-15)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v10.0.0...10.1.0)
 

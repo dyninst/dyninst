@@ -29,6 +29,3 @@ target_link_private_libraries(dynElf ${ElfUtils_LIBRARIES})
 
 
 add_definitions(-DDYNELF_LIB)
-if (USE_COTIRE)
-    cotire(dynElf)
-endif()
