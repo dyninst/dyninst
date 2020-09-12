@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <iostream> // aaron
+
 #include "elfutils/libdw.h"
 #include "elfutils/libdwfl.h"
 #include "Elf_X.h"
@@ -172,6 +174,7 @@ bool DwarfHandle::init_dbg()
     }
 
     Dyninst::Architecture arch;
+		std::cerr << "Dyninst:: machine type: " << file->e_machine() << std::endl;
     switch (file->e_machine()) {
         case EM_386:
             arch = Arch_x86;
@@ -195,6 +198,9 @@ bool DwarfHandle::init_dbg()
             break;
         case EM_CUDA:
             arch = Arch_cuda;
+            break;
+        case EM_INTEL_GEN9:
+            arch = Arch_intelGen9;
             break;
         default:
             assert(0 && "Unsupported archiecture in ELF file.");
