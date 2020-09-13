@@ -32,7 +32,6 @@
 
 #include "annotations.h"
 #include "Annotatable.h"
-#include "common/src/serialize.h"
 
 AnnotationClass<localVarCollection> FunctionLocalVariablesAnno("FunctionLocalVariablesAnno");
 AnnotationClass<localVarCollection> FunctionParametersAnno("FunctionParametersAnno");

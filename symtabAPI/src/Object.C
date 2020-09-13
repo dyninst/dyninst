@@ -32,7 +32,6 @@
 
 #include "symutil.h"
 #include "Annotatable.h"
-#include "common/src/serialize.h"
 
 #include "Symtab.h"
 #include "Module.h"

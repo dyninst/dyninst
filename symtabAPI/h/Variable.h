@@ -32,7 +32,6 @@
 #define _Variable_h_
 
 #include "Annotatable.h"
-#include "Serialization.h"
 #include "Symtab.h"
 #include "Aggregate.h"
 #include "dyn_regs.h"
@@ -51,7 +50,7 @@ class Aggregate;
 class Function;
 class FunctionBase;
 
-class SYMTAB_EXPORT Variable : public Aggregate, public Serializable, public AnnotatableSparse {
+class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
 	friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
 
@@ -68,9 +67,6 @@ class SYMTAB_EXPORT Variable : public Aggregate, public Serializable, public Ann
    void setType(Type* t) { setType(t->reshare()); };
    boost::shared_ptr<Type> getType(Type::do_share_t);
    Type* getType() { return getType(Type::share).get(); }
-
-   Serializable *serialize_impl(SerializerBase *sb, 
-		   const char *tag = "Variable") THROW_SPEC (SerializerError);
    bool operator==(const Variable &v);
 
  private:
@@ -78,7 +74,7 @@ class SYMTAB_EXPORT Variable : public Aggregate, public Serializable, public Ann
    boost::shared_ptr<Type> type_;
 };
 
-class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
+class SYMTAB_EXPORT localVar : public AnnotatableSparse
 {
 	friend class typeCommon;
 	friend class localVarCollection;
@@ -127,8 +123,6 @@ class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
 	std::string &getFileName();
 	std::vector<VariableLocation> &getLocationLists();
 	bool operator==(const localVar &l);
-	Serializable *serialize_impl(SerializerBase *, 
-			const char * = "localVar") THROW_SPEC(SerializerError);
 };
 
 }
