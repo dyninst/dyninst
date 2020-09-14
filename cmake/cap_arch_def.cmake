@@ -71,17 +71,6 @@ set (CAP_DEFINES ${CAP_DEFINES}
     )
 set (BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
 
-elseif (PLATFORM MATCHES bgq_ion)
-set (OS_DEFINES -Dos_bg -Dos_bgq -Dos_bgq_ion -Dos_linux)
-set (CAP_DEFINES ${CAP_DEFINES} 
-             -Dcap_async_events
-             -Dcap_binary_rewriter
-             -Dcap_dwarf
-             -Dcap_mutatee_traps
-             -Dcap_ptrace
-    )
-set (BUG_DEFINES -Dbug_syscall_changepc_rewind)
-
 elseif (PLATFORM MATCHES cnl)
 set (OS_DEFINES -Dos_linux -Dos_cnl)
 set (CAP_DEFINES ${CAP_DEFINES} 
@@ -129,9 +118,6 @@ set (BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
 elseif (PLATFORM STREQUAL ppc64_linux)
 set (OLD_DEFINES -Dppc64_linux)
 set (BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
-
-elseif (PLATFORM STREQUAL ppc64_bgq_ion)
-set (OLD_DEFINES -Dppc64_bluegene -Dppc64_linux)
 
 elseif (PLATFORM STREQUAL x86_64_cnl)
 set (OLD_DEFINES -Dx86_64_cnl -Dx86_64_unknown_linux2_4)

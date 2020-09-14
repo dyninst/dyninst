@@ -66,8 +66,6 @@ public:
 #include "stackwalk/src/linux-swk.h"
 #elif defined(os_freebsd)
 #include "stackwalk/src/freebsd-swk.h"
-#elif defined(os_bgq)
-#include "stackwalk/src/bluegeneq-swk.h"
 #else
 #error "Invalid OS inclusion"
 #endif

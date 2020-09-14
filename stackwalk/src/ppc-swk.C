@@ -41,7 +41,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#if defined(os_linux) || defined(os_bg)
+#if defined(os_linux)
 
 #define GET_FRAME_BASE(spr) __asm__("or %0, %%r1, %%r1\n" : "=r"(spr))
 typedef union {

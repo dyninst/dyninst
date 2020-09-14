@@ -218,7 +218,7 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#if defined(os_linux) || defined(os_bg) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
 #include "Object-elf.h"
 #elif defined(os_windows)
 #include "Object-nt.h"

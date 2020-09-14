@@ -38,7 +38,7 @@
 
 /**
  * The Resp class is a second implementation of the response
- * class.  On async systems, such as BlueGene, it tracks
+ * class.  On async systems, it tracks
  * command messages we've sent to the OS, and associates them
  * with the responses we receive from the OS.
  *

@@ -377,7 +377,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
     plt_size_ = 0;
     symtab_addr_ = 0;
     strtab_addr_ = 0;
-#if defined (ppc32_linux) || defined(ppc32_bgp)
+#if defined (ppc32_linux)
     plt_entry_size_ = 8;
   rel_plt_entry_size_ = 8;
 #else
@@ -549,9 +549,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             it++;
         }
     }
-
-    isBlueGeneP_ = false;
-    isBlueGeneQ_ = false;
 
     hasNoteSection_ = false;
 
@@ -815,9 +812,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 }
             }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
-            /* comment section is a sequence of NULL-terminated strings.
-	 We want to concatenate them and search for BGP to determine
-	 if the binary is built for BGP compute nodes */
+            /* comment section is a sequence of NULL-terminated strings. */
 
             Elf_X_Data data = scn.get_data();
 
@@ -826,15 +821,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             char *buf = (char *) data.d_buf();
             while (buf && (index < size)) {
                 string comment = buf + index;
-                size_t pos_p = comment.find("BGP");
-                size_t pos_q = comment.find("BGQ");
-                if (pos_p != string::npos) {
-                    isBlueGeneP_ = true;
-                    break;
-                } else if (pos_q != string::npos) {
-                    isBlueGeneQ_ = true;
-                    break;
-                }
                 index += comment.size();
                 if (comment.size() == 0) { // Skip NULL characters in the comment section
                     index++;
@@ -2863,7 +2849,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         hasRelplt_(false),
         hasRelaplt_(false),
         relType_(Region::RT_REL),
-        isBlueGeneP_(false), isBlueGeneQ_(false),
         hasNoteSection_(false),
         elf_hash_addr_(0), gnu_hash_addr_(0),
         dynamic_offset_(0), dynamic_size_(0), dynsym_size_(0),
