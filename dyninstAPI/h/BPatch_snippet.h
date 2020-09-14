@@ -106,12 +106,7 @@ typedef enum {
 typedef enum {
     BPatch_negate,
     BPatch_address,
-#ifdef IBM_BPATCH_COMPAT
-    BPatch_deref,
-    BPatch_bit_compl		// not supported yet
-#else
     BPatch_deref
-#endif
 } BPatch_unOp;
 
 class BPATCH_DLL_EXPORT BPatch_snippet {
@@ -256,12 +251,6 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (long long) value
     BPatch_constExpr(long long value);
-
-#ifdef IBM_BPATCH_COMPAT
-    //  BPatch_constExpr::BPatch_constExpr
-    //  Creates a representation of a (float) value
-    BPatch_constExpr(float value);
-#endif
 
     // Should _always_ have a default constructor. This
     // one produces a 0
@@ -476,14 +465,6 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     //  BPatch_variableExpr::getComponents
     //  return variable expressions for all of the fields in a struct/union
     BPatch_Vector<BPatch_variableExpr *> * getComponents();
-
-#ifdef IBM_BPATCH_COMPAT
-    char * getName(char *buffer, int max);
-
-    void * getAddress();
-
-#endif
-
 };
 
 class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {

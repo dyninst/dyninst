@@ -727,34 +727,6 @@ BPatch_constExpr::BPatch_constExpr(long long value)
     ast_wrapper->setType(type);
 }
 
-#ifdef IBM_BPATCH_COMPAT
-
-char *BPatch_variableExpr::getNameWithLength(char *buffer, int max)
-{
-  if (max > name.length()) {
-    strcpy (buffer, name.c_str());
-    return buffer;
-  } else {
-    strncpy (buffer, name.c_str(), max-1)[max-1]='\0';
-  }
-  return NULL;
-}
-
-void *BPatch_variableExpr::getAddress()
-{
-  return address;
-}
-
-
-BPatch_constExpr::BPatch_constExprFloat(float value)
-{
-        // XXX fix me, puting value into int register.
-        int ivalue = (int) value;
-        BPatch_constExpr((int) ivalue);
-}
-
-#endif
-
 /*
  * BPatch_whileExpr::BPatch_whileExpr
  *

@@ -69,10 +69,6 @@ typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
  * BPatchSymTypeTag        - C++ type name and tag combination
  */
 
-#if defined (IBM_BPATCH_COMPAT)
-#define BPatch_dataBuilt_inType BPatch_dataUnknownType
-#endif
-
 typedef enum {BPatch_dataScalar, 
 	      BPatch_dataEnumerated,
 	      BPatch_dataTypeClass,
@@ -302,10 +298,6 @@ public:
 //Define all of these in .C 
   const char *getName() const;
 
-#ifdef IBM_BPATCH_COMPAT
-  char *getName(char *buffer, int max) const; 
-  BPatch_dataClass type() const { return type_; }
-#endif
   BPatch_dataClass getDataClass() const { return type_; }
 
   unsigned long getLow() const;

@@ -1979,9 +1979,6 @@ const std::vector <image_variable *> *image::findVarVectorByPretty(const std::st
 const std::vector <image_variable *> *image::findVarVectorByMangled(const std::string &name)
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-    bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
-#endif
     std::vector<image_variable *>* res = new std::vector<image_variable *>;
 
     vector<Variable *> vars;

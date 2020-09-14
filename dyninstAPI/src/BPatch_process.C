@@ -1162,19 +1162,6 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
    // delete thrd;
 }
 
-#ifdef IBM_BPATCH_COMPAT
-/**
- * In IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
- * which is in turn a wrapper for creating a new
- * ibmBpatchElf32Teader(name, addr)
- **/
-bool BPatch_process::addSharedObject(const char *name,
-                                        const unsigned long loadaddr)
-{
-   return loadLibrary(name);
-}
-#endif
-
 /**
  * This function continues a stopped process, letting it execute in single step mode,
  * and printing the current instruction as it executes.

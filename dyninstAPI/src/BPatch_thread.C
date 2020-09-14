@@ -42,10 +42,6 @@
 #include "dynProcess.h"
 #include "debug.h"
 
-#if defined(IBM_BPATCH_COMPAT)
-#include <algorithm>
-#endif
-
 /*
  * BPatch_thread::getCallStack
  *
