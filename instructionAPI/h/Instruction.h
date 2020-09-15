@@ -262,9 +262,6 @@ namespace Dyninst
 
       INSTRUCTION_EXPORT Architecture getArch() const;
 
-      /// ALPHA: Returns the category that an instruction falls into.  This feature is presently incomplete, and we welcome feedback
-      /// on ways to extend it usefully.
-      ///
       /// Currently, the valid categories are c_CallInsn, c_ReturnInsn, c_BranchInsn, c_CompareInsn,
       /// and c_NoCategory, as defined in %InstructionCategories.h.
       INSTRUCTION_EXPORT InsnCategory getCategory() const;
