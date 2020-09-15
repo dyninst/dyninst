@@ -62,11 +62,9 @@
 // value of the stack frame pointer that a function can use without
 // first establishing a new stack frame.  When our instrumentation
 // needs to use the stack, we make sure not to write into this
-// potentially used area.  AIX documentation stated 220 bytes as
-// the maximum size of this area.  64-bit PowerPC ELF ABI Supplement,
+// potentially used area.  64-bit PowerPC ELF ABI Supplement,
 // Version 1.9, 2004-10-23, used by Linux, stated 288 bytes for this
-// area.  We skip the larger number of bytes (288) to be safe on both
-// AIX and Linux, 32-bit and 64-bit.
+// area.
 #define STACKSKIP          288
 
 #define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned

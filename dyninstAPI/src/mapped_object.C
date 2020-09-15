@@ -333,9 +333,7 @@ bool mapped_object::analyze()
   // variables at an absolute address (and modifiable).
 
   // At some point, we should do better handling of base
-  // addresses. Right now we assume we have one per mapped object; AIX
-  // is a special case with two (one for functions, one for
-  // variables).
+  // addresses. Right now we assume we have one per mapped object
 
   if (!image_) return false;
 

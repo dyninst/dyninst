@@ -743,8 +743,6 @@ typedef unsigned codeBufIndex_t;
 
 
 #define BREAK_POINT_INSN 0x7d821008  /* trap */
-// #define BREAK_POINT_INSN 0x7fe00008  -- this form should also work and
-// follows the recommended form outlined in the AIX manual
 
 #define SPIN_WAIT_INSN 0x48000000 /* VxWorks Trap - Can't perform a trap there. */
 
