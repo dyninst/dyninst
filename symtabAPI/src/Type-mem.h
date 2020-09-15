@@ -39,16 +39,11 @@ using namespace Dyninst;
 using namespace SymtabAPI;
 
 template<class T>
-T *upgradePlaceholder(Type *placeholder, T *new_type)
+T *upgradePlaceholder(Type *mem, T *new_type)
 {
   assert(sizeof(T) <= Type::max_size);
 
-  void* mem = realloc((void *) placeholder, sizeof(T));
-  assert(mem == (void *) placeholder);
-  memset(mem, 0, sizeof(T));
-
   T *ret = new(mem) T();
-  assert(mem == (void *) ret);
   *ret = *new_type;
   return ret;
 }
