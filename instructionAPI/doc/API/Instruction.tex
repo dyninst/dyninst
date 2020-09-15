@@ -278,13 +278,11 @@ Architecture getArch() const
 InsnCategory getCategory() const
 \end{apient}
 \apidesc{
-    \textbf{Alpha}: Returns the category into which an instruction falls. This
-    feature is presently incomplete, and we welcome feedback on ways to extend
-    it usefully.
-
     Currently, the valid categories are \code{c\_CallInsn},
-    \code{c\_ReturnInsn}, \code{c\_BranchInsn}, \code{c\_CompareInsn}, and
-    \code{c\_NoCategory}, as defined in \code{InstructionCategories.h}.
+    \code{c\_ReturnInsn}, \code{c\_BranchInsn}, \code{c\_CompareInsn},
+    \code{c\_PrefetchInsn}, \code{c\_SysEnterInsn}, \code{c\_SyscallInsn},
+    \code{c\_VectorInsn}, and \code{c\_NoCategory}, as defined in
+    \code{InstructionCategories.h}.
 }
 
 \begin{apient}
