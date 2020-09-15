@@ -46,7 +46,7 @@ typedef enum { HEAPfree, HEAPallocated } heapStatus;
 // Bit pattern...
 typedef enum { textHeap=0x01,
                dataHeap=0x02,
-               uncopiedHeap=0x04, // AIX -- not copied on fork
+               uncopiedHeap=0x04, // not copied on fork
                anyHeap=0x7, // OR of the previous three
                lowmemHeap=0x1000 }
         inferiorHeapType;

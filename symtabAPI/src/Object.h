@@ -177,8 +177,8 @@ friend class Module;
     Offset data_vldS_;
     Offset data_vldE_;
 
-    Offset loader_off_; //only used on aix right now.  could be
-    Offset loader_len_; //needed on other platforms in the future
+    Offset loader_off_;
+    Offset loader_len_;
 
 //    Offset loadAddress_;
 //    Offset entryAddress_;

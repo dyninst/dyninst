@@ -2065,9 +2065,6 @@ bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
    gettimeofday(&starttime, NULL);
 #endif
 
-   // AIX: it's possible that we're reparsing a file with better information
-   // about it. If so, yank the old one out of the allSymtabs std::vector -- replace
-   // it, basically.
    if ( filename.find("/proc") == std::string::npos)
    {
 	   obj = findOpenSymtab(filename);

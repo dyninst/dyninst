@@ -3130,8 +3130,8 @@ void Object::get_valid_memory_areas(Elf_X &elf) {
 //
 #if defined(os_linux)
 
-// Differentiating between g++ and pgCC by stabs info (as in the solaris/
-// aix case, below) will not work; the gcc-compiled object files that
+// Differentiating between g++ and pgCC by stabs info
+// will not work; the gcc-compiled object files that
 // get included at link time will fill in the N_OPT stabs line. Instead,
 // look for "pgCC_compiled." symbols.
 bool parseCompilerType(Object *objPtr) {

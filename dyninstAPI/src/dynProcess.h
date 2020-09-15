@@ -501,7 +501,7 @@ protected:
     bool skipHeap(const heapDescriptor &heap); // platform-specific
     bool inferiorMallocDynamic(int size, Address lo, Address hi);
 
-    // platform-specific (TODO AIX is dataHeap, everything else is anyHeap)
+    // platform-specific
     inferiorHeapType getDynamicHeapType() const; 
     
     // Hybrid Mode

@@ -1719,7 +1719,6 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
 
         } else {
             // Registers from 11 (src = 8) and beyond are saved on the stack.
-            // On AIX this is +56 bytes; for ELF it's something different.
 
             int stkOffset;
             if (addrWidth == 4) {
@@ -1791,7 +1790,6 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &)
 
 
 // VG(11/16/01): Say if we have to restore a register to get its original value
-// VG(03/15/02): Sync'd with the new AIX tramp
 static inline bool needsRestore(Register x)
 {
   //return (x == 0) || ((x >= 3) && (x <= 12)) || (x == POWER_XER2531);
@@ -2610,7 +2608,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
-    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
+    // 64-bit ELF PowerPC Linux uses r2 for TOC base register
     if (p->getAddressWidth() == sizeof(uint64_t)) {
         Address val_to_write = f->addr();
         // Use function descriptor address, if available.

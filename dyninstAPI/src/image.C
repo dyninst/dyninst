@@ -1195,9 +1195,6 @@ image *image::parseImage(fileDescriptor &desc,
    */
   unsigned numImages = allImages.size();
   
-  // AIX: it's possible that we're reparsing a file with better information
-  // about it. If so, yank the old one out of the images vector -- replace
-  // it, basically.
   for (unsigned u=0; u<numImages; u++) {
       if (desc.isSameFile(allImages[u]->desc())) {
          if (allImages[u]->getObject()->canBeShared()) {

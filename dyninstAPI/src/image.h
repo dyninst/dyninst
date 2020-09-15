@@ -568,8 +568,8 @@ class pdmodule {
    /* We can see more than one function with the same mangled
       name in the same object, because it's OK for different
       modules in the same object to define the same (local) symbol.
-      However, we can't always determine module information (for instance,
-      libc.a on AIX lacks debug information), which means one of our
+      However, we can't always determine module information
+      which means one of our
       module classes may contain information about an entire object,
       and therefore, multiple functons with the same mangled name. */
    bool findFunctionByMangled (const std::string &name,
