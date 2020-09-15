@@ -274,9 +274,6 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
 static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
     Region::RegionType ret;
     switch (localHdr->e_machine()) {
-        case EM_SPARC:
-        case EM_SPARC32PLUS:
-        case EM_SPARCV9:
         case EM_PPC:
         case EM_PPC64:
         case EM_X86_64:
@@ -802,8 +799,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 // we start supporting some other x86 OS that uses the GNU
                 // linker in the future, it should be enabled for that platform as well.
                 // Note that this problem does not affect the non-x86 platforms
-                // that might use the GNU linker.  For example, programs linked
-                // with gld on SPARC Solaris have the correct PLT entry size.
+                // that might use the GNU linker.
                 //
                 // Another potential headache in the future is if we support
                 // some other x86 platform that has both the GNU linker and
