@@ -230,7 +230,6 @@ class registerSpace {
     // memory (including the register itself), and stick it in actual register
     // destination. So the source is the label, and destination is an actual.
     // Size is a legacy parameter for places where we don't have register information
-    // (SPARC/IA-64)
     bool readProgramRegister(codeGen &gen, Register source,
                              Register destination,
                              unsigned size);

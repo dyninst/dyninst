@@ -1641,14 +1641,9 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
     Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
     Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
 
-    //#if defined(cap_dynamic_heap)
     inferiorMallocAlign(size); // align size
     // Set the lo/hi constraints (if necessary)
     inferiorMallocConstraints(near_, lo, hi, type);
-    //#else
-    /* align to cache line size (32 bytes on SPARC) */
-    //size = (size + 0x1f) & ~0x1f;
-    //#endif
 
     infmalloc_printf("%s[%d]: inferiorMalloc entered; size %d, type %d, near 0x%lx (0x%lx to 0x%lx)\n",
                      FILE__, __LINE__, size, type, near_, lo, hi);
