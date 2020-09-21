@@ -514,7 +514,12 @@ class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_
     {
         bool operator()(const Function * f1, const Function * f2) const
         {
-            return f1->addr() < f2->addr();
+            if (f1->region() < f2->region()) return true;
+            else if (f1->region() == f2->region() &&
+                     f1->addr() < f2->addr()) {
+               return true;
+            }
+            return false;
         }
     };
 

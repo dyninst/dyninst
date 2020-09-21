@@ -50,7 +50,8 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-typedef dyn_c_hash_map<Address, bool> SeenMap;
+typedef std::pair<SymtabAPI::Region *, Offset> RegionOffsetPair;
+typedef dyn_c_hash_map<RegionOffsetPair, bool> SeenMap;
 
 static const vector<std::string> skipped_symbols = {
           "_non_rtti_object::`vftable'",
@@ -508,19 +509,16 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         }
         /*Achin added code ends*/
         Offset offset = f->getOffset();
-        bool present = !seen.insert(std::make_pair(offset, true));
+        SymtabAPI::Region * sr = f->getRegion();
+
+        bool present = !seen.insert(std::make_pair(RegionOffsetPair(sr, offset), true));
 
         if (present) {
-            // XXX it looks as though symtabapi now does de-duplication
-            //     of function symbols automatically, so this code should
-            //     never be reached, except in the case of overlapping
-            //     regions
            parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
                 FILE__,__LINE__, f->getOffset(), fname);
            continue;
         }
 
-        SymtabAPI::Region * sr = f->getRegion();
         if (!sr) {
             parsing_printf("[%s:%d] missing Region in function at %lx\n",
                 FILE__,__LINE__,f->getOffset());
