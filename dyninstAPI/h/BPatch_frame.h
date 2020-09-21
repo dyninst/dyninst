@@ -47,7 +47,6 @@ class BPatch_thread;
 
 class BPATCH_DLL_EXPORT BPatch_frame {
     friend class BPatch_thread;
-    friend class BPatch_Vector<BPatch_frame>;
     BPatch_thread *thread;
 
     void *pc;

@@ -1151,19 +1151,9 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
       return;
    }
 
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
-   // STL vectors don't have item erase. We use iterators instead...
    threads.erase(std::find(threads.begin(),
                                  threads.end(),
                                  thrd));
-#else
-   for (unsigned i=0; i< threads.size(); i++) {
-      if (threads[i] == thrd) {
-         threads.erase(i);
-         break;
-      }
-   }
-#endif
 
    llproc->removeThread(thrd->getTid());
 

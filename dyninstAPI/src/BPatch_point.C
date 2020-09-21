@@ -635,22 +635,14 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 
    if (when == BPatch_callBefore)
       if (order == BPatch_firstSnippet) {
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
          preSnippets.insert(preSnippets.begin(), handle);
-#else
-         preSnippets.push_front(handle);
-#endif
       }
       else {
          preSnippets.push_back(handle);
       }
    else {
       if (order == BPatch_firstSnippet) {
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
          postSnippets.insert(postSnippets.begin(), handle);
-#else
-         postSnippets.push_front(handle);
-#endif
       }
       else {
          postSnippets.push_back(handle);

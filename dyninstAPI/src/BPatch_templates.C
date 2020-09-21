@@ -34,9 +34,6 @@
 
 #define BPATCH_FILE
 
-#if !defined(i386_unknown_nt4_0)
-#pragma implementation "BPatch_Vector.h"
-#endif
 #include "BPatch_Vector.h"
 
 #if !defined(i386_unknown_nt4_0)
