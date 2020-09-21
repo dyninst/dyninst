@@ -69,7 +69,7 @@ class instWaitingList {
     process *which_proc;
 };
 
-extern pdvector<instWaitingList*> instWList;
+extern std::vector<instWaitingList*> instWList;
 
 #endif
 

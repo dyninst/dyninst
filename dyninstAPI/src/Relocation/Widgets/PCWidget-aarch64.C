@@ -105,7 +105,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   EmitterAARCH64* emitter = static_cast<EmitterAARCH64*>(gen.emitter());
   Address RAOffset = addr - emitter->emitMovePCToReg( 30 /* LR */ , gen) + 4;
   // Load the offset into a scratch register
-  pdvector<Register> exclude;
+  std::vector<Register> exclude;
   exclude.push_back(30 /* LR */);
   Register scratchReg = insnCodeGen::moveValueToReg(gen, labs(RAOffset), &exclude);
   // Put the original RA into LR

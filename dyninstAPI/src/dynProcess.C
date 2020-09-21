@@ -64,9 +64,9 @@ using std::stringstream;
 
 Dyninst::SymtabAPI::SymtabReaderFactory *PCProcess::symReaderFactory_;
 
-PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,
+PCProcess *PCProcess::createProcess(const string file, std::vector<string> &argv,
                                     BPatch_hybridMode analysisMode,
-                                    pdvector<string> &envp,
+                                    std::vector<string> &envp,
                                     const string dir, int stdin_fd, int stdout_fd,
                                     int stderr_fd)
 {
@@ -211,7 +211,7 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
     // TODO hybrid mode stuff
 
     // Copy signal handlers
-    pdvector<codeRange *> sigHandlers;
+    std::vector<codeRange *> sigHandlers;
     parent->signalHandlerLocations_.elements(sigHandlers);
     for(unsigned i = 0; i < sigHandlers.size(); ++i) {
         signal_handler_location *oldSig = dynamic_cast<signal_handler_location *>(sigHandlers[i]);
@@ -443,7 +443,7 @@ bool PCProcess::bootstrapProcess() {
     }
 
 
-    pdvector<int_variable *> obsCostVec;
+    std::vector<int_variable *> obsCostVec;
     if( !findVarsByAll("DYNINSTobsCostLow", obsCostVec) ) {
         startup_printf("%s[%d]: failed to find DYNINSTobsCostLow\n",
                 FILE__, __LINE__);
@@ -758,7 +758,7 @@ void PCProcess::setMainFunction() {
  * (DYNINSTstaticHeap...) to the buffer pool.
  */
 void PCProcess::addInferiorHeap(mapped_object *obj) {
-    pdvector<heapDescriptor> infHeaps;
+    std::vector<heapDescriptor> infHeaps;
     /* Get a list of inferior heaps in the new image */
     if (obj->getInfHeapList(infHeaps)) {
         /* Add the vector to the inferior heap structure */
@@ -823,7 +823,7 @@ bool PCProcess::loadRTLib() {
      bootstrapState_ = bs_loadedRTLib;
    }
    int loaded_ok = 0;
-   pdvector<int_variable *> vars;
+   std::vector<int_variable *> vars;
    if (!findVarsByAll("DYNINSThasInitialized", vars)) {
         startup_printf("%s[%d]: no DYNINSThasInitialized variable\n", FILE__, __LINE__);
 		return false;
@@ -865,7 +865,7 @@ bool PCProcess::setRTLibInitParams() {
     // libdyninstAPI_RT_init_localCause
     // libdyninstAPI_RT_init_localPid
 
-    pdvector<int_variable *> vars;
+    std::vector<int_variable *> vars;
 
 
     if (!findVarsByAll("libdyninstAPI_RT_init_localPid", vars)) {
@@ -1535,7 +1535,7 @@ PCEventHandler * PCProcess::getPCEventHandler() const {
     return eventHandler_;
 }
 
-bool PCProcess::walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
+bool PCProcess::walkStacks(std::vector<std::vector<Frame> > &stackWalks) {
     bool needToContinue = false;
     bool retval = true;
 
@@ -1557,7 +1557,7 @@ bool PCProcess::walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
     {
         PCThread *curThr = i->second;
 
-        pdvector<Frame> stackWalk;
+        std::vector<Frame> stackWalk;
         if( !curThr->walkStack(stackWalk) ) {
             retval = false;
             proccontrol_printf("%s[%d]: failed to walk stack for thread 0x%lx(%d)\n",
@@ -1580,7 +1580,7 @@ bool PCProcess::walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
 }
 
 // Return a vector (possibly with one object) of active frames in the process
-bool PCProcess::getAllActiveFrames(pdvector<Frame> &activeFrames) {
+bool PCProcess::getAllActiveFrames(std::vector<Frame> &activeFrames) {
     Frame active;
     if( threadsByTid_.size() == 0 ) return false;
 
@@ -1749,7 +1749,7 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     alignUp(size, 4);
     // build AstNode for "DYNINSTos_malloc" call
     std::string callee = "DYNINSTos_malloc";
-    pdvector<AstNodePtr> args(3);
+    std::vector<AstNodePtr> args(3);
     args[0] = AstNode::operandNode(AstNode::Constant, (void *)(Address)size);
     args[1] = AstNode::operandNode(AstNode::Constant, (void *)lo);
     args[2] = AstNode::operandNode(AstNode::Constant, (void *)hi);
@@ -1799,7 +1799,7 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
 }
 
 // A copy of the BPatch-level instrumentation installer
-void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
+void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) {
     if (requests.size() == 0) {
         return;
     }
@@ -1818,7 +1818,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
         if(!multithread_capable() && req->is_MTonly())
             continue;
         
-        pdvector<func_instance *> matchingFuncs;
+        std::vector<func_instance *> matchingFuncs;
         
         if (!findFuncsByAll(req->func, matchingFuncs, req->lib)) {
             inst_printf("%s[%d]: failed to find any functions matching %s (lib %s), returning failure from installInstrRequests\n", FILE__, __LINE__, req->func.c_str(), req->lib.c_str());
@@ -1852,7 +1852,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
                                           this);
            }
            else {
-              pdvector<AstNodePtr> def_args;
+              std::vector<AstNodePtr> def_args;
               def_args.push_back(AstNode::operandNode(AstNode::Constant,
                                                       (void *)0));
               ast = AstNode::funcCallNode(req->inst,
@@ -2373,14 +2373,14 @@ bool PCProcess::getDeadCode
    return false;
 #if 0
     // do a stackwalk to see which functions are currently executing
-    pdvector<pdvector<Frame> >  stacks;
-    pdvector<Address> pcs;
+    std::vector<std::vector<Frame> >  stacks;
+    std::vector<Address> pcs;
     if (!walkStacks(stacks)) {
         inst_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
         return false;
     }
     for (unsigned i = 0; i < stacks.size(); ++i) {
-        pdvector<Frame> &stack = stacks[i];
+        std::vector<Frame> &stack = stacks[i];
         for (unsigned int j = 0; j < stack.size(); ++j) {
             Address origPC = 0;
             vector<func_instance*> dontcare1;
@@ -2501,7 +2501,7 @@ void PCProcess::flushAddressCache_RT(Address start, unsigned size)
     // Find the runtime cache's address if it hasn't been set yet
     if (0 == RT_address_cache_addr_) {
         std::string arg_str ("DYNINST_target_cache");
-        pdvector<int_variable *> vars;
+        std::vector<int_variable *> vars;
         if ( ! findVarsByAll(arg_str, vars) ) {
             fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
                     FILE__, __LINE__, arg_str.c_str());
@@ -2594,14 +2594,14 @@ func_instance *PCProcess::findActiveFuncByAddr(Address addr)
     // out which of the shared functions is on the call stack
     bool foundFrame = false;
     func_instance *activeFunc = NULL; 
-    pdvector<pdvector<Frame> >  stacks;
+    std::vector<std::vector<Frame> >  stacks;
     if ( false == walkStacks(stacks) ) {
         fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
                 FILE__, __LINE__);
         assert(0);
     }
     for (unsigned int i = 0; !foundFrame && i < stacks.size(); ++i) {
-        pdvector<Frame> &stack = stacks[i];
+        std::vector<Frame> &stack = stacks[i];
         for (unsigned int j = 0; !foundFrame && j < stack.size(); ++j) {
             Frame *curFrame = &stack[j];
             Address framePC = curFrame->getPC();
@@ -2783,7 +2783,7 @@ void PCProcess::debugSuicide() {
 
     isInDebugSuicide_ = true;
 
-    pdvector<Frame> activeFrames;
+    std::vector<Frame> activeFrames;
     getAllActiveFrames(activeFrames);
 
     for(unsigned i=0; i < activeFrames.size(); ++i) {
@@ -2806,8 +2806,8 @@ void PCProcess::debugSuicide() {
     }
 }
 
-pdvector<func_instance *> PCProcess::pcsToFuncs(pdvector<Frame> stackWalk) {
-    pdvector <func_instance *> ret;
+std::vector<func_instance *> PCProcess::pcsToFuncs(std::vector<Frame> stackWalk) {
+    std::vector <func_instance *> ret;
     unsigned i;
     func_instance *fn;
     for(i=0;i<stackWalk.size();i++) {
@@ -2887,7 +2887,7 @@ void PCProcess::setDesiredProcessState(PCProcess::processState_t pc) {
     processState_ = pc;
 }
 
-bool PCProcess::walkStack(pdvector<Frame> &stackWalk,
+bool PCProcess::walkStack(std::vector<Frame> &stackWalk,
                           PCThread *thread)
 {
   if( stackwalker_ == NULL ) return false;
@@ -3113,7 +3113,7 @@ bool PCProcess::setBreakpoint(Address addr) {
 
 bool PCProcess::launchDebugger() {
     // Stop the process on detach 
-    pdvector<func_instance *> breakpointFuncs;
+    std::vector<func_instance *> breakpointFuncs;
     if( !findFuncsByAll("DYNINSTsafeBreakPoint", breakpointFuncs) ) {
         fprintf(stderr, "Failed to find function DYNINSTsafeBreakPoint\n");
         return false;
@@ -3151,7 +3151,7 @@ bool PCProcess::launchDebugger() {
 Address getVarAddr(PCProcess *proc, std::string str) {
     Address retAddr = 0;
 
-    pdvector<int_variable *> vars;
+    std::vector<int_variable *> vars;
     if( proc->findVarsByAll(str, vars) ) {
         if( vars.size() != 1 ) {
             proccontrol_printf("%s[%d]: WARNING: multiple copies of %s found\n",

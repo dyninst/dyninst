@@ -215,7 +215,7 @@ BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegions(bool incUninstrum
 
    for (unsigned int i=0; i < (unsigned) procList.size(); i++) {
       func_instance * intF = procList[i]->lowlevel_func();
-      const pdvector<int_parRegion *> intPR = intF->parRegions();
+      const std::vector<int_parRegion *> intPR = intF->parRegions();
 
       for (unsigned int j=0; j < (unsigned) intPR.size(); j++)
       {
@@ -298,7 +298,7 @@ bool BPatch_image::getModules(BPatch_Vector<BPatch_module *> &mods)
 
 BPatch_Vector<BPatch_module *> *BPatch_image::getModules() 
 {
-   pdvector<mapped_module *> modules;
+   std::vector<mapped_module *> modules;
    std::vector<AddressSpace *> as;
    addSpace->getAS(as);
    
@@ -324,7 +324,7 @@ void BPatch_image::getObjects(std::vector<BPatch_object *> &objs) {
    addSpace->getAS(as);
    
    for (unsigned i=0; i<as.size(); i++) {
-      const pdvector<mapped_object *> &objs = as[i]->mappedObjects();
+      const std::vector<mapped_object *> &objs = as[i]->mappedObjects();
 
       for (unsigned j = 0; j < objs.size(); j++) {
          findOrCreateObject(objs[j]);
@@ -422,7 +422,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
 
    if (NULL == strpbrk(name, REGEX_CHARSET)) {
       //  usual case, no regex
-      pdvector<func_instance *> foundIntFuncs;
+      std::vector<func_instance *> foundIntFuncs;
       for (unsigned i=0; i<as.size(); i++) {
          as[i]->findFuncsByAll(std::string(name), foundIntFuncs);
       }
@@ -485,7 +485,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
    // point, so it might as well be top-level. This is also an
    // excellent candidate for a "value-added" library.
 
-   pdvector<func_instance *> all_funcs;
+   std::vector<func_instance *> all_funcs;
    for (unsigned i=0; i<as.size(); i++) {
       as[i]->getAllFunctions(all_funcs);
    }
@@ -580,7 +580,7 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs,
       void *user_data, int showError, 
       bool incUninstrumentable)
 {
-   pdvector<func_instance *> all_funcs;
+   std::vector<func_instance *> all_funcs;
    std::vector<AddressSpace *> as;
    addSpace->getAS(as);
    assert(as.size());
@@ -683,7 +683,7 @@ bool BPatch_image::findFunction(Dyninst::Address addr,
 BPatch_variableExpr *BPatch_image::findVariable(const char *name, 
                                                    bool showError)
 {
-    pdvector<int_variable *> vars;
+    std::vector<int_variable *> vars;
     std::vector<AddressSpace *> as;
     int_variable *var = NULL;
     
@@ -1037,7 +1037,7 @@ bool BPatch_image::parseNewFunctions(BPatch_Vector<BPatch_module*> &affectedModu
     std::vector<AddressSpace*> asv;
     addSpace->getAS(asv);
     AddressSpace *as = asv[0];
-    pdvector<mapped_object *> allobjs = as->mappedObjects();
+    std::vector<mapped_object *> allobjs = as->mappedObjects();
 
     // check that the functions have not been parsed yet
     vector<Address> funcEntryAddrs_(funcEntryAddrs); // make an editable copy

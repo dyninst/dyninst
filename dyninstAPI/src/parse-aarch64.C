@@ -35,9 +35,7 @@
 // classified
 //
 
-#include "common/src/Vector.h"
 #include <unordered_map>
-#include "common/src/Vector.h"
 #include "parse-cfg.h"
 #include "instPoint.h"
 #include "image.h"
@@ -91,7 +89,7 @@ bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, 
 
 
 std::string parse_func::calcParentFunc(const parse_func * imf,
-                                    pdvector<image_parRegion *> &/*pR*/)
+                                    std::vector<image_parRegion *> &/*pR*/)
 {
 	assert(0);
 }
@@ -471,7 +469,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
+    const std::vector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
     if( funcs != NULL ) {
         return funcs->at(0);
     }
@@ -481,7 +479,7 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
 func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
+    const std::vector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
     if( funcs != NULL ) {
         return funcs->at(0);
     }

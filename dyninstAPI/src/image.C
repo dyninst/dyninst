@@ -83,7 +83,7 @@
 
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", NULL);
 AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno", NULL);
-pdvector<image*> allImages;
+std::vector<image*> allImages;
 
 using namespace std;
 using namespace Dyninst;
@@ -110,7 +110,7 @@ fileDescriptor::fileDescriptor():
         code_(0), data_(0), dynamic_(0), shared_(false),
         pid_(0), length_(0), rawPtr_(NULL)
 {
-    // This shouldn't be called... must be public for pdvector, though
+    // This shouldn't be called... must be public for std::vector, though
 }
 
 bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
@@ -1102,15 +1102,15 @@ image::getAllFunctions()
     return codeObject()->funcs();
 }
 
-const pdvector<image_variable*> &image::getAllVariables()
+const std::vector<image_variable*> &image::getAllVariables()
 {
     analyzeIfNeeded();
     return everyUniqueVariable;
 }
 
-const pdvector<image_variable*> &image::getExportedVariables() const { return exportedVariables; }
+const std::vector<image_variable*> &image::getExportedVariables() const { return exportedVariables; }
 
-const pdvector<image_variable*> &image::getCreatedVariables()
+const std::vector<image_variable*> &image::getCreatedVariables()
 {
   analyzeIfNeeded();
   return createdVariables;
@@ -1119,7 +1119,7 @@ const pdvector<image_variable*> &image::getCreatedVariables()
 bool image::getModules(vector<pdmodule *> &mods) 
 {
     bool ret = false;
-   pdvector<pdmodule *> toReturn;
+   std::vector<pdmodule *> toReturn;
     for (map<Module *, pdmodule *>::const_iterator iter = mods_.begin();
          iter != mods_.end(); iter++) {
         ret = true;
@@ -1286,7 +1286,7 @@ void image::removeImage(image *img)
     // We're not deleting when the refcount hits 0, so we may as well
     // keep the vector. It's a time/memory problem. 
   if (refCount == 0) {
-    pdvector<image*> newImages;
+    std::vector<image*> newImages;
     // It's gone... remove from image vector
     for (unsigned i = 0; i < allImages.size(); i++) {
       if (allImages[i] != img)
@@ -1641,10 +1641,11 @@ image::~image()
     parallelRegions.clear();
 
     // Finally, remove us from the image list.
-    for (i = 0; i < allImages.size(); i++) {
-        if (allImages[i] == this)
-            VECTOR_ERASE(allImages,i,i);
-    }
+    allImages.erase(
+        std::remove_if(allImages.begin(), allImages.end(),
+            [this](image *img){ return this == img; }
+        )
+    );
 
     if (pltFuncs) {
        delete pltFuncs;
@@ -1659,14 +1660,14 @@ image::~image()
     if (linkedFile) { SymtabAPI::Symtab::closeSymtab(linkedFile); }
 }
 
-bool pdmodule::findFunction( const std::string &name, pdvector<parse_func *> &found ) {
+bool pdmodule::findFunction( const std::string &name, std::vector<parse_func *> &found ) {
     if (findFunctionByMangled(name, found))
         return true;
     return findFunctionByPretty(name, found);
 }
 
 bool pdmodule::findFunctionByMangled( const std::string &name,
-                                      pdvector<parse_func *> &found)
+                                      std::vector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1674,7 +1675,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
+    const std::vector<parse_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
     if (!obj_funcs) {
         return false;
     }
@@ -1692,7 +1693,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
 
 
 bool pdmodule::findFunctionByPretty( const std::string &name,
-                                     pdvector<parse_func *> &found)
+                                     std::vector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1700,7 +1701,7 @@ bool pdmodule::findFunctionByPretty( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
+    const std::vector<parse_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
     if (!obj_funcs) {
         return false;
     }
@@ -1914,9 +1915,9 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &name) {
+const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
-    pdvector<parse_func *>* res = new pdvector<parse_func *>;
+    std::vector<parse_func *>* res = new std::vector<parse_func *>;
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::prettyName);
 
@@ -1939,9 +1940,9 @@ const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &n
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-const pdvector <parse_func *> *image::findFuncVectorByMangled(const std::string &name)
+const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::string &name)
 {
-    pdvector<parse_func *>* res = new pdvector<parse_func *>;
+    std::vector<parse_func *>* res = new std::vector<parse_func *>;
 
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::mangledName);
@@ -1963,9 +1964,9 @@ const pdvector <parse_func *> *image::findFuncVectorByMangled(const std::string 
     }   
 }
 
-const pdvector <image_variable *> *image::findVarVectorByPretty(const std::string &name)
+const std::vector <image_variable *> *image::findVarVectorByPretty(const std::string &name)
 {
-    pdvector<image_variable *>* res = new pdvector<image_variable *>;
+    std::vector<image_variable *>* res = new std::vector<image_variable *>;
 
     vector<Variable *> vars;
     linkedFile->findVariablesByName(vars, name.c_str(), SymtabAPI::prettyName);
@@ -1992,13 +1993,13 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const std::strin
     }
 }
 
-const pdvector <image_variable *> *image::findVarVectorByMangled(const std::string &name)
+const std::vector <image_variable *> *image::findVarVectorByMangled(const std::string &name)
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
     bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
 #endif
-    pdvector<image_variable *>* res = new pdvector<image_variable *>;
+    std::vector<image_variable *>* res = new std::vector<image_variable *>;
 
     vector<Variable *> vars;
     linkedFile->findVariablesByName(vars, name.c_str(), SymtabAPI::mangledName);
@@ -2031,7 +2032,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
   return NULL;*/
 }
 
-bool pdmodule::getFunctions(pdvector<parse_func *> &funcs)  {
+bool pdmodule::getFunctions(std::vector<parse_func *> &funcs)  {
     unsigned curFuncSize = funcs.size();
     const CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
     
@@ -2048,8 +2049,8 @@ bool pdmodule::getFunctions(pdvector<parse_func *> &funcs)  {
 } /* end getFunctions() */
 
 /* Instrumentable-only, by the last version's source. */
-bool pdmodule::getVariables(pdvector<image_variable *> &vars)  {
-    pdvector<image_variable *> allVars = imExec()->getAllVariables();
+bool pdmodule::getVariables(std::vector<image_variable *> &vars)  {
+    std::vector<image_variable *> allVars = imExec()->getAllVariables();
     unsigned curVarSize = vars.size();
 
     for (unsigned i = 0; i < allVars.size(); i++) {
@@ -2118,7 +2119,7 @@ Symbol *image::symbol_info(const std::string& symbol_name) {
    return symbols[0];
 }
 
-bool image::findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret) {
+bool image::findSymByPrefix(const std::string &prefix, std::vector<Symbol *> &ret) {
     unsigned start;
     vector <Symbol *>found;	
     std::string reg = prefix+std::string("*");

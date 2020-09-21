@@ -115,7 +115,7 @@ void source_helper(ParseAPI::Edge* e,
 // function, since our CFGs at the BPatch level are intraprocedural
 void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
   //  BPatch_basicBlock *b;
-  pdvector<block_instance *> in_blocks;
+  std::vector<block_instance *> in_blocks;
   // can't iterate over the PatchAPI cfg since that doesn't allow you to detect
   // edges from shared blocks into blocks that are not shared and not in the 
   // target block's function
@@ -147,7 +147,7 @@ void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
 //returns the successors of the basic block in a set
 void BPatch_basicBlock::getTargets(BPatch_Vector<BPatch_basicBlock*>& tgrts){
   BPatch_basicBlock *b;
-  pdvector<block_instance *> out_blocks;
+  std::vector<block_instance *> out_blocks;
   const PatchBlock::edgelist &itrgs = iblock->targets();
   for (PatchBlock::edgelist::const_iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
     edge_instance* iedge = SCAST_EI(*iter);

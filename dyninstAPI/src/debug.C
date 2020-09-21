@@ -35,7 +35,6 @@
 #include <assert.h>
 #include <string>
 #include "common/src/Pair.h"
-#include "common/src/Vector.h"
 #include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"

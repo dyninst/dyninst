@@ -223,7 +223,7 @@ class BinaryEdit : public AddressSpace {
 
     std::vector<depRelocation *> dependentRelocations;
 
-    void buildDyninstSymbols(pdvector<SymtabAPI::Symbol *> &newSyms, 
+    void buildDyninstSymbols(std::vector<SymtabAPI::Symbol *> &newSyms, 
                              SymtabAPI::Region *newSec,
                              SymtabAPI::Module *newMod);
     mapped_object *mobj;

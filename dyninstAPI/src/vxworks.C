@@ -589,7 +589,7 @@ bool wtxCreateTask(const std::string &filename, WTX_MODULE_INFO *modinfo)
     // Drop back to symbol "main" if needed.
     if (!entryAddr) {
         wtxFindFunction("main", modinfo->moduleId, entryAddr);
-        //const pdvector <func_instance *> *funcs;
+        //const std::vector <func_instance *> *funcs;
         //funcs = obj->findFuncVectorByMangled("main");
         //if (funcs && funcs->size())
         //    entryAddr = (*funcs)[0]->getAddress();
@@ -1039,7 +1039,7 @@ bool SignalGenerator::forkNewProcess()
     return true;
 }
 
-bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
+bool SignalGenerator::decodeEvents(std::vector<EventRecord> &events)
 {
     for (unsigned int i = 0; i < events.size(); i++) {
         // If we already know the details of this event, skip it.
@@ -1054,7 +1054,7 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
 }
 
 
-bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
+bool SignalGenerator::waitForEventsInternal(std::vector<EventRecord> &events)
 {
     std::vector<EventRecord> local_buf;
     assert(events.size() == 0);
@@ -1245,7 +1245,7 @@ std::string process::tryToFindExecutable(const std::string& /*progpath*/, int /*
     // There's no easy way to associate a vxWorks task with an object file.
     return "[No file for attach]";
 }
-bool process::determineLWPs(pdvector<unsigned> & /*lwp_ids*/) { assert(0); return false; }
+bool process::determineLWPs(std::vector<unsigned> & /*lwp_ids*/) { assert(0); return false; }
 bool process::dumpImage( std::string ) { assert(0); return false; }
 static const Address lowest_addr = 0x0;
 void process::inferiorMallocConstraints(Address /*near*/, Address &lo, Address &hi, inferiorHeapType /* type */ )
@@ -1357,7 +1357,7 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 
     const std::string vrbleName = "DYNINST_bootstrap_info";
 
-    pdvector<int_variable *> bootstrapInfoVec;
+    std::vector<int_variable *> bootstrapInfoVec;
     if (!findVarsByAll(vrbleName, bootstrapInfoVec))
         assert(0);
     assert(bootstrapInfoVec.size() == 1);
@@ -1750,7 +1750,7 @@ func_instance *instPoint::findCallee()
     if (icallee) {
         // Now we have to look up our specialized version
         // Can't do module lookup because of DEFAULT_MODULE...
-        const pdvector<func_instance *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
+        const std::vector<func_instance *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
         if (!possibles) {
             return NULL;
         }
@@ -1829,7 +1829,7 @@ func_instance *instPoint::findCallee()
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
  **/
-//static void findThreadFuncs(process * /*p*/, std::string /*func*/, pdvector<func_instance *> & /*result*/) { assert(0); return; }
+//static void findThreadFuncs(process * /*p*/, std::string /*func*/, std::vector<func_instance *> & /*result*/) { assert(0); return; }
 void dyninst_yield() { assert(0); return; }
 
 // ****** Support linux-specific forkNewProcess DBI callbacks ***** //
@@ -1839,8 +1839,8 @@ void dyninst_yield() { assert(0); return; }
  * **********************************************************************/
 bool DebuggerInterface::forkNewProcess(std::string /*file*/, 
                                        std::string /*dir*/,
-                                       pdvector<std::string> * /*argv*/,
-                                       pdvector<std::string> * /*envp*/,
+                                       std::vector<std::string> * /*argv*/,
+                                       std::vector<std::string> * /*envp*/,
                                        std::string /*inputFile*/, std::string /*outputFile*/, int & /*traceLink*/,
                                        pid_t & /*pid*/, int /*stdin_fd*/, int /*stdout_fd*/, int /*stderr_fd*/,
                                        SignalGenerator * /*sg*/) { assert(0); return false; }
@@ -2010,7 +2010,7 @@ sharedLibHook::~sharedLibHook() { assert(0); }
 // process all shared objects that have been mapped into the process's
 // address space.  This routine reads the link maps from the application 
 // process to find the shared object file base mappings. It returns 0 on error.
-bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs)
+bool dynamic_linking::processLinkMaps(std::vector<fileDescriptor> &descs)
 {
     WTX_MOD_FIND_CRITERIA crit;
     memset(&crit, 0, sizeof(WTX_MOD_FIND_CRITERIA));
@@ -2089,7 +2089,7 @@ bool dynamic_linking::initialize()
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord & /*ev*/,
     unsigned int & /*change_type*/) { assert(0); }
 
-bool dynamic_linking::getChangedObjects(EventRecord & /* ev */, pdvector<mapped_object*> & /* changed_objects */) { assert(0); }
+bool dynamic_linking::getChangedObjects(EventRecord & /* ev */, std::vector<mapped_object*> & /* changed_objects */) { assert(0); }
 
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused
 // by a change to the link maps,  If it is, and if the linkmaps state is
@@ -2100,8 +2100,8 @@ bool dynamic_linking::getChangedObjects(EventRecord & /* ev */, pdvector<mapped_
 // the change_type value is set to indicate if the objects have been added 
 // or removed
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord & /*ev*/,
-                                                       pdvector<mapped_object*> & /*changed_objects*/,
-                                                       pdvector<bool> & /*is_new_object*/)
+                                                       std::vector<mapped_object*> & /*changed_objects*/,
+                                                       std::vector<bool> & /*is_new_object*/)
 {
     // assert(0);
     return true;

@@ -43,9 +43,9 @@ struct batchInsertionRecord {
     // Thread-specific instru
     BPatch_thread *thread_;
     // For delayed insertion; vector because there is a vector-insert technique
-    pdvector<BPatch_point *> points_;
+    std::vector<BPatch_point *> points_;
     // This has to be vectorized to handle the multiple-point insertion + edges.
-    pdvector<callWhen> when_;
+    std::vector<callWhen> when_;
     callOrder order_;
     BPatch_snippet snip; // Make a copy so that the user doesn't have to.
     BPatchSnippetHandle *handle_; // handle to fill in

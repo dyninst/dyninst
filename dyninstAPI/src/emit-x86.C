@@ -453,7 +453,7 @@ void EmitterIA32::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
    gen.markRegDefined(REGNUM_EAX);
    stackItemLocation loc = getHeightOf(stackItem::framebase, gen);
 
-   pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+   std::vector<registerSlot *> &regs = gen.rs()->trampRegs();
    registerSlot *eax = NULL;
    for (unsigned i=0; i<regs.size(); i++) {
       if (regs[i]->encoding() == REGNUM_EAX) {
@@ -681,7 +681,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     }
     else
     {
-       pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+       std::vector<registerSlot *> &regs = gen.rs()->trampRegs();
        for (unsigned i=0; i<regs.size(); i++) {
           registerSlot *reg = regs[i];
           if (bt->definedRegs[reg->encoding()]) {
@@ -1418,7 +1418,7 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
    // are not used after this call.
    Register scratchReg = src2;
    if (scratchReg == REGNUM_RDX) {
-      pdvector<Register> dontUse;
+      std::vector<Register> dontUse;
       dontUse.push_back(REGNUM_RAX);
       dontUse.push_back(src2);
       dontUse.push_back(dest);
@@ -1771,11 +1771,11 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
-Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
+Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands,
                                 bool noCost, func_instance *callee)
 {
    assert(op == callOp);
-   pdvector <Register> srcs;
+   std::vector <Register> srcs;
 
    bool inInstrumentation = true;
 
@@ -1790,7 +1790,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 
    // Before we generate argument code, save any register that's live across
    // the call. 
-   pdvector<pair<unsigned,int> > savedRegsToRestore;
+   std::vector<pair<unsigned,int> > savedRegsToRestore;
    if (inInstrumentation) {
       bitArray regsClobberedByCall = ABI::getABI(8)->getCallWrittenRegisters();
       for (int i = 0; i < gen.rs()->numGPRs(); i++) {
@@ -1985,7 +1985,7 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
       }
    }
    
-   pdvector<Register> excluded;
+   std::vector<Register> excluded;
    excluded.push_back(REGNUM_RAX);
    
    Register ptr = gen.rs()->getScratchRegister(gen, excluded);
@@ -2012,7 +2012,7 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, func_instance *callee, 
 
    // find func_instance reference in address space
    // (refresh func_map)
-   pdvector<func_instance *> funcs;
+   std::vector<func_instance *> funcs;
    addrSpace->findFuncsByAll(callee->prettyName(), funcs);
 
    // test to see if callee is in a shared module
@@ -3005,7 +3005,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, func_instance *callee, R
 
    // find func_instance reference in address space
    // (refresh func_map)
-   pdvector<func_instance *> funcs;
+   std::vector<func_instance *> funcs;
    addrSpace->findFuncsByAll(callee->prettyName(), funcs);
    
    // test to see if callee is in a shared module

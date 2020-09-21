@@ -36,8 +36,8 @@
 // Code generation
 
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 #include "common/h/dyn_regs.h"
+#include <vector>
 class AddressSpace;
 
 namespace NS_aarch64 {
@@ -263,7 +263,7 @@ class COMMON_EXPORT instruction {
     Address getTarget(Address insnAddr) const;
 
     unsigned spaceToRelocate() const;
-    bool getUsedRegs(pdvector<int> &regs);
+    bool getUsedRegs(std::vector<int> &regs);
 
     bool valid() const {
 			assert(0);

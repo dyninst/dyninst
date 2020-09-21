@@ -40,7 +40,6 @@
 
 #include <stdio.h>
 #include <string>
-#include "common/src/Vector.h"
 #include <unordered_map>
 #include "common/src/Types.h"
 
@@ -221,7 +220,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
 
-   static AstNodePtr sequenceNode(pdvector<AstNodePtr > &sequence);
+   static AstNodePtr sequenceNode(std::vector<AstNodePtr > &sequence);
         
    static AstNodePtr variableNode(std::vector<AstNodePtr>&ast_wrappers_, std::vector<std::pair<Offset, Offset> > *ranges = NULL);
 
@@ -230,10 +229,10 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                                   AstNodePtr r = AstNodePtr(), 
                                   AstNodePtr e = AstNodePtr());
 
-   static AstNodePtr funcCallNode(const std::string &func, pdvector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
-   static AstNodePtr funcCallNode(func_instance *func, pdvector<AstNodePtr > &args);
+   static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
+   static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr > &args);
    static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
-   static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
+   static AstNodePtr funcCallNode(Address addr, std::vector<AstNodePtr > &args); // For when you absolutely need
    // to jump somewhere.
 
     // Acquire the thread index value - a 0...n labelling of threads.
@@ -331,7 +330,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    virtual const std::vector<AstNodePtr> getArgs() { return std::vector<AstNodePtr>(); }; // to quiet compiler
 
 
-   virtual void setChildren(pdvector<AstNodePtr > &children);
+   virtual void setChildren(std::vector<AstNodePtr > &children);
    virtual AstNodePtr deepCopy() { return AstNodePtr(this);};
    
 
@@ -356,11 +355,11 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    bool stealRegister(Register reg);
 
 	// Check to see if path1 is a subpath of path2
-	bool subpath(const pdvector<AstNode*> &path1, 
-                const pdvector<AstNode*> &path2) const;
+	bool subpath(const std::vector<AstNode*> &path1, 
+                const std::vector<AstNode*> &path2) const;
 
 	// Return all children of this node ([lre]operand, ..., operands[])
-	virtual void getChildren(pdvector<AstNodePtr> &); 
+	virtual void getChildren(std::vector<AstNodePtr> &); 
 
    void printRC(void);
 	virtual bool accessesParam(void);
@@ -385,10 +384,10 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	}
 	// only function that's defined in metric.C (only used in metri.C)
 	bool condMatch(AstNode* a,
-                  pdvector<dataReqNode*> &data_tuple1,
-                  pdvector<dataReqNode*> &data_tuple2,
-                  pdvector<dataReqNode*> datareqs1,
-                  pdvector<dataReqNode*> datareqs2);
+                  std::vector<dataReqNode*> &data_tuple1,
+                  std::vector<dataReqNode*> &data_tuple2,
+                  std::vector<dataReqNode*> datareqs1,
+                  std::vector<dataReqNode*> datareqs2);
 
 
 	// DEBUG
@@ -547,9 +546,9 @@ class AstOperatorNode : public AstNode {
 
     virtual bool canBeKept() const;
 
-    virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void getChildren(std::vector<AstNodePtr> &children);
     
-    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual void setChildren(std::vector<AstNodePtr> &children);
     virtual AstNodePtr deepCopy();
 
     virtual bool containsFuncCall() const;
@@ -620,9 +619,9 @@ class AstOperandNode : public AstNode {
     virtual bool accessesParam(void) { return (oType == Param || oType == ParamAtEntry || oType == ParamAtCall); };
     virtual bool canBeKept() const;
         
-    virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void getChildren(std::vector<AstNodePtr> &children);
     
-    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual void setChildren(std::vector<AstNodePtr> &children);
     virtual AstNodePtr deepCopy();
 
     virtual void setVariableAST(codeGen &gen);
@@ -659,9 +658,9 @@ class AstOperandNode : public AstNode {
 class AstCallNode : public AstNode {
  public:
 
-    AstCallNode(func_instance *func, pdvector<AstNodePtr>&args);
-    AstCallNode(const std::string &str, pdvector<AstNodePtr>&args);
-    AstCallNode(Address addr, pdvector<AstNodePtr> &args);
+    AstCallNode(func_instance *func, std::vector<AstNodePtr>&args);
+    AstCallNode(const std::string &str, std::vector<AstNodePtr>&args);
+    AstCallNode(Address addr, std::vector<AstNodePtr> &args);
     AstCallNode(func_instance *func);
     
     ~AstCallNode() {}
@@ -674,9 +673,9 @@ class AstCallNode : public AstNode {
     virtual bool accessesParam(); 
     virtual bool canBeKept() const;
 
-    virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void getChildren(std::vector<AstNodePtr> &children);
     
-    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual void setChildren(std::vector<AstNodePtr> &children);
     virtual AstNodePtr deepCopy();
 
     virtual void setVariableAST(codeGen &gen);
@@ -699,7 +698,7 @@ class AstCallNode : public AstNode {
     Address func_addr_;
     
     func_instance *func_;
-    pdvector<AstNodePtr> args_;
+    std::vector<AstNodePtr> args_;
 
     bool callReplace_; // Node is intended for function call replacement
     bool constFunc_;  // True if the output depends solely on 
@@ -711,7 +710,7 @@ class AstCallNode : public AstNode {
 
 class AstSequenceNode : public AstNode {
  public:
-    AstSequenceNode(pdvector<AstNodePtr> &sequence);
+    AstSequenceNode(std::vector<AstNodePtr> &sequence);
 
     ~AstSequenceNode() {}
 
@@ -723,9 +722,9 @@ class AstSequenceNode : public AstNode {
     virtual bool accessesParam();
     virtual bool canBeKept() const;
 
-    virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void getChildren(std::vector<AstNodePtr> &children);
     
-    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual void setChildren(std::vector<AstNodePtr> &children);
     virtual AstNodePtr deepCopy();
 
     virtual void setVariableAST(codeGen &gen);
@@ -740,7 +739,7 @@ class AstSequenceNode : public AstNode {
                                      Register &retReg);
 
     AstSequenceNode() {};
-    pdvector<AstNodePtr> sequence_;
+    std::vector<AstNodePtr> sequence_;
 };
 
 class AstVariableNode : public AstNode {
@@ -762,9 +761,9 @@ class AstVariableNode : public AstNode {
 
     virtual void setVariableAST(codeGen &gen);
 
-    virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void getChildren(std::vector<AstNodePtr> &children);
     
-    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual void setChildren(std::vector<AstNodePtr> &children);
     virtual AstNodePtr deepCopy();
 
     virtual bool containsFuncCall() const;
@@ -802,9 +801,9 @@ class AstMiniTrampNode : public AstNode {
 
     virtual bool accessesParam(void) { return ast_->accessesParam(); } 
 
-    virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void getChildren(std::vector<AstNodePtr> &children);
     
-    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual void setChildren(std::vector<AstNodePtr> &children);
     virtual AstNodePtr deepCopy();
 
     virtual void setVariableAST(codeGen &gen);

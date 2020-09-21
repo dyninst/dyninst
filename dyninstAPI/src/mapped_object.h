@@ -219,7 +219,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     func_instance *findFuncByEntry(const Address addr);
     func_instance *findFuncByEntry(const block_instance *blk);
 
-    bool getInfHeapList(pdvector<heapDescriptor> &infHeaps);
+    bool getInfHeapList(std::vector<heapDescriptor> &infHeaps);
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
     bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
@@ -233,10 +233,10 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
 
     // Try to avoid using these if you can, since they'll trigger
     // parsing and allocation.
-    bool getAllFunctions(pdvector<func_instance *> &funcs);
-    bool getAllVariables(pdvector<int_variable *> &vars);
+    bool getAllFunctions(std::vector<func_instance *> &funcs);
+    bool getAllVariables(std::vector<int_variable *> &vars);
 
-    const pdvector<mapped_module *> &getModules();
+    const std::vector<mapped_module *> &getModules();
 
     // begin exploratory and defensive mode functions //
     BPatch_hybridMode hybridMode() { return analysisMode_; }
@@ -287,14 +287,14 @@ public:
     // Mangled: multiple modules with static/private functions and
     // we've lost the module name.
 
-    const pdvector<func_instance *> *findFuncVectorByPretty(const std::string &funcname);
-    const pdvector<func_instance *> *findFuncVectorByMangled(const std::string &funcname);
+    const std::vector<func_instance *> *findFuncVectorByPretty(const std::string &funcname);
+    const std::vector<func_instance *> *findFuncVectorByMangled(const std::string &funcname);
 
     bool findFuncsByAddr(std::vector<func_instance *> &funcs);
     bool findBlocksByAddr(std::vector<block_instance *> &blocks);
 
-    const pdvector<int_variable *> *findVarVectorByPretty(const std::string &varname);
-    const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname);
+    const std::vector<int_variable *> *findVarVectorByPretty(const std::string &varname);
+    const std::vector<int_variable *> *findVarVectorByMangled(const std::string &varname);
     const int_variable *getVariable(const std::string &varname);
 
 	//this marks the shared object as dirty, mutated
@@ -349,7 +349,7 @@ public:
 
     void set_short_name();
 
-    pdvector<mapped_module *> everyModule;
+    std::vector<mapped_module *> everyModule;
     typedef std::unordered_map<std::string, std::vector<func_instance *> *> func_index_t;
     typedef std::unordered_map<std::string, std::vector<int_variable *> *> var_index_t;
     

@@ -62,7 +62,7 @@ class BPatch_object_getMod {
 BPatch_object::BPatch_object(mapped_object *o, BPatch_image *i) :
    img(i), obj(o) {
    // Fill in module list
-   const pdvector<mapped_module *> &ll_mods = obj->getModules();
+   const std::vector<mapped_module *> &ll_mods = obj->getModules();
    BPatch_object_getMod gm(img, mods);
    std::for_each(ll_mods.begin(), ll_mods.end(), gm);
 }

@@ -43,7 +43,6 @@ class process;
 #include <sys/param.h>
 #include <pthread.h>
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 
 #define BYTES_TO_SAVE   256
 #define EXIT_NAME "_exit"
@@ -145,11 +144,11 @@ class WaitpidMux {
    unsigned long waitpid_thread_id;
    bool forcedExit;
    bool pause_flag;
-   pdvector<waitpid_ret_pair> unassigned_events;
-   pdvector<SignalGenerator *> first_timers;
+   std::vector<waitpid_ret_pair> unassigned_events;
+   std::vector<SignalGenerator *> first_timers;
 
    volatile int waiter_exists;
-   pdvector<pid_generator_pair_t> pidgens;
+   std::vector<pid_generator_pair_t> pidgens;
    void addPidGen(int pid, SignalGenerator *sg);
    void removePidGen(int pid, SignalGenerator *sg);
    void removePidGen(SignalGenerator *sg);
