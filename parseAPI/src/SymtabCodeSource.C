@@ -449,12 +449,11 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
             continue;
         }
 
-	//#if defined(os_vxworks)
         if(0 == r->getMemSize()) {
             parsing_printf(" [skipped null region]\n");
             continue;
         }
-	//#endif
+
         parsing_printf("\n");
 
         CodeRegion * cr = new SymtabCodeRegion(_symtab,r, symbols);

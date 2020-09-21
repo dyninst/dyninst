@@ -938,12 +938,6 @@ bool PCProcess::setRTLibInitParams() {
 }
 
 
-#if defined(os_vxworks)
-bool PCProcess::insertBreakpointAtMain() {
-    // We don't need any extra processing of the RTlib.
-    return true;
-}
-#else
 bool PCProcess::insertBreakpointAtMain() {
     if( main_function_ == NULL ) {
         startup_printf("%s[%d]: main function not yet found, cannot insert breakpoint\n",
@@ -965,7 +959,6 @@ bool PCProcess::insertBreakpointAtMain() {
 
     return true;
 }
-#endif
 
 bool PCProcess::removeBreakpointAtMain() {
     if( main_function_ == NULL || mainBrkPt_ == Breakpoint::ptr() ) {
@@ -1599,12 +1592,7 @@ bool PCProcess::getAllActiveFrames(std::vector<Frame> &activeFrames) {
 // dynamic inferior heap stuff
 //
 
-#if defined(os_vxworks)
-#include "vxworks.h"
-#define HEAP_DYN_BUF_SIZE (0x4000)
-#else
 #define HEAP_DYN_BUF_SIZE (0x100000)
-#endif
 
 static const Address ADDRESS_LO = ((Address)0x10000);
 static const Address ADDRESS_HI = ((Address)~((Address)0));

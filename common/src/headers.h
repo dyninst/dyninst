@@ -58,9 +58,6 @@
 #elif defined(os_windows)
 #include "common/src/ntHeaders.h"
 
-#elif defined(os_vxworks)
-#include "common/src/vxworksHeaders.h"
-
 #endif  /* architecture specific */
 
 typedef enum {

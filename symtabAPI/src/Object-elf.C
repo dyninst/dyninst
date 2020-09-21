@@ -305,11 +305,7 @@ const char *COMMENT_NAME = ".comment";
 const char *OPD_NAME = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
 const char *PLT_NAME = ".plt";
-#if defined(os_vxworks)
-const char* REL_PLT_NAME     = ".rela.text";
-#else
 const char *REL_PLT_NAME = ".rela.plt"; // sparc-solaris
-#endif
 const char *REL_PLT_NAME2 = ".rel.plt";  // x86-solaris
 const char *GOT_NAME = ".got";
 const char *DYNSYM_NAME = ".dynsym";
@@ -751,15 +747,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             stabstrscnp = scnp;
             stabstr_off_ = scn.sh_offset();
         }
-#if defined(os_vxworks)
-            else if ((strcmp(name, REL_PLT_NAME) == 0) ||
-         (strcmp(name, REL_PLT_NAME2) == 0)) {
-      rel_plt_scnp = scnp;
-      rel_plt_addr_ = scn.sh_addr();
-      rel_plt_size_ = scn.sh_size();
-      rel_plt_entry_size_ = scn.sh_entsize();
-    }
-#else
         else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end()) &&
                  secAddrTagMapping[scn.sh_addr()] == DT_JMPREL) {
             rel_plt_scnp = scnp;
@@ -767,7 +754,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             rel_plt_size_ = scn.sh_size();
             rel_plt_entry_size_ = scn.sh_entsize();
         }
-#endif
         else if (strcmp(name, OPD_NAME) == 0) {
             opd_scnp = scnp;
             opd_addr_ = scn.sh_addr();
@@ -1426,13 +1412,6 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     }
                     }
 
-#if defined(os_vxworks)
-                    // VxWorks Kernel Images don't use PLT's, but we'll use the fbt to
-          // note all function call relocations, and we'll fix these up later
-          // in Symtab::fixup_RegionAddr()
-          next_plt_entry_addr = sym.st_value(index);
-#endif
-
                     if (fbt_iter == -1) { // Create new relocation entry.
                         relocationEntry re(next_plt_entry_addr, offset, targ_name,
                                            NULL, type);
@@ -1474,11 +1453,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                         }
                     }
 
-#if defined(os_vxworks)
-                    // Nothing to increment here.
-#else
                     next_plt_entry_addr += plt_entry_size_;
-#endif
                 }
                 return true;
             }
@@ -1578,12 +1553,7 @@ void Object::load_object(bool alloc_syms) {
 #endif
         if (alloc_syms) {
             // find symbol and string data
-#if defined(os_vxworks)
-            // Avoid assigning symbols to DEFAULT_MODULE on VxWorks
-      string module = mf->pathname();
-#else
             string module = "DEFAULT_MODULE";
-#endif
             string name = "DEFAULT_NAME";
             Elf_X_Data symdata, strdata;
 
@@ -1636,15 +1606,6 @@ void Object::load_object(bool alloc_syms) {
             if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
             }
-
-#if defined(os_vxworks)
-            // Load relocations like they are PLT entries.
-      // Use the non-dynamic symbol tables.
-      if (rel_plt_scnp && symscnp && strscnp) {
-    if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
-      goto cleanup;
-      }
-#endif
 
             // populate "fbt_"
             if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
@@ -1800,15 +1761,6 @@ void Object::load_shared_object(bool alloc_syms) {
             if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
             }
-
-#if defined(os_vxworks)
-            // Load relocations like they are PLT entries.
-      // Use the non-dynamic symbol tables.
-      if (rel_plt_scnp && symscnp && strscnp) {
-    if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
-      goto cleanup2;
-      }
-#endif
 
             if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
                 if (!get_relocation_entries(rel_plt_scnp, dynsym_scnp, dynstr_scnp)) {
@@ -3014,9 +2966,7 @@ void Object::log_elferror(void (*err_func)(const char *), const char *msg) {
 }
 
 bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
-#if !defined(os_vxworks)
     if (!plt_addr_ || (!fbt_.size())) return false;
-#endif
     fbt = fbt_;
     return true;
 }

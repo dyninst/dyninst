@@ -46,9 +46,6 @@
 #include <fstream>
 #include "common/src/arch-power.h"
 #include <sstream>
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
 
 bool shouldAssertIfInLongBranch = true;
 bool failedLongBranchLocal = false;

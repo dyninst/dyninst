@@ -648,17 +648,6 @@ unsigned long Elf_X_Shdr::sh_flags() const
 
 unsigned long Elf_X_Shdr::sh_addr() const
 {
-#if defined(os_vxworks)
-    assert(_elf);
-    if (_elf->e_type() == ET_REL) {
-        // VxWorks relocatable object files (kernel modules) don't have
-        // the address filled out.  Return the disk offset instead.
-        return (!is64 ?
-                static_cast<unsigned long>(shdr32->sh_offset) :
-                static_cast<unsigned long>(shdr64->sh_offset));
-    }
-#endif
-
     return (!is64 ?
             static_cast<unsigned long>(shdr32->sh_addr) :
             static_cast<unsigned long>(shdr64->sh_addr));

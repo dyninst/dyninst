@@ -170,7 +170,6 @@ namespace Dyninst
       Linux,
       FreeBSD,
       Windows,
-      VxWorks,
       BlueGeneL,
       BlueGeneP,
       BlueGeneQ
