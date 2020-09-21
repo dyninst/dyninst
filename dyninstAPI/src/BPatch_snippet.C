@@ -468,7 +468,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                         break;
                 case BPatch_seq:
                         {
-                                pdvector<AstNodePtr > sequence;
+                                std::vector<AstNodePtr > sequence;
                                 sequence.push_back(lOperand.ast_wrapper);
                                 sequence.push_back(rOperand.ast_wrapper);
 
@@ -811,7 +811,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     const BPatch_function &func,
     const BPatch_Vector<BPatch_snippet *> &args)
 {
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
 
     unsigned int i;
     for (i = 0; i < args.size(); i++) {
@@ -1000,7 +1000,7 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 
     assert(BPatch::bpatch != NULL);
 
-    pdvector<AstNodePtr >sequence;
+    std::vector<AstNodePtr >sequence;
     for (unsigned i = 0; i < items.size(); i++) {
         assert(items[i]->ast_wrapper);
         sequence.push_back(items[i]->ast_wrapper);
@@ -1507,7 +1507,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
  */
 BPatch_breakPointExpr::BPatch_breakPointExpr()
 {
-    pdvector<AstNodePtr > null_args;
+    std::vector<AstNodePtr > null_args;
 
     ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_snippetBreakpoint", null_args));
 
@@ -1587,7 +1587,7 @@ BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
   }
   BPatch_function *thread_func = thread_funcs[0];
 
-  pdvector<AstNodePtr> args;
+  std::vector<AstNodePtr> args;
   ast_wrapper = AstNodePtr(AstNode::funcCallNode(thread_func->lowlevel_func(), args));
 
   assert(BPatch::bpatch != NULL);
@@ -1662,7 +1662,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr
     constructorHelper(bp_cb, useCache, interp, idNode, icNode);
 
     // set up funcCall args
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
     ast_args.push_back(AstNode::actualAddrNode());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
@@ -1699,7 +1699,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
     objEndNode->setType(ulongtype);
 
     // set up funcCall args
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
     ast_args.push_back(AstNode::actualAddrNode());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
@@ -1726,7 +1726,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
     constructorHelper(bp_cb, useCache, interp, idNode, icNode);
 
     // set up funcCall args
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
     if (entry) {
         ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)1));
     }

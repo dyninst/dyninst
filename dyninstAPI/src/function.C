@@ -293,7 +293,7 @@ void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
 }
 
 void print_func_vector_by_pretty_name(std::string prefix,
-                                      pdvector<func_instance *>*funcs) {
+                                      std::vector<func_instance *>*funcs) {
     unsigned int i;
     func_instance *func;
     for(i=0;i<funcs->size();i++) {
@@ -512,7 +512,7 @@ Offset func_instance::addrToOffset(const Address a) const {
    return a - (addr() - ifunc()->getOffset());
 }
 
-const pdvector< int_parRegion* > &func_instance::parRegions()
+const std::vector< int_parRegion* > &func_instance::parRegions()
 {
   if (parallelRegions_.size() > 0)
     return parallelRegions_;

@@ -87,7 +87,7 @@ bool syscallNotification::installPreFork() {
                                  "DYNINST_instForkEntry",
                                  FUNC_ENTRY);
    preForkInst->dontUseTrampGuard();
-   pdvector<instMapping *> instReqs;
+   std::vector<instMapping *> instReqs;
    instReqs.push_back(preForkInst);
    
    proc->installInstrRequests(instReqs);
@@ -108,7 +108,7 @@ bool syscallNotification::installPostFork() {
    postForkInst->dontUseTrampGuard();
    postForkInst->canUseTrap(false);
    
-   pdvector<instMapping *> instReqs;
+   std::vector<instMapping *> instReqs;
    instReqs.push_back(postForkInst);
    
    proc->installInstrRequests(instReqs);
@@ -127,7 +127,7 @@ bool syscallNotification::installPreExec() {
                                  arg0);
    preExecInst->dontUseTrampGuard();
    
-   pdvector<instMapping *> instReqs;
+   std::vector<instMapping *> instReqs;
    instReqs.push_back(preExecInst);
    
    proc->installInstrRequests(instReqs);
@@ -156,7 +156,7 @@ bool syscallNotification::installPreExit() {
    
    preExitInst->allow_trap = true;
    
-   pdvector<instMapping *> instReqs;
+   std::vector<instMapping *> instReqs;
    instReqs.push_back(preExitInst);
    
    proc->installInstrRequests(instReqs);

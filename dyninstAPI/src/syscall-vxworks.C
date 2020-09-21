@@ -118,7 +118,7 @@ bool syscallNotification::installPreExit() {
 
     preExitInst->allow_trap = true;
 
-    pdvector<instMapping *> instReqs;
+    std::vector<instMapping *> instReqs;
     instReqs.push_back(preExitInst);
     
     proc->installInstrRequests(instReqs);

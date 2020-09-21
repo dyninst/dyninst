@@ -116,8 +116,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    image = NULL;
    pendingInsertions = NULL;
 
-   pdvector<std::string> argv_vec;
-   pdvector<std::string> envp_vec;
+   std::vector<std::string> argv_vec;
+   std::vector<std::string> envp_vec;
    // Contruct a vector out of the contents of argv
    if (argv) {
       for(int i = 0; argv[i] != NULL; i++)
@@ -338,9 +338,9 @@ BPatch_process::BPatch_process
             "no_path", pid);
 
    // Create the initial threads
-   pdvector<PCThread *> llthreads;
+   std::vector<PCThread *> llthreads;
    llproc->getThreads(llthreads);
-   for (pdvector<PCThread *>::iterator i = llthreads.begin();
+   for (std::vector<PCThread *>::iterator i = llthreads.begin();
            i != llthreads.end(); ++i)
    {
       BPatch_thread *thrd = new BPatch_thread(this, *i);
@@ -383,9 +383,9 @@ BPatch_process::BPatch_process(PCProcess *nProc)
    BPatch::bpatch->registerProcess(this);
 
    // Create the initial threads
-   pdvector<PCThread *> llthreads;
+   std::vector<PCThread *> llthreads;
    llproc->getThreads(llthreads);
-   for (pdvector<PCThread *>::iterator i = llthreads.begin();
+   for (std::vector<PCThread *>::iterator i = llthreads.begin();
            i != llthreads.end(); ++i)
    {
       BPatch_thread *thrd = new BPatch_thread(this, *i);

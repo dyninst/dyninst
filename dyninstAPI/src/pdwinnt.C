@@ -304,7 +304,7 @@ bool OS::osKill(int pid) {
 
 
 
-bool getLWPIDs(pdvector <unsigned> &LWPids)
+bool getLWPIDs(std::vector <unsigned> &LWPids)
 {
   assert (0 && "Not implemented");
   return false;
@@ -506,18 +506,18 @@ callType func_instance::getCallingConvention() {
     return callingConv;
 }
 
-static void emitNeededCallSaves(codeGen &gen, Register reg, pdvector<Register> &extra_saves);
-static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
+static void emitNeededCallSaves(codeGen &gen, Register reg, std::vector<Register> &extra_saves);
+static void emitNeededCallRestores(codeGen &gen, std::vector<Register> &saves);
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
-                              const pdvector<AstNodePtr> &operands,
+                              const std::vector<AstNodePtr> &operands,
                               func_instance *target, 
-                              pdvector<Register> &extra_saves, 
+                              std::vector<Register> &extra_saves, 
                               bool noCost)
 {
     callType call_conven = target->getCallingConvention();
     int estimatedFrameSize = 0;
-    pdvector <Register> srcs;
+    std::vector <Register> srcs;
     Register ecx_target = REG_NULL, edx_target = REG_NULL;
     Address unused = ADDR_NULL;
     const int num_operands = operands.size();
@@ -620,7 +620,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 }
 
 bool EmitterIA32::emitCallCleanup(codeGen &gen, func_instance *target, 
-                     int frame_size, pdvector<Register> &extra_saves)
+                     int frame_size, std::vector<Register> &extra_saves)
 {
     callType call_conv = target->getCallingConvention();
     if ((call_conv == unknown_call || call_conv == cdecl_call) && frame_size)
@@ -637,7 +637,7 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen, func_instance *target,
 }
 
 static void emitNeededCallSaves(codeGen &gen, Register regi, 
-                           pdvector<Register> &extra_saves)
+                           std::vector<Register> &extra_saves)
 {
     extra_saves.push_back(regi);
     switch (regi) {
@@ -659,7 +659,7 @@ static void emitNeededCallSaves(codeGen &gen, Register regi,
     }
 }
 
-static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves)
+static void emitNeededCallRestores(codeGen &gen, std::vector<Register> &saves)
 {
     for (unsigned i=0; i<saves.size(); i++) {
       switch (saves[i]) {

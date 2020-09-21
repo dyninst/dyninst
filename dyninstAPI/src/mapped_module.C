@@ -42,9 +42,9 @@
 
 bool mapped_module::truncateLineFilenames = true;
 
-const pdvector<func_instance *> &mapped_module::getAllFunctions() 
+const std::vector<func_instance *> &mapped_module::getAllFunctions() 
 {
-   pdvector<parse_func *> pdfuncs;
+   std::vector<parse_func *> pdfuncs;
    internal_mod_->getFunctions(pdfuncs);
 
    if (everyUniqueFunction.size() == pdfuncs.size())
@@ -58,9 +58,9 @@ const pdvector<func_instance *> &mapped_module::getAllFunctions()
    return everyUniqueFunction;
 }
 
-const pdvector<int_variable *> &mapped_module::getAllVariables() 
+const std::vector<int_variable *> &mapped_module::getAllVariables() 
 {
-   pdvector<image_variable *> img_vars;
+   std::vector<image_variable *> img_vars;
    internal_mod_->getVariables(img_vars);
 
    if (everyUniqueVariable.size() == img_vars.size())
@@ -130,7 +130,7 @@ SymtabAPI::supportedLanguages mapped_module::language() const
 }
 
 bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
-      pdvector<func_instance *> &funcs)
+      std::vector<func_instance *> &funcs)
 {
    // For efficiency sake, we grab the image vector and strip out the
    // functions we want.
@@ -138,7 +138,7 @@ bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
    // the problem is that BPatch goes by module and internal goes by image. 
    unsigned orig_size = funcs.size();
 
-   const pdvector<func_instance *> *obj_funcs = obj()->findFuncVectorByMangled(funcname);
+   const std::vector<func_instance *> *obj_funcs = obj()->findFuncVectorByMangled(funcname);
    if (!obj_funcs) {
       return false;
    }
@@ -152,7 +152,7 @@ bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
 }
 
 bool mapped_module::findFuncVectorByPretty(const std::string &funcname,
-      pdvector<func_instance *> &funcs)
+      std::vector<func_instance *> &funcs)
 {
    // For efficiency sake, we grab the image vector and strip out the
    // functions we want.
@@ -160,7 +160,7 @@ bool mapped_module::findFuncVectorByPretty(const std::string &funcname,
    // the problem is that BPatch goes by module and internal goes by image. 
    unsigned orig_size = funcs.size();
 
-   const pdvector<func_instance *> *obj_funcs = obj()->findFuncVectorByPretty(funcname);
+   const std::vector<func_instance *> *obj_funcs = obj()->findFuncVectorByPretty(funcname);
    if (!obj_funcs) return false;
 
    for (unsigned i = 0; i < obj_funcs->size(); i++) {
@@ -314,7 +314,7 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
     assert(proc()->proc());
     using namespace ParseAPI;
     int pageSize = proc()->proc()->getMemoryPageSize();
-    const pdvector<func_instance *> funcs = getAllFunctions();
+    const std::vector<func_instance *> funcs = getAllFunctions();
     for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
       /*        const func_instance::BlockSet&
             blocks = funcs[fidx]->blocks();

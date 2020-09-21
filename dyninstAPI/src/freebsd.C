@@ -148,7 +148,7 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     if( mobj->isStaticExec() ) {
         int numSymsFound = 0;
         for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
-            const pdvector<func_instance *> *tmpFuncs = 
+            const std::vector<func_instance *> *tmpFuncs = 
                 mobj->findFuncVectorByPretty(pthreadSyms[i]);
             if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
         }

@@ -214,7 +214,7 @@ unsigned instruction::spaceToRelocate() const {
     return instruction::size();
 }
 
-bool instruction::getUsedRegs(pdvector<int> &) {
+bool instruction::getUsedRegs(std::vector<int> &) {
 	return false;
 }
 

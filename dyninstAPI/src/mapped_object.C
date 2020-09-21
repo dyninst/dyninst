@@ -356,7 +356,7 @@ bool mapped_object::analyze()
   }
 
   // Remember: variables don't.
-  pdvector<image_variable *> unmappedVars = image_->getCreatedVariables();
+  std::vector<image_variable *> unmappedVars = image_->getCreatedVariables();
   for (unsigned vi = 0; vi < unmappedVars.size(); vi++) {
       findVariable(unmappedVars[vi]);
   }
@@ -444,11 +444,11 @@ void mapped_object::set_short_name() {
    }
 }
 
-const pdvector<func_instance *> *mapped_object::findFuncVectorByPretty(const std::string &funcname)
+const std::vector<func_instance *> *mapped_object::findFuncVectorByPretty(const std::string &funcname)
 {
    if (funcname.c_str() == 0) return NULL;
    // First, check the underlying image.
-   const pdvector<parse_func *> *img_funcs = parse_img()->findFuncVectorByPretty(funcname);
+   const std::vector<parse_func *> *img_funcs = parse_img()->findFuncVectorByPretty(funcname);
    if (img_funcs == NULL) {
       return NULL;
    }
@@ -459,7 +459,7 @@ const pdvector<func_instance *> *mapped_object::findFuncVectorByPretty(const std
    if (iter != allFunctionsByPrettyName.end()) {
       // Okay, we've pulled in some of the functions before (this can happen as a
       // side effect of adding functions). But did we get them all?
-      pdvector<func_instance *> *map_funcs = iter->second;
+      std::vector<func_instance *> *map_funcs = iter->second;
       if (map_funcs->size() == img_funcs->size()) {
          // We're allocating at the lower level....
          delete img_funcs;
@@ -479,12 +479,12 @@ const pdvector<func_instance *> *mapped_object::findFuncVectorByPretty(const std
    return allFunctionsByPrettyName[funcname];
 }
 
-const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const std::string &funcname)
+const std::vector <func_instance *> *mapped_object::findFuncVectorByMangled(const std::string &funcname)
 {
     if (funcname.c_str() == 0) return NULL;
 
     // First, check the underlying image.
-    const pdvector<parse_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
+    const std::vector<parse_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
     if (img_funcs == NULL) {
        return NULL;
     }
@@ -495,7 +495,7 @@ const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const s
     if (iter != allFunctionsByMangledName.end()) {
         // Okay, we've pulled in some of the functions before (this can happen as a
         // side effect of adding functions). But did we get them all?
-       pdvector<func_instance *> *map_funcs = iter->second;
+       std::vector<func_instance *> *map_funcs = iter->second;
        if (map_funcs->size() == img_funcs->size()) {
           // We're allocating at the lower level...
           delete img_funcs;
@@ -516,12 +516,12 @@ const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const s
 }
 
 
-const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const std::string &varname)
+const std::vector<int_variable *> *mapped_object::findVarVectorByPretty(const std::string &varname)
 {
     if (varname.c_str() == 0) return NULL;
 
     // First, check the underlying image.
-    const pdvector<image_variable *> *img_vars = parse_img()->findVarVectorByPretty(varname);
+    const std::vector<image_variable *> *img_vars = parse_img()->findVarVectorByPretty(varname);
     if (img_vars == NULL) return NULL;
 
     assert(img_vars->size());
@@ -530,7 +530,7 @@ const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const std::
     if (iter != allVarsByPrettyName.end()) {
        // Okay, we've pulled in some of the variabletions before (this can happen as a
        // side effect of adding variabletions). But did we get them all?
-       pdvector<int_variable *> *map_variables = iter->second;
+       std::vector<int_variable *> *map_variables = iter->second;
        if (map_variables->size() == img_vars->size()) {
           delete img_vars;
           return map_variables;
@@ -550,12 +550,12 @@ const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const std::
     return allVarsByPrettyName[varname];
 }
 
-const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const std::string &varname)
+const std::vector <int_variable *> *mapped_object::findVarVectorByMangled(const std::string &varname)
 {
   if (varname.c_str() == 0) return NULL;
 
   // First, check the underlying image.
-  const pdvector<image_variable *> *img_vars = parse_img()->findVarVectorByMangled(varname);
+  const std::vector<image_variable *> *img_vars = parse_img()->findVarVectorByMangled(varname);
   if (img_vars == NULL) return NULL;
 
   assert(img_vars->size());
@@ -565,7 +565,7 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const std
   if (iter != allVarsByMangledName.end()) {
       // Okay, we've pulled in some of the variabletions before (this can happen as a
       // side effect of adding variables). But did we get them all?
-     pdvector<int_variable *> *map_variables = iter->second;
+     std::vector<int_variable *> *map_variables = iter->second;
       if (map_variables->size() == img_vars->size()) {
          delete img_vars;
          return map_variables;
@@ -587,7 +587,7 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const std
 
 //Returns one variable, doesn't search other mapped_objects.  Use carefully.
 const int_variable *mapped_object::getVariable(const std::string &varname) {
-    const pdvector<int_variable *> *vars = NULL;
+    const std::vector<int_variable *> *vars = NULL;
     vars = findVarVectorByPretty(varname);
     if (!vars) vars = findVarVectorByMangled(varname);
     if (vars) {
@@ -672,7 +672,7 @@ func_instance *mapped_object::findFuncByEntry(const Address addr) {
 }
 
 
-const pdvector<mapped_module *> &mapped_object::getModules() {
+const std::vector<mapped_module *> &mapped_object::getModules() {
     // everyModule may be out of date...
     std::vector<pdmodule *> pdmods;
     parse_img()->getModules(pdmods);
@@ -685,7 +685,7 @@ const pdvector<mapped_module *> &mapped_object::getModules() {
     return everyModule;
 }
 
-bool mapped_object::getAllFunctions(pdvector<func_instance *> &funcs) {
+bool mapped_object::getAllFunctions(std::vector<func_instance *> &funcs) {
     unsigned start = funcs.size();
 
     const CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
@@ -699,10 +699,10 @@ bool mapped_object::getAllFunctions(pdvector<func_instance *> &funcs) {
     return funcs.size() > start;
 }
 
-bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
+bool mapped_object::getAllVariables(std::vector<int_variable *> &vars) {
     unsigned start = vars.size();
 
-    const pdvector<image_variable *> &img_vars = parse_img()->getAllVariables();
+    const std::vector<image_variable *> &img_vars = parse_img()->getAllVariables();
 
     for (unsigned i = 0; i < img_vars.size(); i++) {
        auto iter = everyUniqueVariable.find(img_vars[i]);
@@ -721,7 +721,7 @@ func_instance *mapped_object::findFunction(ParseAPI::Function *papi_func) {
 void mapped_object::addFunctionName(func_instance *func,
                                     const std::string newName,
                                     func_index_t &index) {
-   pdvector<func_instance *> *funcsByName = NULL;
+   std::vector<func_instance *> *funcsByName = NULL;
    
    auto iter = index.find(newName); 
    if (iter != index.end()) {
@@ -790,7 +790,7 @@ void mapped_object::addVariable(int_variable *var) {
          pretty_iter != var->pretty_names_end();
          pretty_iter++) {
         string pretty_name = *pretty_iter;
-        pdvector<int_variable *> *varsByPrettyEntry = NULL;
+        std::vector<int_variable *> *varsByPrettyEntry = NULL;
 
         // Ensure a vector exists
         auto iter = allVarsByPrettyName.find(pretty_name);
@@ -816,7 +816,7 @@ void mapped_object::addVariable(int_variable *var) {
          symtab_iter != var->symtab_names_end();
          symtab_iter++) {
       string symtab_name = *symtab_iter;
-      pdvector<int_variable *> *varsBySymTabEntry = NULL;
+      std::vector<int_variable *> *varsBySymTabEntry = NULL;
 
         // Ensure a vector exist
         auto iter = allVarsByMangledName.find(symtab_name);
@@ -871,7 +871,7 @@ const std::string mapped_object::debugString() const
 }
 
 // Search an object for heapage
-bool mapped_object::getInfHeapList(pdvector<heapDescriptor> &infHeaps) {
+bool mapped_object::getInfHeapList(std::vector<heapDescriptor> &infHeaps) {
     vector<pair<string,Address> > foundHeaps;
 
     getInferiorHeaps(foundHeaps);

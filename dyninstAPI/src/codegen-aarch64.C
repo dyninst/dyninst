@@ -472,7 +472,7 @@ void insnCodeGen::generateMoveSP(codeGen &gen, Register rn, Register rd, bool is
 }
 
 
-Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Register> *exclude) {
+Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Register> *exclude) {
     Register scratchReg;
     if(exclude)
 	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
@@ -664,7 +664,7 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg, pdvector<Register>& excludeReg){
+int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Register>& freeReg, std::vector<Register>& excludeReg){
 assert(0);
 //#warning "This function is not implemented yet!"
 		return freeReg.size();

@@ -212,7 +212,7 @@ registerSpace::~registerSpace()
     }
 }
 
-void registerSpace::createRegisterSpace(pdvector<registerSlot *> &registers) {
+void registerSpace::createRegisterSpace(std::vector<registerSlot *> &registers) {
     // We need to initialize the following:
     // registers_ (std::unordered_map)
     // GPRs_ (vector of pointers to elements in registers_
@@ -226,7 +226,7 @@ void registerSpace::createRegisterSpace(pdvector<registerSlot *> &registers) {
 
 }
 
-void registerSpace::createRegisterSpace64(pdvector<registerSlot *> &registers) {
+void registerSpace::createRegisterSpace64(std::vector<registerSlot *> &registers) {
     // We need to initialize the following:
     // registers_ (std::unordered_map)
     // GPRs_ (vector of pointers to elements in registers_
@@ -240,7 +240,7 @@ void registerSpace::createRegisterSpace64(pdvector<registerSlot *> &registers) {
 
 }
 
-void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
+void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
                                       registerSpace *rs) {
     for (unsigned i = 0; i < registers.size(); i++) {
         Register reg = registers[i]->number;
@@ -350,15 +350,15 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 }
 
 Register registerSpace::getScratchRegister(codeGen &gen, bool noCost, bool realReg) {
-    pdvector<Register> empty;
+    std::vector<Register> empty;
     return getScratchRegister(gen, empty, noCost, realReg);
 }
 
-Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost, bool realReg) {
+Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &excluded, bool noCost, bool realReg) {
   static int num_allocs = 0;
 
-  pdvector<registerSlot *> couldBeStolen;
-  pdvector<registerSlot *> couldBeSpilled;
+  std::vector<registerSlot *> couldBeStolen;
+  std::vector<registerSlot *> couldBeSpilled;
 
   debugPrint();
 
@@ -367,7 +367,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
   regalloc_printf("Allocating register: selection is %s\n",
 		  realReg ? (realRegisters_.empty() ? "GPRS" : "Real registers") : "GPRs");
 
-  pdvector<registerSlot *> &regs = (realReg ? (realRegisters_.empty() ? GPRs_ : realRegisters_ ) : GPRs_ );
+  std::vector<registerSlot *> &regs = (realReg ? (realRegisters_.empty() ? GPRs_ : realRegisters_ ) : GPRs_ );
   regalloc_printf("%d options in registers\n", regs.size());
 
   for (unsigned i = 0; i < regs.size(); i++) {
@@ -974,7 +974,7 @@ bool registerSpace::anyLiveSPRsAtEntry() const {
     return false;
 }
 
-pdvector<registerSlot *>& registerSpace::trampRegs()
+std::vector<registerSlot *>& registerSpace::trampRegs()
 {
 #if defined(arch_x86) || defined(arch_x86_64)
    if (addr_width == 4)
@@ -1010,7 +1010,7 @@ std::string registerSpace::getRegByNumber(Register reg) {
 
 // If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64)
 // return that. Otherwise return GPRs.
-pdvector<registerSlot *> &registerSpace::realRegs() {
+std::vector<registerSlot *> &registerSpace::realRegs() {
     if (realRegisters_.size())
        return realRegisters_;
     else

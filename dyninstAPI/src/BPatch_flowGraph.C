@@ -37,7 +37,6 @@
 #include <string>
 
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 #include <unordered_map>
 #include "common/src/Pair.h"
 

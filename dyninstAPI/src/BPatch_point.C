@@ -463,7 +463,7 @@ void *BPatch_point::monitorCalls( BPatch_function * user_cb )
   // the second the (address of the) callsite.
 
   InstructionAPI::Instruction insn = point->block()->getInsn(point->block()->last());
-  pdvector<AstNodePtr> args;
+  std::vector<AstNodePtr> args;
   if (!lladdSpace->getDynamicCallSiteArgs(insn, point->block()->last(), args))
       return NULL;
   if (args.size() != 2)

@@ -811,7 +811,7 @@ BPatch_module *BPatch_addressSpace::findModuleByAddr(Address addr)
    if ( ! obj )
        return NULL;
 
-   const pdvector<mapped_module*> mods = obj->getModules();
+   const std::vector<mapped_module*> mods = obj->getModules();
    if (mods.size()) {
        return getImage()->findOrCreateModule(mods[0]);
    }

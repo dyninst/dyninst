@@ -37,7 +37,6 @@
 #include <string>
 #include <map>
 #include <set>
-#include "common/src/Vector.h"
 #include <unordered_map>
 #include "common/src/Types.h"
 #include "inst.h" // callWhen...
@@ -200,7 +199,7 @@ class registerSpace {
     static registerSpace *globalRegSpace_;
     static registerSpace *globalRegSpace64_;
 
-    static void createRegSpaceInt(pdvector<registerSlot *> &regs,
+    static void createRegSpaceInt(std::vector<registerSlot *> &regs,
                                   registerSpace *regSpace);
 
  public:
@@ -221,8 +220,8 @@ class registerSpace {
 
     registerSpace();
 
-    static void createRegisterSpace(pdvector<registerSlot *> &registers);
-    static void createRegisterSpace64(pdvector<registerSlot *> &registers);
+    static void createRegisterSpace(std::vector<registerSlot *> &registers);
+    static void createRegisterSpace64(std::vector<registerSlot *> &registers);
 
     ~registerSpace();
 
@@ -249,7 +248,7 @@ class registerSpace {
     Register getScratchRegister(codeGen &gen, bool noCost = true, bool realReg = false);
     // Like the above, but excluding a set of registers (that we don't want
     // to touch)
-    Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true, bool realReg = false);
+    Register getScratchRegister(codeGen &gen, std::vector<Register> &excluded, bool noCost = true, bool realReg = false);
 
 
     bool trySpecificRegister(codeGen &gen, Register reg, bool noCost = true);
@@ -313,13 +312,13 @@ class registerSpace {
     int numSPRs() const { return SPRs_.size(); }
     int numRegisters() const { return registers_.size(); }
 
-    pdvector <registerSlot *> &GPRs() { return GPRs_; }
-    pdvector <registerSlot *> &FPRs() { return FPRs_; }
-    pdvector <registerSlot *> &SPRs() { return SPRs_; }
+    std::vector <registerSlot *> &GPRs() { return GPRs_; }
+    std::vector <registerSlot *> &FPRs() { return FPRs_; }
+    std::vector <registerSlot *> &SPRs() { return SPRs_; }
 
-    pdvector <registerSlot *> &realRegs();
+    std::vector <registerSlot *> &realRegs();
 
-    pdvector <registerSlot *> &trampRegs(); //realRegs() on x86-32, GPRs on all others
+    std::vector <registerSlot *> &trampRegs(); //realRegs() on x86-32, GPRs on all others
 
     registerSlot *physicalRegs(Register reg) { return physicalRegisters_[reg]; }
 
@@ -427,13 +426,13 @@ class registerSpace {
     std::map<Register, registerSlot *> physicalRegisters_;
 
     // And convenience vectors
-    pdvector<registerSlot *> GPRs_;
-    pdvector<registerSlot *> FPRs_;
-    pdvector<registerSlot *> SPRs_;
+    std::vector<registerSlot *> GPRs_;
+    std::vector<registerSlot *> FPRs_;
+    std::vector<registerSlot *> SPRs_;
 
     // Used on platforms that have "virtual" registers to provide a mapping
     // for real (e.g., architectural) registers
-    pdvector<registerSlot *> realRegisters_;
+    std::vector<registerSlot *> realRegisters_;
 
     static void initialize();
     static void initialize32();

@@ -188,7 +188,7 @@ public:
 
     static void generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit);
 
-    static Register moveValueToReg(codeGen &gen, long int val, pdvector<Register> *exclude = NULL);
+    static Register moveValueToReg(codeGen &gen, long int val, std::vector<Register> *exclude = NULL);
 
     static void generate(codeGen &gen, instruction &insn);
 
@@ -207,8 +207,8 @@ public:
 
     //TODO
     // Routines to create/remove a new stack frame for getting scratch registers
-    static int createStackFrame(codeGen &gen, int numRegs, pdvector <Register> &freeReg,
-            pdvector <Register> &excludeReg);
+    static int createStackFrame(codeGen &gen, int numRegs, std::vector <Register> &freeReg,
+            std::vector <Register> &excludeReg);
 
     //TODO
     static void removeStackFrame(codeGen &gen);

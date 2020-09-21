@@ -139,8 +139,8 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     // find variable __stack_prot
 
     // mprotect READ/WRITE __stack_prot
-    pdvector<int_variable *> vars;
-    pdvector<func_instance *> funcs;
+    std::vector<int_variable *> vars;
+    std::vector<func_instance *> funcs;
 
     Address var_addr;
     int size;
@@ -174,7 +174,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     // mprotect: int mprotect(const void *addr, size_t len, int prot);
     func_instance *mprot = funcs[0];
     
-    pdvector<AstNodePtr> args;
+    std::vector<AstNodePtr> args;
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *)page_start));
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *)(intptr_t)size));
     // prot = READ|WRITE|EXECUTE
@@ -208,7 +208,7 @@ bool PCProcess::instrumentLibcStartMain()
     addASharedObject(libc);
 
     // find __libc_startmain
-    const pdvector<func_instance*> *funcs;
+    const std::vector<func_instance*> *funcs;
     funcs = libc->findFuncVectorByPretty("__libc_start_main");
     if(funcs->size() == 0 || (*funcs)[0] == NULL) {
         logLine( "Couldn't find __libc_start_main\n");

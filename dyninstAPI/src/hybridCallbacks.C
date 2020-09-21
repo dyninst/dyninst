@@ -42,7 +42,7 @@
 #include "BPatch_image.h"
 #include "mapped_object.h"
 
-extern pdvector<image*> allImages;
+extern std::vector<image*> allImages;
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
                std::vector<BPatch_function*> &modFuncs)

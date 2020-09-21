@@ -133,8 +133,8 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
  * to libpthread, then to libc, then to the process.
  **/
 static void findThreadFuncs(PCProcess *p, std::string func,
-                            pdvector<func_instance *> &result) {
-    const pdvector<func_instance*>* found = NULL;
+                            std::vector<func_instance *> &result) {
+    const std::vector<func_instance*>* found = NULL;
     mapped_object *lpthread = p->findObject("libpthread*", true);
     if (lpthread)
         found = lpthread->findFuncVectorByMangled(func);
@@ -168,7 +168,7 @@ bool PCProcess::instrumentMTFuncs() {
      * Have dyn_pthread_self call the actual pthread_self
      **/
     //Find dyn_pthread_self
-    pdvector<int_variable *> ptself_syms;
+    std::vector<int_variable *> ptself_syms;
     res = findVarsByAll("DYNINST_pthread_self", ptself_syms);
     if (!res) {
         fprintf(stderr, "[%s:%d] - Couldn't find any dyn_pthread_self, expected 1\n",
@@ -177,7 +177,7 @@ bool PCProcess::instrumentMTFuncs() {
     assert(ptself_syms.size() == 1);
     Address dyn_pthread_self = ptself_syms[0]->getAddress();
     //Find pthread_self
-    pdvector<func_instance *> pthread_self_funcs;
+    std::vector<func_instance *> pthread_self_funcs;
     findThreadFuncs(this, "pthread_self", pthread_self_funcs);
     if (pthread_self_funcs.size() != 1) {
         fprintf(stderr, "[%s:%d] - Found %ld pthread_self functions, expected 1\n",
@@ -729,7 +729,7 @@ func_instance *block_instance::callee() {
    
    // get the relocation information for this image
    Symtab *sym = obj()->parse_img()->getObject();
-   pdvector<relocationEntry> fbt;
+   std::vector<relocationEntry> fbt;
    vector <relocationEntry> fbtvector;
    if (!sym->getFuncBindingTable(fbtvector)) {
       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
@@ -778,7 +778,7 @@ func_instance *block_instance::callee() {
 
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
       obj()->setCalleeName(this, std::string(target_name));
-      pdvector<func_instance *> pdfv;
+      std::vector<func_instance *> pdfv;
 
       // See if we can name lookup
       if (dproc) {

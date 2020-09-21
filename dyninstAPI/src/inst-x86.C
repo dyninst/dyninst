@@ -99,7 +99,7 @@ void registerSpace::initialize32() {
     // create an arbitrary number, and use them. However, this can bite us
     // if we want to use actual registers. Any ideas?
     
-    pdvector<registerSlot *> registers;
+    std::vector<registerSlot *> registers;
 
     // When we use 
     registerSlot *eax = new registerSlot(REGNUM_EAX,
@@ -293,7 +293,7 @@ void registerSpace::initialize64() {
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
 
-    pdvector<registerSlot *> registers;
+    std::vector<registerSlot *> registers;
     registers.push_back(rax);
     registers.push_back(rbx);
     registers.push_back(rsp);
@@ -660,7 +660,7 @@ int tramp_pre_frame_size_64 = 8 + 16 * 8 + AMD64_RED_ZONE; // stack space alloca
                                                 // and skipping the 128-byte red zone
 
 bool can_do_relocation(PCProcess *proc,
-                       const pdvector<pdvector<Frame> > &stackWalks,
+                       const std::vector<std::vector<Frame> > &stackWalks,
                        func_instance *instrumented_func)
 {
    bool can_do_reloc = true;
@@ -669,7 +669,7 @@ bool can_do_relocation(PCProcess *proc,
    // relocation
    Address begAddr = instrumented_func->addr();
    for (unsigned walk_itr = 0; walk_itr < stackWalks.size(); walk_itr++) {
-     pdvector<func_instance *> stack_funcs =
+     std::vector<func_instance *> stack_funcs =
        proc->pcsToFuncs(stackWalks[walk_itr]);
      
      // for every frame in thread stack walk
@@ -1271,7 +1271,7 @@ unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
    return 0x0;
 }
 
-Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
 	assert(0);
 	return 0;
 }
@@ -1279,7 +1279,7 @@ Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) 
 // this function just multiplexes between the 32-bit and 64-bit versions
 Register emitFuncCall(opCode op, 
                       codeGen &gen,
-                      pdvector<AstNodePtr> &operands, 
+                      std::vector<AstNodePtr> &operands, 
                       bool noCost,
                       func_instance *callee)
 {
@@ -1337,7 +1337,7 @@ void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 
 Register EmitterIA32::emitCall(opCode op, 
                                codeGen &gen,
-                               const pdvector<AstNodePtr> &operands, 
+                               const std::vector<AstNodePtr> &operands, 
                                bool noCost, func_instance *callee) {
     bool inInstrumentation = true;
 #if 0
@@ -1353,9 +1353,9 @@ Register EmitterIA32::emitCall(opCode op,
       cerr << "ERROR: emitCall with op == " << op << endl;
     }
     assert(op == callOp);
-    pdvector <Register> srcs;
+    std::vector <Register> srcs;
     int param_size;
-    pdvector<Register> saves;
+    std::vector<Register> saves;
     
     //  Sanity check for NULL address arg
     if (!callee) {
@@ -1545,7 +1545,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
       case stackItem::reg_item:
       {
          registerSlot *r = NULL;
-         pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+         std::vector<registerSlot *> &regs = gen.rs()->trampRegs();
          for (unsigned i=0; i<regs.size(); i++) {
             if (regs[i]->number == (unsigned) sitem.reg.reg()) {
                r = regs[i];
@@ -2271,7 +2271,7 @@ void emitStorePreviousStackFrameRegister(Address register_num,
 // This can handle indirect control transfers as well 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
                                           Address addr,
-                                          pdvector<AstNodePtr> &args)
+                                          std::vector<AstNodePtr> &args)
 {
    using namespace Dyninst::InstructionAPI;        
    Expression::Ptr cft = insn.getControlFlowTarget();
@@ -2421,7 +2421,7 @@ void emitBTRegRestores32(baseTramp *bt, codeGen &gen)
    }
    else {
       registerSlot *reg;
-      pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+      std::vector<registerSlot *> &regs = gen.rs()->trampRegs();
       for (int i=regs.size()-1; i>=0; i--) {
          reg = regs[i];          
          if (reg->encoding() != REGNUM_ESP && 
@@ -2495,12 +2495,12 @@ void emitJump(unsigned disp32, codeGen &gen)
 // they are identical on Linux and FreeBSD and vxWorks
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
-                              const pdvector<AstNodePtr> &operands,
+                              const std::vector<AstNodePtr> &operands,
                               func_instance */*target*/, 
-                              pdvector<Register> &/*extra_saves*/, 
+                              std::vector<Register> &/*extra_saves*/, 
                               bool noCost)
 {
-    pdvector <Register> srcs;
+    std::vector <Register> srcs;
     unsigned frame_size = 0;
     unsigned u;
     for (u = 0; u < operands.size(); u++) {
@@ -2529,7 +2529,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 bool EmitterIA32::emitCallCleanup(codeGen &gen,
                                 func_instance * /*target*/, 
                                 int frame_size, 
-                                pdvector<Register> &/*extra_saves*/)
+                                std::vector<Register> &/*extra_saves*/)
 {
    if (frame_size)
       emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size

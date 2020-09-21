@@ -36,7 +36,7 @@
 // Code generation
 
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
+#include <vector>
 class AddressSpace;
 
 namespace NS_power {
@@ -874,7 +874,7 @@ class COMMON_EXPORT instruction {
     Address getTarget(Address insnAddr) const;
     
     unsigned spaceToRelocate() const;
-    bool getUsedRegs(pdvector<int> &regs);
+    bool getUsedRegs(std::vector<int> &regs);
     
     
     /* -- CHECK !!!!!

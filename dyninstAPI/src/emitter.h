@@ -87,7 +87,7 @@ class Emitter {
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
 
-    virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
+    virtual Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands,
 			      bool noCost, func_instance *callee) = 0;
 
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;

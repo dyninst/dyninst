@@ -34,7 +34,6 @@
 #define IMAGE_FUNC_H
 
 #include <string>
-#include "common/src/Vector.h"
 #include "common/src/Types.h"
 #include "common/src/Pair.h"
 #include "common/src/arch.h" // instruction
@@ -295,7 +294,7 @@ class parse_func : public ParseAPI::Function
    // Initiate parsing on this function
    bool parse();
  
-   const pdvector<image_parRegion*> &parRegions();
+   const std::vector<image_parRegion*> &parRegions();
 
    bool isInstrumentable();
    bool hasUnresolvedCF();
@@ -347,7 +346,7 @@ class parse_func : public ParseAPI::Function
    parse_block * entryBlock();
 
    /****** OpenMP Parsing Functions *******/
-   std::string calcParentFunc(const parse_func * imf, pdvector<image_parRegion *> & pR);
+   std::string calcParentFunc(const parse_func * imf, std::vector<image_parRegion *> & pR);
    void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
    void parseOMPSectFunc(parse_func * parentFunc);
    void parseOMPFunc(bool hasLoop);
@@ -401,7 +400,7 @@ class parse_func : public ParseAPI::Function
                                 // function are shared with another function.
 
    //  OpenMP (and other parallel language) support
-   pdvector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
+   std::vector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
     void addParRegion(Address begin, Address end, parRegType t);
    // End OpenMP support
 

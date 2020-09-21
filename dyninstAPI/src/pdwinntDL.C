@@ -61,15 +61,15 @@ bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &, unsigned i
     // to get the list of new libraries loaded. 
     return false;
 }
-bool dynamic_linking::getChangedObjects(EventRecord &, pdvector<mapped_object *> &)
+bool dynamic_linking::getChangedObjects(EventRecord &, std::vector<mapped_object *> &)
 {
     // This can be called by a platform indep. layer that wants
     // to get the list of new libraries loaded. 
     return true;
 }
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev, 
-                                 pdvector<mapped_object*> &changed_objects,
-                                 pdvector<bool> &is_new_object)
+                                 std::vector<mapped_object*> &changed_objects,
+                                 std::vector<bool> &is_new_object)
 {
    if (!ev.lwp)
        //Return early if we're in the call from loadDyninstLib.
@@ -140,7 +140,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
 	}
         
 	mapped_object *oldobj = NULL;
-        const pdvector<mapped_object *> &objs = proc->mappedObjects();
+        const std::vector<mapped_object *> &objs = proc->mappedObjects();
 	for (unsigned i=0; i<objs.size(); i++) {
             if (objs[i]->codeBase() == base) {
                 oldobj = objs[i];
@@ -155,7 +155,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
     return true;
 }
 
-bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &) {
+bool dynamic_linking::processLinkMaps(std::vector<fileDescriptor> &) {
     // Empty list so nothing happens
 
     return true;

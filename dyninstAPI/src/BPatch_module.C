@@ -349,7 +349,7 @@ bool BPatch_module::getProcedures(BPatch_Vector<BPatch_function*> &funcs,
        func_map.size() != mod->getFuncVectorSize() || 
        mod->obj()->isExploratoryModeOn())
    {
-      const pdvector<func_instance*> &funcs = mod->getAllFunctions();
+      const std::vector<func_instance*> &funcs = mod->getAllFunctions();
       for (unsigned i=0; i<funcs.size(); i++) {
          if (!func_map.count(funcs[i])) {
             addSpace->findOrCreateBPFunc(funcs[i], this); // adds func to func_map
@@ -402,7 +402,7 @@ BPatch_module::findFunction(const char *name,
    // Do we want regex?
    if (dont_use_regex 
          ||  (NULL == strpbrk(name, REGEX_CHARSET))) {
-      pdvector<func_instance *> int_funcs;
+      std::vector<func_instance *> int_funcs;
       if (mod->findFuncVectorByPretty(name, int_funcs)) {
          for (unsigned piter = 0; piter < int_funcs.size(); piter++) {
             if (incUninstrumentable || int_funcs[piter]->isInstrumentable()) 
@@ -459,7 +459,7 @@ BPatch_module::findFunction(const char *name,
       // point, so it might as well be top-level. This is also an
       // excellent candidate for a "value-added" library.
 
-      const pdvector<func_instance *> &int_funcs = mod->getAllFunctions();
+      const std::vector<func_instance *> &int_funcs = mod->getAllFunctions();
 
       for (unsigned ai = 0; ai < int_funcs.size(); ai++) {
          func_instance *func = int_funcs[ai];
@@ -569,7 +569,7 @@ BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name,
 
    BPatch_function *bpfunc = NULL;
 
-   pdvector<func_instance *> int_funcs;
+   std::vector<func_instance *> int_funcs;
    std::string mangled_str(mangled_name);
 
    if (!mod->findFuncVectorByMangled(mangled_str,
@@ -635,7 +635,7 @@ void BPatch_module::parseTypes()
 BPatch_variableExpr* BPatch_module::findVariable(const char* name)
 {
    parseTypesIfNecessary();
-   const pdvector<int_variable *> &allVars = mod->getAllVariables();
+   const std::vector<int_variable *> &allVars = mod->getAllVariables();
 
    for (unsigned i = 0; i < allVars.size(); i++) {
      if(strcmp(allVars[i]->symTabName().c_str(), name) == 0)
@@ -652,7 +652,7 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
    if (!isValid())
       return false;
    if (!full_var_parse) {
-      const pdvector<int_variable*> &vars = mod->getAllVariables();
+      const std::vector<int_variable*> &vars = mod->getAllVariables();
       for (unsigned i=0; i<vars.size(); i++) {
          if (!var_map.count(vars[i])) {
             addSpace->findOrCreateVariable(vars[i]);

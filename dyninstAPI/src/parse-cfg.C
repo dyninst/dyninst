@@ -180,7 +180,7 @@ Address parse_func::getEndOffset() {
 }
 
 
-const pdvector<image_parRegion *> &parse_func::parRegions() {
+const std::vector<image_parRegion *> &parse_func::parRegions() {
   if (!parsed()) image_->analyzeIfNeeded();
   return parRegionsList;
 }

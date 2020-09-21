@@ -32,9 +32,7 @@
  * inst-x86.C - x86 dependent functions and code generator
  */
 
-#include "common/src/Vector.h"
 #include <unordered_map>
-#include "common/src/Vector.h"
 #include "parse-cfg.h"
 #include "instPoint.h"
 #include "mapped_object.h"
@@ -424,7 +422,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
+    const std::vector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
     if( funcs != NULL ) {
         return funcs->at(0);
     }
@@ -434,7 +432,7 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
 func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
+    const std::vector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
     if( funcs != NULL ) {
         return funcs->at(0);
     }

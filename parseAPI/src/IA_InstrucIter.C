@@ -211,7 +211,7 @@ void IA_InstrucIter::getNewEdges(
         }
         if(!ii.isIndirectTailCall(context))
         {
-            pdvector<instruction> dummy;
+            std::vector<instruction> dummy;
             successfullyParsedJumpTable = ii.getMultipleJumpTargets(targets);
             parsedJumpTable = true;
             if(successfullyParsedJumpTable)
@@ -358,7 +358,7 @@ bool IA_InstrucIter::isTailCall(Function * context, EdgeTypeEnum /*ignored*/, un
     {
         return true;
     }
-    pdvector<instruction> dummy;
+    std::vector<instruction> dummy;
     if(ii.isAJumpInstruction() && ii.isTailCall(context))
     {
         return true;

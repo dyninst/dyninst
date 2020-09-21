@@ -90,7 +90,7 @@ class EmitterPOWER : public Emitter {
     virtual Address emitMovePCToReg(Register, codeGen& gen);
 
     // This one we actually use now.
-    virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,
+    virtual Register emitCall(opCode, codeGen &, const std::vector<AstNodePtr> &,
 			      bool, func_instance *);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
 

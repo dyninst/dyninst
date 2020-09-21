@@ -256,7 +256,7 @@ void codeRangeTree::traverse(codeRange ** all, entry* node, int& n) const{
 }
 
 
-void codeRangeTree::traverse(pdvector<codeRange *> &all, entry* node) const{
+void codeRangeTree::traverse(std::vector<codeRange *> &all, entry* node) const{
 	if(node == nil)
 		return;
 	if(node->left != nil)
@@ -466,7 +466,7 @@ codeRange ** codeRangeTree::elements(codeRange ** buffer) const{
 	return buffer;
 }
 
-bool codeRangeTree::elements(pdvector<codeRange *> &buffer) const{
+bool codeRangeTree::elements(std::vector<codeRange *> &buffer) const{
 	if(setData == nil) return false;
 	traverse(buffer,setData);	
         return true;
