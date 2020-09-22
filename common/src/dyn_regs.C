@@ -108,7 +108,7 @@ MachRegister MachRegister::getBaseRegister() const {
                 return MachRegister(reg);
 
             default:
-	            assert(0);
+		return *this;
          }
 		case Arch_aarch32:
 		case Arch_aarch64:
