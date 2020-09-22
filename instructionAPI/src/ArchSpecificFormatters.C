@@ -106,7 +106,8 @@ std::string ArmFormatter::formatRegister(std::string regName) {
     if (substr != std::string::npos) {
         ret = ret.substr(substr + 1, ret.length());
     }
-    std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
+    for(char &c : ret) c = std::toupper(c);
+
     return ret;
 }
 
@@ -162,7 +163,7 @@ std::string x86Formatter::formatImmediate(std::string evalString)
 
 std::string x86Formatter::formatRegister(std::string regName) 
 {
-    std::transform(regName.begin(), regName.end(), regName.begin(), ::tolower);
+    for(char &c : regName) c = std::tolower(c);
 
     char* orig = strdup(regName.c_str());
 

@@ -1898,8 +1898,7 @@ void mapped_object::removeEmptyPages()
 bool mapped_object::isSystemLib(const std::string &objname)
 {
    std::string lowname = objname;
-   std::transform(lowname.begin(),lowname.end(),lowname.begin(),
-                  (int(*)(int))std::tolower);
+   for(char &c : lowname) c = std::tolower(c);
 
    if (std::string::npos != lowname.find("libdyninstapi_rt"))
       return true;
