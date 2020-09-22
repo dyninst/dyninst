@@ -343,14 +343,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    _ref_cnt(1)
 {
     init_debug_symtabAPI();
-
-#if defined(os_vxworks)
-    // This is how we initialize objects from WTX information alone.
-    // Basically replaces extractInfo().
-    object_type_ = obj_RelocatableFile;
-    // (... the rest are now initialized for everyone above ...)
-#endif
-
 }
 
 SYMTAB_EXPORT Symtab::Symtab() :
@@ -687,13 +679,10 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
       // check for undefined dynamic symbols. Used when rewriting relocation section.
       // relocation entries have references to these undefined dynamic symbols.
       // We also have undefined symbols for the static binary case.
-
-#if !defined(os_vxworks)
       if (sym->getRegion() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
          undefDynSyms.insert(sym);
          continue;
       }
-#endif
       
       // Check whether this symbol has a valid offset. If they do not we have a
       // consistency issue. This should be a null check.
@@ -788,9 +777,6 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
 
 bool Symtab::createAggregates() 
 {
-#if !defined(os_vxworks)
-    // In VxWorks, symbol offsets are not complete until object is loaded.
-
   std::vector<Symbol*> syms(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
 
   #pragma omp parallel for
@@ -800,8 +786,6 @@ bool Symtab::createAggregates()
       addSymbolToAggregates(syms[i]);
     }
   }
-#endif
-
     return true;
 }
  
@@ -1675,11 +1659,6 @@ bool Symtab::isValidOffset(const Offset where) const
  */
 bool Symtab::isCode(const Offset where)  const
 {
-#if defined(os_vxworks)
-    // All memory is valid in the kernel.  Kinda.
-    //return true;
-#endif
-
    if (!codeRegions_.size()) 
    {
       create_printf("%s[%d] No code regions in %s \n",

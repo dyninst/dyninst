@@ -49,12 +49,6 @@ typedef struct {
   unsigned long pr_size;
 } dyninstmm_t;
 
-#elif defined(os_vxworks)
-typedef struct {
-    Address pr_vaddr;
-    unsigned long pr_size;
-} dyninstmm_t;
-
 #else
 #error Dynamic heaps are not implemented on this platform
 #endif

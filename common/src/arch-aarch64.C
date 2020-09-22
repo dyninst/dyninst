@@ -31,10 +31,6 @@
 #include "common/src/Types.h"
 #include "common/src/arch-aarch64.h"
 
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
-
 namespace NS_aarch64 {
 
 ATOMIC_t ATOMIC;
@@ -81,13 +77,6 @@ unsigned instruction::getTargetReg() const {
 }
 
 Address instruction::getTarget(Address addr) const {
-#if defined(os_vxworks)
-    Address ret;
-    // FIXME requires vxworks in Dyninst
-    if (relocationTarget(addr, &ret))
-        return ret;
-#endif
-
     if (isUncondBranch() || isCondBranch()) {
         return getBranchOffset() + addr;
     }

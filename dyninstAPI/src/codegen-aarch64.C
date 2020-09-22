@@ -38,11 +38,6 @@
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/function.h"
 
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
-
-
 // "Casting" methods. We use a "base + offset" model, but often need to
 // turn that into "current instruction pointer".
 codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {

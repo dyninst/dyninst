@@ -567,8 +567,7 @@ int cpuidCall() {
 #endif
 
 #if !defined(x86_64_unknown_linux2_4)              \
- && !(defined(os_freebsd) && defined(arch_x86_64)) \
- && !defined(os_vxworks)
+ && !(defined(os_freebsd) && defined(arch_x86_64))
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -2488,11 +2487,10 @@ void emitJump(unsigned disp32, codeGen &gen)
 }
 
 #if defined(os_linux)   \
- || defined(os_freebsd) \
- || defined(os_vxworks)
+ || defined(os_freebsd)
 
 // These functions were factored from linux-x86.C because
-// they are identical on Linux and FreeBSD and vxWorks
+// they are identical on Linux and FreeBSD
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const std::vector<AstNodePtr> &operands,

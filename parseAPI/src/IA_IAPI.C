@@ -50,10 +50,6 @@
 #include "IA_power.h"
 #include "IA_aarch64.h"
 
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
-
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Dyninst::InsnAdapter;
@@ -857,60 +853,6 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
                    thePC[_isrc->getArch()]->format(curInsn().getArch()).c_str(), curInsn().format().c_str(), current);
 
     Result actualTarget = callTarget->eval();
-#if defined(os_vxworks)
-
-    int reloc_target = current;
-#if defined(arch_x86)
-    ++reloc_target;
-#endif
-
-    if (actualTarget.convert<Address>() == reloc_target) {
-        // We have a zero offset branch.  Consider relocation information.
-        SymtabCodeRegion *scr = dynamic_cast<SymtabCodeRegion *>(_cr);
-        SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(_obj->cs());
-
-        if (!scr && scs) {
-            set<CodeRegion *> regions;
-            assert( scs->findRegions(reloc_target, regions) == 1 );
-            scr = dynamic_cast<SymtabCodeRegion *>(*regions.begin());
-        }
-
-        SymtabAPI::Symbol *sym = NULL;
-        if (scr) {
-            std::vector<SymtabAPI::relocationEntry> relocs =
-                scr->symRegion()->getRelocations();
-
-            for (unsigned i = 0; i < relocs.size(); ++i) {
-                if (relocs[i].rel_addr() == reloc_target) {
-                    sym = relocs[i].getDynSym();
-                    if (sym && sym->getOffset()) {
-                        parsing_printf(" <reloc hit> ");
-                        actualTarget = Result(s64, sym->getOffset());
-                    }
-                    break;
-                }
-            }
-        }
-
-        if (sym && sym->getOffset() == 0) {
-            // VxWorks external call.
-            // Need some external means to find the target.
-            Address found;
-            const std::string &sym_name = sym->getMangledName();
-            if (wtxFindFunction(sym_name.c_str(), 0x0, found)) {
-                parsing_printf(" <wtx search hit> ");
-                actualTarget = Result(s64, found);
-
-                // We've effectively found a plt call.  Update linkage table.
-                _obj->cs()->linkage()[found] = sym_name;
-
-            } else {
-                parsing_printf(" <wtx fail %s> ", sym_name.c_str());
-                actualTarget.defined = false;
-            }
-        }
-    }
-#endif
 
     if(actualTarget.defined)
     {

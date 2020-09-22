@@ -2441,7 +2441,7 @@ bool doNotOverflow(int64_t value) {
     else return(false);
 
 }
-#if !defined(os_vxworks)
+
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
@@ -2483,8 +2483,6 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 	}
 	return false;
 }
-
-#endif
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance * origFunc, Address target_addr) {

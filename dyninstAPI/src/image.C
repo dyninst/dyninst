@@ -74,10 +74,6 @@
 #include <dbghelp.h>
 #endif
 
-#if defined(os_vxworks)
-#include "dyninstAPI/src/vxworks.h"
-#endif
-
 // For callbacks
 #include "dyninstAPI/src/mapped_object.h" 
 
@@ -1474,19 +1470,6 @@ image::image(fileDescriptor &desc,
            return;
        }
    }
-#elif defined(os_vxworks)
-   string file = desc_.file();
-   startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
-   if( !Symtab::openFile(linkedFile, file) ) {
-       startup_printf("%s[%d]: %s unavailable. Building info from target.\n",
-                      FILE__, __LINE__, file.c_str());
-       MappedFile *mf = MappedFile::createMappedFile(file);
-       linkedFile = new Symtab::Symtab(mf);
-   }
-
-   // Fill in remaining unknown information from remote target.
-   fixup_offsets(file, linkedFile);
-
 #else
 	std::string file = desc_.file();
    startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
@@ -2145,13 +2128,7 @@ std::unordered_map<Address, std::string> *image::getPltFuncs()
    pltFuncs = new std::unordered_map<Address, std::string>;
    assert(pltFuncs);
    for(unsigned k = 0; k < fbt.size(); k++) {
-#if defined(os_vxworks)
-       if (fbt[k].target_addr() == 0) {
-           (*pltFuncs)[fbt[k].rel_addr()] = fbt[k].name().c_str();
-       }
-#else
       (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name().c_str();
-#endif
    }
    return pltFuncs;
 }

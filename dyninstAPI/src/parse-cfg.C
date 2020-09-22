@@ -583,12 +583,7 @@ bool parse_func::hasUnresolvedCF() {
 }
 
 bool parse_func::isInstrumentable() {
-#if defined(os_vxworks)
-   // Relocatable objects (kernel modules) are instrumentable on VxWorks.
-   if(!isInstrumentableByFunctionName())
-#else
    if(!isInstrumentableByFunctionName() || img()->isRelocatableObj())
-#endif
       return false;
    else {
       // Create instrumentation points for non-plt functions 

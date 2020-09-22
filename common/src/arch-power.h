@@ -744,8 +744,6 @@ typedef unsigned codeBufIndex_t;
 
 #define BREAK_POINT_INSN 0x7d821008  /* trap */
 
-#define SPIN_WAIT_INSN 0x48000000 /* VxWorks Trap - Can't perform a trap there. */
-
 /* high and low half words.  Useful to load addresses as two parts */
 #define LOW(x)  ((x) & 0xffff)
 #define HIGH(x) (((x) >> 16) & 0xffff)
