@@ -33,7 +33,7 @@
 
 #include "dyntypes.h"
 
-enum entryID {
+enum entryID : unsigned int {
   e_jb = 0,
   e_ja,
   e_jb_jnaej_j,
@@ -3004,7 +3004,7 @@ power_op_dxex,
   aarch64_op_zip2_advsimd,
   _entry_ids_max_
 };
-enum prefixEntryID {
+enum prefixEntryID : unsigned int {
   prefix_none,
   prefix_rep,
   prefix_repnz
