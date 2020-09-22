@@ -898,11 +898,11 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
                 // Combine this information
                 //   Add this symbol's names to the function.
                 //   Keep module information 
-                if(getArchitecture() == Arch_amdgpu){
+                /*if(getArchitecture() == Arch_amdgpu){
                     sym->setOffset(sym->getOffset()+0x100);
                     sym->setSize(sym->getSize()-0x100);
 
-                }
+                }*/
 
                 cout << " dealing with indrect symbol , addr = " << std::hex << sym->getOffset() <<  ", size = " << std::hex<<sym->getSize() << endl;
 
