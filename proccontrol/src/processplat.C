@@ -509,74 +509,6 @@ void SignalMask::setDefaultSigMask(dyn_sigset_t s)
    default_sigset = s;
 }
 
-BGQData::BGQData(Process::ptr proc_) :
-   proc(proc_)
-{
-}
-
-BGQData::~BGQData()
-{
-}
-
-void BGQData::setStartupTimeout(unsigned int seconds)
-{
-   int_BGQData::startup_timeout_sec = seconds;
-}
-
-void BGQData::setBlockForControlAuthority(bool block)
-{
-   int_BGQData::block_for_ca = block;
-}
-
-bool BGQData::getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   PTR_EXIT_TEST(p, "getProcCoordinates", false);
-   int_BGQData *proc = p->llproc()->getBGQData();
-   proc->bgq_getProcCoordinates(a, b, c, d, e, t);
-   return true;
-}
-
-unsigned int BGQData::getComputeNodeID() const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   PTR_EXIT_TEST(p, "getComputeNodeID", 0);
-   int_BGQData *proc = p->llproc()->getBGQData();
-   return proc->bgq_getComputeNodeID();
-}
-
-bool BGQData::getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   PTR_EXIT_TEST(p, "getSharedMemRange", false);
-   int_BGQData *proc = p->llproc()->getBGQData();
-   proc->bgq_getSharedMemRange(start, end);
-   return true;
-}
-
-bool BGQData::getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   PTR_EXIT_TEST(p, "getPersistantMemRange", false);
-   int_BGQData *proc = p->llproc()->getBGQData();
-   proc->bgq_getPersistantMemRange(start, end);
-   return true;
-}
-
-bool BGQData::getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const
-{
-   MTLock lock_this_func;
-   Process::ptr p = proc.lock();
-   PTR_EXIT_TEST(p, "getHeapMemRange", false);
-   int_BGQData *proc = p->llproc()->getBGQData();
-   proc->bgq_getHeapMemRange(start, end);
-   return true;
-}
-
 FileInfo::FileInfo(std::string f)
 {
    info = int_fileInfo_ptr(new int_fileInfo());
@@ -1053,30 +985,6 @@ int_memUsage::~int_memUsage()
       up_ptr = NULL;
    }
 }
-
-int_BGQData::int_BGQData(Dyninst::PID p, string e, vector<string> a,
-                         vector<string> envp, map<int,int> f) :
-   int_process(p, e, a, envp, f),
-   up_ptr(NULL)
-{
-}
-
-int_BGQData::int_BGQData(Dyninst::PID pid_, int_process *p) :
-   int_process(pid_, p),
-   up_ptr(NULL)
-{
-}
-
-int_BGQData::~int_BGQData()
-{
-   if (up_ptr) {
-      delete up_ptr;
-      up_ptr = NULL;
-   }
-}
-
-unsigned int int_BGQData::startup_timeout_sec = BGQData::startup_timeout_sec_default;
-bool int_BGQData::block_for_ca = BGQData::block_for_ca_default;
 
 int_fileInfo::int_fileInfo() :
    stat_results(NULL),

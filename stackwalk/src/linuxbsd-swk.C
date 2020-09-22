@@ -173,7 +173,6 @@ bool ProcSelf::getDefaultThread(THR_ID &default_tid)
     return true;
 }
 
-#if !defined(os_bgq)
 static LibraryState *local_lib_state = NULL;
 extern "C" {
    static void lib_trap_handler(int sig);
@@ -265,11 +264,6 @@ static void registerLibSpotterSelf(ProcSelf *pself)
    sw_printf("[%s:%u] - Successfully install lib tracker at 0x%lx\n",
             FILE__, __LINE__, lib_trap_addr_self);
 }
-#else
-static void registerLibSpotterSelf(ProcSelf *)
-{
-}
-#endif
 
 void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t change)
 {

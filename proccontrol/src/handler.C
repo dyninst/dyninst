@@ -1404,7 +1404,7 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
       return ret_error;
    }
    if (int_ebp->pc_regset && !int_ebp->pc_regset->isReady()) {
-      //We're probably on Bluegene and waiting for async to finish.
+      //We're probably waiting for async to finish.
       proc->handlerPool()->notifyOfPendingAsyncs(int_ebp->pc_regset, ev);
       pthrd_printf("Returning async from BP handler while setting PC\n");
       return ret_async;
@@ -1861,12 +1861,6 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
 
    if (!removed_bps) 
    {
-#if defined(os_bgq)
-      proc->setForceGeneratorBlock(true);
-      ProcPool()->condvar()->lock();
-      ProcPool()->condvar()->broadcast();
-      ProcPool()->condvar()->unlock();
-#endif
       if (!temporary) {
          while (!mem->breakpoints.empty())
          {
@@ -1947,9 +1941,6 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    err = false;
   done:
    int_detach_ev->done = true;
-#if defined(os_bgq)
-   proc->setForceGeneratorBlock(false);
-#endif
    proc->getStartupTeardownProcs().dec();
    return err ? ret_error : ret_success;
 }

@@ -266,10 +266,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
   bool getAddressRange(void*& _startAddress, void*& _endAddress);
 
-#ifdef IBM_BPATCH_COMPAT
-  //  dummy placeholder.  I think this is only used by dpcl in a debug routine
-  bool getLineNumbers(unsigned int &_startLine, unsigned int  &_endLine);       
-#endif
   /** BPatch_basicBlock::findEntryPoint   */
   /** return point at the start of the basic block */
 

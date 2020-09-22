@@ -2300,11 +2300,6 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		/* Get enum component value */
 		compsymdesc = getIdentifier(stabstr, cnt);
 		cnt++; /* skip colon */
-
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-		//bperr( "%s[%d]:  before parseSymDesc -- enumerated type \n", 
-	    //		__FILE__, __LINE__);
-#endif		  
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type

@@ -7,7 +7,6 @@ set (VALID_PLATFORMS
     ppc32_linux 
     ppc64_linux 
     x86_64-unknown-linux2.4
-    ppc64_bgq_ion
     aarch64-unknown-linux
     )
 

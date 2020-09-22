@@ -102,7 +102,6 @@ class LWPTracking;
 class CallStackUnwinding;
 class FollowFork;
 class SignalMask;
-class BGQData;
 class RemoteIO;
 class MemoryUsage;
 
@@ -538,7 +537,6 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    LWPTracking *getLWPTracking();
    FollowFork *getFollowFork();
    SignalMask *getSignalMask();
-   BGQData *getBGQ();
    RemoteIO *getRemoteIO();
    MemoryUsage *getMemoryUsage();
    const LibraryTracking *getLibraryTracking() const;
@@ -546,7 +544,6 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    const LWPTracking *getLWPTracking() const;
    const FollowFork *getFollowFork() const;
    const SignalMask *getSignalMask() const;
-   const BGQData *getBGQ() const;
    const RemoteIO *getRemoteIO() const;
    const MemoryUsage *getMemoryUsage() const;
 
@@ -639,7 +636,7 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    IRPC::const_ptr getRunningIRPC() const;
 
    /**
-    * Returns a stack unwinder on supported platforms (BlueGene/Q).
+    * Returns a stack unwinder on supported platforms.
     * Returns NULL on unsupported platforms
     **/
    CallStackUnwinding *getCallStackUnwinding();

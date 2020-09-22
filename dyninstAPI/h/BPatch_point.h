@@ -76,11 +76,6 @@ namespace Dyninst {
 /* #define BPatch_instruction BPatch_locInstruction */
 #define BPatch_arbitrary BPatch_locInstruction
 
-#if defined (IBM_BPATCH_COMPAT)
-#define BPatch_locBasicBlockLoopEntry BPatch_locLoopEntry
-#define BPatch_locBasicBlockLoopExit BPatch_locLoopExit
-#endif
-
 /* VG(09/17/01) Added memory access pointer */
 
 /* VG(11/06/01) Moved constructor to implementation file because it
@@ -294,13 +289,6 @@ public:
 
 
     bool usesTrap_NP();
-
-#ifdef IBM_BPATCH_COMPAT
-    void *getPointAddress() { return getAddress(); }
-    int getPointLine() { return -1; }
-    BPatch_function *getContainingFunction() { return const_cast<BPatch_function*>(getFunction()); };
-#endif
-
 };
 
 #endif /* _BPatch_point_h_ */

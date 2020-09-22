@@ -46,14 +46,11 @@
 
 #include "common/src/Types.h"
 
-#if defined(os_linux) || defined(os_bgp) || defined(os_bg_ion) || defined(os_bgq_ion)
+#if defined(os_linux)
 #include "common/src/linuxHeaders.h"
 
 #elif defined(os_freebsd)
 #include "common/src/freebsdHeaders.h"
-
-#elif defined(os_bg_compute)
-#include "common/src/bg_compute_headers.h"
 
 #elif defined(os_windows)
 #include "common/src/ntHeaders.h"
@@ -123,7 +120,6 @@ try_again:
 }
 #endif
 
-#if !defined(os_bg_compute)
 #if !defined(os_windows)
 template <class T>
 readReturnValue_t P_socketRead(PDSOCKET fd, T &it, ssize_t sz)
@@ -192,5 +188,5 @@ readReturnValue_t P_socketRead(PDSOCKET fd, T &it)
 {
    return P_socketRead<T>(fd, it, sizeof(T));
 }
-#endif /* !os_bg_compute */
+
 #endif /* KLUDGES_H */

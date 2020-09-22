@@ -35,10 +35,6 @@
 #include "BPatch_Vector.h"
 #include <set>
 
-#ifdef IBM_BPATCH_COMPAT
-class BPatch_point;
-#endif
-
 /** this class represents the basic blocks in the source
   * code. The source code basic blocks are calculated according to the
   * machine code basic blocks. The constructors can be called by only
@@ -72,18 +68,6 @@ public:
 	/** destructor for the sourceBlock class */
 
 	virtual ~BPatch_sourceBlock() {}
-
-#ifdef IBM_BPATCH_COMPAT
-        bool getAddressRange(void*& _startAddress, void*& _endAddress);
-
-        bool getLineNumbers(unsigned int &_startLine, unsigned int  &_endLine);
-
-        void getExcPoints(BPatch_Vector<BPatch_point *> &vect);
-
-        void getIncPoints(BPatch_Vector<BPatch_point *> &vect);
-
-        char * getName(char *buf, int buflen);
-#endif
 
 private:
 	/** constructor of the class */

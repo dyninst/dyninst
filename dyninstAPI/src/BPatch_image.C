@@ -549,17 +549,6 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
    return NULL;
 }
 
-#ifdef IBM_BPATCH_COMPAT
-//  a wrapper for IBM compatibility.  The function vector is assumed to be
-//  allocated before calling.
-BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionPtr(
-      const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError,
-      bool regex_case_sensitive, bool incUninstrumentable)
-{
-   return findFunction(name, *funcs, showError, regex_case_sensitive, incUninstrumentable);
-}
-#endif
-
 /*
  * BPatch_image::findFunction 2
  *
@@ -946,22 +935,6 @@ char *BPatch_image::getProgramFileName(char *name, unsigned int len)
    strncpy(name, imname.c_str(), len);
    return name;
 }
-
-#ifdef IBM_BPATCH_COMPAT
-char *BPatch_image::programName(char *name, unsigned int len) 
-{
-   return getProgramName(name, len);
-}
-
-int  BPatch_image::lpType() 
-{
-   switch(addSpace->getAS()->getAddressWidth()) {
-      case 4: return LP32; break;
-      case 8: return LP64; break;
-      default: return UNKNOWN_LP; break;
-   }
-};
-#endif
 
 BPatch_module *BPatch_image::findModule(mapped_module *base) 
 {

@@ -160,26 +160,7 @@ void power_entry::buildTables()
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
         extended_op_0[19] = power_entry(power_op_fxcsmadd, "fxcsmadd", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-#ifdef os_bgq
-        extended_op_0[9] = power_entry(power_op_qvfxmadds, "qvfxmadds", NULL,
-                                        list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_0[11] = power_entry(power_op_qvfxxnpmadds, "qvfxxnpmadds", NULL,
-                                        list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_0[17] = power_entry(power_op_qvfxmuls, "qvfxmuls", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QFRCP)));
-        extended_op_0[20] = power_entry(power_op_qvfsubs, "qvfsubs", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB)));
-        extended_op_0[21] = power_entry(power_op_qvfadds, "qvfadds", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB)));
-        extended_op_0[24] = power_entry(power_op_qvfres, "qvfres", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QRB)));
-        extended_op_0[25] = power_entry(power_op_qvfmuls, "qvfmuls", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QFRCP)));
-        extended_op_0[26] = power_entry(power_op_qvfrsqrtes, "qvfrsqrtes", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QRB)));
-        extended_op_0[28] = power_entry(power_op_qvfmsubs, "qvfmsubs", NULL,
-           list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_0[29] = power_entry(power_op_qvfmadds, "qvfmadds", NULL,
-           list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_0[30] = power_entry(power_op_qvfnmsubs, "qvfnmsubs", NULL,
-           list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_0[31] = power_entry(power_op_qvfnmadds, "qvfnmadds", NULL,
-           list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-#else
+
         extended_op_0[9] = power_entry(power_op_fxmul, "fxmul", NULL,
                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRCP)));
         extended_op_0[11] = power_entry(power_op_fxsmul, "fxsmul", NULL,
@@ -202,7 +183,6 @@ void power_entry::buildTables()
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
         extended_op_0[31] = power_entry(power_op_fxcsnmsub, "fxcsnmsub", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-#endif
        extended_op_0[22] = power_entry(power_op_fxcpnmadd, "fxcpnmadd", NULL,
 list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
        extended_op_0[23] = power_entry(power_op_fxcsnmadd, "fxcsnmadd", NULL,
@@ -268,19 +248,7 @@ extended_op_4[8] = power_entry(power_op_vmuloub, "vmuloub", NULL, list_of(fn(VRT
 extended_op_4[12] = power_entry(power_op_vmrghb, "vmrghb", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB)));
 
 extended_op_4[14] = power_entry(power_op_vpkuhum, "vpkuhum", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB)));
-#ifdef os_bgq
-        extended_op_4[24] = power_entry(power_op_qvfre, "qvfre", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QRB)));
-        extended_op_4[25] = power_entry(power_op_qvfmul, "qvfmul", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QFRCP)));
-        extended_op_4[26] = power_entry(power_op_qvfrsqrte, "qvfrsqrte", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QRB)));
-        extended_op_4[28] = power_entry(power_op_qvfmsub, "qvfmsub", NULL,
-          list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_4[29] = power_entry(power_op_qvfmadd, "qvfmadd", NULL,
-          list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_4[30] = power_entry(power_op_qvfnmsub, "qvfnmsub", NULL,
-          list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-        extended_op_4[31] = power_entry(power_op_qvfnmadd, "qvfnmadd", NULL,
-          list_of(fn(setFPMode))(fn(QFRTP))(fn(QFRA))(fn(QRB))(fn(QFRCP)));
-#else
+
         extended_op_4[24] = power_entry(power_op_fxcpnpma, "fxcpnpma", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
         extended_op_4[25] = power_entry(power_op_fxcsnpma, "fxcsnpma", NULL,
@@ -295,7 +263,7 @@ extended_op_4[14] = power_entry(power_op_vpkuhum, "vpkuhum", NULL, list_of(fn(VR
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
         extended_op_4[31] = power_entry(power_op_fxcxnms, "fxcxnms", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-#endif
+
 extended_op_4[27] = power_entry(power_op_fxcsnsma, "fxcsnsma", NULL,
 list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
 extended_op_4[32] = power_entry(power_op_vmhaddshs, "vmhaddshs", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB))(fn(VRC)));

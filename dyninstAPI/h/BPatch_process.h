@@ -464,10 +464,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
   //  
   void enableDumpPatchedImage();
 
-#ifdef IBM_BPATCH_COMPAT
-  bool addSharedObject(const char *name, const unsigned long loadaddr);
-#endif
-
   // BPatch_process::loadLibrary
   //
   //  Load a shared library into the mutatee's address space

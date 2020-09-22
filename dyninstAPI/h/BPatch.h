@@ -73,10 +73,6 @@ class func_instance;
 #define DYNINST_MINOR DYNINST_MINOR_VERSION
 #define DYNINST_SUBMINOR DYNINST_PATCH_VERSION
 
-#ifdef IBM_BPATCH_COMPAT
-typedef void *BPatch_Address;
-#endif
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4251)

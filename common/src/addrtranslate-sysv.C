@@ -54,7 +54,7 @@
 #include "common/src/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 
-#if defined(os_linux) || defined(os_bg)
+#if defined(os_linux)
 #define R_DEBUG_NAME "_r_debug"
 #else
 #define R_DEBUG_NAME "r_debug"

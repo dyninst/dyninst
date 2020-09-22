@@ -82,9 +82,6 @@ endfunction()
 
 
 include (${DYNINST_ROOT}/cmake/platform.cmake)
-if (NOT ${PROJECT_NAME} MATCHES DyninstRT)
-include (${DYNINST_ROOT}/cmake/packages.cmake)
-endif()
 include (${DYNINST_ROOT}/cmake/cap_arch_def.cmake)
 include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)

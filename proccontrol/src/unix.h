@@ -35,8 +35,6 @@
 
 /**
  * For our purposes, a UNIX process is one that supports fork/exec.
- * Note that means that the BlueGene family is not considered a 
- * UNIX process.
  **/
 class unix_process : virtual public int_process
 {

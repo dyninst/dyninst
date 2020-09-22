@@ -169,10 +169,7 @@ namespace Dyninst
       OSNone,
       Linux,
       FreeBSD,
-      Windows,
-      BlueGeneL,
-      BlueGeneP,
-      BlueGeneQ
+      Windows
    } OSType;
 }
 

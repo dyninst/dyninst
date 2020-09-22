@@ -146,15 +146,6 @@ const err_t err_attached       = 0x10011;
 const err_t err_pendingirpcs   = 0x10012;
 const err_t err_bpfull         = 0x10013;
 const err_t err_notfound       = 0x10014;
-//Next seven are BGQ errors.  They usually indicates a problem
-// on the system, not with user programs
-const err_t err_cauthority     = 0x10100;
-const err_t err_dsigstop       = 0x10101;
-const err_t err_dthrdquery     = 0x10102;
-const err_t err_dthrdstop      = 0x10103;
-const err_t err_dattachack     = 0x10104;
-const err_t err_dcaack         = 0x10105;
-const err_t err_dstep          = 0x10106;
 const err_t err_dstack         = 0x10107;
 const err_t err_eof            = 0x10108;
 

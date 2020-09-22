@@ -479,7 +479,7 @@ DyninstInstFrameStepperImpl::~DyninstInstFrameStepperImpl()
 #undef PIMPL_NAME
 
 //BottomOfStackStepper defined here
-#if defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_windows)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_windows)
 #define OVERLOAD_NEWLIBRARY
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
 #endif
@@ -522,7 +522,7 @@ DyninstInstFrameStepperImpl::~DyninstInstFrameStepperImpl()
 
 //SigHandlerStepper defined here
 #define OVERLOAD_NEWLIBRARY
-#if defined(os_linux) || defined(os_freebsd) || defined(os_bgq)
+#if defined(os_linux) || defined(os_freebsd)
 #include "stackwalk/src/linuxbsd-swk.h"
 #define PIMPL_IMPL_CLASS SigHandlerStepperImpl
 #endif

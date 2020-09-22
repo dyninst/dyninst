@@ -176,7 +176,7 @@ extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
 
-#if defined(ppc32_linux) || defined(ppc32_bgp) || defined(ppc64_linux) || defined(ppc64_bgq)
+#if defined(ppc32_linux) || defined(ppc64_linux)
 
 #include <dataflowAPI/h/slicing.h>
 #include <dataflowAPI/h/SymEval.h>
@@ -479,7 +479,7 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
-#if defined(ppc32_linux) || defined(ppc32_bgp) || defined(ppc64_linux)
+#if defined(ppc32_linux) || defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
 
     // Only look for main in executables, but do allow position-independent
@@ -1979,9 +1979,6 @@ const std::vector <image_variable *> *image::findVarVectorByPretty(const std::st
 const std::vector <image_variable *> *image::findVarVectorByMangled(const std::string &name)
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-    bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
-#endif
     std::vector<image_variable *>* res = new std::vector<image_variable *>;
 
     vector<Variable *> vars;
