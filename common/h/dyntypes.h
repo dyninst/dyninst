@@ -118,12 +118,8 @@
    #error Unknown compiler
 #endif
 
-// TODO: when should we use thread_local?
-#if defined(_MSC_VER)
-  #define dyn_tls __declspec(thread)
-#else
-  #define dyn_tls __thread
-#endif
+// We require C++11 thread_local support
+#define dyn_tls thread_local
 
 namespace Dyninst
 {
