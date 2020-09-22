@@ -33,7 +33,7 @@
 
 #include "dyntypes.h"
 
-enum entryID {
+enum entryID : unsigned int {
   e_jb = 0,
   e_ja,
   e_jb_jnaej_j,
@@ -3004,59 +3004,12 @@ power_op_dxex,
   aarch64_op_zip2_advsimd,
   _entry_ids_max_
 };
-enum prefixEntryID {
+enum prefixEntryID : unsigned int {
   prefix_none,
   prefix_rep,
   prefix_repnz
 };
- #if defined(__GNUC__)
-  #if defined(_LIBCPP_VERSION)
-//***************** GCC ***********************
-  #elif !defined(cap_tr1)
-  //**************** GCC < 4.3.0 ************
-  namespace __gnu_cxx {
-     template<> struct hash<entryID> {
-      hash<unsigned int> h;
-      unsigned operator()(const entryID &e) const
-      {
-         return h(static_cast<unsigned int>(e));
-      };
-    };
-    template<> struct hash<prefixEntryID> {
-      hash<unsigned int> h;
-      unsigned operator()(const prefixEntryID &e) const
-      {
-         return h(static_cast<unsigned int>(e));
-      };
-    };
-  }
-	#else
-  namespace std
-  {
-    namespace tr1
-    {
-      template <>
-      struct hash<entryID>
-      {
-        hash<size_t> h;
-        size_t operator()(const entryID &eid) const
-        {
-           return h(static_cast<size_t>(eid));
-        }
-      };
-      template <>
-         struct hash<prefixEntryID>
-      {
-        hash<size_t> h;
-	size_t operator()(const prefixEntryID &eid) const
-	{
-	  return h(static_cast<size_t>(eid));
-	}
-      };
-    }
-  }
-	#endif
-#endif
+
 namespace NS_x86 {
 COMMON_EXPORT extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
 COMMON_EXPORT extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;

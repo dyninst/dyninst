@@ -46,7 +46,7 @@ namespace Dyninst
     // We REALLY REALLY NEED these definitions to stay aligned as given,
     // so (e.g.) (r_EAX - r_AH) == (r_EDX - r_DH). We use that later
     // for upconverting overlapping/aliased registers.
-    enum IA32Regs { r_AH=0, r_BH, r_CH, r_DH, 
+    enum IA32Regs : unsigned int { r_AH=0, r_BH, r_CH, r_DH,
 		    r_AL=10, r_BL, r_CL, r_DL,
 		    r_AX=20, r_BX, r_CX, r_DX, r_SI, r_DI,
 		    r_eAX=30, r_eBX, r_eCX, r_eDX, r_eSI, r_eDI,
@@ -98,36 +98,6 @@ namespace Dyninst
     };
   };
 };
-	  
-#if defined(__GNUC__)
-#if !defined(cap_tr1)
-namespace __gnu_cxx 
-{
-  template<> struct hash<Dyninst::InstructionAPI::IA32Regs> {
-    hash<unsigned int> h;
-    unsigned operator()(const Dyninst::InstructionAPI::IA32Regs &e) const 
-    {
-      return h(static_cast<unsigned int>(e));
-    };
-  };
-}
-#else
-namespace std 
-{
-  namespace tr1
-  {
-    template <>
-    struct hash<Dyninst::InstructionAPI::IA32Regs>
-    {
-      size_t operator()(const Dyninst::InstructionAPI::IA32Regs &e) const
-      {
-	return static_cast<size_t>(e);
-      };
-    };
-  }   
-}
-#endif
-#endif
 	  
 	  
 namespace Dyninst
