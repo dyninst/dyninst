@@ -29,7 +29,6 @@
  */
 
 #include "InstructionDecoderImpl.h"
-#include "RegisterPair.h"
 #include <iostream>
 #include "Immediate.h"
 #include "dyn_regs.h"
@@ -211,7 +210,6 @@ namespace Dyninst {
             Expression::Ptr decodeSSRC(InstructionDecoder::buffer & b , unsigned int index);
             Expression::Ptr decodeVSRC(InstructionDecoder::buffer & b , unsigned int index);
             
-            Expression::Ptr makeRegisterPairExpr(MachRegister & baseReg,unsigned int index,  unsigned length);
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
             void decodeFLATOperands();
