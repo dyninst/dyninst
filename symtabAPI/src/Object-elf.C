@@ -687,6 +687,15 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
 
             if (txtaddr == 0)
                 txtaddr = scn.sh_addr();
+            // skip header for amdgpu
+            
+            if (getArch() == Dyninst::Arch_amdgpu){
+            
+                //text_addr_ += 256;
+                //text_size_ -= 256;
+                //printf("for amdgpu, setting text_addr to %#x, text_size  to %u \n ", text_addr_, text_size_);
+
+            }
 
             // .o's don't have program headers, so these members need
             // to be populated here

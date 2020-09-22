@@ -757,7 +757,30 @@ void AssignmentConverter::convert(const Instruction I,
     assignments.push_back(ra);
     break;
   }      
-        
+  case amdgpu_op_s_setpc_b64 : {
+    // PC = SGPR[n+1:n]
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+
+
+    AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
+    Assignment::Ptr pcA = Assignment::makeAssignment(I, addr,func,block,pc);
+    Expression::Ptr new_pc_sgpr = operands[0].getValue();
+    RegisterAST::Ptr new_pc_sgpr_ast = boost::static_pointer_cast<RegisterAST>(new_pc_sgpr);
+    AbsRegion new_pc_region = AbsRegion(Absloc(new_pc_sgpr_ast->getID())); 
+
+    pcA->addInput(new_pc_region);
+
+    //AbsRegion sp = AbsRegion(Absloc::makeSP(func->isrc()->getArch()));
+    //Assignment::Ptr spA = Assignment::makeAssignment(I,addr,func,block,sp);
+    //spA->addInput(sp);
+
+    assignments.push_back(pcA);
+    //assignments.push_back(spA);
+
+
+    break;
+  }       
   default:
     // Assume full intra-dependence of non-flag and non-pc registers. 
     std::vector<AbsRegion> used;

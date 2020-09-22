@@ -10,7 +10,6 @@
 	case amdgpu_op_s_cbranch_cdbgsys_and_user:
 	case amdgpu_op_s_setpc_b64:
 	case amdgpu_op_s_swappc_b64:
-	case amdgpu_op_s_getpc_b64:
 	case amdgpu_op_s_rfe_b64:
 	case amdgpu_op_s_cbranch_g_fork:
 	case amdgpu_op_s_cbranch_i_fork:

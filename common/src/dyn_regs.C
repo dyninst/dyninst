@@ -104,6 +104,9 @@ MachRegister MachRegister::getBaseRegister() const {
             case amdgpu::VGPR_VEC8:
             case amdgpu::VGPR_VEC16:
                 return MachRegister( (reg & 0x000000ff) | amdgpu::vgpr0); 
+            case amdgpu::HWR:
+                return MachRegister(reg);
+
             default:
 	            assert(0);
          }
@@ -301,6 +304,8 @@ unsigned int MachRegister::size() const {
                case amdgpu::ZMMS:
                     return 64;
             }
+            std::cerr << "unknown reg size " << std::hex << reg << std::endl;
+            
             assert(0);
         }
       }
@@ -420,8 +425,11 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
          return ppc64::r1;
       case Arch_aarch64:
          return aarch64::x29; //aarch64: frame pointer is X29 by convention
+
+      case Arch_amdgpu:
       case Arch_none:
          return InvalidReg;
+
       default:
          assert(0);
          return InvalidReg;
@@ -445,9 +453,9 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
          return aarch64::sp; //aarch64: stack pointer is an independent register
       case Arch_aarch32:
       case Arch_cuda:
-      case Arch_amdgpu:
          assert(0);
       case Arch_none:
+      case Arch_amdgpu:
          return InvalidReg;
       default:
          assert(0);

@@ -101,19 +101,19 @@ typedef struct layout_vop2{
 	unsigned int vdst : 8;
 	unsigned int vsrc1 : 8;
 	unsigned int src0 : 9;
-	unsigned literal;
+	vop_literal_layout literal;
 }layout_vop2;
 typedef struct layout_vop1{
 	unsigned int src0 : 10;
 	unsigned int op : 8;
 	unsigned int vdst : 8;
-	unsigned literal;
+	vop_literal_layout literal;
 }layout_vop1;
 typedef struct layout_vopc{
 	unsigned int src0 : 9;
 	unsigned int vsrc1 : 8;
 	unsigned int op : 8;
-	unsigned literal;
+	vop_literal_layout literal;
 }layout_vopc;
 typedef struct layout_vintrp{
 	unsigned int vsrc : 8;

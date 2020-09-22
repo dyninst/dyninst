@@ -58,7 +58,9 @@ namespace Dyninst {
             virtual ~InstructionDecoder_amdgpu();
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
-
+            
+            // decode one instruction starting from b.start
+            // will advance b.start whenver a instruction is successfully decoded
             virtual Instruction decode(InstructionDecoder::buffer &b);
 
             virtual void setMode(bool) { }
@@ -78,29 +80,17 @@ namespace Dyninst {
         private:
             virtual Result_Type makeSizeType(unsigned int opType);
 
-            bool isPstateRead, isPstateWritten;
-            bool isFPInsn, isSIMDInsn;
-	        bool skipRn, skipRm;
             bool is64Bit;
-            bool isValid;
-            unsigned int insn_size;
 
-            void mainDecode(InstructionDecoder::buffer &b);
+            unsigned int insn_size; // size of the instruction that we are currently working on
+            unsigned int insn; // the first 32 bit 
+            unsigned int insn_high; // the second 32 bit 
+            unsigned long long int insn_long; // the combined 64 bit: insn_high << 32 | insn
+ 
+            // the main process of decoding an instruciton, won't advance buffer
+            void mainDecode(InstructionDecoder::buffer &b); 
 
-            int findInsnTableIndex(unsigned int);
-
-            /*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
-            int oprRotateAmt;
-            bool hasb5;
-
-            void reorderOperands();
-
-            unsigned int insn;
-            unsigned long long int insn_long;
-            unsigned int insn_high;
-            unsigned int imm32;
-            unsigned int imm64;
-
+            // pointer to the instruction that we are currently working on
             boost::shared_ptr<Instruction> insn_in_progress;
 
             template<int start, int end>
@@ -177,9 +167,6 @@ namespace Dyninst {
                 return -1;
             }
 
-            int op1Field, op2Field, crmField;
-
-            void processSystemInsn();
 
             bool hasHw;
             int hwField;
@@ -188,21 +175,6 @@ namespace Dyninst {
 
             bool hasShift;
             int shiftField;
-
-            void processShiftFieldShiftedInsn(int, int);
-
-            void processShiftFieldImmInsn(int, int);
-
-            bool hasOption;
-            int optionField;
-
-            void processOptionFieldLSRegOffsetInsn();
-
-            bool hasN;
-            int immr, immrLen;
-            int sField, nField, nLen;
-
-            int immlo, immloLen;
 
             void makeBranchTarget(bool, bool, int, int);
 
@@ -217,17 +189,6 @@ namespace Dyninst {
             void processAlphabetImm();
 
             void NOTHING();
-
-            void set32Mode();
-
-            void setRegWidth();
-
-            void setFPMode();
-
-            void setSIMDMode();
-
-            bool isSinglePrec();
-
             bool fix_bitfieldinsn_alias(int, int);
 	        void fix_condinsn_alias_and_cond(int &);
 	        void modify_mnemonic_simd_upperhalf_insns();
@@ -237,244 +198,14 @@ namespace Dyninst {
 
             MachRegister getLoadStoreSimdRegister(int encoding);
 
-            Expression::Ptr makeRdExpr();
-
-            Expression::Ptr makeRnExpr();
-
-            Expression::Ptr makeRmExpr();
-
-            Expression::Ptr makeRaExpr();
-
-            Expression::Ptr makeRsExpr();
-
-            Expression::Ptr makePstateExpr();
-
             Expression::Ptr makePCExpr();
 
-            Expression::Ptr makeb40Expr();
-
-            Expression::Ptr makeOptionExpression(int, int);
-
-            template<typename T, Result_Type rT>
-            Expression::Ptr fpExpand(int);
-
-            Expression::Ptr makeRtExpr();
-
-            Expression::Ptr makeRt2Expr();
-
-            Expression::Ptr makeMemRefReg();
-
-            Expression::Ptr makeMemRefReg_Rm();
-
-            Expression::Ptr makeMemRefReg_ext();
-
-            Expression::Ptr makeMemRefReg_amount();
-
-            Expression::Ptr makeMemRefIndexLiteral();
-
-            Expression::Ptr makeMemRefIndexUImm();
-
-            Expression::Ptr makeMemRefIndexPre();
-
-            Expression::Ptr makeMemRefIndexPost();
-
-            Expression::Ptr makeMemRefIndex_addOffset9();
-
-            Expression::Ptr makeMemRefIndex_offset9();
-
-            Expression::Ptr makeMemRefPairPre();
-
-            Expression::Ptr makeMemRefPairPost();
-
-            Expression::Ptr makeMemRefPair_offset7();
-
-            Expression::Ptr makeMemRefPair_addOffset7();
-
-            Expression::Ptr makeMemRefEx();
-
-            Expression::Ptr makeMemRefExPair();
-
-            Expression::Ptr makeMemRefExPair2();
-
-            Expression::Ptr makeMemRefSIMD_MULT();
-
-            Expression::Ptr makeMemRefSIMD_SING();
 
             template<typename T>
             Expression::Ptr makeLogicalImm(int immr, int imms, int immsLen, Result_Type rT);
 
 
-            void getMemRefIndexLiteral_OffsetLen(int &, int &);
-
-            void getMemRefIndex_SizeSizelen(unsigned int &, unsigned int &);
-
-            void getMemRefIndexPrePost_ImmImmlen(unsigned int &, unsigned int &);
-
-            void getMemRefPair_ImmImmlen(unsigned int &immVal, unsigned int &immLen);
-
-            void getMemRefEx_RT(Result_Type &rt);
-
-            void getMemRefIndexLiteral_RT(Result_Type &);
-
-            void getMemRefExPair_RT(Result_Type &rt);
-
-            void getMemRefPair_RT(Result_Type &rt);
-
-            void getMemRefIndex_RT(Result_Type &);
-
-            void getMemRefIndexUImm_RT(Result_Type &);
-
-            unsigned int getMemRefSIMD_MULT_T();
-
-            unsigned int getMemRefSIMD_SING_T();
-
-            void getMemRefSIMD_MULT_RT(Result_Type &);
-
-            void getMemRefSIMD_SING_RT(Result_Type &);
-
-            unsigned int get_SIMD_MULT_POST_imm();
-
-            unsigned int get_SIMD_SING_POST_imm();
-
-            void OPRRd();
-
-            void OPRsf();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRoption();
-
-            void OPRshift();
-
-            void OPRhw();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRN();
-
             //for load store
-            void LIndex();
-
-            void STIndex();
-
-            void OPRRn();
-
-            void OPRRnL();
-
-            void OPRRnLU();
-
-            void OPRRnSU();
-
-            void OPRRnS();
-
-            void OPRRnU();
-
-            void OPRRm();
-
-            void OPRRt();
-
-            void OPRRtL();
-
-            void OPRRtS();
-
-            void OPRRt2();
-
-            void OPRRt2L();
-
-            void OPRRt2S();
-
-            void OPRop1();
-
-            void OPRop2();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRcond();
-
-            void OPRnzcv();
-
-            void OPRCRm();
-
-            void OPRCRn();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRS();
-
-            void OPRRa();
-
-            void OPRo0();
-
-            void OPRb5();
-
-            void OPRb40();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRsz();
-
-            void OPRRs();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRimm();
-
-            void OPRscale();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRtype();
-
-            void OPRQ();
-
-            void OPRL();
-
-            //void OPRR();
-            void OPRH() { }
-
-            void OPRM() { }
-
-            void OPRa();
-
-            void OPRb();
-
-            void OPRc();
-
-            void OPRd();
-
-            void OPRe();
-
-            void OPRf();
-
-            void OPRg();
-
-            void OPRh();
-
-            void OPRopc();
-
-            void OPRopcode() { }
-
-            void OPRlen();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRsize();
-
-            void OPRcmode();
-
-            void OPRrmode() { }
-
-            void OPRop();
-
-            void setFlags();
-
-            unsigned int _Q;
-            unsigned int _L;
-            unsigned int _R;
-
-            void getSIMD_MULT_RptSelem(unsigned int &rpt, unsigned int &selem);
-
-            unsigned int getSIMD_SING_selem();
-
-            // STARTING HERE IS THE MY IMPLEMENTATION FOR AMDGPU
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRssrc();
-
-            template<unsigned int endBit, unsigned int startBit>
-            void OPRsdst();
-
             void insnSize(unsigned int insn_size );
             
             Expression::Ptr decodeSSRC(InstructionDecoder::buffer & b , unsigned int index);
@@ -482,11 +213,14 @@ namespace Dyninst {
             
             Expression::Ptr makeRegisterPairExpr(MachRegister & baseReg,unsigned int index,  unsigned length);
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
-            
+
             void decodeFLATOperands();
             void decodeSMEMOperands();
             void decodeMUBUFOperands();
             void decodeMTBUFOperands();
+
+            void decodeSOPKOperands();
+            void decodeSOPPOperands();
             void decodeSOP2Operands();
             void decodeSOP1Operands();
             void decodeVOP1Operands();
@@ -495,13 +229,48 @@ namespace Dyninst {
 
 #define IS_LD_ST() (isLoad || isStore )
 
-            bool isSMEM;
-            bool isLoad;
-            bool isStore;
-            bool isBuffer;
+            unsigned int num_elements ;  // the number of elements that will be load or store by each instruction
+            bool isSMEM; // this is set when using smem instruction
+            bool isLoad; // this is set when a smem instruction is load, will set number of elements that are loaded at the same time
+            bool isStore; // similar to isLoad, but for store instructions
+            bool isBuffer; // 
             bool isScratch;
+
+            bool isBranch; // this is set for all branch instructions,
+            bool isConditional; // this is set for all conditional branch instruction, will set branchCond
+            bool isCall; // this is a call function
+            
+
+
+            // this is set for instructions that directly modify pc
+            // namely s_setpc and s_swappc
+            bool isModifyPC;
+
+            // reset the decoder internal state for decoding the next instruction
+            void reset();
+
+            Expression::Ptr branchCond;
+            Expression::Ptr branchTarget;
+
+            void setBranch(){
+                isBranch = true;
+            }
+            
+            void setConditionalBranch(){
+                isConditional = true;
+                // TODO : set conditional branch
+            }
+            void setModifyPC(){
+                isModifyPC = true;
+            }
+            
+            void setCall(){
+                isCall =  true;
+            }
+
             void setSMEM() {isSMEM = true;};
-            unsigned int num_elements ; 
+            
+           
             
             template<unsigned int num_elements>
             void setLoad(){isLoad = true; this->num_elements = num_elements; };
@@ -532,8 +301,15 @@ namespace Dyninst {
                 unsigned non_volatile;
                 unsigned type;
             }buffer_resource_desc;
-        
+            
+            // advance the start of buffer by the size of the instruction that is decoded
+            // reset the decoder state so we can correctly decode the next instruction
+            void advance_for_next_instr(InstructionDecoder::buffer & );
+            
+
+
 #include "amdgpu_decoder_impl_vega.h"
         };
     }
 }
+

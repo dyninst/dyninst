@@ -60,6 +60,8 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
     parsing_printf("Looking for thunk\n");
+
+    printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
 boost::make_lock_guard(*func);
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks

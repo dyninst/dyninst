@@ -76,11 +76,14 @@ DEF_REGISTER(flat_scratch,    Arch_amdgpu |        HWR |   FULL |       15,"amdg
 DEF_REGISTER(flat_scratch_lo,  Arch_amdgpu | 0x00000000 | D_REG_BIT |       15,"amdgpu");
 DEF_REGISTER(flat_scratch_hi,  Arch_amdgpu | 0x00200000 | D_REG_BIT |       15,"amdgpu");
 DEF_REGISTER(xnack_mask,      Arch_amdgpu |        HWR |   FULL |       16,"amdgpu");
+DEF_REGISTER(xnack_mask_lo,   Arch_amdgpu | 0x00000000 | D_REG_BIT |       16,"amdgpu");
+DEF_REGISTER(xnack_mask_hi,   Arch_amdgpu | 0x00200000 | D_REG_BIT |       16,"amdgpu");
 DEF_REGISTER(trap_base_address,  Arch_amdgpu |        HWR |   FULL |       17,"amdgpu");
 DEF_REGISTER(trap_memory_address,  Arch_amdgpu |        HWR |   FULL |       18,"amdgpu");
 DEF_REGISTER(vectory_memory_icount,  Arch_amdgpu |        HWR |  B_REG |       19,"amdgpu");
 DEF_REGISTER(lds_gds_constant_message_count,  Arch_amdgpu |        HWR |  B_REG |       20,"amdgpu");
 DEF_REGISTER(export_icount,   Arch_amdgpu |        HWR |  B_REG |       21,"amdgpu");
+DEF_REGISTER(pops_exiting_wave_id,  Arch_amdgpu |        HWR |   FULL |       22,"amdgpu");
 DEF_REGISTER(ttmp0,           Arch_amdgpu |  TTMP_SGPR |  D_REG |        0,"amdgpu");
 DEF_REGISTER(ttmp1,           Arch_amdgpu |  TTMP_SGPR |  D_REG |        1,"amdgpu");
 DEF_REGISTER(ttmp2,           Arch_amdgpu |  TTMP_SGPR |  D_REG |        2,"amdgpu");

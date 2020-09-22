@@ -52,6 +52,9 @@ namespace Dyninst
                 case 4:
                     userSetValue = Result(u32);
                     break;
+                case 6:
+                    userSetValue = Result(u48);
+                    break;
                 case 8:
                     userSetValue = Result(u64);
                     break;
