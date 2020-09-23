@@ -58,7 +58,7 @@ namespace Dyninst
         Arch_aarch32 = 0x44000000, //for later use
         Arch_aarch64 = 0x48000000,
         Arch_cuda  = 0x88000000,
-				Arch_intelGen9 = 0xb6000000	//same as machine no. retrevied from eu-readelf
+        Arch_intelGen9 = 0xb6000000	//same as machine no. retrevied from eu-readelf
     } Architecture;
 
 
