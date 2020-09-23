@@ -69,7 +69,7 @@ namespace Dyninst {
 
 		InstructionDecoder_amdgpu::InstructionDecoder_amdgpu(Architecture a)
 			: InstructionDecoderImpl(a), insn_size(0), num_elements(1), isBranch(false), isConditional(false),
-			isModifyPC(false) , isSMEM(false), isLoad(false), isStore(false),isBuffer(false),isScratch(false) , isCall(false)
+			isModifyPC(false) , isSMEM(false), isLoad(false), isStore(false),isBuffer(false),isScratch(false) , isCall(false), immLen(0)
 		{
 		}
 
@@ -182,7 +182,7 @@ namespace Dyninst {
 			return Immediate::makeImmediate(Result(result_type,0));
 		}
 
-		void InstructionDecoder_amdgpu::decodeFLATOperands(){
+		void InstructionDecoder_amdgpu::finalizeFLATOperands(){
 			layout_flat & layout = insn_layout.flat;
 			//const amdgpu_insn_entry & insn_entry = amdgpu::flat_insn_table[layout.op];
 
@@ -207,7 +207,7 @@ namespace Dyninst {
 			insn_in_progress->appendOperand(addr_ast,false,true);
 
 		}
-		void InstructionDecoder_amdgpu::decodeMUBUFOperands(){
+		void InstructionDecoder_amdgpu::finalizeMUBUFOperands(){
 			layout_mubuf & layout = insn_layout.mubuf;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mubuf_insn_table[layout.op];
 
@@ -318,7 +318,7 @@ namespace Dyninst {
 		}
 
 
-		void InstructionDecoder_amdgpu::decodeMTBUFOperands(){
+		void InstructionDecoder_amdgpu::finalizeMTBUFOperands(){
 			layout_mtbuf & layout = insn_layout.mtbuf;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mtbuf_insn_table[layout.op];
 
@@ -401,10 +401,11 @@ namespace Dyninst {
 
 
 		}
-		void InstructionDecoder_amdgpu::decodeVOP1Operands(){
+		void InstructionDecoder_amdgpu::finalizeVOP1Operands(){
 
 			layout_vop1 & layout = insn_layout.vop1;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
+			//cout << " finalizing vop1 operands , vdst = " << std::dec << layout.vdst << " src0 = " << layout.src0 <<endl;
 
 			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
 			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.vdst),false,true);
@@ -413,7 +414,7 @@ namespace Dyninst {
 		}
 
 
-		void InstructionDecoder_amdgpu::decodeSOP1Operands(){
+		void InstructionDecoder_amdgpu::finalizeSOP1Operands(){
 
 			layout_sop1 & layout = insn_layout.sop1;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop1_insn_table[layout.op];
@@ -449,8 +450,7 @@ namespace Dyninst {
 
 		}
 
-		void InstructionDecoder_amdgpu::decodeSOPPOperands(){
-			cout << " decoding sopp operands " << endl;
+		void InstructionDecoder_amdgpu::finalizeSOPPOperands(){
 
 			layout_sopp & layout = insn_layout.sopp;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
@@ -468,8 +468,7 @@ namespace Dyninst {
 
 		}
 
-		void InstructionDecoder_amdgpu::decodeSOPKOperands(){
-			cout << " decoding sopp operands " << endl;
+		void InstructionDecoder_amdgpu::finalizeSOPKOperands(){
 
 			layout_sopp & layout = insn_layout.sopp;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
@@ -491,7 +490,7 @@ namespace Dyninst {
 
 
 
-		void InstructionDecoder_amdgpu::decodeSOP2Operands(){
+		void InstructionDecoder_amdgpu::finalizeSOP2Operands(){
 
 			layout_sop2 & layout = insn_layout.sop2;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
@@ -502,7 +501,7 @@ namespace Dyninst {
 			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc0),true,false);
 
 		}
-		void InstructionDecoder_amdgpu::decodeSMEMOperands(){
+		void InstructionDecoder_amdgpu::finalizeSMEMOperands(){
 			layout_smem & layout = insn_layout.smem;
 
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::smem_insn_table[layout.op];
@@ -576,7 +575,7 @@ namespace Dyninst {
 		} 
 
 		Expression::Ptr InstructionDecoder_amdgpu::decodeSSRC(InstructionDecoder::buffer &b, unsigned int index){
-			if (index < 102){
+			if (0<= index && index < 102){
 				MachRegister mr = makeAmdgpuRegID(amdgpu::sgpr0,index);
 				return makeRegisterExpression(mr);
 			}else if(index ==102){
@@ -591,8 +590,9 @@ namespace Dyninst {
 				return makeRegisterExpression(amdgpu::vcc_lo);
 			}else if ( 107 == index ){
 				return makeRegisterExpression(amdgpu::vcc_hi);
-			}else if (108 <= index && index <= 123){
+			}else if (107 < index && index < 124){
 				MachRegister mr = makeAmdgpuRegID(amdgpu::ttmp0,index-108);
+				return makeRegisterExpression(mr);
 			}else if (124 == index ){
 				return makeRegisterExpression(amdgpu::m0);
 			}else if ( 126 == index ){
@@ -659,19 +659,22 @@ namespace Dyninst {
 				unsigned int imm = get32bit(b,4);
 				//std::cerr << "\nusing imm " << imm << std::endl;
 				useImm = true;
+				immLen = 4;
 				return Immediate::makeImmediate(Result(u32, unsign_extend32(32,imm )));
 			}else if( 256 <= index  && index <= 511){
 				MachRegister mr = makeAmdgpuRegID(amdgpu::vgpr0,index >>8);
 				return makeRegisterExpression(mr);
 			} 
 
-			cerr << std::dec << index << " " <<(128 <= index && index <= 192 )<<endl;
+			cerr << "WARNING UNKNOWN REGISTER : "  << std::dec << index << " " <<(108 <= index && index <= 123 )<<endl;
+			//return makeRegisterExpression(amdgpu::sgpr0);
 
 			assert(0 && "unknown register value ");
 		}
 #include "amdgpu_decoder_impl_vega.C"
 
 		void InstructionDecoder_amdgpu::reset(){
+			immLen = 0;
 			insn_size = 0;
 			num_elements =1;
 			isBranch = false;
@@ -707,8 +710,11 @@ namespace Dyninst {
 			insn_high = insn_long;
 
 			insn_long = (insn_long << 32) | insn;
+			//cout << "\n\ninsn_bitpattern 0x" << std::hex <<  insn_long << endl; 
 
 			mainDecode(b);
+			
+			cout << "\ndecoded instruction " <<  insn_in_progress->getOperation().mnemonic << "  length = " << insn_in_progress->size()<< endl;
 			advance_for_next_instr(b);			
 			cout.clear();
 			return *insn_in_progress;
@@ -724,6 +730,27 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			decode(b);
 		}
+
+		void InstructionDecoder_amdgpu::finalizeSOPCOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOPCOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOP2Operands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVINTRPOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeDSOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOP3ABOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOP3POperands() {
+		}
+
+
+
+
+
+
 
 
 

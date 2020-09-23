@@ -107,7 +107,7 @@ namespace Dyninst {
                 std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
                         (0xFFFFFFFFFFFFFFFF >> (63 - (end - start)))) << " ";
 #endif
-                return (raw >> (start) & (0xFFFFFFFFFFFFFFFF >> (63 - (end - start))));
+                return ( (raw >> (start)) & (0xFFFFFFFFFFFFFFFF >> (63 - (end - start))));
             }
  
             template<int start, int end>
@@ -212,17 +212,28 @@ namespace Dyninst {
             
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
-            void decodeFLATOperands();
-            void decodeSMEMOperands();
-            void decodeMUBUFOperands();
-            void decodeMTBUFOperands();
+           
+            void finalizeFLATOperands();
+            void finalizeSMEMOperands();
 
-            void decodeSOPKOperands();
-            void decodeSOPPOperands();
-            void decodeSOP2Operands();
-            void decodeSOP1Operands();
-            void decodeVOP1Operands();
+            void finalizeSOPKOperands();
+            void finalizeSOPPOperands();
+            void finalizeSOP2Operands();
+            void finalizeSOP1Operands();
+            void finalizeSOPCOperands();
+
+            void finalizeVOP1Operands();
+            void finalizeVOP2Operands();
+            void finalizeVOPCOperands();
+            void finalizeVINTRPOperands();
+            void finalizeDSOperands();
+            void finalizeMTBUFOperands();
+            void finalizeMUBUFOperands();
+            void finalizeVOP3ABOperands();
+            void finalizeVOP3POperands();
+ 
             bool useImm;
+            unsigned int immLen;
             bool setSCC;
 
 #define IS_LD_ST() (isLoad || isStore )
@@ -266,6 +277,15 @@ namespace Dyninst {
                 isCall =  true;
             }
 
+            template<unsigned int start,unsigned int end, unsigned int candidate>
+            void setUseImm(){
+                if ( longfield<start,end>(insn_long) == candidate ){
+                    useImm = true;
+                    immLen = 4;
+                }
+                
+            }
+
             void setSMEM() {isSMEM = true;};
             
            
@@ -304,7 +324,7 @@ namespace Dyninst {
             // reset the decoder state so we can correctly decode the next instruction
             void advance_for_next_instr(InstructionDecoder::buffer & );
             
-
+        
 
 #include "amdgpu_decoder_impl_vega.h"
         };

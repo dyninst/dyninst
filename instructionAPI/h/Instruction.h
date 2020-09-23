@@ -300,6 +300,7 @@ namespace Dyninst
       void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
       void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit) const;
     private:
+      void updateSize(const unsigned int new_size) {m_size = new_size;}
       void decodeOperands() const;
       void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;
       void copyRaw(size_t size, const unsigned char* raw);
