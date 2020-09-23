@@ -9376,7 +9376,7 @@ static struct ia32_entry XOP9_W[][2] =
     }
 };
 
-static TLS_VAR bool mode_64 = false;
+static dyn_tls bool mode_64 = false;
 
 void ia32_set_mode_64(bool mode) {
   mode_64 = mode;
