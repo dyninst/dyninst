@@ -293,9 +293,7 @@ void Slicer::sliceInternalAux(
         // If the control flow search has run
         // off the rails somehow, widen;
         // otherwise search down this new path
-	// Xiaozhu: change from 50 to 100 changes my problem,
-	// but it is still adhoc.
-        if(!f.valid) {
+        if(!f.valid || (p.slicingSizeLimitFactor() > 0 && visited.size() > p.slicingSizeLimitFactor() * g->size())) {
             widenAll(g,dir,cand);
 	    }
         else {

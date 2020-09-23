@@ -276,6 +276,7 @@ class Slicer {
   public:
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
+    DATAFLOW_EXPORT int slicingSizeLimitFactor() { return 100; }
     DATAFLOW_EXPORT bool performCacheClear() { if (clearCache) {clearCache = false; return true;} else return false; }
     DATAFLOW_EXPORT void setClearCache(bool b) { clearCache = b; }
     DATAFLOW_EXPORT bool searchForControlFlowDep() { return controlFlowDep; }
