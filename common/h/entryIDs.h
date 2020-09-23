@@ -3004,6 +3004,7 @@ power_op_dxex,
   aarch64_op_zip2_advsimd,
   cuda_op_general,
   cuda_op_call,
+  intel_gpu_op_general,
   _entry_ids_max_
 };
 enum prefixEntryID : unsigned int {
