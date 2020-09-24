@@ -138,9 +138,6 @@ class BinaryEdit : public AddressSpace {
     BinaryEdit();
     ~BinaryEdit();
 
-    // Same usage pattern as process
-    void deleteBinaryEdit();
-
     // And the "open" factory method.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
@@ -226,6 +223,8 @@ class BinaryEdit : public AddressSpace {
     void buildDyninstSymbols(std::vector<SymtabAPI::Symbol *> &newSyms, 
                              SymtabAPI::Region *newSec,
                              SymtabAPI::Module *newMod);
+
+    // `mobj` is only a view. The actual object is owned by AddressSpace::mapped_objects
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;

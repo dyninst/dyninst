@@ -288,20 +288,14 @@ BinaryEdit::BinaryEdit() :
    trapMapping.shouldBlockFlushes(true);
 }
 
-BinaryEdit::~BinaryEdit() 
+BinaryEdit::~BinaryEdit()
 {
-}
-
-void BinaryEdit::deleteBinaryEdit() {
-    deleteAddressSpace();
-    highWaterMark_ = 0;
-    lowWaterMark_ = 0;
-
-    // TODO: is this cleanup necessary?
-    depRelocation *rel;
-    while (dependentRelocations.size() > 0) {
-        rel = dependentRelocations[0];
-        dependentRelocations.erase(dependentRelocations.begin());
+	/*
+	 * NB: We do not own the objects contained in
+	 * 	   newDyninstSyms_, rtlib, or siblings, so
+	 * 	   do not ::delete them
+	*/
+    for(auto *rel : dependentRelocations) {
         delete rel;
     }
     delete memoryTracker_;
