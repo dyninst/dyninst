@@ -1,3 +1,41 @@
+enum InstructionFamily{
+	SOP2 = 0,
+	SOP1 = 1,
+	SOPK = 2,
+	SOPC = 3,
+	SOPP = 4,
+	SMEM = 5,
+	VOP2 = 6,
+	VOP1 = 7,
+	VOPC = 8,
+	VINTRP = 9,
+	DS = 10,
+	MTBUF = 11,
+	MUBUF = 12,
+	VOP3AB = 13,
+	VOP3P = 14,
+	FLAT = 15
+};
+typedef void (InstructionDecoder_amdgpu::*func_ptr)(void);
+func_ptr decode_lookup_table [16] = {
+	(&InstructionDecoder_amdgpu::decodeSOP2),
+	(&InstructionDecoder_amdgpu::decodeSOP1),
+	(&InstructionDecoder_amdgpu::decodeSOPK),
+	(&InstructionDecoder_amdgpu::decodeSOPC),
+	(&InstructionDecoder_amdgpu::decodeSOPP),
+	(&InstructionDecoder_amdgpu::decodeSMEM),
+	(&InstructionDecoder_amdgpu::decodeVOP2),
+	(&InstructionDecoder_amdgpu::decodeVOP1),
+	(&InstructionDecoder_amdgpu::decodeVOPC),
+	(&InstructionDecoder_amdgpu::decodeVINTRP),
+	(&InstructionDecoder_amdgpu::decodeDS),
+	(&InstructionDecoder_amdgpu::decodeMTBUF),
+	(&InstructionDecoder_amdgpu::decodeMUBUF),
+	(&InstructionDecoder_amdgpu::decodeVOP3AB),
+	(&InstructionDecoder_amdgpu::decodeVOP3P),
+	(&InstructionDecoder_amdgpu::decodeFLAT)
+};
+InstructionFamily instr_family;
 typedef struct vop_literal_layout_sdwa{
 	unsigned int src0 : 8;
 	unsigned int dst_sel : 3;
@@ -208,19 +246,19 @@ union insn_layouts{
 	 layout_vop3p vop3p;
 	 layout_flat flat;
 }insn_layout;
-void decodeSOP2(InstructionDecoder::buffer &b);
-void decodeSOP1(InstructionDecoder::buffer &b);
-void decodeSOPK(InstructionDecoder::buffer &b);
-void decodeSOPC(InstructionDecoder::buffer &b);
-void decodeSOPP(InstructionDecoder::buffer &b);
-void decodeSMEM(InstructionDecoder::buffer &b);
-void decodeVOP2(InstructionDecoder::buffer &b);
-void decodeVOP1(InstructionDecoder::buffer &b);
-void decodeVOPC(InstructionDecoder::buffer &b);
-void decodeVINTRP(InstructionDecoder::buffer &b);
-void decodeDS(InstructionDecoder::buffer &b);
-void decodeMTBUF(InstructionDecoder::buffer &b);
-void decodeMUBUF(InstructionDecoder::buffer &b);
-void decodeVOP3AB(InstructionDecoder::buffer &b);
-void decodeVOP3P(InstructionDecoder::buffer &b);
-void decodeFLAT(InstructionDecoder::buffer &b);
+void decodeSOP2();
+void decodeSOP1();
+void decodeSOPK();
+void decodeSOPC();
+void decodeSOPP();
+void decodeSMEM();
+void decodeVOP2();
+void decodeVOP1();
+void decodeVOPC();
+void decodeVINTRP();
+void decodeDS();
+void decodeMTBUF();
+void decodeMUBUF();
+void decodeVOP3AB();
+void decodeVOP3P();
+void decodeFLAT();

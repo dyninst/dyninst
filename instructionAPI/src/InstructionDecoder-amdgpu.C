@@ -76,9 +76,6 @@ namespace Dyninst {
 		InstructionDecoder_amdgpu::~InstructionDecoder_amdgpu() {
 		}
 
-		void InstructionDecoder_amdgpu::decodeOpcode(InstructionDecoder::buffer &b) {
-			decode(b);
-		}
 
 		using namespace std;
 		void InstructionDecoder_amdgpu::NOTHING() {
@@ -543,6 +540,21 @@ namespace Dyninst {
 
 		}
 
+		void InstructionDecoder_amdgpu::finalizeSOPCOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOPCOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOP2Operands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVINTRPOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeDSOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOP3ABOperands() {
+		}
+		void InstructionDecoder_amdgpu::finalizeVOP3POperands() {
+		}
+
 		bool InstructionDecoder_amdgpu::decodeOperands(const Instruction *insn_to_complete, const amdgpu_insn_entry & insn_entry) {
 			if(insn_entry.operandCnt!=0){
 				for (std::size_t i =0 ; i < insn_entry.operandCnt; i++){
@@ -688,72 +700,57 @@ namespace Dyninst {
 			insn = insn_high = insn_long = 0;
 			useImm = false;
 			isCall = false;
-
-
-		}
-		// here we assemble the first 64 bit (if available) as an instruction, and do the real decode process
-		// in mainDecode
-		// the start of buffer will be advanced
-
-
-		Instruction InstructionDecoder_amdgpu::decode(InstructionDecoder::buffer &b) {
 			if (!getenv("DEBUG_DECODE"))
 				cout.setstate(ios_base::badbit);
+		}
+		// here we assemble the first 64 bit (if available) as an instruction
+
+		void InstructionDecoder_amdgpu::setupInsnWord(InstructionDecoder::buffer &b) {
 			reset();
 			if (b.start > b.end)
-				return Instruction();
-
+				return;
 			insn = get32bit(b,0);
-
 			if(b.start + 4 <= b.end)
 				insn_long = get32bit(b,4);
 			insn_high = insn_long;
-
 			insn_long = (insn_long << 32) | insn;
-			//cout << "\n\ninsn_bitpattern 0x" << std::hex <<  insn_long << endl; 
 
-			mainDecode(b);
-			
-			cout << "\ndecoded instruction " <<  insn_in_progress->getOperation().mnemonic << "  length = " << insn_in_progress->size()<< endl;
-			advance_for_next_instr(b);			
-			cout.clear();
-			return *insn_in_progress;
+		}
+		void InstructionDecoder_amdgpu::decodeOpcode(InstructionDecoder::buffer &b) {
+			setupInsnWord(b);
+			mainDecodeOpcode(b);
+			b.start += insn_in_progress->size();
+		}
+		
+		void InstructionDecoder_amdgpu::debug_instr(){
+			cout << "\ndecoded instruction " <<  insn_in_progress->getOperation().mnemonic 
+				<< "  length = " <<  insn_in_progress->size()<< endl;
+
 		}
 
-		// Not sure why delayed decoding is needed
 
-		void InstructionDecoder_amdgpu::advance_for_next_instr(InstructionDecoder::buffer & b) {
+		Instruction InstructionDecoder_amdgpu::decode(InstructionDecoder::buffer &b) {
+			setupInsnWord(b);
+			mainDecodeOpcode(b);
+			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
+				std::mem_fun(decode_lookup_table[instr_family])(this);
+			}
+			debug_instr();
+			cout.clear();
 			b.start += insn_in_progress->size();
+			return *insn_in_progress;
 		}
 
 		void InstructionDecoder_amdgpu::doDelayedDecode(const Instruction *insn_to_complete) {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-			decode(b);
+			setupInsnWord(b);
+			mainDecode(b);
+			debug_instr();
+			cout.clear();
+			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
+            *iptr = *(insn_in_progress.get());
+			b.start += insn_in_progress->size();
 		}
-
-		void InstructionDecoder_amdgpu::finalizeSOPCOperands() {
-		}
-		void InstructionDecoder_amdgpu::finalizeVOPCOperands() {
-		}
-		void InstructionDecoder_amdgpu::finalizeVOP2Operands() {
-		}
-		void InstructionDecoder_amdgpu::finalizeVINTRPOperands() {
-		}
-		void InstructionDecoder_amdgpu::finalizeDSOperands() {
-		}
-		void InstructionDecoder_amdgpu::finalizeVOP3ABOperands() {
-		}
-		void InstructionDecoder_amdgpu::finalizeVOP3POperands() {
-		}
-
-
-
-
-
-
-
-
-
 	};
 };
 

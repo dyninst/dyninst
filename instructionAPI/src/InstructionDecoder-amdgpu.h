@@ -89,6 +89,10 @@ namespace Dyninst {
             // the main process of decoding an instruciton, won't advance buffer
             void mainDecode(InstructionDecoder::buffer &b); 
 
+            void mainDecodeOpcode(InstructionDecoder::buffer &b); 
+
+
+            void setupInsnWord(InstructionDecoder::buffer &b); 
             // pointer to the instruction that we are currently working on
             boost::shared_ptr<Instruction> insn_in_progress;
 
@@ -320,12 +324,8 @@ namespace Dyninst {
                 unsigned type;
             }buffer_resource_desc;
             
-            // advance the start of buffer by the size of the instruction that is decoded
-            // reset the decoder state so we can correctly decode the next instruction
-            void advance_for_next_instr(InstructionDecoder::buffer & );
+            void debug_instr();
             
-        
-
 #include "amdgpu_decoder_impl_vega.h"
         };
     }
