@@ -88,8 +88,6 @@ class trampTrapMappings;
 class baseTramp;
 
 namespace Dyninst {
-   class MemoryEmulator;
-
    namespace InstructionAPI {
       class Instruction;
    }
@@ -482,11 +480,8 @@ class AddressSpace : public InstructionSource {
 
     void addModifiedFunction(func_instance *func);
     void addModifiedBlock(block_instance *block);
-
-    void updateMemEmulator();
-    bool isMemoryEmulated() { return emulateMem_; }
+    
     bool emulatingPC() { return emulatePC_; }
-    MemoryEmulator *getMemEm();
 
     bool delayRelocation() const;
  protected:
@@ -549,12 +544,6 @@ class AddressSpace : public InstructionSource {
     // FuncModMap functionReplacements_;
     // FuncModMap functionWraps_;
 
-    void addAllocatedRegion(Address start, unsigned size);
-    void addModifiedRegion(mapped_object *obj);
-
-    MemoryEmulator *memEmulator_;
-
-    bool emulateMem_;
     bool emulatePC_;
 
     bool delayRelocation_;
