@@ -94,6 +94,8 @@ MachRegister MachRegister::getBaseRegister() const {
 		case Arch_aarch64:
 				  //not verified
 		   return *this;
+        case Arch_intelGen9:
+           return *this;
    }
    return InvalidReg;
 }
@@ -203,6 +205,7 @@ unsigned int MachRegister::size() const {
       case Arch_aarch32:
         {
           assert(0);
+          break;
         }
       case Arch_cuda:
         {
@@ -235,6 +238,11 @@ unsigned int MachRegister::size() const {
 			}
 		else
 			return 4;
+      case Arch_intelGen9:
+        {
+          assert(0);
+          break;
+        }
       case Arch_none:
          return 0;
    }
@@ -276,7 +284,7 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
          return InvalidReg;
       case Arch_cuda:
          return cuda::pc;
-      case Arch_none:
+      default:
          return InvalidReg;
    }
    return InvalidReg;
@@ -300,7 +308,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
       case Arch_aarch32:
       case Arch_cuda:
          assert(0);
-      case Arch_none:
+      default:
          return InvalidReg;
    }
    return InvalidReg;

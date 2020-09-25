@@ -137,8 +137,6 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
             }
         } else if (insn.getArch() == Arch_cuda && insn.hasPredicateOperand()) {
             Operand o = insn.getPredicateOperand();
-            //fprintf(stderr, "Addr %lx, Insn %s has predicate operand %s, write to %s\n", addr, insn.format().c_str(),
-            //        o.format(Arch_cuda).c_str(), (*i)->getID().name().c_str());
             defined.push_back(AbsRegionConverter::convertPredicatedRegister(*i, o.getPredicate(), o.isTruePredicate()));
 
         } else {

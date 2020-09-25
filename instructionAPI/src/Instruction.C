@@ -428,11 +428,9 @@ memAccessors.begin()));
         decodeOperands();
       }
 
-      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-        if (curOperand->isTruePredicate() || curOperand->isFalsePredicate()) {
-          //fprintf(stderr, "getPredicateOperand returns %s\n", curOperand->format(Arch_cuda).c_str());
-          return *curOperand;
+      for(auto const &op : m_Operands) {
+        if (op.isTruePredicate() || op.isFalsePredicate()) {
+          return op;
         }
       }
 
@@ -444,9 +442,8 @@ memAccessors.begin()));
         decodeOperands();
       }
 
-      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-        if (curOperand->isTruePredicate() || curOperand->isFalsePredicate()) {
+      for(auto const &op : m_Operands) {
+        if (op.isTruePredicate() || op.isFalsePredicate()) {
           return true;
         }
       }

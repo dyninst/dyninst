@@ -70,6 +70,7 @@ namespace Dyninst
           op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(false), m_isTruePredicate(false), m_isFalsePredicate(false) {}
       Operand(Expression::Ptr val, bool read, bool written, bool implicit) : 
           op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit), m_isTruePredicate(false), m_isFalsePredicate(false) {}
+      // An instruction can be true predicated, false predicated, or not predicated at all
       Operand(Expression::Ptr val, bool read, bool written, bool implicit,
               bool trueP, bool falseP):
           op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit), m_isTruePredicate(trueP), m_isFalsePredicate(falseP) {}

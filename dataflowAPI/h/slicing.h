@@ -136,7 +136,11 @@ class Slicer {
  public:
   typedef std::pair<InstructionAPI::Instruction, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
-  typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
+
+  // An instruction cache to avoid redundant instruction decoding.
+  // A user can optionaly provide a cache shared by multiple slicers.
+  // The cache is keyed with basic block starting address.
+  typedef dyn_hash_map<Address, InsnVec> InsnCache;
 
   DATAFLOW_EXPORT Slicer(AssignmentPtr a,
 	 ParseAPI::Block *block,
@@ -276,11 +280,14 @@ class Slicer {
   public:
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
-    DATAFLOW_EXPORT int slicingSizeLimitFactor() { return 100; }
+
     DATAFLOW_EXPORT bool performCacheClear() { if (clearCache) {clearCache = false; return true;} else return false; }
     DATAFLOW_EXPORT void setClearCache(bool b) { clearCache = b; }
     DATAFLOW_EXPORT bool searchForControlFlowDep() { return controlFlowDep; }
     DATAFLOW_EXPORT void setSearchForControlFlowDep(bool cfd) { controlFlowDep = cfd; }
+
+    // A negative number means that we do not bound slicing size.
+    DATAFLOW_EXPORT virtual int slicingSizeLimitFactor() { return -1; }
 
     DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
     DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }

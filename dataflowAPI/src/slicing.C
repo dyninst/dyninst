@@ -1358,7 +1358,7 @@ static void getInsnInstances(ParseAPI::Block *block,
   ParseAPI::Block::Insns bi;
   block->getInsns(bi);
   for (auto iit = bi.begin(); iit != bi.end(); ++iit) {
-    insns.push_back(std::make_pair(iit->second, iit->first));
+    insns.emplace_back(std::make_pair(iit->second, iit->first));
   }
 }
 
@@ -1588,24 +1588,24 @@ void Slicer::convertInstruction(Instruction insn,
 void Slicer::getInsns(Location &loc) {
 
 
-  InsnCache::iterator iter = insnCache_->find(loc.block);
+  InsnCache::iterator iter = insnCache_->find(loc.block->start());
   if (iter == insnCache_->end()) {
-    getInsnInstances(loc.block, (*insnCache_)[loc.block]);
+    getInsnInstances(loc.block, (*insnCache_)[loc.block->start()]);
   }
   
-  loc.current = (*insnCache_)[loc.block].begin();
-  loc.end = (*insnCache_)[loc.block].end();
+  loc.current = (*insnCache_)[loc.block->start()].begin();
+  loc.end = (*insnCache_)[loc.block->start()].end();
 }
 
 void Slicer::getInsnsBackward(Location &loc) {
     assert(loc.block->start() != (Address) -1); 
-    InsnCache::iterator iter = insnCache_->find(loc.block);
+    InsnCache::iterator iter = insnCache_->find(loc.block->start());
     if (iter == insnCache_->end()) {
-      getInsnInstances(loc.block, (*insnCache_)[loc.block]);
+      getInsnInstances(loc.block, (*insnCache_)[loc.block->start()]);
     }
 
-    loc.rcurrent = (*insnCache_)[loc.block].rbegin();
-    loc.rend = (*insnCache_)[loc.block].rend();
+    loc.rcurrent = (*insnCache_)[loc.block->start()].rbegin();
+    loc.rend = (*insnCache_)[loc.block->start()].rend();
 }
 
 // inserts an edge from source to target (forward) or target to source
