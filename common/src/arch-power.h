@@ -36,6 +36,7 @@
 // Code generation
 
 #include "common/src/Types.h"
+#include "dyn_regs.h"
 #include <vector>
 class AddressSpace;
 

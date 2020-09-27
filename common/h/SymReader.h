@@ -31,6 +31,8 @@
 #define SYM_READER_H_
 
 #include "dyntypes.h"
+#include "util.h"
+#include "dyn_regs.h"
 #include <string>
 
 namespace Dyninst

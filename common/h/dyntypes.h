@@ -121,5 +121,4 @@ namespace Dyninst
    } OSType;
 }
 
-#include "dyn_regs.h"
 #endif

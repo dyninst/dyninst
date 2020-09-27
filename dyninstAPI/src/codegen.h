@@ -31,6 +31,8 @@
 #define _codegen_h_
 
 #include <vector>
+#include <string>
+#include <map>
 
 #include "common/src/arch.h"
 #include "dyninstAPI/src/patch.h"
