@@ -110,6 +110,8 @@ AddressSpace::~AddressSpace() {
       delete memEmulator_;
     if (mgr_)
        static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
+
+    deleteAddressSpace();
 }
 
 PCProcess *AddressSpace::proc() {
