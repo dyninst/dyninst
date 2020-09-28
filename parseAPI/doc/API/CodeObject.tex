@@ -22,7 +22,8 @@ CodeObject(CodeSource * cs,
 \apidesc{Constructs a new CodeObject from the provided CodeSource and
 optional object factory and callback handlers. Any parsing hints provided
 by the CodeSource are processed, but the binary is not parsed when this
-constructor returns.
+constructor returns. The passed CodeSource is \textbf{not} owned by this
+object. However, it must have the same lifetime as the CodeObject.
 
 \medskip\noindent The \code{defensiveMode}
 parameter optionally trades off coverage for safety; this mode is not
