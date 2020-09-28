@@ -42,6 +42,10 @@
 #define EM_CUDA		190	/* NVIDIA CUDA */
 #endif
 
+#ifndef EM_INTEL_GEN9
+#define EM_INTEL_GEN9		182	/* INTEL GEN9 */
+#endif
+
 namespace Dyninst {
 
 // Forward declarations

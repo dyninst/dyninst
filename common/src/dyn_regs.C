@@ -89,11 +89,13 @@ MachRegister MachRegister::getBaseRegister() const {
       case Arch_none:
          return *this;
       case Arch_cuda:
-	 assert(0);
+         return *this;
 		case Arch_aarch32:
 		case Arch_aarch64:
 				  //not verified
 		   return *this;
+        case Arch_intelGen9:
+           return *this;
    }
    return InvalidReg;
 }
@@ -201,8 +203,14 @@ unsigned int MachRegister::size() const {
           return 16;
         return 8;
       case Arch_aarch32:
+        {
+          assert(0);
+          break;
+        }
       case Arch_cuda:
-        assert(0);
+        {
+          return 8;
+        }
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
 		{
@@ -230,6 +238,11 @@ unsigned int MachRegister::size() const {
 			}
 		else
 			return 4;
+      case Arch_intelGen9:
+        {
+          assert(0);
+          break;
+        }
       case Arch_none:
          return 0;
    }
@@ -268,9 +281,10 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
       case Arch_aarch64:  //aarch64: pc is not writable
          return aarch64::pc;
       case Arch_aarch32:
+         return InvalidReg;
       case Arch_cuda:
-         assert(0);
-      case Arch_none:
+         return cuda::pc;
+      default:
          return InvalidReg;
    }
    return InvalidReg;
@@ -294,7 +308,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
       case Arch_aarch32:
       case Arch_cuda:
          assert(0);
-      case Arch_none:
+      default:
          return InvalidReg;
    }
    return InvalidReg;
@@ -527,7 +541,9 @@ bool MachRegister::isFlag() const
 	 // and all lower 32 bits are base ID
 	 int baseID = reg & 0x0000FFFF;
          return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
-      }
+      }       
+      case Arch_cuda:
+         return false;
       default:
          assert(!"Not implemented!");
    }

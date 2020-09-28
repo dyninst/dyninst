@@ -144,6 +144,9 @@ namespace Dyninst
       /// instruction.
       INSTRUCTION_EXPORT Operand getOperand(int index) const;
 
+      INSTRUCTION_EXPORT Operand getPredicateOperand() const;
+      INSTRUCTION_EXPORT bool hasPredicateOperand() const;
+
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
       INSTRUCTION_EXPORT unsigned char rawByte(unsigned int index) const;
@@ -293,8 +296,10 @@ namespace Dyninst
       typedef boost::shared_ptr<Instruction> Ptr;
 	public:
 	  //Should be private, but we're working around some compilers mis-using the 'friend' declaration.
-      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
-      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit, bool trueP, bool falseP) const;
+
     private:
       void decodeOperands() const;
       void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;

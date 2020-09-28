@@ -67,6 +67,15 @@ namespace Dyninst
       }
     }
 
+    INSTRUCTION_EXPORT RegisterAST::Ptr Operand::getPredicate() const
+    {
+      RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
+      if (m_isTruePredicate || m_isFalsePredicate) {
+        return op_as_reg;
+      }
+      return nullptr;
+    }
+
     INSTRUCTION_EXPORT bool Operand::isRead(Expression::Ptr candidate) const
     {
       // The whole expression of a read, any subexpression of a write

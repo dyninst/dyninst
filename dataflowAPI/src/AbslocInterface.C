@@ -135,6 +135,10 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
             } else {
                 defined.push_back(AbsRegionConverter::convert(*i));
             }
+        } else if (insn.getArch() == Arch_cuda && insn.hasPredicateOperand()) {
+            Operand o = insn.getPredicateOperand();
+            defined.push_back(AbsRegionConverter::convertPredicatedRegister(*i, o.getPredicate(), o.isTruePredicate()));
+
         } else {
             defined.push_back(AbsRegionConverter::convert(*i));
         }
@@ -176,6 +180,10 @@ AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
   } else {
     return AbsRegion(Absloc(reg->getID().getBaseRegister()));
   }		   
+}
+
+AbsRegion AbsRegionConverter::convertPredicatedRegister(RegisterAST::Ptr r, RegisterAST::Ptr p, bool c) {
+    return AbsRegion(Absloc(r->getID(), p->getID(), c));
 }
 
 class bindKnownRegs : public InstructionAPI::Visitor

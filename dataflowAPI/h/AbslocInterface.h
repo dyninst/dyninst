@@ -80,6 +80,10 @@ class AbsRegionConverter {
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block);
 
+  DATAFLOW_EXPORT AbsRegion convertPredicatedRegister(InstructionAPI::RegisterAST::Ptr r,
+          InstructionAPI::RegisterAST::Ptr p,
+          bool c);
+
   // Cons up a stack reference at the current addr
   DATAFLOW_EXPORT AbsRegion stack(Address addr,
 				  ParseAPI::Function *func,
