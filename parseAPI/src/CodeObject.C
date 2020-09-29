@@ -109,6 +109,7 @@ CodeObject::process_hints()
 }
 
 CodeObject::~CodeObject() {
+	// NB: We do not own _cs. It is only a polymorphic view.
     if(owns_factory)
         delete _fact;
     delete _pcb;
