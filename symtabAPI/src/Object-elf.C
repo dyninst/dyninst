@@ -3054,49 +3054,6 @@ void Object::get_valid_memory_areas(Elf_X &elf) {
     }
 }
 
-//
-// parseCompilerType - parse for compiler that was used to generate object
-//
-//
-//
-#if defined(os_linux)
-
-// Differentiating between g++ and pgCC by stabs info
-// will not work; the gcc-compiled object files that
-// get included at link time will fill in the N_OPT stabs line. Instead,
-// look for "pgCC_compiled." symbols.
-bool parseCompilerType(Object *objPtr) {
-    dyn_c_hash_map<string, std::vector<Symbol *> > *syms = objPtr->getAllSymbols();
-    return syms->contains("pgCC_compiled.");
-}
-
-#else
-bool parseCompilerType(Object *objPtr)
-{
-  stab_entry *stabptr = objPtr->get_stab_info();
-  const char *next_stabstr = stabptr->getStringBase();
-
-  for (unsigned int i=0; i < stabptr->count(); ++i) {
-    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
-    switch (stabptr->type(i)) {
-
-    case N_UNDF: /* start of object file */
-      /* value contains offset of the next string table for next module */
-      // assert(stabptr.nameIdx(i) == 1);
-      stabptr->setStringBase(next_stabstr);
-      next_stabstr = stabptr->getStringBase() + stabptr->val(i);
-      break;
-
-    case N_OPT: /* Compiler options */
-      delete stabptr;
-      return false;
-    }
-  }
-  delete stabptr;
-  return false; // Shouldn't happen - maybe N_OPT stripped
-}
-#endif
-
 
 #if (defined(os_linux) || defined(os_freebsd))
 
@@ -4826,10 +4783,7 @@ void Object::parseStabTypes() {
                     // bperr("stab #%d = %s\n", i, ptr);
                     // may be nothing to parse - XXX  jdd 5/13/99
 
-                    if (parseCompilerType(this))
-                        temp = parseStabString(mod, mostRecentLinenum, (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
-                    else
-                        temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
+                    temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
                     if (temp.length()) {
                         //Error parsing the stabstr, return should be \0
                         // //bperr( "Stab string parsing ERROR!! More to parse: %s\n",

@@ -195,7 +195,6 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool i
     if (staticSym) {
       Symbol *newSym = new Symbol(*staticSym);
       newSym->setMangledName(name);
-      module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = false;
       newSym->isDebug_ = isDebug;
       module_->exec()->addSymbol(newSym);
@@ -203,7 +202,6 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool i
     if (dynamicSym) {
       Symbol *newSym = new Symbol(*dynamicSym);
       newSym->setMangledName(name);
-      module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = true;
       newSym->isDebug_ = isDebug;
       module_->exec()->addSymbol(newSym);

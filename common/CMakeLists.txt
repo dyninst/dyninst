@@ -45,12 +45,19 @@ set (SRC_LIST
     src/MachSyscall.C
   )
 
+set (C_SRC_LIST
+)
+
 if (PLATFORM MATCHES freebsd)
   set (SRC_LIST ${SRC_LIST} 
     src/timing-freebsd.C
     src/freebsdKludges.C
     src/addrtranslate-sysv.C
     src/addrtranslate-freebsd.C
+    src/symbolDemangleWithCache.C
+  )
+  set (C_SRC_LIST ${C_SRC_LIST}
+    src/symbolDemangle.c
   )
 endif()
 
@@ -62,6 +69,10 @@ if (PLATFORM MATCHES linux)
     src/addrtranslate-sysv.C
     src/addrtranslate-auxv.C
     src/addrtranslate-linux.C
+    src/symbolDemangleWithCache.C
+  )
+  set (C_SRC_LIST ${C_SRC_LIST}
+    src/symbolDemangle.c
   )
 endif()
 
@@ -89,11 +100,17 @@ endif()
 
 
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+SET_SOURCE_FILES_PROPERTIES(${C_SRC_LIST} PROPERTIES LANGUAGE C)
+set (SRC_LIST ${SRC_LIST}
+  ${C_SRC_LIST}
+)
 
 ADD_DEFINITIONS(-DCOMMON_LIB)
 
-if (IBERTY_FOUND)
-set(DEPS ${IBERTY_LIBRARIES})
+if(IBERTY_FOUND)
+  set(DEPS ${IBERTY_LIBRARIES})
+elseif(PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
+  message(FATAL_ERROR "libiberty not found:  required on linux and freebsd.")
 endif()
 
 

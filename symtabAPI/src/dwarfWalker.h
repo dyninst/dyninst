@@ -160,10 +160,6 @@ public:
         c.top().ranges = range_set_ptr();
     }
     void clearFunc();
-    virtual bool isNativeCompiler() const
-    {
-        return symtab()->isNativeCompiler();
-    }
     virtual std::string filename() const
     {
         return symtab()->file();

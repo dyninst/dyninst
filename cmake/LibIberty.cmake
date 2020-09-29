@@ -5,10 +5,6 @@
 #
 #   ----------------------------------------
 #
-# Accepts the following CMake variables
-#
-# USE_GNU_DEMANGLER        - Use the GNU C++ name demanger (if yes, this disables using LibIberty)
-#
 # Directly exports the following CMake variables
 #
 # LibIberty_ROOT_DIR       - Computed base directory the of LibIberty installation
@@ -32,14 +28,6 @@ if(NOT UNIX)
   return()
 endif()
 
-# Use the GNU C++ name demangler; if yes, this disables using LibIberty
-set(USE_GNU_DEMANGLER ON CACHE BOOL "Use the GNU C++ name demangler")
-
-# If we don't want to use/build LibIberty, then leave
-if(USE_GNU_DEMANGLER)
-  return()
-endif()
-
 # -------------- PATHS --------------------------------------------------------
 
 # Base directory the of LibIberty installation
@@ -52,7 +40,7 @@ set(LibIberty_LIBRARYDIR "${LibIberty_ROOT_DIR}/lib"
 
 # -------------- PACKAGES -----------------------------------------------------
 
-find_package(LibIberty)
+find_package(LibIberty REQUIRED)
 
 # -------------- SOURCE BUILD -------------------------------------------------
 if(LibIberty_FOUND)
@@ -106,11 +94,6 @@ set(LibIberty_LIBRARY_DIRS ${_li_lib_dirs}
     FORCE)
 set(LibIberty_LIBRARIES ${_li_libs}
     CACHE FILEPATH "LibIberty library files"
-    FORCE)
-
-# This is only here to make ccmake work correctly
-set(USE_GNU_DEMANGLER ${USE_GNU_DEMANGLER}
-    CACHE BOOL "Use the GNU C++ name demangler"
     FORCE)
 
 # For backward compatibility only

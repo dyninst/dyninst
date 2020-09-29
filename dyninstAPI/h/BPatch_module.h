@@ -215,12 +215,6 @@ public:
 
     bool isSharedLib();
 
-    // BPatch_module::isNativeCompiler
-    // Returns true if this module was compiled with a native compiler for  
-    // the particular platform
-
-    bool isNativeCompiler();
-
 
     // BPatch_module::getAddressRanges
     // 

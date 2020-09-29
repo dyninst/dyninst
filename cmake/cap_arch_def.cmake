@@ -7,10 +7,6 @@ set (CAP_DEFINES
      -Dcap_threads
 )
 
-if(USE_GNU_DEMANGLER)
-set (CAP_DEFINES ${CAP_DEFINES} -Dcap_gnu_demangler)
-endif()
-
 if (PLATFORM MATCHES i386)
 set (ARCH_DEFINES -Darch_x86)
 set (CAP_DEFINES ${CAP_DEFINES}

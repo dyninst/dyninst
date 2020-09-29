@@ -85,8 +85,6 @@ static ssize_t process_vm_writev(pid_t pid,
 #endif /* !__GLIBC_PREREQ(2,15) */
 
 
-typedef int (*intKludge)();
-
 int P_getopt(int argc, char *argv[], const char *optstring)
 {
   /* On linux we prepend a + character */
@@ -106,67 +104,14 @@ int P_copy(const char *from, const char *to) {
 }
 
 
-#include <cxxabi.h>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
 
+#include "symbolDemangleWithCache.h"
 
-using namespace abi;
-
-thread_local char* last_symbol = nullptr;
-thread_local bool last_native = false;
-thread_local bool last_typed = false;
-thread_local char* last_demangled = nullptr;
-
-char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
-				bool includeTypes )
+std::string P_cplus_demangle( const std::string &symbol, bool includeTypes )
 {
-
-  if(last_symbol != nullptr &&
-     last_demangled != nullptr &&
-     (nativeCompiler == last_native) &&
-     (includeTypes == last_typed) &&
-     (strcmp(symbol, last_symbol) == 0))
-  {
-      return strdup(last_demangled);
-  }
-   int status;
-   char* demangled;
-   {
-      demangled = __cxa_demangle(symbol, NULL, NULL, &status);
-   }
-   if (status == -1) {
-      //Memory allocation failure.
-      return NULL;
-   }
-   if (status == -2) {
-      //Not a C++ name
-      return NULL;
-   }
-   assert(status == 0); //Success
-
-   if( demangled == NULL ) { return NULL; }
-
-   if( ! includeTypes ) {
-        /* de-demangling never increases the length */
-        char * dedemangled = strdup( demangled );
-        assert( dedemangled != NULL );
-        dedemangle( demangled, dedemangled );
-        assert( dedemangled != NULL );
-
-        free( demangled );
-        demangled = dedemangled;
-   }
-
-   if (last_symbol != nullptr) free(last_symbol);
-   if (last_demangled != nullptr) free(last_demangled);
-   last_native = nativeCompiler;
-   last_typed = includeTypes;
-   last_symbol = strdup(symbol);
-   last_demangled = strdup(demangled);
-
-   return demangled;
+    return symbol_demangle_with_cache(symbol, includeTypes);
 } /* end P_cplus_demangle() */
+
 
 bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
 {

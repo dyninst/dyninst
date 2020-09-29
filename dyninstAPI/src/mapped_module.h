@@ -71,8 +71,6 @@ class mapped_module {
       AddressSpace *proc() const;
 
       // A lot of stuff shared with the internal module
-      // Were we compiled with the native compiler?
-      bool isNativeCompiler() const;
 
       SymtabAPI::supportedLanguages language() const;
 

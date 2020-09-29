@@ -117,13 +117,6 @@ mapped_object *mapped_module::obj() const
    return obj_;
 }
 
-bool mapped_module::isNativeCompiler() const 
-{
-   // This should probably be per-module info at some point; some
-   // .o's might be compiled native, and others not.
-   return pmod()->mod()->exec()->isNativeCompiler();
-}
-
 SymtabAPI::supportedLanguages mapped_module::language() const 
 {
    return pmod()->language(); 
