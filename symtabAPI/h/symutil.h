@@ -34,6 +34,7 @@
 #define _symtab_util_h_
 
 #include "dyntypes.h"
+#include "util.h"
 #include <string>
 
 #if defined(_MSC_VER)	

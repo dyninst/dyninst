@@ -32,6 +32,7 @@
 #define ENTRYIDS_IA32_H
 
 #include "dyntypes.h"
+#include "util.h"
 
 enum entryID : unsigned int {
   e_jb = 0,

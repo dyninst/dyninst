@@ -30,6 +30,7 @@
 
 #include "common/src/Types.h"
 #include "common/src/arch-power.h"
+#include <cassert>
 using namespace NS_power;
 
 unsigned int NS_power::swapBytesIfNeeded(unsigned int i)
