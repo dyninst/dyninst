@@ -233,11 +233,6 @@ bool Symtab::addSymbol(Symbol *newSym)
       newSym->setModule(getDefaultModule());
    }
    
-   // If there aren't any pretty names, create them
-   if (newSym->getPrettyName() == "") {
-      demangleSymbol(newSym);
-   }
-   
    // Add to appropriate indices
    addSymbolToIndices(newSym, false);
    

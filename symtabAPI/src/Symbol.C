@@ -79,60 +79,12 @@ SYMTAB_EXPORT string Symbol::getMangledName() const
 
 SYMTAB_EXPORT string Symbol::getPrettyName() const 
 {
-  std::string working_name = mangledName_;
-  // Accoring to Itanium C++ ABI, all mangled names start with _Z
-  if (mangledName_.size() < 2 || mangledName_[0] != '_' || mangledName_[1] != 'Z') return working_name;
-#if !defined(os_windows)        
-  //Remove extra stabs information
-  size_t colon, atat;
-  colon = working_name.find(":");
-  if(colon != string::npos) 
-  {
-    working_name = working_name.substr(0, colon);
-  }
-  atat = working_name.find("@@");
-  if(atat != string::npos)
-  {
-    working_name = working_name.substr(0, atat);
-  }
-  
-#endif     
-  // Assume not native (ie GNU) if we don't have an associated Symtab for some reason
-  bool native_comp = getSymtab() ? getSymtab()->isNativeCompiler() : false;
-  
-  char *prettyName = P_cplus_demangle(working_name.c_str(), native_comp, false);
-  if (prettyName) {
-    working_name = std::string(prettyName);
-    // XXX caller-freed
-    free(prettyName); 
-  }
-  return working_name;
+  return P_cplus_demangle(mangledName_, false);
 }
 
 SYMTAB_EXPORT string Symbol::getTypedName() const 
 {
-  std::string working_name = mangledName_;
-  // Accoring to Itanium C++ ABI, all mangled names start with _Z
-  if (mangledName_.size() < 2 || mangledName_[0] != '_' || mangledName_[1] != 'Z') return working_name;
-  #if !defined(os_windows)        
-  //Remove extra stabs information
-  size_t colon;
-  colon = working_name.find(":");
-  if(colon != string::npos) 
-  {
-    working_name = working_name.substr(0, colon);
-  }
-#endif     
-  // Assume not native (ie GNU) if we don't have an associated Symtab for some reason
-  bool native_comp = getSymtab() ? getSymtab()->isNativeCompiler() : false;
-  
-  char *prettyName = P_cplus_demangle(working_name.c_str(), native_comp, true);
-  if (prettyName) {
-    working_name = std::string(prettyName);
-    // XXX caller-freed
-    free(prettyName); 
-  }
-  return working_name;
+  return P_cplus_demangle(mangledName_, true);
 }
 
 bool Symbol::setOffset(Offset newOffset)

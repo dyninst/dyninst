@@ -1428,7 +1428,6 @@ image::image(fileDescriptor &desc,
    is_libdyninstRT(false),
    is_a_out(false),
    main_call_addr_(0),
-   nativeCompiler(false),
    linkedFile(NULL),
 #if defined(os_linux) || defined(os_freebsd)
    archive(NULL),

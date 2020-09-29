@@ -366,13 +366,10 @@ std::string SymElf::getDemangledName(const Symbol_t &sym)
 
    if (cache[cache_index].demangled_name)
       return std::string(cache[cache_index].demangled_name);
-   char *res = P_cplus_demangle(name, false, true);
-   if (!res) {
-      //Try native demangler
-      res = P_cplus_demangle(name, true, true);
-   }
+   //char *res = P_cplus_demangle(name, true);
+   std::string res = P_cplus_demangle(name, true);
 
-   cache[cache_index].demangled_name = res ? res : name;
+   cache[cache_index].demangled_name = strdup(res.c_str());
    return cache[cache_index].demangled_name;
 }
 

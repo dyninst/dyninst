@@ -371,8 +371,6 @@ class image : public codeRange {
 
    bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
 
-   bool isNativeCompiler() const { return nativeCompiler; }
-
    // Return symbol table information
    SymtabAPI::Symbol *symbol_info(const std::string& symbol_name);
    // And used for finding inferior heaps.... hacky, but effective.
@@ -476,8 +474,6 @@ class image : public codeRange {
    bool is_libdyninstRT;
    bool is_a_out;
    Address main_call_addr_; // address of call to main()
-
-   bool nativeCompiler;
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
