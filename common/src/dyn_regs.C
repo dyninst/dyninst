@@ -2004,6 +2004,7 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
       case Arch_ppc64:
       case Arch_aarch64:
       case Arch_cuda:
+      case Arch_intelGen9:
          return 8;
       default:
          assert(0);
