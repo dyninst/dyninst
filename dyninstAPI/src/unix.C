@@ -680,6 +680,29 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 #include "dyninstAPI/src/freebsd.h"
 #endif
 
+func_instance* block_instance::callee(std::string const& target_name) {
+   if (dynamic_cast<PCProcess *>(proc())) {
+	  std::vector<func_instance *> pdfv;
+	  if (proc()->findFuncsByMangled(target_name, pdfv)) {
+		 obj()->setCallee(this, pdfv[0]);
+		 updateCallTarget(pdfv[0]);
+		 return pdfv[0];
+	  }
+   }
+   if (auto *bedit = dynamic_cast<BinaryEdit *>(proc())) {
+	  std::vector<func_instance *> pdfv;
+	  for (auto *sib : bedit->getSiblings()) {
+		 if (sib->findFuncsByMangled(target_name, pdfv)) {
+			obj()->setCallee(this, pdfv[0]);
+			updateCallTarget(pdfv[0]);
+			return pdfv[0];
+		 }
+	  }
+   }
+   assert(0 && "Unable to find callee by name");
+   return nullptr;
+}
+
 // The following functions were factored from linux.C to be used
 // on both Linux and FreeBSD
 
@@ -773,34 +796,7 @@ func_instance *block_instance::callee() {
             }
          }
       }
-      const char *target_name = pltFuncs[target_addr].c_str();
-      PCProcess *dproc = dynamic_cast<PCProcess *>(proc());
-
-      BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-      obj()->setCalleeName(this, std::string(target_name));
-      std::vector<func_instance *> pdfv;
-
-      // See if we can name lookup
-      if (dproc) {
-         if (proc()->findFuncsByMangled(target_name, pdfv)) {
-            obj()->setCallee(this, pdfv[0]);
-            updateCallTarget(pdfv[0]);
-            return pdfv[0];
-         }
-      }
-      else if (bedit) {
-         std::vector<BinaryEdit *>::iterator i;
-         for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
-         {
-            if ((*i)->findFuncsByMangled(target_name, pdfv)) {
-               obj()->setCallee(this, pdfv[0]);
-               updateCallTarget(pdfv[0]);
-               return pdfv[0];
-            }
-         }
-      }
-      else 
-         assert(0);
+      return callee(pltFuncs[target_addr]);
    }
    
    //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
