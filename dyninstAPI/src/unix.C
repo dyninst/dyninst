@@ -750,8 +750,7 @@ func_instance *block_instance::callee() {
    // get the relocation information for this image
    Symtab *sym = obj()->parse_img()->getObject();
    std::vector<relocationEntry> fbt;
-   vector <relocationEntry> fbtvector;
-   if (!sym->getFuncBindingTable(fbtvector)) {
+   if (!sym->getFuncBindingTable(fbt)) {
       return NULL;
    }
 
@@ -761,14 +760,11 @@ func_instance *block_instance::callee() {
     * because the function binding table holds relocations used by the dynamic
     * linker
     */
-   if (!fbtvector.size() && !sym->isStaticBinary() && 
+   if (!fbt.size() && !sym->isStaticBinary() &&
            sym->getObjectType() != obj_RelocatableFile ) 
    {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
    }
-
-   for (unsigned index=0; index< fbtvector.size();index++)
-      fbt.push_back(fbtvector[index]);
    
    std::map<Address, std::string> pltFuncs;
    obj()->parse_img()->getPltFuncs(pltFuncs);
