@@ -703,10 +703,7 @@ func_instance* block_instance::callee(std::string const& target_name) {
    return nullptr;
 }
 
-// The following functions were factored from linux.C to be used
-// on both Linux and FreeBSD
-
-// findCallee: finds the function called by the instruction corresponding
+// callee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
 // instPoint "callee" data member is set to pt to callee's func_instance.  
@@ -714,11 +711,9 @@ func_instance* block_instance::callee(std::string const& target_name) {
 // func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
-// pointers, or other indirect calls), it returns false.
-// Returns false on error (ex. process doesn't contain this instPoint).
-//
-// HACK: made an func_instance method to remove from instPoint class...
-// FURTHER HACK: made a block_instance method so we can share blocks
+// pointers, or other indirect calls), it returns NULL.
+// Returns NULL on error (ex. process doesn't contain this instPoint).
+
 func_instance *block_instance::callee() {
    // pre-computed callee via PLT
    func_instance *ret = obj()->getCallee(this);
