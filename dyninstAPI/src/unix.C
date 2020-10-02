@@ -797,6 +797,14 @@ func_instance *block_instance::callee() {
          }
       }
       return callee(pltFuncs[target_addr]);
+   } else {
+	   /*
+	    * Sometimes, the PLT address and the CFG target aren't the same
+	    * (e.g., Intel's CET causes this), so we just look up by name.
+	    */
+	   func_instance *f = obj()->findFuncByEntry(tEdge->trg());
+	   if(!f) return nullptr;
+	   return callee(f->get_name());
    }
    
    //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
