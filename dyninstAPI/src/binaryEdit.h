@@ -251,7 +251,7 @@ class memoryTracker : public codeRange {
     memoryTracker(Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
 
     memoryTracker(Address a, unsigned s, void *b) :
-    alloced(false), dirty(false), a_(a), s_(s), b_{nullptr, &::free}
+    a_(a), s_(s), b_{nullptr, &::free}
         {
             b_.reset(calloc(1, s_));
             if(b) {
@@ -280,8 +280,8 @@ class memoryTracker : public codeRange {
       }
     }
 
-    bool alloced;
-    bool dirty;
+    bool alloced{false};
+    bool dirty{false};
 
  private:
     Address a_;
