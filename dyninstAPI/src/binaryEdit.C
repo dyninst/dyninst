@@ -60,7 +60,7 @@ bool BinaryEdit::readTextSpace(const void *inOther,
     
     // Look up this address in the code range tree of memory
     codeRange *range = NULL;
-    if (!memoryTracker_->find(addr, range))
+    if (!memoryTracker_.find(addr, range))
         return false;
     assert(addr >= range->get_address());
 
@@ -86,7 +86,7 @@ bool BinaryEdit::writeTextSpace(void *inOther,
     while (to_do) {
        // Look up this address in the code range tree of memory
        codeRange *range = NULL;
-       if (!memoryTracker_->find(addr, range)) {
+       if (!memoryTracker_.find(addr, range)) {
           return false;
        }
        
@@ -197,10 +197,7 @@ Address BinaryEdit::inferiorMalloc(unsigned size,
         if (ret) {
 	  memoryTracker *newTracker = new memoryTracker(ret, size);
 	  newTracker->alloced = true;
-	  if (!memoryTracker_)
-	    memoryTracker_ = new codeRangeTree();
-	  memoryTracker_->insert(newTracker);
-
+	  memoryTracker_.insert(newTracker);
 	  break;
 	}
     }
@@ -213,7 +210,7 @@ void BinaryEdit::inferiorFree(Address item)
   inferiorFreeInternal(item);
 
   codeRange *obj;
-  if(!memoryTracker_->find(item, obj))
+  if(!memoryTracker_.find(item, obj))
   {
     // Warn the user?
     return;
@@ -222,7 +219,7 @@ void BinaryEdit::inferiorFree(Address item)
   
   delete obj;
   
-  memoryTracker_->remove(item);
+  memoryTracker_.remove(item);
 }
 
 bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
@@ -234,17 +231,17 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
   maxAllocedAddr();
 
   codeRange *obj;
-  result = memoryTracker_->find(item, obj);
+  result = memoryTracker_.find(item, obj);
   assert(result);
 
-  memoryTracker_->remove(item);
+  memoryTracker_.remove(item);
 
   memoryTracker *mem_track = dynamic_cast<memoryTracker *>(obj);
   assert(mem_track);
 
   mem_track->realloc(newsize);
 
-  memoryTracker_->insert(obj);
+  memoryTracker_.insert(obj);
   return true;
 }
 
@@ -276,7 +273,7 @@ BinaryEdit::BinaryEdit() :
    highWaterMark_(0),
    lowWaterMark_(0),
    isDirty_(false),
-   memoryTracker_(NULL),
+   memoryTracker_{},
    mobj(NULL),
    multithread_capable_(false),
    writing_(false)
@@ -294,7 +291,6 @@ BinaryEdit::~BinaryEdit()
     for(auto *rel : dependentRelocations) {
         delete rel;
     }
-    delete memoryTracker_;
 }
 
 BinaryEdit *BinaryEdit::openFile(const std::string &file, 
@@ -528,7 +524,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
-         if (!memoryTracker_->find(oldSegs[i]->getMemOffset(), segRange)) {
+         if (!memoryTracker_.find(oldSegs[i]->getMemOffset(), segRange)) {
 #if 0
             // Looks like BSS
             if (newSegs[i].name == ".bss")
@@ -556,7 +552,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       void *newSectionPtr = calloc(highWaterMark_ - lowWaterMark_, 1);
 
       std::vector<codeRange *> writes;
-      memoryTracker_->elements(writes);
+      memoryTracker_.elements(writes);
 
       for (unsigned i = 0; i < writes.size(); i++) {
          assert(newSectionPtr);
@@ -752,19 +748,12 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
       {
          continue;
       }
-      else {
-         newTracker = new memoryTracker(regs[i]->getMemOffset(),
-                                        regs[i]->getMemSize(),
-                                        regs[i]->getPtrToRawData());
-         
-      }
+      newTracker = new memoryTracker(regs[i]->getMemOffset(),
+                                     regs[i]->getMemSize(),
+                                     regs[i]->getPtrToRawData());
       newTracker->alloced = false;
-      if (!memoryTracker_)
-         memoryTracker_ = new codeRangeTree();
-      memoryTracker_->insert(newTracker);
+      memoryTracker_.insert(newTracker);
    }
-
-    
    return true;
 }
 
