@@ -34,8 +34,7 @@
 #define BINARY_H
 
 #include <map>
-#include <functional>
-#include <queue>
+#include <memory>
 
 #include "infHeap.h"
 #include "addressSpace.h"
@@ -249,28 +248,31 @@ class depRelocation {
 
 class memoryTracker : public codeRange {
  public:
-    memoryTracker(Address a, unsigned s) :
-        alloced(false),  dirty(false), a_(a), s_(s) {
-        b_ = malloc(s_);
-    }
+    memoryTracker(Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
 
     memoryTracker(Address a, unsigned s, void *b) :
-    alloced(false), dirty(false), a_(a), s_(s)
+    alloced(false), dirty(false), a_(a), s_(s), b_{nullptr, &::free}
         {
+            b_.reset(calloc(1, s_));
             if(b) {
-                b_ = malloc(s_);
-                memcpy(b_, b, s_);
-            } else {
-                b_ = calloc(1, s_);
+                memcpy(b_.get(), b, s_);
             }
         }
-    ~memoryTracker() { free(b_); }
+    ~memoryTracker() = default;
+
+    // Not copyable
+    memoryTracker(memoryTracker const&) = delete;
+    memoryTracker& operator=(memoryTracker const&) = delete;
+
+    // move-only
+    memoryTracker(memoryTracker&&) = default;
+    memoryTracker& operator=(memoryTracker&&) = default;
 
     Address get_address() const { return a_; }
     unsigned get_size() const { return s_; }
-    void *get_local_ptr() const { return b_; }
+    void *get_local_ptr() const { return b_.get(); }
     void realloc(unsigned newsize) {
-      b_ = ::realloc(b_, newsize);
+      b_.reset(::realloc(b_.get(), newsize));
       s_ = newsize;
       if (!b_ && newsize) {
 	cerr << "Odd: failed to realloc " << newsize << endl;
@@ -284,7 +286,7 @@ class memoryTracker : public codeRange {
  private:
     Address a_;
     unsigned s_;
-    void *b_;
+    std::unique_ptr<void, decltype(&::free)> b_;
     
 };
 
