@@ -247,47 +247,45 @@ class depRelocation {
 };
 
 class memoryTracker : public codeRange {
- public:
-    memoryTracker(Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
+public:
+  memoryTracker(Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
 
-    memoryTracker(Address a, unsigned s, void *b) :
-    a_(a), s_(s), b_{nullptr, &::free}
-        {
-            b_.reset(calloc(1, s_));
-            if(b) {
-                memcpy(b_.get(), b, s_);
-            }
-        }
-    ~memoryTracker() = default;
-
-    // Not copyable
-    memoryTracker(memoryTracker const&) = delete;
-    memoryTracker& operator=(memoryTracker const&) = delete;
-
-    // move-only
-    memoryTracker(memoryTracker&&) = default;
-    memoryTracker& operator=(memoryTracker&&) = default;
-
-    Address get_address() const { return a_; }
-    unsigned get_size() const { return s_; }
-    void *get_local_ptr() const { return b_.get(); }
-    void realloc(unsigned newsize) {
-      b_.reset(::realloc(b_.get(), newsize));
-      s_ = newsize;
-      if (!b_ && newsize) {
-	cerr << "Odd: failed to realloc " << newsize << endl;
-	assert(b_);
-      }
+  memoryTracker(Address a, unsigned s, void *b)
+      : a_(a), s_(s), b_{nullptr, &::free} {
+    b_.reset(calloc(1, s_));
+    if (b) {
+      memcpy(b_.get(), b, s_);
     }
+  }
+  ~memoryTracker() = default;
 
-    bool alloced{false};
-    bool dirty{false};
+  // Not copyable
+  memoryTracker(memoryTracker const &) = delete;
+  memoryTracker &operator=(memoryTracker const &) = delete;
 
- private:
-    Address a_;
-    unsigned s_;
-    std::unique_ptr<void, decltype(&::free)> b_;
-    
+  // move-only
+  memoryTracker(memoryTracker &&) = default;
+  memoryTracker &operator=(memoryTracker &&) = default;
+
+  Address get_address() const { return a_; }
+  unsigned get_size() const { return s_; }
+  void *get_local_ptr() const { return b_.get(); }
+  void realloc(unsigned newsize) {
+    b_.reset(::realloc(b_.get(), newsize));
+    s_ = newsize;
+    if (!b_ && newsize) {
+      cerr << "Odd: failed to realloc " << newsize << endl;
+      assert(b_);
+    }
+  }
+
+  bool alloced{false};
+  bool dirty{false};
+
+private:
+  Address a_;
+  unsigned s_;
+  std::unique_ptr<void, decltype(&::free)> b_;
 };
 
 #endif // BINARY_H
