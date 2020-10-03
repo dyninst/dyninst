@@ -211,7 +211,7 @@ class BinaryEdit : public AddressSpace {
    /* Function specific to rewritting static binaries */
    bool doStaticBinarySpecialCases();
     
-    codeRangeTree* memoryTracker_;
+    codeRangeTree memoryTracker_;
 
     mapped_object * addSharedObject(const std::string *fullPath);
 
