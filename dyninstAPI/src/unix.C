@@ -557,103 +557,98 @@ bool PCProcess::startDebugger() {
 
 using namespace Dyninst::SymtabAPI;
 
-
 mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
-                                                   std::map<std::string, BinaryEdit*> &retMap) {
-    std::vector<std::string> paths;
-    if (!getResolvedLibraryPath(filename, paths)) {
-        startup_printf("[%s:%u] - Unable to resolve library path for '%s'\n",
-                       FILE__, __LINE__, filename.c_str());
-        return nullptr;
-    }
-
-	// A little helper to fix some clunky checks
-	auto is_compatible =
-		[this](std::string const& path, std::string const& member={}) {
-			auto temp = std::unique_ptr<BinaryEdit>{
-				BinaryEdit::openFile(path, mgr(), patcher(), member)
-			};
-			if(temp && temp->getAddressWidth() == getAddressWidth()) {
-				return temp;
-			}
-			temp.reset(nullptr);
-			return temp;
-		};
-
-    assert(mgr());
-
-	// Dynamic case
-    Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-	if ( !origSymtab->isStaticBinary() ) {
-		for(auto const& path : paths) {
-			if (auto temp = is_compatible(path)) {
-				auto ret = retMap.emplace(path, temp.release());
-				return (*ret.first).second->getMappedObject();
-			}
-		}
-        startup_printf("[%s:%u] - Unable to find compatible BinaryEdit for '%s'\n",
-                       FILE__, __LINE__, filename.c_str());
-        return nullptr;
-	}
-
-	// Static executable case
-
-	/*
-	 * Alright, this is a kludge, but even though the Archive is opened
-	 * twice (once here and once by the image class later on), it is
-	 * only parsed once because the Archive class keeps track of all
-	 * open Archives.
-	 *
-	 * This is partly due to the fact that Archives are collections of
-	 * Symtab objects and their is one Symtab for each BinaryEdit. In
-	 * some sense, an Archive is a collection of BinaryEdits.
-	 */
-	for(auto const& path : paths) {
-		Archive *library{nullptr};
-		if (Archive::openArchive(library, path)) {
-			std::unique_ptr<Archive> lib{library};
-			std::vector<Symtab *> members;
-			if (lib->getAllMembers(members)) {
-				for(auto *member : members) {
-					if (auto temp = is_compatible(path, member->memberName())) {
-						std::string mapName = path + ":" + member->memberName();
-						retMap.emplace(std::move(mapName), temp.release());
-					}
-				}
-
-				if (retMap.size() > 0) {
-					origSymtab->addLinkingResource(lib.release());
-					// So we tried loading "libc.a", and got back a swarm of individual members.
-					// Just return the first thing...
-					return retMap.begin()->second->getMappedObject();
-				}
-			}
-	        startup_printf("[%s:%u] - Failed to find archive members in '%s' for static executable '%s'\n",
-	                       FILE__, __LINE__, path.c_str(), filename.c_str());
-		} else {
-			Symtab *singleObject{nullptr};
-			if (Symtab::openFile(singleObject, path)) {
-				std::unique_ptr<Symtab> obj{singleObject};
-				if (auto temp = is_compatible(path)) {
-					if( obj->getObjectType() == obj_SharedLib ||
-						obj->getObjectType() == obj_Executable )
-					{
-					  startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n",
-							  FILE__, __LINE__, path.c_str());
-					  std::string msg{"Cannot load a dynamic object when rewriting a static binary"};
-					  showErrorCallback(71, std::move(msg));
-					}else{
-						auto ret = retMap.emplace(path, temp.release());
-						return (*ret.first).second->getMappedObject();
-					}
-				}
-			}
-		}
-	}
-
-    startup_printf("[%s:%u] - Creation error opening %s\n",
-                   FILE__, __LINE__, filename.c_str());
+                                                   std::map<std::string, BinaryEdit *> &retMap) {
+  std::vector<std::string> paths;
+  if (!getResolvedLibraryPath(filename, paths)) {
+    startup_printf("[%s:%u] - Unable to resolve library path for '%s'\n", FILE__, __LINE__,
+                   filename.c_str());
     return nullptr;
+  }
+
+  // A little helper to fix some clunky checks
+  auto is_compatible = [this](std::string const &path, std::string const &member = {}) {
+    auto temp = std::unique_ptr<BinaryEdit>{BinaryEdit::openFile(path, mgr(), patcher(), member)};
+    if (temp && temp->getAddressWidth() == getAddressWidth()) {
+      return temp;
+    }
+    temp.reset(nullptr);
+    return temp;
+  };
+
+  assert(mgr());
+
+  // Dynamic case
+  Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
+  if (!origSymtab->isStaticBinary()) {
+    for (auto const &path : paths) {
+      if (auto temp = is_compatible(path)) {
+        auto ret = retMap.emplace(path, temp.release());
+        return (*ret.first).second->getMappedObject();
+      }
+    }
+    startup_printf("[%s:%u] - Unable to find compatible BinaryEdit for '%s'\n", FILE__, __LINE__,
+                   filename.c_str());
+    return nullptr;
+  }
+
+  // Static executable case
+
+  /*
+   * Alright, this is a kludge, but even though the Archive is opened
+   * twice (once here and once by the image class later on), it is
+   * only parsed once because the Archive class keeps track of all
+   * open Archives.
+   *
+   * This is partly due to the fact that Archives are collections of
+   * Symtab objects and their is one Symtab for each BinaryEdit. In
+   * some sense, an Archive is a collection of BinaryEdits.
+   */
+  for (auto const &path : paths) {
+    Archive *library{nullptr};
+    if (Archive::openArchive(library, path)) {
+      std::unique_ptr<Archive> lib{library};
+      std::vector<Symtab *> members;
+      if (lib->getAllMembers(members)) {
+        for (auto *member : members) {
+          if (auto temp = is_compatible(path, member->memberName())) {
+            std::string mapName = path + ":" + member->memberName();
+            retMap.emplace(std::move(mapName), temp.release());
+          }
+        }
+
+        if (retMap.size() > 0) {
+          origSymtab->addLinkingResource(lib.release());
+          // So we tried loading "libc.a", and got back a swarm of individual members.
+          // Just return the first thing...
+          return retMap.begin()->second->getMappedObject();
+        }
+      }
+      startup_printf(
+          "[%s:%u] - Failed to find archive members in '%s' for static executable '%s'\n", FILE__,
+          __LINE__, path.c_str(), filename.c_str());
+    } else {
+      Symtab *singleObject{nullptr};
+      if (Symtab::openFile(singleObject, path)) {
+        std::unique_ptr<Symtab> obj{singleObject};
+        if (auto temp = is_compatible(path)) {
+          if (obj->getObjectType() == obj_SharedLib || obj->getObjectType() == obj_Executable) {
+            startup_printf(
+                "%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", FILE__,
+                __LINE__, path.c_str());
+            std::string msg{"Cannot load a dynamic object when rewriting a static binary"};
+            showErrorCallback(71, std::move(msg));
+          } else {
+            auto ret = retMap.emplace(path, temp.release());
+            return (*ret.first).second->getMappedObject();
+          }
+        }
+      }
+    }
+  }
+
+  startup_printf("[%s:%u] - Creation error opening %s\n", FILE__, __LINE__, filename.c_str());
+  return nullptr;
 }
 
 #endif
