@@ -251,8 +251,8 @@ public:
   memoryTracker(Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
 
   memoryTracker(Address a, unsigned s, void *b)
-      : a_(a), s_(s), b_{nullptr, &::free} {
-    b_.reset(calloc(1, s_));
+      : a_(a), s_(s) {
+    b_.reset(new char[s_]);
     if (b) {
       memcpy(b_.get(), b, s_);
     }
@@ -269,9 +269,10 @@ public:
 
   Address get_address() const { return a_; }
   unsigned get_size() const { return s_; }
-  void *get_local_ptr() const { return b_.get(); }
+  void *get_local_ptr() const { return static_cast<void*>(b_.get()); }
   void realloc(unsigned newsize) {
-    b_.reset(::realloc(b_.get(), newsize));
+	if(newsize == s_) return;
+    b_.reset(new char[newsize]);
     s_ = newsize;
     if (!b_ && newsize) {
       cerr << "Odd: failed to realloc " << newsize << endl;
@@ -285,7 +286,7 @@ public:
 private:
   Address a_;
   unsigned s_;
-  std::unique_ptr<void, decltype(&::free)> b_;
+  std::unique_ptr<char[]> b_;
 };
 
 #endif // BINARY_H
