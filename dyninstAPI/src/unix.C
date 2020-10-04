@@ -614,8 +614,8 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                     if (library->getAllMembers(members)) {
                         for(auto *member : members) {
                             if (auto temp = is_compatible(path, member->memberName())) {
-                                std::string mapName = path + string(":") + member->memberName();
-                                retMap.emplace(mapName, temp.release());
+                                std::string mapName = path + ":" + member->memberName();
+                                retMap.emplace(std::move(mapName), temp.release());
                             }
                         }
 
@@ -635,8 +635,8 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         {
                           startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", 
                                   FILE__, __LINE__, path.c_str());
-                          std::string msg = std::string("Cannot load a dynamic object when rewriting a static binary");
-                          showErrorCallback(71, msg.c_str());
+                          std::string msg{"Cannot load a dynamic object when rewriting a static binary"};
+                          showErrorCallback(71, std::move(msg));
 
                           delete singleObject;
                         }else{
