@@ -553,6 +553,7 @@ bool PCProcess::startDebugger() {
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"
+#include <memory>
 
 using namespace Dyninst::SymtabAPI;
 
@@ -570,17 +571,28 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                        FILE__, __LINE__, filename.c_str());
 
         Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
+
+        // A little helper to fix some clunky checks
+        auto is_compatible =
+            [this](std::string const& path, std::string const& member={}) {
+                auto temp = std::unique_ptr<BinaryEdit>{
+                	BinaryEdit::openFile(path, mgr(), patcher(), member)
+                };
+                if(temp && temp->getAddressWidth() == getAddressWidth()) {
+                    return temp;
+                }
+                temp.reset(nullptr);
+                return temp;
+            };
+
 	assert(mgr());
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-               BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
-
-                if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                    retMap.insert(std::make_pair(*pathIter, temp));
-                    return temp->getMappedObject();
+                if (auto temp = is_compatible(*pathIter)) {
+                    auto ret = retMap.insert(std::make_pair(*pathIter, temp.release()));
+                    return (*ret.first).second->getMappedObject();
                 }
-                delete temp;
             }
         } else {
             // Static executable case
@@ -605,17 +617,10 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it) 
                         {
-                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, 
-                                                                   mgr(), patcher(), (*member_it)->memberName());
-
-                            if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                            if (auto temp = is_compatible(*pathIter, (*member_it)->memberName())) {
                                 std::string mapName = *pathIter + string(":") +
                                     (*member_it)->memberName();
-                                retMap.insert(std::make_pair(mapName, temp));
-                            }else{
-                                if(temp) delete temp;
-                                retMap.clear();
-                                break;
+                                retMap.insert(std::make_pair(mapName, temp.release()));
                             }
                         }
 
@@ -629,10 +634,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
-                   BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
-
-
-                    if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                    if (auto temp = is_compatible(*pathIter)) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
                             singleObject->getObjectType() == obj_Executable ) 
                         {
@@ -643,11 +645,10 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
                           delete singleObject;
                         }else{
-                            retMap.insert(std::make_pair(*pathIter, temp));
-                            return temp->getMappedObject();
+                            auto ret = retMap.insert(std::make_pair(*pathIter, temp.release()));
+                            return (*ret.first).second->getMappedObject();
                         }
                     }
-                    if(temp) delete temp;
                 }
             }
         }
