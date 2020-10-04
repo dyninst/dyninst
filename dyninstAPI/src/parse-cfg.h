@@ -383,48 +383,48 @@ class parse_func : public ParseAPI::Function
                           it just refers to the stored values and returns that */
 
    ///////////////////// Basic func info
-   SymtabAPI::Function *func_;			/* pointer to the underlying symtab Function */
+   SymtabAPI::Function *func_{nullptr};		/* pointer to the underlying symtab Function */
 
-   pdmodule *mod_;		/* pointer to file that defines func. */
-   image *image_;
-   bool OMPparsed_;              /* Set true in parseOMPFunc */
+   pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
+   image *image_{nullptr};
+   bool OMPparsed_{false};              /* Set true in parseOMPFunc */
 
    /////  Variables for liveness Analysis
    enum regUseState { unknown, used, unused };
-   parse_func_registers * usedRegisters;
-   regUseState containsFPRWrites_;   // floating point registers
-   regUseState containsSPRWrites_;   // stack pointer registers
+   parse_func_registers * usedRegisters{nullptr};
+   regUseState containsFPRWrites_{unknown};   // floating point registers
+   regUseState containsSPRWrites_{unknown};   // stack pointer registers
 
    ///////////////////// CFG and function body
-   bool containsSharedBlocks_;  // True if one or more blocks in this
-                                // function are shared with another function.
+   bool containsSharedBlocks_{false};  // True if one or more blocks in this
+                                       // function are shared with another function.
 
    //  OpenMP (and other parallel language) support
    std::vector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
     void addParRegion(Address begin, Address end, parRegType t);
    // End OpenMP support
 
-   bool hasWeirdInsns_;            // true if we stopped the parse at a 
-								           // weird instruction (e.g., arpl)
-   size_t prevBlocksUnresolvedCF_; // num func blocks when calculated
+   bool hasWeirdInsns_{false};    // true if we stopped the parse at a
+								  // weird instruction (e.g., arpl)
+   size_t prevBlocksUnresolvedCF_{}; // num func blocks when calculated
 
    // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();
-   UnresolvedCF unresolvedCF_;
+   UnresolvedCF unresolvedCF_{UNSET_CF};
 
-   ParseAPI::FuncReturnStatus init_retstatus_;
+   ParseAPI::FuncReturnStatus init_retstatus_{ParseAPI::FuncReturnStatus::UNSET};
 
    // Architecture specific data
-   bool o7_live;
-   bool saves_return_addr_;
+   bool o7_live{false};
+   bool saves_return_addr_{false};
 
-   bool livenessCalculated_;
-   bool isPLTFunction_;
+   bool livenessCalculated_{false};
+   bool isPLTFunction_{false};
 
-   bool containsPowerPreamble_;
+   bool containsPowerPreamble_{false};
    // If the function contains the power preamble, this field points the corresponding function that does not contain the preamble
-   parse_func* noPowerPreambleFunc_;
-   Address baseTOC_;
+   parse_func* noPowerPreambleFunc_{nullptr};
+   Address baseTOC_{};
 };
 
 typedef parse_func *ifuncPtr;
