@@ -253,16 +253,8 @@ class parse_func : public ParseAPI::Function
      return func_->typed_names_end();
    }
    
-   /*   vector<string> symTabNameVector() const {
-       return func_->getAllMangledNames();
-   }
-   vector<string> prettyNameVector() const {
-       return func_->getAllPrettyNames();
-   }
-   vector<string> typedNameVector() const {
-       return func_->getAllTypedNames();
-       }*/
    void copyNames(parse_func *duplicate);
+
    // return true if the name is new (and therefore added)
    bool addSymTabName(std::string name, bool isPrimary = false);
    bool addPrettyName(std::string name, bool isPrimary = false);
