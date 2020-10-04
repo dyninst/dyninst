@@ -589,7 +589,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
         if ( !origSymtab->isStaticBinary() ) {
             for(auto const& path : paths) {
                 if (auto temp = is_compatible(path)) {
-                	auto ret = retMap.insert(std::make_pair(path, temp.release()));
+                	auto ret = retMap.emplace(path, temp.release());
                     return (*ret.first).second->getMappedObject();
                 }
             }
@@ -615,7 +615,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         for(auto *member : members) {
                             if (auto temp = is_compatible(path, member->memberName())) {
                                 std::string mapName = path + string(":") + member->memberName();
-                                retMap.insert(std::make_pair(mapName, temp.release()));
+                                retMap.emplace(mapName, temp.release());
                             }
                         }
 
@@ -640,7 +640,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
                           delete singleObject;
                         }else{
-                            auto ret = retMap.insert(std::make_pair(path, temp.release()));
+                            auto ret = retMap.emplace(path, temp.release());
                             return (*ret.first).second->getMappedObject();
                         }
                     }
