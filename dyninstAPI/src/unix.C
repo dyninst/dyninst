@@ -609,10 +609,11 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 	 * some sense, an Archive is a collection of BinaryEdits.
 	 */
 	for(auto const& path : paths) {
-		Archive *library;
+		Archive *library{nullptr};
 		if (Archive::openArchive(library, path)) {
+			std::unique_ptr<Archive> lib{library};
 			std::vector<Symtab *> members;
-			if (library->getAllMembers(members)) {
+			if (lib->getAllMembers(members)) {
 				for(auto *member : members) {
 					if (auto temp = is_compatible(path, member->memberName())) {
 						std::string mapName = path + ":" + member->memberName();
@@ -621,28 +622,26 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 				}
 
 				if (retMap.size() > 0) {
-					origSymtab->addLinkingResource(library);
+					origSymtab->addLinkingResource(lib.release());
 					// So we tried loading "libc.a", and got back a swarm of individual members.
 					// Just return the first thing...
 					return retMap.begin()->second->getMappedObject();
 				}
-				//if( library ) delete library;
 			}
 	        startup_printf("[%s:%u] - Failed to find archive members in '%s' for static executable '%s'\n",
 	                       FILE__, __LINE__, path.c_str(), filename.c_str());
 		} else {
-			Symtab *singleObject;
+			Symtab *singleObject{nullptr};
 			if (Symtab::openFile(singleObject, path)) {
+				std::unique_ptr<Symtab> obj{singleObject};
 				if (auto temp = is_compatible(path)) {
-					if( singleObject->getObjectType() == obj_SharedLib ||
-						singleObject->getObjectType() == obj_Executable )
+					if( obj->getObjectType() == obj_SharedLib ||
+						obj->getObjectType() == obj_Executable )
 					{
 					  startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n",
 							  FILE__, __LINE__, path.c_str());
 					  std::string msg{"Cannot load a dynamic object when rewriting a static binary"};
 					  showErrorCallback(71, std::move(msg));
-
-					  delete singleObject;
 					}else{
 						auto ret = retMap.emplace(path, temp.release());
 						return (*ret.first).second->getMappedObject();
