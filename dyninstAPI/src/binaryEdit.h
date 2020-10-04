@@ -271,7 +271,7 @@ public:
   unsigned get_size() const { return s_; }
   void *get_local_ptr() const { return static_cast<void*>(b_.get()); }
   void realloc(unsigned newsize) {
-	if(newsize == s_) return;
+    if(newsize == s_) return;
     b_.reset(new char[newsize]);
     s_ = newsize;
     if (!b_ && newsize) {
