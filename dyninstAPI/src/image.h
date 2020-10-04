@@ -255,18 +255,6 @@ class image_variable {
     
 };
 
-/* Stores source code to address in text association for modules */
-class lineDict {
- public:
-   lineDict()  { }
-   ~lineDict() { /* TODO */ }
-   void setLineAddr (unsigned line, Address addr) { lineMap[line] = addr; }
-   inline bool getLineAddr (const unsigned line, Address &adr);
-
- private:
-   std::unordered_map<unsigned, Address> lineMap;
-};
-
 std::string getModuleName(std::string constraint);
 std::string getFunctionName(std::string constraint);
 
@@ -590,13 +578,6 @@ class pdmodule {
    SymtabAPI::Module *mod_;
    image *exec_;
 };
-
-inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
-   auto iter = lineMap.find(line);
-   if (iter == lineMap.end()) return false;
-   adr = iter->second;
-   return true;
-}
 
 class BPatch_basicBlock;
 
