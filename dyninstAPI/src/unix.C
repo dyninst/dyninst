@@ -561,7 +561,6 @@ using namespace Dyninst::SymtabAPI;
 mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                                                    std::map<std::string, BinaryEdit*> &retMap) {
     std::vector<std::string> paths;
-    std::vector<std::string>::iterator pathIter;
     // First, find the specified library file
     bool resolved = getResolvedLibraryPath(filename, paths);
 
@@ -588,9 +587,9 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 	assert(mgr());
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
-            for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-                if (auto temp = is_compatible(*pathIter)) {
-                    auto ret = retMap.insert(std::make_pair(*pathIter, temp.release()));
+            for(auto const& path : paths) {
+                if (auto temp = is_compatible(path)) {
+                	auto ret = retMap.insert(std::make_pair(path, temp.release()));
                     return (*ret.first).second->getMappedObject();
                 }
             }
@@ -607,19 +606,15 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
              * Symtab objects and their is one Symtab for each BinaryEdit. In
              * some sense, an Archive is a collection of BinaryEdits.
              */
-            for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
+            for(auto const& path : paths) {
                 Archive *library;
                 Symtab *singleObject;
-                if (Archive::openArchive(library, *pathIter)) {
+                if (Archive::openArchive(library, path)) {
                     std::vector<Symtab *> members;
                     if (library->getAllMembers(members)) {
-                        std::vector <Symtab *>::iterator member_it;
-                        for (member_it = members.begin(); member_it != members.end();
-                             ++member_it) 
-                        {
-                            if (auto temp = is_compatible(*pathIter, (*member_it)->memberName())) {
-                                std::string mapName = *pathIter + string(":") +
-                                    (*member_it)->memberName();
+                        for(auto *member : members) {
+                            if (auto temp = is_compatible(path, member->memberName())) {
+                                std::string mapName = path + string(":") + member->memberName();
                                 retMap.insert(std::make_pair(mapName, temp.release()));
                             }
                         }
@@ -633,19 +628,19 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         }
                         //if( library ) delete library;
                     }
-                } else if (Symtab::openFile(singleObject, *pathIter)) {
-                    if (auto temp = is_compatible(*pathIter)) {
+                } else if (Symtab::openFile(singleObject, path)) {
+                    if (auto temp = is_compatible(path)) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
                             singleObject->getObjectType() == obj_Executable ) 
                         {
                           startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", 
-                                  FILE__, __LINE__, pathIter->c_str());
+                                  FILE__, __LINE__, path.c_str());
                           std::string msg = std::string("Cannot load a dynamic object when rewriting a static binary");
                           showErrorCallback(71, msg.c_str());
 
                           delete singleObject;
                         }else{
-                            auto ret = retMap.insert(std::make_pair(*pathIter, temp.release()));
+                            auto ret = retMap.insert(std::make_pair(path, temp.release()));
                             return (*ret.first).second->getMappedObject();
                         }
                     }
