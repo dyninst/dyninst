@@ -680,10 +680,30 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 #include "dyninstAPI/src/freebsd.h"
 #endif
 
-// The following functions were factored from linux.C to be used
-// on both Linux and FreeBSD
+func_instance* block_instance::callee(std::string const& target_name) {
+   if (dynamic_cast<PCProcess *>(proc())) {
+	  std::vector<func_instance *> pdfv;
+	  if (proc()->findFuncsByMangled(target_name, pdfv)) {
+		 obj()->setCallee(this, pdfv[0]);
+		 updateCallTarget(pdfv[0]);
+		 return pdfv[0];
+	  }
+   }
+   if (auto *bedit = dynamic_cast<BinaryEdit *>(proc())) {
+	  std::vector<func_instance *> pdfv;
+	  for (auto *sib : bedit->getSiblings()) {
+		 if (sib->findFuncsByMangled(target_name, pdfv)) {
+			obj()->setCallee(this, pdfv[0]);
+			updateCallTarget(pdfv[0]);
+			return pdfv[0];
+		 }
+	  }
+   }
+   assert(0 && "Unable to find callee by name");
+   return nullptr;
+}
 
-// findCallee: finds the function called by the instruction corresponding
+// callee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
 // instPoint "callee" data member is set to pt to callee's func_instance.  
@@ -691,13 +711,11 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 // func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
-// pointers, or other indirect calls), it returns false.
-// Returns false on error (ex. process doesn't contain this instPoint).
-//
-// HACK: made an func_instance method to remove from instPoint class...
-// FURTHER HACK: made a block_instance method so we can share blocks
+// pointers, or other indirect calls), it returns NULL.
+// Returns NULL on error (ex. process doesn't contain this instPoint).
+
 func_instance *block_instance::callee() {
-   // Check 1: pre-computed callee via PLT
+   // pre-computed callee via PLT
    func_instance *ret = obj()->getCallee(this);
    if (ret) return ret;
 
@@ -714,8 +732,6 @@ func_instance *block_instance::callee() {
       }
    }
 
-   
-
    // Do this the hard way - an inter-module jump
    // get the target address of this function
    Address target_addr; bool success;
@@ -723,16 +739,13 @@ func_instance *block_instance::callee() {
    if(!success) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
-      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
       return NULL;
    }
    
    // get the relocation information for this image
    Symtab *sym = obj()->parse_img()->getObject();
    std::vector<relocationEntry> fbt;
-   vector <relocationEntry> fbtvector;
-   if (!sym->getFuncBindingTable(fbtvector)) {
-      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+   if (!sym->getFuncBindingTable(fbt)) {
       return NULL;
    }
 
@@ -742,22 +755,18 @@ func_instance *block_instance::callee() {
     * because the function binding table holds relocations used by the dynamic
     * linker
     */
-   if (!fbtvector.size() && !sym->isStaticBinary() && 
+   if (!fbt.size() && !sym->isStaticBinary() &&
            sym->getObjectType() != obj_RelocatableFile ) 
    {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
    }
-
-   for (unsigned index=0; index< fbtvector.size();index++)
-      fbt.push_back(fbtvector[index]);
-   
-   Address base_addr = obj()->codeBase();
    
    std::map<Address, std::string> pltFuncs;
    obj()->parse_img()->getPltFuncs(pltFuncs);
 
    // find the target address in the list of relocationEntries
    if (pltFuncs.find(target_addr) != pltFuncs.end()) {
+	  Address base_addr = obj()->codeBase();
       for (u_int i=0; i < fbt.size(); i++) {
          if (fbt[i].target_addr() == target_addr) 
          {
@@ -773,37 +782,17 @@ func_instance *block_instance::callee() {
             }
          }
       }
-      const char *target_name = pltFuncs[target_addr].c_str();
-      PCProcess *dproc = dynamic_cast<PCProcess *>(proc());
-
-      BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-      obj()->setCalleeName(this, std::string(target_name));
-      std::vector<func_instance *> pdfv;
-
-      // See if we can name lookup
-      if (dproc) {
-         if (proc()->findFuncsByMangled(target_name, pdfv)) {
-            obj()->setCallee(this, pdfv[0]);
-            updateCallTarget(pdfv[0]);
-            return pdfv[0];
-         }
-      }
-      else if (bedit) {
-         std::vector<BinaryEdit *>::iterator i;
-         for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
-         {
-            if ((*i)->findFuncsByMangled(target_name, pdfv)) {
-               obj()->setCallee(this, pdfv[0]);
-               updateCallTarget(pdfv[0]);
-               return pdfv[0];
-            }
-         }
-      }
-      else 
-         assert(0);
+      return callee(pltFuncs[target_addr]);
+   } else {
+	   /*
+	    * Sometimes, the PLT address and the CFG target aren't the same
+	    * (e.g., Intel's CET causes this), so we just look up by name.
+	    */
+	   func_instance *f = obj()->findFuncByEntry(tEdge->trg());
+	   if(!f) return nullptr;
+	   return callee(f->get_name());
    }
    
-   //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
 }
 
