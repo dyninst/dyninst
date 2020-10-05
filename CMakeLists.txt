@@ -20,7 +20,7 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" ${CMAKE_MODULE_PATH})
 
-# Set the C and C++ language API and ABI standards
+# Set the C and C++ language standards
 include(LanguageStandards)
 
 # Find the necessary third-party libraries
