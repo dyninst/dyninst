@@ -614,6 +614,9 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
           if (auto temp = is_compatible(path, member->memberName())) {
             std::string mapName = path + ":" + member->memberName();
             retMap.emplace(std::move(mapName), temp.release());
+          } else {
+              retMap.clear();
+              break;
           }
         }
 
