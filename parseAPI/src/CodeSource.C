@@ -54,14 +54,8 @@ CodeSource::addRegion(CodeRegion * cr)
         set<CodeRegion *> exist;
         _region_tree.find(cr,exist);
         if(!exist.empty()) {
-	    // for(auto i = exist.begin();
-	    // 	i != exist.end();
-	    // 	++i)
-	    // {
-	    // 	std::cerr << "Region " << **i << " overlaps " << *cr << std::endl;
-	    // }
             _regions_overlap = true;
-	}
+        }
     }
 
     _region_tree.insert(cr);
