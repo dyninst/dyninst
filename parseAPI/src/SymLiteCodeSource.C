@@ -500,16 +500,7 @@ SymReaderCodeSource::length() const
 void 
 SymReaderCodeSource::removeRegion(CodeRegion *cr)
 {
-    _region_tree.remove( &cr );
-
-    for (vector<CodeRegion*>::iterator rit = _regions.begin(); 
-         rit != _regions.end(); rit++) 
-    {
-        if ( &cr == *rit ) {
-            _regions.erase( rit );
-            break;
-        }
-    }
+	CodeSource::removeRegion(cr);
 }
 
 // fails and returns false if it can't find a CodeRegion

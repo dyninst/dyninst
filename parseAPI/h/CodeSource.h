@@ -215,6 +215,7 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
                    _table_of_contents(0) {}
 
     void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
    
  private: 
     // statistics
