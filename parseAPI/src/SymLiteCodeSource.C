@@ -500,7 +500,7 @@ SymReaderCodeSource::length() const
 
 
 void 
-SymReaderCodeSource::removeRegion(CodeRegion &cr)
+SymReaderCodeSource::removeRegion(CodeRegion *cr)
 {
     _region_tree.remove( &cr );
 
@@ -538,7 +538,7 @@ SymReaderCodeSource::resizeRegion(SymSegment *sr, Address newDiskSize)
     }
 
     // remove, resize, reinsert
-    removeRegion( **rit );
+    removeRegion( *rit );
     sr->file_size = newDiskSize;
     addRegion( *rit );
     return true;

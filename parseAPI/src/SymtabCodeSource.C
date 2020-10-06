@@ -847,7 +847,7 @@ SymtabCodeSource::length() const
 
 
 void 
-SymtabCodeSource::removeRegion(CodeRegion &cr)
+SymtabCodeSource::removeRegion(CodeRegion *cr)
 {
     _region_tree.remove( &cr );
 
@@ -885,7 +885,7 @@ SymtabCodeSource::resizeRegion(SymtabAPI::Region *sr, Address newDiskSize)
     }
 
     // remove, resize, reinsert
-    removeRegion( **rit );
+    removeRegion( *rit );
     sr->setDiskSize( newDiskSize );
     addRegion( *rit );
     return true;

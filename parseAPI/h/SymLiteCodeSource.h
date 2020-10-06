@@ -129,7 +129,7 @@ class SymReaderCodeSource : public CodeSource {
  private:
 
     CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion &); // removes from region tree
+    void removeRegion(CodeRegion *); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
     
