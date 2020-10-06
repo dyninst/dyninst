@@ -62,16 +62,17 @@ CodeSource::addRegion(CodeRegion * cr)
 }
 
 void CodeSource::removeRegion(CodeRegion *cr) {
-	auto pos = std::remove(_regions.begin(), _regions.end(), cr);
-	if(pos != _regions.end()) {
-		// NB: Assume no duplicates
-		delete *pos;
-		_regions.erase(pos);
+  auto pos = std::remove(_regions.begin(), _regions.end(), cr);
+  if (pos != _regions.end()) {
+    // NB: Assume no duplicates
+    delete *pos;
+    _regions.erase(pos);
 
-		// Also remove from the tree
-		_region_tree.remove(*pos);
-	}
+    // Also remove from the tree
+    _region_tree.remove(*pos);
+  }
 }
+
 
 int
 CodeSource::findRegions(Address addr, set<CodeRegion *> & ret) const
