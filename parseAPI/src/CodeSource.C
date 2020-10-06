@@ -43,6 +43,11 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+CodeSource::~CodeSource() {
+  for(auto *r : _regions)
+    delete r;
+}
+
 /** CodeSource **/
 void
 CodeSource::addRegion(CodeRegion * cr)
