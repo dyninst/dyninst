@@ -3,12 +3,6 @@
 #
 # Configure C++ and C Language API and ABI standards for Dyninst
 #
-#   ----------------------------------------
-#
-# Accepts the following CMake variables
-#
-# USE_CXX11_ABI - Enable using the GNU C++11 ABI (aka, the post gcc-5 ABI)
-#
 #=========================================================================
 
 #
@@ -22,14 +16,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(USE_CXX11_ABI "" CACHE STRING "Override the default GNU C++11 ABI setting")
-if(NOT ("${USE_CXX11_ABI}" STREQUAL ""))
-  if(${USE_CXX11_ABI})
-    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
-  else()
-    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+# Require the standards-compliant C++11 ABI for gcc
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.1")
+    message(FATAL_ERROR "Dyninst requires gcc >= 5.1")
   endif()
+  add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
 endif()
+
 
 #
 # --------  C language features ----------------
