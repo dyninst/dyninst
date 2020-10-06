@@ -40,14 +40,12 @@ class BoundFactsCalculator {
     bool HasIncomingEdgesFromLowerLevel(int curOrder, std::vector<Node::Ptr>& curNodes);
 
 public:
-    bool CalculateBoundedFacts(); 
+    bool CalculateBoundedFacts();
 
-    BoundFactsCalculator(ParseAPI::Function *f, 
-                         GraphPtr s, 
-			 bool first, 
-			 bool oneByteRead,
-			 SymbolicExpression &sym):
-        func(f), slice(s), firstBlock(first), handleOneByteRead(oneByteRead), se(sym) {}
+    BoundFactsCalculator(ParseAPI::Function *f, GraphPtr s, bool first,
+                         bool oneByteRead, SymbolicExpression &sym)
+        : func(f), slice(s), firstBlock(first), handleOneByteRead(oneByteRead),
+          se(sym) {}
 
     BoundFact *GetBoundFactIn(Node::Ptr node);
     BoundFact *GetBoundFactOut(Node::Ptr node);
