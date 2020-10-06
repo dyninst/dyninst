@@ -32,7 +32,7 @@ class BoundFactsCalculator {
 
     std::unordered_map<Node::Ptr, int, Node::NodePtrHasher> analysisOrder, nodeColor;
     vector<Node::Ptr> reverseOrder;
-    int orderStamp;
+    int orderStamp{};
     
     void DetermineAnalysisOrder();
     void NaturalDFS(Node::Ptr);
