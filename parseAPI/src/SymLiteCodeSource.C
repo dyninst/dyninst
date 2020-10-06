@@ -194,8 +194,6 @@ SymReaderCodeSource::~SymReaderCodeSource()
     free(stats_parse);
     if(owns_symtab && _symtab)
       getSymReaderFactory()->closeSymbolReader(_symtab);
-    for(unsigned i=0;i<_regions.size();++i)
-        delete _regions[i];
 }
 
 SymReaderCodeSource::SymReaderCodeSource(SymReader * st) : 

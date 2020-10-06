@@ -205,11 +205,14 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual void startTimer(const std::string& /*name*/) const { return; } 
     virtual void stopTimer(const std::string& /*name*/) const { return; }
     virtual bool findCatchBlockByTryRange(Address /*given try address*/, std::set<Address> & /* catch start */)  const { return false; }
-   
+
+    virtual ~CodeSource() {
+        for(auto *r : _regions)
+            delete r;
+    }
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
-    virtual ~CodeSource() {}
 
     void addRegion(CodeRegion *);
    
