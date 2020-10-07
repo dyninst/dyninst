@@ -43,6 +43,11 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+CodeSource::~CodeSource() {
+  for(auto *r : _regions)
+    delete r;
+}
+
 /** CodeSource **/
 void
 CodeSource::addRegion(CodeRegion * cr)
@@ -54,18 +59,25 @@ CodeSource::addRegion(CodeRegion * cr)
         set<CodeRegion *> exist;
         _region_tree.find(cr,exist);
         if(!exist.empty()) {
-	    // for(auto i = exist.begin();
-	    // 	i != exist.end();
-	    // 	++i)
-	    // {
-	    // 	std::cerr << "Region " << **i << " overlaps " << *cr << std::endl;
-	    // }
             _regions_overlap = true;
-	}
+        }
     }
 
     _region_tree.insert(cr);
 }
+
+void CodeSource::removeRegion(CodeRegion *cr) {
+  auto pos = std::remove(_regions.begin(), _regions.end(), cr);
+  if (pos != _regions.end()) {
+    // NB: Assume no duplicates
+    delete *pos;
+    _regions.erase(pos);
+
+    // Also remove from the tree
+    _region_tree.remove(*pos);
+  }
+}
+
 
 int
 CodeSource::findRegions(Address addr, set<CodeRegion *> & ret) const
