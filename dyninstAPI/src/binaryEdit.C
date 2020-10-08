@@ -743,14 +743,13 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
     symObj->getAllRegions(regs);
 
    for (unsigned i = 0; i < regs.size(); i++) {
-      memoryTracker *newTracker = NULL;
       if (regs[i]->getRegionType() == Region::RT_BSS || (regs[i]->getMemSize() == 0))
       {
          continue;
       }
-      newTracker = new memoryTracker(regs[i]->getMemOffset(),
-                                     regs[i]->getMemSize(),
-                                     regs[i]->getPtrToRawData());
+      auto *newTracker = new memoryTracker(regs[i]->getMemOffset(),
+                                           regs[i]->getMemSize(),
+                                           regs[i]->getPtrToRawData());
       newTracker->alloced = false;
       memoryTracker_.insert(newTracker);
    }
