@@ -198,6 +198,7 @@ Address BinaryEdit::inferiorMalloc(unsigned size,
 	  memoryTracker *newTracker = new memoryTracker(ret, size);
 	  newTracker->alloced = true;
 	  memoryTracker_.insert(newTracker);
+	  trackers.push_back(newTracker);
 	  break;
 	}
     }
@@ -216,9 +217,14 @@ void BinaryEdit::inferiorFree(Address item)
     return;
   }
   
-  
-  delete obj;
-  
+  // Deallocate the tracker
+  auto pos = std::remove(trackers.begin(), trackers.end(), obj);
+  if(pos != trackers.end()) {
+    delete *pos;
+    trackers.erase(pos);
+  }
+
+  // Remove it from the tree
   memoryTracker_.remove(item);
 }
 
@@ -290,6 +296,9 @@ BinaryEdit::~BinaryEdit()
 	*/
     for(auto *rel : dependentRelocations) {
         delete rel;
+    }
+    for(auto *t : trackers) {
+        delete t;
     }
 }
 
@@ -752,6 +761,7 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
                                            regs[i]->getPtrToRawData());
       newTracker->alloced = false;
       memoryTracker_.insert(newTracker);
+      trackers.push_back(newTracker);
    }
    return true;
 }
