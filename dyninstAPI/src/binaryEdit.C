@@ -218,10 +218,15 @@ void BinaryEdit::inferiorFree(Address item)
   }
   
   // Deallocate the tracker
-  auto pos = std::remove(trackers.begin(), trackers.end(), obj);
+  auto pos = std::remove_if(
+	  trackers.begin(), trackers.end(),
+	  [item](memoryTracker *t) {
+	  	  return t->get_address() == item;
+  	  }
+  );
   if(pos != trackers.end()) {
-    delete *pos;
-    trackers.erase(pos);
+    std::for_each(pos, trackers.end(), [](memoryTracker *t){delete t;});
+    trackers.erase(pos, trackers.end());
   }
 
   // Remove it from the tree
