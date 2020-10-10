@@ -278,8 +278,8 @@ bool BinaryEdit::multithread_ready(bool) {
 BinaryEdit::BinaryEdit() : 
    highWaterMark_(0),
    lowWaterMark_(0),
-   memoryTracker_{},
    isDirty_(false),
+   memoryTracker_{},
    mobj(NULL),
    multithread_capable_(false),
    writing_(false)
