@@ -271,13 +271,15 @@ public:
   unsigned get_size() const { return s_; }
   void *get_local_ptr() const { return static_cast<void*>(b_.get()); }
   void realloc(unsigned newsize) {
-    if(newsize == s_) return;
-    b_.reset(new char[newsize]);
-    s_ = newsize;
-    if (!b_ && newsize) {
-      cerr << "Odd: failed to realloc " << newsize << endl;
-      assert(b_);
+    if(newsize <= s_) {
+    	// No need to fiddle with the data, just change the size
+    	s_ = newsize;
+    	return;
     }
+    auto *ptr = new char[newsize];
+    std::copy(b_.get(), b_.get()+s_, ptr);
+    b_.reset(ptr);
+    s_ = newsize;
   }
 
   bool alloced{false};
