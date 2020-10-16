@@ -102,6 +102,11 @@ SymElf::~SymElf()
       fd = -1;
    }
    if (cache) {
+      for (unsigned int i = 0; i < cache_size; ++i)  {
+         if (cache[i].demangled_name)  {
+            free(const_cast<char*>(cache[i].demangled_name));
+         }
+      }
       free(cache);
       cache = NULL;
       cache_size = 0;
@@ -366,9 +371,8 @@ std::string SymElf::getDemangledName(const Symbol_t &sym)
 
    if (cache[cache_index].demangled_name)
       return std::string(cache[cache_index].demangled_name);
-   //char *res = P_cplus_demangle(name, true);
-   std::string res = P_cplus_demangle(name, true);
 
+   std::string res = P_cplus_demangle(name, true);
    cache[cache_index].demangled_name = strdup(res.c_str());
    return cache[cache_index].demangled_name;
 }
