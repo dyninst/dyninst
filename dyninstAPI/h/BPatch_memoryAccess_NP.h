@@ -82,7 +82,6 @@ typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
 class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
 {
   friend class BPatch_function;
-  friend class InstrucIter;
   friend class AstMemoryNode;
   friend class BPatch_memoryAccessAdapter;
   

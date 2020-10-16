@@ -35,7 +35,6 @@
 #include "BPatch_Vector.h"
 
 class int_parRegion;
-class InstrucIter;
 class BPatch_function;
 class BPatch_instruction;
 #include "Instruction.h"

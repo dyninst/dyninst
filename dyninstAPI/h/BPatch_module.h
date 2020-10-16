@@ -76,7 +76,6 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj{
     friend class BPatch_function;
     friend class BPatch_flowGraph;
     friend class BPatch_image;
-    friend class InstrucIter;
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_binaryEdit;

@@ -100,7 +100,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
   friend class BPatch_flowGraph;
   friend class TarjanDominator;
   friend class dominatorCFG;
-  friend class InstrucIter;
   friend class func_instance;
   friend class BPatch_instruction;
   friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
