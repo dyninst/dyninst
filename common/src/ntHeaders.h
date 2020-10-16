@@ -212,7 +212,7 @@ inline int P_mkdir(const char *pathname, int) {
 inline int P_unlink(const char *pathname) {
 	return _unlink(pathname);
 }
-extern char *cplus_demangle(char *, int, bool );
+extern char *cplus_demangle(const char *, int, bool);
 /* We can't export this, it's inline. */
 inline std::string P_cplus_demangle( const std::string &symbol, bool includeTypes = false ) {
    char *demangled = cplus_demangle( symbol.c_str(), 0, includeTypes );
