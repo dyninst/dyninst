@@ -283,7 +283,6 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccess()
     //    fprintf(stderr, "No memory access recorded for 0x%lx, grabbing now...\n",
     //      point->addr());
     assert(point);
-    // Try to find it... we do so through an InstrucIter
     Dyninst::InstructionAPI::Instruction i = getInsnAtPoint();
     if (!i.isValid()) return NULL;
     BPatch_memoryAccessAdapter converter;

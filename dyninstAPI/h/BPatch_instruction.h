@@ -35,7 +35,6 @@
 
 #include <string>
 
-class InstrucIter;
 class BPatch_basicBlock;
 class BPatch_point;
 

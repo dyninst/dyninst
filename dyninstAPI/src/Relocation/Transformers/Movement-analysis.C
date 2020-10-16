@@ -462,7 +462,6 @@ bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
   // This is yoinked from arch-x86.C...
   if (addrSpace->isValidAddress(target)) {
 
-    // Get us an instrucIter    
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
 
     InstructionDecoder decoder(buf,
