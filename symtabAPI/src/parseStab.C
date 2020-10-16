@@ -211,7 +211,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    currentRawSymbolName = mangledname;
    std::string name = P_cplus_demangle( mangledname );
 
-   if ( name[0] != '\0' && stabstr[cnt] != ':' ) 
+   if ( !name.empty() && stabstr[cnt] != ':' ) 
    {
      types_printf("\t returning name %s\n", name.c_str());
       return name;
