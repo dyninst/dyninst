@@ -100,7 +100,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
   friend class BPatch_flowGraph;
   friend class TarjanDominator;
   friend class dominatorCFG;
-  friend class InstrucIter;
   friend class func_instance;
   friend class BPatch_instruction;
   friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
@@ -266,10 +265,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
   bool getAddressRange(void*& _startAddress, void*& _endAddress);
 
-#ifdef IBM_BPATCH_COMPAT
-  //  dummy placeholder.  I think this is only used by dpcl in a debug routine
-  bool getLineNumbers(unsigned int &_startLine, unsigned int  &_endLine);       
-#endif
   /** BPatch_basicBlock::findEntryPoint   */
   /** return point at the start of the basic block */
 

@@ -283,7 +283,6 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccess()
     //    fprintf(stderr, "No memory access recorded for 0x%lx, grabbing now...\n",
     //      point->addr());
     assert(point);
-    // Try to find it... we do so through an InstrucIter
     Dyninst::InstructionAPI::Instruction i = getInsnAtPoint();
     if (!i.isValid()) return NULL;
     BPatch_memoryAccessAdapter converter;
@@ -463,7 +462,7 @@ void *BPatch_point::monitorCalls( BPatch_function * user_cb )
   // the second the (address of the) callsite.
 
   InstructionAPI::Instruction insn = point->block()->getInsn(point->block()->last());
-  pdvector<AstNodePtr> args;
+  std::vector<AstNodePtr> args;
   if (!lladdSpace->getDynamicCallSiteArgs(insn, point->block()->last(), args))
       return NULL;
   if (args.size() != 2)
@@ -635,22 +634,14 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 
    if (when == BPatch_callBefore)
       if (order == BPatch_firstSnippet) {
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
          preSnippets.insert(preSnippets.begin(), handle);
-#else
-         preSnippets.push_front(handle);
-#endif
       }
       else {
          preSnippets.push_back(handle);
       }
    else {
       if (order == BPatch_firstSnippet) {
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
          postSnippets.insert(postSnippets.begin(), handle);
-#else
-         postSnippets.push_front(handle);
-#endif
       }
       else {
          postSnippets.push_back(handle);

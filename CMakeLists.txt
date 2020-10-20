@@ -20,7 +20,7 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" ${CMAKE_MODULE_PATH})
 
-# Set the C and C++ language API and ABI standards
+# Set the C and C++ language standards
 include(LanguageStandards)
 
 # Find the necessary third-party libraries
@@ -35,11 +35,6 @@ include(shared)
 
 if(USE_OpenMP)
   find_package(OpenMP REQUIRED)
-endif()
-
-# PLATFORM is set by including 'shared'
-if(PLATFORM MATCHES "bgq")
-  message(WARNING "Support for Bluegene/Q has been deprecated and will be removed in a future release")
 endif()
 
 configure_file(cmake/version.h.in common/h/dyninstversion.h)
@@ -107,11 +102,7 @@ if(BUILD_RTLIB)
   message(STATUS "Configuring DyninstAPI_RT in ${RT_BINARY_DIR}")
   file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile)
   file(MAKE_DIRECTORY ${RT_BINARY_DIR})
-  if (PLATFORM MATCHES bgq)
-    set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
-  else()
-    set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
-  endif()
+  set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
   set (ENABLE_STATIC_LIBS NO CACHE STRING "Build static libraries as well?")
   message(STATUS "Configuring RT library")
 

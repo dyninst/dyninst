@@ -155,7 +155,7 @@ set (SRC_LIST ${SRC_LIST}
      src/syscallNotification.C 
      src/syscall-freebsd.C
 )
-elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES bgq)
+elseif (PLATFORM MATCHES linux)
 set (SRC_LIST ${SRC_LIST}
      src/linux.C
      src/inst-linux.C

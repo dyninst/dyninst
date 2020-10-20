@@ -120,7 +120,7 @@ void registerSpace::initialize32() {
     if (done) return;
     done = true;
 
-    pdvector<registerSlot *> registers;
+    std::vector<registerSlot *> registers;
 
     // At ABI boundary: R0 and R12 are dead, others are live.
     // Also, define registers in reverse order - it helps with
@@ -257,7 +257,7 @@ void registerSpace::initialize64() {
     if (done) return;
     done = true;
 
-    pdvector<registerSlot *> registers;
+    std::vector<registerSlot *> registers;
 
     // At ABI boundary: R0 and R12 are dead, others are live.
     // Also, define registers in reverse order - it helps with
@@ -1235,14 +1235,14 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 //   based - offset into the code generated.
 //
 
-Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
 	assert(0);
         return 0;
 }
 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      pdvector<AstNodePtr> &operands, bool noCost,
+                      std::vector<AstNodePtr> &operands, bool noCost,
                       func_instance *callee) {
     //fprintf(stderr, "[DEBUG_CRAP] Generaating function call to %p\n", callee->entryBlock()->GetBlockStartingAddress());
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
@@ -1380,7 +1380,7 @@ Register EmitterPOWER::emitCallReplacement(opCode ocode,
 
 Register EmitterPOWER::emitCall(opCode ocode,
                                 codeGen &gen,
-                                const pdvector<AstNodePtr> &operands,
+                                const std::vector<AstNodePtr> &operands,
                                 bool noCost,
                                 func_instance *callee) {
     bool inInstrumentation = true;
@@ -1410,7 +1410,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
  
     Address toc_anchor = 0;
     Address caller_toc = 0;
-    pdvector <Register> srcs;
+    std::vector <Register> srcs;
 
     // Linux, 64, static/dynamic, inst/repl
     // DYN
@@ -1445,7 +1445,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     // changed by application code".
     // On these platforms, we return 0 when getTOCoffsetInfo is called.
 
-    pdvector<int> savedRegs;
+    std::vector<int> savedRegs;
 
     //  Save the link register.
     // mflr r0
@@ -1719,7 +1719,6 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
 
         } else {
             // Registers from 11 (src = 8) and beyond are saved on the stack.
-            // On AIX this is +56 bytes; for ELF it's something different.
 
             int stkOffset;
             if (addrWidth == 4) {
@@ -1791,7 +1790,6 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &)
 
 
 // VG(11/16/01): Say if we have to restore a register to get its original value
-// VG(03/15/02): Sync'd with the new AIX tramp
 static inline bool needsRestore(Register x)
 {
   //return (x == 0) || ((x >= 3) && (x <= 12)) || (x == POWER_XER2531);
@@ -2443,7 +2441,7 @@ bool doNotOverflow(int64_t value) {
     else return(false);
 
 }
-#if !defined(os_vxworks)
+
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
@@ -2485,8 +2483,6 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 	}
 	return false;
 }
-
-#endif
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance * origFunc, Address target_addr) {
@@ -2562,7 +2558,7 @@ void emitStorePreviousStackFrameRegister(Address,
 using namespace Dyninst::InstructionAPI; 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr, 
-					  pdvector<AstNodePtr> &args)
+					  std::vector<AstNodePtr> &args)
 {
   static RegisterAST::Ptr ctr32(new RegisterAST(ppc32::ctr));
   static RegisterAST::Ptr ctr64(new RegisterAST(ppc64::ctr));
@@ -2610,7 +2606,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 {
-    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
+    // 64-bit ELF PowerPC Linux uses r2 for TOC base register
     if (p->getAddressWidth() == sizeof(uint64_t)) {
         Address val_to_write = f->addr();
         // Use function descriptor address, if available.
@@ -2938,7 +2934,7 @@ bool EmitterPOWER::emitMoveRegToReg(registerSlot *src,
 bool EmitterPOWER32Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAddr) {
 
       Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-      pdvector<Register> excludeReg;
+      std::vector<Register> excludeReg;
       excludeReg.push_back(scratchPCReg);
       Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
       bool newStackFrame = false;
@@ -3447,8 +3443,8 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
 
    if (scratchReg == REG_NULL) {
-   	pdvector<Register> freeReg;
-        pdvector<Register> excludeReg;
+   	std::vector<Register> freeReg;
+        std::vector<Register> excludeReg;
    	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
    	assert (stackSize == 1);
    	scratchReg = freeReg[0];
@@ -3507,8 +3503,8 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    // load register with address from jump slot
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    if (scratchReg == REG_NULL) {
-   	pdvector<Register> freeReg;
-        pdvector<Register> excludeReg;
+   	std::vector<Register> freeReg;
+        std::vector<Register> excludeReg;
    	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
 	assert (stackSize == 1);
 	scratchReg = freeReg[0];
@@ -3521,12 +3517,12 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    Address varOffset = addr - gen.currAddr()+4;
    
    if(!is_local) {
-        pdvector<Register> exclude;
+        std::vector<Register> exclude;
         exclude.push_back(scratchReg);
    	Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
    	if (scratchReg1 == REG_NULL) {
-   		pdvector<Register> freeReg;
-        	pdvector<Register> excludeReg;
+   		std::vector<Register> freeReg;
+        	std::vector<Register> excludeReg;
    		stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
 		assert (stackSize == 1);
 		scratchReg1 = freeReg[0];

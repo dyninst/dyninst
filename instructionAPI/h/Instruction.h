@@ -145,6 +145,9 @@ namespace Dyninst
       /// instruction.
       INSTRUCTION_EXPORT Operand getOperand(int index) const;
 
+      INSTRUCTION_EXPORT Operand getPredicateOperand() const;
+      INSTRUCTION_EXPORT bool hasPredicateOperand() const;
+
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
       INSTRUCTION_EXPORT unsigned char rawByte(unsigned int index) const;
@@ -263,9 +266,6 @@ namespace Dyninst
 
       INSTRUCTION_EXPORT Architecture getArch() const;
 
-      /// ALPHA: Returns the category that an instruction falls into.  This feature is presently incomplete, and we welcome feedback
-      /// on ways to extend it usefully.
-      ///
       /// Currently, the valid categories are c_CallInsn, c_ReturnInsn, c_BranchInsn, c_CompareInsn,
       /// and c_NoCategory, as defined in %InstructionCategories.h.
       INSTRUCTION_EXPORT InsnCategory getCategory() const;
@@ -297,8 +297,10 @@ namespace Dyninst
       typedef boost::shared_ptr<Instruction> Ptr;
 	public:
 	  //Should be private, but we're working around some compilers mis-using the 'friend' declaration.
-      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
-      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit, bool trueP, bool falseP) const;
+
     private:
       void updateSize(const unsigned int new_size) {m_size = new_size;}
       void decodeOperands() const;

@@ -133,8 +133,8 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
  * to libpthread, then to libc, then to the process.
  **/
 static void findThreadFuncs(PCProcess *p, std::string func,
-                            pdvector<func_instance *> &result) {
-    const pdvector<func_instance*>* found = NULL;
+                            std::vector<func_instance *> &result) {
+    const std::vector<func_instance*>* found = NULL;
     mapped_object *lpthread = p->findObject("libpthread*", true);
     if (lpthread)
         found = lpthread->findFuncVectorByMangled(func);
@@ -168,7 +168,7 @@ bool PCProcess::instrumentMTFuncs() {
      * Have dyn_pthread_self call the actual pthread_self
      **/
     //Find dyn_pthread_self
-    pdvector<int_variable *> ptself_syms;
+    std::vector<int_variable *> ptself_syms;
     res = findVarsByAll("DYNINST_pthread_self", ptself_syms);
     if (!res) {
         fprintf(stderr, "[%s:%d] - Couldn't find any dyn_pthread_self, expected 1\n",
@@ -177,7 +177,7 @@ bool PCProcess::instrumentMTFuncs() {
     assert(ptself_syms.size() == 1);
     Address dyn_pthread_self = ptself_syms[0]->getAddress();
     //Find pthread_self
-    pdvector<func_instance *> pthread_self_funcs;
+    std::vector<func_instance *> pthread_self_funcs;
     findThreadFuncs(this, "pthread_self", pthread_self_funcs);
     if (pthread_self_funcs.size() != 1) {
         fprintf(stderr, "[%s:%d] - Found %ld pthread_self functions, expected 1\n",
@@ -553,110 +553,105 @@ bool PCProcess::startDebugger() {
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"
+#include <memory>
 
 using namespace Dyninst::SymtabAPI;
 
-
 mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
-                                                   std::map<std::string, BinaryEdit*> &retMap) {
-    std::vector<std::string> paths;
-    std::vector<std::string>::iterator pathIter;
-    // First, find the specified library file
-    bool resolved = getResolvedLibraryPath(filename, paths);
+                                                   std::map<std::string, BinaryEdit *> &retMap) {
+  std::vector<std::string> paths;
+  if (!getResolvedLibraryPath(filename, paths)) {
+    startup_printf("[%s:%u] - Unable to resolve library path for '%s'\n", FILE__, __LINE__,
+                   filename.c_str());
+    return nullptr;
+  }
 
-    // Second, create a set of BinaryEdits for the found library
-    if ( resolved ) {
-        startup_printf("[%s:%u] - Opening dependent file %s\n",
-                       FILE__, __LINE__, filename.c_str());
-
-        Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-	assert(mgr());
-        // Dynamic case
-        if ( !origSymtab->isStaticBinary() ) {
-            for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-               BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
-
-                if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                    retMap.insert(std::make_pair(*pathIter, temp));
-                    return temp->getMappedObject();
-                }
-                delete temp;
-            }
-        } else {
-            // Static executable case
-
-            /* 
-             * Alright, this is a kludge, but even though the Archive is opened
-             * twice (once here and once by the image class later on), it is
-             * only parsed once because the Archive class keeps track of all
-             * open Archives.
-             *
-             * This is partly due to the fact that Archives are collections of
-             * Symtab objects and their is one Symtab for each BinaryEdit. In
-             * some sense, an Archive is a collection of BinaryEdits.
-             */
-            for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-                Archive *library;
-                Symtab *singleObject;
-                if (Archive::openArchive(library, *pathIter)) {
-                    std::vector<Symtab *> members;
-                    if (library->getAllMembers(members)) {
-                        std::vector <Symtab *>::iterator member_it;
-                        for (member_it = members.begin(); member_it != members.end();
-                             ++member_it) 
-                        {
-                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, 
-                                                                   mgr(), patcher(), (*member_it)->memberName());
-
-                            if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                                std::string mapName = *pathIter + string(":") +
-                                    (*member_it)->memberName();
-                                retMap.insert(std::make_pair(mapName, temp));
-                            }else{
-                                if(temp) delete temp;
-                                retMap.clear();
-                                break;
-                            }
-                        }
-
-                        if (retMap.size() > 0) {
-                            origSymtab->addLinkingResource(library);
-                            // So we tried loading "libc.a", and got back a swarm of individual members. 
-                            // Lovely. 
-                            // Just return the first thing...
-                            return retMap.begin()->second->getMappedObject();
-                        }
-                        //if( library ) delete library;
-                    }
-                } else if (Symtab::openFile(singleObject, *pathIter)) {
-                   BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
-
-
-                    if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                        if( singleObject->getObjectType() == obj_SharedLib ||
-                            singleObject->getObjectType() == obj_Executable ) 
-                        {
-                          startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", 
-                                  FILE__, __LINE__, pathIter->c_str());
-                          std::string msg = std::string("Cannot load a dynamic object when rewriting a static binary");
-                          showErrorCallback(71, msg.c_str());
-
-                          delete singleObject;
-                        }else{
-                            retMap.insert(std::make_pair(*pathIter, temp));
-                            return temp->getMappedObject();
-                        }
-                    }
-                    if(temp) delete temp;
-                }
-            }
-        }
+  // A little helper to fix some clunky checks
+  auto is_compatible = [this](std::string const &path, std::string const &member = {}) {
+    auto temp = std::unique_ptr<BinaryEdit>{BinaryEdit::openFile(path, mgr(), patcher(), member)};
+    if (temp && temp->getAddressWidth() == getAddressWidth()) {
+      return temp;
     }
+    temp.reset(nullptr);
+    return temp;
+  };
 
-    startup_printf("[%s:%u] - Creation error opening %s\n",
-                   FILE__, __LINE__, filename.c_str());
-    // If the only thing we could find was a dynamic lib for a static executable, we can reach here; caller should handle this.
-    return NULL;
+  assert(mgr());
+
+  // Dynamic case
+  Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
+  if (!origSymtab->isStaticBinary()) {
+    for (auto const &path : paths) {
+      if (auto temp = is_compatible(path)) {
+        auto ret = retMap.emplace(path, temp.release());
+        return (*ret.first).second->getMappedObject();
+      }
+    }
+    startup_printf("[%s:%u] - Unable to find compatible BinaryEdit for '%s'\n", FILE__, __LINE__,
+                   filename.c_str());
+    return nullptr;
+  }
+
+  // Static executable case
+
+  /*
+   * Alright, this is a kludge, but even though the Archive is opened
+   * twice (once here and once by the image class later on), it is
+   * only parsed once because the Archive class keeps track of all
+   * open Archives.
+   *
+   * This is partly due to the fact that Archives are collections of
+   * Symtab objects and their is one Symtab for each BinaryEdit. In
+   * some sense, an Archive is a collection of BinaryEdits.
+   */
+  for (auto const &path : paths) {
+    Archive *library{nullptr};
+    if (Archive::openArchive(library, path)) {
+      std::unique_ptr<Archive> lib{library};
+      std::vector<Symtab *> members;
+      if (lib->getAllMembers(members)) {
+        for (auto *member : members) {
+          if (auto temp = is_compatible(path, member->memberName())) {
+            std::string mapName = path + ":" + member->memberName();
+            retMap.emplace(std::move(mapName), temp.release());
+          } else {
+              retMap.clear();
+              break;
+          }
+        }
+
+        if (retMap.size() > 0) {
+          origSymtab->addLinkingResource(lib.release());
+          // So we tried loading "libc.a", and got back a swarm of individual members.
+          // Just return the first thing...
+          return retMap.begin()->second->getMappedObject();
+        }
+      }
+      startup_printf(
+          "[%s:%u] - Failed to find archive members in '%s' for static executable '%s'\n", FILE__,
+          __LINE__, path.c_str(), filename.c_str());
+    } else {
+      Symtab *singleObject{nullptr};
+      if (Symtab::openFile(singleObject, path)) {
+        std::unique_ptr<Symtab> obj{singleObject};
+        if (auto temp = is_compatible(path)) {
+          if (obj->getObjectType() == obj_SharedLib || obj->getObjectType() == obj_Executable) {
+            startup_printf(
+                "%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", FILE__,
+                __LINE__, path.c_str());
+            std::string msg{"Cannot load a dynamic object when rewriting a static binary"};
+            showErrorCallback(71, std::move(msg));
+          } else {
+            auto ret = retMap.emplace(path, temp.release());
+            return (*ret.first).second->getMappedObject();
+          }
+        }
+      }
+    }
+  }
+
+  startup_printf("[%s:%u] - Creation error opening %s\n", FILE__, __LINE__, filename.c_str());
+  return nullptr;
 }
 
 #endif
@@ -680,10 +675,30 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 #include "dyninstAPI/src/freebsd.h"
 #endif
 
-// The following functions were factored from linux.C to be used
-// on both Linux and FreeBSD
+func_instance* block_instance::callee(std::string const& target_name) {
+   if (dynamic_cast<PCProcess *>(proc())) {
+	  std::vector<func_instance *> pdfv;
+	  if (proc()->findFuncsByMangled(target_name, pdfv)) {
+		 obj()->setCallee(this, pdfv[0]);
+		 updateCallTarget(pdfv[0]);
+		 return pdfv[0];
+	  }
+   }
+   if (auto *bedit = dynamic_cast<BinaryEdit *>(proc())) {
+	  std::vector<func_instance *> pdfv;
+	  for (auto *sib : bedit->getSiblings()) {
+		 if (sib->findFuncsByMangled(target_name, pdfv)) {
+			obj()->setCallee(this, pdfv[0]);
+			updateCallTarget(pdfv[0]);
+			return pdfv[0];
+		 }
+	  }
+   }
+   assert(0 && "Unable to find callee by name");
+   return nullptr;
+}
 
-// findCallee: finds the function called by the instruction corresponding
+// callee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
 // instPoint "callee" data member is set to pt to callee's func_instance.  
@@ -691,13 +706,11 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 // func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
-// pointers, or other indirect calls), it returns false.
-// Returns false on error (ex. process doesn't contain this instPoint).
-//
-// HACK: made an func_instance method to remove from instPoint class...
-// FURTHER HACK: made a block_instance method so we can share blocks
+// pointers, or other indirect calls), it returns NULL.
+// Returns NULL on error (ex. process doesn't contain this instPoint).
+
 func_instance *block_instance::callee() {
-   // Check 1: pre-computed callee via PLT
+   // pre-computed callee via PLT
    func_instance *ret = obj()->getCallee(this);
    if (ret) return ret;
 
@@ -714,8 +727,6 @@ func_instance *block_instance::callee() {
       }
    }
 
-   
-
    // Do this the hard way - an inter-module jump
    // get the target address of this function
    Address target_addr; bool success;
@@ -723,16 +734,13 @@ func_instance *block_instance::callee() {
    if(!success) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
-      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
       return NULL;
    }
    
    // get the relocation information for this image
    Symtab *sym = obj()->parse_img()->getObject();
-   pdvector<relocationEntry> fbt;
-   vector <relocationEntry> fbtvector;
-   if (!sym->getFuncBindingTable(fbtvector)) {
-      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+   std::vector<relocationEntry> fbt;
+   if (!sym->getFuncBindingTable(fbt)) {
       return NULL;
    }
 
@@ -742,22 +750,18 @@ func_instance *block_instance::callee() {
     * because the function binding table holds relocations used by the dynamic
     * linker
     */
-   if (!fbtvector.size() && !sym->isStaticBinary() && 
+   if (!fbt.size() && !sym->isStaticBinary() &&
            sym->getObjectType() != obj_RelocatableFile ) 
    {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
    }
-
-   for (unsigned index=0; index< fbtvector.size();index++)
-      fbt.push_back(fbtvector[index]);
-   
-   Address base_addr = obj()->codeBase();
    
    std::map<Address, std::string> pltFuncs;
    obj()->parse_img()->getPltFuncs(pltFuncs);
 
    // find the target address in the list of relocationEntries
    if (pltFuncs.find(target_addr) != pltFuncs.end()) {
+	  Address base_addr = obj()->codeBase();
       for (u_int i=0; i < fbt.size(); i++) {
          if (fbt[i].target_addr() == target_addr) 
          {
@@ -773,37 +777,17 @@ func_instance *block_instance::callee() {
             }
          }
       }
-      const char *target_name = pltFuncs[target_addr].c_str();
-      PCProcess *dproc = dynamic_cast<PCProcess *>(proc());
-
-      BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-      obj()->setCalleeName(this, std::string(target_name));
-      pdvector<func_instance *> pdfv;
-
-      // See if we can name lookup
-      if (dproc) {
-         if (proc()->findFuncsByMangled(target_name, pdfv)) {
-            obj()->setCallee(this, pdfv[0]);
-            updateCallTarget(pdfv[0]);
-            return pdfv[0];
-         }
-      }
-      else if (bedit) {
-         std::vector<BinaryEdit *>::iterator i;
-         for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
-         {
-            if ((*i)->findFuncsByMangled(target_name, pdfv)) {
-               obj()->setCallee(this, pdfv[0]);
-               updateCallTarget(pdfv[0]);
-               return pdfv[0];
-            }
-         }
-      }
-      else 
-         assert(0);
+      return callee(pltFuncs[target_addr]);
+   } else {
+	   /*
+	    * Sometimes, the PLT address and the CFG target aren't the same
+	    * (e.g., Intel's CET causes this), so we just look up by name.
+	    */
+	   func_instance *f = obj()->findFuncByEntry(tEdge->trg());
+	   if(!f) return nullptr;
+	   return callee(f->get_name());
    }
    
-   //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
 }
 

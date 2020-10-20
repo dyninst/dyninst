@@ -39,6 +39,7 @@
 #include <set>
 #include <list>
 #include "common/src/IntervalTree.h"
+#include <iostream>
 
 // Remove when I'm done debugging this...
 //#include "dyninstAPI/src/baseTramp.h"

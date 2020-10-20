@@ -37,9 +37,6 @@
 #include "dyntypes.h"
 #include <vector>
 #include <map>
-#if defined(IBM_BPATCH_COMPAT)
-#include <string>
-#endif
 
 class mapped_module;
 
@@ -79,7 +76,6 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj{
     friend class BPatch_function;
     friend class BPatch_flowGraph;
     friend class BPatch_image;
-    friend class InstrucIter;
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
@@ -268,32 +264,6 @@ public:
 
     void enableDefensiveMode(bool on);
     
-
-#ifdef IBM_BPATCH_COMPAT
-    bool getLineNumbers(unsigned int &start, unsigned int &end);
-
-    bool getAddressRange(void * &start, void * &end);
-
-    char * getUniqueString(char *buffer, int length);   
-
-    char *sharedLibraryName(char *buffer, int length) { getFullName(buffer, length); return buffer;}
-    char *getSharedLibName(char *buffer, int length) { getFullName(buffer, length); return buffer;}
-
-    int getSharedLibType();
-
-    int getBindingType();
-
-    struct Statement {
-        unsigned long begin;  // Beginning address for this statement
-        unsigned long end;    // Ending address for this statement
-        std::string path;     // Path name of this statement's source file
-        int line;             // Line number of the statement
-	int column;           // Column number of the statement
-    } Statement;
-
-    std::vector<struct BPatch_module::Statement> getStatements();
-#endif
-
 private:
     // Parse wrapper
     bool parseTypesIfNecessary();
@@ -311,15 +281,5 @@ private:
    bool full_func_parse;
    bool full_var_parse;
 };
-
-#ifdef IBM_BPATCH_COMPAT
-#define	BPatch_sharedPublic	1
-#define BPatch_sharedPrivate	2
-#define BPatch_nonShared	3
-
-#define BPatch_static		1
-#define BPatch_dynamic		2
-
-#endif
 
 #endif /* _BPatch_module_h_ */

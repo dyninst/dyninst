@@ -122,7 +122,7 @@ typedef ... Dyninst::PID
 typedef ... Dyninst::THR_ID
 \end{apient}
 \apidesc{
-	A handle for identifying a thread. On Linux and BlueGene platforms this is an integer referring to a TID (Thread Identifier). On Windows it is a HANDLE object.
+	A handle for identifying a thread. On Linux platforms this is an integer referring to a TID (Thread Identifier). On Windows it is a HANDLE object.
 }
 
 \begin{apient}
@@ -369,8 +369,6 @@ implementations are described in Section \ref{sec:framesteppers}.
                     &                   &   2. ProcDebug    &                   & 2. AnalysisStepper \\
                     &                   &                   &                   & 3. StepperWanderer\\
                     &                   &                   &                   & 4. BottomOfStackStepper\\
-    \hline  
-    BlueGene        &   1. AddrRange    &   1. ProcDebug    &   1. SwkSymtab    & 1. FrameFuncStepper\\
     \hline
 \end{tabular}
 \caption{Callback Interface Defaults}

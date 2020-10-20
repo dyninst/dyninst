@@ -180,7 +180,7 @@ Address parse_func::getEndOffset() {
 }
 
 
-const pdvector<image_parRegion *> &parse_func::parRegions() {
+const std::vector<image_parRegion *> &parse_func::parRegions() {
   if (!parsed()) image_->analyzeIfNeeded();
   return parRegionsList;
 }
@@ -583,12 +583,7 @@ bool parse_func::hasUnresolvedCF() {
 }
 
 bool parse_func::isInstrumentable() {
-#if defined(os_vxworks)
-   // Relocatable objects (kernel modules) are instrumentable on VxWorks.
-   if(!isInstrumentableByFunctionName())
-#else
    if(!isInstrumentableByFunctionName() || img()->isRelocatableObj())
-#endif
       return false;
    else {
       // Create instrumentation points for non-plt functions 

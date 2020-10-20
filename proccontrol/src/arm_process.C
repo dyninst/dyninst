@@ -167,7 +167,7 @@ async_ret_t arm_process::readPCForSS(int_thread *thr, Address &pc)
       return aret_success;
    }
 
-   //Store and cache the PC value on AsyncIO platforms (bluegene)
+   //Store and cache the PC value on AsyncIO platforms
    registerSSClearCB();
 
    bool result = true;
@@ -212,7 +212,7 @@ async_ret_t arm_process::readInsnForSS(Address pc, int_thread *, unsigned int &r
    }
 
    /**
-    * Use larger reads and cache memory buffers when on an asyncIO system (bluegene)
+    * Use larger reads and cache memory buffers when on an asyncIO system
     **/
    map<Address, mem_response::ptr>::iterator i;
    for (i = mem_for_ss.begin(); i != mem_for_ss.end(); i++) {

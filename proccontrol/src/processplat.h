@@ -152,25 +152,6 @@ class int_signalMask : virtual public int_process
    void setSigMask(dyn_sigset_t msk) { sigset = msk; }
 };
 
-class int_BGQData : virtual public int_process
-{
-   friend class Dyninst::ProcControlAPI::BGQData;
-  protected:
-   static unsigned int startup_timeout_sec;
-   static bool block_for_ca;
-  public:
-   BGQData *up_ptr;
-   int_BGQData(Dyninst::PID p, std::string e, std::vector<std::string> a,
-               std::vector<std::string> envp, std::map<int,int> f);
-   int_BGQData(Dyninst::PID pid_, int_process *p);
-   virtual ~int_BGQData();
-   virtual void bgq_getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const = 0;
-   virtual unsigned int bgq_getComputeNodeID() const = 0;
-   virtual void bgq_getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
-   virtual void bgq_getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
-   virtual void bgq_getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const = 0;
-};
-
 class int_remoteIO : virtual public resp_process
 {
   public:

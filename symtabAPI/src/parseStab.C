@@ -487,7 +487,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             }
 
          case 'P':	// function parameter passed in a register (GNU/Solaris)
-         case 'R':	// function parameter passed in a register (AIX style)
+         case 'R':	// function parameter passed in a register
          case 'v':	// Fortran Local Variable
          case 'X':	// Fortran function return Variable (e.g. function name)
          case 'p': 
@@ -634,14 +634,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                //char *oldstabstr = stabstr;
 				stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
                cnt = 0;
-
-
-               // AIX seems to append an semi at the end of these
-               if (stabstr[0] && strcmp(stabstr, ";")) 
-               {
-                  //bperr("\tMore to parse creating type %s\n", stabstr);
-                  //bperr( "\tFull String: %s\n", oldStr);
-               }
             } 
             else 
             {
@@ -1492,7 +1484,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 
 //
 //   This may in fact be much simpler than first anticipated
-//   AIX stabs use attributes only as hints, and dbx only
+//   dbx only
 //   understands @s (size) and @P (packed) types.  We only 
 //   parse the size attribute, and should be able to get away
 //   with simply passing the remainder to the rest of our parser
@@ -1910,7 +1902,6 @@ static char *parseCPlusPlusInfo(Module *mod,
     assert(stabstr[0] == 'Y');
     cnt = 1;
 
-    // size on AIX 
     if (isdigit(stabstr[cnt])) {
 	structsize = parseSymDesc(stabstr, cnt);
 	sunStyle = false;
@@ -2309,11 +2300,6 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		/* Get enum component value */
 		compsymdesc = getIdentifier(stabstr, cnt);
 		cnt++; /* skip colon */
-
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-		//bperr( "%s[%d]:  before parseSymDesc -- enumerated type \n", 
-	    //		__FILE__, __LINE__);
-#endif		  
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type
@@ -2339,7 +2325,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    return parseTypeDef(mod, &stabstr[cnt+1], name, ID);
 	    break;
 	}
-	case 'V':	// AIX colatile ? type V<typeDef> - parse as <typeDef>
+	case 'V':	// volatile ? type V<typeDef> - parse as <typeDef>
         case 'B':	// Sun volatile type B<typeDef> - parse as <typeDef>
 	    return parseTypeDef(mod, &stabstr[cnt+1], name, ID);
 	    break;
@@ -2369,7 +2355,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    }
 	    //add to type collection
 
-        //TODO What if two different files have the same structure?? // on AIX
+        //TODO What if two different files have the same structure??
 	    char *ret = parseFieldList(mod, newFieldType, &stabstr[cnt], false);
         return ret;
 

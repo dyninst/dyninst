@@ -34,7 +34,6 @@
 #define INST_HDR
 
 #include <string>
-#include "common/src/Vector.h"
 #include <unordered_map>
 #include "opcode.h" // enum opCode now defined here.
 #include "common/src/Types.h"
@@ -105,7 +104,7 @@ class instMapping {
          }
 
       instMapping(const std::string f, const std::string i, const int w, 
-            pdvector<AstNodePtr> &aList, std::string l = "") :
+            std::vector<AstNodePtr> &aList, std::string l = "") :
          func(f), inst(i), lib(l),
          where(w), when(callPreInsn), order(orderLastAtPoint),
          useTrampGuard(true), mt_only(false), allow_trap(false) {
@@ -132,11 +131,11 @@ public:
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
-  pdvector<AstNodePtr> args;      /* what to pass as arg0 ... n */
+  std::vector<AstNodePtr> args;      /* what to pass as arg0 ... n */
   bool useTrampGuard;
   bool mt_only;
   bool allow_trap;
-  pdvector<Dyninst::PatchAPI::InstancePtr> instances;
+  std::vector<Dyninst::PatchAPI::InstancePtr> instances;
 };
 
 
@@ -227,13 +226,13 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool
 
 // VG(11/06/01): moved here and added location
 Register emitFuncCall(opCode op, codeGen &gen,
-                      pdvector<AstNodePtr> &operands,
+                      std::vector<AstNodePtr> &operands,
 					  bool noCost, 
                       func_instance *func);
 
 // Obsolete version that uses an address. DON'T USE THIS or expect it to survive.
 Register emitFuncCall(opCode op, codeGen &gen,
-                      pdvector<AstNodePtr> &operands, 
+                      std::vector<AstNodePtr> &operands, 
 		      		  bool noCost, 
                       Address callee_addr_);
 

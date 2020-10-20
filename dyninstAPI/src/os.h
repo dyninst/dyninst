@@ -49,8 +49,6 @@
 #elif defined(os_freebsd)
 #include "dyninstAPI/src/freebsd.h"
 
-#elif defined(os_vxworks)
-#include "dyninstAPI/src/vxworks.h"
 #endif
 
 #include <string>

@@ -35,7 +35,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_enums.h"
-class InstrucIter;
 class instPoint;
 class BPatch_thread;
 class BPatch_image;
@@ -75,11 +74,6 @@ namespace Dyninst {
 #define BPatch_allLocations BPatch_locAllLocations
 /* #define BPatch_instruction BPatch_locInstruction */
 #define BPatch_arbitrary BPatch_locInstruction
-
-#if defined (IBM_BPATCH_COMPAT)
-#define BPatch_locBasicBlockLoopEntry BPatch_locLoopEntry
-#define BPatch_locBasicBlockLoopExit BPatch_locLoopExit
-#endif
 
 /* VG(09/17/01) Added memory access pointer */
 
@@ -294,13 +288,6 @@ public:
 
 
     bool usesTrap_NP();
-
-#ifdef IBM_BPATCH_COMPAT
-    void *getPointAddress() { return getAddress(); }
-    int getPointLine() { return -1; }
-    BPatch_function *getContainingFunction() { return const_cast<BPatch_function*>(getFunction()); };
-#endif
-
 };
 
 #endif /* _BPatch_point_h_ */

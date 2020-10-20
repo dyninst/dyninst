@@ -44,7 +44,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#if defined(os_linux) || defined(os_bg)
+#if defined(os_linux)
 #define GET_FRAME_POINTER(spr)     __asm__("mov %0, x29;" : "=r"(spr))
 #define GET_RET_ADDR(spr)       __asm__("mov %0, x30;" : "=r"(spr))
 #define GET_STACK_POINTER(spr)  __asm__("mov %0, sp;"  : "=r"(spr))

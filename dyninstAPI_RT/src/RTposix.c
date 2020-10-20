@@ -44,13 +44,9 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/mman.h>
-
-#if !defined(os_vxworks)
-// VxWorks is missing these headers.
 #include <memory.h>
 #include <sys/socket.h>
 #include <pwd.h>
-#endif
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI_RT/src/RTcommon.h"
@@ -110,10 +106,7 @@ int DYNINSTasyncConnect(int pid)
 {
    if (DYNINSTstaticMode)
       return 0;
-#if defined (os_vxworks)
-   return 1;
-
-#elif defined (cap_async_events)
+#if defined (cap_async_events)
   int sock_fd;
   struct sockaddr_un sadr;
    int res;

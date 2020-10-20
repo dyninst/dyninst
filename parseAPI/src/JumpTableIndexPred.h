@@ -45,6 +45,7 @@ public:
 			       findBound = false;
 		      }
     virtual bool ignoreEdge(ParseAPI::Edge *e);
+    virtual int slicingSizeLimitFactor() { return 100; }
 };
 
 

@@ -216,19 +216,19 @@ class AddressSpace : public InstructionSource {
     //func_instance *findFuncByName(const std::string &func_name);
     
     bool findFuncsByAll(const std::string &funcname,
-                        pdvector<func_instance *> &res,
+                        std::vector<func_instance *> &res,
                         const std::string &libname = "");
     
     // Specific versions...
     bool findFuncsByPretty(const std::string &funcname,
-                           pdvector<func_instance *> &res,
+                           std::vector<func_instance *> &res,
                            const std::string &libname = "");
     bool findFuncsByMangled(const std::string &funcname, 
-                            pdvector<func_instance *> &res,
+                            std::vector<func_instance *> &res,
                             const std::string &libname = "");
     
     bool findVarsByAll(const std::string &varname,
-                       pdvector<int_variable *> &res,
+                       std::vector<int_variable *> &res,
                        const std::string &libname = "");
     
     // And we often internally want to wrap the above to return one
@@ -246,7 +246,7 @@ class AddressSpace : public InstructionSource {
 
     // getAllFunctions: returns a vector of all functions defined in the
     // a.out and in the shared objects
-    void getAllFunctions(pdvector<func_instance *> &);
+    void getAllFunctions(std::vector<func_instance *> &);
     
     // Find the code sequence containing an address
     bool findFuncsByAddr(Address addr, std::set<func_instance *> &funcs, bool includeReloc = false);
@@ -294,10 +294,10 @@ class AddressSpace : public InstructionSource {
     
     // getAllModules: returns a vector of all modules defined in the
     // a.out and in the shared objects
-    void getAllModules(pdvector<mapped_module *> &);
+    void getAllModules(std::vector<mapped_module *> &);
 
     // return the list of dynamically linked libs
-    const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
+    const std::vector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
 
     // And a shortcut pointer
     std::set<mapped_object *> runtime_lib;
@@ -342,7 +342,7 @@ class AddressSpace : public InstructionSource {
     typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
     bool getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
                                 Address addr,
-                                pdvector<AstNodePtr> &args);
+                                std::vector<AstNodePtr> &args);
 
     // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
@@ -507,7 +507,7 @@ class AddressSpace : public InstructionSource {
     inferiorHeap heap_;
 
     // Loaded mapped objects (may be just 1)
-    pdvector<mapped_object *> mapped_objects;
+    std::vector<mapped_object *> mapped_objects;
 
     int_variable* trampGuardBase_; // Tramp recursion index mapping
     AstNodePtr trampGuardAST_;

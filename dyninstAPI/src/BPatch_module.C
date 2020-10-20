@@ -349,7 +349,7 @@ bool BPatch_module::getProcedures(BPatch_Vector<BPatch_function*> &funcs,
        func_map.size() != mod->getFuncVectorSize() || 
        mod->obj()->isExploratoryModeOn())
    {
-      const pdvector<func_instance*> &funcs = mod->getAllFunctions();
+      const std::vector<func_instance*> &funcs = mod->getAllFunctions();
       for (unsigned i=0; i<funcs.size(); i++) {
          if (!func_map.count(funcs[i])) {
             addSpace->findOrCreateBPFunc(funcs[i], this); // adds func to func_map
@@ -402,7 +402,7 @@ BPatch_module::findFunction(const char *name,
    // Do we want regex?
    if (dont_use_regex 
          ||  (NULL == strpbrk(name, REGEX_CHARSET))) {
-      pdvector<func_instance *> int_funcs;
+      std::vector<func_instance *> int_funcs;
       if (mod->findFuncVectorByPretty(name, int_funcs)) {
          for (unsigned piter = 0; piter < int_funcs.size(); piter++) {
             if (incUninstrumentable || int_funcs[piter]->isInstrumentable()) 
@@ -459,7 +459,7 @@ BPatch_module::findFunction(const char *name,
       // point, so it might as well be top-level. This is also an
       // excellent candidate for a "value-added" library.
 
-      const pdvector<func_instance *> &int_funcs = mod->getAllFunctions();
+      const std::vector<func_instance *> &int_funcs = mod->getAllFunctions();
 
       for (unsigned ai = 0; ai < int_funcs.size(); ai++) {
          func_instance *func = int_funcs[ai];
@@ -569,7 +569,7 @@ BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name,
 
    BPatch_function *bpfunc = NULL;
 
-   pdvector<func_instance *> int_funcs;
+   std::vector<func_instance *> int_funcs;
    std::string mangled_str(mangled_name);
 
    if (!mod->findFuncVectorByMangled(mangled_str,
@@ -635,7 +635,7 @@ void BPatch_module::parseTypes()
 BPatch_variableExpr* BPatch_module::findVariable(const char* name)
 {
    parseTypesIfNecessary();
-   const pdvector<int_variable *> &allVars = mod->getAllVariables();
+   const std::vector<int_variable *> &allVars = mod->getAllVariables();
 
    for (unsigned i = 0; i < allVars.size(); i++) {
      if(strcmp(allVars[i]->symTabName().c_str(), name) == 0)
@@ -652,7 +652,7 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
    if (!isValid())
       return false;
    if (!full_var_parse) {
-      const pdvector<int_variable*> &vars = mod->getAllVariables();
+      const std::vector<int_variable*> &vars = mod->getAllVariables();
       for (unsigned i=0; i<vars.size(); i++) {
          if (!var_map.count(vars[i])) {
             addSpace->findOrCreateVariable(vars[i]);
@@ -929,105 +929,6 @@ BPatch_function *BPatch_module::findFunctionByEntry(Dyninst::Address entry)
 
     return NULL;
 }
-
-
-#ifdef IBM_BPATCH_COMPAT
-
-bool BPatch_module::getLineNumbers( unsigned int & startLine, unsigned int & endLine )
-{
-   /* I don't think this function has ever returned nonzeroes.  Approximate a better 
-      result by with the line numbers for the first and last addresses in the module. */
-   if (!mod) return false;
-
-   void * startAddr, * endAddr;
-   if( ! getAddressRange( startAddr, endAddr ) ) {
-      return false;
-   }
-
-   bool setAValue = false;
-   BPatch_Vector<BPatch_statement> lines;
-   getSourceLines( (Address)startAddr, lines );
-   if( lines.size() != 0 ) {
-      startLine = lines[0].lineNumber();
-      setAValue = true;
-   }
-
-   lines.clear();
-   getSourceLines( (Address)endAddr, lines );
-   if( lines.size() != 0 ) {
-      endLine = lines[0].lineNumber();
-      setAValue = true;
-   }
-
-   return setAValue;
-}
-
-bool BPatch_module::getAddressRange(void * &start, void * &end)
-{
-   // Code? Data? We'll do code for now...
-   if (!mod) return false;
-   start = (void *)(mod->obj()->codeAbs());
-   end = (void *)(mod->obj()->codeAbs() + mod->obj()->imageSize());
-   return true;
-}
-char *BPatch_module::getUniqueString(char *buffer, int length)
-{
-   // Use "<program_name>|<module_name>" as the unique name if this module is
-   // part of the executable and "<module_name>" if it is not.
-   if (!mod) return NULL;
-   if(isSharedLib())
-      snprintf(buffer, length, "%s", mod->fileName().c_str());
-   else {
-      char prog[1024];
-      addSpace->getImage()->getProgramFileName(prog, 1024);
-      snprintf(buffer, length, "%s|%s",
-            prog, mod->fileName().c_str());
-   }
-   // Return the unique name to the caller
-   return buffer;
-}
-
-int BPatch_module::getSharedLibType()	
-{
-   return 0;
-}
-
-int BPatch_module::getBindingType()
-{
-   return 0;
-}
-
-std::vector<struct BPatch_module::Statement> BPatch_module::getStatements()
-{
-   std::vector<struct BPatch_module::Statement> statements;
-   if (!mod) return statements;
-
-   Module *stmod = mod->pmod()->mod();
-   assert(stmod);
-   if (!stmod->getStatements(statements_ll))
-   {
-	   return statements;
-   }
-
-   for (unsigned int i = 0; i < statements_ll.size(); ++i)
-   {
-	   // Form a BPatch_statement object for this entry
-	   // Note:  Line information stores offsets, so we need to adjust to
-	   //  addresses
-	   SymtabAPI::Statement &stm = statements_ll[i];
-	   BPatch_statement statement(this, stm.file().c_str(), stm.line(),
-			   stm.column(), (void *)(mod->obj()->codeBase() + stm.startAddr()),
-			   (void *)(mod->obj()->codeBase() + stm.endAddr()));
-
-	   // Add this statement
-	   statements.push_back(statement);
-   }
-
-   // Return the statements to the caller
-   return statements;
-
-}
-#endif
 
 bool BPatch_module::findPoints(Dyninst::Address addr,
                                           std::vector<BPatch_point *> &points) {

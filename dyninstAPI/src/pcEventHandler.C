@@ -525,7 +525,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         }
 
         // Dump the stacks
-        pdvector<pdvector<Frame> > stackWalks;
+        std::vector<std::vector<Frame> > stackWalks;
         evProc->walkStacks(stackWalks);
         for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
             fprintf(stderr, "Stack for pid %d, lwpid %d\n",
@@ -906,8 +906,8 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
                     dataAddress, true));
     }
 
-    const pdvector<mapped_object *> &currList = evProc->mappedObjects();
-    pdvector<mapped_object *> toDelete;
+    const std::vector<mapped_object *> &currList = evProc->mappedObjects();
+    std::vector<mapped_object *> toDelete;
     for(unsigned i = 0; i < currList.size(); ++i) {
         for(unsigned j = 0; j < deletedDescriptors.size(); ++j) {
             if( deletedDescriptors[j] == currList[i]->getFileDesc() ) {

@@ -244,14 +244,6 @@ char *BPatch_function::getName(char *s, int len)
     return s;
 }
 
-#ifdef IBM_BPATCH_COMPAT
-const char *BPatch_function::getNameDPCL()
-{
-    assert(func);
-    return func->prettyName().c_str();
-}
-#endif
-
 /*
  * BPatch_function::getMangledName
  *

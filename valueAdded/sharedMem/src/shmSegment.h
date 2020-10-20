@@ -41,7 +41,6 @@
 #define SHMSEGMENT_H
 
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 
 class BPatch_process;
 

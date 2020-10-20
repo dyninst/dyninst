@@ -30,11 +30,8 @@
 
 #include "common/src/Types.h"
 #include "common/src/arch-power.h"
+#include <cassert>
 using namespace NS_power;
-
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
 
 unsigned int NS_power::swapBytesIfNeeded(unsigned int i)
 {
@@ -76,13 +73,6 @@ instruction *instruction::copy() const {
 }
 
 Address instruction::getTarget(Address addr) const {
-#if defined(os_vxworks)
-    Address ret;
-    // FIXME requires vxworks in Dyninst
-    if (relocationTarget(addr, &ret))
-        return ret;
-#endif
-
     if (isUncondBranch() || isCondBranch()) {
         return getBranchOffset() + addr;
     }
@@ -214,7 +204,7 @@ unsigned instruction::spaceToRelocate() const {
     return instruction::size();
 }
 
-bool instruction::getUsedRegs(pdvector<int> &) {
+bool instruction::getUsedRegs(std::vector<int> &) {
 	return false;
 }
 

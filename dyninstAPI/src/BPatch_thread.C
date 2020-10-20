@@ -42,10 +42,6 @@
 #include "dynProcess.h"
 #include "debug.h"
 
-#if defined(IBM_BPATCH_COMPAT)
-#include <algorithm>
-#endif
-
 /*
  * BPatch_thread::getCallStack
  *
@@ -55,7 +51,7 @@
  */
 bool BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
 {
-   pdvector<Frame> stackWalk;   
+   std::vector<Frame> stackWalk;   
 
    if (!llthread->walkStack(stackWalk) ) {
      proccontrol_printf("%s[%d]: failed to perform stackwalk on thread %d\n",

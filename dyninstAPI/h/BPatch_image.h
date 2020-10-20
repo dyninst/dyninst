@@ -50,16 +50,6 @@ class int_variable;
 class BPatch_point;
 class BPatch_object;
 
-#ifdef IBM_BPATCH_COMPAT
-
-typedef enum BPatch_LpModel {
-  LP32,      /* 32 bit image */
-  LP64,      /* 64 bit image */
-  UNKNOWN_LP /* cannot be determined */
-};
-
-#endif
-
 class BPatch_statement;
 class BPatch_image;
 class BPatch_object_getMod;
@@ -299,22 +289,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
 
   bool  readString(BPatch_variableExpr *expr, std::string &str, 
 		   unsigned size_limit = 0);
-
-
-#ifdef IBM_BPATCH_COMPAT
-
-  BPatch_Vector<BPatch_function*> * 
-  findFunction(const char *name,
-	       BPatch_Vector<BPatch_function*> *funcs,
-	       bool showError=true,
-	       bool regex_case_sensitive=true,
-	       bool incUninstrumentable = false);
-
-
-  char * programName(char *name, unsigned int len);
-
-  int lpType();
-#endif
 
  private:
   BPatch_addressSpace *addSpace;

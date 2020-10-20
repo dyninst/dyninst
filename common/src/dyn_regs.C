@@ -90,7 +90,6 @@ MachRegister MachRegister::getBaseRegister() const {
         case Arch_ppc64:
         case Arch_none:
             return *this;
-        case Arch_cuda:
         case Arch_amdgpu:
             switch (category){
                 case amdgpu::SGPR:
@@ -113,6 +112,8 @@ MachRegister MachRegister::getBaseRegister() const {
             }
         case Arch_aarch32:
         case Arch_aarch64:
+        case Arch_intelGen9:
+        case Arch_cuda:
             //not verified
             return *this;
     }
@@ -244,7 +245,6 @@ unsigned int MachRegister::size() const {
                     return 32;
                 case x86_64::ZMMS:
                     return 64;
-
                 default:
                     return 0; // Xiaozhu: do not assert, but return 0 as an indication of parsing junk.
                     assert(0);
@@ -261,50 +261,54 @@ unsigned int MachRegister::size() const {
                              return 8;
                          }
         case Arch_aarch32:
+            assert(0);
+            break;
+ 
         case Arch_cuda:
+            return 8;
         case Arch_amdgpu:{
-                             int reg_class = (reg&0x00ff0000 ) ;
-                             if ( reg_class == amdgpu::SGPR || reg_class == amdgpu::VGPR){
-                                 return 4;
-                             }else if (reg_class == amdgpu::SGPR_VEC2 || reg_class == amdgpu::VGPR_VEC2){
-                                 return 8;
-                             }else if (reg_class == amdgpu::SGPR_VEC4 || reg_class == amdgpu::VGPR_VEC4){
-                                 return 16;
-                             }else if (reg_class == amdgpu::SGPR_VEC8 || reg_class == amdgpu::VGPR_VEC8){
-                                 return 32;
-                             }else if (reg_class == amdgpu::SGPR_VEC16 || reg_class == amdgpu::VGPR_VEC16){
-                                 return 64;
-                             }else{
-                                 switch(reg & 0x00007f00){
-                                     case amdgpu::BITS_1:
-                                     case amdgpu::BITS_2:
-                                     case amdgpu::BITS_3:
-                                     case amdgpu::BITS_4:
-                                     case amdgpu::BITS_6:
-                                     case amdgpu::BITS_7:
-                                     case amdgpu::BITS_8:
-                                         return 1;
-                                     case amdgpu::BITS_9:
-                                     case amdgpu::BITS_15:
-                                     case amdgpu::BITS_16:
-                                         return 2;
-                                     case amdgpu::BITS_32:
-                                         return 4;
-                                     case amdgpu::BITS_48:
-                                     case amdgpu::BITS_64:
-                                         return 8; 
-                                     case amdgpu::BITS_128:
-                                         return 16;
-                                     case amdgpu::BITS_256:
-                                         return 32;
-                                     case amdgpu::BITS_512:
-                                         return 64;
-                                 }
-                                 std::cerr << "unknown reg size " << std::hex << reg << std::endl;
+            int reg_class = (reg&0x00ff0000 ) ;
+             if ( reg_class == amdgpu::SGPR || reg_class == amdgpu::VGPR){
+                 return 4;
+             }else if (reg_class == amdgpu::SGPR_VEC2 || reg_class == amdgpu::VGPR_VEC2){
+                 return 8;
+             }else if (reg_class == amdgpu::SGPR_VEC4 || reg_class == amdgpu::VGPR_VEC4){
+                 return 16;
+             }else if (reg_class == amdgpu::SGPR_VEC8 || reg_class == amdgpu::VGPR_VEC8){
+                 return 32;
+             }else if (reg_class == amdgpu::SGPR_VEC16 || reg_class == amdgpu::VGPR_VEC16){
+                 return 64;
+             }else{
+                 switch(reg & 0x00007f00){
+                     case amdgpu::BITS_1:
+                     case amdgpu::BITS_2:
+                     case amdgpu::BITS_3:
+                     case amdgpu::BITS_4:
+                     case amdgpu::BITS_6:
+                     case amdgpu::BITS_7:
+                     case amdgpu::BITS_8:
+                         return 1;
+                     case amdgpu::BITS_9:
+                     case amdgpu::BITS_15:
+                     case amdgpu::BITS_16:
+                         return 2;
+                     case amdgpu::BITS_32:
+                         return 4;
+                     case amdgpu::BITS_48:
+                     case amdgpu::BITS_64:
+                         return 8; 
+                     case amdgpu::BITS_128:
+                         return 16;
+                     case amdgpu::BITS_256:
+                         return 32;
+                     case amdgpu::BITS_512:
+                         return 64;
+                 }
+                 std::cerr << "unknown reg size " << std::hex << reg << std::endl;
 
-                                 assert(0);
-                             }
-                         }
+                 assert(0);
+             }
+         }
         case Arch_aarch64:
                          if((reg & 0x00ff0000) == aarch64::FPR)
                          {
@@ -332,6 +336,12 @@ unsigned int MachRegister::size() const {
                              }
                          else
                              return 4;
+        case Arch_intelGen9:
+        {
+          assert(0);
+          break;
+        }
+ 
         case Arch_none:
                          return 0;
     }
@@ -370,10 +380,9 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
         case Arch_aarch64:  //aarch64: pc is not writable
             return aarch64::pc;
         case Arch_aarch32:
+            return InvalidReg;
         case Arch_cuda:
-
-            assert(0);
-
+            return cuda::pc;
         case Arch_amdgpu:
             return amdgpu::pc;
         case Arch_none:
@@ -644,6 +653,9 @@ bool MachRegister::isFlag() const
         case Arch_amdgpu:{
                              return (reg & 0x0000F000);
                          }
+        case Arch_cuda:
+            return false;
+
         default:
                          assert(!"Not implemented!");
     }
@@ -2152,9 +2164,9 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
         case Arch_ppc64:
         case Arch_aarch64:
         case Arch_cuda:
+        case Arch_intelGen9:
         case Arch_amdgpu:
             return 8;
-            assert(0);
         default:
             assert(0);
             return InvalidReg;

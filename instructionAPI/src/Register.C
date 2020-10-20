@@ -110,7 +110,8 @@ namespace Dyninst
         }
 
         /* we have moved to AT&T syntax (lowercase registers) */
-        std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+        for(char &c : name) c = std::toupper(c);
+
         return name;
     }
       std::string MaskRegisterAST::format(Architecture, formatStyle f) const

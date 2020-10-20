@@ -52,10 +52,6 @@
 
 #include "StackMod/StackAccess.h"
 
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
-
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;

@@ -81,8 +81,8 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
 {
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
 
-  pdvector<std::string> argv_vec;
-  pdvector<std::string> envp_vec;
+  std::vector<std::string> argv_vec;
+  std::vector<std::string> envp_vec;
 
   std::string directoryName = "";
 

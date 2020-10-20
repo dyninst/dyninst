@@ -200,6 +200,9 @@ bool DwarfHandle::init_dbg()
             arch = Dyninst::Arch_amdgpu;
             //assert (0 && "under development" ) ;
             break;
+        case EM_INTEL_GEN9:
+            arch = Arch_intelGen9;
+            break;
         default:
             assert(0 && "Unsupported archiecture in ELF file.");
             return false;

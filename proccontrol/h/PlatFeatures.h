@@ -49,13 +49,8 @@ class int_followFork;
 class int_multiToolControl;
 class int_signalMask;
 class int_callStackUnwinding;
-class int_BGQData;
 class int_remoteIO;
 class int_memUsage;
-
-namespace bgq {
-   class bgq_process;
-};
 class int_fileInfo;
 
 //For sigset_t
@@ -101,7 +96,6 @@ class PC_EXPORT LWPTracking
 {
    friend class ::linux_process;
    friend class ::int_process;
-   friend class bgq::bgq_process;
    friend class ::int_LWPTracking;
   protected:
    LWPTracking(Process::ptr proc_);
@@ -278,7 +272,6 @@ class PC_EXPORT CallStackUnwindingSet
 
 class PC_EXPORT MultiToolControl
 {
-   friend class bgq::bgq_process;
    friend class ::int_process;
    friend class ::int_multiToolControl;
   public:
@@ -326,32 +319,6 @@ class PC_EXPORT SignalMask
    static void setDefaultSigMask(dyn_sigset_t s);
    dyn_sigset_t getSigMask() const;
    bool setSigMask(dyn_sigset_t s);
-};
-
-class PC_EXPORT BGQData
-{
-   friend class ::int_process;
-   friend class bgq::bgq_process;
-   friend class ::int_BGQData;
-  protected:
-   static const unsigned int startup_timeout_sec_default = 45;
-   static const bool block_for_ca_default = true;
-   BGQData(Process::ptr proc_);
-   ~BGQData();
-   Process::weak_ptr proc;
-  public:
-   static void setStartupTimeout(unsigned int seconds);
-   static void setBlockForControlAuthority(bool block);
-   
-   //Five coordinates on torus (a, b, c, d, e), one on CN (t)
-   bool getProcCoordinates(unsigned &a, unsigned &b, unsigned &c, unsigned &d, unsigned &e, unsigned &t) const;
-
-   //All processes that share a CN will shared a ComputeNode ID
-   unsigned int getComputeNodeID() const;
-
-   bool getSharedMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
-   bool getPersistantMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
-   bool getHeapMemRange(Dyninst::Address &start, Dyninst::Address &end) const;
 };
 
 /**
@@ -420,7 +387,6 @@ class PC_EXPORT RemoteIO
    FileSet *getFileSet(const std::set<std::string> &filenames) const;
    bool addToFileSet(std::string filename, FileSet *fs) const;
   
-   //Fetches filenames from BGQ's persisent memory ramdisk
    bool getFileNames(FileSet *result) const;
 
    //Get data as per a stat system call, fill in the FileInfo objects

@@ -198,29 +198,11 @@
 #endif
 #endif
 
-#ifndef TLS_VAR
-#if defined(_MSC_VER)
-#define TLS_VAR __declspec(thread)
-#else
-#define TLS_VAR __thread
-#endif
-#endif
-
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
 #include <string>
 #include "dyntypes.h"
-
-/* GCC 4.7.0 and 4.7.1 broke ABI compatibility between C++11 and C++98
- * code in a MAJOR way. Disallow that combination; other versions of
- * the compiler are fine. 
- */
-#if !((__cplusplus >= 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__))
-#if defined(__GLIBCXX__) && (__GLIBCXX__ >= 20120322) && (__GLIBCXX__ < 20120920)
-#error "Using GCC 4.7.0 or 4.7.1 with Dyninst requires the -std:c++0x or -std:c++11 flag. Other versions do not."
-#endif
-#endif
 
 #if defined(_MSC_VER)
 #pragma warning(disable: 4251 4275 4396 4996)

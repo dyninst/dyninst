@@ -288,20 +288,14 @@ BinaryEdit::BinaryEdit() :
    trapMapping.shouldBlockFlushes(true);
 }
 
-BinaryEdit::~BinaryEdit() 
+BinaryEdit::~BinaryEdit()
 {
-}
-
-void BinaryEdit::deleteBinaryEdit() {
-    deleteAddressSpace();
-    highWaterMark_ = 0;
-    lowWaterMark_ = 0;
-
-    // TODO: is this cleanup necessary?
-    depRelocation *rel;
-    while (dependentRelocations.size() > 0) {
-        rel = dependentRelocations[0];
-        dependentRelocations.erase(dependentRelocations.begin());
+	/*
+	 * NB: We do not own the objects contained in
+	 * 	   newDyninstSyms_, rtlib, or siblings, so
+	 * 	   do not ::delete them
+	*/
+    for(auto *rel : dependentRelocations) {
         delete rel;
     }
     delete memoryTracker_;
@@ -565,7 +559,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       void *newSectionPtr = calloc(highWaterMark_ - lowWaterMark_, 1);
 
-      pdvector<codeRange *> writes;
+      std::vector<codeRange *> writes;
       memoryTracker_->elements(writes);
 
       for (unsigned i = 0; i < writes.size(); i++) {
@@ -662,7 +656,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          }
       }
       
-      pdvector<Symbol *> newSyms;
+      std::vector<Symbol *> newSyms;
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
@@ -824,7 +818,7 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
 // To keep this list (somewhat) short, we're doing one symbol per extent of 
 // instrumentation + relocation for a particular function. 
 // New: do this for one mapped object. 
-void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
+void BinaryEdit::buildDyninstSymbols(std::vector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
    for (std::vector<SymtabAPI::Symbol *>::iterator iter = newDyninstSyms_.begin();
@@ -966,7 +960,7 @@ bool BinaryEdit::replaceTrapHandler() {
     vector<string> sigaction_names;
     OS::get_sigaction_names(sigaction_names);
 
-    pdvector<func_instance *> allFuncs;
+    std::vector<func_instance *> allFuncs;
     getAllFunctions(allFuncs);
     
     bool replaced = false;

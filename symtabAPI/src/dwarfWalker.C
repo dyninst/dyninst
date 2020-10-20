@@ -343,19 +343,6 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
                 curEnclosure().get());
 
         bool ret = false;
-
-        // BLUEGENE BUG HACK
-#if defined(os_bg)
-        if (tag() == DW_TAG_base_type ||
-                tag() == DW_TAG_const_type ||
-                tag() == DW_TAG_pointer_type) {
-            // XLC compilers nest a bunch of stuff under an invented function; however,
-            // this is broken (they don't close the function properly). If we see a
-            // tag like this, close off the previous function immediately
-            clearFunc();
-        }
-#endif
-
         switch(tag()) {
             case DW_TAG_subprogram:
             case DW_TAG_entry_point:

@@ -34,7 +34,6 @@
 #define IMAGE_FUNC_H
 
 #include <string>
-#include "common/src/Vector.h"
 #include "common/src/Types.h"
 #include "common/src/Pair.h"
 #include "common/src/arch.h" // instruction
@@ -254,16 +253,8 @@ class parse_func : public ParseAPI::Function
      return func_->typed_names_end();
    }
    
-   /*   vector<string> symTabNameVector() const {
-       return func_->getAllMangledNames();
-   }
-   vector<string> prettyNameVector() const {
-       return func_->getAllPrettyNames();
-   }
-   vector<string> typedNameVector() const {
-       return func_->getAllTypedNames();
-       }*/
    void copyNames(parse_func *duplicate);
+
    // return true if the name is new (and therefore added)
    bool addSymTabName(std::string name, bool isPrimary = false);
    bool addPrettyName(std::string name, bool isPrimary = false);
@@ -295,7 +286,7 @@ class parse_func : public ParseAPI::Function
    // Initiate parsing on this function
    bool parse();
  
-   const pdvector<image_parRegion*> &parRegions();
+   const std::vector<image_parRegion*> &parRegions();
 
    bool isInstrumentable();
    bool hasUnresolvedCF();
@@ -347,7 +338,7 @@ class parse_func : public ParseAPI::Function
    parse_block * entryBlock();
 
    /****** OpenMP Parsing Functions *******/
-   std::string calcParentFunc(const parse_func * imf, pdvector<image_parRegion *> & pR);
+   std::string calcParentFunc(const parse_func * imf, std::vector<image_parRegion *> & pR);
    void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
    void parseOMPSectFunc(parse_func * parentFunc);
    void parseOMPFunc(bool hasLoop);
@@ -384,48 +375,48 @@ class parse_func : public ParseAPI::Function
                           it just refers to the stored values and returns that */
 
    ///////////////////// Basic func info
-   SymtabAPI::Function *func_;			/* pointer to the underlying symtab Function */
+   SymtabAPI::Function *func_{nullptr};		/* pointer to the underlying symtab Function */
 
-   pdmodule *mod_;		/* pointer to file that defines func. */
-   image *image_;
-   bool OMPparsed_;              /* Set true in parseOMPFunc */
+   pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
+   image *image_{nullptr};
+   bool OMPparsed_{false};              /* Set true in parseOMPFunc */
 
    /////  Variables for liveness Analysis
    enum regUseState { unknown, used, unused };
-   parse_func_registers * usedRegisters;
-   regUseState containsFPRWrites_;   // floating point registers
-   regUseState containsSPRWrites_;   // stack pointer registers
+   parse_func_registers * usedRegisters{nullptr};
+   regUseState containsFPRWrites_{unknown};   // floating point registers
+   regUseState containsSPRWrites_{unknown};   // stack pointer registers
 
    ///////////////////// CFG and function body
-   bool containsSharedBlocks_;  // True if one or more blocks in this
-                                // function are shared with another function.
+   bool containsSharedBlocks_{false};  // True if one or more blocks in this
+                                       // function are shared with another function.
 
    //  OpenMP (and other parallel language) support
-   pdvector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
+   std::vector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
     void addParRegion(Address begin, Address end, parRegType t);
    // End OpenMP support
 
-   bool hasWeirdInsns_;            // true if we stopped the parse at a 
-								           // weird instruction (e.g., arpl)
-   size_t prevBlocksUnresolvedCF_; // num func blocks when calculated
+   bool hasWeirdInsns_{false};    // true if we stopped the parse at a
+								  // weird instruction (e.g., arpl)
+   size_t prevBlocksUnresolvedCF_{}; // num func blocks when calculated
 
    // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();
-   UnresolvedCF unresolvedCF_;
+   UnresolvedCF unresolvedCF_{UNSET_CF};
 
-   ParseAPI::FuncReturnStatus init_retstatus_;
+   ParseAPI::FuncReturnStatus init_retstatus_{ParseAPI::FuncReturnStatus::UNSET};
 
    // Architecture specific data
-   bool o7_live;
-   bool saves_return_addr_;
+   bool o7_live{false};
+   bool saves_return_addr_{false};
 
-   bool livenessCalculated_;
-   bool isPLTFunction_;
+   bool livenessCalculated_{false};
+   bool isPLTFunction_{false};
 
-   bool containsPowerPreamble_;
+   bool containsPowerPreamble_{false};
    // If the function contains the power preamble, this field points the corresponding function that does not contain the preamble
-   parse_func* noPowerPreambleFunc_;
-   Address baseTOC_;
+   parse_func* noPowerPreambleFunc_{nullptr};
+   Address baseTOC_{};
 };
 
 typedef parse_func *ifuncPtr;

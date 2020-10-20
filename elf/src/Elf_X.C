@@ -648,17 +648,6 @@ unsigned long Elf_X_Shdr::sh_flags() const
 
 unsigned long Elf_X_Shdr::sh_addr() const
 {
-#if defined(os_vxworks)
-    assert(_elf);
-    if (_elf->e_type() == ET_REL) {
-        // VxWorks relocatable object files (kernel modules) don't have
-        // the address filled out.  Return the disk offset instead.
-        return (!is64 ?
-                static_cast<unsigned long>(shdr32->sh_offset) :
-                static_cast<unsigned long>(shdr64->sh_offset));
-    }
-#endif
-
     return (!is64 ?
             static_cast<unsigned long>(shdr32->sh_addr) :
             static_cast<unsigned long>(shdr64->sh_addr));
@@ -1783,6 +1772,8 @@ Dyninst::Architecture Elf_X::getArch() const
             return Dyninst::Arch_x86_64;
         case EM_CUDA:
             return Dyninst::Arch_cuda;
+        case EM_INTEL_GEN9:
+            return Dyninst::Arch_intelGen9;
         case EM_ARM:
             return Dyninst::Arch_aarch32;
         case EM_AARCH64:

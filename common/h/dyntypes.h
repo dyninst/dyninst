@@ -53,77 +53,25 @@
 #define XLC
 #endif
 
-#if defined (_MSC_VER)
-  //**************** Windows ********************
-  #include <unordered_set>
-  #include <unordered_map>  
-  #define dyn_hash_map std::unordered_map
-  #define dyn_hash_set std::unordered_set
-#elif defined(__GNUC__)
-  #include <functional>
-  //*****************libcxx**********************
-  #if defined(_LIBCPP_VERSION)
-      #include <unordered_set>
-      #include <unordered_map>
-      #define dyn_hash_set std::unordered_set
-      #define dyn_hash_map std::unordered_map
-  //***************** GCC ***********************
-   #elif defined (__GLIBCXX__) && (__GLIBCXX__ >= 20080306)
-      //**************** GCC >= 4.3.0 ***********
-      #include <tr1/unordered_set>
-      #include <tr1/unordered_map>
-      #define cap_tr1
-      #define dyn_hash_set std::tr1::unordered_set
-      #define dyn_hash_map std::tr1::unordered_map
-   #else
-      //**************** GCC < 4.3.0 ************
-      #include <ext/hash_map>
-      #include <ext/hash_set>
-      #include <string>
-      #define dyn_hash_set __gnu_cxx::hash_set
-      #define dyn_hash_map __gnu_cxx::hash_map    
-      namespace Dyninst {
-	     unsigned ptrHash(void * addr);
-      }
-      using namespace __gnu_cxx;
-      namespace __gnu_cxx {
+#include <unordered_set>
+#include <unordered_map>
 
-		  template<> struct hash<std::string> {
-			  hash<char*> h;
-			  unsigned operator()(const std::string &s) const 
-			  {
-				  const char *cstr = s.c_str();
-				  return h(cstr);
-			  };
-		  };
+// NB: std::hash has overloads for [un]scoped enums
+template <typename Key,
+		  typename Value,
+		  typename Hash = std::hash<Key>,
+		  typename Comp = std::equal_to<Key>,
+		  typename Alloc = std::allocator<std::pair<const Key, Value>>>
+using dyn_hash_map = std::unordered_map<Key, Value, Hash, Comp, Alloc>;
 
-		  template<> struct hash<void *> {
-			  unsigned operator()(void *v) const 
-			  {
-				  return Dyninst::ptrHash(v);
-			  };
-		  };
+template <typename Key,
+		  typename Hash = std::hash<Key>,
+		  typename Comp = std::equal_to<Key>,
+		  typename Alloc = std::allocator<Key>>
+using dyn_hash_set = std::unordered_set<Key, Hash, Comp, Alloc>;
 
-	  }
-   #endif
-#elif defined(XLC)
-  #define __IBMCPP_TR1__ 1
-
-  #include <functional>
-  #include <unordered_set>
-  #include <unordered_map>
-  #define dyn_hash_set std::tr1::unordered_set
-  #define dyn_hash_map std::tr1::unordered_map
-#else
-   #error Unknown compiler
-#endif
-
-// TODO: when should we use thread_local?
-#if defined(_MSC_VER)
-  #define dyn_tls __declspec(thread)
-#else
-  #define dyn_tls __thread
-#endif
+// We require C++11 thread_local support
+#define dyn_tls thread_local
 
 namespace Dyninst
 {
@@ -169,13 +117,8 @@ namespace Dyninst
       OSNone,
       Linux,
       FreeBSD,
-      Windows,
-      VxWorks,
-      BlueGeneL,
-      BlueGeneP,
-      BlueGeneQ
+      Windows
    } OSType;
 }
 
-#include "dyn_regs.h"
 #endif

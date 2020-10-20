@@ -161,7 +161,7 @@ bool int_stackwalk::isValid() {
    return isValid_; 
 }
 
-bool int_stackwalk::setStackwalk(pdvector<Frame> &new_stack) {
+bool int_stackwalk::setStackwalk(std::vector<Frame> &new_stack) {
    stackwalk_ = new_stack;
    isValid_ = true;
    return true;
@@ -172,7 +172,7 @@ bool int_stackwalk::clear() {
    return true;
 }
 
-pdvector<Frame>& int_stackwalk::getStackwalk() {
+std::vector<Frame>& int_stackwalk::getStackwalk() {
    assert(isValid_);
    return stackwalk_;
 }

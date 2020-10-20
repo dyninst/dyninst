@@ -280,7 +280,6 @@ namespace Dyninst {
             void log_elferror(void (*err_func)(const char *), const char* msg);
             bool cannotRelocatePhdrs();
 
-            bool isBlueGeneQ;
             bool isStaticBinary;
 
         };

@@ -34,8 +34,7 @@
 #define BINARY_H
 
 #include <map>
-#include <functional>
-#include <queue>
+#include <memory>
 
 #include "infHeap.h"
 #include "addressSpace.h"
@@ -138,9 +137,6 @@ class BinaryEdit : public AddressSpace {
     BinaryEdit();
     ~BinaryEdit();
 
-    // Same usage pattern as process
-    void deleteBinaryEdit();
-
     // And the "open" factory method.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
@@ -223,9 +219,11 @@ class BinaryEdit : public AddressSpace {
 
     std::vector<depRelocation *> dependentRelocations;
 
-    void buildDyninstSymbols(pdvector<SymtabAPI::Symbol *> &newSyms, 
+    void buildDyninstSymbols(std::vector<SymtabAPI::Symbol *> &newSyms, 
                              SymtabAPI::Region *newSec,
                              SymtabAPI::Module *newMod);
+
+    // `mobj` is only a view. The actual object is owned by AddressSpace::mapped_objects
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
@@ -249,44 +247,48 @@ class depRelocation {
 };
 
 class memoryTracker : public codeRange {
- public:
-    memoryTracker(Address a, unsigned s) :
-        alloced(false),  dirty(false), a_(a), s_(s) {
-        b_ = malloc(s_);
+public:
+  memoryTracker(Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
+
+  memoryTracker(Address a, unsigned s, void *b)
+      : a_(a), s_(s) {
+    b_.reset(new char[s_]);
+    if (b) {
+      memcpy(b_.get(), b, s_);
     }
+  }
+  ~memoryTracker() = default;
 
-    memoryTracker(Address a, unsigned s, void *b) :
-    alloced(false), dirty(false), a_(a), s_(s)
-        {
-            if(b) {
-                b_ = malloc(s_);
-                memcpy(b_, b, s_);
-            } else {
-                b_ = calloc(1, s_);
-            }
-        }
-    ~memoryTracker() { free(b_); }
+  // Not copyable
+  memoryTracker(memoryTracker const &) = delete;
+  memoryTracker &operator=(memoryTracker const &) = delete;
 
-    Address get_address() const { return a_; }
-    unsigned get_size() const { return s_; }
-    void *get_local_ptr() const { return b_; }
-    void realloc(unsigned newsize) {
-      b_ = ::realloc(b_, newsize);
-      s_ = newsize;
-      if (!b_ && newsize) {
-	cerr << "Odd: failed to realloc " << newsize << endl;
-	assert(b_);
-      }
+  // move-only
+  memoryTracker(memoryTracker &&) = default;
+  memoryTracker &operator=(memoryTracker &&) = default;
+
+  Address get_address() const { return a_; }
+  unsigned get_size() const { return s_; }
+  void *get_local_ptr() const { return static_cast<void*>(b_.get()); }
+  void realloc(unsigned newsize) {
+    if(newsize <= s_) {
+    	// No need to fiddle with the data, just change the size
+    	s_ = newsize;
+    	return;
     }
+    auto *ptr = new char[newsize];
+    std::copy(b_.get(), b_.get()+s_, ptr);
+    b_.reset(ptr);
+    s_ = newsize;
+  }
 
-    bool alloced;
-    bool dirty;
+  bool alloced{false};
+  bool dirty{false};
 
- private:
-    Address a_;
-    unsigned s_;
-    void *b_;
-    
+private:
+  Address a_;
+  unsigned s_;
+  std::unique_ptr<char[]> b_;
 };
 
 #endif // BINARY_H

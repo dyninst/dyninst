@@ -104,16 +104,16 @@ public:
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // We can overload this for the stat/dyn case
     virtual Register emitCall(opCode op, codeGen &gen,
-                              const pdvector<AstNodePtr> &operands,
+                              const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     int emitCallParams(codeGen &gen, 
-                       const pdvector<AstNodePtr> &operands,
+                       const std::vector<AstNodePtr> &operands,
                        func_instance *target, 
-                       pdvector<Register> &extra_saves,
+                       std::vector<Register> &extra_saves,
                        bool noCost);
     bool emitCallCleanup(codeGen &gen, func_instance *target, 
-                         int frame_size, pdvector<Register> &extra_saves);
+                         int frame_size, std::vector<Register> &extra_saves);
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
@@ -229,7 +229,7 @@ public:
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // See comment on 32-bit emitCall
     virtual Register emitCall(opCode op, codeGen &gen,
-                              const pdvector<AstNodePtr> &operands,
+                              const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);

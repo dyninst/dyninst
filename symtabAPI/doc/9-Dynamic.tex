@@ -130,7 +130,7 @@ bool getLoadAddress(Symtab *sym,
 \end{apient}
 \apidesc{
 Given a \code{Symtab} object, \code{sym}, that resides in the process associated with this \code{AddressLookup}, this function returns \code{sym}'s load address.
-On the AIX system, where an object can have one load address for its code and one for its data, this function will return the code's load address. Use \code{getDataLoadAddress} to get the data load address.
+On systems where an object can have one load address for its code and one for its data, this function will return the code's load address. Use \code{getDataLoadAddress} to get the data load address.
 This function returns \code{true} on success and \code{false} otherwise.
 }
 
@@ -139,8 +139,7 @@ bool getDataLoadAddress(Symtab *sym,
                         Address &load_addr)
 \end{apient}
 \apidesc{
-Given a Symtab object, \code{sym}, this function returns the load address of its data section. This function will return the data load address on AIX systems only, all other supported operating systems return zero.
-This function returns \code{true} on success and \code{false} otherwise.}
+Given a Symtab object, \code{sym}, this function returns the load address of its data section. This function returns \code{true} on success and \code{false} otherwise.}
 
 
 \subsection{Class ProcessReader}

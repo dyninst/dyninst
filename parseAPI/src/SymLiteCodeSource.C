@@ -194,8 +194,6 @@ SymReaderCodeSource::~SymReaderCodeSource()
     free(stats_parse);
     if(owns_symtab && _symtab)
       getSymReaderFactory()->closeSymbolReader(_symtab);
-    for(unsigned i=0;i<_regions.size();++i)
-        delete _regions[i];
 }
 
 SymReaderCodeSource::SymReaderCodeSource(SymReader * st) : 
@@ -500,18 +498,9 @@ SymReaderCodeSource::length() const
 
 
 void 
-SymReaderCodeSource::removeRegion(CodeRegion &cr)
+SymReaderCodeSource::removeRegion(CodeRegion *cr)
 {
-    _region_tree.remove( &cr );
-
-    for (vector<CodeRegion*>::iterator rit = _regions.begin(); 
-         rit != _regions.end(); rit++) 
-    {
-        if ( &cr == *rit ) {
-            _regions.erase( rit );
-            break;
-        }
-    }
+	CodeSource::removeRegion(cr);
 }
 
 // fails and returns false if it can't find a CodeRegion
@@ -538,7 +527,7 @@ SymReaderCodeSource::resizeRegion(SymSegment *sr, Address newDiskSize)
     }
 
     // remove, resize, reinsert
-    removeRegion( **rit );
+    removeRegion( *rit );
     sr->file_size = newDiskSize;
     addRegion( *rit );
     return true;

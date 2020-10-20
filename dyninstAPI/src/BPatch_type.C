@@ -341,29 +341,6 @@ Dyninst::SymtabAPI::dataClass BPatch_type::convertToSymtabType(BPatch_dataClass 
     }	  
 }
 
-#ifdef IBM_BPATCH_COMPAT
-char *BPatch_type::getName(char *buffer, int max) const
-{
-  const char *name = typ->getName().c_str();
-  if (!name) {
-     strncpy(buffer, "bad type name", (max > strlen("bad_type_name")) ?
-             (strlen("bad_type_name") +1) : max);
-     char msg[256];
-     sprintf(msg, "%s[%d]: bad type name!", __FILE__, __LINE__);
-     BPatch_reportError(BPatchWarning, 112, msg);
-     return buffer;
-  }
-
-  if (max > strlen(name)) {
-    strcpy (buffer, name);
-    return buffer;
-  } else {
-    strncpy (buffer, name, max-1)[max-1] = '\0';
-  }
-   return NULL;
-}
-#endif
-
 BPatch_field::BPatch_field(Dyninst::SymtabAPI::Field *fld_, BPatch_dataClass typeDescriptor, int value_, int size_) :
     typeDes(typeDescriptor), value(value_), size(size_), fld(fld_)
 {

@@ -46,9 +46,6 @@
 #include <fstream>
 #include "common/src/arch-power.h"
 #include <sstream>
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
 
 bool shouldAssertIfInLongBranch = true;
 bool failedLongBranchLocal = false;
@@ -111,7 +108,7 @@ void insnCodeGen::generate(codeGen &gen, instruction&insn) {
   AddressSpace *as = gen.addrSpace();
   bool isLittleEndian = true;
   if (as) {
-    const pdvector<mapped_object*> objs = as->mappedObjects();
+    const std::vector<mapped_object*> objs = as->mappedObjects();
     if (objs.size() > 0) {
       mapped_object *mo = objs[0];
       SymtabAPI::Symtab* sym = mo->parse_img()->getObject(); 
@@ -1076,7 +1073,7 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
 #endif
 }
 
-int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg, pdvector<Register>& excludeReg){
+int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Register>& freeReg, std::vector<Register>& excludeReg){
               int gpr_off, fpr_off, ctr_off, stack_size;
                 //create new stack frame
                 gpr_off = TRAMP_GPR_OFFSET_32;
