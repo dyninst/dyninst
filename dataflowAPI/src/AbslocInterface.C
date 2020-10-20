@@ -757,6 +757,35 @@ void AssignmentConverter::convert(const Instruction I,
     assignments.push_back(ra);
     break;
   }      
+  case amdgpu_op_s_getpc_b64 : {
+    // PC = SGPR[n+1:n]
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+
+
+    Expression::Ptr store_pc_sgpr = operands[0].getValue();
+
+    RegisterAST::Ptr store_pc_sgpr_ast = boost::static_pointer_cast<RegisterAST>(store_pc_sgpr);
+
+    AbsRegion store_pc_region = AbsRegion(Absloc(store_pc_sgpr_ast->getID())); 
+
+    AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
+
+    Assignment::Ptr pcA = Assignment::makeAssignment(I, addr,func,block,store_pc_region);
+
+    pcA->addInput(pc);
+
+    //AbsRegion sp = AbsRegion(Absloc::makeSP(func->isrc()->getArch()));
+    //Assignment::Ptr spA = Assignment::makeAssignment(I,addr,func,block,sp);
+    //spA->addInput(sp);
+
+    assignments.push_back(pcA);
+    //assignments.push_back(spA);
+
+
+    break;
+  }       
+ 
   case amdgpu_op_s_setpc_b64 : {
     // PC = SGPR[n+1:n]
     std::vector<Operand> operands;
@@ -781,6 +810,37 @@ void AssignmentConverter::convert(const Instruction I,
 
     break;
   }       
+  case amdgpu_op_s_swappc_b64 : {
+    // SWAPPC D:TARGET_SGPR  S:STORAGE_SGPR
+    // SGPR[D+1:D] = PC+4
+    // PC = SGPR[S+1:S]
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+
+
+    AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
+    Assignment::Ptr pcA = Assignment::makeAssignment(I, addr,func,block,pc);
+    Expression::Ptr target_sgpr = operands[0].getValue();
+    RegisterAST::Ptr target_sgpr_ast = boost::static_pointer_cast<RegisterAST>(target_sgpr);
+ 
+    Expression::Ptr storage_sgpr = operands[1].getValue();
+    RegisterAST::Ptr storage_sgpr_ast = boost::static_pointer_cast<RegisterAST>(storage_sgpr);
+
+    AbsRegion new_pc_region = AbsRegion(Absloc(target_sgpr_ast->getID())); 
+
+    pcA->addInput(new_pc_region);
+
+    //AbsRegion sp = AbsRegion(Absloc::makeSP(func->isrc()->getArch()));
+    //Assignment::Ptr spA = Assignment::makeAssignment(I,addr,func,block,sp);
+    //spA->addInput(sp);
+
+    assignments.push_back(pcA);
+    //assignments.push_back(spA);
+
+
+    break;
+  }       
+
   default:
     // Assume full intra-dependence of non-flag and non-pc registers. 
     std::vector<AbsRegion> used;

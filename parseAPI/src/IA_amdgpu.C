@@ -72,6 +72,9 @@ bool IA_amdgpu::isFrameSetupInsn(Instruction i) const
 
 bool IA_amdgpu::isNop() const
 {
+    Instruction ci = curInsn();
+    if(ci.getOperation().getID() == amdgpu_op_s_nop)
+        return true;
     return false;
 }
 

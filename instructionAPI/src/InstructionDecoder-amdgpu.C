@@ -426,18 +426,20 @@ namespace Dyninst {
 
 					// TODO : addSuccessors commented out to avoid jump table analysis aborts
 					if(insn_in_progress->getOperation().operationID == amdgpu_op_s_setpc_b64){
+                        
 
-						insn_in_progress->appendOperand(new_pc_ast,true,false);
-						//insn_in_progress->addSuccessor(new_pc_ast, false, false, false, false);
-						cout.clear();
-						cout << "decoded instr = " << insn_in_progress->format() << endl;
+
+                        // non fall through branches are added as Successor
+						//insn_in_progress->appendOperand(new_pc_ast,true,false);
+					    insn_in_progress->addSuccessor(new_pc_ast, false, false, false, false);
 					}else if(insn_in_progress->getOperation().operationID == amdgpu_op_s_swappc_b64){
 						Expression::Ptr store_pc_ast = decodeSSRC(*tmp,layout.sdst);
-
-						insn_in_progress->appendOperand(new_pc_ast,true,false);
+                        
+					    // for swap pc we assume it is a call, so we add the fall through expr	
+                        // iscall , is indirect, isconditional , isfall through
+                        insn_in_progress->addSuccessor(new_pc_ast, false, true, false, false);
+                        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
 						insn_in_progress->appendOperand(store_pc_ast,false,true);
-
-						//insn_in_progress->addSuccessor(new_pc_ast, false, false, false, false);
 					}
 				}
 			}else{
@@ -455,7 +457,7 @@ namespace Dyninst {
 			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
 			if(isBranch){
 				if(!isModifyPC){	
-					cout << "calling make branch target "<< endl;
+					//cout << "calling make branch target "<< endl;
 					makeBranchTarget(isCall,isConditional,layout.simm16);
 				}	
 
@@ -473,7 +475,7 @@ namespace Dyninst {
 			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
 			if(isBranch){
 				if(!isModifyPC){	
-					cout << "calling make branch target "<< endl;
+					//cout << "calling make branch target "<< endl;
 
 					makeBranchTarget(isCall,isConditional,layout.simm16);
 				}	
@@ -735,7 +737,7 @@ namespace Dyninst {
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
 				std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
-			debug_instr();
+			//debug_instr();
 			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
@@ -745,7 +747,7 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode(b);
-			debug_instr();
+			//debug_instr();
 			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());

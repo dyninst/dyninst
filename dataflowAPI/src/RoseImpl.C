@@ -35,6 +35,7 @@
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
+#include "../rose/SgAsmAmdgpuInstruction.h"
 #include "external/rose/rose-compat.h"
 #include "../rose/RegisterDescriptor.h"
 #include "../rose/x86InstructionSemantics.h"
@@ -1392,6 +1393,35 @@ SgAsmArmv8Instruction::~SgAsmArmv8Instruction() {
     p_kind = rose_aarch64_op_INVALID;
 }
 
+
+std::string SgAsmAmdgpuInstruction::class_name() const {
+    return "SgAsmAmdgpuInstruction";
+}
+
+VariantT SgAsmAmdgpuInstruction::variantT() const {
+    return V_SgAsmAmdgpuInstruction;
+}
+
+SgAsmAmdgpuInstruction::SgAsmAmdgpuInstruction(rose_addr_t address, std::string mnemonic, AMDGPUInstructionKind kind) :
+        SgAsmInstruction(address, mnemonic) {
+    p_kind = kind;
+}
+
+AMDGPUInstructionKind SgAsmAmdgpuInstruction::get_kind() const {
+    return p_kind;
+}
+
+
+SgAsmAmdgpuInstruction::~SgAsmAmdgpuInstruction() {
+    p_kind = rose_amdgpu_op_INVALID;
+}
+
+
+void SgAsmAmdgpuInstruction::set_kind(AMDGPUInstructionKind kind) {
+    p_kind = kind;
+}
+
+
 SgAsmx86RegisterReferenceExpression::SgAsmx86RegisterReferenceExpression(X86RegisterClass register_class,
                                                                          int register_number,
                                                                          X86PositionInRegister position_in_register) {
@@ -1605,6 +1635,11 @@ SgAsmFloatValueExpression *isSgAsmFloatValueExpression(SgNode *s) {
 SgAsmArmv8Instruction *isSgAsmArmv8Instruction(SgNode *s) {
     return dynamic_cast<SgAsmArmv8Instruction *>(s);
 }
+
+SgAsmAmdgpuInstruction *isSgAsmAmdgpuInstruction(SgNode *s) {
+    return dynamic_cast<SgAsmAmdgpuInstruction *>(s);
+}
+
 
 SgAsmPowerpcInstruction *isSgAsmPowerpcInstruction(SgNode *s) {
     return dynamic_cast<SgAsmPowerpcInstruction *>(s);

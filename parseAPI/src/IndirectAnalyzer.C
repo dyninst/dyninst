@@ -61,8 +61,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     parsing_printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
     parsing_printf("Looking for thunk\n");
 
-    printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
-boost::make_lock_guard(*func);
+    boost::make_lock_guard(*func);
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
     GetAllReachableBlock();

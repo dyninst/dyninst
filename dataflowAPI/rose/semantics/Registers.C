@@ -2,6 +2,7 @@
 //#include "sage3basic.h"
 #include "Registers.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include <boost/foreach.hpp>
@@ -643,6 +644,31 @@ RegisterDictionary::print(std::ostream &o) const {
 //    }
 //    return regs;
 //}
+//
+/** AMDGPU registers.
+ * There are a total of 104 scalar general purpose registers each 32 bits wide. Each of these registers can be addressed as its 32-bit or 64-bit form */
+const RegisterDictionary *
+RegisterDictionary::dictionary_amdgpu() {
+    static std::once_flag initialized;
+    static RegisterDictionary *regs = NULL;
+    std::call_once(initialized, []() {
+        regs = new RegisterDictionary("amdgpu");
+        regs->insert("amdgpu_pc",amdgpu_regclass_pc,0,0,48);
+        regs->insert("amdgpu_scc",amdgpu_regclass_hwr,0,0,1);
+        for (unsigned idx = 0; idx < 105; idx++) {
+            regs->insert("amdgpu_sgpr" + StringUtility::numberToString(idx), 
+                        amdgpu_regclass_sgpr, amdgpu_sgpr0 + idx, 0, 32);
+        }
+        for (unsigned idx = 0; idx < 256; idx++) {
+            regs->insert("amdgpu_vgpr" + StringUtility::numberToString(idx), 
+                        amdgpu_regclass_vgpr, amdgpu_vgpr0 + idx, 0, 32);
+        }
+
+
+    });
+    return regs;
+}
+
 
 /** ARMv8-A registers.
  * There are a total of 32 general purpose registers each 64 bits wide. Each of these registers can be addressed as its 32-bit or 64-bit form. The former are named with the prefix W and the latter with a prefix X. The 32nd register is not a physical register but the zero register and referred to as WZR/ZR. */

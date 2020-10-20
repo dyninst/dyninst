@@ -1625,7 +1625,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             // resume to resolve jump table
             auto work_ah = work->ah();
             parsing_printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
-            printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
             ProcessCFInsn(frame,NULL,work->ah());
             // We only re-parse jump tables
             if (!work_ah->isTailCall(frame.func, INDIRECT, frame.num_insns, frame.knownTargets))
@@ -1778,7 +1777,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             } else if(ah->getInstruction().getCategory()==c_NonReturnInsn) {
                 // this is special treatment for non-returning instruction
                 // examples are amdgpu_op_s_endpgm and amddgpu_op_s_endpgm_saved
-                cout << "calling endblock for non-returning instruction " << ah->getAddr() << endl; 
+                //cout << "calling endblock for non-returning instruction " << std::hex <<ah->getAddr() << endl; 
                 end_block(cur,ahPtr);
                 break;
             }

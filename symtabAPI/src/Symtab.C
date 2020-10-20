@@ -888,7 +888,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
 {
     Symbol* sym = const_cast<Symbol*>(sym_tmp);
 
-    cout << " calling " << __func__ << ", symbol = " << sym_tmp->getPrettyName() << endl;
+    //cout << " calling " << __func__ << ", symbol = " << sym_tmp->getPrettyName() << endl;
     switch(sym->getType()) {
         case Symbol::ST_FUNCTION: 
         case Symbol::ST_INDIRECT:

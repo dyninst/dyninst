@@ -41,6 +41,8 @@
 #include "../rose/x86InstructionSemantics.h"
 #include "external/rose/powerpcInstructionEnum.h"
 
+#include "external/rose/amdgpuInstructionEnum.h"
+
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::DataflowAPI;
@@ -1445,6 +1447,8 @@ PowerpcInstructionKind RoseInsnPPCFactory::makeRoseBranchOpcode(entryID iapi_opc
     return powerpc_unknown_instruction;
   }
 }
+
+#include "convertAmdgpuOpcode.h"
 
 ARMv8InstructionKind RoseInsnArmv8Factory::convertKind(entryID opcode) {
     switch(opcode) {

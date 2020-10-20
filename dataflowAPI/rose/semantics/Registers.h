@@ -47,6 +47,7 @@ public:
     static const RegisterDictionary *dictionary_amd64();                // AMD Athlon 64*/
     static const RegisterDictionary *dictionary_armv8();                // ARMv8-A architecture
     static const RegisterDictionary *dictionary_powerpc();
+    static const RegisterDictionary *dictionary_amdgpu();
 
     RegisterDictionary(const std::string &name)
         :name(name) {}

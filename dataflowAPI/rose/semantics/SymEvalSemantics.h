@@ -6,6 +6,7 @@
 #define DYNINST_SYMEVALSEMANTICS_H
 
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/amdgpuInstructionEnum.h"
 #include "BaseSemantics2.h"
 #include "../../h/SymEval.h"
 
@@ -124,6 +125,7 @@ namespace rose {
                 typedef boost::shared_ptr<class RegisterStateASTARM64> RegisterStateASTARM64Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
+                typedef boost::shared_ptr<class RegisterStateASTAMDGPU> RegisterStateASTAMDGPUPtr;
 
                 class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
@@ -240,6 +242,26 @@ namespace rose {
 		private:
 		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
 		};
+		class RegisterStateASTAMDGPU : public RegisterStateAST {
+		public:
+		    RegisterStateASTAMDGPU(const BaseSemantics::SValuePtr &protoval,
+                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+
+                    static RegisterStateASTAMDGPUPtr instance(const BaseSemantics::SValuePtr &protoval,
+                                                             const RegisterDictionary *regdict) {
+                        return RegisterStateASTAMDGPUPtr(new RegisterStateASTAMDGPU(protoval, regdict));
+                    }
+
+                    static RegisterStateASTAMDGPUPtr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateASTAMDGPUPtr retval = boost::dynamic_pointer_cast<RegisterStateASTAMDGPU>(from);
+                        ASSERT_not_null(retval);
+                        return retval;
+                    }
+
+		private:
+		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+		};
+
 
 
                 /***************************************************************************************************/
