@@ -565,14 +565,14 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         }
 
         if (foundSec->isDirty()) {
-            newdata->d_buf = (char *) malloc(foundSec->getDiskSize());
+            newdata->d_buf = allocate_buffer(foundSec->getDiskSize());
             memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
             newdata->d_size = foundSec->getDiskSize();
             newshdr->sh_size = foundSec->getDiskSize();
         }
         else if (olddata->d_buf)     //copy the data buffer from oldElf
         {
-            newdata->d_buf = (char *) malloc(olddata->d_size);
+            newdata->d_buf = allocate_buffer(olddata->d_size);
             memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
         }
 
@@ -588,7 +588,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Expand the NOBITS sections in file & and change the type from SHT_NOBITS to SHT_PROGBITS
             if (shdr->sh_type == SHT_NOBITS) {
                 newshdr->sh_type = SHT_PROGBITS;
-                newdata->d_buf = (char *) malloc(shdr->sh_size);
+                newdata->d_buf = allocate_buffer(shdr->sh_size);
                 memset(newdata->d_buf, '\0', shdr->sh_size);
                 newdata->d_size = shdr->sh_size;
                 if (NOBITSstartPoint == oldEhdr->e_shnum)
@@ -1109,7 +1109,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
     // sections.  Fill in the new section's data with what we just wrote.
     Elf_Data *data = elf_newdata(phdrs_scn);
     size_t total_size = (size_t) newEhdr->e_phnum * (size_t) newEhdr->e_phentsize;
-    data->d_buf = malloc(total_size);
+    data->d_buf = allocate_buffer(total_size);
     memcpy(data->d_buf, phdr_data, total_size);
     data->d_size = total_size;
     data->d_align = 0;
@@ -1424,7 +1424,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         }
 
         //Set up the data
-        newdata->d_buf = malloc(newSecs[i]->getDiskSize());
+        newdata->d_buf = allocate_buffer(newSecs[i]->getDiskSize());
         memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getDiskSize());
         newdata->d_off = 0;
         newdata->d_size = newSecs[i]->getDiskSize();
@@ -1505,7 +1505,7 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     newshdr->sh_addralign = 4;
 
     //Set up the data
-    newdata->d_buf = (char *) malloc(secNameIndex);
+    newdata->d_buf = allocate_buffer(secNameIndex);
     char *ptr = (char *) newdata->d_buf;
     for (unsigned i = 0; i < secNames.size(); i++) {
         memcpy(ptr, secNames[i].c_str(), secNames[i].length());
@@ -2556,6 +2556,12 @@ void emitElf<ElfTypes>::addDTNeeded(string s) {
     if (find(libs_rmd.begin(), libs_rmd.end(), s) != libs_rmd.end())
         return;
     DT_NEEDEDEntries.push_back(s);
+}
+
+template<class ElfType>
+char* emitElf<ElfType>::allocate_buffer(size_t size) {
+    buffers.push_back(malloc(size));
+    return static_cast<char*>(buffers.back());
 }
 
 
