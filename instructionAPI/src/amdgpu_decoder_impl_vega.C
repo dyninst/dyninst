@@ -308,9 +308,12 @@ void InstructionDecoder_amdgpu::decodeFLAT(){
 }
 void InstructionDecoder_amdgpu::mainDecode(InstructionDecoder::buffer &b){
 	if(IS_SOP2(insn_long)){
+		setUseImm<0,7,255>(b,4);
+		setUseImm<8,15,255>(b,4);
 		decodeSOP2();
 	}
 	else if(IS_SOP1(insn_long)){
+		setUseImm<0,7,255>(b,4);
 		decodeSOP1();
 	}
 	else if(IS_SOPK(insn_long)){
@@ -326,12 +329,19 @@ void InstructionDecoder_amdgpu::mainDecode(InstructionDecoder::buffer &b){
 		decodeSMEM();
 	}
 	else if(IS_VOP2(insn_long)){
+		setUseImm<0,8,249>(b,4);
+		setUseImm<0,8,250>(b,4);
+		setUseImm<0,8,255>(b,4);
 		decodeVOP2();
 	}
 	else if(IS_VOP1(insn_long)){
+		setUseImm<0,8,249>(b,4);
+		setUseImm<0,8,250>(b,4);
+		setUseImm<0,8,255>(b,4);
 		decodeVOP1();
 	}
 	else if(IS_VOPC(insn_long)){
+		setUseImm<0,8,255>(b,4);
 		decodeVOPC();
 	}
 	else if(IS_VINTRP(insn_long)){
@@ -364,15 +374,15 @@ void InstructionDecoder_amdgpu::mainDecodeOpcode(InstructionDecoder::buffer &b){
 	if(IS_SOP2(insn_long)){
 		unsigned insn_size = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop2_insn_table[longfield<23,29>(insn_long)];
-		setUseImm<0,7,255>();
-		setUseImm<8,15,255>();
+		setUseImm<0,7,255>(b,4);
+		setUseImm<8,15,255>(b,4);
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SOP2;
 	}
 	else if(IS_SOP1(insn_long)){
 		unsigned insn_size = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop1_insn_table[longfield<8,15>(insn_long)];
-		setUseImm<0,7,255>();
+		setUseImm<0,7,255>(b,4);
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SOP1;
 	}
@@ -403,25 +413,25 @@ void InstructionDecoder_amdgpu::mainDecodeOpcode(InstructionDecoder::buffer &b){
 	else if(IS_VOP2(insn_long)){
 		unsigned insn_size = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop2_insn_table[longfield<25,30>(insn_long)];
-		setUseImm<0,8,249>();
-		setUseImm<0,8,250>();
-		setUseImm<0,8,255>();
+		setUseImm<0,8,249>(b,4);
+		setUseImm<0,8,250>(b,4);
+		setUseImm<0,8,255>(b,4);
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOP2;
 	}
 	else if(IS_VOP1(insn_long)){
 		unsigned insn_size = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop1_insn_table[longfield<9,16>(insn_long)];
-		setUseImm<0,8,249>();
-		setUseImm<0,8,250>();
-		setUseImm<0,8,255>();
+		setUseImm<0,8,249>(b,4);
+		setUseImm<0,8,250>(b,4);
+		setUseImm<0,8,255>(b,4);
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOP1;
 	}
 	else if(IS_VOPC(insn_long)){
 		unsigned insn_size = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vopc_insn_table[longfield<17,24>(insn_long)];
-		setUseImm<0,8,255>();
+		setUseImm<0,8,255>(b,4);
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOPC;
 	}

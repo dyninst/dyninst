@@ -211,9 +211,9 @@ namespace Dyninst {
             //for load store
             void insnSize(unsigned int insn_size );
             
-            Expression::Ptr decodeSSRC(InstructionDecoder::buffer & b , unsigned int index);
-            Expression::Ptr decodeVSRC(InstructionDecoder::buffer & b , unsigned int index);
-            Expression::Ptr decodeVDST(InstructionDecoder::buffer & b , unsigned int index);
+            Expression::Ptr decodeSSRC(unsigned int index);
+            Expression::Ptr decodeVSRC(unsigned int index);
+            Expression::Ptr decodeVDST(unsigned int index);
             
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
@@ -239,6 +239,7 @@ namespace Dyninst {
  
             bool useImm;
             unsigned int immLen;
+            unsigned int immLiteral;
             bool setSCC;
 
 #define IS_LD_ST() (isLoad || isStore )
@@ -265,7 +266,7 @@ namespace Dyninst {
 
             Expression::Ptr branchCond;
             Expression::Ptr branchTarget;
-
+            
             void setBranch(){
                 isBranch = true;
             }
@@ -282,11 +283,17 @@ namespace Dyninst {
                 isCall =  true;
             }
 
+            inline unsigned int get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
+                assert(offset %4 ==0 );
+                return b.start[offset+3] << 24 | b.start[offset + 2] << 16 | b.start[offset +1 ] << 8 | b.start [offset];
+            }
+
             template<unsigned int start,unsigned int end, unsigned int candidate>
-            void setUseImm(){
+            void setUseImm(InstructionDecoder::buffer & b, unsigned int offset){
                 if ( longfield<start,end>(insn_long) == candidate ){
                     useImm = true;
                     immLen = 4;
+                    immLiteral = get32bit(b,offset);
                 }
                 
             }

@@ -268,9 +268,7 @@ namespace Dyninst {
 					u64         
 					);
 
-			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
-			Expression::Ptr sgpr_offset_ast = decodeSSRC(*tmp,layout.soffset);
-            delete tmp;
+			Expression::Ptr sgpr_offset_ast = decodeSSRC(layout.soffset);
 			Expression::Ptr addr_ast = makeAddExpression(
 					makeAddExpression(
 						const_base_ast,
@@ -407,9 +405,8 @@ namespace Dyninst {
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
 			//cout << " finalizing vop1 operands , vdst = " << std::dec << layout.vdst << " src0 = " << layout.src0 <<endl;
 
-			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
-			insn_in_progress->appendOperand(decodeVDST(*tmp,layout.vdst),false,true);
-			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.src0),true,false);
+			insn_in_progress->appendOperand(decodeVDST(layout.vdst),false,true);
+			insn_in_progress->appendOperand(decodeSSRC(layout.src0),true,false);
 
 		}
 
@@ -419,7 +416,6 @@ namespace Dyninst {
 			layout_sop1 & layout = insn_layout.sop1;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop1_insn_table[layout.op];
 
-			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
 			if(isBranch){
 				if(isModifyPC){
 					Expression::Ptr new_pc_ast;
@@ -436,7 +432,7 @@ namespace Dyninst {
 						//insn_in_progress->appendOperand(new_pc_ast,true,false);
 					    insn_in_progress->addSuccessor(new_pc_ast, false, false, false, false);
 					}else if(insn_in_progress->getOperation().operationID == amdgpu_op_s_swappc_b64){
-						Expression::Ptr store_pc_ast = decodeSSRC(*tmp,layout.sdst);
+						Expression::Ptr store_pc_ast = decodeSSRC(layout.sdst);
                         
 					    // for swap pc we assume it is a call, so we add the fall through expr	
                         // iscall , is indirect, isconditional , isfall through
@@ -446,8 +442,8 @@ namespace Dyninst {
 					}
 				}
 			}else{
-				insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.sdst),false,true);
-				insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc0),true,false);
+				insn_in_progress->appendOperand(decodeSSRC(layout.sdst),false,true);
+				insn_in_progress->appendOperand(decodeSSRC(layout.ssrc0),true,false);
 			}
 
 		}
@@ -457,7 +453,6 @@ namespace Dyninst {
 			layout_sopp & layout = insn_layout.sopp;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
 
-			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
 			if(isBranch){
 				if(!isModifyPC){	
 					//cout << "calling make branch target "<< endl;
@@ -465,8 +460,6 @@ namespace Dyninst {
 				}	
 
 			}
-			//insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.sdst),false,true);
-			//insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc0),true,false);
 
 		}
 
@@ -475,7 +468,6 @@ namespace Dyninst {
 			layout_sopp & layout = insn_layout.sopp;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
 
-			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
 			if(isBranch){
 				if(!isModifyPC){	
 					//cout << "calling make branch target "<< endl;
@@ -484,8 +476,6 @@ namespace Dyninst {
 				}	
 
 			}
-			//insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.sdst),false,true);
-			//insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc0),true,false);
 
 		}
 
@@ -497,10 +487,9 @@ namespace Dyninst {
 			layout_sop2 & layout = insn_layout.sop2;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
 
-			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
-			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.sdst),false,true);
-			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc1),true,false);
-			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.ssrc0),true,false);
+			insn_in_progress->appendOperand(decodeSSRC(layout.sdst),false,true);
+			insn_in_progress->appendOperand(decodeSSRC(layout.ssrc1),true,false);
+			insn_in_progress->appendOperand(decodeSSRC(layout.ssrc0),true,false);
 
 		}
 		void InstructionDecoder_amdgpu::finalizeSMEMOperands(){
@@ -532,7 +521,6 @@ namespace Dyninst {
 				Expression::Ptr addr_expr = makeDereferenceExpression(makeAddExpression(sbase_expr,remain_expr,u64),u64);
 
 
-				InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
 
 				Expression::Ptr sdata_expr = makeRegisterExpression(makeAmdgpuRegID(amdgpu::sgpr0,layout.sdata,num_elements));
 
@@ -583,20 +571,20 @@ namespace Dyninst {
 		void decodeMemory(unsigned int base, unsigned offset , unsigned int m0){
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu::decodeVDST(InstructionDecoder::buffer &b, unsigned int index){
+		Expression::Ptr InstructionDecoder_amdgpu::decodeVDST(unsigned int index){
 			index += 255;
-            return decodeSSRC(b,index);
+            return decodeSSRC(index);
 		} 
 
 
-		Expression::Ptr InstructionDecoder_amdgpu::decodeVSRC(InstructionDecoder::buffer &b, unsigned int index){
+		Expression::Ptr InstructionDecoder_amdgpu::decodeVSRC(unsigned int index){
 			if (index > 255)
 				index = 0;
 			MachRegister mr = makeAmdgpuRegID(amdgpu::vgpr0,index & 0xff);
 			return makeRegisterExpression(mr);
 		} 
 
-		Expression::Ptr InstructionDecoder_amdgpu::decodeSSRC(InstructionDecoder::buffer &b, unsigned int index){
+		Expression::Ptr InstructionDecoder_amdgpu::decodeSSRC(unsigned int index){
 			if (0<= index && index < 102){
 				MachRegister mr = makeAmdgpuRegID(amdgpu::sgpr0,index);
 				return makeRegisterExpression(mr);
@@ -677,12 +665,8 @@ namespace Dyninst {
 				assert ( 0 && "reserved index " ) ;
 			}
 			else if(index == 0xff){
-
-				unsigned int imm = get32bit(b,4);
 				//std::cerr << "\nusing imm " << imm << std::endl;
-				useImm = true;
-				immLen = 4;
-				return Immediate::makeImmediate(Result(u32, unsign_extend32(32,imm )));
+				return Immediate::makeImmediate(Result(u32, unsign_extend32(32,immLiteral )));
 			}else if( 256 <= index  && index <= 511){
 				MachRegister mr = makeAmdgpuRegID(amdgpu::vgpr0,index >>8);
 				return makeRegisterExpression(mr);
