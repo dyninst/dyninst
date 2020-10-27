@@ -170,6 +170,7 @@ namespace Dyninst {
 				return makeRegisterExpression(makeAmdgpuRegID(amdgpu::sgpr0,offset));
 			if (offset == 124)
 				return makeRegisterExpression(amdgpu::m0);
+            cerr << " unknown offset in sgpr or m0 " << offset << endl; 
 			assert(0 && "shouldn't reach here");
 		}
 
@@ -267,7 +268,9 @@ namespace Dyninst {
 					u64         
 					);
 
-			Expression::Ptr sgpr_offset_ast = decodeSGPRorM0(layout.soffset);
+			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
+			Expression::Ptr sgpr_offset_ast = decodeSSRC(*tmp,layout.soffset);
+            delete tmp;
 			Expression::Ptr addr_ast = makeAddExpression(
 					makeAddExpression(
 						const_base_ast,
@@ -405,7 +408,7 @@ namespace Dyninst {
 			//cout << " finalizing vop1 operands , vdst = " << std::dec << layout.vdst << " src0 = " << layout.src0 <<endl;
 
 			InstructionDecoder::buffer *tmp = new InstructionDecoder::buffer("",0);
-			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.vdst),false,true);
+			insn_in_progress->appendOperand(decodeVDST(*tmp,layout.vdst),false,true);
 			insn_in_progress->appendOperand(decodeSSRC(*tmp,layout.src0),true,false);
 
 		}
@@ -579,6 +582,11 @@ namespace Dyninst {
 
 		void decodeMemory(unsigned int base, unsigned offset , unsigned int m0){
 		}
+
+		Expression::Ptr InstructionDecoder_amdgpu::decodeVDST(InstructionDecoder::buffer &b, unsigned int index){
+			index += 255;
+            return decodeSSRC(b,index);
+		} 
 
 
 		Expression::Ptr InstructionDecoder_amdgpu::decodeVSRC(InstructionDecoder::buffer &b, unsigned int index){

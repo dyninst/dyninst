@@ -213,6 +213,7 @@ namespace Dyninst {
             
             Expression::Ptr decodeSSRC(InstructionDecoder::buffer & b , unsigned int index);
             Expression::Ptr decodeVSRC(InstructionDecoder::buffer & b , unsigned int index);
+            Expression::Ptr decodeVDST(InstructionDecoder::buffer & b , unsigned int index);
             
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
