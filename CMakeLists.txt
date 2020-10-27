@@ -29,9 +29,9 @@ find_package(Threads)
 include(Boost)
 include(ThreadingBuildingBlocks)
 include(ElfUtils)
-include(LibIberty)
 
 include(shared)
+include(LibIberty)
 
 if(USE_OpenMP)
   find_package(OpenMP REQUIRED)
@@ -224,9 +224,7 @@ endif()
 
 if(UNIX)
   message(STATUS "Adding Unix-specific dependencies")
-  if(NOT USE_GNU_DEMANGLER)
-    add_dependencies(common libiberty_imp)
-  endif()
+  add_dependencies(common libiberty_imp)
 endif()
 
 if(TARGET boost)

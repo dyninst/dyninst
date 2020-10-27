@@ -792,12 +792,6 @@ Dyninst::SymtabAPI::Module *Dyninst::SymtabAPI::convert(const BPatch_module *m) 
    return m->mod->pmod()->mod();
 }
 
-bool BPatch_module::isNativeCompiler()
-{
-   if (!mod) return false;
-   return mod->obj()->parse_img()->isNativeCompiler();
-}
-
 size_t BPatch_module::getAddressWidth()
 {
    if (!mod) return 0;

@@ -159,6 +159,7 @@ namespace Dyninst {
 
             ~emitElf() {
                 if( linkedStaticData ) delete[] linkedStaticData;
+                for(auto *b : buffers) free(b);
             }
 
             bool createSymbolTables(std::set<Symbol *> &allSymbols);
@@ -281,6 +282,8 @@ namespace Dyninst {
             bool cannotRelocatePhdrs();
 
             bool isStaticBinary;
+            std::vector<void*> buffers;
+            char* allocate_buffer(size_t);
 
         };
         extern template class emitElf<ElfTypes32>;

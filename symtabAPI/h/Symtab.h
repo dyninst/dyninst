@@ -244,7 +244,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isData(const Offset where) const;
    bool isValidOffset(const Offset where) const;
 
-   bool isNativeCompiler() const;
    bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 
    /***** Line Number Information *****/
@@ -423,12 +422,10 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool fixSymRegion(Symbol *sym);
 
    bool fixSymModules(std::vector<Symbol *> &raw_syms);
-   bool demangleSymbols(std::vector<Symbol *> &rawsyms);
    bool createIndices(std::vector<Symbol *> &raw_syms, bool undefined);
    bool createAggregates();
 
    bool fixSymModule(Symbol *&sym);
-   bool demangleSymbol(Symbol *&sym);
    bool addSymbolToIndices(Symbol *&sym, bool undefined);
    bool addSymbolToAggregates(const Symbol *sym);
    bool doNotAggregate(const Symbol *sym);
@@ -436,12 +433,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 
    void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-
-   bool buildDemangledName( const std::string &mangled, 
-         std::string &pretty,
-         std::string &typed,
-         bool nativeCompiler, 
-         supportedLanguages lang );
 
    // Change the type of a symbol after the fact
    bool changeType(Symbol *sym, Symbol::SymbolType oldType);
@@ -514,8 +505,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool is_a_out;
    Offset main_call_addr_; // address of call to main()
-
-   bool nativeCompiler;
 
    unsigned address_width_;
    char *code_ptr_;

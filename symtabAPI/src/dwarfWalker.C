@@ -1562,26 +1562,18 @@ bool DwarfWalker::addFuncToContainer(boost::shared_ptr<Type> returnType) {
       functions, but confuses the tests.  Since Type uses vectors
       to hold field names, however, duplicate -- demangled names -- are OK. */
 
-   char * demangledName = P_cplus_demangle( curName().c_str(), isNativeCompiler() );
-   std::string toUse;
+   std::string demangledName = P_cplus_demangle( curName() );
 
-   if (!demangledName) {
-      dwarf_printf("(0x%lx) Unable to demangle %s, using it as mangled\n", id(), curName().c_str());
-      toUse = curName();
-   }
-   else {
-      // Strip everything left of the rightmost ':' off to get rid of the class names
-      toUse = demangledName;
-      // rfind finds the last occurrence of ':'; add 1 to get past it.
-      size_t offset = toUse.rfind(':');
-      if (offset != toUse.npos) {
-         toUse = toUse.substr(offset+1);
-      }
+   // Strip everything left of the rightmost ':' off to get rid of the class names
+   // rfind finds the last occurrence of ':'; add 1 to get past it.
+   size_t offset = demangledName.rfind(':');
+   if (offset != demangledName.npos) {
+      demangledName.erase(0, offset+1);
    }
 
-   curEnclosure()->asFieldListType().addField( toUse, Type::make_shared<typeFunction>(
-      type_id(), returnType, toUse));
-   free( demangledName );
+   curEnclosure()->asFieldListType().addField( demangledName, Type::make_shared<typeFunction>(
+      type_id(), returnType, demangledName));
+
    return true;
 }
 

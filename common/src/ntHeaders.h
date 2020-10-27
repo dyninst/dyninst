@@ -212,10 +212,16 @@ inline int P_mkdir(const char *pathname, int) {
 inline int P_unlink(const char *pathname) {
 	return _unlink(pathname);
 }
-extern char *cplus_demangle(char *, int, bool );
+extern char *cplus_demangle(const char *, int, bool);
 /* We can't export this, it's inline. */
-inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool includeTypes = false ) {
-   return cplus_demangle( (char *)symbol, 0, includeTypes );
+inline std::string P_cplus_demangle( const std::string &symbol, bool includeTypes = false ) {
+   char *demangled = cplus_demangle( symbol.c_str(), 0, includeTypes );
+   if (demangled)  {
+      std::string s = std::string(demangled);
+      free(demangled)
+      return s;
+   }  else  {
+      return symbol;
    }
 
 #ifndef BPATCH_LIBRARY
