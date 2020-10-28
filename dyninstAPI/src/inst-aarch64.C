@@ -620,6 +620,8 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(0);
     }
 
+    inst_printf("emitCall to: %s\n", callee->name().c_str());
+
     vector<int> savedRegs;
 
     // save r0-r7
@@ -641,7 +643,8 @@ Register EmitterAARCH64::emitCall(opCode op,
     }
 
     // Passing operands to registers
-    for(size_t id = 0; id < operands.size(); id++)
+    // first 8 put into registers r0-r7
+    for(size_t id = 0; id < operands.size() && id < 8; id++)
     {
         Register reg = REG_NULL;
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true))
@@ -653,6 +656,28 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(reg!=REG_NULL);
     }
 
+    // remaining parameters put into the stack
+    auto num_operands = operands.size();
+    if( num_operands > 8 ){
+        // adjust stack
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0,
+               ALIGN_QUADWORD( (num_operands-8)*8 ), REG_SP, REG_SP, true);
+
+        // generate parameter code and load into the stack
+        for(size_t id = 8; id < num_operands; id++)
+        {
+            Register scratch = gen.rs()->getScratchRegister(gen);
+            Address unnecessary = ADDR_NULL;
+            if (!operands[id]->generateCode_phase2(gen, false, unnecessary, scratch))
+                assert(0);
+
+            // move scratch to stack
+            int offset_from_sp = 8 * (id-8);
+            insnCodeGen::saveRegister(gen, scratch, offset_from_sp);
+
+        }
+    }
+
     assert(gen.rs());
 
     //Address of function to call in scratch register
@@ -660,12 +685,18 @@ Register EmitterAARCH64::emitCall(opCode op,
     assert(scratch != REG_NULL && "cannot get a scratch register");
     gen.markRegDefined(scratch);
 
-    if (gen.addrSpace()->edit() != NULL) {
-        // gen.as.edit() checks if we are in rewriter mode
-        Address dest = getInterModuleFuncAddr(callee, gen);
+    // prepare register with address to call
+    // if ( rewrite mode )
+    //     - if ( callee in different module ) call getInterModuleFunc
+    // else (attach or create mode)
+    //     - use the scratch register to load calle address
+    //
+    if (gen.addrSpace()->edit() != NULL) { // rewriter mode
+        Address dest = callee->addr();
+        if( gen.func()->obj() != callee->obj() )
+            dest = getInterModuleFuncAddr(callee, gen);
 
         // emit ADR instruction
-
         long disp = dest - gen.currAddr();
         instruction insn;
         insn.clear();
@@ -676,11 +707,13 @@ Register EmitterAARCH64::emitCall(opCode op,
         INSN_SET(insn, 0, 4, scratch);
         insnCodeGen::generate(gen, insn);
 
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
+        if( gen.func()->obj() != callee->obj() )
+            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
     } else {
         insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
     }
 
+    // emit BL instruction
     instruction branchInsn;
     branchInsn.clear();
 
@@ -696,6 +729,13 @@ Register EmitterAARCH64::emitCall(opCode op,
     INSN_SET(branchInsn, 16, 31, BRegOp);
     INSN_SET(branchInsn, 21, 21, 1);
     insnCodeGen::generate(gen, branchInsn);
+
+    // reset stack pointer if used for parameters
+    if( num_operands > 8 ){
+        // re-adjust stack
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
+               ALIGN_QUADWORD( (num_operands-8)*8 ), REG_SP, REG_SP, true);
+    }
 
     /*
      * Restoring registers
@@ -1739,6 +1779,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     if (!binEdit || !func) {
         assert(!"Invalid function call (function info is missing)");
     }
+    inst_printf("getInterModuleFuncAddr to %s\n", func->get_name().c_str());
 
     // find the Symbol corresponding to the func_instance
     std::vector<SymtabAPI::Symbol *> syms;

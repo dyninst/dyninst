@@ -1744,6 +1744,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         }
     }
 
+    rewrite_printf("dynamic symbols: \n");
     for (auto sym_iter = allSymbols.begin(); sym_iter != allSymbols.end(); ++sym_iter) {
         if ((*sym_iter)->isInSymtab()) {
             allSymSymbols.push_back(*sym_iter);
@@ -1751,6 +1752,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         if (!obj->isStaticBinary()) {
             if ((*sym_iter)->isInDynSymtab()) {
                 allDynSymbols.push_back(*sym_iter);
+                rewrite_printf("\t%s\n", (*sym_iter)->getMangledName().c_str());
             }
         }
     }
