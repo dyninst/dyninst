@@ -75,8 +75,10 @@ namespace Dyninst
         typedef std::map<signed int, std::string> NameMap;
         static boost::shared_ptr<MachRegister::NameMap> names();
         void init_names();
-
-        void getAMDGPUROSERegister(int &c, int &n, int &p);
+        // reg_class is set to a corresponding enum value that can be found in "external/rose/amdgpuInstructionEnum.h"
+        // reg_idx is set to the index/id of the register for future lookup
+        // offset is set to the byte offset from where the register value starts, that is, sub register access ( or register access in a register vector)
+        void getAMDGPUROSERegister(int &reg_class, int &reg_idx, int &offset);
     public:
 
         MachRegister();

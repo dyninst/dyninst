@@ -24,18 +24,15 @@ public:
     friend SgAsmAmdgpuInstruction *isSgAsmAmdgpuInstruction( SgNode * s );
 
 /*! \brief Casts pointer from base class to derived class (for const pointers) */
-     friend const SgAsmAmdgpuInstruction *isSgAsmAmdgpuInstruction(const SgNode *s);
+    friend const SgAsmAmdgpuInstruction *isSgAsmAmdgpuInstruction(const SgNode *s);
 
-public:
     AMDGPUInstructionKind get_kind() const;
 
     void set_kind(AMDGPUInstructionKind kind);
 
-public:
     virtual ~SgAsmAmdgpuInstruction();
 
 
-public:
     SgAsmAmdgpuInstruction(rose_addr_t address = 0, std::string mnemonic = "",
                           AMDGPUInstructionKind kind = rose_amdgpu_op_INVALID);
 
