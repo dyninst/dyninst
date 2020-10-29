@@ -136,14 +136,6 @@ bool IA_amdgpu::isLinkerStub() const
     return false;
 }
 
-#if 0
-ParseAPI::StackTamper
-IA_amdgpu::tampersStack(ParseAPI::Function *, Address &) const
-{
-    return TAMPER_NONE;
-}
-#endif
-
 bool IA_amdgpu::isNopJump() const
 {
     return false;

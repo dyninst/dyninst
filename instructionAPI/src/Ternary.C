@@ -104,19 +104,19 @@ namespace Dyninst
     }
     bool TernaryAST::bind(Expression* e, const Result& val)
     {
-        return false; // false
-        if(Expression::bind(e, val)) {
+        return false; // TODO
+
+        /*if(Expression::bind(e, val)) {
             return true;
-        }
-	//        fprintf(stderr, "checking %s against %s with checkRegID in TernaryAST::bind... %p", e->format().c_str(),
-	//format().c_str(), this);
+        }*/
+	    //fprintf(stderr, "checking %s against %s with checkRegID in TernaryAST::bind... %p", e->format().c_str(),
+	    //format().c_str(), this);
         /*if(e->checkRegID(m_Reg, m_Low, m_High))
         {
             setValue(val);
             return true;
         }*/
         //fprintf(stderr, "no\n");
-        return false;
     }
   };
 };
