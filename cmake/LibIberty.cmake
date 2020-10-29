@@ -86,8 +86,6 @@ endif()
 add_library(LibIberty STATIC IMPORTED GLOBAL)
 set_target_properties(LibIberty PROPERTIES IMPORTED_LOCATION ${_li_libs})
 set_target_properties(LibIberty PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${_li_inc_dirs})
-#target_include_directories(LibIberty INTERFACE ${_li_inc_dirs})
-#target_link_libraries(LibIberty INTERFACE ${_li_libs})
 
 set(LibIberty_ROOT_DIR ${_li_root}
     CACHE PATH "Base directory the of LibIberty installation"
