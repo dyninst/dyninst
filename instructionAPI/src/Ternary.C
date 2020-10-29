@@ -85,16 +85,7 @@ namespace Dyninst
     std::string TernaryAST::format(formatStyle) const
     {
         std::string name = "("+cond->format() +"?" + first->format() + ":" + second->format()+ ")";
-        
-        /*std::string name = m_Reg.name();
-        std::string::size_type substr = name.rfind(':');
-        if(substr != std::string::npos)
-        {
-            name = name.substr(substr + 1, name.length());
-        }*/
-
-        /* we have moved to AT&T syntax (lowercase registers) */
-        std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+        for (auto &c: name) ::toupper(c);
         return name;
     }
     
