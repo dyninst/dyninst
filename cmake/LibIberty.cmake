@@ -10,6 +10,7 @@
 # LibIberty_ROOT_DIR       - Computed base directory the of LibIberty installation
 # LibIberty_LIBRARY_DIRS   - Link directories for LibIberty libraries
 # LibIberty_LIBRARIES      - LibIberty library files
+# LibIberty_INCLUDE        - LibIberty include files
 #
 # NOTE:
 # The exported LibIberty_ROOT_DIR can be different from the value provided by the user
@@ -40,15 +41,15 @@ set(LibIberty_LIBRARYDIR "${LibIberty_ROOT_DIR}/lib"
 
 # -------------- PACKAGES -----------------------------------------------------
 
-find_package(LibIberty REQUIRED)
+find_package(LibIberty)
 
 # -------------- SOURCE BUILD -------------------------------------------------
 if(LibIberty_FOUND)
   set(_li_root ${LibIberty_ROOT_DIR})
+  set(_li_inc_dirs ${LibIberty_INCLUDE_DIRS})
   set(_li_lib_dirs ${LibIberty_LIBRARY_DIRS})
   set(_li_libs ${LibIberty_LIBRARIES})
-  add_library(LibIberty STATIC IMPORTED)
-elseif(NOT LibIberty_FOUND AND STERILE_BUILD)
+elseif(STERILE_BUILD)
   message(FATAL_ERROR "LibIberty not found and cannot be downloaded because build is sterile.")
 else()
   message(STATUS "${LibIberty_ERROR_REASON}")
@@ -71,6 +72,7 @@ else()
   )
 
   set(_li_root ${CMAKE_INSTALL_PREFIX})
+  set(_li_inc_dirs ${_li_root}/include)
   set(_li_lib_dirs ${_li_root}/lib)
   set(_li_libs ${_li_lib_dirs}/libiberty/libiberty.a)
   
@@ -79,15 +81,17 @@ else()
   set(IBERTY_BUILD TRUE)
 endif()
 
-# Add a dummy target to either the found LibIberty or the one built from source.
-# NB: For backwards compatibility only
-add_custom_target(libiberty_imp)
-add_dependencies(libiberty_imp LibIberty)
-  
 # -------------- EXPORT VARIABLES ---------------------------------------------
+
+add_library(LibIberty STATIC IMPORTED GLOBAL)
+set_target_properties(LibIberty PROPERTIES IMPORTED_LOCATION ${_li_libs})
+set_target_properties(LibIberty PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${_li_inc_dirs})
 
 set(LibIberty_ROOT_DIR ${_li_root}
     CACHE PATH "Base directory the of LibIberty installation"
+    FORCE)
+set(LibIberty_INCLUDE_DIRS ${_li_inc_dirs}
+    CACHE PATH "LibIberty include directories"
     FORCE)
 set(LibIberty_LIBRARY_DIRS ${_li_lib_dirs}
     CACHE PATH "LibIberty library directory"
@@ -99,5 +103,6 @@ set(LibIberty_LIBRARIES ${_li_libs}
 # For backward compatibility only
 set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
 
+message(STATUS "LibIberty include dirs: ${LibIberty_INCLUDE_DIRS}")
 message(STATUS "LibIberty library dirs: ${LibIberty_LIBRARY_DIRS}")
 message(STATUS "LibIberty libraries: ${LibIberty_LIBRARIES}")

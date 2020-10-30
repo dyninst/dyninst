@@ -30,8 +30,11 @@ include(Boost)
 include(ThreadingBuildingBlocks)
 include(ElfUtils)
 
+if(UNIX)
+  include(LibIberty REQUIRED)
+endif()
+
 include(shared)
-include(LibIberty)
 
 if(USE_OpenMP)
   find_package(OpenMP REQUIRED)
@@ -220,11 +223,6 @@ if(BUILD_DOCS)
   else()
     message(STATUS "LaTeX not found")
   endif()
-endif()
-
-if(UNIX)
-  message(STATUS "Adding Unix-specific dependencies")
-  add_dependencies(common libiberty_imp)
 endif()
 
 if(TARGET boost)

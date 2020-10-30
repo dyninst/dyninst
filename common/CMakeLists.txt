@@ -107,14 +107,13 @@ set (SRC_LIST ${SRC_LIST}
 
 ADD_DEFINITIONS(-DCOMMON_LIB)
 
-if(IBERTY_FOUND)
-  set(DEPS ${IBERTY_LIBRARIES})
-elseif(PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
-  message(FATAL_ERROR "libiberty not found:  required on linux and freebsd.")
+dyninst_library(common)
+
+if(TARGET LibIberty)
+  add_dependencies(common LibIberty)
+  target_link_libraries(common PRIVATE LibIberty)
 endif()
 
-
-dyninst_library(common ${DEPS})
 if(TARGET TBB)
     add_dependencies(common TBB)
 endif()
