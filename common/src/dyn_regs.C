@@ -35,8 +35,6 @@
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/amdgpuInstructionEnum.h"
-#include <boost/format.hpp>
-
 #include <iostream>
 
 using namespace Dyninst;
