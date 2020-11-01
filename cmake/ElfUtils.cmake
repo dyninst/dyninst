@@ -37,6 +37,7 @@ if(NOT UNIX)
 endif()
 
 # Minimum acceptable version of elfutils
+# NB: We need >=0.178 because libdw isn't thread-safe before then
 set(_min_version 0.178)
 set(ElfUtils_MIN_VERSION ${_min_version}
     CACHE STRING "Minimum acceptable elfutils version")
