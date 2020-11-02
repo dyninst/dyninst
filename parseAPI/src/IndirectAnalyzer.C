@@ -76,6 +76,11 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     // to determine the format of the (potential) jump table
     const unsigned char * buf = (const unsigned char*) block->region()->getPtrToInstruction(block->last());
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
+
+    // Here we want to skip the analysis for amdgpu, as it is still unclear how dataflow analysis should be done on amdgpu
+    if ( block->obj()->cs()->getArch() == Arch_amdgpu)
+        return false;
+
     Instruction insn = dec.decode();
     AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;

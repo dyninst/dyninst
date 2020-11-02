@@ -2,7 +2,6 @@
 //#include "sage3basic.h"
 #include "Registers.h"
 #include "external/rose/armv8InstructionEnum.h"
-#include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include <boost/foreach.hpp>
@@ -579,96 +578,6 @@ RegisterDictionary::print(std::ostream &o) const {
 //    return regs;
 //}
 //
-///** Amd64 registers.
-// *
-// *  The AMD64 architecture increases the size of the general purpose registers, base registers, index registers, instruction
-// *  pointer, and flags register to 64-bits.  Most register names from the Pentium architecture still exist and refer to 32-bit
-// *  quantities, while the AMD64 adds new names that start with "r" rather than "e" (such as "rax" for the 64-bit register and
-// *  "eax" for the 32 low-order bits of the same register).  It also adds eight additional 64-bit general purpose registers
-// *  named "r8" through "r15" along with "b", "w", and "d" suffixes for the low-order 8, 16, and 32 bits, respectively.
-// *
-// *  The only registers that are not retained are the control registers cr0-cr4, which are replaced by 64-bit registers of the
-// *  same name, and debug registers dr0-dr7, which are also replaced by 64-bit registers of the same name. */
-//const RegisterDictionary *
-//RegisterDictionary::dictionary_amd64()
-//{
-//    static RegisterDictionary *regs = NULL;
-//    if (!regs) {
-//        regs = new RegisterDictionary("amd64");
-//        regs->insert(dictionary_pentium4());
-//
-//        /* Additional 64-bit (and hi-end 32-bit) registers */
-//        regs->insert("rax", x86_regclass_gpr, x86_gpr_ax, 0, 64);
-//        regs->insert("rbx", x86_regclass_gpr, x86_gpr_bx, 0, 64);
-//        regs->insert("rcx", x86_regclass_gpr, x86_gpr_cx, 0, 64);
-//        regs->insert("rdx", x86_regclass_gpr, x86_gpr_dx, 0, 64);
-//        regs->insert("rsp", x86_regclass_gpr, x86_gpr_sp, 0, 64);
-//        regs->insert("rbp", x86_regclass_gpr, x86_gpr_bp, 0, 64);
-//        regs->insert("rsi", x86_regclass_gpr, x86_gpr_si, 0, 64);
-//        regs->insert("rdi", x86_regclass_gpr, x86_gpr_di, 0, 64);
-//        regs->insert("rip", x86_regclass_ip, 0, 0, 64);
-//        regs->insert("rflags", x86_regclass_flags, x86_flags_status, 0, 64);
-//
-//        for (unsigned i=8; i<16; i++) {
-//            /* New general purpose registers in various widths */
-//            std::string name = "r" + StringUtility::numberToString(i);
-//            regs->insert(name,     x86_regclass_gpr, i, 0, 64);
-//            regs->insert(name+"b", x86_regclass_gpr, i, 0,  8);
-//            regs->insert(name+"w", x86_regclass_gpr, i, 0, 16);
-//            regs->insert(name+"d", x86_regclass_gpr, i, 0, 32);
-//
-//            /* New media XMM registers */
-//            regs->insert(std::string("xmm")+StringUtility::numberToString(i),
-//                         x86_regclass_xmm, i, 0, 128);
-//        }
-//
-//        /* Additional flag bits with no official names */
-//        for (unsigned i=32; i<64; ++i)
-//            regs->insert("f"+StringUtility::numberToString(i), x86_regclass_flags, x86_flags_status, i, 1);
-//
-//        /* Control registers become 64 bits, and cr8 is added */
-//        regs->resize("cr0", 64);
-//        regs->resize("cr1", 64);
-//        regs->resize("cr2", 64);
-//        regs->resize("cr3", 64);
-//        regs->resize("cr4", 64);
-//        regs->insert("cr8", x86_regclass_cr, 8, 0, 64);
-//
-//        /* Debug registers become 64 bits */
-//        regs->resize("dr0", 64);
-//        regs->resize("dr1", 64);
-//        regs->resize("dr2", 64);
-//        regs->resize("dr3", 64);                                /* dr4 and dr5 are reserved */
-//        regs->resize("dr6", 64);
-//        regs->resize("dr7", 64);
-//    }
-//    return regs;
-//}
-//
-/** AMDGPU registers.
- * There are a total of 104 scalar general purpose registers each 32 bits wide. Each of these registers can be addressed as its 32-bit or 64-bit form */
-const RegisterDictionary *
-RegisterDictionary::dictionary_amdgpu() {
-    static std::once_flag initialized;
-    static RegisterDictionary *regs = NULL;
-    std::call_once(initialized, []() {
-        regs = new RegisterDictionary("amdgpu");
-        regs->insert("amdgpu_pc",amdgpu_regclass_pc,0,0,48);
-        regs->insert("amdgpu_scc",amdgpu_regclass_hwr,0,0,1);
-        for (unsigned idx = 0; idx < 105; idx++) {
-            regs->insert("amdgpu_sgpr" + StringUtility::numberToString(idx), 
-                        amdgpu_regclass_sgpr, amdgpu_sgpr0 + idx, 0, 32);
-        }
-        for (unsigned idx = 0; idx < 256; idx++) {
-            regs->insert("amdgpu_vgpr" + StringUtility::numberToString(idx), 
-                        amdgpu_regclass_vgpr, amdgpu_vgpr0 + idx, 0, 32);
-        }
-
-
-    });
-    return regs;
-}
-
 
 /** ARMv8-A registers.
  * There are a total of 32 general purpose registers each 64 bits wide. Each of these registers can be addressed as its 32-bit or 64-bit form. The former are named with the prefix W and the latter with a prefix X. The 32nd register is not a physical register but the zero register and referred to as WZR/ZR. */

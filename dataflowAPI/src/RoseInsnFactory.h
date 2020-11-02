@@ -36,7 +36,6 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
-#include "external/rose/amdgpuInstructionEnum.h"
 #include "Visitor.h"
 #include "Instruction.h"
 #include "common/h/util.h"
@@ -64,8 +63,6 @@ class SgAsmOperandList;
 class SgAsmx86RegisterReferenceExpression;
 
 class SgAsmPowerpcRegisterReferenceExpression;
-
-class SgAsmAmdgpuRegisterReferenceExpression;
 
 namespace Dyninst {
     namespace InstructionAPI {
@@ -190,31 +187,7 @@ namespace Dyninst {
 
             virtual Architecture arch() { return a; };
         };
-        class RoseInsnAmdgpuFactory : public RoseInsnFactory {
-        public:
-            DATAFLOW_EXPORT RoseInsnAmdgpuFactory(Architecture arch) : a(arch) { };
-
-            DATAFLOW_EXPORT virtual ~RoseInsnAmdgpuFactory() { };
-
-        private:
-            Architecture a;
-
-            virtual SgAsmInstruction *createInsn();
-
-            virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem);
-
-            virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
-
-            virtual void massageOperands(const InstructionAPI::Instruction &insn,
-                                         std::vector<InstructionAPI::Operand> &operands);
-
-            virtual void setSizes(SgAsmInstruction *insn);
-
-            AMDGPUInstructionKind convertKind(entryID opcode);
-
-            virtual Architecture arch() { return Arch_amdgpu; };
-        };
-
+        
     };
 };
 

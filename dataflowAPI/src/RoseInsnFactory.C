@@ -36,7 +36,6 @@
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
-#include "../rose/SgAsmAmdgpuInstruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
 
@@ -408,24 +407,3 @@ void RoseInsnArmv8Factory::massageOperands(const Instruction &,
   return;
 }
 
-void RoseInsnAmdgpuFactory::setSizes(SgAsmInstruction  * /*insn*/) {
-
-}
-
-SgAsmInstruction *RoseInsnAmdgpuFactory::createInsn() {
-  return new SgAsmAmdgpuInstruction;
-}
-
-void RoseInsnAmdgpuFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
-  SgAsmAmdgpuInstruction *tmp = static_cast<SgAsmAmdgpuInstruction *>(insn);
-  tmp->set_kind(convertKind(opcode));
-}
-
-bool RoseInsnAmdgpuFactory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
-  return false;
-}
-
-void RoseInsnAmdgpuFactory::massageOperands(const Instruction &,
-                                           std::vector<InstructionAPI::Operand> &) {
-  return;
-}

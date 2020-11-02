@@ -309,17 +309,6 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                                dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
                                return dre;
                            }
-        case Arch_amdgpu :{
-                              int regClass;
-                              int regNum;
-                              int regPos;
-
-                              machReg.getROSERegister(regClass, regNum, regPos);
-                              if (regClass < 0) return NULL;
-                              SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
-                              dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
-                              return dre;
-                          }
         default:
                           return NULL;
     }
