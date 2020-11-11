@@ -78,7 +78,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   }
 }
 
-void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
+void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
 				    Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
@@ -491,7 +491,7 @@ bool AbsRegionConverter::definedCache(Address addr,
 // Instruction.
 ///////////////////////////////////////////////////////
 
-void AssignmentConverter::convert(const Instruction I, 
+void AssignmentConverter::convert(const Instruction &I, 
                                   const Address &addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,

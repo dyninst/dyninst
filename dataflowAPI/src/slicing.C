@@ -30,6 +30,7 @@
 #include <set>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <utility>
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h"
@@ -159,11 +160,11 @@ Slicer::sliceInternal(
 
     // this is the unified cache aka the cache that will hold 
     // the merged set of 'defs'.
-    map<Address,DefCache> cache;
+    unordered_map<Address,DefCache> cache;
 
     // this is the single cache aka the cache that holds
     // only the 'defs' from a single instruction. 
-    map<Address, DefCache> singleCache; 
+    unordered_map<Address, DefCache> singleCache; 
     
     ret = Graph::createGraph();
 
@@ -213,8 +214,8 @@ void Slicer::sliceInternalAux(
     SliceFrame &cand,
     bool skip,              // skip linking this frame; for bootstrapping
     map<CacheEdge,set<AbsRegion> > & visited,
-    map<Address, DefCache>& singleCache, 
-    map<Address,DefCache> & cache)
+    unordered_map<Address, DefCache>& singleCache, 
+    unordered_map<Address,DefCache> & cache)
 {
     vector<SliceFrame> nextCands;
     DefCache& mydefs = singleCache[cand.addr()];
@@ -376,17 +377,16 @@ bool Slicer::updateAndLink(
     vector<bool> killed;
     vector<Element> matches;
     vector<Element> newactive;
-    Instruction insn;
+
     bool change = false;
 
     killed.resize(cand.active.size(),false);
 
     if(dir == forward)
-        insn = cand.loc.current->first;
+        convertInstruction(cand.loc.current->first,cand.addr(),cand.loc.func, cand.loc.block, assns);
     else
-        insn = cand.loc.rcurrent->first;
+        convertInstruction(cand.loc.rcurrent->first,cand.addr(),cand.loc.func, cand.loc.block, assns);
 
-    convertInstruction(insn,cand.addr(),cand.loc.func, cand.loc.block, assns);
     // iterate over assignments and link matching elements.
     for(unsigned i=0; i<assns.size(); ++i) {
         SliceFrame::ActiveMap::iterator ait = cand.active.begin();
@@ -747,13 +747,13 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
       return;
     }
 
-    nf = cand;
+    newCands.emplace_back(cand);
     slicing_printf("\t\t Handling default edge type %d... ",
 		   e->type());
-    if(handleDefault(backward,p,e,nf,err)) {
+    if(handleDefault(backward,p,e,newCands.back(),err)) {
       slicing_printf("success, err: %d\n",err);
-      newCands.push_back(nf);
     } else {
+      newCands.pop_back();
       slicing_printf("failed, err: %d\n",err);
     }
   }
@@ -776,42 +776,45 @@ Slicer::getPredecessors(
 
     // Case 1: intra-block
     if(prev != cand.loc.rend) {
-        SliceFrame nf(cand.loc,cand.con);
-        nf.loc.rcurrent = prev;
+      SliceFrame *nf = NULL;
 
-        // Slightly more complicated than the forward case; check
-        // a predicate for each active abstract region to see whether
-        // we should continue
-        bool cont = false;
-        SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
-        for( ; ait != cand.active.end(); ++ait) {
-            bool add = p.addPredecessor((*ait).first);
-            if(add)
-                nf.active.insert(*ait);
-            cont = cont || add;
+      //Slightly more complicated than the forward case; check
+      //a predicate for each active abstract region to see whether
+      //we should continue
+      bool cont = false;
+      SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+      for( ; ait != cand.active.end(); ++ait) {
+        bool add = p.addPredecessor((*ait).first);
+        if(add) {
+          if (nf == NULL) {
+            newCands.emplace_back(cand.loc, cand.con);
+            nf = &newCands.back();
+            nf->loc.rcurrent = prev;
+          }
+          nf->active.insert(*ait);
         }
+        cont = cont || add;
+      }
 
-        if(cont) {
-            slicing_printf("\t\t\t\t Adding intra-block predecessor %lx\n",
-                nf.loc.addr());
-            slicing_printf("\t\t\t\t Current regions are:\n");
-            if(df_debug_slicing_on()) {
-                SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
-                for( ; ait != cand.active.end(); ++ait) {
-                    slicing_printf("\t\t\t\t%s\n",
-                        (*ait).first.format().c_str());
+      if(cont) {
+        slicing_printf("\t\t\t\t Adding intra-block predecessor %lx\n",
+          nf->loc.addr());
+        slicing_printf("\t\t\t\t Current regions are:\n");
+        if(df_debug_slicing_on()) {
+          SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+          for( ; ait != cand.active.end(); ++ait) {
+            slicing_printf("\t\t\t\t%s\n",
+              (*ait).first.format().c_str());
 
-			vector<Element> const& eles = (*ait).second;
-			for(unsigned i=0;i<eles.size();++i) {
-				slicing_printf("\t\t\t\t\t [%s] : %s\n",
-					eles[i].reg.format().c_str(),eles[i].ptr->format().c_str());
-			}
-                }
+            vector<Element> const& eles = (*ait).second;
+            for(unsigned i=0;i<eles.size();++i) {
+              slicing_printf("\t\t\t\t\t [%s] : %s\n",
+                eles[i].reg.format().c_str(),eles[i].ptr->format().c_str());
             }
-    
-            newCands.push_back(nf);
+          }
         }
-        return true;
+      }
+      return true;
     }
 
     // Case 2: inter-block
@@ -1572,7 +1575,7 @@ std::string SliceNode::format() const {
 // Note that we CANNOT use a global cache based on the address
 // of the instruction to convert because the block that contains
 // the instructino may change during parsing.
-void Slicer::convertInstruction(Instruction insn,
+void Slicer::convertInstruction(const Instruction &insn,
                                 Address addr,
                                 ParseAPI::Function *func,
                                 ParseAPI::Block *block,
@@ -1916,8 +1919,8 @@ Slicer::DefCache::print() const {
 
 // merges all single caches that have occured single addr in the
 // recursion into the appropriate unified caches.
-void Slicer::mergeRecursiveCaches(std::map<Address, DefCache>& single, 
-                                  std::map<Address, DefCache>& unified, Address) {
+void Slicer::mergeRecursiveCaches(std::unordered_map<Address, DefCache>& single, 
+                                  std::unordered_map<Address, DefCache>& unified, Address) {
 
 
     for (auto first = addrStack.rbegin(), last = addrStack.rend();
