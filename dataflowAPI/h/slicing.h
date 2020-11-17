@@ -511,8 +511,8 @@ class Slicer {
             SliceFrame &cand,
             bool skip,
             std::map<CacheEdge, std::set<AbsRegion> > & visited,
-            std::map<Address,DefCache> & single,
-            std::map<Address, DefCache>& cache);
+            std::unordered_map<Address,DefCache> & single,
+            std::unordered_map<Address, DefCache>& cache);
 
     bool updateAndLink(
             GraphPtr g,
@@ -669,7 +669,7 @@ class Slicer {
 		  SliceNode::Ptr& target,
           AbsRegion const& data);
 
-  void convertInstruction(InstructionAPI::Instruction,
+  void convertInstruction(const InstructionAPI::Instruction &,
                           Address,
                           ParseAPI::Function *,
                           ParseAPI::Block *,
@@ -708,7 +708,7 @@ private:
 
   void insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP);
 
-  void mergeRecursiveCaches(std::map<Address, DefCache>& sc, std::map<Address, DefCache>& c, Address a);
+  void mergeRecursiveCaches(std::unordered_map<Address, DefCache>& sc, std::unordered_map<Address, DefCache>& c, Address a);
 
   InsnCache* insnCache_;
   bool own_insnCache;

@@ -288,7 +288,8 @@ class Assignment {
   DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
   DATAFLOW_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
-  DATAFLOW_EXPORT InstructionAPI::Instruction insn() const { return insn_; }
+  DATAFLOW_EXPORT const InstructionAPI::Instruction &insn() const { return insn_; }
+  DATAFLOW_EXPORT InstructionAPI::Instruction &insn() { return insn_; }
   DATAFLOW_EXPORT Address addr() const { return addr_; }
 
   DATAFLOW_EXPORT const AbsRegion &out() const { return out_; }
