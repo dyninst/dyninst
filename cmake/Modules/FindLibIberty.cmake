@@ -45,7 +45,7 @@ include(DyninstSystemPaths)
 set(_path_suffixes libiberty iberty)
 
 find_path(LibIberty_INCLUDE_DIRS
-          NAMES libiberty/libiberty.h
+          NAMES libiberty.h
           HINTS ${LibIberty_ROOT_DIR} ${LibIberty_ROOT_DIR}/include ${LibIberty_INCLUDEDIR}
           PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
           PATH_SUFFIXES ${_path_suffixes}
