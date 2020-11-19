@@ -50,11 +50,59 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-#if defined(cap_stripped_binaries)
-
 #include "ProbabilisticParser.h"
 
 namespace hd {
+
+bool isStackFramePrecheck_gcc( const unsigned char *buffer )
+{
+   //Currently enabled entry bytes for gaps:
+   //  0x55 - push %ebp
+   static char gap_initial_bytes[] =
+   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+   return (gap_initial_bytes[*buffer] != 0);
+}  
+
+bool isStackFramePrecheck_msvs( const unsigned char *buffer )
+{
+   //Currently enabled entry bytes for gaps:
+   //  0x55 - push %ebp
+   static char gap_initial_bytes[] =
+   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+   return (gap_initial_bytes[*buffer] != 0);
+}  
+
+
     Address calc_end(Function * f) {
         Address ret = f->addr() + 1;
         if(!f->extents().empty()) {
@@ -220,14 +268,12 @@ namespace hd {
     bool gap_heuristics(CodeObject *co,CodeRegion *cr,Address addr)
     {
         bool ret = false;
-#if defined(arch_x86) || defined(arch_x86_64) || defined(i386_unknown_nt4_0)
 
   #if defined(os_windows)
         ret = gap_heuristic_MSVS(co,cr,addr);
   #else
         ret = gap_heuristic_GCC(co,cr,addr);
   #endif
-#endif  
         return ret;
     }
 
@@ -287,6 +333,9 @@ namespace hd {
  */
 void Parser::parse_gap_heuristic(CodeRegion * cr)
 {
+    Architecture arch = cr->getArch();
+    if (arch != Arch_x86 && arch != Arch_x86_64) return;
+
     // ensure that we've parsed and finalized
     // all vanilla parsing
     if(_parse_state < COMPLETE)
@@ -357,6 +406,9 @@ bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Add
 }
 
 void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
+    Architecture arch = cr->getArch();
+    if (arch != Arch_x86 && arch != Arch_x86_64) return;
+
     // 0. ensure that we've parsed and finalized all vanilla parsing.
     // We also locate all the gaps
     
@@ -393,11 +445,3 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     }
 }
 
-#else // cap_stripped binaries
-void Parser::parse_gap_heuristic(CodeRegion*)
-{
-
-}
-void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
-}
-#endif

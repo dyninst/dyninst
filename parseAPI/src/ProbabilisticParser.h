@@ -35,8 +35,6 @@
 #ifndef _PROBABILISTIC_PARSER_H_
 #define _PROBABILISTIC_PARSER_H_
 
-#if defined(cap_stripped_binaries)
-
 #include "Parser.h"
 
 #include <string>
@@ -217,4 +215,3 @@ public:
 
 #endif
 
-#endif

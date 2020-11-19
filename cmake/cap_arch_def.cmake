@@ -12,7 +12,6 @@ set (ARCH_DEFINES -Darch_x86)
 set (CAP_DEFINES ${CAP_DEFINES}
              -Dcap_fixpoint_gen 
              -Dcap_noaddr_gen 
-             -Dcap_stripped_binaries 
              -Dcap_tramp_liveness 
              -Dcap_virtual_registers
              -Dcap_stack_mods
@@ -25,7 +24,6 @@ set (CAP_DEFINES ${CAP_DEFINES}
              -Dcap_fixpoint_gen 
              -Dcap_noaddr_gen
              -Dcap_registers
-             -Dcap_stripped_binaries 
              -Dcap_tramp_liveness
              -Dcap_stack_mods
     )
