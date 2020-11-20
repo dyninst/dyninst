@@ -153,7 +153,7 @@ public:
     bool removeThread(dynthread_t tid);
 
     int getPid() const;
-    unsigned getAddressWidth() const;
+
     bool wasRunningWhenAttached() const;
     bool wasCreatedViaAttach() const;
     bool wasCreatedViaFork() const;

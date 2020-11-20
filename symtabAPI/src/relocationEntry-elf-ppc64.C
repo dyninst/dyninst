@@ -31,7 +31,6 @@
 /* Functions of the relocationEntry class specific to PPC64 ELF */
 #include <elf.h>
 #include "Symtab.h"
-#include "Serialization.h"
 #include "annotations.h"
 
 const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidth*/) {

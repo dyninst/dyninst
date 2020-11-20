@@ -37,10 +37,8 @@
 #include "Symtab.h"
 #include "Module.h"
 #include "Variable.h"
-#include "Serialization.h"
 
 #include "common/src/headers.h"
-#include "common/src/serialize.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -80,7 +78,7 @@ bool localVarCollection::addItem_impl(localVar * var)
 
 void localVarCollection::addLocalVar(localVar * var)
 {
-	if (!addItem(var))
+	if (!addItem_impl(var))
 	{
            create_printf("%s[%d]:  ERROR adding localVar\n", FILE__, __LINE__);
 	}
@@ -111,11 +109,6 @@ localVar *localVarCollection::findLocalVar(std::string &name){
 const dyn_c_vector<localVar *> &localVarCollection::getAllVars() const
 {
     return localVars;
-}
-
-Serializable *localVarCollection::ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
 }
 
 // Could be somewhere else... for DWARF-work.
@@ -403,68 +396,6 @@ void typeCollection::getAllGlobalVariables(vector<pair<string, boost::shared_ptr
 	vec.push_back(make_pair(it->first, it->second));
    }
 }
-
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	serialize_printf("%s[%d]:  enter typeCollection::serialize_impl\n", FILE__, __LINE__);
-
-	std::vector<std::pair<std::string, int> >  gvars;
-	for (auto iter = globalVarsByName.begin(); iter != globalVarsByName.end(); iter++)
-		gvars.push_back(std::make_pair(iter->first, iter->second->getID()));
-
-	std::vector<Type*> ltypes;
-	for (auto iter2 = typesByID.begin(); iter2 != typesByID.end(); iter2++)
-	{
-		if (!iter2->second) assert(0);
-		//  try skipping field list types
-		//if (dynamic_cast<fieldListType *>(iter2->second)) continue;
-		assert (iter2->first == iter2->second->getID());
-		ltypes.push_back(iter2->second.get());
-	}
-
-	ifxml_start_element(sb, tag);
-	//gtranslate(sb, typesByID, "TypesByIDMap", "TypeToIDMapEntry");
-	gtranslate(sb, ltypes, "TypesInCollection", "TypeEntry");
-	gtranslate(sb, gvars, "GlobalVarNameToTypeMap", "GlobalVarType");
-	gtranslate(sb, dwarfParsed_, "DwarfParsedFlag");
-	ifxml_end_element(sb, tag);
-
-	if (is_input(sb))
-	{
-		for (auto it = ltypes.begin(); it != ltypes.end(); ++it)
-		{
-            assert(typesByID.insert({it->getID(), *it}));
-		}
-		doDeferredLookups(this);
-
-		for (auto it = gvars.begin(); it != gvars.end(); ++it)
-		{
-            dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
-            if (!typesByID.find(a, it->second))
-			{
-				serialize_printf("%s[%d]:  cannot find type w/ID %d\n",
-						FILE__, __LINE__, gvars[i].second);
-				continue;
-			}
-            assert(globalVarsByName.insert({it->first, a->second}))
-		}
-
-		for (auto it = typesByID.begin(); it != typesByID.end(); ++it)
-            if(it->second->getName() != "")
-              assert(typesByName.insert({it->second->getName(), it->second}));
-	}
-
-	serialize_printf("%s[%d]:  leave typeCollection::serialize_impl\n", FILE__, __LINE__);
-
-	return NULL;
-}
-#else
-Serializable *typeCollection::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
-#endif
 
 /*
  * builtInTypeCollection::builtInTypeCollection

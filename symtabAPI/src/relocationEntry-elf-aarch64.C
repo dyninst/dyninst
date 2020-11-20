@@ -31,7 +31,6 @@
 /* Functions of the relocationEntry class specific to AArch64 ELF */
 #include <elf.h>
 #include "Symtab.h"
-#include "Serialization.h"
 #include "annotations.h"
 
 using namespace Dyninst;

@@ -99,8 +99,6 @@ class BinaryEdit : public AddressSpace {
     virtual void inferiorFree(Address item);
     virtual bool inferiorRealloc(Address item, unsigned newSize);
 
-    /* AddressSpace pure virtual implementation */
-    unsigned getAddressWidth() const;
     Address offset() const;
     Address length() const;
     Architecture getArch() const;
@@ -140,7 +138,7 @@ class BinaryEdit : public AddressSpace {
     // And the "open" factory method.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
-                                Dyninst::PatchAPI::Patcher *patch = NULL,
+                                Dyninst::PatchAPI::Patcher::Ptr patch = Dyninst::PatchAPI::Patcher::Ptr(),
                                 const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);

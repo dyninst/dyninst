@@ -459,10 +459,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 #if 0
   void  printDefensiveStats();
 #endif
-  //  BPatch_process::enableDumpPatchedImage
-  //  
-  //  
-  void enableDumpPatchedImage();
 
   // BPatch_process::loadLibrary
   //

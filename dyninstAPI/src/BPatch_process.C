@@ -1077,11 +1077,6 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
    return object;
 }
 
-
-void BPatch_process::enableDumpPatchedImage(){
-    // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
-}
-
 void BPatch_process::setExitedViaSignal(int signalnumber)
 {
    exitedViaSignal = true;

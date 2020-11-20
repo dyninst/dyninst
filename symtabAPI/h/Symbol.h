@@ -43,7 +43,6 @@
 
 #include "symutil.h"
 #include "Annotatable.h"
-#include "Serialization.h"
 #include <boost/shared_ptr.hpp>
 
 #ifndef CASE_RETURN_STR
@@ -69,8 +68,7 @@ class Symtab;
  * class Symbol
 ************************************************************************/
 
-class SYMTAB_EXPORT Symbol : public Serializable,
-               public AnnotatableSparse 
+class SYMTAB_EXPORT Symbol : public AnnotatableSparse
 {
    friend class typeCommon;
    friend class Symtab;
@@ -282,14 +280,6 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    std::vector<std::string> verNames_;
 
    bool versionHidden_;
-
-   void restore_module_and_region(SerializerBase *, 
-		   std::string &, Offset) THROW_SPEC (SerializerError);
-
-   public:
-
-   Serializable * serialize_impl(SerializerBase *, 
-		   const char *tag = "Symbol") THROW_SPEC (SerializerError);
 };
 
 class SYMTAB_EXPORT LookupInterface 

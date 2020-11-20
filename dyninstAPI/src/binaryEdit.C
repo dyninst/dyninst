@@ -255,10 +255,6 @@ Architecture BinaryEdit::getArch() const {
   return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
 }
 
-unsigned BinaryEdit::getAddressWidth() const {
-  assert(!mapped_objects.empty());
-  return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
-}
 Address BinaryEdit::offset() const {
     fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
     return 0;
@@ -303,7 +299,7 @@ BinaryEdit::~BinaryEdit()
 
 BinaryEdit *BinaryEdit::openFile(const std::string &file, 
                                  PatchMgrPtr mgr, 
-                                 Dyninst::PatchAPI::Patcher *patch,
+                                 Dyninst::PatchAPI::Patcher::Ptr patch,
                                  const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());

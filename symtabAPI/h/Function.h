@@ -37,7 +37,6 @@
 #define _Function_h_
 
 #include "Annotatable.h"
-#include "Serialization.h"
 #include "Aggregate.h"
 #include "Variable.h"
 #include "IBSTree.h"
@@ -176,9 +175,6 @@ class SYMTAB_EXPORT FunctionBase
    /***** PPC64 Linux Specific Information *****/
    Offset getPtrOffset() const;
    Offset getTOCOffset() const;
-
-   Serializable * serialize_impl(SerializerBase *sb,
-                                const char *tag = "Function") THROW_SPEC (SerializerError);
 
    virtual unsigned getSymbolSize() const;
    virtual unsigned getSize() const;
