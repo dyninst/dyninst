@@ -88,7 +88,7 @@ MachRegister MachRegister::getBaseRegister() const {
         case Arch_ppc64:
         case Arch_none:
             return *this;
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             switch (category){
                 case amdgpu::SGPR:
                 case amdgpu::SGPR_VEC2:
@@ -114,6 +114,8 @@ MachRegister MachRegister::getBaseRegister() const {
         case Arch_cuda:
             //not verified
             return *this;
+        default:
+        return InvalidReg;
     }
     return InvalidReg;
 }
@@ -264,7 +266,7 @@ unsigned int MachRegister::size() const {
  
         case Arch_cuda:
             return 8;
-        case Arch_amdgpu:{
+        case Arch_amdgpu_vega:{
             int reg_class = (reg&0x00ff0000 ) ;
              if ( reg_class == amdgpu::SGPR || reg_class == amdgpu::VGPR){
                  return 4;
@@ -381,7 +383,7 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return InvalidReg;
         case Arch_cuda:
             return cuda::pc;
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             return amdgpu::pc;
         case Arch_none:
             return InvalidReg;
@@ -406,7 +408,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
             return aarch64::x30;
         case Arch_aarch32:
         case Arch_cuda:
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -429,7 +431,7 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
         case Arch_aarch64:
             return aarch64::x29; //aarch64: frame pointer is X29 by convention
 
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
         case Arch_none:
             return InvalidReg;
 
@@ -458,7 +460,7 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
         case Arch_cuda:
             assert(0);
         case Arch_none:
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             return InvalidReg;
         default:
             assert(0);
@@ -483,7 +485,7 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
             return aarch64::x8;
         case Arch_aarch32:
         case Arch_cuda:
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -578,7 +580,7 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
         case Arch_ppc64:
             return ppc64::cr0e;
         case Arch_cuda:
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -648,7 +650,7 @@ bool MachRegister::isFlag() const
                             int baseID = reg & 0x0000FFFF;
                             return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
                         }
-        case Arch_amdgpu:{
+        case Arch_amdgpu_vega:{
                              return (reg & 0x0000F000);
                          }
         case Arch_cuda:
@@ -744,7 +746,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 {
     // Rose: class, number, position
     // Dyninst: category, base id, subrange
-    if (getArchitecture()==Arch_amdgpu){
+    if (getArchitecture()==Arch_amdgpu_vega){
         getAMDGPUROSERegister(c,n,p);
         return;
     }
@@ -1710,7 +1712,7 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             // ignore CUDA register encodings for now
             return Dyninst::InvalidReg;
             break;
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             // ignore CUDA register encodings for now
             return Dyninst::InvalidReg;
             break;
@@ -2163,7 +2165,7 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
         case Arch_aarch64:
         case Arch_cuda:
         case Arch_intelGen9:
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             return 8;
         default:
             assert(0);

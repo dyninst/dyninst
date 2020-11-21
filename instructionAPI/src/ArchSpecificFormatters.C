@@ -384,7 +384,7 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
     auto found = theFormatters.find(a);
     if(found != theFormatters.end()) return *found->second;
     switch(a) {
-        case Arch_amdgpu:
+        case Arch_amdgpu_vega:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new AmdgpuFormatter());
             break;
         case Arch_aarch32:

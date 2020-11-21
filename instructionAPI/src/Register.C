@@ -91,7 +91,7 @@ namespace Dyninst
 
     std::string RegisterAST::format(Architecture arch, formatStyle f) const
     {
-        if(arch == Arch_amdgpu){
+        if(arch == Arch_amdgpu_vega){
             return RegisterAST::format(f);
         }
         return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());

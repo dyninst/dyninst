@@ -196,10 +196,25 @@ bool DwarfHandle::init_dbg()
         case EM_CUDA:
             arch = Dyninst::Arch_cuda;
             break;
-        case EM_AMDGPU:
-            arch = Dyninst::Arch_amdgpu;
-            //assert (0 && "under development" ) ;
+        case EM_AMDGPU: {
+            unsigned int ef_amdgpu_mach = 0x000000ff & file->e_flags();
+			switch(ef_amdgpu_mach){
+				case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38:
+					return Dyninst::Arch_amdgpu_rdna;
+					assert( 0 && "rdna not supported yet " );
+				case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x30: case 0x31:
+					return Dyninst::Arch_amdgpu_vega;
+				case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18:
+				case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f:
+					assert(0 && "reserved for r600 architecture");
+				case 0x27: case 0x32 : case 0x39:
+					assert(0 && "reserved");
+				default:
+					assert(0 && "probabily won't be supported");
+			}
+
             break;
+        }
         case EM_INTEL_GEN9:
             arch = Arch_intelGen9;
             break;

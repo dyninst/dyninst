@@ -78,7 +78,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
 
     // Here we want to skip the analysis for amdgpu, as it is still unclear how dataflow analysis should be done on amdgpu
-    if ( block->obj()->cs()->getArch() == Arch_amdgpu)
+    if ( block->obj()->cs()->getArch() == Arch_amdgpu_vega)
         return false;
 
     Instruction insn = dec.decode();
