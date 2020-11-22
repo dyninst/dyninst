@@ -1,6 +1,5 @@
 # CMake configuration for dyninstAPI_RT directory
-cmake_minimum_required (VERSION 2.6.4)
-project (DyninstRT C)
+project (DyninstRT C ASM)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
 
@@ -75,21 +74,8 @@ set (SRC_LIST_aarch64
     src/RTstatic_ctors_dtors-aarch64.c                                                                                         
 )
 
-
-# We use gcc to compile the various assembly files, but
-# cmake doesn't default to knowing that gcc can
-# handle .S. 
-ENABLE_LANGUAGE(ASM)
-file (GLOB SRC_ASSEMBLY "src/*.S")
-if(NEED_NATIVE_ASSEMBER MATCHES YES)
-set_source_files_properties(${SRC_ASSEMBLY}
-        PROPERTIES
-        LANGUAGE ASM)
-else()
-set_source_files_properties(${SRC_ASSEMBLY}
-        PROPERTIES
-        LANGUAGE C)
-endif()
+file(GLOB SRC_ASSEMBLY "src/*.S")
+set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE ASM)
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)
