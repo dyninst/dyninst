@@ -1774,7 +1774,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                                     false)
                 );
                 break;
-            } else if(ah->getInstruction().getCategory()==c_NonReturnInsn) {
+            } else if(ah->getInstruction().getCategory()==c_GPUKernelExitInsn) {
                 // this is special treatment for non-returning instruction
                 // examples are amdgpu_op_s_endpgm and amddgpu_op_s_endpgm_saved
                 //cout << "calling endblock for non-returning instruction " << std::hex <<ah->getAddr() << endl; 

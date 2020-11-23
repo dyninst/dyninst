@@ -44,7 +44,7 @@ namespace Dyninst
       case aarch64_op_ret:
 	return c_ReturnInsn;
       case amdgpu_op_s_endpgm: // special treatment for endpgm
-    return c_NonReturnInsn;
+    return c_GPUKernelExitInsn;
       case e_call:
       case aarch64_op_bl:
       case aarch64_op_blr:
