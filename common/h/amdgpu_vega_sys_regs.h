@@ -1,5 +1,5 @@
-#ifndef DYNINST_AMDGPU_SYS_REGS_H
-#define DYNINST_AMDGPU_SYS_REGS_H
+#ifndef DYNINST_AMDGPU_VEGA_SYS_REGS_H
+#define DYNINST_AMDGPU_VEGA_SYS_REGS_H
 DEF_REGISTER(address_mode_32,                          Arch_amdgpu_vega |        HWR |              BITS_32 |          0,"amdgpu_vega");
 DEF_REGISTER(exec,                                     Arch_amdgpu_vega |        HWR |              BITS_64 |          1,"amdgpu_vega");
 DEF_REGISTER(exec_lo,                                  Arch_amdgpu_vega |        0x0 |    BITS_32  | 0x8000 |          1,"amdgpu_vega");

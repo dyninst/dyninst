@@ -16,24 +16,24 @@ enum InstructionFamily{
 	VOP3P = 14,
 	FLAT = 15
 };
-typedef void (InstructionDecoder_amdgpu::*func_ptr)(void);
+typedef void (InstructionDecoder_amdgpu_vega::*func_ptr)(void);
 func_ptr decode_lookup_table [16] = {
-	(&InstructionDecoder_amdgpu::decodeSOP2),
-	(&InstructionDecoder_amdgpu::decodeSOP1),
-	(&InstructionDecoder_amdgpu::decodeSOPK),
-	(&InstructionDecoder_amdgpu::decodeSOPC),
-	(&InstructionDecoder_amdgpu::decodeSOPP),
-	(&InstructionDecoder_amdgpu::decodeSMEM),
-	(&InstructionDecoder_amdgpu::decodeVOP2),
-	(&InstructionDecoder_amdgpu::decodeVOP1),
-	(&InstructionDecoder_amdgpu::decodeVOPC),
-	(&InstructionDecoder_amdgpu::decodeVINTRP),
-	(&InstructionDecoder_amdgpu::decodeDS),
-	(&InstructionDecoder_amdgpu::decodeMTBUF),
-	(&InstructionDecoder_amdgpu::decodeMUBUF),
-	(&InstructionDecoder_amdgpu::decodeVOP3AB),
-	(&InstructionDecoder_amdgpu::decodeVOP3P),
-	(&InstructionDecoder_amdgpu::decodeFLAT)
+	(&InstructionDecoder_amdgpu_vega::decodeSOP2),
+	(&InstructionDecoder_amdgpu_vega::decodeSOP1),
+	(&InstructionDecoder_amdgpu_vega::decodeSOPK),
+	(&InstructionDecoder_amdgpu_vega::decodeSOPC),
+	(&InstructionDecoder_amdgpu_vega::decodeSOPP),
+	(&InstructionDecoder_amdgpu_vega::decodeSMEM),
+	(&InstructionDecoder_amdgpu_vega::decodeVOP2),
+	(&InstructionDecoder_amdgpu_vega::decodeVOP1),
+	(&InstructionDecoder_amdgpu_vega::decodeVOPC),
+	(&InstructionDecoder_amdgpu_vega::decodeVINTRP),
+	(&InstructionDecoder_amdgpu_vega::decodeDS),
+	(&InstructionDecoder_amdgpu_vega::decodeMTBUF),
+	(&InstructionDecoder_amdgpu_vega::decodeMUBUF),
+	(&InstructionDecoder_amdgpu_vega::decodeVOP3AB),
+	(&InstructionDecoder_amdgpu_vega::decodeVOP3P),
+	(&InstructionDecoder_amdgpu_vega::decodeFLAT)
 };
 InstructionFamily instr_family;
 typedef struct vop_literal_layout_sdwa{

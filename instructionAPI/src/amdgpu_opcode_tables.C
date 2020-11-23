@@ -1,4 +1,4 @@
-#define fn(...) (&InstructionDecoder_amdgpu::__VA_ARGS__)
+#define fn(...) (&InstructionDecoder_amdgpu_vega::__VA_ARGS__)
 const operandFactory amdgpu_insn_entry::operandTable[] = {
 	fn(NOTHING),
 	fn(setSMEM),fn(setLoad<1>),//s_load_dword

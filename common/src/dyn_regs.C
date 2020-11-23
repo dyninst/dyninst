@@ -90,19 +90,19 @@ MachRegister MachRegister::getBaseRegister() const {
             return *this;
         case Arch_amdgpu_vega:
             switch (category){
-                case amdgpu::SGPR:
-                case amdgpu::SGPR_VEC2:
-                case amdgpu::SGPR_VEC4:
-                case amdgpu::SGPR_VEC8:
-                case amdgpu::SGPR_VEC16:
-                    return MachRegister( (reg & 0x000000ff) | amdgpu::sgpr0); 
-                case amdgpu::VGPR:
-                case amdgpu::VGPR_VEC2:
-                case amdgpu::VGPR_VEC4:
-                case amdgpu::VGPR_VEC8:
-                case amdgpu::VGPR_VEC16:
-                    return MachRegister( (reg & 0x000000ff) | amdgpu::vgpr0); 
-                case amdgpu::HWR:
+                case amdgpu_vega::SGPR:
+                case amdgpu_vega::SGPR_VEC2:
+                case amdgpu_vega::SGPR_VEC4:
+                case amdgpu_vega::SGPR_VEC8:
+                case amdgpu_vega::SGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_vega::sgpr0); 
+                case amdgpu_vega::VGPR:
+                case amdgpu_vega::VGPR_VEC2:
+                case amdgpu_vega::VGPR_VEC4:
+                case amdgpu_vega::VGPR_VEC8:
+                case amdgpu_vega::VGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_vega::vgpr0); 
+                case amdgpu_vega::HWR:
                     return MachRegister(reg);
 
                 default:
@@ -157,30 +157,30 @@ std::string MachRegister::name() const {
         signed int category = reg & 0x00ff0000;
         signed int base_val = reg & 0x000000ff;
         switch(category){
-            case amdgpu::SGPR_VEC2:
+            case amdgpu_vega::SGPR_VEC2:
                 ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
                 break;
-            case amdgpu::VGPR_VEC2:
+            case amdgpu_vega::VGPR_VEC2:
                 ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
                 break;
-            case amdgpu::SGPR_VEC4:
+            case amdgpu_vega::SGPR_VEC4:
                 ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
                 break;
-            case amdgpu::VGPR_VEC4:
+            case amdgpu_vega::VGPR_VEC4:
                 ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
                 break;
-            case amdgpu::SGPR_VEC8:
+            case amdgpu_vega::SGPR_VEC8:
                 ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
 
                 break;
-            case amdgpu::VGPR_VEC8:
+            case amdgpu_vega::VGPR_VEC8:
                 ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
 
                 break;
-            case amdgpu::SGPR_VEC16:
+            case amdgpu_vega::SGPR_VEC16:
                 ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
                 break;
-            case amdgpu::VGPR_VEC16:
+            case amdgpu_vega::VGPR_VEC16:
                 ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
                 break;
             default:
@@ -268,40 +268,40 @@ unsigned int MachRegister::size() const {
             return 8;
         case Arch_amdgpu_vega:{
             int reg_class = (reg&0x00ff0000 ) ;
-             if ( reg_class == amdgpu::SGPR || reg_class == amdgpu::VGPR){
+             if ( reg_class == amdgpu_vega::SGPR || reg_class == amdgpu_vega::VGPR){
                  return 4;
-             }else if (reg_class == amdgpu::SGPR_VEC2 || reg_class == amdgpu::VGPR_VEC2){
+             }else if (reg_class == amdgpu_vega::SGPR_VEC2 || reg_class == amdgpu_vega::VGPR_VEC2){
                  return 8;
-             }else if (reg_class == amdgpu::SGPR_VEC4 || reg_class == amdgpu::VGPR_VEC4){
+             }else if (reg_class == amdgpu_vega::SGPR_VEC4 || reg_class == amdgpu_vega::VGPR_VEC4){
                  return 16;
-             }else if (reg_class == amdgpu::SGPR_VEC8 || reg_class == amdgpu::VGPR_VEC8){
+             }else if (reg_class == amdgpu_vega::SGPR_VEC8 || reg_class == amdgpu_vega::VGPR_VEC8){
                  return 32;
-             }else if (reg_class == amdgpu::SGPR_VEC16 || reg_class == amdgpu::VGPR_VEC16){
+             }else if (reg_class == amdgpu_vega::SGPR_VEC16 || reg_class == amdgpu_vega::VGPR_VEC16){
                  return 64;
              }else{
                  switch(reg & 0x00007f00){
-                     case amdgpu::BITS_1:
-                     case amdgpu::BITS_2:
-                     case amdgpu::BITS_3:
-                     case amdgpu::BITS_4:
-                     case amdgpu::BITS_6:
-                     case amdgpu::BITS_7:
-                     case amdgpu::BITS_8:
+                     case amdgpu_vega::BITS_1:
+                     case amdgpu_vega::BITS_2:
+                     case amdgpu_vega::BITS_3:
+                     case amdgpu_vega::BITS_4:
+                     case amdgpu_vega::BITS_6:
+                     case amdgpu_vega::BITS_7:
+                     case amdgpu_vega::BITS_8:
                          return 1;
-                     case amdgpu::BITS_9:
-                     case amdgpu::BITS_15:
-                     case amdgpu::BITS_16:
+                     case amdgpu_vega::BITS_9:
+                     case amdgpu_vega::BITS_15:
+                     case amdgpu_vega::BITS_16:
                          return 2;
-                     case amdgpu::BITS_32:
+                     case amdgpu_vega::BITS_32:
                          return 4;
-                     case amdgpu::BITS_48:
-                     case amdgpu::BITS_64:
+                     case amdgpu_vega::BITS_48:
+                     case amdgpu_vega::BITS_64:
                          return 8; 
-                     case amdgpu::BITS_128:
+                     case amdgpu_vega::BITS_128:
                          return 16;
-                     case amdgpu::BITS_256:
+                     case amdgpu_vega::BITS_256:
                          return 32;
-                     case amdgpu::BITS_512:
+                     case amdgpu_vega::BITS_512:
                          return 64;
                  }
                  std::cerr << "unknown reg size " << std::hex << reg << std::endl;
@@ -384,7 +384,7 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
         case Arch_cuda:
             return cuda::pc;
         case Arch_amdgpu_vega:
-            return amdgpu::pc;
+            return amdgpu_vega::pc;
         case Arch_none:
             return InvalidReg;
     }
@@ -701,24 +701,24 @@ void MachRegister::getAMDGPUROSERegister(int &reg_class, int &reg_idx, int &offs
     signed int baseID =   (reg & 0x000000ff);
     //std::cout << "calling " << __func__ << " category = " << category << std::endl;
     switch(category){
-        case amdgpu::SGPR:{
+        case amdgpu_vega::SGPR:{
             reg_class = amdgpu_regclass_sgpr;
             reg_idx = baseID;
             offset  = 0;
             return;
         }
-        case amdgpu::VGPR: {
+        case amdgpu_vega::VGPR: {
             reg_class = amdgpu_regclass_vgpr;
             reg_idx = baseID;
             offset  = 0;
             return;
         }
-        case amdgpu::PC: {
+        case amdgpu_vega::PC: {
             reg_class = amdgpu_regclass_pc;
             reg_idx = amdgpu_pc;
             offset = 0;
         }
-        case amdgpu::SGPR_VEC2:{
+        case amdgpu_vega::SGPR_VEC2:{
             //std::cout << "class = vec 2 " << std::endl;
             reg_class = amdgpu_regclass_sgpr_vec2;
             reg_idx = baseID;

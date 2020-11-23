@@ -29,26 +29,26 @@
  */
 
 #include "Ternary.h"
-#include "InstructionDecoder-amdgpu.h"
+#include "InstructionDecoder-amdgpu-vega.h"
 
 namespace Dyninst {
 	namespace InstructionAPI {
-		typedef void (InstructionDecoder_amdgpu::*operandFactory)();
+		typedef void (InstructionDecoder_amdgpu_vega::*operandFactory)();
 
 		typedef amdgpu_insn_entry amdgpu_insn_table[];
 		typedef amdgpu_mask_entry amdgpu_decoder_table[];
 
-		const std::array<std::string, 16> InstructionDecoder_amdgpu::condNames = {
+		const std::array<std::string, 16> InstructionDecoder_amdgpu_vega::condNames = {
 			"eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
 			"lt", "gt", "le", "al", "nv",
 		};
 
-		const char* InstructionDecoder_amdgpu::bitfieldInsnAliasMap(entryID e) {
+		const char* InstructionDecoder_amdgpu_vega::bitfieldInsnAliasMap(entryID e) {
 			switch(e) {
 				default: assert(!"no alias for entryID");
 			};
 		}
-		const char* InstructionDecoder_amdgpu::condInsnAliasMap(entryID e) {
+		const char* InstructionDecoder_amdgpu_vega::condInsnAliasMap(entryID e) {
 			switch(e) {
 				default: assert(!"no alias for entryID");
 			};
@@ -67,21 +67,21 @@ namespace Dyninst {
 
 #include "amdgpu_opcode_tables.C"
 
-		InstructionDecoder_amdgpu::InstructionDecoder_amdgpu(Architecture a)
+		InstructionDecoder_amdgpu_vega::InstructionDecoder_amdgpu_vega(Architecture a)
 			: InstructionDecoderImpl(a), insn_size(0), num_elements(1), isBranch(false), isConditional(false),
 			isModifyPC(false) , isSMEM(false), isLoad(false), isStore(false),isBuffer(false),isScratch(false) , isCall(false), immLen(0)
 		{
 		}
 
-		InstructionDecoder_amdgpu::~InstructionDecoder_amdgpu() {
+		InstructionDecoder_amdgpu_vega::~InstructionDecoder_amdgpu_vega() {
 		}
 
 
 		using namespace std;
-		void InstructionDecoder_amdgpu::NOTHING() {
+		void InstructionDecoder_amdgpu_vega::NOTHING() {
 		}
 
-		Result_Type InstructionDecoder_amdgpu::makeSizeType(unsigned int) {
+		Result_Type InstructionDecoder_amdgpu_vega::makeSizeType(unsigned int) {
 			assert(0); //not implemented
 			return u32;
 		}
@@ -90,36 +90,36 @@ namespace Dyninst {
 		// decoding opcodes
 		// ****************
 
-		MachRegister InstructionDecoder_amdgpu::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int len) {
+		MachRegister InstructionDecoder_amdgpu_vega::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int len) {
 			MachRegister realBase = base;
-			if (base == amdgpu::sgpr0){
+			if (base == amdgpu_vega::sgpr0){
 				switch(len){
 					case 2:
-						realBase = amdgpu::sgpr_vec2_0;
+						realBase = amdgpu_vega::sgpr_vec2_0;
 						break;
 					case 4:
-						realBase = amdgpu::sgpr_vec4_0;
+						realBase = amdgpu_vega::sgpr_vec4_0;
 						break;
 					case 8:
-						realBase = amdgpu::sgpr_vec8_0;
+						realBase = amdgpu_vega::sgpr_vec8_0;
 						break;
 					case 16:
-						realBase = amdgpu::sgpr_vec16_0;
+						realBase = amdgpu_vega::sgpr_vec16_0;
 						break;
 				}
-			}else if (base == amdgpu::vgpr0){
+			}else if (base == amdgpu_vega::vgpr0){
 				switch(len){
 					case 2:
-						realBase = amdgpu::vgpr_vec2_0;
+						realBase = amdgpu_vega::vgpr_vec2_0;
 						break;
 					case 4:
-						realBase = amdgpu::vgpr_vec4_0;
+						realBase = amdgpu_vega::vgpr_vec4_0;
 						break;
 					case 8:
-						realBase = amdgpu::vgpr_vec8_0;
+						realBase = amdgpu_vega::vgpr_vec8_0;
 						break;
 					case 16:
-						realBase = amdgpu::vgpr_vec16_0;
+						realBase = amdgpu_vega::vgpr_vec16_0;
 						break;
 				}
 
@@ -128,13 +128,13 @@ namespace Dyninst {
 
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu::makePCExpr() {
-			MachRegister baseReg = amdgpu::pc;
+		Expression::Ptr InstructionDecoder_amdgpu_vega::makePCExpr() {
+			MachRegister baseReg = amdgpu_vega::pc;
 
 			return makeRegisterExpression(baseReg);
 		}
 
-		void InstructionDecoder_amdgpu::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
+		void InstructionDecoder_amdgpu_vega::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
 				int immLen = 16) {
 			Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
 			int64_t offset = sign_extend64(16, immVal * 4);
@@ -149,27 +149,27 @@ namespace Dyninst {
 
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu::makeFallThroughExpr() {
+		Expression::Ptr InstructionDecoder_amdgpu_vega::makeFallThroughExpr() {
 			// TODO: while s_call_B64 is always 4 bytes, it is not clear whether all instructions that has a fall through branch are 4 bytes long
 			return makeAddExpression(makePCExpr(), Immediate::makeImmediate(Result(u64, unsign_extend64(3, 4))), u64);
 		}
 
-		bool InstructionDecoder_amdgpu::pre_process_checks(const amdgpu_insn_entry &entry) {
+		bool InstructionDecoder_amdgpu_vega::pre_process_checks(const amdgpu_insn_entry &entry) {
 			bool ret = false;
 			return ret;
 		}
 
-		bool InstructionDecoder_amdgpu::decodeOperands(const Instruction *insn_to_complete) {
+		bool InstructionDecoder_amdgpu_vega::decodeOperands(const Instruction *insn_to_complete) {
 			assert(0 && "decodeOperands deprecated for amdgpu");
 
 			return true;
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu::decodeSGPRorM0(unsigned int offset){
+		Expression::Ptr InstructionDecoder_amdgpu_vega::decodeSGPRorM0(unsigned int offset){
 			if( offset <= 104)
-				return makeRegisterExpression(makeAmdgpuRegID(amdgpu::sgpr0,offset));
+				return makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::sgpr0,offset));
 			if (offset == 124)
-				return makeRegisterExpression(amdgpu::m0);
+				return makeRegisterExpression(amdgpu_vega::m0);
             cerr << " unknown offset in sgpr or m0 " << offset << endl; 
 			assert(0 && "shouldn't reach here");
 		}
@@ -180,15 +180,15 @@ namespace Dyninst {
 			return Immediate::makeImmediate(Result(result_type,0));
 		}
 
-		void InstructionDecoder_amdgpu::finalizeFLATOperands(){
+		void InstructionDecoder_amdgpu_vega::finalizeFLATOperands(){
 			layout_flat & layout = insn_layout.flat;
-			//const amdgpu_insn_entry & insn_entry = amdgpu::flat_insn_table[layout.op];
+			//const amdgpu_insn_entry & insn_entry = amdgpu_vega::flat_insn_table[layout.op];
 
 			Expression::Ptr addr_ast = 
 				makeTernaryExpression(
-						makeRegisterExpression(amdgpu::address_mode_32), // TODO: type needs to be fixed
-						makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.addr)),
-						makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.addr,2)),
+						makeRegisterExpression(amdgpu_vega::address_mode_32), // TODO: type needs to be fixed
+						makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.addr)),
+						makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.addr,2)),
 						u64
 						);
 			switch(layout.seg){
@@ -205,11 +205,11 @@ namespace Dyninst {
 			insn_in_progress->appendOperand(addr_ast,false,true);
 
 		}
-		void InstructionDecoder_amdgpu::finalizeMUBUFOperands(){
+		void InstructionDecoder_amdgpu_vega::finalizeMUBUFOperands(){
 			layout_mubuf & layout = insn_layout.mubuf;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mubuf_insn_table[layout.op];
 
-			MachRegister vsharp = makeAmdgpuRegID(amdgpu::sgpr0,layout.srsrc<<2,4);
+			MachRegister vsharp = makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.srsrc<<2,4);
 			Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
 			Expression::Ptr const_stride_ast = makeRegisterExpression(vsharp,48,65); 
 			Expression::Ptr num_records = makeRegisterExpression(vsharp,66,97); 
@@ -223,15 +223,15 @@ namespace Dyninst {
 
 			if(layout.idxen){
 				if(layout.offen){
-					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
-					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr+1));
+					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr));
+					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr+1));
 				}else{
-					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr));
 				}
 
 			}else{
 				if(layout.offen){
-					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr));
 				}else{
 					// do nothing
 				}
@@ -244,7 +244,7 @@ namespace Dyninst {
 						,
 						makeTernaryExpression(
 							add_tid_enable,
-							makeRegisterExpression(amdgpu::tid),
+							makeRegisterExpression(amdgpu_vega::tid),
 							Immediate::makeImmediate(Result(u32,0)),
 							u32
 							),
@@ -279,7 +279,7 @@ namespace Dyninst {
 					);
 
 			Expression::Ptr vdata_ast = makeRegisterExpression(
-					makeAmdgpuRegID(amdgpu::vgpr0,layout.vdata,
+					makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vdata,
 						num_elements// TODO: This depends on number of elements, which is available from opcode
 						));
 
@@ -287,15 +287,15 @@ namespace Dyninst {
 			insn_in_progress->appendOperand(vdata_ast,true,true);
 
 			if(layout.lds){
-				Expression::Ptr lds_offset_ast = makeRegisterExpression(amdgpu::m0,0,15);
+				Expression::Ptr lds_offset_ast = makeRegisterExpression(amdgpu_vega::m0,0,15);
 				Expression::Ptr mem_offset_ast = makeRegisterExpression(
-						makeAmdgpuRegID(amdgpu::sgpr0,layout.soffset));
+						makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.soffset));
 				Expression::Ptr inst_offset_ast = Immediate::makeImmediate(Result(u32,layout.offset));
 				Expression::Ptr lds_addr_ast =
 					makeAddExpression(
 							makeAddExpression(
 								makeAddExpression(
-									makeRegisterExpression(amdgpu::lds_base),
+									makeRegisterExpression(amdgpu_vega::lds_base),
 									lds_offset_ast,
 									u32
 									),
@@ -303,7 +303,7 @@ namespace Dyninst {
 								u32
 								),
 							makeMultiplyExpression(
-								makeRegisterExpression(amdgpu::tid),
+								makeRegisterExpression(amdgpu_vega::tid),
 								Immediate::makeImmediate(Result(u16,4)),
 								u32
 								),
@@ -316,11 +316,11 @@ namespace Dyninst {
 		}
 
 
-		void InstructionDecoder_amdgpu::finalizeMTBUFOperands(){
+		void InstructionDecoder_amdgpu_vega::finalizeMTBUFOperands(){
 			layout_mtbuf & layout = insn_layout.mtbuf;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mtbuf_insn_table[layout.op];
 
-			MachRegister vsharp = makeAmdgpuRegID(amdgpu::sgpr0,layout.srsrc<<2,4);
+			MachRegister vsharp = makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.srsrc<<2,4);
 			Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
 			Expression::Ptr const_stride_ast = makeRegisterExpression(vsharp,48,65); 
 			Expression::Ptr num_records = makeRegisterExpression(vsharp,66,97); 
@@ -334,15 +334,15 @@ namespace Dyninst {
 
 			if(layout.idxen){
 				if(layout.offen){
-					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
-					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr+1));
+					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr));
+					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr+1));
 				}else{
-					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+					index_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr));
 				}
 
 			}else{
 				if(layout.offen){
-					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu::vgpr0,layout.vaddr));
+					offset_expr =  makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vaddr));
 				}else{
 					// do nothing
 				}
@@ -355,7 +355,7 @@ namespace Dyninst {
 						,
 						makeTernaryExpression(
 							add_tid_enable,
-							makeRegisterExpression(amdgpu::tid),
+							makeRegisterExpression(amdgpu_vega::tid),
 							Immediate::makeImmediate(Result(u32,0)),
 							u32
 							),
@@ -390,7 +390,7 @@ namespace Dyninst {
 					);
 
 			Expression::Ptr vdata_ast = makeRegisterExpression(
-					makeAmdgpuRegID(amdgpu::vgpr0,layout.vdata,
+					makeAmdgpuRegID(amdgpu_vega::vgpr0,layout.vdata,
 						num_elements// TODO: This depends on number of elements, which is available from opcode
 						));
 
@@ -399,7 +399,7 @@ namespace Dyninst {
 
 
 		}
-		void InstructionDecoder_amdgpu::finalizeVOP1Operands(){
+		void InstructionDecoder_amdgpu_vega::finalizeVOP1Operands(){
 
 			layout_vop1 & layout = insn_layout.vop1;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
@@ -411,7 +411,7 @@ namespace Dyninst {
 		}
 
 
-		void InstructionDecoder_amdgpu::finalizeSOP1Operands(){
+		void InstructionDecoder_amdgpu_vega::finalizeSOP1Operands(){
 
 			layout_sop1 & layout = insn_layout.sop1;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop1_insn_table[layout.op];
@@ -420,7 +420,7 @@ namespace Dyninst {
 				if(isModifyPC){
 					Expression::Ptr new_pc_ast;
 					new_pc_ast = makeRegisterExpression(
-							makeAmdgpuRegID(amdgpu::sgpr0,layout.ssrc0,2)
+							makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.ssrc0,2)
 							);
 
 					// TODO : addSuccessors commented out to avoid jump table analysis aborts
@@ -448,7 +448,7 @@ namespace Dyninst {
 
 		}
 
-		void InstructionDecoder_amdgpu::finalizeSOPPOperands(){
+		void InstructionDecoder_amdgpu_vega::finalizeSOPPOperands(){
 
 			layout_sopp & layout = insn_layout.sopp;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
@@ -463,7 +463,7 @@ namespace Dyninst {
 
 		}
 
-		void InstructionDecoder_amdgpu::finalizeSOPKOperands(){
+		void InstructionDecoder_amdgpu_vega::finalizeSOPKOperands(){
 
 			layout_sopp & layout = insn_layout.sopp;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
@@ -482,7 +482,7 @@ namespace Dyninst {
 
 
 
-		void InstructionDecoder_amdgpu::finalizeSOP2Operands(){
+		void InstructionDecoder_amdgpu_vega::finalizeSOP2Operands(){
 
 			layout_sop2 & layout = insn_layout.sop2;
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
@@ -492,7 +492,7 @@ namespace Dyninst {
 			insn_in_progress->appendOperand(decodeSSRC(layout.ssrc0),true,false);
 
 		}
-		void InstructionDecoder_amdgpu::finalizeSMEMOperands(){
+		void InstructionDecoder_amdgpu_vega::finalizeSMEMOperands(){
 			layout_smem & layout = insn_layout.smem;
 
 			const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::smem_insn_table[layout.op];
@@ -510,9 +510,9 @@ namespace Dyninst {
 						decodeSGPRorM0(layout.soffset) : Immediate::makeImmediate(Result(u64,0));
 				}
 				//                cout << "layout.sbase = " << std::hex << layout.sbase << endl;
-				MachRegister mr = makeAmdgpuRegID(amdgpu::sgpr0,4,2);
-				//                cout << " shouldn't it be " << amdgpu::sgpr_vec2_0 << " " << mr << endl; 
-				Expression::Ptr sbase_expr = makeRegisterExpression(makeAmdgpuRegID(amdgpu::sgpr0,layout.sbase << 1,2));
+				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::sgpr0,4,2);
+				//                cout << " shouldn't it be " << amdgpu_vega::sgpr_vec2_0 << " " << mr << endl; 
+				Expression::Ptr sbase_expr = makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.sbase << 1,2));
 				if(isScratch)
 					offset_expr = makeMultiplyExpression(offset_expr,
 							Immediate::makeImmediate(Result(u64,64)),u64);
@@ -522,7 +522,7 @@ namespace Dyninst {
 
 
 
-				Expression::Ptr sdata_expr = makeRegisterExpression(makeAmdgpuRegID(amdgpu::sgpr0,layout.sdata,num_elements));
+				Expression::Ptr sdata_expr = makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.sdata,num_elements));
 
 
 				insn_in_progress->appendOperand(sdata_expr,true,false);
@@ -533,22 +533,22 @@ namespace Dyninst {
 
 		}
 
-		void InstructionDecoder_amdgpu::finalizeSOPCOperands() {
+		void InstructionDecoder_amdgpu_vega::finalizeSOPCOperands() {
 		}
-		void InstructionDecoder_amdgpu::finalizeVOPCOperands() {
+		void InstructionDecoder_amdgpu_vega::finalizeVOPCOperands() {
 		}
-		void InstructionDecoder_amdgpu::finalizeVOP2Operands() {
+		void InstructionDecoder_amdgpu_vega::finalizeVOP2Operands() {
 		}
-		void InstructionDecoder_amdgpu::finalizeVINTRPOperands() {
+		void InstructionDecoder_amdgpu_vega::finalizeVINTRPOperands() {
 		}
-		void InstructionDecoder_amdgpu::finalizeDSOperands() {
+		void InstructionDecoder_amdgpu_vega::finalizeDSOperands() {
 		}
-		void InstructionDecoder_amdgpu::finalizeVOP3ABOperands() {
+		void InstructionDecoder_amdgpu_vega::finalizeVOP3ABOperands() {
 		}
-		void InstructionDecoder_amdgpu::finalizeVOP3POperands() {
+		void InstructionDecoder_amdgpu_vega::finalizeVOP3POperands() {
 		}
 
-		bool InstructionDecoder_amdgpu::decodeOperands(const Instruction *insn_to_complete, const amdgpu_insn_entry & insn_entry) {
+		bool InstructionDecoder_amdgpu_vega::decodeOperands(const Instruction *insn_to_complete, const amdgpu_insn_entry & insn_entry) {
 			if(insn_entry.operandCnt!=0){
 				for (std::size_t i =0 ; i < insn_entry.operandCnt; i++){
 					std::mem_fun(insn_entry.operands[i])(this);
@@ -563,7 +563,7 @@ namespace Dyninst {
 			return b.start[offset+3] << 24 | b.start[offset + 2] << 16 | b.start[offset +1 ] << 8 | b.start [offset];
 		}
 
-		void InstructionDecoder_amdgpu::insnSize(unsigned int insn_size) {
+		void InstructionDecoder_amdgpu_vega::insnSize(unsigned int insn_size) {
 			this->insn_size = insn_size;
 		}
 
@@ -571,44 +571,44 @@ namespace Dyninst {
 		void decodeMemory(unsigned int base, unsigned offset , unsigned int m0){
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu::decodeVDST(unsigned int index){
+		Expression::Ptr InstructionDecoder_amdgpu_vega::decodeVDST(unsigned int index){
 			index += 255;
             return decodeSSRC(index);
 		} 
 
 
-		Expression::Ptr InstructionDecoder_amdgpu::decodeVSRC(unsigned int index){
+		Expression::Ptr InstructionDecoder_amdgpu_vega::decodeVSRC(unsigned int index){
 			if (index > 255)
 				index = 0;
-			MachRegister mr = makeAmdgpuRegID(amdgpu::vgpr0,index & 0xff);
+			MachRegister mr = makeAmdgpuRegID(amdgpu_vega::vgpr0,index & 0xff);
 			return makeRegisterExpression(mr);
 		} 
 
-		Expression::Ptr InstructionDecoder_amdgpu::decodeSSRC(unsigned int index){
+		Expression::Ptr InstructionDecoder_amdgpu_vega::decodeSSRC(unsigned int index){
 			if (0<= index && index < 102){
-				MachRegister mr = makeAmdgpuRegID(amdgpu::sgpr0,index);
+				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::sgpr0,index);
 				return makeRegisterExpression(mr);
 			}else if(index ==102){
-				return makeRegisterExpression(amdgpu::flat_scratch_lo);
+				return makeRegisterExpression(amdgpu_vega::flat_scratch_lo);
 			}else if(index ==103){
-				return makeRegisterExpression(amdgpu::flat_scratch_hi);
+				return makeRegisterExpression(amdgpu_vega::flat_scratch_hi);
 			}else if(index ==104){
-				return makeRegisterExpression(amdgpu::xnack_mask_lo);
+				return makeRegisterExpression(amdgpu_vega::xnack_mask_lo);
 			}else if(index ==105){
-				return makeRegisterExpression(amdgpu::xnack_mask_hi);
+				return makeRegisterExpression(amdgpu_vega::xnack_mask_hi);
 			}else if ( 106 == index ){
-				return makeRegisterExpression(amdgpu::vcc_lo);
+				return makeRegisterExpression(amdgpu_vega::vcc_lo);
 			}else if ( 107 == index ){
-				return makeRegisterExpression(amdgpu::vcc_hi);
+				return makeRegisterExpression(amdgpu_vega::vcc_hi);
 			}else if (107 < index && index < 124){
-				MachRegister mr = makeAmdgpuRegID(amdgpu::ttmp0,index-108);
+				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::ttmp0,index-108);
 				return makeRegisterExpression(mr);
 			}else if (124 == index ){
-				return makeRegisterExpression(amdgpu::m0);
+				return makeRegisterExpression(amdgpu_vega::m0);
 			}else if ( 126 == index ){
-				return makeRegisterExpression(amdgpu::exec_lo);
+				return makeRegisterExpression(amdgpu_vega::exec_lo);
 			}else if ( 127 == index ){
-				return makeRegisterExpression(amdgpu::exec_hi);
+				return makeRegisterExpression(amdgpu_vega::exec_hi);
 			}else if( 128 <= index && index <= 192){
 				return Immediate::makeImmediate(Result(u32, unsign_extend32(32,index - 128 )));
 			}else if( 193 <= index && index <= 208 ){
@@ -616,15 +616,15 @@ namespace Dyninst {
 			}else if( 209 <= index && index <= 234){
 				assert ( 0 && "reserved index " ) ;
 			}else if( 235 == index){
-				return makeRegisterExpression(amdgpu::shared_base);
+				return makeRegisterExpression(amdgpu_vega::shared_base);
 			}else if( 236 == index){
-				return makeRegisterExpression(amdgpu::shared_limit);
+				return makeRegisterExpression(amdgpu_vega::shared_limit);
 			}else if( 237 == index){
-				return makeRegisterExpression(amdgpu::private_base);
+				return makeRegisterExpression(amdgpu_vega::private_base);
 			}else if( 238 == index){
-				return makeRegisterExpression(amdgpu::private_limit);
+				return makeRegisterExpression(amdgpu_vega::private_limit);
 			}else if( 239 == index){
-				return makeRegisterExpression(amdgpu::pops_exiting_wave_id);
+				return makeRegisterExpression(amdgpu_vega::pops_exiting_wave_id);
 			}else if (240 == index){
 				return Immediate::makeImmediate(Result(sp_float, 0.5) );
 			}else if (241 == index){
@@ -656,11 +656,11 @@ namespace Dyninst {
 			}else if (249 == index  || 250 == index){
 				assert ( 0 && "reserved index " ) ;
 			}else if ( 251 == index ){
-				return makeRegisterExpression(amdgpu::vccz);
+				return makeRegisterExpression(amdgpu_vega::vccz);
 			}else if ( 252 == index ){
-				return makeRegisterExpression(amdgpu::execz);
+				return makeRegisterExpression(amdgpu_vega::execz);
 			}else if ( 253 == index ){
-				return makeRegisterExpression(amdgpu::scc);
+				return makeRegisterExpression(amdgpu_vega::scc);
 			}else if ( 254 == index ){
 				assert ( 0 && "reserved index " ) ;
 			}
@@ -668,18 +668,18 @@ namespace Dyninst {
 				//std::cerr << "\nusing imm " << imm << std::endl;
 				return Immediate::makeImmediate(Result(u32, unsign_extend32(32,immLiteral )));
 			}else if( 256 <= index  && index <= 511){
-				MachRegister mr = makeAmdgpuRegID(amdgpu::vgpr0,index >>8);
+				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::vgpr0,index >>8);
 				return makeRegisterExpression(mr);
 			} 
 
 			cerr << "WARNING UNKNOWN REGISTER : "  << std::dec << index << " " <<(108 <= index && index <= 123 )<<endl;
-			//return makeRegisterExpression(amdgpu::sgpr0);
+			//return makeRegisterExpression(amdgpu_vega::sgpr0);
 
 			assert(0 && "unknown register value ");
 		}
 #include "amdgpu_decoder_impl_vega.C"
 
-		void InstructionDecoder_amdgpu::reset(){
+		void InstructionDecoder_amdgpu_vega::reset(){
 			immLen = 0;
 			insn_size = 0;
 			num_elements =1;
@@ -699,7 +699,7 @@ namespace Dyninst {
 		}
 		// here we assemble the first 64 bit (if available) as an instruction
 
-		void InstructionDecoder_amdgpu::setupInsnWord(InstructionDecoder::buffer &b) {
+		void InstructionDecoder_amdgpu_vega::setupInsnWord(InstructionDecoder::buffer &b) {
 			reset();
 			if (b.start > b.end)
 				return;
@@ -710,20 +710,20 @@ namespace Dyninst {
 			insn_long = (insn_long << 32) | insn;
 
 		}
-		void InstructionDecoder_amdgpu::decodeOpcode(InstructionDecoder::buffer &b) {
+		void InstructionDecoder_amdgpu_vega::decodeOpcode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
 			mainDecodeOpcode(b);
 			b.start += insn_in_progress->size();
 		}
 		
-		void InstructionDecoder_amdgpu::debug_instr(){
+		void InstructionDecoder_amdgpu_vega::debug_instr(){
 			cout << "\ndecoded instruction " <<  insn_in_progress->getOperation().mnemonic 
 				<< "  length = " <<  insn_in_progress->size()<< endl;
 
 		}
 
 
-		Instruction InstructionDecoder_amdgpu::decode(InstructionDecoder::buffer &b) {
+		Instruction InstructionDecoder_amdgpu_vega::decode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
 			mainDecodeOpcode(b);
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
@@ -735,7 +735,7 @@ namespace Dyninst {
 			return *insn_in_progress;
 		}
 
-		void InstructionDecoder_amdgpu::doDelayedDecode(const Instruction *insn_to_complete) {
+		void InstructionDecoder_amdgpu_vega::doDelayedDecode(const Instruction *insn_to_complete) {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode(b);

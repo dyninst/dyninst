@@ -1567,7 +1567,7 @@ namespace Dyninst
      DEF_REGISTER(fpsr,     5 | D_REG  |SPR | Arch_aarch64, "aarch64");
 
 	}	//end of aarch64 namespace
-	namespace amdgpu{
+	namespace amdgpu_vega{
       //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
       //arch        reg cat:GPR     alias&subrange  reg ID
       const signed int SGPR           = 0x00010000;
@@ -1635,7 +1635,7 @@ namespace Dyninst
       const signed int ZMMS    = 0x00000800;       //512bit reg
       const signed int HQ_REG  = 0x00000900;      //second 64bit in 128bit reg*/
 
-      #include "amdgpu_sys_regs.h"
+      #include "amdgpu_vega_sys_regs.h"
     }
 
 

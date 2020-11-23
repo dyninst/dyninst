@@ -46,15 +46,15 @@ namespace Dyninst {
         struct amdgpu_insn_entry;
         struct amdgpu_mask_entry;
 
-        class InstructionDecoder_amdgpu : public InstructionDecoderImpl {
+        class InstructionDecoder_amdgpu_vega : public InstructionDecoderImpl {
             friend struct amdgpu_insn_entry;
             friend struct amdgpu_mask_entry;
             enum DecodeFamily {sopp};
 
         public:
-            InstructionDecoder_amdgpu(Architecture a);
+            InstructionDecoder_amdgpu_vega(Architecture a);
 
-            virtual ~InstructionDecoder_amdgpu();
+            virtual ~InstructionDecoder_amdgpu_vega();
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
             
