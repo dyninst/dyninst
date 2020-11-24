@@ -31,7 +31,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <libiberty/demangle.h>
+#include <demangle.h> // from libiberty
 #include "symbolDemangle.h"
 
 
