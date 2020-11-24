@@ -60,7 +60,8 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
     parsing_printf("Looking for thunk\n");
-boost::make_lock_guard(*func);
+
+    boost::make_lock_guard(*func);
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
     GetAllReachableBlock();
@@ -75,6 +76,11 @@ boost::make_lock_guard(*func);
     // to determine the format of the (potential) jump table
     const unsigned char * buf = (const unsigned char*) block->region()->getPtrToInstruction(block->last());
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
+
+    // Here we want to skip the analysis for amdgpu, as it is still unclear how dataflow analysis should be done on amdgpu
+    if ( block->obj()->cs()->getArch() == Arch_amdgpu_vega)
+        return false;
+
     Instruction insn = dec.decode();
     AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;

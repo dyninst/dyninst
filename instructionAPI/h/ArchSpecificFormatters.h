@@ -79,6 +79,22 @@ namespace Dyninst {
             std::map<std::string, std::string> binaryFuncModifier;
         };
 
+        class AmdgpuFormatter : public ArchSpecificFormatter {
+        public:
+            AmdgpuFormatter();
+
+            virtual std::string getInstructionString(std::vector <std::string>);
+            virtual std::string formatImmediate(std::string);
+            virtual std::string formatDeref(std::string);
+            virtual std::string formatRegister(std::string);
+            virtual std::string formatBinaryFunc(std::string, std::string, std::string);
+            virtual ~AmdgpuFormatter() {}
+
+        private:
+            std::map<std::string, std::string> binaryFuncModifier;
+        };
+
+
         class x86Formatter : public ArchSpecificFormatter {
         public:
             x86Formatter();

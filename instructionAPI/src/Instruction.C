@@ -565,27 +565,28 @@ memAccessors.begin()));
       case e_sysexit:
       case e_call:
       case e_syscall:
-	return false;
-          case e_jnb:
-          case e_jb:
-          case e_jb_jnaej_j:
-          case e_jbe:
-          case e_jcxz_jec:
-          case e_jl:
-          case e_jle:
-          case e_jnb_jae_j:
-          case e_jnbe:
-          case e_jnl:
-          case e_jnle:
-          case e_jno:
-          case e_jnp:
-          case e_jns:
-          case e_jnz:
-          case e_jo:
-          case e_jp:
-          case e_js:
-          case e_jz:
-              return true;
+      //case amdgpu_op_s_swappc_b64:
+          return false;
+      case e_jnb:
+      case e_jb:
+      case e_jb_jnaej_j:
+      case e_jbe:
+      case e_jcxz_jec:
+      case e_jl:
+      case e_jle:
+      case e_jnb_jae_j:
+      case e_jnbe:
+      case e_jnl:
+      case e_jnle:
+      case e_jno:
+      case e_jnp:
+      case e_jns:
+      case e_jnz:
+      case e_jo:
+      case e_jp:
+      case e_js:
+      case e_jz:
+          return true;
       default:
       {
         if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {

@@ -406,3 +406,4 @@ void RoseInsnArmv8Factory::massageOperands(const Instruction &,
                                            std::vector<InstructionAPI::Operand> &) {
   return;
 }
+

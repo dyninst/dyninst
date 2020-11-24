@@ -89,8 +89,11 @@ namespace Dyninst
       return m_Reg;
     }
 
-    std::string RegisterAST::format(Architecture arch, formatStyle) const
+    std::string RegisterAST::format(Architecture arch, formatStyle f) const
     {
+        if(arch == Arch_amdgpu_vega){
+            return RegisterAST::format(f);
+        }
         return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());
     }
 
@@ -101,6 +104,9 @@ namespace Dyninst
         if(substr != std::string::npos)
         {
             name = name.substr(substr + 1, name.length());
+        }
+        if ( m_Reg.size()*8 != m_High - m_Low){
+            name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";
         }
 
         /* we have moved to AT&T syntax (lowercase registers) */

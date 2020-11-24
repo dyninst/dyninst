@@ -33,8 +33,11 @@
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
+#include "InstructionDecoder-amdgpu-vega.h"
+
 #include "BinaryFunction.h"
 #include "Dereference.h"
+#include "Ternary.h"
 
 using namespace std;
 namespace Dyninst
@@ -72,6 +75,8 @@ namespace Dyninst
                 case Arch_aarch32:
                 case Arch_aarch64:
                     return Ptr(new InstructionDecoder_aarch64(a));
+                case Arch_amdgpu_vega:
+                    return Ptr(new InstructionDecoder_amdgpu_vega(a));
                 default:
                     assert(0);
                     return Ptr();
@@ -114,6 +119,11 @@ namespace Dyninst
             BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
         }
+
+        Expression::Ptr InstructionDecoderImpl::makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second,Result_Type result_type){
+            return make_shared(singleton_object_pool<TernaryAST>::construct(cond,first,second,result_type));
+        }
+
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)
         {
@@ -127,6 +137,18 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
+        
+
+        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, unsigned int start , unsigned int end)
+        {
+            int newID = registerID.val();
+            int minusArch = newID & ~(registerID.getArchitecture());
+            int convertedID = minusArch | m_Arch;
+            MachRegister converted(convertedID);
+            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, start, end));
+        }
+
+
         Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, Result_Type extendFrom)
         {
             int newID = registerID.val();

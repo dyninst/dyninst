@@ -187,6 +187,7 @@ namespace Dyninst {
 
             virtual Architecture arch() { return a; };
         };
+        
     };
 };
 

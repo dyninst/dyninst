@@ -49,6 +49,7 @@
 #include "IA_x86.h"
 #include "IA_power.h"
 #include "IA_aarch64.h"
+#include "IA_amdgpu.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -119,6 +120,9 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
 	    return new IA_power(dec_, where_, o, r, isrc, curBlk_);
 	case Arch_aarch64:
 	    return new IA_aarch64(dec_, where_, o, r, isrc, curBlk_);
+    case Arch_amdgpu_vega:
+
+	    return new IA_amdgpu(dec_, where_, o, r, isrc, curBlk_);
 	default:
 	    assert(!"unimplemented architecture");
     }
@@ -137,6 +141,7 @@ void IA_IAPI::initASTs()
             framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
             framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
             framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
+            framePtr[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_vega)));
         }
         if(stackPtr.empty())
         {
@@ -145,6 +150,7 @@ void IA_IAPI::initASTs()
             stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
             stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
             stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
+            stackPtr[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_vega)));
         }
         if(thePC.empty())
         {
@@ -153,6 +159,7 @@ void IA_IAPI::initASTs()
             thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
             thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
             thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
+            thePC[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_vega)));
         }
         ANNOTATE_HAPPENS_BEFORE(&IA_IAPI::ptrInit);
     });
@@ -680,14 +687,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 	      // instructions and has not been seen in the wild....
 	      if(currBlk == context->entry()) 
 	      {
-		parsing_printf("\tIndirect branch as 2nd insn of entry block, treating as tail call\n");
-                parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
+            parsing_printf("\tIndirect branch as 2nd insn of entry block, treating as tail call\n");
+            parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
                                ci.format().c_str(), current);
-		outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
-		tailCalls[INDIRECT]=true;
-		// Fix the cache, because we're dumb.
-		tailCalls[DIRECT]=true;
-		return;
+            outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+            tailCalls[INDIRECT]=true;
+            // Fix the cache, because we're dumb.
+            tailCalls[DIRECT]=true;
+            return;
 	      }
 	      else
 	      {
@@ -706,10 +713,10 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                            ci.format().c_str(), current);
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(context, currBlk, outEdges);
-	    parsing_printf("Parsed jump table\n");
+            parsing_printf("Parsed jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
-            	parsing_printf("%s[%d]: unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
+                parsing_printf("%s[%d]: unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
                            ci.format().c_str(), current, context->name().c_str());
             }
             return;
@@ -723,27 +730,27 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         {
             outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
         }
- 	else if (!isReturn(context, currBlk)) {
-	    // If BLR is not a return, then it is a jump table
+        else if (!isReturn(context, currBlk)) {
+            // If BLR is not a return, then it is a jump table
             parsedJumpTable = true;
             parsing_printf("%s[%d]: BLR jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
                            ci.format().c_str(), current);
             successfullyParsedJumpTable = parseJumpTable(context, currBlk, outEdges);
-	    parsing_printf("Parsed BLR jump table\n");
+            parsing_printf("Parsed BLR jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
-            	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
-			       FILE__, __LINE__, ci.format().c_str(), current, context->name().c_str());
+            parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
+            FILE__, __LINE__, ci.format().c_str(), current, context->name().c_str());
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             }
-	}
-	
-	parsing_printf("Returning from parse out edges\n");
-	return;
+        }
+
+        parsing_printf("Returning from parse out edges\n");
+        return;
     }
     else if(isSysEnter())
     {
-      parseSysEnter(outEdges);
-      return;
+        parseSysEnter(outEdges);
+        return;
     } else if (DEBUGGABLE() && isSyscall()) {
         parseSyscall(outEdges);
         return;

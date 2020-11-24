@@ -765,7 +765,6 @@ void AssignmentConverter::convert(const Instruction &I,
     assignments.push_back(ra);
     break;
   }      
-        
   default:
     // Assume full intra-dependence of non-flag and non-pc registers. 
     std::vector<AbsRegion> used;

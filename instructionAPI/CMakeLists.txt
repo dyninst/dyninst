@@ -11,6 +11,7 @@ set (SRC_LIST
      src/Operation.C 
      src/Operand.C 
      src/Register.C 
+     src/Ternary.C 
      src/Expression.C 
      src/BinaryFunction.C 
      src/InstructionCategories.C
@@ -20,6 +21,7 @@ set (SRC_LIST
      src/InstructionDecoder-x86.C
      src/InstructionDecoder-power.C 
      src/InstructionDecoder-aarch64.C 
+     src/InstructionDecoder-amdgpu-vega.C
      src/InstructionDecoderImpl.C
   )
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)

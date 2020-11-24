@@ -1,4 +1,4 @@
-/*
+/*/
  * See the dyninst/COPYRIGHT file for copyright information.
  * 
  * We provide the Paradyn Tools (below described as "Paradyn")
@@ -64,7 +64,9 @@ namespace Dyninst {
             static bool expandAarch64(SgAsmInstruction *rose_insn,
                                       BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
+
         };
+
 
     };
 };

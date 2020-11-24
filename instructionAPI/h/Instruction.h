@@ -91,6 +91,7 @@ namespace Dyninst
         friend class InstructionDecoder_x86;
         friend class InstructionDecoder_power;
         friend class InstructionDecoder_aarch64;
+        friend class InstructionDecoder_amdgpu_vega;
 
         struct CFT
         {
@@ -301,6 +302,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit, bool trueP, bool falseP) const;
 
     private:
+      void updateSize(const unsigned int new_size) {m_size = new_size;}
       void decodeOperands() const;
       void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;
       void copyRaw(size_t size, const unsigned char* raw);

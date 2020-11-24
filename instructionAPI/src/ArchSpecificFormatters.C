@@ -149,6 +149,61 @@ std::string ArmFormatter::formatBinaryFunc(std::string left, std::string func, s
         return left + " " + func + " " + right;
 }
 
+///////// Formatter for AMDGPU
+
+AmdgpuFormatter::AmdgpuFormatter() {
+    binaryFuncModifier["<<"] = "lsl";
+}
+
+std::string AmdgpuFormatter::formatImmediate(std::string evalString) {
+    return "0x" + evalString;
+}
+
+std::string AmdgpuFormatter::formatRegister(std::string regName) {
+    std::string ret = regName;
+    for(auto &c : ret ) ::toupper(c);
+    return ret;
+}
+
+std::string AmdgpuFormatter::formatDeref(std::string addrString) {
+    std::string out;
+    size_t pluspos = addrString.find("+");
+
+    if(pluspos != std::string::npos && addrString.substr(0, pluspos - 1) == "PC") {
+        out += addrString.substr(pluspos + 2);
+    } else if(pluspos != std::string::npos) {
+        std::string left = addrString.substr(0, pluspos - 1);
+        std::string right = addrString.substr(pluspos + 2);
+        out += "[" + left + ", " + right + "]";
+    } else {
+        out += "[" + addrString + "]";
+    }
+
+    return out;
+}
+
+std::string AmdgpuFormatter::getInstructionString(std::vector<std::string> operands) {
+    std::string out;
+
+    for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
+        out += *itr;
+        if(itr != operands.end() - 1)
+            out += ", ";
+    }
+
+    return out;
+}
+
+std::string AmdgpuFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
+    if(binaryFuncModifier.count(func) > 0)
+	    return "("+left + ", " + binaryFuncModifier[func] + " " + right+")";
+    /*else if(left == "PC")
+	    return right;*/
+    else
+        return "("+left + " " + func + " " + right+")";
+}
+
+
 /////////////////////////// x86 Formatter functions
 
 x86Formatter::x86Formatter()
@@ -329,6 +384,9 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
     auto found = theFormatters.find(a);
     if(found != theFormatters.end()) return *found->second;
     switch(a) {
+        case Arch_amdgpu_vega:
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new AmdgpuFormatter());
+            break;
         case Arch_aarch32:
         case Arch_aarch64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());

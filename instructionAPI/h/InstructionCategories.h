@@ -47,7 +47,8 @@ namespace Dyninst
       c_PrefetchInsn,
       c_SysEnterInsn,
       c_SyscallInsn,
-        c_VectorInsn,
+      c_VectorInsn,
+      c_GPUKernelExitInsn,
       c_NoCategory
     };
     INSTRUCTION_EXPORT InsnCategory entryToCategory(entryID e);

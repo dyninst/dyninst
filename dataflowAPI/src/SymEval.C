@@ -514,8 +514,9 @@ bool SymEval::expandInsn(const Instruction &insn,
             BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsAST::instance(state);
 
             exp.expandAarch64(roseInsn.get(), ops, insn.format());
+
+            break;
         }
-        break;
         default:
             assert(0 && "Unimplemented symbolic expansion architecture");
             break;
