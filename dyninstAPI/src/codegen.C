@@ -321,7 +321,7 @@ void codeGen::insert(const void *b, const unsigned size, const codeBufIndex_t in
     assert(buffer_);
 
     realloc(used() + size);
-    auto * temp = get_ptr(index);
+    char * temp = static_cast<char*>(get_ptr(index));
     memmove(temp + size, temp, used()-index);
     memcpy(temp, b, size);
 
