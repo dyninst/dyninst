@@ -157,10 +157,14 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     // the aggregate, and make a new aggregate.
   {
     indexed_symbols::master_t::accessor a;
-    assert(everyDefinedSymbol.master.find(a, sym));
+    if (!everyDefinedSymbol.master.find(a, sym))  {
+        assert(!"everyDefinedSymbol.master.find(a, sym)");
+    }
 
     indexed_symbols::by_offset_t::accessor oa;
-    assert(everyDefinedSymbol.by_offset.find(oa, sym->offset_));
+    if (!everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
+        assert(!"everyDefinedSymbol.by_offset.find(oa, sym->offset_)");
+    }
     std::remove(oa->second.begin(), oa->second.end(), sym);
     everyDefinedSymbol.by_offset.insert(oa, newOffset);
     oa->second.push_back(sym);

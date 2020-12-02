@@ -519,22 +519,30 @@ void Symtab::indexed_symbols::erase(Symbol* s) {
     if(master.erase(s)) {
         {
             by_offset_t::accessor oa;
-            assert(by_offset.find(oa, s->getOffset()));
+            if (!by_offset.find(oa, s->getOffset()))  {
+                assert(!"by_offset.find(oa, s->getOffset())");
+            }
             std::remove(oa->second.begin(), oa->second.end(), s);
         }
         {
             by_name_t::accessor ma;
-            assert(by_mangled.find(ma, s->getMangledName()));
+            if (!by_mangled.find(ma, s->getMangledName()))  {
+                assert(!"by_mangled.find(ma, s->getMangledName())");
+            }
             std::remove(ma->second.begin(), ma->second.end(), s);
         }
         {
             by_name_t::accessor pa;
-            assert(by_pretty.find(pa, s->getPrettyName()));
+            if (!by_pretty.find(pa, s->getPrettyName()))  {
+                assert(!"by_pretty.find(pa, s->getPrettyName())");
+            }
             std::remove(pa->second.begin(), pa->second.end(), s);
         }
         {
             by_name_t::accessor ta;
-            assert(by_typed.find(ta, s->getTypedName()));
+            if (!by_typed.find(ta, s->getTypedName()))  {
+                assert(!"by_typed.find(ta, s->getTypedName())");
+            }
             std::remove(ta->second.begin(), ta->second.end(), s);
         }
     }
@@ -2340,7 +2348,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
 
     // Update symbol.
     indexed_symbols::master_t::accessor a;
-    assert(everyDefinedSymbol.master.find(a, sym));
+    if (!everyDefinedSymbol.master.find(a, sym))  {
+        assert(!"everyDefinedSymbol.master.find(a, sym)");
+    }
     Offset old = a->second;
 
     sym->setOffset(newOffset);
@@ -2348,7 +2358,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
 
     // Update the by_offset table
     indexed_symbols::by_offset_t::accessor oa;
-    assert(everyDefinedSymbol.by_offset.find(oa, old));
+    if (!everyDefinedSymbol.by_offset.find(oa, old))  {
+        assert(!"everyDefinedSymbol.by_offset.find(oa, old)");
+    }
     std::remove(oa->second.begin(), oa->second.end(), sym);
 
     everyDefinedSymbol.by_offset.insert(oa, newOffset);
