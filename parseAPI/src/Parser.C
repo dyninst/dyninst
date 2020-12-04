@@ -2617,11 +2617,15 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
                     link_block(B,ret,FALLTHROUGH,false);
                     
                     region_data::edge_data_map::accessor a3;
-                    assert(edm->insert(a3, A->last()));
+                    if (!edm->insert(a3, A->last()))  {
+                        assert(!"edm->insert(a3, A->last())");
+                    }
                     a3->second.f = fA;
                     a3->second.b = A;
                     region_data::edge_data_map::accessor a4;
-                    assert(edm->insert(a4, B->last()));
+                    if (!edm->insert(a4, B->last()))  {
+                        assert(!"edm->insert(a4, B->last())");
+                    }
                     a4->second.f = fB;
                     a4->second.b = B;
                     break;

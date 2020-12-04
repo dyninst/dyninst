@@ -2655,7 +2655,9 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                 if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
                     unsigned int count = 0;
                     dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
-                    assert(symbols_.find(ca, SymName));
+                    if (!symbols_.find(ca, SymName))  {
+                        assert(!"symbols_.find(ca, SymName)");
+                    }
                     const std::vector<Symbol *> &syms = ca->second;
 
                     /* If there's only one, apply regardless. */
@@ -2720,7 +2722,9 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                     delete[] sname;
 
                     dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
-                    assert(symbols_.find(ca, nameFromStab));
+                    if (!symbols_.find(ca, nameFromStab))  {
+                        assert(!"symbols_.find(ca, nameFromStab)");
+                    }
                     for (unsigned i = 0; i < ca->second.size(); i++) {
                         symsToModules_.insert({ca->second[i], module});
                     }
@@ -2731,7 +2735,9 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                         break;
                     }
                     dyn_c_hash_map<Offset,std::vector<Symbol*>>::const_accessor ca;
-                    assert(symsByOffset_.find(ca, entryAddr));
+                    if (!symsByOffset_.find(ca, entryAddr))  {
+                        assert(!"symsByOffset_.find(ca, entryAddr)");
+                    }
                     for (unsigned i = 0; i < ca->second.size(); i++) {
                         symsToModules_.insert({ca->second[i], module});
                     }

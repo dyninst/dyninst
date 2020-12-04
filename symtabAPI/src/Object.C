@@ -535,7 +535,9 @@ Symbol *SymbolIter::currval()
 
 const std::string AObject::findModuleForSym(Symbol *sym) {
     dyn_c_hash_map<Symbol*, std::string>::const_accessor ca;
-    assert(symsToModules_.find(ca, sym));
+    if (!symsToModules_.find(ca, sym))  {
+        assert(!"symsToModules_.find(ca, sym)");
+    }
     return ca->second;
 }
 
@@ -565,7 +567,9 @@ void AObject::setModuleForOffset(Offset sym_off, std::string module) {
             s != found_syms->second.end();
             ++s)
     {
-        assert(symsToModules_.insert({*s, module}));
+        if (!symsToModules_.insert({*s, module}))  {
+            assert(!"symsToModules_.insert({*s, module})");
+        }
     }
 }
 
