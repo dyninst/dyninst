@@ -153,43 +153,46 @@ std::string MachRegister::name() const {
 
     std::string ret;
     if (iter != names()->end()) {
+        signed int arch = reg & 0xff000000;
+        if ( arch == Arch_amdgpu_vega){
+            signed int category = reg & 0x00ff0000;
+            signed int base_val = reg & 0x000000ff;
+            switch(category){
+                case amdgpu_vega::SGPR_VEC2:
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
+                    break;
+                case amdgpu_vega::VGPR_VEC2:
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
+                    break;
+                case amdgpu_vega::SGPR_VEC4:
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
+                    break;
+                case amdgpu_vega::VGPR_VEC4:
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
+                    break;
+                case amdgpu_vega::SGPR_VEC8:
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
 
-        signed int category = reg & 0x00ff0000;
-        signed int base_val = reg & 0x000000ff;
-        switch(category){
-            case amdgpu_vega::SGPR_VEC2:
-                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
-                break;
-            case amdgpu_vega::VGPR_VEC2:
-                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
-                break;
-            case amdgpu_vega::SGPR_VEC4:
-                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
-                break;
-            case amdgpu_vega::VGPR_VEC4:
-                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
-                break;
-            case amdgpu_vega::SGPR_VEC8:
-                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
+                    break;
+                case amdgpu_vega::VGPR_VEC8:
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
 
-                break;
-            case amdgpu_vega::VGPR_VEC8:
-                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
-
-                break;
-            case amdgpu_vega::SGPR_VEC16:
-                ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
-                break;
-            case amdgpu_vega::VGPR_VEC16:
-                ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
-                break;
-            default:
-                ret = iter->second;
-                break;
+                    break;
+                case amdgpu_vega::SGPR_VEC16:
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
+                    break;
+                case amdgpu_vega::VGPR_VEC16:
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
+                    break;
+                default:
+                    break;
+            }
+            return ret;
+        }else{
+            return iter->second;
         }
-        return ret;
     }
-    std::cout << " can't find " << reg << std::endl;
+    std::cout << " can't find " <<  std::hex << "0x" << reg << std::endl;
     return std::string("<INVALID_REG>");
 
 }
