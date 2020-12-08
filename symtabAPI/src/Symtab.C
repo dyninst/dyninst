@@ -761,15 +761,24 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         Variable *var = NULL;
         bool found = false;
         {
-            dyn_c_hash_map<Offset,Variable*>::accessor a;
+            VarsByOffsetMap::accessor a;
             found = !varsByOffset.insert(a, sym->getOffset());
-            if(found) var = a->second;
-            else {
-            // Create a new function
-            // Also, update the symbol to point to this function.
-            var = new Variable(sym);
-                a->second = var;
-        }
+            VarsByOffsetMap::mapped_type &vars = a->second;
+            if (found)  {
+                found = false;
+                for (auto v: vars)  {
+                    if (v->getSize() == sym->getSize())  {
+                        found = true;
+                        var = v;
+                    }
+                }
+            }
+            if (!found)  {
+                // Create a new variable
+                // Also, update the symbol to point to this variable.
+                var = new Variable(sym);
+                vars.push_back(var);
+            }
         }
         if(found) {
             /* XXX
