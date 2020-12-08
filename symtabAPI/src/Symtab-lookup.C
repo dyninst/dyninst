@@ -296,7 +296,7 @@ bool Symtab::getAllFunctions(std::vector<Function *> &ret) {
     return (ret.size() > 0);
 }
 
-bool Symtab::findVariableByOffset(Variable *&ret, const Offset offset) {
+bool Symtab::findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset) {
 
     /* XXX
      *
@@ -304,12 +304,13 @@ bool Symtab::findVariableByOffset(Variable *&ret, const Offset offset) {
      * relocatable files -- this discrepancy applies here as well.
      */
     {
-        dyn_c_hash_map<Offset, Variable*>::const_accessor ca;
+        VarsByOffsetMap::const_accessor ca;
         if (varsByOffset.find(ca, offset)) {
             ret = ca->second;
-        return true;
+            return true;
+        }
     }
-    }
+    ret.clear();
     setSymtabError(No_Such_Symbol);
     return false;
 }

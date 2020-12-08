@@ -916,11 +916,13 @@ void DwarfWalker::createGlobalVariable(const vector<VariableLocation> &locs, boo
    Offset addr = 0;
    if (locs.size() && locs[0].stClass == storageAddr)
          addr = locs[0].frameOffset;
-   Variable *var;
-   bool result = symtab()->findVariableByOffset(var, addr);
-   if (result) {
-         var->setType(type);
-      }
+   std::vector<Variable *> vars;
+   bool result = symtab()->findVariablesByOffset(vars, addr);
+   if (result)  {
+	for (auto v: vars)  {
+	    v->setType(type);
+	}
+   }
    tc()->addGlobalVariable(curName(), type);
 }
 
