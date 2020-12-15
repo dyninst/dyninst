@@ -98,6 +98,7 @@ std::vector<Symtab *> Symtab::allSymtabs;
 SymtabError Symtab::getLastSymtabError()
 {
   SymtabError last = serr;
+  serr = No_Error;
   return last;
 }
 

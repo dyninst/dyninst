@@ -248,8 +248,8 @@ bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
         dyn_c_hash_map<Offset,Function*>::const_accessor ca;
         if (funcsByOffset.find(ca, entry)) {
             ret = ca->second;
-        return true;
-    }
+            return true;
+        }
     }
     setSymtabError(No_Such_Symbol);
     return false;
