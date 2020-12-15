@@ -209,7 +209,7 @@ SYMTAB_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    return true;
 }
 
-SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
+SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName) const
 {
    std::string *fn_p = NULL;
 
@@ -224,7 +224,7 @@ SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
    return false;
 }
 
-SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
+SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
 {
    std::vector<std::string> *vn_p = NULL;
 
@@ -409,7 +409,8 @@ void Symbol::setReferringSymbol(Symbol* referringSymbol)
 	referring_= referringSymbol;
 }
 
-Symbol* Symbol::getReferringSymbol() {
+Symbol* Symbol::getReferringSymbol() const
+{
 	return referring_;
 }
 
