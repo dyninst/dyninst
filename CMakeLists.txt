@@ -20,6 +20,9 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" ${CMAKE_MODULE_PATH})
 
+# Set the compiler to use for ASM
+set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+
 # Set the C and C++ language standards
 include(LanguageStandards)
 
