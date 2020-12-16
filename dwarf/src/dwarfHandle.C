@@ -211,7 +211,7 @@ bool DwarfHandle::init_dbg()
 				case 0x27: case 0x32 : case 0x39:
 					assert(0 && "reserved");
 				default:
-					assert(0 && "probabily won't be supported");
+					assert(0 && "probably won't be supported");
 			}
 
             break;
