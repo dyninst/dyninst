@@ -181,7 +181,8 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     if (!everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
         assert(!"everyDefinedSymbol.by_offset.find(oa, sym->offset_)");
     }
-    std::remove(oa->second.begin(), oa->second.end(), sym);
+    auto &syms = oa->second;
+    syms.erase(std::remove(syms.begin(), syms.end(), sym), syms.end());
     everyDefinedSymbol.by_offset.insert(oa, newOffset);
     oa->second.push_back(sym);
 
@@ -208,7 +209,7 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
         bool found = !varsByOffset.find(a, oldOffset);
         VarsByOffsetMap::mapped_type &vars = a->second;
         if (found)  {
-            remove(vars.begin(), vars.end(), var);
+            vars.erase(std::remove(vars.begin(), vars.end(), var), vars.end());
             if (vars.empty())  {
                 varsByOffset.erase(a);
             }
