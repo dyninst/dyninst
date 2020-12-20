@@ -80,8 +80,9 @@ Point::getCallee() {
   PatchBlock* b = the_block_;
   PatchBlock::edgelist::const_iterator it = b->targets().begin();
   for (; it != b->targets().end(); ++it) {
-    if ((*it)->type() == ParseAPI::CALL) {
-       PatchBlock* trg = (*it)->trg();
+    if ((*it)->type() == ParseAPI::CALL ||
+        ((((*it)->type() == ParseAPI::DIRECT || (*it)->type() == ParseAPI::COND_TAKEN)) && (*it)->interproc())) {
+      PatchBlock* trg = (*it)->trg();
       return obj()->getFunc(obj()->co()->findFuncByEntry(trg->block()->region(),
                                                          trg->block()->start()));
     }
