@@ -159,32 +159,39 @@ std::string MachRegister::name() const {
             signed int base_val = reg & 0x000000ff;
             switch(category){
                 case amdgpu_vega::SGPR_VEC2:
+                    base_val -=  (amdgpu_vega::sgpr_vec2_0&0xff);
                     ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
                     break;
                 case amdgpu_vega::VGPR_VEC2:
+                    base_val -=  (amdgpu_vega::vgpr_vec2_0&0xff);
                     ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
                     break;
                 case amdgpu_vega::SGPR_VEC4:
+                    base_val -=  (amdgpu_vega::sgpr_vec4_0&0xff);
                     ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
                     break;
                 case amdgpu_vega::VGPR_VEC4:
+                    base_val -=  (amdgpu_vega::vgpr_vec4_0&0xff);
                     ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
                     break;
                 case amdgpu_vega::SGPR_VEC8:
+                    base_val -=  (amdgpu_vega::sgpr_vec8_0&0xff);
                     ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
-
                     break;
                 case amdgpu_vega::VGPR_VEC8:
+                    base_val -=  (amdgpu_vega::vgpr_vec8_0&0xff);
                     ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
-
                     break;
                 case amdgpu_vega::SGPR_VEC16:
+                    base_val -=  (amdgpu_vega::sgpr_vec16_0&0xff);
                     ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
                     break;
                 case amdgpu_vega::VGPR_VEC16:
+                    base_val -=  (amdgpu_vega::vgpr_vec16_0&0xff);
                     ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
                     break;
                 default:
+                    ret = iter->second;
                     break;
             }
             return ret;
@@ -722,7 +729,7 @@ void MachRegister::getAMDGPUROSERegister(int &reg_class, int &reg_idx, int &offs
             offset = 0;
         }
         case amdgpu_vega::SGPR_VEC2:{
-            //std::cout << "class = vec 2 " << std::endl;
+            std::cout << "class = vec 2 " << std::endl;
             reg_class = amdgpu_regclass_sgpr_vec2;
             reg_idx = baseID;
             offset = 0;
