@@ -729,7 +729,6 @@ void MachRegister::getAMDGPUROSERegister(int &reg_class, int &reg_idx, int &offs
             offset = 0;
         }
         case amdgpu_vega::SGPR_VEC2:{
-            std::cout << "class = vec 2 " << std::endl;
             reg_class = amdgpu_regclass_sgpr_vec2;
             reg_idx = baseID;
             offset = 0;
