@@ -2423,7 +2423,7 @@ bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &dies_seen) {
         //if (dies_seen.find(off_die) != dies_seen.end()) continue;
 
         std::string modname;
-        if (!DwarfWalker::findDieName(dbg, cu_die, modname)) {
+        if (!DwarfWalker::findDieName(cu_die, modname)) {
             modname = associated_symtab->file(); // default module
         }
 
@@ -2481,7 +2481,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         Dwarf_Die cu_die = dies[i];
 
         std::string modname;
-        if (!DwarfWalker::findDieName(dbg, cu_die, modname)) {
+        if (!DwarfWalker::findDieName(cu_die, modname)) {
             modname = associated_symtab->file(); // default module
         }
         if(modname=="<artificial>")

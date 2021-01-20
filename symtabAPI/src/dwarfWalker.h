@@ -72,9 +72,9 @@ private:
         boost::shared_ptr<Type> enclosure;
         bool parseSibling;
         bool parseChild;
-        Dwarf_Off specEntry;
-        Dwarf_Off abstractEntry;
-        Dwarf_Off offset;
+        Dwarf_Die offset;
+        Dwarf_Die specEntry;
+        Dwarf_Die abstractEntry;
         unsigned int tag;
         Address base;
         range_set_ptr ranges;
@@ -82,7 +82,7 @@ private:
             func(NULL), commonBlock(NULL),
             enumType(NULL), enclosure(NULL),
             parseSibling(true), parseChild(true),
-            offset(0), tag(0), base(0) {
+            tag(0), base(0) {
         };
         Context(const Context& o) :
                 func(o.func),
@@ -115,21 +115,15 @@ public:
     bool parseSibling() { return c.top().parseSibling; }
     bool parseChild() { return c.top().parseChild; }
     Dwarf_Die entry() {
-        Dwarf_Die ret;
-        dwarf_offdie(dbg(), c.top().offset, &ret);
-        return ret;
+        return c.top().offset;
     }
     Dwarf_Die specEntry() {
-        Dwarf_Die ret;
-        dwarf_offdie(dbg(), c.top().specEntry, &ret);
-        return ret;
+        return c.top().specEntry;
     }
     Dwarf_Die abstractEntry() {
-        Dwarf_Die ret;
-        dwarf_offdie(dbg(), c.top().abstractEntry, &ret);
-        return ret;
+        return c.top().abstractEntry;
     }
-    Dwarf_Off offset() { return c.top().offset; }
+    Dwarf_Off offset() { return dwarf_dieoffset(&(c.top().offset)); }
     unsigned int tag() { return c.top().tag; }
     Address base() { return c.top().base; }
     range_set_ptr ranges() { return c.top().ranges; }
@@ -140,10 +134,9 @@ public:
     void setEnclosure(boost::shared_ptr<Type> f) { c.top().enclosure = f; }
     void setParseSibling(bool p) { c.top().parseSibling = p; }
     void setParseChild(bool p) { c.top().parseChild = p; }
-    virtual void setEntry(Dwarf_Die e) { c.top().offset = dwarf_dieoffset(&e); }
-    void setSpecEntry(Dwarf_Die e) { c.top().specEntry = dwarf_dieoffset(&e); }
-    void setAbstractEntry(Dwarf_Die e) { c.top().abstractEntry = dwarf_dieoffset(&e); }
-    void setOffset(Dwarf_Off o) { c.top().offset = o; }
+    virtual void setEntry(Dwarf_Die e) { c.top().offset = e; }
+    void setSpecEntry(Dwarf_Die e) { c.top().specEntry = e; }
+    void setAbstractEntry(Dwarf_Die e) { c.top().abstractEntry = e; }
     void setTag(unsigned int t) { c.top().tag = t; }
     void setBase(Address a) { c.top().base = a; }
     virtual void setRange(const AddressRange& range) {
@@ -299,7 +292,6 @@ private:
     bool parseCallsite();
     bool hasDeclaration(bool &decl);
     bool findTag();
-    bool findOffset();
     bool handleAbstractOrigin(bool &isAbstractOrigin);
     bool handleSpecification(bool &hasSpec);
     bool findFuncName();
@@ -317,7 +309,7 @@ private:
             bool &hasLineNumber,
             std::string &filename);
 public:
-    static bool findDieName(Dwarf* dbg, Dwarf_Die die, std::string &);
+    static bool findDieName(Dwarf_Die die, std::string &);
 private:
     bool findName(std::string &);
     void removeFortranUnderscore(std::string &);
@@ -403,10 +395,11 @@ private:
 
     // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
     // either .debug_info or .debug_types.
-    dyn_c_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
-    dyn_c_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
+    dyn_c_hash_map<std::pair<Dwarf_Off,bool>, typeId_t> info_type_ids_; // .debug_info offset -> id
+    dyn_c_hash_map<std::pair<Dwarf_Off,bool>, typeId_t> types_type_ids_; // .debug_types offset -> id
 
-    typeId_t get_type_id(Dwarf_Off offset, bool is_info);
+    // is_sup indicates it's in the dwarf supplemental file
+    typeId_t get_type_id(Dwarf_Off offset, bool is_info, bool is_sup);
     typeId_t type_id(); // get_type_id() for the current entry
 
     // Map to connect DW_FORM_ref_sig8 to type IDs.
