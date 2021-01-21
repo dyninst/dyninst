@@ -76,6 +76,7 @@ set (SRC_LIST_aarch64
 
 file(GLOB SRC_ASSEMBLY "src/*.S")
 set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE ASM)
+set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)
