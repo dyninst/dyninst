@@ -193,6 +193,7 @@ add_definitions(-DBPATCH_DLL_BUILD)
 if (PLATFORM MATCHES i386 AND UNIX)
 set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
 set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE ASM)
+set_source_files_properties(src/cpuid-x86.S PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif ()
 
 dyninst_library(dyninstAPI common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI)
