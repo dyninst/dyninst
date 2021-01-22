@@ -159,6 +159,14 @@ bool DwarfWalker::parse() {
         compile_offset = next_cu_header;
     }
 
+    if (dwarf_getalt(dbg()) != NULL) {
+        DwarfWalker w(symtab(), dbg());
+        for (unsigned int i = 0; i < module_dies.size(); i++) {
+            w.push();
+            w.parseModule(module_dies[i],fixUnknownMod);
+            w.pop();
+        }
+    } else {
 #pragma omp parallel
     {
     DwarfWalker w(symtab(), dbg());
@@ -168,6 +176,7 @@ bool DwarfWalker::parse() {
         w.push();
         w.parseModule(module_dies[i],fixUnknownMod);
         w.pop();
+    }
     }
     }
 
