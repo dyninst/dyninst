@@ -1428,8 +1428,6 @@ ArchEventLinux *linux_thread::getPostponedSyscallEvent()
 
 bool linux_thread::plat_cont()
 {
-   pthrd_printf("Continuing thread %d\n", lwp);
-
    switch (getHandlerState().getState()) {
       case neonatal:
       case running:
@@ -1448,6 +1446,9 @@ bool linux_thread::plat_cont()
       case ditto:
          assert(0);
    }
+
+   pthrd_printf("Continuing thread %d/%d from current handler state %s\n",
+		   proc_->getPid(), lwp, int_thread::stateStr(handler_state.getState()));
 
    // The following case poses a problem:
    // 1) This thread has received a signal, but the event hasn't been handled yet
@@ -2830,6 +2831,37 @@ bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
    return true;
 }
 
+bool linux_thread::plat_handle_ghost_thread() {
+	std::string loc = "/proc/" + std::to_string(proc()->getPid()) + "/task/" + std::to_string(getLWP());
+	struct stat dummy;
+	int res = stat(loc.c_str(), &dummy);
+	pthrd_printf("GHOST_THREAD: stat=%d, loc=%s\n", res, loc.c_str());
+
+	// If the thread is still alive, do nothing
+	if(res != -1) {
+		// NB: We got here because ptrace returned ESRCH (no such process) in LinuxPtrace::ptrace_int,
+		//     yet the process is alive. This is a valid state for ptrace, but ptrace_int doesn't check
+		//     for this. The ptrace man-page indicates that this can happen when a process received a STOP
+		//     signal, but it hasn't transitioned to the new state yet.
+		return false;
+	}
+
+	auto *initial_thread = llproc()->threadPool()->initialThread();
+
+	// Do not create a destroy event for the thread executed from 'main'
+	if(initial_thread != thread()->llthrd()) {
+		EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+		lwp_ev->setSyncType(Event::async);
+		lwp_ev->setThread(thread());
+		lwp_ev->setProcess(proc());
+		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
+		pthrd_printf("GHOST THREAD: Enqueueing event for %d/%d\n",
+				proc()->getPid(), getLWP());
+		mbox()->enqueue(lwp_ev, true);
+	}
+	return true;
+  }
+
 bool linux_thread::attach()
 {
    if (llproc()->threadPool()->initialThread() == this) {
@@ -3428,6 +3460,7 @@ void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
       return;
 
    int_thread *thrd = ev->getThread()->llthrd();
+   if(!thrd) return;
    if (thrd->getGeneratorState().getState() != int_thread::running)
       return;
 

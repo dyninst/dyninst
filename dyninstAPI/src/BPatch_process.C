@@ -116,8 +116,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    image = NULL;
    pendingInsertions = NULL;
 
-   pdvector<std::string> argv_vec;
-   pdvector<std::string> envp_vec;
+   std::vector<std::string> argv_vec;
+   std::vector<std::string> envp_vec;
    // Contruct a vector out of the contents of argv
    if (argv) {
       for(int i = 0; argv[i] != NULL; i++)
@@ -338,9 +338,9 @@ BPatch_process::BPatch_process
             "no_path", pid);
 
    // Create the initial threads
-   pdvector<PCThread *> llthreads;
+   std::vector<PCThread *> llthreads;
    llproc->getThreads(llthreads);
-   for (pdvector<PCThread *>::iterator i = llthreads.begin();
+   for (std::vector<PCThread *>::iterator i = llthreads.begin();
            i != llthreads.end(); ++i)
    {
       BPatch_thread *thrd = new BPatch_thread(this, *i);
@@ -383,9 +383,9 @@ BPatch_process::BPatch_process(PCProcess *nProc)
    BPatch::bpatch->registerProcess(this);
 
    // Create the initial threads
-   pdvector<PCThread *> llthreads;
+   std::vector<PCThread *> llthreads;
    llproc->getThreads(llthreads);
-   for (pdvector<PCThread *>::iterator i = llthreads.begin();
+   for (std::vector<PCThread *>::iterator i = llthreads.begin();
            i != llthreads.end(); ++i)
    {
       BPatch_thread *thrd = new BPatch_thread(this, *i);
@@ -1077,11 +1077,6 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
    return object;
 }
 
-
-void BPatch_process::enableDumpPatchedImage(){
-    // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
-}
-
 void BPatch_process::setExitedViaSignal(int signalnumber)
 {
    exitedViaSignal = true;
@@ -1151,19 +1146,9 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
       return;
    }
 
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
-   // STL vectors don't have item erase. We use iterators instead...
    threads.erase(std::find(threads.begin(),
                                  threads.end(),
                                  thrd));
-#else
-   for (unsigned i=0; i< threads.size(); i++) {
-      if (threads[i] == thrd) {
-         threads.erase(i);
-         break;
-      }
-   }
-#endif
 
    llproc->removeThread(thrd->getTid());
 
@@ -1171,19 +1156,6 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
    // If this changes, the memory can be free'd here
    // delete thrd;
 }
-
-#ifdef IBM_BPATCH_COMPAT
-/**
- * In IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
- * which is in turn a wrapper for creating a new
- * ibmBpatchElf32Teader(name, addr)
- **/
-bool BPatch_process::addSharedObject(const char *name,
-                                        const unsigned long loadaddr)
-{
-   return loadLibrary(name);
-}
-#endif
 
 /**
  * This function continues a stopped process, letting it execute in single step mode,

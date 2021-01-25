@@ -317,11 +317,11 @@ unsigned short Elf_X::e_phentsize() const {
             static_cast<unsigned short>(ehdr64->e_phentsize));
 }
 
-unsigned short Elf_X::e_phnum() const
+unsigned long Elf_X::e_phnum()
 {
-    return (!is64 ?
-            static_cast<unsigned short>(ehdr32->e_phnum) :
-            static_cast<unsigned short>(ehdr64->e_phnum));
+    size_t ret;
+    elf_getphdrnum(elf, &ret);
+    return (unsigned long)ret;
 }
 
 unsigned short Elf_X::e_shentsize() const
@@ -331,18 +331,18 @@ unsigned short Elf_X::e_shentsize() const
             static_cast<unsigned short>(ehdr64->e_shentsize));
 }
 
-unsigned short Elf_X::e_shnum() const
+unsigned long Elf_X::e_shnum()
 {
-    return (!is64 ?
-            static_cast<unsigned short>(ehdr32->e_shnum) :
-            static_cast<unsigned short>(ehdr64->e_shnum));
+    size_t ret;
+    elf_getshdrnum(elf, &ret);
+    return (unsigned long)ret;
 }
 
-unsigned short Elf_X::e_shstrndx() const
+unsigned long Elf_X::e_shstrndx()
 {
-    return (!is64 ?
-            static_cast<unsigned short>(ehdr32->e_shstrndx) :
-            static_cast<unsigned short>(ehdr64->e_shstrndx));
+    size_t ret;
+    elf_getshdrstrndx(elf, &ret);
+    return (unsigned long)ret;
 }
 
 const char *Elf_X::e_rawfile(size_t &nbytes) const
@@ -651,17 +651,6 @@ unsigned long Elf_X_Shdr::sh_flags() const
 
 unsigned long Elf_X_Shdr::sh_addr() const
 {
-#if defined(os_vxworks)
-    assert(_elf);
-    if (_elf->e_type() == ET_REL) {
-        // VxWorks relocatable object files (kernel modules) don't have
-        // the address filled out.  Return the disk offset instead.
-        return (!is64 ?
-                static_cast<unsigned long>(shdr32->sh_offset) :
-                static_cast<unsigned long>(shdr64->sh_offset));
-    }
-#endif
-
     return (!is64 ?
             static_cast<unsigned long>(shdr32->sh_addr) :
             static_cast<unsigned long>(shdr64->sh_addr));
@@ -1828,10 +1817,35 @@ Dyninst::Architecture Elf_X::getArch() const
             return Dyninst::Arch_x86_64;
         case EM_CUDA:
             return Dyninst::Arch_cuda;
+        case EM_INTEL_GEN9:
+            return Dyninst::Arch_intelGen9;
         case EM_ARM:
             return Dyninst::Arch_aarch32;
         case EM_AARCH64:
             return Dyninst::Arch_aarch64;
+        case EM_AMDGPU:
+            {
+
+                unsigned int ef_amdgpu_mach = 0x000000ff & e_flags();
+                //cerr << " dealing with amd gpu , mach = "  << std::hex << ef_amdgpu_mach << endl;
+                switch(ef_amdgpu_mach){
+                    case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38:
+                        return Dyninst::Arch_amdgpu_rdna;
+                        assert( 0 && "rdna not supported yet " );
+                    case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x30: case 0x31:
+                        return Dyninst::Arch_amdgpu_vega;
+                    case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18:
+                    case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f:
+                        assert(0 && "reserved for r600 architecture");
+                    case 0x27: case 0x32 : case 0x39:
+                        assert(0 && "reserved");
+                    default:
+                        assert(0 && "probabily won't be supported");
+
+                }
+
+                 
+            }
         default:
             return Dyninst::Arch_none;
     }

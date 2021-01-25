@@ -210,6 +210,27 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
        free(libPathStr);
     }
 
+#ifdef DYNINST_COMPILER_SEARCH_DIRS
+    // search compiler-specific library paths
+    // NB1: DYNINST_COMPILER_SEARCH_DIRS is defined at build time
+    // NB2: This is explicitly done _after_ adding directories from
+    //		LD_LIBRARY_PATH so that the user can override these paths.
+	{
+		#define xstr(s) str(s)
+		#define str(s) #s
+
+		libPathStr = strdup(xstr(DYNINST_COMPILER_SEARCH_DIRS));
+		libPath = strtok(libPathStr, ":");
+		while (libPath != NULL) {
+			libPaths.emplace_back(libPath);
+			libPath = strtok(NULL, ":");
+		}
+		free(libPathStr);
+
+		#undef str
+		#undef xstr
+	}
+#endif
     //libPaths.push_back(string(getenv("PWD")));
     for (unsigned int i = 0; i < libPaths.size(); i++) {
         string str = libPaths[i] + "/" + filename;
@@ -282,7 +303,7 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     if( mobj->isStaticExec() ) {
         int numSymsFound = 0;
         for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
-            const pdvector<func_instance *> *tmpFuncs = 
+            const std::vector<func_instance *> *tmpFuncs = 
                 mobj->findFuncVectorByPretty(pthreadSyms[i]);
             if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
         }

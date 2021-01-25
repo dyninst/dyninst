@@ -1108,8 +1108,6 @@ bool doNotOverflow(int64_t value)
 }
 
 
-#if !defined(os_vxworks)
-
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee
@@ -1151,8 +1149,6 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 	return false;
 }
 
-#endif
-
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address,
                              func_instance *, Address) {
     assert(0); //Not implemented
@@ -1182,7 +1178,7 @@ void emitStorePreviousStackFrameRegister(Address,
 // This can handle indirect control transfers as well
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
-					  pdvector<AstNodePtr> &args)
+					  std::vector<AstNodePtr> &args)
 {
     using namespace Dyninst::InstructionAPI;
     Register branch_target = registerSpace::ignored;
@@ -1260,7 +1256,7 @@ bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register ba
         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
                 baseReg, sOffset, size, insnCodeGen::Pre);
     else{
-        pdvector<Register> exclude;
+        std::vector<Register> exclude;
         exclude.push_back(baseReg);
         // mov sOffset to a reg
         auto addReg = insnCodeGen::moveValueToReg(gen, labs(offset), &exclude);
@@ -1462,7 +1458,7 @@ bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
     assert(baseReg != REG_NULL && "cannot get a scratch register");
     emitMovePCToReg(baseReg, gen);
 
-    pdvector<Register> exclude;
+    std::vector<Register> exclude;
     exclude.push_back(baseReg);
     // mov offset to a reg
     auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
@@ -1498,7 +1494,7 @@ bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
     assert(baseReg != REG_NULL && "cannot get a scratch register");
     emitMovePCToReg(baseReg, gen);
 
-    pdvector<Register> exclude;
+    std::vector<Register> exclude;
     exclude.push_back(baseReg);
     // mov offset to a reg
     auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
@@ -1596,7 +1592,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
         if(!is_local && (var != NULL)){
             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
         } else {
-            pdvector<Register> exclude;
+            std::vector<Register> exclude;
             exclude.push_back(baseReg);
             auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
             insnCodeGen::generateAddSubShifted(gen,
@@ -1630,14 +1626,14 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
     Address varOffset = addr - gen.currAddr() + 4;
 
     if(!is_local) {
-        pdvector<Register> exclude;
+        std::vector<Register> exclude;
         exclude.push_back(baseReg);
         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
         assert(scratchReg1 != REG_NULL && "cannot get a scratch register");
         emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
         emitStoreRelative(source, 0, scratchReg1, size, gen);
     } else {
-        pdvector<Register> exclude;
+        std::vector<Register> exclude;
         exclude.push_back(baseReg);
         // mov offset to a reg
         auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);

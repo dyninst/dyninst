@@ -1446,6 +1446,7 @@ PowerpcInstructionKind RoseInsnPPCFactory::makeRoseBranchOpcode(entryID iapi_opc
   }
 }
 
+
 ARMv8InstructionKind RoseInsnArmv8Factory::convertKind(entryID opcode) {
     switch(opcode) {
         case aarch64_op_INVALID: return rose_aarch64_op_INVALID;

@@ -75,7 +75,6 @@ class BPatch_variableExpr;
 class BPatch_type;
 class AddressSpace;
 class miniTrampHandle;
-class miniTramp;
 class BPatch;
 class BPatch_image;
 class func_instance;
@@ -324,13 +323,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   typedef std::vector<std::pair<unsigned long, unsigned long> >::const_iterator arange_iter;
   statement_iter getAddressRanges_begin(const char* file, unsigned long line);
   statement_iter getAddressRanges_end(const char* file, unsigned long line);
-
-  //  DEPRECATED:
-  //  BPatch_addressSpace::findFunctionByAddr
-  //  
-  //  Returns the function containing an address
-
-  BPatch_function * findFunctionByAddr(void *addr);
 
   //  BPatch_addressSpace::findFunctionByEntry
   //  

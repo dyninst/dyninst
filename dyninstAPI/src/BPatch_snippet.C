@@ -133,25 +133,6 @@ BPatch_type *BPatch_snippet::getType(){
    return ast_wrapper->getType();
 }
 
-/*
- * BPatch_snippet:getCost
- *
- * Deprecated.
- */
-float BPatch_snippet::getCost()
-{
-    return 0.0;
-}
-/*
- * BPatch_snippet:getCostAtPoint
- *
- * Deprecated.
- */
-float BPatch_snippet::getCostAtPoint(BPatch_point *)
-{
-    return 0.0;
-}
-
 bool BPatch_snippet::is_trivial()
 {
   return (ast_wrapper == NULL);
@@ -468,7 +449,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                         break;
                 case BPatch_seq:
                         {
-                                pdvector<AstNodePtr > sequence;
+                                std::vector<AstNodePtr > sequence;
                                 sequence.push_back(lOperand.ast_wrapper);
                                 sequence.push_back(rOperand.ast_wrapper);
 
@@ -727,34 +708,6 @@ BPatch_constExpr::BPatch_constExpr(long long value)
     ast_wrapper->setType(type);
 }
 
-#ifdef IBM_BPATCH_COMPAT
-
-char *BPatch_variableExpr::getNameWithLength(char *buffer, int max)
-{
-  if (max > name.length()) {
-    strcpy (buffer, name.c_str());
-    return buffer;
-  } else {
-    strncpy (buffer, name.c_str(), max-1)[max-1]='\0';
-  }
-  return NULL;
-}
-
-void *BPatch_variableExpr::getAddress()
-{
-  return address;
-}
-
-
-BPatch_constExpr::BPatch_constExprFloat(float value)
-{
-        // XXX fix me, puting value into int register.
-        int ivalue = (int) value;
-        BPatch_constExpr((int) ivalue);
-}
-
-#endif
-
 /*
  * BPatch_whileExpr::BPatch_whileExpr
  *
@@ -773,33 +726,6 @@ BPatch_whileExpr::BPatch_whileExpr(const BPatch_snippet &conditional,
 }
 
 /*
- * BPatch_regExpr::BPatch_regExpr
- *
- * Constructs a snippet representing a register.
- *
- * value        index of register.
- *
- * Note:  introduced for paradyn-seperation (paradyn needs access
- *        to register REG_MT_POS)  -- there are other ways to do this.
- *        This happens to be expedient -- not sure if we want to be
- *        really exposing this to API users.  Thus this class may be
- *        temporary -- avoid using it.
- */
-
-BPatch_regExpr::BPatch_regExpr(unsigned int value)
-{
-    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::DataReg, (void *)(unsigned long int) value));
-
-    assert(BPatch::bpatch != NULL);
-    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
-    assert(type != NULL);
-
-    ast_wrapper->setType(type);
-}
-
-/*
  * BPatch_funcCallExpr::BPatch_funcCallExpr
  *
  * Constructs a snippet representing a function call.
@@ -811,7 +737,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     const BPatch_function &func,
     const BPatch_Vector<BPatch_snippet *> &args)
 {
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
 
     unsigned int i;
     for (i = 0; i < args.size(); i++) {
@@ -1000,7 +926,7 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 
     assert(BPatch::bpatch != NULL);
 
-    pdvector<AstNodePtr >sequence;
+    std::vector<AstNodePtr >sequence;
     for (unsigned i = 0; i < items.size(); i++) {
         assert(items[i]->ast_wrapper);
         sequence.push_back(items[i]->ast_wrapper);
@@ -1507,7 +1433,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
  */
 BPatch_breakPointExpr::BPatch_breakPointExpr()
 {
-    pdvector<AstNodePtr > null_args;
+    std::vector<AstNodePtr > null_args;
 
     ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_snippetBreakpoint", null_args));
 
@@ -1587,7 +1513,7 @@ BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
   }
   BPatch_function *thread_func = thread_funcs[0];
 
-  pdvector<AstNodePtr> args;
+  std::vector<AstNodePtr> args;
   ast_wrapper = AstNodePtr(AstNode::funcCallNode(thread_func->lowlevel_func(), args));
 
   assert(BPatch::bpatch != NULL);
@@ -1662,7 +1588,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr
     constructorHelper(bp_cb, useCache, interp, idNode, icNode);
 
     // set up funcCall args
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
     ast_args.push_back(AstNode::actualAddrNode());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
@@ -1699,7 +1625,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
     objEndNode->setType(ulongtype);
 
     // set up funcCall args
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
     ast_args.push_back(AstNode::actualAddrNode());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
@@ -1726,7 +1652,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
     constructorHelper(bp_cb, useCache, interp, idNode, icNode);
 
     // set up funcCall args
-    pdvector<AstNodePtr> ast_args;
+    std::vector<AstNodePtr> ast_args;
     if (entry) {
         ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)1));
     }

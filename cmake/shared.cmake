@@ -1,6 +1,6 @@
 set (DYNINST_MAJOR_VERSION 10)
-set (DYNINST_MINOR_VERSION 1)
-set (DYNINST_PATCH_VERSION 0)
+set (DYNINST_MINOR_VERSION 2)
+set (DYNINST_PATCH_VERSION 1)
 
 set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
@@ -82,40 +82,12 @@ endfunction()
 
 
 include (${DYNINST_ROOT}/cmake/platform.cmake)
-if (NOT ${PROJECT_NAME} MATCHES DyninstRT)
-include (${DYNINST_ROOT}/cmake/packages.cmake)
-endif()
 include (${DYNINST_ROOT}/cmake/cap_arch_def.cmake)
 include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
 include (${DYNINST_ROOT}/cmake/endian.cmake)
-
-# Check for cotire-gcc compatibility
-IF(CMAKE_COMPILER_IS_GNUCC)
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-    string(REGEX MATCHALL "[0-9]+" GCC_VERSION_COMPONENTS ${GCC_VERSION})
-    IF(GCC_VERSION VERSION_LESS 4.5)
-        SET(USE_COTIRE OFF)
-    ENDIF()
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
-
-# If we're compiling for unix, cotire only supports Intel, GCC and Clang.
-IF (UNIX AND NOT ((${CMAKE_CXX_COMPILER_ID} MATCHES Clang) OR (${CMAKE_CXX_COMPILER_ID} MATCHES GNU) OR (${CMAKE_CXX_COMPILER_ID} MATCHES Intel)))
-	set(USE_COTIRE OFF)
-ENDIF()
-
-# Make sure our CMake version is actually supported by cotire
-IF(CMAKE_VERSION VERSION_LESS 2.8.12)
-    SET(USE_COTIRE OFF)
-ENDIF()
-
-if (USE_COTIRE)
-    include (${DYNINST_ROOT}/cmake/cotire.cmake)
-    set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
-endif()
-
 
 set (BUILD_SHARED_LIBS ON)
 
@@ -139,15 +111,6 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
     add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
   else()
     add_definitions(-Dsnprintf=_snprintf)
-  endif()
-endif()
-
-set (USE_CXX11_ABI "" CACHE STRING "Override the default GNU C++11 ABI setting")
-if (NOT ("${USE_CXX11_ABI}" STREQUAL ""))
-  if (${USE_CXX11_ABI})
-    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
-  else()
-    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
   endif()
 endif()
 

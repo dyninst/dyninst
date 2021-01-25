@@ -51,7 +51,6 @@ class PCProcess;
 class AddressSpace;
 class PCThread;
 class miniTrampHandle;
-class miniTramp;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
@@ -459,14 +458,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
   bool hideDebugger();
 #if 0
   void  printDefensiveStats();
-#endif
-  //  BPatch_process::enableDumpPatchedImage
-  //  
-  //  
-  void enableDumpPatchedImage();
-
-#ifdef IBM_BPATCH_COMPAT
-  bool addSharedObject(const char *name, const unsigned long loadaddr);
 #endif
 
   // BPatch_process::loadLibrary

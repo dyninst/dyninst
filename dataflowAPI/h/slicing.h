@@ -137,11 +137,30 @@ class Slicer {
   typedef std::pair<InstructionAPI::Instruction, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
 
+  // An instruction cache to avoid redundant instruction decoding.
+  // A user can optionaly provide a cache shared by multiple slicers.
+  // The cache is keyed with basic block starting address.
+  typedef dyn_hash_map<Address, InsnVec> InsnCache;
+
   DATAFLOW_EXPORT Slicer(AssignmentPtr a,
 	 ParseAPI::Block *block,
 	 ParseAPI::Function *func,
 	 bool cache = true,
 	 bool stackAnalysis = true);
+
+  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
+          ParseAPI::Block *block,
+          ParseAPI::Function *func,
+          AssignmentConverter *ac);
+
+  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
+          ParseAPI::Block *block,
+          ParseAPI::Function *func,
+          AssignmentConverter *ac,
+          InsnCache *c);
+
+
+  DATAFLOW_EXPORT ~Slicer();
     
   DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
 
@@ -261,10 +280,14 @@ class Slicer {
   public:
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
+
     DATAFLOW_EXPORT bool performCacheClear() { if (clearCache) {clearCache = false; return true;} else return false; }
     DATAFLOW_EXPORT void setClearCache(bool b) { clearCache = b; }
     DATAFLOW_EXPORT bool searchForControlFlowDep() { return controlFlowDep; }
     DATAFLOW_EXPORT void setSearchForControlFlowDep(bool cfd) { controlFlowDep = cfd; }
+
+    // A negative number means that we do not bound slicing size.
+    DATAFLOW_EXPORT virtual int slicingSizeLimitFactor() { return -1; }
 
     DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
     DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
@@ -314,7 +337,6 @@ class Slicer {
     forward,
     backward } Direction;
 
-  typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
 
   // Our slicing is context-sensitive; that is, if we enter
   // a function foo from a caller bar, all return edges
@@ -489,8 +511,8 @@ class Slicer {
             SliceFrame &cand,
             bool skip,
             std::map<CacheEdge, std::set<AbsRegion> > & visited,
-            std::map<Address,DefCache> & single,
-            std::map<Address, DefCache>& cache);
+            std::unordered_map<Address,DefCache> & single,
+            std::unordered_map<Address, DefCache>& cache);
 
     bool updateAndLink(
             GraphPtr g,
@@ -647,7 +669,7 @@ class Slicer {
 		  SliceNode::Ptr& target,
           AbsRegion const& data);
 
-  void convertInstruction(InstructionAPI::Instruction,
+  void convertInstruction(const InstructionAPI::Instruction &,
                           Address,
                           ParseAPI::Function *,
                           ParseAPI::Block *,
@@ -686,9 +708,10 @@ private:
 
   void insertInitialNode(GraphPtr ret, Direction dir, SliceNode::Ptr aP);
 
-  void mergeRecursiveCaches(std::map<Address, DefCache>& sc, std::map<Address, DefCache>& c, Address a);
+  void mergeRecursiveCaches(std::unordered_map<Address, DefCache>& sc, std::unordered_map<Address, DefCache>& c, Address a);
 
-  InsnCache insnCache_;
+  InsnCache* insnCache_;
+  bool own_insnCache;
 
   AssignmentPtr a_;
   ParseAPI::Block *b_;
@@ -720,7 +743,8 @@ private:
   std::deque<Address> addrStack;
   std::set<Address> addrSet;
 
-  AssignmentConverter converter;
+  AssignmentConverter* converter;
+  bool own_converter;
 
   SliceNode::Ptr widen_;
  public: 

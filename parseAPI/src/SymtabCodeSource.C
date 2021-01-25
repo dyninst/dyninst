@@ -50,7 +50,8 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-typedef dyn_c_hash_map<Address, bool> SeenMap;
+typedef std::pair<SymtabAPI::Region *, Offset> RegionOffsetPair;
+typedef dyn_c_hash_map<RegionOffsetPair, bool> SeenMap;
 
 static const vector<std::string> skipped_symbols = {
           "_non_rtti_object::`vftable'",
@@ -82,8 +83,10 @@ SymtabCodeRegion::SymtabCodeRegion(
     st->getAllSymbols(symbols);
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
         if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
-	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
-	}
+            if ((*sit)->getRegion()->getRegionName() == ".text") continue;
+            knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
+            parsing_printf("Add known data range [%lx, %lx) from symbol %s\n", (*sit)->getOffset(), (*sit)->getOffset() + (*sit)->getSize(), (*sit)->getMangledName().c_str());
+        }
 }
 
 
@@ -96,8 +99,10 @@ SymtabCodeRegion::SymtabCodeRegion(
 {
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
         if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
-	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
-	}
+            if ((*sit)->getRegion()->getRegionName() == ".text") continue;
+            knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
+            parsing_printf("Add known data range [%lx, %lx) from symbol %s\n", (*sit)->getOffset(), (*sit)->getOffset() + (*sit)->getSize(), (*sit)->getMangledName().c_str());
+        }
 }
 
 void
@@ -230,8 +235,6 @@ SymtabCodeSource::~SymtabCodeSource()
     delete stats_parse;
     if(owns_symtab && _symtab)
         SymtabAPI::Symtab::closeSymtab(_symtab);
-    for(unsigned i=0;i<_regions.size();++i)
-        delete _regions[i];
 }
 
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st, 
@@ -444,12 +447,11 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
             continue;
         }
 
-	//#if defined(os_vxworks)
         if(0 == r->getMemSize()) {
             parsing_printf(" [skipped null region]\n");
             continue;
         }
-	//#endif
+
         parsing_printf("\n");
 
         CodeRegion * cr = new SymtabCodeRegion(_symtab,r, symbols);
@@ -504,19 +506,16 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         }
         /*Achin added code ends*/
         Offset offset = f->getOffset();
-        bool present = !seen.insert(std::make_pair(offset, true));
+        SymtabAPI::Region * sr = f->getRegion();
+
+        bool present = !seen.insert(std::make_pair(RegionOffsetPair(sr, offset), true));
 
         if (present) {
-            // XXX it looks as though symtabapi now does de-duplication
-            //     of function symbols automatically, so this code should
-            //     never be reached, except in the case of overlapping
-            //     regions
            parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
                 FILE__,__LINE__, f->getOffset(), fname);
            continue;
         }
 
-        SymtabAPI::Region * sr = f->getRegion();
         if (!sr) {
             parsing_printf("[%s:%d] missing Region in function at %lx\n",
                 FILE__,__LINE__,f->getOffset());
@@ -560,7 +559,7 @@ SymtabCodeSource::init_linkage()
     vector<SymtabAPI::relocationEntry>::iterator fbtit;
 
     if(!_symtab->getFuncBindingTable(fbt)){
-        fprintf( stderr, "Cannot get function binding table. %s\n", _symtab->file().c_str());
+        parsing_printf("Cannot get function binding table. %s\n", _symtab->file().c_str());
         return;
     }
 
@@ -569,6 +568,47 @@ SymtabCodeSource::init_linkage()
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
     }
     if (getArch() != Arch_x86_64) return;
+    SymtabAPI::Region * plt_sec = NULL;
+    if (_symtab->findRegion(plt_sec, ".plt.sec")) {
+        // Handle 2-PLT style PLT used for Indirect Branch Tracking (IBT) in Intel CET
+        SymtabAPI::Region * rela_plt = NULL;
+        if (!_symtab->findRegion(rela_plt, ".rela.plt")) return;
+        // Get PLT related relocation entries
+        map<Address, string> rel_addr_to_name;
+        std::vector<SymtabAPI::relocationEntry> &relocs = rela_plt->getRelocations();
+        for (auto re_it = relocs.begin(); re_it != relocs.end(); ++re_it) {
+            SymtabAPI::relocationEntry &r = *re_it;
+            rel_addr_to_name[r.rel_addr()] = r.name();
+        }
+
+        // Each PLT stub is 16 byte long
+        const int plt_entry_size = 16;
+        // Each PLT stub starts with a ENDBR64 instruction, which is 4 byte long,
+        // followed by a indirect jump instruction.
+        // The indirect jump instruction has a BND prefix and two byte opcode.
+        // Therefore, the offset to the PC-relative displacement is 7 bytes.
+        const int pc_rela_disp = 7;
+        const unsigned char* buffer = (const unsigned char*)plt_sec->getPtrToRawData();
+
+        // Scan each PLT stub
+        for (size_t off = 0; off < plt_sec->getMemSize(); off += plt_entry_size) {
+            int disp = *((const int*)(buffer + off + pc_rela_disp));
+            Address rel_addr = plt_sec->getMemOffset() + off + pc_rela_disp + 4 /* four byte pc-relative displacment */ + disp;
+            if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
+                Address tar = plt_sec->getMemOffset() + off;
+                if (rel_addr_to_name[rel_addr] == "") {
+                    // Sometimes PLT is used to call function in the same library.
+                    // One such case is to perform a call to a ifunc to use CPU dispatch feature
+                    char ifunc_name[128];
+                    snprintf(ifunc_name, 128, "ifunc%lx", tar);
+                    _linkage[tar] = std::string(ifunc_name);
+                } else {
+                    _linkage[tar] = rel_addr_to_name[rel_addr];
+                }
+            }
+        }
+        return;
+    }
     SymtabAPI::Region * plt_got = NULL;
     SymtabAPI::Region * rela_dyn = NULL;
     if (!_symtab->findRegion(plt_got, ".plt.got")) return;
@@ -805,18 +845,9 @@ SymtabCodeSource::length() const
 
 
 void 
-SymtabCodeSource::removeRegion(CodeRegion &cr)
+SymtabCodeSource::removeRegion(CodeRegion *cr)
 {
-    _region_tree.remove( &cr );
-
-    for (vector<CodeRegion*>::iterator rit = _regions.begin(); 
-         rit != _regions.end(); rit++) 
-    {
-        if ( &cr == *rit ) {
-            _regions.erase( rit );
-            break;
-        }
-    }
+	CodeSource::removeRegion(cr);
 }
 
 // fails and returns false if it can't find a CodeRegion
@@ -843,7 +874,7 @@ SymtabCodeSource::resizeRegion(SymtabAPI::Region *sr, Address newDiskSize)
     }
 
     // remove, resize, reinsert
-    removeRegion( **rit );
+    removeRegion( *rit );
     sr->setDiskSize( newDiskSize );
     addRegion( *rit );
     return true;

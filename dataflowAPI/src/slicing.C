@@ -30,6 +30,7 @@
 #include <set>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <utility>
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h"
@@ -159,11 +160,11 @@ Slicer::sliceInternal(
 
     // this is the unified cache aka the cache that will hold 
     // the merged set of 'defs'.
-    map<Address,DefCache> cache;
+    unordered_map<Address,DefCache> cache;
 
     // this is the single cache aka the cache that holds
     // only the 'defs' from a single instruction. 
-    map<Address, DefCache> singleCache; 
+    unordered_map<Address, DefCache> singleCache; 
     
     ret = Graph::createGraph();
 
@@ -213,8 +214,8 @@ void Slicer::sliceInternalAux(
     SliceFrame &cand,
     bool skip,              // skip linking this frame; for bootstrapping
     map<CacheEdge,set<AbsRegion> > & visited,
-    map<Address, DefCache>& singleCache, 
-    map<Address,DefCache> & cache)
+    unordered_map<Address, DefCache>& singleCache, 
+    unordered_map<Address,DefCache> & cache)
 {
     vector<SliceFrame> nextCands;
     DefCache& mydefs = singleCache[cand.addr()];
@@ -293,9 +294,7 @@ void Slicer::sliceInternalAux(
         // If the control flow search has run
         // off the rails somehow, widen;
         // otherwise search down this new path
-	// Xiaozhu: change from 50 to 100 changes my problem,
-	// but it is still adhoc.
-        if(!f.valid || visited.size() > 100*g->size()) {
+        if(!f.valid || (p.slicingSizeLimitFactor() > 0 && visited.size() > p.slicingSizeLimitFactor() * g->size())) {
             widenAll(g,dir,cand);
 	    }
         else {
@@ -378,17 +377,16 @@ bool Slicer::updateAndLink(
     vector<bool> killed;
     vector<Element> matches;
     vector<Element> newactive;
-    Instruction insn;
+
     bool change = false;
 
     killed.resize(cand.active.size(),false);
 
     if(dir == forward)
-        insn = cand.loc.current->first;
+        convertInstruction(cand.loc.current->first,cand.addr(),cand.loc.func, cand.loc.block, assns);
     else
-        insn = cand.loc.rcurrent->first;
+        convertInstruction(cand.loc.rcurrent->first,cand.addr(),cand.loc.func, cand.loc.block, assns);
 
-    convertInstruction(insn,cand.addr(),cand.loc.func, cand.loc.block, assns);
     // iterate over assignments and link matching elements.
     for(unsigned i=0; i<assns.size(); ++i) {
         SliceFrame::ActiveMap::iterator ait = cand.active.begin();
@@ -553,7 +551,7 @@ Slicer::findMatch(
     } else {
         slicing_printf("\t\t\t\t\tComparing current %s to candidate %s\n",
             reg.format().c_str(),assn->out().format().c_str());
-        if(reg.contains(assn->out())) {
+        if(reg.contains(assn->out()) || assn->out().contains(reg)) {
 	    hadmatch = true;
             slicing_printf("\t\t\t\t\t\tMatch!\n");
 
@@ -586,6 +584,14 @@ Slicer::findMatch(
             for(unsigned i=0; i< inputs.size(); ++i) {
                 ne.reg = inputs[i];
                 matches.push_back(ne);
+            }
+            if (cand.loc.block->obj()->cs()->getArch() == Arch_cuda) {
+                if (reg.contains(assn->out()) && !assn->out().contains(reg)) {
+                    ne.reg = assn->out();
+                    ne.reg.flipPredicateCondition();
+                    slicing_printf("\t\t\t Handle predicate: search for %s, find %s, generate %s\n", reg.format().c_str(), assn->out().format().c_str(), ne.reg.format().c_str());
+                    matches.push_back(ne);
+                }
             }
         }
     }
@@ -741,13 +747,13 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
       return;
     }
 
-    nf = cand;
+    newCands.emplace_back(cand);
     slicing_printf("\t\t Handling default edge type %d... ",
 		   e->type());
-    if(handleDefault(backward,p,e,nf,err)) {
+    if(handleDefault(backward,p,e,newCands.back(),err)) {
       slicing_printf("success, err: %d\n",err);
-      newCands.push_back(nf);
     } else {
+      newCands.pop_back();
       slicing_printf("failed, err: %d\n",err);
     }
   }
@@ -770,42 +776,45 @@ Slicer::getPredecessors(
 
     // Case 1: intra-block
     if(prev != cand.loc.rend) {
-        SliceFrame nf(cand.loc,cand.con);
-        nf.loc.rcurrent = prev;
+      SliceFrame *nf = NULL;
 
-        // Slightly more complicated than the forward case; check
-        // a predicate for each active abstract region to see whether
-        // we should continue
-        bool cont = false;
-        SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
-        for( ; ait != cand.active.end(); ++ait) {
-            bool add = p.addPredecessor((*ait).first);
-            if(add)
-                nf.active.insert(*ait);
-            cont = cont || add;
+      //Slightly more complicated than the forward case; check
+      //a predicate for each active abstract region to see whether
+      //we should continue
+      bool cont = false;
+      SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+      for( ; ait != cand.active.end(); ++ait) {
+        bool add = p.addPredecessor((*ait).first);
+        if(add) {
+          if (nf == NULL) {
+            newCands.emplace_back(cand.loc, cand.con);
+            nf = &newCands.back();
+            nf->loc.rcurrent = prev;
+          }
+          nf->active.insert(*ait);
         }
+        cont = cont || add;
+      }
 
-        if(cont) {
-            slicing_printf("\t\t\t\t Adding intra-block predecessor %lx\n",
-                nf.loc.addr());
-            slicing_printf("\t\t\t\t Current regions are:\n");
-            if(df_debug_slicing_on()) {
-                SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
-                for( ; ait != cand.active.end(); ++ait) {
-                    slicing_printf("\t\t\t\t%s\n",
-                        (*ait).first.format().c_str());
+      if(cont) {
+        slicing_printf("\t\t\t\t Adding intra-block predecessor %lx\n",
+          nf->loc.addr());
+        slicing_printf("\t\t\t\t Current regions are:\n");
+        if(df_debug_slicing_on()) {
+          SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
+          for( ; ait != cand.active.end(); ++ait) {
+            slicing_printf("\t\t\t\t%s\n",
+              (*ait).first.format().c_str());
 
-			vector<Element> const& eles = (*ait).second;
-			for(unsigned i=0;i<eles.size();++i) {
-				slicing_printf("\t\t\t\t\t [%s] : %s\n",
-					eles[i].reg.format().c_str(),eles[i].ptr->format().c_str());
-			}
-                }
+            vector<Element> const& eles = (*ait).second;
+            for(unsigned i=0;i<eles.size();++i) {
+              slicing_printf("\t\t\t\t\t [%s] : %s\n",
+                eles[i].reg.format().c_str(),eles[i].ptr->format().c_str());
             }
-    
-            newCands.push_back(nf);
+          }
         }
-        return true;
+      }
+      return true;
     }
 
     // Case 2: inter-block
@@ -1349,13 +1358,10 @@ bool containsRet(ParseAPI::Block *block) {
 
 static void getInsnInstances(ParseAPI::Block *block,
 		      Slicer::InsnVec &insns) {
-  Offset off = block->start();
-  const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);
-  if (ptr == NULL) return;
-  InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
-  while (off < block->end()) {
-    insns.push_back(std::make_pair(d.decode(), off));
-    off += insns.back().first.size();
+  ParseAPI::Block::Insns bi;
+  block->getInsns(bi);
+  for (auto iit = bi.begin(); iit != bi.end(); ++iit) {
+    insns.emplace_back(std::make_pair(iit->second, iit->first));
   }
 }
 
@@ -1375,8 +1381,51 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
-  converter(cache, stackAnalysis) {
-};
+  insnCache_(new InsnCache()),
+  own_insnCache(true),
+  converter(new AssignmentConverter(cache, stackAnalysis)),
+  own_converter(true)
+{
+}
+
+Slicer::Slicer(Assignment::Ptr a,
+               ParseAPI::Block *block,
+               ParseAPI::Function *func,
+               AssignmentConverter* ac):
+  a_(a),
+  b_(block),
+  f_(func),
+  insnCache_(new InsnCache()),
+  own_insnCache(true),
+  converter(ac),
+  own_converter(false)
+{
+}
+
+Slicer::Slicer(Assignment::Ptr a,
+               ParseAPI::Block *block,
+               ParseAPI::Function *func,
+               AssignmentConverter* ac,
+               InsnCache* c):
+  a_(a),
+  b_(block),
+  f_(func),
+  insnCache_(c),
+  own_insnCache(false),
+  converter(ac),
+  own_converter(false)
+{
+}
+
+
+Slicer::~Slicer()
+{
+  if (own_converter)
+    delete converter;
+  if (own_insnCache)
+    delete insnCache_;
+}
+
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
 
@@ -1492,7 +1541,7 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
       if (index >= 0)
           if (abi->getCallWrittenRegisters()[abi->getIndex(r)] && r != x86_64::r11) return true;
   }
-  return reg.contains(assign->out());
+  return reg.contains(assign->out()) || assign->out().contains(reg);
 }
 
 // creates a new node from an element if that node does not yet exist.
@@ -1526,12 +1575,12 @@ std::string SliceNode::format() const {
 // Note that we CANNOT use a global cache based on the address
 // of the instruction to convert because the block that contains
 // the instructino may change during parsing.
-void Slicer::convertInstruction(Instruction insn,
+void Slicer::convertInstruction(const Instruction &insn,
                                 Address addr,
                                 ParseAPI::Function *func,
                                 ParseAPI::Block *block,
                                 std::vector<Assignment::Ptr> &ret) {
-  converter.convert(insn,
+  converter->convert(insn,
 		    addr,
 		    func,
                     block,
@@ -1542,24 +1591,24 @@ void Slicer::convertInstruction(Instruction insn,
 void Slicer::getInsns(Location &loc) {
 
 
-  InsnCache::iterator iter = insnCache_.find(loc.block);
-  if (iter == insnCache_.end()) {
-    getInsnInstances(loc.block, insnCache_[loc.block]);
+  InsnCache::iterator iter = insnCache_->find(loc.block->start());
+  if (iter == insnCache_->end()) {
+    getInsnInstances(loc.block, (*insnCache_)[loc.block->start()]);
   }
   
-  loc.current = insnCache_[loc.block].begin();
-  loc.end = insnCache_[loc.block].end();
+  loc.current = (*insnCache_)[loc.block->start()].begin();
+  loc.end = (*insnCache_)[loc.block->start()].end();
 }
 
 void Slicer::getInsnsBackward(Location &loc) {
     assert(loc.block->start() != (Address) -1); 
-    InsnCache::iterator iter = insnCache_.find(loc.block);
-    if (iter == insnCache_.end()) {
-      getInsnInstances(loc.block, insnCache_[loc.block]);
+    InsnCache::iterator iter = insnCache_->find(loc.block->start());
+    if (iter == insnCache_->end()) {
+      getInsnInstances(loc.block, (*insnCache_)[loc.block->start()]);
     }
 
-    loc.rcurrent = insnCache_[loc.block].rbegin();
-    loc.rend = insnCache_[loc.block].rend();
+    loc.rcurrent = (*insnCache_)[loc.block->start()].rbegin();
+    loc.rend = (*insnCache_)[loc.block->start()].rend();
 }
 
 // inserts an edge from source to target (forward) or target to source
@@ -1870,8 +1919,8 @@ Slicer::DefCache::print() const {
 
 // merges all single caches that have occured single addr in the
 // recursion into the appropriate unified caches.
-void Slicer::mergeRecursiveCaches(std::map<Address, DefCache>& single, 
-                                  std::map<Address, DefCache>& unified, Address) {
+void Slicer::mergeRecursiveCaches(std::unordered_map<Address, DefCache>& single, 
+                                  std::unordered_map<Address, DefCache>& unified, Address) {
 
 
     for (auto first = addrStack.rbegin(), last = addrStack.rend();

@@ -34,10 +34,6 @@
 
 #include <vector>
 
-unsigned long long PDYN_div1000(unsigned long long in);
-unsigned long long PDYN_divMillion(unsigned long long in);
-unsigned long long PDYN_mulMillion(unsigned long long in);
-
 COMMON_EXPORT bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
 
 COMMON_EXPORT bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);

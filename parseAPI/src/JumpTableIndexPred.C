@@ -201,6 +201,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
         if (ap && ap->block() && ap->block()->obj()->cs()->getArch() == Arch_aarch64) {
             unknownInstruction = true;
         }
+        parsing_printf("\t add unknown instruction, opcode %d, %d\n", ap->insn().getOperation().getID(), ap->insn().getOperation().getID() == aarch64_op_b_cond); 
         return true;
     }
 

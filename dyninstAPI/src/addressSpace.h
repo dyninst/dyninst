@@ -192,7 +192,7 @@ class AddressSpace : public InstructionSource {
     virtual bool isValidAddress(const Address) const;
     virtual void *getPtrToInstruction(const Address) const;
     virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
-    virtual unsigned getAddressWidth() const = 0;
+
     bool usesDataLoadAddress() const; // OS-specific
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
@@ -216,19 +216,19 @@ class AddressSpace : public InstructionSource {
     //func_instance *findFuncByName(const std::string &func_name);
     
     bool findFuncsByAll(const std::string &funcname,
-                        pdvector<func_instance *> &res,
+                        std::vector<func_instance *> &res,
                         const std::string &libname = "");
     
     // Specific versions...
     bool findFuncsByPretty(const std::string &funcname,
-                           pdvector<func_instance *> &res,
+                           std::vector<func_instance *> &res,
                            const std::string &libname = "");
     bool findFuncsByMangled(const std::string &funcname, 
-                            pdvector<func_instance *> &res,
+                            std::vector<func_instance *> &res,
                             const std::string &libname = "");
     
     bool findVarsByAll(const std::string &varname,
-                       pdvector<int_variable *> &res,
+                       std::vector<int_variable *> &res,
                        const std::string &libname = "");
     
     // And we often internally want to wrap the above to return one
@@ -246,7 +246,7 @@ class AddressSpace : public InstructionSource {
 
     // getAllFunctions: returns a vector of all functions defined in the
     // a.out and in the shared objects
-    void getAllFunctions(pdvector<func_instance *> &);
+    void getAllFunctions(std::vector<func_instance *> &);
     
     // Find the code sequence containing an address
     bool findFuncsByAddr(Address addr, std::set<func_instance *> &funcs, bool includeReloc = false);
@@ -294,10 +294,10 @@ class AddressSpace : public InstructionSource {
     
     // getAllModules: returns a vector of all modules defined in the
     // a.out and in the shared objects
-    void getAllModules(pdvector<mapped_module *> &);
+    void getAllModules(std::vector<mapped_module *> &);
 
     // return the list of dynamically linked libs
-    const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
+    const std::vector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
 
     // And a shortcut pointer
     std::set<mapped_object *> runtime_lib;
@@ -342,7 +342,7 @@ class AddressSpace : public InstructionSource {
     typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
     bool getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
                                 Address addr,
-                                pdvector<AstNodePtr> &args);
+                                std::vector<AstNodePtr> &args);
 
     // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
@@ -367,6 +367,8 @@ class AddressSpace : public InstructionSource {
     bool needsPIC(int_variable *v); 
     bool needsPIC(func_instance *f);
     bool needsPIC(AddressSpace *s);
+    
+    unsigned getAddressWidth() const;
     
     //////////////////////////////////////////////////////
     // BPatch-level stuff
@@ -507,7 +509,7 @@ class AddressSpace : public InstructionSource {
     inferiorHeap heap_;
 
     // Loaded mapped objects (may be just 1)
-    pdvector<mapped_object *> mapped_objects;
+    std::vector<mapped_object *> mapped_objects;
 
     int_variable* trampGuardBase_; // Tramp recursion index mapping
     AstNodePtr trampGuardAST_;
@@ -565,14 +567,14 @@ class AddressSpace : public InstructionSource {
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { assert(mgr_); return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
-    void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
+    void setPatcher(Dyninst::PatchAPI::Patcher::Ptr p) { patcher_ = p; }
     void initPatchAPI();
     void addMappedObject(mapped_object* obj);
-    Dyninst::PatchAPI::Patcher* patcher() { return patcher_; }
+    Dyninst::PatchAPI::Patcher::Ptr patcher() { return patcher_; }
     static bool patch(AddressSpace*);
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
-    Dyninst::PatchAPI::Patcher* patcher_;
+    Dyninst::PatchAPI::Patcher::Ptr patcher_;
 };
 
 

@@ -1317,19 +1317,6 @@ int_signalMask *int_process::getSignalMask()
    return pSignalMask;
 }
 
-int_BGQData *int_process::getBGQData()
-{
-   if (BGQData_set)
-      return pBGQData;
-   BGQData_set = true;
-   pBGQData = dynamic_cast<int_BGQData *>(this);
-   if (!pBGQData)
-      return NULL;
-   if (!pBGQData->up_ptr)
-      pBGQData->up_ptr = new BGQData(proc());
-   return pBGQData;
-}
-
 int_remoteIO *int_process::getRemoteIO()
 {
    if (remoteIO_set)
@@ -1382,7 +1369,6 @@ int_process::int_process(Dyninst::PID p, std::string e,
    pSignalMask(NULL),
    pCallStackUnwinding(NULL),
    pMemUsage(NULL),
-   pBGQData(NULL),
    pRemoteIO(NULL),
    LibraryTracking_set(false),
    LWPTracking_set(false),
@@ -1392,7 +1378,6 @@ int_process::int_process(Dyninst::PID p, std::string e,
    SignalMask_set(false),
    CallStackUnwinding_set(false),
    MemUsage_set(false),
-   BGQData_set(false),
    remoteIO_set(false)
 {
     pthrd_printf("New int_process at %p\n", this);
@@ -1432,7 +1417,6 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    pSignalMask(NULL),
    pCallStackUnwinding(NULL),
    pMemUsage(NULL),
-   pBGQData(NULL),
    pRemoteIO(NULL),
    LibraryTracking_set(false),
    LWPTracking_set(false),
@@ -1442,7 +1426,6 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    SignalMask_set(false),
    CallStackUnwinding_set(false),
    MemUsage_set(false),
-   BGQData_set(false),
    remoteIO_set(false)
 {
    pthrd_printf("New int_process at %p\n", this);
@@ -1953,6 +1936,8 @@ int int_process::getAddressWidth()
       case Arch_aarch64:
       case Arch_cuda:
          return 8;
+      case Arch_amdgpu_vega: // according to the vega architecture, there are 32/64 address mode
+      case Arch_amdgpu_rdna:
       case Arch_none:
          assert(0);
    }
@@ -2514,19 +2499,26 @@ bool indep_lwp_control_process::plat_syncRunState()
       int_thread::State target_state = thr->getTargetState();
       bool result = true;
 
+      pthrd_printf("plat_syncRunState for thread %d/%d\n", thr->proc()->getPid(), thr->getLWP());
+
       if (handler_state == target_state) {
+    	 pthrd_printf("plat_syncRunState: thread is in desired state\n");
          continue;
       }
       else if (handler_state == int_thread::stopped && RUNNING_STATE(target_state)) {
          result = thr->intCont();
+         pthrd_printf("plat_syncRunState: trying to continue; res=%d\n", result);
       }
       else if (RUNNING_STATE(handler_state) && target_state == int_thread::stopped) {
          result = thr->intStop();
+         pthrd_printf("plat_syncRunState: trying to stop; res=%d\n", result);
       }
+
       if (!result && getLastError() == err_exited) {
-         pthrd_printf("Suppressing error of continue on exited process\n");
-	 pthrd_printf("TESTING: setting handler to running anyway\n");
-	 thr->getHandlerState().setState(int_thread::running);
+    	  pthrd_printf("Suppressing error of continue/stop on exited process\n");
+    	  if(thr->plat_handle_ghost_thread()) {
+    		  thr->getHandlerState().setState(int_thread::running);
+    	  }
       }
       else if (!result) {
          pthrd_printf("Error changing process state from plat_syncRunState\n");
@@ -3988,6 +3980,8 @@ bool int_thread::plat_setRegisterAsync(Dyninst::MachRegister,
    assert(0);
    return false;
 }
+
+bool int_thread::plat_handle_ghost_thread() { return true; }
 
 void int_thread::addPostedRPC(int_iRPC::ptr rpc_)
 {
@@ -7239,15 +7233,6 @@ MemoryUsage *Process::getMemoryUsage()
    return proc->up_ptr;
 }
 
-BGQData *Process::getBGQ()
-{
-   MTLock lock_this_func;
-   PROC_EXIT_TEST("getBGQ", NULL);
-   int_BGQData *proc = llproc_->getBGQData();
-   if (!proc) return NULL;
-   return proc->up_ptr;
-}
-
 const LibraryTracking *Process::getLibraryTracking() const
 {
    MTLock lock_this_func;
@@ -7298,15 +7283,6 @@ const MemoryUsage *Process::getMemoryUsage() const
    MTLock lock_this_func;
    PROC_EXIT_TEST("getMemoryUsage", NULL);
    int_memUsage *proc = llproc_->getMemUsage();
-   if (!proc) return NULL;
-   return proc->up_ptr;
-}
-
-const BGQData *Process::getBGQ() const
-{
-   MTLock lock_this_func;
-   PROC_EXIT_TEST("getBGQ", NULL);
-   int_BGQData *proc = llproc_->getBGQData();
    if (!proc) return NULL;
    return proc->up_ptr;
 }

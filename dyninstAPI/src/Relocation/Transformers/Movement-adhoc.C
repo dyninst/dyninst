@@ -451,7 +451,6 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   
   // This is yoinked from arch-x86.C...
   if (addrSpace->isValidAddress(target)) {
-    // Get us an instrucIter    
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
     if (!buf) {
        cerr << "Error: illegal pointer to buffer!" << endl;

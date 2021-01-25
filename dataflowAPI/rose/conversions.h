@@ -60,6 +60,7 @@ class SgAsmArmv8Instruction;
 class SgAsmx86Instruction;
 class SgAsmPowerpcInstruction;
 
+
 class SageInterface {
  public:
     static uint64_t getAsmSignedConstant(SgAsmValueExpression *);
@@ -179,4 +180,5 @@ SgAsmIntegerType *isSgAsmIntegerType( SgNode * );
 const SgAsmIntegerType *isSgAsmIntegerType( const SgNode *s );
 SgAsmFloatType *isSgAsmFloatType( SgNode * );
 const SgAsmFloatType *isSgAsmFloatType( const SgNode *s );
+
 #endif

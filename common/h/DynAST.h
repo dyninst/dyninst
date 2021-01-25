@@ -35,6 +35,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <map>
 #include "util.h"
 #include "boost/enable_shared_from_this.hpp"
 

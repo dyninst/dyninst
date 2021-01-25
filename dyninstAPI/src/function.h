@@ -34,7 +34,6 @@
 #define FUNCTION_H
 
 #include <string>
-#include "common/src/Vector.h"
 #include "common/src/Types.h"
 #include "common/src/Pair.h"
 #include "codegen.h"
@@ -58,6 +57,7 @@
 #include "StackMod/StackLocation.h"
 #include "StackMod/TMap.h"
 #endif
+#include "Relocation/DynCommon.h"
 
 class PCProcess;
 class mapped_module;
@@ -242,7 +242,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   ////////////////////////////////////////////////
 
 
-  const pdvector< int_parRegion* > &parRegions();
+  const std::vector< int_parRegion* > &parRegions();
 
   bool containsSharedBlocks() const { return ifunc()->containsSharedBlocks(); }
   unsigned getNumDynamicCalls();
@@ -385,7 +385,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   Address handlerFaultAddrAddr_;
 
   //////////////////////////  Parallel Regions
-  pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
+  std::vector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
   void addblock_instance(block_instance *instance);
 

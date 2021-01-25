@@ -63,6 +63,9 @@
 
 #include <boost/bind.hpp>
 
+#include "dynThread.h"
+#include "pcEventHandler.h"
+
 // Implementations of non-virtual functions in the address space
 // class.
 
@@ -88,8 +91,7 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    delayRelocation_(false),
-    patcher_(NULL)
+    delayRelocation_(false)
 {
 #if 0
    // Disabled for now; used by defensive mode
@@ -107,6 +109,8 @@ AddressSpace::~AddressSpace() {
       delete memEmulator_;
     if (mgr_)
        static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
+
+    deleteAddressSpace();
 }
 
 PCProcess *AddressSpace::proc() {
@@ -149,7 +153,6 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
     // This is only defined for process->process copy
     // until someone can give a good reason for copying
     // anything else...
-
     assert(proc());
 
     mapped_object *par_aout = parent->getAOut();
@@ -165,10 +168,7 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
           assert(child_obj);
           addMappedObject(child_obj);
         }
-        // This clones funcs, which then clone instPoints, which then 
-        // clone baseTramps, which then clones miniTramps.
     }
-
 
     // Clone the tramp guard base
     if (parent->trampGuardBase_) 
@@ -179,7 +179,6 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
     /////////////////////////
     // Inferior heap
     /////////////////////////
-
     heap_ = inferiorHeap(parent->heap_);
     heapInitialized_ = parent->heapInitialized_;
 
@@ -189,31 +188,15 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
     trapMapping.copyTrapMappings(& (parent->trapMapping));
 
     /////////////////////////
-    // Overly complex code tracking system
+    // Code tracking system
     /////////////////////////
-    for (CodeTrackers::iterator iter = parent->relocatedCode_.begin();
-         iter != parent->relocatedCode_.end(); ++iter) {
-       // Efficiency; this avoids a spurious copy of the entire
-       // CodeTracker. 
-
-       relocatedCode_.push_back(Relocation::CodeTracker::fork(*iter, this));
+    for (auto *ct : parent->relocatedCode_) {
+       // Efficiency; this avoids a spurious copy of the entire CodeTracker.
+       relocatedCode_.push_back(Relocation::CodeTracker::fork(ct, this));
     }
     
-    // Let's assume we're not forking _in the middle of instrumentation_
-    // (good Lord), and so leave modifiedFunctions_ alone.
-    /*
-    for (CallModMap::iterator iter = parent->callModifications_.begin(); 
-         iter != parent->callModifications_.end(); ++iter) {
-       // Need to forward map the lot
-       block_instance *newB = findBlock(iter->first->llb());
-       for (std::map<func_instance *, func_instance *>::iterator iter2 = iter->second.begin();
-            iter2 != iter->second.end(); ++iter2) {
-          func_instance *context = (iter2->first == NULL) ? NULL : findFunction(iter2->first->ifunc());
-          func_instance *target = (iter2->second == NULL) ? NULL : findFunction(iter2->second->ifunc());
-          callModifications_[newB][context] = target;
-       }
-    }
-    */
+    // Let's assume we're not forking in the middle of instrumentation, so
+    // leave modifiedFunctions_ alone.
 
     assert(parent->mgr());
     PatchAPI::CallModMap& cmm = parent->mgr()->instrumenter()->callModMap();
@@ -248,19 +231,28 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
 }
 
 void AddressSpace::deleteAddressSpace() {
-   // Methodically clear everything we have - it all went away
-   // We have the following member variables:
-
-   // bool heapInitialized_
-   // inferiorHeap heap_
-
    heapInitialized_ = false;
    heap_.clear();
-   for (unsigned i = 0; i < mapped_objects.size(); i++) 
-      delete mapped_objects[i];
 
+   for (auto *mo : mapped_objects) {
+      delete mo;
+   }
    mapped_objects.clear();
 
+   for (auto *rc : relocatedCode_) {
+      delete rc;
+   }
+   relocatedCode_.clear();
+
+   /*
+   * NB: We do not own the contents of forwardDefensiveMap_, reverseDefensiveMap_,
+   *     instrumentationInstances_, modifiedFunctions_, reverseDefensiveMap_,
+   *     or runtime_lib
+   */
+   forwardDefensiveMap_.clear();
+   reverseDefensiveMap_.clear();
+   instrumentationInstances_.clear();
+   modifiedFunctions_.clear();
    runtime_lib.clear();
 
    trampGuardBase_ = NULL;
@@ -268,15 +260,6 @@ void AddressSpace::deleteAddressSpace() {
 
    // up_ptr_ is untouched
    costAddr_ = 0;
-   for (CodeTrackers::iterator iter = relocatedCode_.begin(); 
-        iter != relocatedCode_.end(); ++iter) {
-      delete *iter;
-   }
-   relocatedCode_.clear();
-   modifiedFunctions_.clear();
-   forwardDefensiveMap_.clear();
-   reverseDefensiveMap_.clear();
-   instrumentationInstances_.clear();
 
    if (memEmulator_) delete memEmulator_;
    memEmulator_ = NULL;
@@ -308,16 +291,11 @@ bool heapItemLessByAddr(const heapItem *a, const heapItem *b)
 
 
 void AddressSpace::inferiorFreeCompact() {
-   pdvector<heapItem *> &freeList = heap_.heapFree;
+   std::vector<heapItem *> &freeList = heap_.heapFree;
    unsigned i, nbuf = freeList.size();
 
    /* sort buffers by address */
-#if defined (cap_use_pdvector)
-    std::sort(freeList.begin(), freeList.end(), ptr_fun(heapItemCmpByAddr));
-#else
     std::sort(freeList.begin(), freeList.end(), ptr_fun(heapItemLessByAddr));
-#endif
-
 
    /* combine adjacent buffers */
    bool needToCompact = false;
@@ -345,7 +323,7 @@ void AddressSpace::inferiorFreeCompact() {
 
    /* remove any absorbed (empty) buffers */ 
    if (needToCompact) {
-      pdvector<heapItem *> cleanList;
+      std::vector<heapItem *> cleanList;
       unsigned end = freeList.size();
       for (i = 0; i < end; i++) {
          heapItem *h1 = freeList[i];
@@ -366,7 +344,7 @@ void AddressSpace::inferiorFreeCompact() {
     
 int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi) {
    // type is a bitmask: match on any bit in the mask
-   pdvector<heapItem *> &freeList = heap_.heapFree;
+   std::vector<heapItem *> &freeList = heap_.heapFree;
     
    int best = -1;
    for (unsigned i = 0; i < freeList.size(); i++) {
@@ -644,7 +622,7 @@ bool AddressSpace::inferiorExpandBlock(heapItem *h,
       // If we've enlarged to exactly the end of the successor (succ->length == 0),
       // remove succ
       if (0x0 == succ->length) {
-          pdvector<heapItem *> cleanList;
+          std::vector<heapItem *> cleanList;
           unsigned end = heap_.heapFree.size();
           for (unsigned i = 0; i < end; i++) {
               heapItem * h1 = heap_.heapFree[i];
@@ -676,7 +654,7 @@ bool AddressSpace::inferiorExpandBlock(heapItem *h,
 /////////////////////////////////////////
 
 bool AddressSpace::findFuncsByAll(const std::string &funcname,
-                                  pdvector<func_instance *> &res,
+                                  std::vector<func_instance *> &res,
                                   const std::string &libname) { // = "", btw
     
    unsigned starting_entries = res.size(); // We'll return true if we find something
@@ -684,7 +662,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
       if (libname == "" ||
           mapped_objects[i]->fileName() == libname.c_str() ||
           mapped_objects[i]->fullName() == libname.c_str()) {
-         const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+         const std::vector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
          if (pretty) {
             // We stop at first match...
             for (unsigned pm = 0; pm < pretty->size(); pm++) {
@@ -692,7 +670,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
             }
          }
          else {
-            const pdvector<func_instance *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
+            const std::vector<func_instance *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
             if (mangled) {
                for (unsigned mm = 0; mm < mangled->size(); mm++) {
                   res.push_back((*mangled)[mm]);
@@ -707,7 +685,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
 
 
 bool AddressSpace::findFuncsByPretty(const std::string &funcname,
-                                     pdvector<func_instance *> &res,
+                                     std::vector<func_instance *> &res,
                                      const std::string &libname) { // = "", btw
 
    unsigned starting_entries = res.size(); // We'll return true if we find something
@@ -716,7 +694,7 @@ bool AddressSpace::findFuncsByPretty(const std::string &funcname,
       if (libname == "" ||
           mapped_objects[i]->fileName() == libname.c_str() ||
           mapped_objects[i]->fullName() == libname.c_str()) {
-         const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+         const std::vector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
          if (pretty) {
             // We stop at first match...
             for (unsigned pm = 0; pm < pretty->size(); pm++) {
@@ -730,7 +708,7 @@ bool AddressSpace::findFuncsByPretty(const std::string &funcname,
 
 
 bool AddressSpace::findFuncsByMangled(const std::string &funcname,
-                                      pdvector<func_instance *> &res,
+                                      std::vector<func_instance *> &res,
                                       const std::string &libname) { // = "", btw
    unsigned starting_entries = res.size(); // We'll return true if we find something
 
@@ -738,7 +716,7 @@ bool AddressSpace::findFuncsByMangled(const std::string &funcname,
       if (libname == "" ||
           mapped_objects[i]->fileName() == libname.c_str() ||
           mapped_objects[i]->fullName() == libname.c_str()) {
-         const pdvector<func_instance *> *mangled = 
+         const std::vector<func_instance *> *mangled = 
             mapped_objects[i]->findFuncVectorByMangled(funcname);
          if (mangled) {
             for (unsigned mm = 0; mm < mangled->size(); mm++) {
@@ -756,7 +734,7 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
 {
    assert(mapped_objects.size());
 
-   pdvector<func_instance *> allFuncs;
+   std::vector<func_instance *> allFuncs;
 
    if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
       return NULL;
@@ -774,7 +752,7 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
 /////////////////////////////////////////
 
 bool AddressSpace::findVarsByAll(const std::string &varname,
-                                 pdvector<int_variable *> &res,
+                                 std::vector<int_variable *> &res,
                                  const std::string &libname) { // = "", btw
    unsigned starting_entries = res.size(); // We'll return true if we find something
     
@@ -782,7 +760,7 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
       if (libname == "" ||
           mapped_objects[i]->fileName() == libname.c_str() ||
           mapped_objects[i]->fullName() == libname.c_str()) {
-         const pdvector<int_variable *> *pretty = mapped_objects[i]->findVarVectorByPretty(varname);
+         const std::vector<int_variable *> *pretty = mapped_objects[i]->findVarVectorByPretty(varname);
          if (pretty) {
             // We stop at first match...
             for (unsigned pm = 0; pm < pretty->size(); pm++) {
@@ -790,7 +768,7 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
             }
          }
          else {
-            const pdvector<int_variable *> *mangled = mapped_objects[i]->findVarVectorByMangled(varname);
+            const std::vector<int_variable *> *mangled = mapped_objects[i]->findVarVectorByMangled(varname);
             if (mangled) {
                for (unsigned mm = 0; mm < mangled->size(); mm++) {
                   res.push_back((*mangled)[mm]);
@@ -974,7 +952,7 @@ mapped_object *AddressSpace::findObject(fileDescriptor desc) const
 // getAllFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 
-void AddressSpace::getAllFunctions(pdvector<func_instance *> &funcs) {
+void AddressSpace::getAllFunctions(std::vector<func_instance *> &funcs) {
    for (unsigned i = 0; i < mapped_objects.size(); i++) {
       mapped_objects[i]->getAllFunctions(funcs);
    }
@@ -983,9 +961,9 @@ void AddressSpace::getAllFunctions(pdvector<func_instance *> &funcs) {
 // getAllModules: returns a vector of all modules defined in the
 // a.out and in the shared objects
 
-void AddressSpace::getAllModules(pdvector<mapped_module *> &mods){
+void AddressSpace::getAllModules(std::vector<mapped_module *> &mods){
    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-      const pdvector<mapped_module *> &obj_mods = mapped_objects[i]->getModules();
+      const std::vector<mapped_module *> &obj_mods = mapped_objects[i]->getModules();
       for (unsigned j = 0; j < obj_mods.size(); j++) {
          mods.push_back(obj_mods[j]);
       }
@@ -2324,4 +2302,13 @@ bool uninstrument(Dyninst::PatchAPI::Instance::Ptr inst) {
    point->markModified();
    return true;
 
+}
+
+
+unsigned AddressSpace::getAddressWidth() const {
+    if( mapped_objects.size() > 0 ) {
+        return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
+    }
+    // We can call this before we've attached...best effort guess
+    return sizeof(Address);
 }

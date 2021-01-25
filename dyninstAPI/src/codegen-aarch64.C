@@ -38,11 +38,6 @@
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/function.h"
 
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
-
-
 // "Casting" methods. We use a "base + offset" model, but often need to
 // turn that into "current instruction pointer".
 codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
@@ -472,7 +467,7 @@ void insnCodeGen::generateMoveSP(codeGen &gen, Register rn, Register rd, bool is
 }
 
 
-Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Register> *exclude) {
+Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Register> *exclude) {
     Register scratchReg;
     if(exclude)
 	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
@@ -664,7 +659,7 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg, pdvector<Register>& excludeReg){
+int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Register>& freeReg, std::vector<Register>& excludeReg){
 assert(0);
 //#warning "This function is not implemented yet!"
 		return freeReg.size();
@@ -673,17 +668,6 @@ assert(0);
 void insnCodeGen::removeStackFrame(codeGen &gen) {
 assert(0);
 //#warning "This function is not implemented yet!"
-}
-
-bool insnCodeGen::generate(codeGen &gen,
-                           instruction &insn,
-                           AddressSpace * /*proc*/,
-                           Address /*origAddr*/,
-                           Address /*relocAddr*/,
-                           patchTarget * /*fallthroughOverride*/,
-                           patchTarget * /*targetOverride*/) {
-  assert(0 && "Deprecated!");
-  return false;
 }
 
 bool insnCodeGen::generateMem(codeGen &,

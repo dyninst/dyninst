@@ -843,7 +843,8 @@ enum VariantT {
     V_SgUpcBlocksizeof = 931,
     V_SgAsmFieldDeclaration = 932,
     V_SgAsmDataStructureDeclaration = 933,
-    V_SgAsmPEImportILTEntryList = 934
+    V_SgAsmPEImportILTEntryList = 934,
+    V_SgAsmAmdgpuInstruction = 935,
 };
 
 enum X86SegmentRegister { // These must match numbering in object code

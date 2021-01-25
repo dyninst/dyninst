@@ -29,8 +29,6 @@
  */
 #include "dyntypes.h"
 #include "Annotatable.h"
-#include "Serialization.h"
-#include "common/src/serialize.h"
 
 #include "Symtab.h"
 #include "symutil.h"
@@ -195,7 +193,6 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool i
     if (staticSym) {
       Symbol *newSym = new Symbol(*staticSym);
       newSym->setMangledName(name);
-      module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = false;
       newSym->isDebug_ = isDebug;
       module_->exec()->addSymbol(newSym);
@@ -203,7 +200,6 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool i
     if (dynamicSym) {
       Symbol *newSym = new Symbol(*dynamicSym);
       newSym->setMangledName(name);
-      module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = true;
       newSym->isDebug_ = isDebug;
       module_->exec()->addSymbol(newSym);
@@ -263,21 +259,6 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
     return true;
 }
 
-void Aggregate::restore_type_by_id(SerializerBase *, Type *&, 
-                                   unsigned ) THROW_SPEC (SerializerError) 
-{
-}
-
-void Aggregate::restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError)
-{
-}
-
-extern Symbol * getSymForID(SerializerBase *sb, Address id);
-
-void Aggregate::rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError)
-{
-}
-
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
 {
   std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
@@ -298,10 +279,6 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &
   os << " }";
   
   return os;
-}
-
-void Aggregate::serialize_aggregate(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
 }
 
 bool Aggregate::operator==(const Aggregate &a)

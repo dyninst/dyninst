@@ -31,7 +31,6 @@
 #if !defined(nt_dl_hdr)
 #define nt_dl_hdr
 
-#include "common/src/Vector.h"
 class process;
 class mapped_object;
 //
@@ -49,17 +48,17 @@ public:
     // getSharedObjects: This routine is called before main() to get and
     // process all shared objects that have been mapped into the process's
     // address space
-    pdvector< mapped_object *> *getSharedObjects(process *){ return &sharedObjects;}
+    std::vector< mapped_object *> *getSharedObjects(process *){ return &sharedObjects;}
 
     // handleIfDueToSharedObjectMapping: returns true if the trap was caused
     // by a change to the link maps  
-    bool handleIfDueToSharedObjectMapping(process *, pdvector<mapped_object *> **,
+    bool handleIfDueToSharedObjectMapping(process *, std::vector<mapped_object *> **,
 			       u_int &, bool &){ return false;}
 
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
 
-   pdvector<mapped_object *> sharedObjects;
+   std::vector<mapped_object *> sharedObjects;
 
 private:
 

@@ -30,7 +30,6 @@
 
 /* Functions of the relocationEntry class specific to PPC ELF */
 #include "Symtab.h"
-#include "Serialization.h"
 #include "annotations.h"
 #include <elf.h>
 

@@ -16,11 +16,13 @@
 #	LibIberty_ROOT_DIR      - Base directory the of LibIberty installation
 #	LibIberty_LIBRARYDIR    - Hint directory that contains the LibIberty library files
 #   IBERTY_LIBRARIES        - Alias for LibIberty_LIBRARIES (backwards compatibility only)
+#	LibIberty_INCLUDEDIR	- Hint directory that contains the libiberty headers files
 #
 # and saves search results persistently in CMake cache entries::
 #
 #	LibIberty_FOUND         - True if headers and requested libraries were found
 #   IBERTY_FOUND            - Alias for LibIberty_FOUND (backwards compatibility only)
+#	LibIberty_INCLUDE_DIRS  - libiberty include directories
 #	LibIberty_LIBRARY_DIRS  - Link directories for LibIberty libraries
 #	LibIberty_LIBRARIES     - LibIberty library files
 #   IBERTY_LIBRARIES        - Alias for LibIberty_LIBRARIES (backwards compatibility only)
@@ -41,6 +43,13 @@ include(DyninstSystemPaths)
 
 # Non-standard subdirectories to search
 set(_path_suffixes libiberty iberty)
+
+find_path(LibIberty_INCLUDE_DIRS
+          NAMES libiberty.h
+          HINTS ${LibIberty_ROOT_DIR} ${LibIberty_ROOT_DIR}/include ${LibIberty_INCLUDEDIR}
+          PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
+          PATH_SUFFIXES ${_path_suffixes}
+          DOC "LibIberty include directories")
 
 # iberty_pic is for Debian <= wheezy
 find_library(LibIberty_LIBRARIES

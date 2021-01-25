@@ -237,7 +237,7 @@ class ProcStopEventManager {
  *
  * There are existing child classes of int_process that you can
  * use if your system shares certain things in common with other
- * platforms.  For example, several systems (Linux, BlueGene, FreeBSD)
+ * platforms.  For example, several systems (Linux, FreeBSD)
  * use the System V interfaces for library loading.  Thus there
  * exists a sysv_process class that inherits from int_process and
  * fills in the library handling virtual functions of int_process.
@@ -441,8 +441,7 @@ class int_process
    virtual Address plat_findFreeMemory(size_t) { return 0; }
 
    //For a platform, if plat_needsAsyncIO returns true then the async
-   // set of functions need to be implemented.  Currently plat_needsAsyncIO
-   // only returns true for bluegene family.  By default these are otherwise
+   // set of functions need to be implemented. By default these are
    // unimplemented.
    virtual bool plat_needsAsyncIO() const;
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr,
@@ -547,10 +546,7 @@ class int_process
    int_signalMask *getSignalMask();
    int_memUsage *getMemUsage();
    int_callStackUnwinding *getCallStackUnwinding();
-   int_BGQData *getBGQData();
    int_remoteIO *getRemoteIO();
-
-   //Interface into BGQ-specific process data.
  protected:
    State state;
    Dyninst::PID pid;
@@ -597,7 +593,6 @@ class int_process
    int_signalMask *pSignalMask;
    int_callStackUnwinding *pCallStackUnwinding;
    int_memUsage *pMemUsage;
-   int_BGQData *pBGQData;
    int_remoteIO *pRemoteIO;
    bool LibraryTracking_set;
    bool LWPTracking_set;
@@ -607,7 +602,6 @@ class int_process
    bool SignalMask_set;
    bool CallStackUnwinding_set;
    bool MemUsage_set;
-   bool BGQData_set;
    bool remoteIO_set;
 };
 
@@ -997,6 +991,7 @@ public:
    virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg,
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
+   virtual bool plat_handle_ghost_thread();
    virtual void plat_terminate();
 
    void updateRegCache(int_registerPool &pool);

@@ -66,15 +66,6 @@ set (SRC_LIST ${SRC_LIST}
 	 ../common/src/dthread.C
      src/loadLibrary/codegen-linux.C
   )
-elseif (PLATFORM MATCHES bgq)
-set (SRC_LIST ${SRC_LIST}
-     src/bluegeneq.C
-     src/bgq-messages.C
-     src/notify_pipe.C
-     ../common/src/dthread-unix.C
-	 ../common/src/dthread.C
-     src/loadLibrary/codegen-linux.C
-  )
 elseif (PLATFORM MATCHES cnl)
 set (SRC_LIST ${SRC_LIST}
      src/linux.C
@@ -100,8 +91,5 @@ target_link_private_libraries(pcontrol ${Boost_LIBRARIES})
 if (UNIX)
 # Boost auto-links on Windows; don't double-link
 target_link_private_libraries(pcontrol pthread)
-endif()
-if (USE_COTIRE)
-    cotire(pcontrol)
 endif()
 

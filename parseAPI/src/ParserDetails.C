@@ -502,7 +502,9 @@ bool Parser::ProcessCFInsn(
         Edge *newedge = NULL;
         bool resolvable_edge = true;
         bool tailcall = false;
-
+        parsing_printf("\t\t\tedge target %lx, is_code %d, is_plt %d, edge type %d, dynamic_call %d\n", 
+                curEdge->first, is_code(frame.func, curEdge->first), HASHDEF(plt_entries, curEdge->first),
+                curEdge->second, dynamic_call);
         if (!is_code(frame.func, curEdge->first) &&
             !HASHDEF(plt_entries, curEdge->first)) {
             if (curEdge->second != CALL || !dynamic_call) {

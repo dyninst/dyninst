@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <vector>
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 #include "common/src/std_namesp.h"
 
 /** template class for addrRangeTree. The implementation is based on red black
@@ -326,7 +325,7 @@ class addrRangeTree {
 
    // Vector version of above
    // infix traverse of the RB tree. It traverses the tree in ascending order
-   void traverse(pdvector<T *> &all, entry*node) const
+   void traverse(std::vector<T *> &all, entry*node) const
    {
       if(node == nil)
          return;
@@ -626,7 +625,7 @@ class addrRangeTree {
 
 
       // And vector-style
-      bool elements(pdvector<T *> &buffer) const
+      bool elements(std::vector<T *> &buffer) const
       {
          if(setData == nil) return false;
          traverse(buffer,setData);	

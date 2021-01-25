@@ -205,13 +205,14 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual void startTimer(const std::string& /*name*/) const { return; } 
     virtual void stopTimer(const std::string& /*name*/) const { return; }
     virtual bool findCatchBlockByTryRange(Address /*given try address*/, std::set<Address> & /* catch start */)  const { return false; }
-   
+
+    virtual ~CodeSource();
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
-    virtual ~CodeSource() {}
 
     void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
    
  private: 
     // statistics
@@ -334,7 +335,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
     void init_try_blocks();
 
     CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion &); // removes from region tree
+    void removeRegion(CodeRegion *); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
     

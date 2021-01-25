@@ -78,7 +78,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   }
 }
 
-void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
+void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
 				    Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
@@ -135,6 +135,10 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
             } else {
                 defined.push_back(AbsRegionConverter::convert(*i));
             }
+        } else if (insn.getArch() == Arch_cuda && insn.hasPredicateOperand()) {
+            Operand o = insn.getPredicateOperand();
+            defined.push_back(AbsRegionConverter::convertPredicatedRegister(*i, o.getPredicate(), o.isTruePredicate()));
+
         } else {
             defined.push_back(AbsRegionConverter::convert(*i));
         }
@@ -176,6 +180,10 @@ AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
   } else {
     return AbsRegion(Absloc(reg->getID().getBaseRegister()));
   }		   
+}
+
+AbsRegion AbsRegionConverter::convertPredicatedRegister(RegisterAST::Ptr r, RegisterAST::Ptr p, bool c) {
+    return AbsRegion(Absloc(r->getID(), p->getID(), c));
 }
 
 class bindKnownRegs : public InstructionAPI::Visitor
@@ -483,7 +491,7 @@ bool AbsRegionConverter::definedCache(Address addr,
 // Instruction.
 ///////////////////////////////////////////////////////
 
-void AssignmentConverter::convert(const Instruction I, 
+void AssignmentConverter::convert(const Instruction &I, 
                                   const Address &addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
@@ -757,7 +765,6 @@ void AssignmentConverter::convert(const Instruction I,
     assignments.push_back(ra);
     break;
   }      
-        
   default:
     // Assume full intra-dependence of non-flag and non-pc registers. 
     std::vector<AbsRegion> used;

@@ -171,7 +171,7 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
         iter != b->_trglist.end(); ++iter) {
       b->obj()->_pcb->removeEdge(b, *iter, ParseCallback::target);
       (*iter)->_source = ret;
-      ret->_trglist.push_back(*iter);
+      ret->_trglist.insert(*iter);
       b->obj()->_pcb->addEdge(ret, *iter, ParseCallback::target);
    }
    b->_trglist.clear();
@@ -179,9 +179,9 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    // 2c)
    Edge *ft = b->obj()->_fact->_mkedge(b, ret, FALLTHROUGH);
    ft->_type._sink = false;
-   b->_trglist.push_back(ft);
+   b->_trglist.insert(ft);
    b->obj()->_pcb->addEdge(b, ft, ParseCallback::target);
-   ret->_srclist.push_back(ft);
+   ret->_srclist.insert(ft);
    b->obj()->_pcb->addEdge(ret, ft, ParseCallback::source);
 
    // 3)

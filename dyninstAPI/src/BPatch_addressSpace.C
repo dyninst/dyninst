@@ -682,44 +682,6 @@ BPatch_variableExpr *BPatch_addressSpace::createVariable(std::string name,
 }
 
 /*
- * BPatch_addressSpace::findFunctionByAddr
- *
- * Returns the function that contains the specified address, or NULL if the
- * address is not within a function.
- *
- * addr         The address to use for the lookup.
- */
-BPatch_function *BPatch_addressSpace::findFunctionByAddr(void *addr)
-{
-   std::vector<AddressSpace *> as;
-
-   getAS(as);
-   assert(as.size());
-   std::set<func_instance *> funcs;
-   if (!as[0]->findFuncsByAddr((Address) addr, funcs)) {
-      // if it's a mapped_object that has yet to be analyzed,
-      // trigger analysis and re-invoke this function
-       mapped_object *obj = as[0]->findObject((Address) addr);
-       if (obj &&
-           !obj->isAnalyzed()) {
-         obj->analyze();
-         return findFunctionByAddr(addr);
-      }
-      return NULL;
-   }
-   if (funcs.empty()) return NULL;
-
-   if (funcs.size() > 1) {
-       bpwarn("Warning: deprecated function findFunctionByAddr found "
-              "multiple functions sharing address 0x%lx, picking one at "
-              "random.  Use findFunctionByEntry or findFunctionsByAddr\n",
-              addr);
-   }
-
-   return findOrCreateBPFunc((*(funcs.begin())), NULL);
-}
-
-/*
  *  BPatch_addressSpace::findFunctionByEntry
  *
  *  Returns the function starting at the given address, or NULL if the
@@ -811,7 +773,7 @@ BPatch_module *BPatch_addressSpace::findModuleByAddr(Address addr)
    if ( ! obj )
        return NULL;
 
-   const pdvector<mapped_module*> mods = obj->getModules();
+   const std::vector<mapped_module*> mods = obj->getModules();
    if (mods.size()) {
        return getImage()->findOrCreateModule(mods[0]);
    }

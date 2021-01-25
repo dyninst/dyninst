@@ -46,9 +46,6 @@
 #include <fstream>
 #include "common/src/arch-power.h"
 #include <sstream>
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
 
 bool shouldAssertIfInLongBranch = true;
 bool failedLongBranchLocal = false;
@@ -111,7 +108,7 @@ void insnCodeGen::generate(codeGen &gen, instruction&insn) {
   AddressSpace *as = gen.addrSpace();
   bool isLittleEndian = true;
   if (as) {
-    const pdvector<mapped_object*> objs = as->mappedObjects();
+    const std::vector<mapped_object*> objs = as->mappedObjects();
     if (objs.size() > 0) {
       mapped_object *mo = objs[0];
       SymtabAPI::Symtab* sym = mo->parse_img()->getObject(); 
@@ -1076,7 +1073,7 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
 #endif
 }
 
-int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg, pdvector<Register>& excludeReg){
+int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Register>& freeReg, std::vector<Register>& excludeReg){
               int gpr_off, fpr_off, ctr_off, stack_size;
                 //create new stack frame
                 gpr_off = TRAMP_GPR_OFFSET_32;
@@ -1101,81 +1098,6 @@ void insnCodeGen::removeStackFrame(codeGen &gen) {
                 popStack(gen);
 }
 
-bool insnCodeGen::generate(codeGen & /*gen*/,
-                           instruction & /*insn*/,
-                           AddressSpace * /*proc*/,
-                           Address /*origAddr*/,
-                           Address /*relocAddr*/,
-                           patchTarget * /*fallthroughOverride*/,
-                           patchTarget * /*targetOverride*/) {
-  assert(0 && "Deprecated!");
-  return false;
-#if 0
-    assert(fallthroughOverride == NULL);
-
-    Address targetAddr = targetOverride ? targetOverride->get_address() : 0;
-    long newOffset = 0;
-    Address to;
-
-    if (insn.isThunk()) {
-    }
-    else if (insn.isUncondBranch()) {
-        // unconditional pc relative branch.
-
-#if defined(os_vxworks)
-        if (!targetOverride) relocationTarget(origAddr, &targetAddr);
-#endif
-
-        // This was a check in old code. Assert it isn't the case,
-        // since this is a _conditional_ branch...
-        assert(insn.isInsnType(Bmask, BCAAmatch) == false); 
-        
-        // We may need an instPoint for liveness calculations
-
-        instPoint *point = gen.func()->findInstPByAddr(origAddr);
-        if (!point) 
-            point = instPoint::createArbitraryInstPoint(origAddr,
-                                                        gen.addrSpace(),
-                                                        gen.func());
-        gen.setPoint(point);
-
-
-        if (targetAddr) {
-            generateBranch(gen, 
-                           relocAddr,
-                           targetAddr,
-                           IFORM_LK(insn));
-        }
-        else {
-            generateBranch(gen,
-                           relocAddr,
-                           insn.getTarget(origAddr),
-                           IFORM_LK(insn));
-        }
-    } 
-    else if (insn.isCondBranch()) {
-        // conditional pc relative branch.
-#if defined(os_vxworks)
-        if (!targetOverride) relocationTarget(origAddr, &targetAddr);
-#endif
-
-        if (!targetAddr) {
-          newOffset = origAddr - relocAddr + insn.getBranchOffset();
-          to = origAddr + insn.getBranchOffset();
-        } else {
-	  newOffset = targetAddr - relocAddr;
-          to = targetAddr;
-        }
-    }
-    else {
-#if defined(os_vxworks)
-        if (relocationTarget(origAddr + 2, &targetAddr)) DFORM_SI_SET(insn, targetAddr);
-#endif
-        generate(gen,insn);
-    }
-    return true;
-#endif
-}
                 // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}    
                 // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}       
 bool insnCodeGen::generateMem(codeGen &,

@@ -65,8 +65,8 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     registerSpace *rs = registerSpace::actualRegSpace(point);
     gen.setRegisterSpace(rs);
     int stackSize = 0;
-    pdvector<Register> freeReg;
-    pdvector<Register> excludeReg;  
+    std::vector<Register> freeReg;
+    std::vector<Register> excludeReg;  
     
     Address origRet = addr() + insn_.size();
     Register scratch = gen.rs()->getScratchRegister(gen, true);
@@ -131,8 +131,8 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   assert(reg == registerSpace::lr);
     
   int stackSize = 0;
-  pdvector<Register> freeReg;
-  pdvector<Register> excludeReg;
+  std::vector<Register> freeReg;
+  std::vector<Register> excludeReg;
     
   Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
   excludeReg.push_back(scratchPCReg);

@@ -106,12 +106,7 @@ typedef enum {
 typedef enum {
     BPatch_negate,
     BPatch_address,
-#ifdef IBM_BPATCH_COMPAT
-    BPatch_deref,
-    BPatch_bit_compl		// not supported yet
-#else
     BPatch_deref
-#endif
 } BPatch_unOp;
 
 class BPATCH_DLL_EXPORT BPatch_snippet {
@@ -172,16 +167,6 @@ class BPATCH_DLL_EXPORT BPatch_snippet {
     //  Destructor, decrements reference count to snippet, deleting when none are left
     
     virtual ~BPatch_snippet();
-
-    //  BPatch_snippet::getCost
-    //  Returns an estimated cost of executing the snippet, in seconds.
-
-    float getCost();
-
-    //  BPatch_snippet::getCostAtPoint
-    //  Returns an estimated cost of executing the snippet at a specified point, in seconds.
-
-    float getCostAtPoint(BPatch_point *pt);
 
     //  BPatch_snippet::is_trivial
     //  allows users to check to see if
@@ -257,12 +242,6 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
     //  Creates a representation of a (long long) value
     BPatch_constExpr(long long value);
 
-#ifdef IBM_BPATCH_COMPAT
-    //  BPatch_constExpr::BPatch_constExpr
-    //  Creates a representation of a (float) value
-    BPatch_constExpr(float value);
-#endif
-
     // Should _always_ have a default constructor. This
     // one produces a 0
     BPatch_constExpr() : BPatch_snippet() {};
@@ -274,16 +253,6 @@ class BPATCH_DLL_EXPORT BPatch_whileExpr : public BPatch_snippet {
    // BPatch_whileExpr::BPatch_whileExpr (while loop)
    BPatch_whileExpr(const BPatch_snippet &condition,
                     const BPatch_snippet &body);
-};
-
-class BPATCH_DLL_EXPORT BPatch_regExpr : public BPatch_snippet {
- public:
-    // DEPRECATED!!!
-
-    //  BPatch_regExpr::BPatch_regExpr
-    //  Creates a representation of the contents of a particular register
-    //  specified by <value>
-    BPatch_regExpr(unsigned int value);
 };
 
 class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
@@ -476,14 +445,6 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     //  BPatch_variableExpr::getComponents
     //  return variable expressions for all of the fields in a struct/union
     BPatch_Vector<BPatch_variableExpr *> * getComponents();
-
-#ifdef IBM_BPATCH_COMPAT
-    char * getName(char *buffer, int max);
-
-    void * getAddress();
-
-#endif
-
 };
 
 class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {

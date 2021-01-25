@@ -101,7 +101,6 @@ class SYMTAB_EXPORT Aggregate
       virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false);
       virtual bool addTypedName(std::string name, bool isPrimary, bool isDebug=false);
 
-      bool setModule(Module *mod);
       bool setSize(unsigned size);
       bool setOffset(unsigned offset);
       
@@ -122,12 +121,6 @@ class SYMTAB_EXPORT Aggregate
       Symbol *firstSymbol;  // cached for speed
       Offset offset_;       // cached for speed
 
-
-      void restore_type_by_id(SerializerBase *, Type *&, unsigned) THROW_SPEC (SerializerError);
-      void restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError);
-      //void rebuild_symbol_vector(SerializerBase *, std::vector<Offset> *) THROW_SPEC (SerializerError);
-      void rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError);
-      void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
       bool addMangledNameInternal(std::string name, bool isPrimary, bool demangle);
 };
 

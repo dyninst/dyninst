@@ -85,7 +85,15 @@ Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
 
 CFGFactory::~CFGFactory()
 {
-   destroy_all();
+  for(Edge *e : edges_) {
+    destroy_edge(e, destroyed_all);
+  }
+  for(Block *b : blocks_) {
+    destroy_block(b);
+  }
+  for(Function *f : funcs_) {
+    destroy_func(f);
+  }
 }
 
 // ParseAPI call...
@@ -161,7 +169,6 @@ CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void CFGFactory::destroy_func(Function *f) {
-   f->remove();
    free_func(f);
 }
 
@@ -172,7 +179,6 @@ CFGFactory::free_func(Function *f) {
 
 void
 CFGFactory::destroy_block(Block *b) {
-    b->remove();
     free_block(b);
 }
 
@@ -195,7 +201,6 @@ std::string to_str(EdgeState e)
 
 void
 CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
-    e->remove();
     if(reason == destroyed_all) {
         free_edge(e);
     }
@@ -205,26 +210,3 @@ void
 CFGFactory::free_edge(Edge *e) {
    delete e;
 }
-
-void
-CFGFactory::destroy_all() {
-    // XXX carefully calling free_* routines; could be faster and just
-    // call delete
-
-    fact_list<Edge *>::iterator eit = edges_.begin();
-    while(eit != edges_.end()) {
-        fact_list<Edge *>::iterator cur = eit++;
-        destroy_edge(*cur, destroyed_all);
-    }
-    fact_list<Block *>::iterator bit = blocks_.begin();
-    while(bit != blocks_.end()) {
-        fact_list<Block *>::iterator cur = bit++;
-        destroy_block(*cur);
-    }
-    fact_list<Function *>::iterator fit = funcs_.begin();
-    while(fit != funcs_.end()) {
-        fact_list<Function *>::iterator cur = fit++;
-        destroy_func(*cur);
-    }
-}
-

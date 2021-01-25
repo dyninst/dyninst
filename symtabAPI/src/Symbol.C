@@ -46,17 +46,6 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-bool addSymID(SerializerBase *, Symbol *, Address)
-{
-   return false;
-}
-
-Symbol * getSymForID(SerializerBase *, Address)
-{
-   return NULL;
-}
-
-
 Symbol *Symbol::magicEmitElfSymbol() {
 	// I have no idea why this is the way it is,
 	// but emitElf needs it...
@@ -79,60 +68,12 @@ SYMTAB_EXPORT string Symbol::getMangledName() const
 
 SYMTAB_EXPORT string Symbol::getPrettyName() const 
 {
-  std::string working_name = mangledName_;
-  // Accoring to Itanium C++ ABI, all mangled names start with _Z
-  if (mangledName_.size() < 2 || mangledName_[0] != '_' || mangledName_[1] != 'Z') return working_name;
-#if !defined(os_windows)        
-  //Remove extra stabs information
-  size_t colon, atat;
-  colon = working_name.find(":");
-  if(colon != string::npos) 
-  {
-    working_name = working_name.substr(0, colon);
-  }
-  atat = working_name.find("@@");
-  if(atat != string::npos)
-  {
-    working_name = working_name.substr(0, atat);
-  }
-  
-#endif     
-  // Assume not native (ie GNU) if we don't have an associated Symtab for some reason
-  bool native_comp = getSymtab() ? getSymtab()->isNativeCompiler() : false;
-  
-  char *prettyName = P_cplus_demangle(working_name.c_str(), native_comp, false);
-  if (prettyName) {
-    working_name = std::string(prettyName);
-    // XXX caller-freed
-    free(prettyName); 
-  }
-  return working_name;
+  return P_cplus_demangle(mangledName_, false);
 }
 
 SYMTAB_EXPORT string Symbol::getTypedName() const 
 {
-  std::string working_name = mangledName_;
-  // Accoring to Itanium C++ ABI, all mangled names start with _Z
-  if (mangledName_.size() < 2 || mangledName_[0] != '_' || mangledName_[1] != 'Z') return working_name;
-  #if !defined(os_windows)        
-  //Remove extra stabs information
-  size_t colon;
-  colon = working_name.find(":");
-  if(colon != string::npos) 
-  {
-    working_name = working_name.substr(0, colon);
-  }
-#endif     
-  // Assume not native (ie GNU) if we don't have an associated Symtab for some reason
-  bool native_comp = getSymtab() ? getSymtab()->isNativeCompiler() : false;
-  
-  char *prettyName = P_cplus_demangle(working_name.c_str(), native_comp, true);
-  if (prettyName) {
-    working_name = std::string(prettyName);
-    // XXX caller-freed
-    free(prettyName); 
-  }
-  return working_name;
+  return P_cplus_demangle(mangledName_, true);
 }
 
 bool Symbol::setOffset(Offset newOffset)
@@ -268,7 +209,7 @@ SYMTAB_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    return true;
 }
 
-SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
+SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName) const
 {
    std::string *fn_p = NULL;
 
@@ -283,7 +224,7 @@ SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
    return false;
 }
 
-SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
+SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
 {
    std::vector<std::string> *vn_p = NULL;
 
@@ -304,14 +245,6 @@ SYMTAB_EXPORT bool Symbol::setMangledName(std::string name)
    mangledName_ = name;
    setStrIndex(-1);
    return true;
-}
-Serializable *Symbol::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
-
-void Symbol::restore_module_and_region(SerializerBase *, std::string &, Offset) THROW_SPEC (SerializerError)
-{
 }
 
 std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
@@ -476,7 +409,8 @@ void Symbol::setReferringSymbol(Symbol* referringSymbol)
 	referring_= referringSymbol;
 }
 
-Symbol* Symbol::getReferringSymbol() {
+Symbol* Symbol::getReferringSymbol() const
+{
 	return referring_;
 }
 

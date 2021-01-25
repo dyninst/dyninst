@@ -81,8 +81,8 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
 {
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
 
-  pdvector<std::string> argv_vec;
-  pdvector<std::string> envp_vec;
+  std::vector<std::string> argv_vec;
+  std::vector<std::string> envp_vec;
 
   std::string directoryName = "";
 
@@ -201,8 +201,6 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
     // Define up here so we don't have gotos causing issues
     std::set<func_instance *> instrumentedFunctions;
 
-    // Two loops: first addInst, then generate/install/link
-    pdvector<miniTramp *> workDone;
     //bool err = false;
 
     // Iterate over our AddressSpaces, triggering relocation

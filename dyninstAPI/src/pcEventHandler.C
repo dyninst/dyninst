@@ -37,6 +37,7 @@
 #include "RegisterConversion.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "dynThread.h"
 
 #include "Mailbox.h"
 #include "PCErrors.h"
@@ -382,14 +383,14 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
 
     // Ignore events for the initial thread
     if( pcThr->isInitialThread() ) {
-        proccontrol_printf("%s[%d]: event corresponds to initial thread, ignoring thread create\n",
+        proccontrol_printf("%s[%d]: event corresponds to initial thread, ignoring thread create for thread %d/%d\n",
                 FILE__, __LINE__, evProc->getPid(), ev->getLWP());
         return true;
     }
 
     if( evProc->getThread(pcThr->getTID()) != NULL ) {
-        proccontrol_printf("%s[%d]: thread already created with TID 0x%lx, ignoring thread create\n",
-                FILE__, __LINE__, pcThr->getTID());
+        proccontrol_printf("%s[%d]: thread already created with TID 0x%lx, ignoring thread create on thread %d/%d\n",
+                FILE__, __LINE__, pcThr->getTID(), evProc->getPid(), ev->getLWP());
         return true;
     }
 
@@ -524,7 +525,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
         }
 
         // Dump the stacks
-        pdvector<pdvector<Frame> > stackWalks;
+        std::vector<std::vector<Frame> > stackWalks;
         evProc->walkStacks(stackWalks);
         for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
             fprintf(stderr, "Stack for pid %d, lwpid %d\n",
@@ -905,8 +906,8 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
                     dataAddress, true));
     }
 
-    const pdvector<mapped_object *> &currList = evProc->mappedObjects();
-    pdvector<mapped_object *> toDelete;
+    const std::vector<mapped_object *> &currList = evProc->mappedObjects();
+    std::vector<mapped_object *> toDelete;
     for(unsigned i = 0; i < currList.size(); ++i) {
         for(unsigned j = 0; j < deletedDescriptors.size(); ++j) {
             if( deletedDescriptors[j] == currList[i]->getFileDesc() ) {

@@ -49,7 +49,6 @@ class BinaryEdit;
 class AddressSpace;
 class dyn_thread;
 class miniTrampHandle;
-class miniTramp;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;

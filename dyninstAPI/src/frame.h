@@ -35,7 +35,6 @@
 
 #include "common/src/std_namesp.h"
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 
 #include "instPoint.h"
 #include "baseTramp.h"
@@ -123,13 +122,13 @@ class Frame {
 
 class int_stackwalk {
    bool isValid_;
-   pdvector<Frame> stackwalk_;
+   std::vector<Frame> stackwalk_;
  public:
    int_stackwalk();
    bool isValid();
-   bool setStackwalk(pdvector<Frame> &new_stack);
+   bool setStackwalk(std::vector<Frame> &new_stack);
    bool clear();
-   pdvector<Frame>& getStackwalk();
+   std::vector<Frame>& getStackwalk();
 };
 
 #endif

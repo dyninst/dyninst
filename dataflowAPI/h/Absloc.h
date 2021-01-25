@@ -64,6 +64,7 @@ class Absloc {
     Register,
     Stack,
     Heap,
+    PredicatedRegister,
     Unknown } Type;
 
    DATAFLOW_EXPORT static Absloc makePC(Dyninst::Architecture arch);
@@ -83,14 +84,18 @@ class Absloc {
     off_(-1),
     region_(-1),
      func_(NULL),
-    addr_(-1) {};
+    addr_(-1),
+    preg_(),
+    trueCond_(false) {};
  DATAFLOW_EXPORT Absloc(MachRegister reg) :
   type_(Register),
      reg_(reg),
      off_(-1),
      region_(-1),
      func_(NULL),
-     addr_(-1)
+     addr_(-1),
+     preg_(),
+     trueCond_(false)
      {};
     
  DATAFLOW_EXPORT Absloc(Address addr) :
@@ -99,7 +104,10 @@ class Absloc {
     off_(-1),
     region_(-1),
     func_(NULL),
-    addr_(addr) {};
+    addr_(addr),
+    preg_(),
+    trueCond_(false)
+    {};
  DATAFLOW_EXPORT Absloc(int o,
 			int r,
 			ParseAPI::Function *f) :
@@ -108,7 +116,19 @@ class Absloc {
     off_(o),
     region_(r),
     func_(f),
-    addr_(-1) {};
+    addr_(-1),
+    preg_(),
+    trueCond_(false)
+    {};
+ DATAFLOW_EXPORT Absloc(MachRegister r, MachRegister p, bool c):
+     type_(PredicatedRegister),
+     reg_(r),
+     off_(-1),
+     region_(-1),
+     func_(NULL),
+     addr_(-1),
+     preg_(p),
+     trueCond_(c) {};
     
   DATAFLOW_EXPORT std::string format() const;
 
@@ -116,51 +136,19 @@ class Absloc {
 
   DATAFLOW_EXPORT bool isValid() const { return type_ != Unknown; };
 
-  DATAFLOW_EXPORT const MachRegister &reg() const { assert(type_ == Register); return reg_; };
+  DATAFLOW_EXPORT const MachRegister &reg() const { assert(type_ == Register || type_ == PredicatedRegister); return reg_; };
 
   DATAFLOW_EXPORT int off() const { assert(type_ == Stack); return off_; };
   DATAFLOW_EXPORT int region() const { assert(type_ == Stack); return region_; };
   DATAFLOW_EXPORT ParseAPI::Function *func() const { assert(type_ == Stack); return func_; };
 
   DATAFLOW_EXPORT Address addr() const { assert(type_ == Heap); return addr_; };
+  DATAFLOW_EXPORT const MachRegister &predReg() const { assert(type_ == PredicatedRegister); return preg_;};
+  DATAFLOW_EXPORT bool isTrueCondition() const { assert(type_ == PredicatedRegister); return trueCond_;};
+  DATAFLOW_EXPORT void flipPredicateCondition() { assert(type_ == PredicatedRegister); trueCond_ = !trueCond_; }
   
-  DATAFLOW_EXPORT bool operator<(const Absloc &rhs) const {
-    if (type_ != rhs.type_) 
-      return type_ < rhs.type_;
-    switch(type_) {
-    case Register:
-      return reg_ < rhs.reg_;
-    case Stack:
-      if (off_ != rhs.off_)
-	return off_ < rhs.off_;
-      // Now we get arbitrary
-      if (region_ != rhs.region_)
-	return region_ < rhs.region_;
-      return func_ < rhs.func_;
-    case Heap:
-      return addr_ < rhs.addr_;
-    case Unknown:
-       return false; // everything is less than an unknown
-    }
-    assert(0);
-    return true;
-  }
-
-  DATAFLOW_EXPORT bool operator==(const Absloc &rhs) const {
-    if (type_ != rhs.type_) return false;
-    switch(type_) {
-    case Register:
-      return reg_ == rhs.reg_;
-    case Stack:
-      return ((off_ == rhs.off_) &&
-	      (region_ == rhs.region_) &&
-	      (func_ == rhs.func_));
-    case Heap:
-      return addr_ == rhs.addr_;
-    default:
-      return true;
-    }
-  }
+  DATAFLOW_EXPORT bool operator<(const Absloc &rhs) const;
+  DATAFLOW_EXPORT bool operator==(const Absloc &rhs) const;
 
   DATAFLOW_EXPORT bool operator!=(const Absloc &rhs) const {
     return !(*this == rhs);
@@ -174,6 +162,8 @@ class Absloc {
       return 's';
     case Heap:
       return 'h';
+    case PredicatedRegister:
+      return 'p';
     default:
       return 'u';
     }
@@ -194,6 +184,9 @@ class Absloc {
   ParseAPI::Function *func_;
 
   Address addr_;
+  
+  MachRegister preg_;
+  bool trueCond_;
 };
 
 class AbsRegion {
@@ -258,6 +251,7 @@ class AbsRegion {
   DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
 
   DATAFLOW_EXPORT bool isImprecise() const { return type_ != Absloc::Unknown; }
+  DATAFLOW_EXPORT void flipPredicateCondition() { absloc_.flipPredicateCondition(); }
   friend std::ostream &operator<<(std::ostream &os, const AbsRegion &a) {
     os << a.format();
     return os;
@@ -294,7 +288,8 @@ class Assignment {
   DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
   DATAFLOW_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
-  DATAFLOW_EXPORT InstructionAPI::Instruction insn() const { return insn_; }
+  DATAFLOW_EXPORT const InstructionAPI::Instruction &insn() const { return insn_; }
+  DATAFLOW_EXPORT InstructionAPI::Instruction &insn() { return insn_; }
   DATAFLOW_EXPORT Address addr() const { return addr_; }
 
   DATAFLOW_EXPORT const AbsRegion &out() const { return out_; }

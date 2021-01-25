@@ -33,7 +33,6 @@
 #define PARREGION_H
 
 #include <string>
-#include "common/src/Vector.h"
 #include "common/src/Types.h"
 #include "common/src/Pair.h"
 #include "codeRange.h"

@@ -52,7 +52,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 
-#include "common/src/Vector.h"
 #include <unordered_map>
 #include "common/src/List.h"
 #include "common/src/Types.h"
@@ -256,18 +255,6 @@ class image_variable {
     
 };
 
-/* Stores source code to address in text association for modules */
-class lineDict {
- public:
-   lineDict()  { }
-   ~lineDict() { /* TODO */ }
-   void setLineAddr (unsigned line, Address addr) { lineMap[line] = addr; }
-   inline bool getLineAddr (const unsigned line, Address &adr);
-
- private:
-   std::unordered_map<unsigned, Address> lineMap;
-};
-
 std::string getModuleName(std::string constraint);
 std::string getFunctionName(std::string constraint);
 
@@ -316,19 +303,19 @@ class image : public codeRange {
 
    // Find the vector of functions associated with a (demangled) name
    // Returns internal pointer, so label as const
-   const pdvector <parse_func *> *findFuncVectorByPretty(const std::string &name);
-   const pdvector <parse_func *> *findFuncVectorByMangled(const std::string &name);
+   const std::vector <parse_func *> *findFuncVectorByPretty(const std::string &name);
+   const std::vector <parse_func *> *findFuncVectorByMangled(const std::string &name);
    // Variables: nearly identical
-   const pdvector <image_variable *> *findVarVectorByPretty(const std::string &name);
-   const pdvector <image_variable *> *findVarVectorByMangled(const std::string &name);
+   const std::vector <image_variable *> *findVarVectorByPretty(const std::string &name);
+   const std::vector <image_variable *> *findVarVectorByMangled(const std::string &name);
 
    // Find the vector of functions determined by a filter function
-   pdvector <parse_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
+   std::vector <parse_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
                                                     void *user_data, 
-                                                    pdvector<parse_func *> *found);
-   pdvector <parse_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, 
+                                                    std::vector<parse_func *> *found);
+   std::vector <parse_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, 
                                                      void *user_data, 
-                                                     pdvector<parse_func *> *found);
+                                                     std::vector<parse_func *> *found);
 
    /*********************************************************************/
    /**** Function lookup (by name or address) routines               ****/
@@ -384,15 +371,13 @@ class image : public codeRange {
 
    bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
 
-   bool isNativeCompiler() const { return nativeCompiler; }
-
    // Return symbol table information
    SymtabAPI::Symbol *symbol_info(const std::string& symbol_name);
    // And used for finding inferior heaps.... hacky, but effective.
-   bool findSymByPrefix(const std::string &prefix, pdvector<SymtabAPI::Symbol *> &ret);
+   bool findSymByPrefix(const std::string &prefix, std::vector<SymtabAPI::Symbol *> &ret);
 
    const ParseAPI::CodeObject::funclist &getAllFunctions();
-   const pdvector<image_variable*> &getAllVariables();
+   const std::vector<image_variable*> &getAllVariables();
 
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
@@ -408,10 +393,10 @@ class image : public codeRange {
 
    // And when we parse, we might find more:
    // FIXME might be convenient to access HINT-only functions easily
-   // XXX const pdvector<parse_func *> &getCreatedFunctions();
+   // XXX const std::vector<parse_func *> &getCreatedFunctions();
 
-   const pdvector<image_variable *> &getExportedVariables() const;
-   const pdvector<image_variable *> &getCreatedVariables();
+   const std::vector<image_variable *> &getExportedVariables() const;
+   const std::vector<image_variable *> &getCreatedVariables();
 
    bool getInferiorHeaps(vector<pair<string, Address> > &codeHeaps,
                          vector<pair<string, Address> > &dataHeaps);
@@ -459,7 +444,7 @@ class image : public codeRange {
    // We have a _lot_ of lookup types; this handles proper entry
    void enterFunctionInTables(parse_func *func);
 
-   bool buildFunctionLists(pdvector<parse_func *> &raw_funcs);
+   bool buildFunctionLists(std::vector<parse_func *> &raw_funcs);
    void analyzeImage();
 
    //
@@ -490,8 +475,6 @@ class image : public codeRange {
    bool is_a_out;
    Address main_call_addr_; // address of call to main()
 
-   bool nativeCompiler;
-
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
 #if defined(os_linux) || defined(os_freebsd)
@@ -509,13 +492,13 @@ class image : public codeRange {
    map<SymtabAPI::Module *, pdmodule *> mods_;
 
 
-   pdvector<image_variable *> everyUniqueVariable;
-   pdvector<image_variable *> createdVariables;
-   pdvector<image_variable *> exportedVariables;
+   std::vector<image_variable *> everyUniqueVariable;
+   std::vector<image_variable *> createdVariables;
+   std::vector<image_variable *> exportedVariables;
 
    // This contains all parallel regions on the image
    // These line up with the code generated to support OpenMP, UPC, Titanium, ...
-   pdvector<image_parRegion *> parallelRegions;
+   std::vector<image_parRegion *> parallelRegions;
 
    // unique (by image) numbering of basic blocks
    int nextBlockID_;
@@ -558,24 +541,24 @@ class pdmodule {
 
    void cleanProcessSpecific(PCProcess *p);
 
-   bool getFunctions(pdvector<parse_func *> &funcs);
+   bool getFunctions(std::vector<parse_func *> &funcs);
 
    bool findFunction(const std::string &name,
-                      pdvector<parse_func *> &found);
+                      std::vector<parse_func *> &found);
 
-   bool getVariables(pdvector<image_variable *> &vars);
+   bool getVariables(std::vector<image_variable *> &vars);
 
    /* We can see more than one function with the same mangled
       name in the same object, because it's OK for different
       modules in the same object to define the same (local) symbol.
-      However, we can't always determine module information (for instance,
-      libc.a on AIX lacks debug information), which means one of our
+      However, we can't always determine module information
+      which means one of our
       module classes may contain information about an entire object,
       and therefore, multiple functons with the same mangled name. */
    bool findFunctionByMangled (const std::string &name,
-                               pdvector<parse_func *> &found);
+                               std::vector<parse_func *> &found);
    bool findFunctionByPretty (const std::string &name,
-                              pdvector<parse_func *> &found);
+                              std::vector<parse_func *> &found);
    void dumpMangled(std::string &prefix) const;
    const string &fileName() const;
    const string &fullName() const;
@@ -591,13 +574,6 @@ class pdmodule {
    SymtabAPI::Module *mod_;
    image *exec_;
 };
-
-inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
-   auto iter = lineMap.find(line);
-   if (iter == lineMap.end()) return false;
-   adr = iter->second;
-   return true;
-}
 
 class BPatch_basicBlock;
 

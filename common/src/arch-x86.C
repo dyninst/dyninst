@@ -149,10 +149,6 @@
 #include "common/src/arch-x86.h"
 #include "dyn_regs.h"
 
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
-
 // #define VEX_DEBUG
 // #define VEX_PEDANTIC
 
@@ -9380,7 +9376,7 @@ static struct ia32_entry XOP9_W[][2] =
     }
 };
 
-static TLS_VAR bool mode_64 = false;
+static dyn_tls bool mode_64 = false;
 
 void ia32_set_mode_64(bool mode) {
   mode_64 = mode;
@@ -11747,12 +11743,6 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
       Address addr) {
-#if defined(os_vxworks)
-   Address ret;
-   // FIXME requires vxworks in Dyninst
-   if (relocationTarget(addr+1, &ret))
-      return ret;
-#endif
    int disp = displacement(instr, type);
    return (Address)(addr + size + disp);
 }

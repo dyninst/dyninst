@@ -34,9 +34,6 @@
 
 #define BPATCH_FILE
 
-#if !defined(i386_unknown_nt4_0)
-#pragma implementation "BPatch_Vector.h"
-#endif
 #include "BPatch_Vector.h"
 
 #if !defined(i386_unknown_nt4_0)
@@ -72,7 +69,6 @@ class BPatch_localVar;
 class BPatch_sourceObj;
 class BPatch_loopTreeNode;
 class func_instance;
-class miniTramp;
 class instPoint;
 class BPatch_basicBlock;
 
@@ -90,8 +86,6 @@ template class BPatch_Vector<char *>;
 template class BPatch_Vector<BPatch_sourceObj *>;
 template class BPatch_Vector<BPatch_loopTreeNode *>;
 template class BPatch_Vector<func_instance *>;
-template class BPatch_Vector<miniTramp *>;
-
 template class BPatch_Vector<const char *>;
 
 

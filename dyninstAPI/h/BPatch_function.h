@@ -44,7 +44,6 @@
 #include "StackMod.h"
 
 class func_instance;
-class InstrucIter;
 
 class BPatch_localVarCollection;
 class BPatch_function;
@@ -75,7 +74,6 @@ class BPATCH_DLL_EXPORT BPatch_function :
    public Dyninst::AnnotatableSparse
 {
     friend class BPatch_flowGraph;
-    friend class InstrucIter;
     friend class BPatch_basicBlock;
     friend class BPatch_asyncEventHandler;
     friend class BPatch_image;
@@ -84,11 +82,6 @@ class BPATCH_DLL_EXPORT BPatch_function :
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
     friend class BPatch_point;
-    friend BPatch_Vector<BPatch_point*> *findPoint(
-                     const BPatch_Set<BPatch_opCode>& ops,
-						   InstrucIter &ii, 
-						   BPatch_process *proc,
-						   BPatch_function *bpf);
     friend Dyninst::ParseAPI::Function *Dyninst::ParseAPI::convert(const BPatch_function *);
     friend Dyninst::PatchAPI::PatchFunction *Dyninst::PatchAPI::convert(const BPatch_function *);
 

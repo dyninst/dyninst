@@ -274,9 +274,6 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
 static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
     Region::RegionType ret;
     switch (localHdr->e_machine()) {
-        case EM_SPARC:
-        case EM_SPARC32PLUS:
-        case EM_SPARCV9:
         case EM_PPC:
         case EM_PPC64:
         case EM_X86_64:
@@ -299,6 +296,7 @@ const char *TEXT_NAME = ".text";
 const char *BSS_NAME = ".bss";
 const char *SYMTAB_NAME = ".symtab";
 const char *STRTAB_NAME = ".strtab";
+const char *SYMTAB_SHNDX_NAME = ".symtab_shndx";
 const char *STAB_NAME = ".stab";
 const char *STABSTR_NAME = ".stabstr";
 const char *STAB_INDX_NAME = ".stab.index";
@@ -307,11 +305,7 @@ const char *COMMENT_NAME = ".comment";
 const char *OPD_NAME = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
 const char *PLT_NAME = ".plt";
-#if defined(os_vxworks)
-const char* REL_PLT_NAME     = ".rela.text";
-#else
 const char *REL_PLT_NAME = ".rela.plt"; // sparc-solaris
-#endif
 const char *REL_PLT_NAME2 = ".rel.plt";  // x86-solaris
 const char *GOT_NAME = ".got";
 const char *DYNSYM_NAME = ".dynsym";
@@ -345,6 +339,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         Elf_X_Shdr *&dynstr_scnp, Elf_X_Shdr *&dynamic_scnp,
                         Elf_X_Shdr *&eh_frame, Elf_X_Shdr *&gcc_except,
                         Elf_X_Shdr *&interp_scnp, Elf_X_Shdr *&opd_scnp,
+                        Elf_X_Shdr *&symtab_shndx_scnp,
                         bool) {
     std::map<std::string, int> secnNameMap;
     dwarf_err_func = err_func_;
@@ -382,7 +377,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
     plt_size_ = 0;
     symtab_addr_ = 0;
     strtab_addr_ = 0;
-#if defined (ppc32_linux) || defined(ppc32_bgp)
+#if defined (ppc32_linux)
     plt_entry_size_ = 8;
   rel_plt_entry_size_ = 8;
 #else
@@ -555,9 +550,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
         }
     }
 
-    isBlueGeneP_ = false;
-    isBlueGeneQ_ = false;
-
     hasNoteSection_ = false;
 
     const char *shnamesForDebugInfo = NULL;
@@ -728,6 +720,10 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 symscnp = scnp;
                 symtab_addr_ = scn.sh_addr();
             }
+        }  else if (strcmp(name, SYMTAB_SHNDX_NAME) == 0) {
+            if (!symtab_shndx_scnp) {
+                symtab_shndx_scnp = scnp;
+            }
         } else if (strcmp(name, STRTAB_NAME) == 0) {
             if (!strscnp) {
                 strscnp = scnp;
@@ -748,15 +744,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             stabstrscnp = scnp;
             stabstr_off_ = scn.sh_offset();
         }
-#if defined(os_vxworks)
-            else if ((strcmp(name, REL_PLT_NAME) == 0) ||
-         (strcmp(name, REL_PLT_NAME2) == 0)) {
-      rel_plt_scnp = scnp;
-      rel_plt_addr_ = scn.sh_addr();
-      rel_plt_size_ = scn.sh_size();
-      rel_plt_entry_size_ = scn.sh_entsize();
-    }
-#else
         else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end()) &&
                  secAddrTagMapping[scn.sh_addr()] == DT_JMPREL) {
             rel_plt_scnp = scnp;
@@ -764,7 +751,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             rel_plt_size_ = scn.sh_size();
             rel_plt_entry_size_ = scn.sh_entsize();
         }
-#endif
         else if (strcmp(name, OPD_NAME) == 0) {
             opd_scnp = scnp;
             opd_addr_ = scn.sh_addr();
@@ -796,8 +782,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 // we start supporting some other x86 OS that uses the GNU
                 // linker in the future, it should be enabled for that platform as well.
                 // Note that this problem does not affect the non-x86 platforms
-                // that might use the GNU linker.  For example, programs linked
-                // with gld on SPARC Solaris have the correct PLT entry size.
+                // that might use the GNU linker.
                 //
                 // Another potential headache in the future is if we support
                 // some other x86 platform that has both the GNU linker and
@@ -827,9 +812,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 }
             }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
-            /* comment section is a sequence of NULL-terminated strings.
-	 We want to concatenate them and search for BGP to determine
-	 if the binary is built for BGP compute nodes */
+            /* comment section is a sequence of NULL-terminated strings. */
 
             Elf_X_Data data = scn.get_data();
 
@@ -838,15 +821,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             char *buf = (char *) data.d_buf();
             while (buf && (index < size)) {
                 string comment = buf + index;
-                size_t pos_p = comment.find("BGP");
-                size_t pos_q = comment.find("BGQ");
-                if (pos_p != string::npos) {
-                    isBlueGeneP_ = true;
-                    break;
-                } else if (pos_q != string::npos) {
-                    isBlueGeneQ_ = true;
-                    break;
-                }
                 index += comment.size();
                 if (comment.size() == 0) { // Skip NULL characters in the comment section
                     index++;
@@ -1424,13 +1398,6 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     }
                     }
 
-#if defined(os_vxworks)
-                    // VxWorks Kernel Images don't use PLT's, but we'll use the fbt to
-          // note all function call relocations, and we'll fix these up later
-          // in Symtab::fixup_RegionAddr()
-          next_plt_entry_addr = sym.st_value(index);
-#endif
-
                     if (fbt_iter == -1) { // Create new relocation entry.
                         relocationEntry re(next_plt_entry_addr, offset, targ_name,
                                            NULL, type);
@@ -1472,11 +1439,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                         }
                     }
 
-#if defined(os_vxworks)
-                    // Nothing to increment here.
-#else
                     next_plt_entry_addr += plt_entry_size_;
-#endif
                 }
                 return true;
             }
@@ -1505,6 +1468,7 @@ void Object::load_object(bool alloc_syms) {
     Elf_X_Shdr *gcc_except = 0;
     Elf_X_Shdr *interp_scnp = 0;
     Elf_X_Shdr *opd_scnp = NULL;
+    Elf_X_Shdr *symtab_shndx_scnp = NULL;
 
     { // binding contour (for "goto cleanup")
 
@@ -1529,7 +1493,7 @@ void Object::load_object(bool alloc_syms) {
                         stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                         rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
                         dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp,
-                        opd_scnp, true)) {
+                        opd_scnp, symtab_shndx_scnp, true)) {
             goto cleanup;
         }
 
@@ -1575,19 +1539,14 @@ void Object::load_object(bool alloc_syms) {
 #endif
         if (alloc_syms) {
             // find symbol and string data
-#if defined(os_vxworks)
-            // Avoid assigning symbols to DEFAULT_MODULE on VxWorks
-      string module = mf->pathname();
-#else
             string module = "DEFAULT_MODULE";
-#endif
             string name = "DEFAULT_NAME";
             Elf_X_Data symdata, strdata;
 
             if (symscnp && strscnp) {
                 symdata = symscnp->get_data();
                 strdata = strscnp->get_data();
-                parse_symbols(symdata, strdata, bssscnp, symscnp, false, module);
+                parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false, module);
             }
 
             no_of_symbols_ = nsymbols();
@@ -1633,15 +1592,6 @@ void Object::load_object(bool alloc_syms) {
             if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
             }
-
-#if defined(os_vxworks)
-            // Load relocations like they are PLT entries.
-      // Use the non-dynamic symbol tables.
-      if (rel_plt_scnp && symscnp && strscnp) {
-    if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
-      goto cleanup;
-      }
-#endif
 
             // populate "fbt_"
             if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
@@ -1707,6 +1657,7 @@ void Object::load_shared_object(bool alloc_syms) {
     Elf_X_Shdr *gcc_except = 0;
     Elf_X_Shdr *interp_scnp = 0;
     Elf_X_Shdr *opd_scnp = NULL;
+    Elf_X_Shdr *symtab_shndx_scnp = NULL;
 
     { // binding contour (for "goto cleanup2")
 
@@ -1719,7 +1670,7 @@ void Object::load_shared_object(bool alloc_syms) {
         if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                         stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                         rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                        dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp, opd_scnp))
+                        dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp, opd_scnp, symtab_shndx_scnp))
             goto cleanup2;
 
         if (interp_scnp)
@@ -1759,7 +1710,7 @@ void Object::load_shared_object(bool alloc_syms) {
                     log_elferror(err_func_, "locating symbol/string data");
                     goto cleanup2;
                 }
-                bool result = parse_symbols(symdata, strdata, bssscnp, symscnp, false, module);
+                bool result = parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false, module);
                 if (!result) {
                     log_elferror(err_func_, "locating symbol/string data");
                     goto cleanup2;
@@ -1796,15 +1747,6 @@ void Object::load_shared_object(bool alloc_syms) {
             if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
             }
-
-#if defined(os_vxworks)
-            // Load relocations like they are PLT entries.
-      // Use the non-dynamic symbol tables.
-      if (rel_plt_scnp && symscnp && strscnp) {
-    if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
-      goto cleanup2;
-      }
-#endif
 
             if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
                 if (!get_relocation_entries(rel_plt_scnp, dynsym_scnp, dynstr_scnp)) {
@@ -2064,6 +2006,7 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym) {
 bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr *bssscnp,
                            Elf_X_Shdr *symscnp,
+                           Elf_X_Shdr *symtab_shndx_scnp,
                            bool /*shared*/, string smodule) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -2100,6 +2043,14 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
             unsigned ssize = syms.st_size(i);
             unsigned secNumber = syms.st_shndx(i);
+
+            // Handle extended numbering
+            if (secNumber == SHN_XINDEX && symtab_shndx_scnp != nullptr) {
+                GElf_Sym symmem;
+                Elf32_Word xndx;
+                gelf_getsymshndx (symdata.elf_data(), symtab_shndx_scnp->get_data().elf_data(), i, &symmem, &xndx);
+                secNumber = xndx;
+            }
 
             Offset soffset;
             if (symscnp->isFromDebugFile()) {
@@ -2704,7 +2655,9 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                 if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
                     unsigned int count = 0;
                     dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
-                    assert(symbols_.find(ca, SymName));
+                    if (!symbols_.find(ca, SymName))  {
+                        assert(!"symbols_.find(ca, SymName)");
+                    }
                     const std::vector<Symbol *> &syms = ca->second;
 
                     /* If there's only one, apply regardless. */
@@ -2769,7 +2722,9 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                     delete[] sname;
 
                     dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
-                    assert(symbols_.find(ca, nameFromStab));
+                    if (!symbols_.find(ca, nameFromStab))  {
+                        assert(!"symbols_.find(ca, nameFromStab)");
+                    }
                     for (unsigned i = 0; i < ca->second.size(); i++) {
                         symsToModules_.insert({ca->second[i], module});
                     }
@@ -2780,7 +2735,9 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                         break;
                     }
                     dyn_c_hash_map<Offset,std::vector<Symbol*>>::const_accessor ca;
-                    assert(symsByOffset_.find(ca, entryAddr));
+                    if (!symsByOffset_.find(ca, entryAddr))  {
+                        assert(!"symsByOffset_.find(ca, entryAddr)");
+                    }
                     for (unsigned i = 0; i < ca->second.size(); i++) {
                         symsToModules_.insert({ca->second[i], module});
                     }
@@ -2898,7 +2855,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         hasRelplt_(false),
         hasRelaplt_(false),
         relType_(Region::RT_REL),
-        isBlueGeneP_(false), isBlueGeneQ_(false),
         hasNoteSection_(false),
         elf_hash_addr_(0), gnu_hash_addr_(0),
         dynamic_offset_(0), dynamic_size_(0), dynsym_size_(0),
@@ -3001,9 +2957,7 @@ void Object::log_elferror(void (*err_func)(const char *), const char *msg) {
 }
 
 bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
-#if !defined(os_vxworks)
     if (!plt_addr_ || (!fbt_.size())) return false;
-#endif
     fbt = fbt_;
     return true;
 }
@@ -3105,49 +3059,6 @@ void Object::get_valid_memory_areas(Elf_X &elf) {
         }
     }
 }
-
-//
-// parseCompilerType - parse for compiler that was used to generate object
-//
-//
-//
-#if defined(os_linux)
-
-// Differentiating between g++ and pgCC by stabs info (as in the solaris/
-// aix case, below) will not work; the gcc-compiled object files that
-// get included at link time will fill in the N_OPT stabs line. Instead,
-// look for "pgCC_compiled." symbols.
-bool parseCompilerType(Object *objPtr) {
-    dyn_c_hash_map<string, std::vector<Symbol *> > *syms = objPtr->getAllSymbols();
-    return syms->contains("pgCC_compiled.");
-}
-
-#else
-bool parseCompilerType(Object *objPtr)
-{
-  stab_entry *stabptr = objPtr->get_stab_info();
-  const char *next_stabstr = stabptr->getStringBase();
-
-  for (unsigned int i=0; i < stabptr->count(); ++i) {
-    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
-    switch (stabptr->type(i)) {
-
-    case N_UNDF: /* start of object file */
-      /* value contains offset of the next string table for next module */
-      // assert(stabptr.nameIdx(i) == 1);
-      stabptr->setStringBase(next_stabstr);
-      next_stabstr = stabptr->getStringBase() + stabptr->val(i);
-      break;
-
-    case N_OPT: /* Compiler options */
-      delete stabptr;
-      return false;
-    }
-  }
-  delete stabptr;
-  return false; // Shouldn't happen - maybe N_OPT stripped
-}
-#endif
 
 
 #if (defined(os_linux) || defined(os_freebsd))
@@ -4878,10 +4789,7 @@ void Object::parseStabTypes() {
                     // bperr("stab #%d = %s\n", i, ptr);
                     // may be nothing to parse - XXX  jdd 5/13/99
 
-                    if (parseCompilerType(this))
-                        temp = parseStabString(mod, mostRecentLinenum, (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
-                    else
-                        temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
+                    temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
                     if (temp.length()) {
                         //Error parsing the stabstr, return should be \0
                         // //bperr( "Stab string parsing ERROR!! More to parse: %s\n",

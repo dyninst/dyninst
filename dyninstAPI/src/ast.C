@@ -203,7 +203,7 @@ AstNodePtr AstNode::operandNode(operandType ot, const image_variable* iv) {
     return AstNodePtr(new AstOperandNode(ot, iv));
 }
 
-AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
+AstNodePtr AstNode::sequenceNode(std::vector<AstNodePtr > &sequence) {
 //    assert(sequence.size());
     return AstNodePtr(new AstSequenceNode(sequence));
 }
@@ -217,7 +217,7 @@ AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodeP
     return AstNodePtr(new AstOperatorNode(ot, l, r, e));
 }
 
-AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > &args,
+AstNodePtr AstNode::funcCallNode(const std::string &func, std::vector<AstNodePtr > &args,
       AddressSpace *addrSpace)
 {
    if (addrSpace)
@@ -236,7 +236,7 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
       return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNodePtr AstNode::funcCallNode(func_instance *func, pdvector<AstNodePtr > &args) {
+AstNodePtr AstNode::funcCallNode(func_instance *func, std::vector<AstNodePtr > &args) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstCallNode(func, args));
 }
@@ -246,7 +246,7 @@ AstNodePtr AstNode::funcCallNode(func_instance *func) {
     return AstNodePtr(new AstCallNode(func));
 }
 
-AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
+AstNodePtr AstNode::funcCallNode(Address addr, std::vector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
 }
 
@@ -402,7 +402,7 @@ AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
 
 
 AstCallNode::AstCallNode(func_instance *func,
-                         pdvector<AstNodePtr > &args) :
+                         std::vector<AstNodePtr > &args) :
     AstNode(),
     func_addr_(0),
     func_(func),
@@ -425,7 +425,7 @@ AstCallNode::AstCallNode(func_instance *func) :
 }
 
 AstCallNode::AstCallNode(const std::string &func,
-                         pdvector<AstNodePtr > &args) :
+                         std::vector<AstNodePtr > &args) :
     AstNode(),
     func_name_(func),
     func_addr_(0),
@@ -440,7 +440,7 @@ AstCallNode::AstCallNode(const std::string &func,
 }
 
 AstCallNode::AstCallNode(Address addr,
-                         pdvector<AstNodePtr > &args) :
+                         std::vector<AstNodePtr > &args) :
     AstNode(),
     func_addr_(addr),
     func_(NULL),
@@ -453,7 +453,7 @@ AstCallNode::AstCallNode(Address addr,
     }
 }
 
-AstSequenceNode::AstSequenceNode(pdvector<AstNodePtr > &sequence) :
+AstSequenceNode::AstSequenceNode(std::vector<AstNodePtr > &sequence) :
     AstNode()
 {
     for (unsigned i = 0; i < sequence.size(); i++) {
@@ -523,7 +523,7 @@ AstNodePtr AstNode::threadIndexNode() {
     // elimination.
 
     if (indexNode_ != AstNodePtr()) return indexNode_;
-    pdvector<AstNodePtr > args;
+    std::vector<AstNodePtr > args;
     // By not including a process we'll specialize at code generation.
     indexNode_ = AstNode::funcCallNode("DYNINSTthreadIndex", args);
     assert(indexNode_);
@@ -637,7 +637,7 @@ void AstNode::setUseCount()
 		// calculating this guy)
 	}
 	// We can't be kept, but maybe our children can.
-	pdvector<AstNodePtr> children;
+	std::vector<AstNodePtr> children;
 	getChildren(children);
 	for (unsigned i=0; i<children.size(); i++) {
 	    children[i]->setUseCount();
@@ -648,7 +648,7 @@ void AstNode::cleanUseCount(void)
 {
     useCount = 0;
 
-    pdvector<AstNodePtr> children;
+    std::vector<AstNodePtr> children;
     getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->cleanUseCount();
@@ -784,7 +784,7 @@ bool AstNode::previousComputationValid(Register &reg,
 
 bool AstNode::initRegisters(codeGen &g) {
     bool ret = true;
-    pdvector<AstNodePtr> kids;
+    std::vector<AstNodePtr> kids;
     getChildren(kids);
     for (unsigned i = 0; i < kids.size(); i++) {
         if (!kids[i]->initRegisters(g))
@@ -1085,7 +1085,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
 
         // Otherwise, call specified failure function
         // NOTE: Skipping saving live registers that will be clobbered by the call because this will be non-returning
-        pdvector<AstNodePtr> operands;
+        std::vector<AstNodePtr> operands;
         func_instance* func = func_; // c&p'd from AstCallNode
         codeBufIndex_t preCallIndex = gen.getIndex();
         emitter->emitCallInstruction(gen, func, canaryReg);
@@ -1149,7 +1149,7 @@ bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
 
 bool AstOperatorNode::initRegisters(codeGen &g) {
     bool ret = true;
-    pdvector<AstNodePtr> kids;
+    std::vector<AstNodePtr> kids;
     getChildren(kids);
     for (unsigned i = 0; i < kids.size(); i++) {
         if (!kids[i]->initRegisters(g))
@@ -2065,7 +2065,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     bool ret = true;
 
     // First, check kids
-    pdvector<AstNodePtr > kids;
+    std::vector<AstNodePtr > kids;
     getChildren(kids);
     for (unsigned i = 0; i < kids.size(); i++) {
         if (!kids[i]->initRegisters(gen))
@@ -2282,7 +2282,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
    }
    else {// this is a dynamic ctrl flow instruction, have
       // getDynamicCallSiteArgs generate the necessary AST
-      pdvector<AstNodePtr> args;
+      std::vector<AstNodePtr> args;
       if (!gen.addrSpace()->getDynamicCallSiteArgs(insn, gen.point()->block()->last(), args)) {
          return false;
       }
@@ -2835,7 +2835,7 @@ bool AstVariableNode::accessesParam() {
 // assume that we will not bother them again, which is wrong)
 void AstNode::fixChildrenCounts()
 {
-    pdvector<AstNodePtr> children;
+    std::vector<AstNodePtr> children;
     getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->setUseCount();
@@ -2940,7 +2940,7 @@ void AstNode::decUseCount(codeGen &gen)
 
 // Return all children of this node ([lre]operand, ..., operands[])
 
-void AstNode::getChildren(pdvector<AstNodePtr > &) {
+void AstNode::getChildren(std::vector<AstNodePtr > &) {
 #if 0
     fprintf(stderr, "Undefined call to getChildren for type: ");
     if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
@@ -2955,7 +2955,7 @@ void AstNode::getChildren(pdvector<AstNodePtr > &) {
 #endif
 }
 
-void AstNode::setChildren(pdvector<AstNodePtr > &) {
+void AstNode::setChildren(std::vector<AstNodePtr > &) {
 #if 0
     fprintf(stderr, "Undefined call to setChildren for type: ");
     if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
@@ -2970,13 +2970,13 @@ void AstNode::setChildren(pdvector<AstNodePtr > &) {
 #endif
 }
 
-void AstOperatorNode::getChildren(pdvector<AstNodePtr > &children) {
+void AstOperatorNode::getChildren(std::vector<AstNodePtr > &children) {
     if (loperand) children.push_back(loperand);
     if (roperand) children.push_back(roperand);
     if (eoperand) children.push_back(eoperand);
 }
 
-void AstOperatorNode::setChildren(pdvector<AstNodePtr > &children){
+void AstOperatorNode::setChildren(std::vector<AstNodePtr > &children){
    int count = (loperand ? 1 : 0) + (roperand ? 1 : 0) + (eoperand ? 1 : 0);
    if ((int)children.size() == count){
       //memory management?
@@ -3006,11 +3006,11 @@ AstNodePtr AstOperatorNode::deepCopy(){
    return copy;
 }
 
-void AstOperandNode::getChildren(pdvector<AstNodePtr > &children) {
+void AstOperandNode::getChildren(std::vector<AstNodePtr > &children) {
     if (operand_) children.push_back(operand_);
 }
 
-void AstOperandNode::setChildren(pdvector<AstNodePtr > &children){
+void AstOperandNode::setChildren(std::vector<AstNodePtr > &children){
    if (children.size() == 1){
       //memory management?
       operand_ = children[0];
@@ -3037,12 +3037,12 @@ AstNodePtr AstOperandNode::deepCopy(){
    return AstNodePtr(copy);
 }
 
-void AstCallNode::getChildren(pdvector<AstNodePtr > &children) {
+void AstCallNode::getChildren(std::vector<AstNodePtr > &children) {
     for (unsigned i = 0; i < args_.size(); i++)
         children.push_back(args_[i]);
 }
 
-void AstCallNode::setChildren(pdvector<AstNodePtr > &children){
+void AstCallNode::setChildren(std::vector<AstNodePtr > &children){
    if (children.size() == args_.size()){
       //memory management?
       for (unsigned i = 0; i < args_.size(); i++){
@@ -3056,7 +3056,7 @@ void AstCallNode::setChildren(pdvector<AstNodePtr > &children){
 }
 
 AstNodePtr AstCallNode::deepCopy(){
-   pdvector<AstNodePtr> empty_args;
+   std::vector<AstNodePtr> empty_args;
 
    AstCallNode * copy;
 
@@ -3089,12 +3089,12 @@ AstNodePtr AstCallNode::deepCopy(){
    return AstNodePtr(copy);
 }
 
-void AstSequenceNode::getChildren(pdvector<AstNodePtr > &children) {
+void AstSequenceNode::getChildren(std::vector<AstNodePtr > &children) {
     for (unsigned i = 0; i < sequence_.size(); i++)
         children.push_back(sequence_[i]);
 }
 
-void AstSequenceNode::setChildren(pdvector<AstNodePtr > &children){
+void AstSequenceNode::setChildren(std::vector<AstNodePtr > &children){
    if (children.size() == sequence_.size()){
       //memory management?
       for (unsigned i = 0; i < sequence_.size(); i++){
@@ -3126,11 +3126,11 @@ AstNodePtr AstSequenceNode::deepCopy(){
    return AstNodePtr(copy);
 }
 
-void AstVariableNode::getChildren(pdvector<AstNodePtr > &children) {
+void AstVariableNode::getChildren(std::vector<AstNodePtr > &children) {
     ast_wrappers_[index]->getChildren(children);
 }
 
-void AstVariableNode::setChildren(pdvector<AstNodePtr > &children){
+void AstVariableNode::setChildren(std::vector<AstNodePtr > &children){
    ast_wrappers_[index]->setChildren(children);
 }
 
@@ -3155,11 +3155,11 @@ AstNodePtr AstVariableNode::deepCopy(){
    return AstNodePtr(copy);
 }
 
-void AstMiniTrampNode::getChildren(pdvector<AstNodePtr > &children) {
+void AstMiniTrampNode::getChildren(std::vector<AstNodePtr > &children) {
     children.push_back(ast_);
 }
 
-void AstMiniTrampNode::setChildren(pdvector<AstNodePtr > &children){
+void AstMiniTrampNode::setChildren(std::vector<AstNodePtr > &children){
    if (children.size() == 1){
       //memory management?
       ast_ = children[0];
@@ -3512,7 +3512,7 @@ void regTracker_t::debugPrint() {
 }
 
 unsigned AstNode::getTreeSize() {
-	pdvector<AstNodePtr > children;
+	std::vector<AstNodePtr > children;
 	getChildren(children);
 
 	unsigned size = 1; // Us
@@ -3771,7 +3771,7 @@ std::string AstNode::convert(opCode op) {
 
 bool AstOperandNode::initRegisters(codeGen &g) {
     bool ret = true;
-    pdvector<AstNodePtr> kids;
+    std::vector<AstNodePtr> kids;
     getChildren(kids);
     for (unsigned i = 0; i < kids.size(); i++) {
         if (!kids[i]->initRegisters(g))

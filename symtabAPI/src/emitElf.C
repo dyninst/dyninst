@@ -29,6 +29,7 @@
  */
 
 
+#include <cstring>
 #include <algorithm>
 #include "emitElf.h"
 #include "emitElfStatic.h"
@@ -64,7 +65,6 @@ unsigned int elfHash(const char *name) {
     }
     return h;
 }
-unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;;
 
 template<class ElfTypes>
 emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *),
@@ -111,13 +111,8 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_,
     // address we'll put the phdrs into the page before that address.  This
     // works and will avoid the kernel bug.
 
-    isBlueGeneQ = obj_->isBlueGeneQ();
     isStaticBinary = obj_->isStaticBinary();
-    if (isBlueGeneQ) {
-        movePHdrsFirst = false;
-    } else {
-        movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
-    }
+    movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
 
     //If we want to try a mode where we add the program headers to a library
     // that can be loaded anywhere, and put the program headers in the first
@@ -211,7 +206,6 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
         case PT_PAX_FLAGS:
             return "PAX";
         default:
-            assert(0);
             return "<UNKNOWN>";
             break;
 
@@ -571,14 +565,14 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         }
 
         if (foundSec->isDirty()) {
-            newdata->d_buf = (char *) malloc(foundSec->getDiskSize());
+            newdata->d_buf = allocate_buffer(foundSec->getDiskSize());
             memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
             newdata->d_size = foundSec->getDiskSize();
             newshdr->sh_size = foundSec->getDiskSize();
         }
         else if (olddata->d_buf)     //copy the data buffer from oldElf
         {
-            newdata->d_buf = (char *) malloc(olddata->d_size);
+            newdata->d_buf = allocate_buffer(olddata->d_size);
             memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
         }
 
@@ -594,7 +588,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Expand the NOBITS sections in file & and change the type from SHT_NOBITS to SHT_PROGBITS
             if (shdr->sh_type == SHT_NOBITS) {
                 newshdr->sh_type = SHT_PROGBITS;
-                newdata->d_buf = (char *) malloc(shdr->sh_size);
+                newdata->d_buf = allocate_buffer(shdr->sh_size);
                 memset(newdata->d_buf, '\0', shdr->sh_size);
                 newdata->d_size = shdr->sh_size;
                 if (NOBITSstartPoint == oldEhdr->e_shnum)
@@ -684,7 +678,20 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Clear the PLT type; use PROGBITS
             newshdr->sh_type = SHT_PROGBITS;
         }
-
+        if (library_adjust > 0 &&
+                (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
+                 strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
+                 strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
+            for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
+                char *loc = static_cast<char*>(newdata->d_buf) + off;
+                size_t val{};
+                // The calls to memcpy are required to not break the aliasing rules.
+                memcpy(&val, loc, sizeof(val));
+                if(val == 0) continue;
+                val += library_adjust;
+                memcpy(loc, &val, sizeof(val));
+            }
+        }
         // Change offsets of sections based on the newly added sections
         if (movePHdrsFirst) {
             /* This special case is specific to FreeBSD but there is no hurt in
@@ -873,7 +880,6 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
     newshdr->sh_name = secNameIndex;
     secNameIndex += strlen(newname) + 1;
     newshdr->sh_flags = SHF_ALLOC;
-    if (isBlueGeneQ) newshdr->sh_flags = bgq_sh_flags;
     newshdr->sh_type = SHT_PROGBITS;
     newshdr->sh_offset = newEhdr->e_phoff;
     newshdr->sh_addr = endaddr + align;
@@ -902,9 +908,6 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
      *
      * `Loadable segment entries in the program header table appear in
      * ascending order, sorted on the p_vaddr member.'
-     *
-     * Note: replacing NOTE with LOAD section for bluegene systems
-     * does not follow this rule.
      */
     rewrite_printf("::fixPhdrs():\n");
     unsigned pgSize = getpagesize();
@@ -952,7 +955,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
             segments[i].p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
             segments[i].p_align = newTLSData->sh_addralign;
         } else if (old->p_type == PT_LOAD) {
-            if (!createNewPhdr && segments[i].p_align > pgSize) { //not on bluegene
+            if (!createNewPhdr && segments[i].p_align > pgSize) {
                 segments[i].p_align = pgSize;
             }
             if (BSSExpandFlag) {
@@ -1106,7 +1109,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
     // sections.  Fill in the new section's data with what we just wrote.
     Elf_Data *data = elf_newdata(phdrs_scn);
     size_t total_size = (size_t) newEhdr->e_phnum * (size_t) newEhdr->e_phentsize;
-    data->d_buf = malloc(total_size);
+    data->d_buf = allocate_buffer(total_size);
     memcpy(data->d_buf, phdr_data, total_size);
     data->d_size = total_size;
     data->d_align = 0;
@@ -1409,8 +1412,6 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             updateDynamic(DT_VERDEF, newshdr->sh_addr);
         }
 
-        if (isBlueGeneQ) newshdr->sh_flags = bgq_sh_flags;
-
         // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
         if (!firstNewLoadSec) {
             Offset newoff =
@@ -1419,21 +1420,11 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
                 newoff += pgSize;
             extraAlignSize += newoff - newshdr->sh_offset;
             newshdr->sh_offset = newoff;
-
-            // For now, bluegene is the only system for which createNewPhdr is false.
-            // Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
-            // When we are replaceing PT_NOTE with PT_LOAD, we need to make sure the new PT_LOAD is 1MB aligned
-            if (!createNewPhdr && replaceNOTE) {
-                Offset newaddr = newshdr->sh_addr - (newshdr->sh_addr & (0x100000 - 1));
-                if (newaddr < newshdr->sh_addr)
-                    newaddr += 0x100000;
-                newshdr->sh_addr = newaddr;
-            }
             newSegmentStart = newshdr->sh_addr;
         }
 
         //Set up the data
-        newdata->d_buf = malloc(newSecs[i]->getDiskSize());
+        newdata->d_buf = allocate_buffer(newSecs[i]->getDiskSize());
         memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getDiskSize());
         newdata->d_off = 0;
         newdata->d_size = newSecs[i]->getDiskSize();
@@ -1514,7 +1505,7 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     newshdr->sh_addralign = 4;
 
     //Set up the data
-    newdata->d_buf = (char *) malloc(secNameIndex);
+    newdata->d_buf = allocate_buffer(secNameIndex);
     char *ptr = (char *) newdata->d_buf;
     for (unsigned i = 0; i < secNames.size(); i++) {
         memcpy(ptr, secNames[i].c_str(), secNames[i].length());
@@ -2565,6 +2556,12 @@ void emitElf<ElfTypes>::addDTNeeded(string s) {
     if (find(libs_rmd.begin(), libs_rmd.end(), s) != libs_rmd.end())
         return;
     DT_NEEDEDEntries.push_back(s);
+}
+
+template<class ElfType>
+char* emitElf<ElfType>::allocate_buffer(size_t size) {
+    buffers.push_back(malloc(size));
+    return static_cast<char*>(buffers.back());
 }
 
 

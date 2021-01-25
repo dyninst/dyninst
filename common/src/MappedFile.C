@@ -54,16 +54,7 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 
    if (!ok) {
 
-#if defined(os_vxworks)
-      // vxWorks may request to open files that exist only on the remote
-      // target.  Return a placeholder mapped file to hold filename only.
-      mf->remote_file = true;
-      mf->can_share = true;
-      mf->map_addr = 0x0;
-      mf->fd = -1;
-
-      ok = true;
-#elif defined(os_windows)
+#if defined(os_windows)
       if (std::string::npos != fullpath_.find(".dll") &&
           std::string::npos == fullpath_.find("\\"))
       {

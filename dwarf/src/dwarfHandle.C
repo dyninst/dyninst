@@ -29,6 +29,7 @@
  */
 
 #include "elfutils/libdw.h"
+#include "elfutils/libdwfl.h"
 #include "Elf_X.h"
 #include "dwarfHandle.h"
 #include "dwarfFrameParser.h"
@@ -49,6 +50,13 @@ using namespace std;
 #if !defined(EM_AARCH64)
 #define EM_AARCH64 183
 #endif
+
+static const Dwfl_Callbacks dwfl_callbacks =
+{
+    .find_elf = dwfl_build_id_find_elf,
+    .find_debuginfo = dwfl_standard_find_debuginfo,
+    .section_address = dwfl_offline_section_address,
+};
 
 /*void DwarfHandle::defaultDwarfError(Dwarf_Error err, Dwarf_Ptr p) {
   dwarf_dealloc(*(Dwarf*)(p), err, DW_DLA_ERROR);
@@ -80,6 +88,7 @@ void DwarfHandle::locate_dbg_file()
     bool result = file->findDebugFile(filename, debug_filename, buffer, buffer_size);
     if (!result)
         return;
+
     dbg_file = Elf_X::newElf_X(buffer, buffer_size, debug_filename);
     if (!dbg_file->isValid()) {
         dwarf_printf("Invalid ELF file for debug info: %s\n", debug_filename.c_str());
@@ -100,7 +109,20 @@ bool DwarfHandle::init_dbg()
         return false;
     }
 
-    file_data = dwarf_begin_elf(file->e_elfp(), DWARF_C_READ, NULL);
+    if(file->e_machine() == EM_CUDA)
+    {
+        file_data = dwarf_begin_elf(file->e_elfp(), DWARF_C_READ, NULL);
+    }else{
+        /* Create a one elf module file Dwfl. */
+        const char *base = basename (filename.c_str());
+        Dwfl *dwfl = dwfl_begin (&dwfl_callbacks);
+        dwfl_report_begin (dwfl);
+        Dwfl_Module *mod = dwfl_report_elf (dwfl, base, filename.c_str(), -1, 0, true);
+        dwfl_report_end (dwfl, NULL, NULL);
+
+        Dwarf_Addr bias;
+        file_data = dwfl_module_getdwarf(mod, &bias);
+    }
 
     //if (!file_data /*&& errno==0*/ )  {
     //    init_dwarf_status = dwarf_status_error;
@@ -108,9 +130,24 @@ bool DwarfHandle::init_dbg()
 
 
     if (dbg_file) {
-        dbg_file_data = dwarf_begin_elf(dbg_file->e_elfp(), DWARF_C_READ, NULL); 
         //status = dwarf_elf_init(dbg_file->e_elfp(), DW_DLC_READ,
         //        err_func, &dbg_file_data, &dbg_file_data, &err);
+
+        if(dbg_file->e_machine() == EM_CUDA)
+        {
+            dbg_file_data = dwarf_begin_elf(dbg_file->e_elfp(), DWARF_C_READ, NULL);
+        }else{
+            /* Create a one elf module file Dwfl. */
+            const char *base = basename (debug_filename.c_str());
+            Dwfl *dwfl = dwfl_begin (&dwfl_callbacks);
+            dwfl_report_begin (dwfl);
+            Dwfl_Module *mod = dwfl_report_elf (dwfl, base, debug_filename.c_str(), -1, 0, true);
+            dwfl_report_end (dwfl, NULL, NULL);
+
+            Dwarf_Addr bias;
+            dbg_file_data = dwfl_module_getdwarf(mod, &bias);
+        }
+
 
         if (!dbg_file_data) {
             init_dwarf_status = dwarf_status_error;
@@ -157,7 +194,30 @@ bool DwarfHandle::init_dbg()
             arch = Arch_aarch64;
             break;
         case EM_CUDA:
-            arch = Arch_cuda;
+            arch = Dyninst::Arch_cuda;
+            break;
+        case EM_AMDGPU: {
+            unsigned int ef_amdgpu_mach = 0x000000ff & file->e_flags();
+			switch(ef_amdgpu_mach){
+				case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38:
+					arch = Dyninst::Arch_amdgpu_rdna;
+                    break;
+				case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x30: case 0x31:
+					arch = Dyninst::Arch_amdgpu_vega;
+                    break;
+				case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18:
+				case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f:
+					assert(0 && "reserved for r600 architecture");
+				case 0x27: case 0x32 : case 0x39:
+					assert(0 && "reserved");
+				default:
+					assert(0 && "probably won't be supported");
+			}
+
+            break;
+        }
+        case EM_INTEL_GEN9:
+            arch = Arch_intelGen9;
             break;
         default:
             assert(0 && "Unsupported archiecture in ELF file.");

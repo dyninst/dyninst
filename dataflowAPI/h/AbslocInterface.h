@@ -64,7 +64,7 @@ class AbsRegionConverter {
                                   ParseAPI::Block *block,
 				  std::vector<AbsRegion> &regions);
   
-  DATAFLOW_EXPORT void convertAll(InstructionAPI::Instruction insn,
+  DATAFLOW_EXPORT void convertAll(const InstructionAPI::Instruction &insn,
 				  Address addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
@@ -79,6 +79,10 @@ class AbsRegionConverter {
 				    Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block);
+
+  DATAFLOW_EXPORT AbsRegion convertPredicatedRegister(InstructionAPI::RegisterAST::Ptr r,
+          InstructionAPI::RegisterAST::Ptr p,
+          bool c);
 
   // Cons up a stack reference at the current addr
   DATAFLOW_EXPORT AbsRegion stack(Address addr,
@@ -124,7 +128,7 @@ class AssignmentConverter {
  public:  
  DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack) : cacheEnabled_(cache), aConverter(false, stack) {};
 
-  DATAFLOW_EXPORT void convert(const InstructionAPI::Instruction insn,
+  DATAFLOW_EXPORT void convert(const InstructionAPI::Instruction &insn,
                                const Address &addr,
                                ParseAPI::Function *func,
                                ParseAPI::Block *block,

@@ -16,7 +16,7 @@ namespace Exception {
 /** Base class for %Sawyer runtime errors. */
 class SAWYER_EXPORT RuntimeError: public std::runtime_error {
 public:
-    ~RuntimeError() throw() {}
+    ~RuntimeError() {}
 
     /** Constructor taking a description of the error. */
     explicit RuntimeError(const std::string &mesg)
@@ -26,7 +26,7 @@ public:
 /** Base class for %Sawyer domain errors. */
 class SAWYER_EXPORT DomainError: public RuntimeError {
 public:
-    ~DomainError() throw() {}
+    ~DomainError() {}
 
     /** Constructor taking a description of the error. */
     explicit DomainError(const std::string &mesg)
@@ -38,7 +38,7 @@ public:
  *  This error is thrown when querying a container and no value is stored for the specified key. */
 class SAWYER_EXPORT NotFound: public DomainError {
 public:
-    ~NotFound() throw () {}
+    ~NotFound() {}
 
     /** Constructor taking a description of the error. */
     explicit NotFound(const std::string &mesg)
@@ -50,7 +50,7 @@ public:
  *  This error is thrown when attempting to modify a container by inserting a value that already exists. */
 class SAWYER_EXPORT AlreadyExists: public DomainError {
 public:
-    ~AlreadyExists() throw () {}
+    ~AlreadyExists() {}
 
     /** Constructor taking a description of the error. */
     AlreadyExists(const std::string &mesg)

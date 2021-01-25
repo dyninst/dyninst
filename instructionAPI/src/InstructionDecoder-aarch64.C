@@ -97,7 +97,7 @@ namespace Dyninst {
         InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
                 : InstructionDecoderImpl(a), isPstateRead(false), isPstateWritten(false), isFPInsn(false),
                   isSIMDInsn(false), skipRn(false), skipRm(false),
-                  is64Bit(true), isValid(true), insn(0), insn_in_progress(NULL),
+                  is64Bit(true), isValid(true), insn(0),
                   hasHw(false), hasShift(false), hasOption(false), hasN(false),
                   immr(0), immrLen(0), sField(0), nField(0), nLen(0),
                   immlo(0), immloLen(0), _szField(-1), size(-1),
@@ -163,7 +163,7 @@ namespace Dyninst {
             mainDecode();
             b.start += 4;
 
-            return *insn_in_progress;
+            return *(insn_in_progress.get());
         }
 
         /* replace this function with a more generic function, which is setRegWidth
@@ -2898,7 +2898,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
             //insn_to_complete->m_Operands.reserve(4);
             decode(b);
-            decodeOperands(insn_to_complete);
+            decodeOperands(insn_in_progress.get());
+
+            Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
+            *iptr = *(insn_in_progress.get());
         }
 
         bool InstructionDecoder_aarch64::pre_process_checks(const aarch64_insn_entry &entry) {
@@ -2941,7 +2944,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 : aarch64_insn_entry::main_insn_table[0];
 
             insn = insn_to_complete->m_RawInsn.small_insn;
-            insn_in_progress = const_cast<Instruction *>(insn_to_complete);
 
             if (IS_INSN_LDST_REG(insn) ||
                 IS_INSN_ADDSUB_EXT(insn) ||
@@ -3032,7 +3034,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             modify_mnemonic_simd_upperhalf_insns();
 
             if (IS_INSN_BRANCHING(insn)) {
-                decodeOperands(insn_in_progress);
+                decodeOperands(insn_in_progress.get());
             }
 
             insn_in_progress->arch_decoded_from = Arch_aarch64;

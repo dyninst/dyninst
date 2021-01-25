@@ -52,10 +52,6 @@
 
 #include "StackMod/StackAccess.h"
 
-#if defined(os_vxworks)
-#include "common/src/wtxKludges.h"
-#endif
-
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -784,18 +780,6 @@ unsigned pcRelData::maxSize()
 bool pcRelData::canPreApply()
 {
    return (gen->startAddr() != 0x0);
-}
-
-bool insnCodeGen::generate(codeGen &,
-                           instruction &,
-                           AddressSpace *,
-                           Address , // Could be kept in the instruction class.
-                           Address ,
-                           patchTarget *,
-                           patchTarget *) 
-{
-   assert(0 && "Deprecated");
-   return false;
 }
 
 #define SIB_SET_REG(x, y) ((x) |= ((y) & 7))

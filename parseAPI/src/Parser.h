@@ -125,6 +125,8 @@ namespace Dyninst {
             // functions
             Function *findFuncByEntry(CodeRegion *cr, Address entry);
 
+            int findFuncsByBlock(CodeRegion *cr, Block *b, set<Function*> &funcs);
+
             int findFuncs(CodeRegion *cr, Address addr, set<Function *> &funcs);
 
             int findFuncs(CodeRegion *cr, Address start, Address end, set<Function *> &funcs);
@@ -177,6 +179,7 @@ namespace Dyninst {
             void cleanup_frames();
             void parse_gap_heuristic(CodeRegion *cr);
 
+            bool getGapRange(CodeRegion*, Address, Address&, Address&);
             void probabilistic_gap_parsing(CodeRegion *cr);
             //void parse_sbp();
 
@@ -201,10 +204,6 @@ namespace Dyninst {
                     Edge *exist);
 
             Block *follow_fallthrough(Block *b, Address addr);
-            Block *split_block(Function *owner,
-                               Block *b,
-                               Address addr,
-                               Address previnsn);
 
             Edge *link_addr(Address src, Block *dst, EdgeTypeEnum et, bool sink, Function* func);
             Edge *link_block(Block* src, Block *dst, EdgeTypeEnum et, bool sink);
@@ -262,8 +261,8 @@ namespace Dyninst {
             void finalize_jump_tables();
             void delete_bogus_blocks(Edge*);
             bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
-	    void move_edges_consistent_blocks(Block *, Block *);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
+            void record_hint_functions();
 
 
 
@@ -300,6 +299,8 @@ namespace Dyninst {
             //
             // Note: this has to be run in a single thread.
             vector<Function*> funcs_to_ranges;            
+
+            dyn_c_hash_map<Block*, std::set<Function* > > funcsByBlockMap;
         };
 
     }

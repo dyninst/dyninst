@@ -42,7 +42,6 @@
 #include "dyninstAPI/src/frame.h"
 
 class baseTramp;
-class miniTramp;
 class AddressSpace;
 
 #if 0
@@ -70,7 +69,7 @@ class instWaitingList {
     process *which_proc;
 };
 
-extern pdvector<instWaitingList*> instWList;
+extern std::vector<instWaitingList*> instWList;
 
 #endif
 

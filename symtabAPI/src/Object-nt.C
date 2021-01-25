@@ -91,65 +91,6 @@ static void printSysError(unsigned errNo) {
 BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 										ULONG symSize,
 										PVOID userContext );
-/*
- * stripAtSuffix 
- *
- * Strips off of a string any suffix that consists of an @ sign followed by
- * decimal digits.
- *
- * str	The string to strip the suffix from.  The string is altered in place.
- */
- static void stripAtSuffix(char *str)
- {
-    // many symbols have a name like foo@4, we must remove the @4
-    // just searching for an @ is not enough,
-    // as it may occur on other positions. We search for the last one
-    // and check that it is followed only by digits.
-    char *p = strrchr(str, '@');
-    if (p) {
-      char *q = p+1;
-      strtoul(p+1, &q, 10);
-      if (q > p+1 && *q == '\0') {
-		*p = '\0';
-      }
-    }
-}
-
-char *cplus_demangle(char *c, int, bool includeTypes) { 
-    
-    char buf[1000];
-    if (c[0]=='_') {
-	// VC++ 5.0 seems to decorate C symbols differently to C++ symbols
-	// and the UnDecorateSymbolName() function provided by imagehlp.lib
-	// doesn't manage (or want) to undecorate them, so it has to be done
-	// manually, removing a leading underscore from functions & variables
-	// and the trailing "$stuff" from variables (actually "$Sstuff")
-	unsigned i;
-	for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
-	    buf[i-1]=c[i];
-	buf[i-1]='\0';
-	stripAtSuffix(buf);
-	if (buf[0] == '\0') 
-		return 0; // avoid null names which seem to annoy Paradyn
-	return P_strdup(buf);
-    }
-    else {
-       if (includeTypes) {
-	  if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
-	    //	 printf("Undecorate with types: %s = %s\n", c, buf);
-	    stripAtSuffix(buf);
-	    return P_strdup(buf);
-	  }
-       }
-       else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
-	 //else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
-	 //printf("Undecorate: %s = %s\n", c, buf);
-	 stripAtSuffix(buf);	      
-	 return P_strdup(buf);
-       }
-    }
-    return 0;
-}
 
 //---------------------------------------------------------------------------
 // Object method implementation
@@ -2155,10 +2096,12 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
    
    if (type)
    {
-      Variable *var = NULL;
-      bool result = obj->findVariableByOffset(var, addr);
+      std::vector<Variable *> vars;
+      bool result = obj->findVariablesByOffset(vars, addr);
       if (result) {
-         var->setType(type);
+         for (auto v: vars)  {
+            v->setType(type);
+         }
       }
       if (name) {
          std::string vName = name;

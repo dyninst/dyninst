@@ -90,7 +90,7 @@ Dyninst::LWP PCThread::getLWP() const {
 void PCThread::findSingleThreadInfo() {
     assert( startFuncAddr_ == 0 || stackAddr_ == 0 );
 
-    pdvector<Frame> stackWalk;
+    std::vector<Frame> stackWalk;
     if( !walkStack(stackWalk) ) return;
 
     proccontrol_printf("%s[%d]: searching stackwalk for initial func and stack top\n",
@@ -151,7 +151,7 @@ PCProcess *PCThread::getProc() const {
     return proc_;
 }
 
-bool PCThread::walkStack(pdvector<Frame> &stackWalk) {
+bool PCThread::walkStack(std::vector<Frame> &stackWalk) {
     if (cached_stackwalk_.isValid()) {
         stackWalk = cached_stackwalk_.getStackwalk();
         for (unsigned i=0; i<stackWalk.size(); i++) {

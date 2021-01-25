@@ -30,10 +30,6 @@
 
 #include <ctype.h>
 #include <iostream>
-// from libiberty's demangle.h
-#define DMGL_PARAMS   (1 << 0) 
-#define DMGL_ANSI     (1 << 1) 
-#define DMGL_VERBOSE  (1 << 3) 
 
 #include "symutil.h"
 #include "Symtab.h" // For looking up compiler type
@@ -106,15 +102,11 @@ void vectorNameMatchKLUDGE(Module *mod, char *demangled_sym, std::vector<Functio
     if (syms.size()) {
         l_mangled = syms[0]->getMangledName();
         
-        char * l_demangled_raw = P_cplus_demangle(l_mangled.c_str(), mod->exec()->isNativeCompiler());
-        if( l_demangled_raw == NULL ) {
-            l_demangled_raw = strdup(l_mangled.c_str());
-        }
+        std::string l_demangled_raw = P_cplus_demangle(l_mangled);
         
-        if (!strcmp(l_demangled_raw, demangled_sym)) {
+        if (l_demangled_raw == demangled_sym) {
            matches.push_back(i);
         }
-        free(l_demangled_raw);
     }
   } /* end iteration over function vector */
 }
@@ -143,11 +135,8 @@ Function *mangledNameMatchKLUDGE(const char *pretty, const char *mangled,
     }
 
   // demangle name with extra parameters
-  char * demangled_sym = P_cplus_demangle( mangled, mod->exec()->isNativeCompiler(), true );
-  if( demangled_sym == NULL ) {
-  	demangled_sym = strdup( mangled );
-  	assert( demangled_sym != NULL );
-  }
+  std::string demangled = P_cplus_demangle( mangled, true );
+  char *demangled_sym = strdup(demangled.c_str());
 
   std::vector<int> matches;
 
@@ -220,19 +209,9 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    std::string mangledname = getIdentifier( stabstr, cnt );
 
    currentRawSymbolName = mangledname;
-   char * demangled = P_cplus_demangle( mangledname.c_str(), mod->exec()->isNativeCompiler() );
-   std::string name;
+   std::string name = P_cplus_demangle( mangledname );
 
-   if ( demangled == NULL ) 
-   {
-      name = mangledname;
-   } 
-   else 
-   {
-      name = demangled;
-   }
-
-   if ( name[0] != '\0' && stabstr[cnt] != ':' ) 
+   if ( !name.empty() && stabstr[cnt] != ':' ) 
    {
      types_printf("\t returning name %s\n", name.c_str());
       return name;
@@ -487,7 +466,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             }
 
          case 'P':	// function parameter passed in a register (GNU/Solaris)
-         case 'R':	// function parameter passed in a register (AIX style)
+         case 'R':	// function parameter passed in a register
          case 'v':	// Fortran Local Variable
          case 'X':	// Fortran function return Variable (e.g. function name)
          case 'p': 
@@ -634,14 +613,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                //char *oldstabstr = stabstr;
 				stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
                cnt = 0;
-
-
-               // AIX seems to append an semi at the end of these
-               if (stabstr[0] && strcmp(stabstr, ";")) 
-               {
-                  //bperr("\tMore to parse creating type %s\n", stabstr);
-                  //bperr( "\tFull String: %s\n", oldStr);
-               }
             } 
             else 
             {
@@ -1492,7 +1463,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 
 //
 //   This may in fact be much simpler than first anticipated
-//   AIX stabs use attributes only as hints, and dbx only
+//   dbx only
 //   understands @s (size) and @P (packed) types.  We only 
 //   parse the size attribute, and should be able to get away
 //   with simply passing the remainder to the rest of our parser
@@ -1910,7 +1881,6 @@ static char *parseCPlusPlusInfo(Module *mod,
     assert(stabstr[0] == 'Y');
     cnt = 1;
 
-    // size on AIX 
     if (isdigit(stabstr[cnt])) {
 	structsize = parseSymDesc(stabstr, cnt);
 	sunStyle = false;
@@ -2024,7 +1994,8 @@ static char *parseCPlusPlusInfo(Module *mod,
 	    className[3] = 'c';
 	    className[strlen(className)-1] = '\0';	// remove tailing "_"
 	    std::string methodName = std::string(className) + std::string(funcName) + std::string("_");
-		char * name = P_cplus_demangle( methodName.c_str(), mod->exec()->isNativeCompiler() );
+
+	    std::string fName = P_cplus_demangle( methodName );
 		if( name != NULL ) {
 			funcName = strrchr( name, ':' );
 			if( funcName ) { funcName++; }
@@ -2033,8 +2004,6 @@ static char *parseCPlusPlusInfo(Module *mod,
 
 	    // should include position for virtual methods
 	    auto fieldType = tc->findType("void", Type::share);
-
-	    std::string fName = convertCharToString(funcName);
 
             newType->asFieldListType().addField( fName, Type::make_shared<typeFunction>( ID, fieldType, fName));
 					    
@@ -2309,11 +2278,6 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		/* Get enum component value */
 		compsymdesc = getIdentifier(stabstr, cnt);
 		cnt++; /* skip colon */
-
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-		//bperr( "%s[%d]:  before parseSymDesc -- enumerated type \n", 
-	    //		__FILE__, __LINE__);
-#endif		  
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type
@@ -2339,7 +2303,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    return parseTypeDef(mod, &stabstr[cnt+1], name, ID);
 	    break;
 	}
-	case 'V':	// AIX colatile ? type V<typeDef> - parse as <typeDef>
+	case 'V':	// volatile ? type V<typeDef> - parse as <typeDef>
         case 'B':	// Sun volatile type B<typeDef> - parse as <typeDef>
 	    return parseTypeDef(mod, &stabstr[cnt+1], name, ID);
 	    break;
@@ -2369,7 +2333,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    }
 	    //add to type collection
 
-        //TODO What if two different files have the same structure?? // on AIX
+        //TODO What if two different files have the same structure??
 	    char *ret = parseFieldList(mod, newFieldType, &stabstr[cnt], false);
         return ret;
 

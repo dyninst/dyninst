@@ -42,6 +42,10 @@
 #define EM_CUDA		190	/* NVIDIA CUDA */
 #endif
 
+#ifndef EM_INTEL_GEN9
+#define EM_INTEL_GEN9		182	/* INTEL GEN9 */
+#endif
+
 namespace Dyninst {
 
 // Forward declarations
@@ -88,10 +92,10 @@ class DYNELF_EXPORT Elf_X {
     unsigned long e_flags() const;
     unsigned short e_ehsize() const;
     unsigned short e_phentsize() const;
-    unsigned short e_phnum() const;
+    unsigned long e_phnum();
     unsigned short e_shentsize() const;
-    unsigned short e_shnum() const;
-    unsigned short e_shstrndx() const;
+    unsigned long e_shnum();
+    unsigned long e_shstrndx();
     const char *e_rawfile(size_t &nbytes) const;
     unsigned short e_endian() const;
 

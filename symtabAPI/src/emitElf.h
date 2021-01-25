@@ -33,6 +33,7 @@
 
 #include "Object.h"
 #include "debug.h"
+#include "Elf_X.h"
 #include <iostream>
 
 #include <unordered_map>
@@ -157,7 +158,8 @@ namespace Dyninst {
             typedef typename ElfTypes::Elf_Verdaux Elf_Verdaux;
 
             ~emitElf() {
-                if( linkedStaticData ) delete linkedStaticData;
+                if( linkedStaticData ) delete[] linkedStaticData;
+                for(auto *b : buffers) free(b);
             }
 
             bool createSymbolTables(std::set<Symbol *> &allSymbols);
@@ -279,8 +281,9 @@ namespace Dyninst {
             void log_elferror(void (*err_func)(const char *), const char* msg);
             bool cannotRelocatePhdrs();
 
-            bool isBlueGeneQ;
             bool isStaticBinary;
+            std::vector<void*> buffers;
+            char* allocate_buffer(size_t);
 
         };
         extern template class emitElf<ElfTypes32>;

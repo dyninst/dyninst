@@ -20,22 +20,24 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" ${CMAKE_MODULE_PATH})
 
+# Set the C and C++ language standards
+include(LanguageStandards)
+
+# Find the necessary third-party libraries
 find_package(ThreadDB)
 find_package(Threads)
 include(Boost)
 include(ThreadingBuildingBlocks)
 include(ElfUtils)
-include(LibIberty)
+
+if(UNIX)
+  include(LibIberty REQUIRED)
+endif()
 
 include(shared)
 
 if(USE_OpenMP)
   find_package(OpenMP REQUIRED)
-endif()
-
-# PLATFORM is set by including 'shared'
-if(PLATFORM MATCHES "bgq")
-  message(WARNING "Support for Bluegene/Q has been deprecated and will be removed in a future release")
 endif()
 
 configure_file(cmake/version.h.in common/h/dyninstversion.h)
@@ -65,9 +67,6 @@ foreach (dir ${HEADER_DIRS})
   include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
 
-set(DYNINST_RT_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-set(DYNINST_RT_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
 set(ADD_VALGRIND_ANNOTATIONS OFF CACHE BOOL "Enable annotations for Valgrind analysis")
 if(ADD_VALGRIND_ANNOTATIONS)
   find_package(Valgrind REQUIRED)
@@ -95,7 +94,7 @@ add_subdirectory (parseAPI)
 add_subdirectory (proccontrol)
 add_subdirectory (stackwalk)
 add_subdirectory (patchAPI)
-add_subdirectory(examples)
+
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
   add_subdirectory (dynC_API)
@@ -106,11 +105,7 @@ if(BUILD_RTLIB)
   message(STATUS "Configuring DyninstAPI_RT in ${RT_BINARY_DIR}")
   file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile)
   file(MAKE_DIRECTORY ${RT_BINARY_DIR})
-  if (PLATFORM MATCHES bgq)
-    set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
-  else()
-    set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
-  endif()
+  set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
   set (ENABLE_STATIC_LIBS NO CACHE STRING "Build static libraries as well?")
   message(STATUS "Configuring RT library")
 
@@ -227,13 +222,6 @@ if(BUILD_DOCS)
     endforeach()
   else()
     message(STATUS "LaTeX not found")
-  endif()
-endif()
-
-if(UNIX)
-  message(STATUS "Adding Unix-specific dependencies")
-  if(NOT USE_GNU_DEMANGLER)
-    add_dependencies(common libiberty_imp)
   endif()
 endif()
 

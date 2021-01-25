@@ -41,14 +41,11 @@
 #include <set>
 
 #include "addressSpace.h"
-#include "dynThread.h"
-#include "pcEventHandler.h"
 #include "inst.h"
 #include "codeRange.h"
 #include "infHeap.h"
 #include "ast.h"
 #include "syscallNotification.h"
-#include "os.h"
 #include "baseTramp.h"
 
 #include "Symtab.h"
@@ -59,6 +56,8 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/symlookup.h"
+#include "pcEventHandler.h"
+#include "frame.h"
 
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1
@@ -90,9 +89,9 @@ public:
     } processState_t;
 
     // Process creation and control
-    static PCProcess *createProcess(const std::string file, pdvector<std::string> &argv,
+    static PCProcess *createProcess(const std::string file, std::vector<std::string> &argv,
                                     BPatch_hybridMode analysisMode,
-                                    pdvector<std::string> &envp,
+                                    std::vector<std::string> &envp,
                                     const std::string dir, int stdin_fd, int stdout_fd,
                                     int stderr_fd);
 
@@ -154,7 +153,7 @@ public:
     bool removeThread(dynthread_t tid);
 
     int getPid() const;
-    unsigned getAddressWidth() const;
+
     bool wasRunningWhenAttached() const;
     bool wasCreatedViaAttach() const;
     bool wasCreatedViaFork() const;
@@ -162,8 +161,8 @@ public:
     int incrementThreadIndex();
 
     // Stackwalking
-    bool walkStacks(pdvector<pdvector<Frame> > &stackWalks);
-    bool getAllActiveFrames(pdvector<Frame> &activeFrames);
+    bool walkStacks(std::vector<std::vector<Frame> > &stackWalks);
+    bool getAllActiveFrames(std::vector<Frame> &activeFrames);
 
     // Inferior Malloc
     Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
@@ -175,7 +174,7 @@ public:
 
     // Instrumentation support
     bool mappedObjIsDeleted(mapped_object *obj);
-    void installInstrRequests(const pdvector<instMapping*> &requests);
+    void installInstrRequests(const std::vector<instMapping*> &requests);
     Address getTOCoffsetInfo(Address dest); // platform-specific
     Address getTOCoffsetInfo(func_instance *func); // platform-specific
     bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific
@@ -223,7 +222,7 @@ public:
 
 // TODO FIXME
 #if defined(os_windows)
-    pdvector<func_instance *> initial_thread_functions;
+    std::vector<func_instance *> initial_thread_functions;
     bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
@@ -277,7 +276,7 @@ public:
 
     // No function is pushed onto return vector if address can't be resolved
     // to a function
-    pdvector<func_instance *> pcsToFuncs(pdvector<Frame> stackWalk);
+    std::vector<func_instance *> pcsToFuncs(std::vector<Frame> stackWalk);
 
     // architecture-specific
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, 
@@ -299,7 +298,7 @@ public:
     bool dumpImage(std::string outFile);
 
     // Stackwalking internals
-    bool walkStack(pdvector<Frame> &stackWalk, PCThread *thread);
+    bool walkStack(std::vector<Frame> &stackWalk, PCThread *thread);
     bool getActiveFrame(Frame &frame, PCThread *thread);
 
     void addSignalHandler(Address, unsigned);
@@ -502,7 +501,7 @@ protected:
     bool skipHeap(const heapDescriptor &heap); // platform-specific
     bool inferiorMallocDynamic(int size, Address lo, Address hi);
 
-    // platform-specific (TODO AIX is dataHeap, everything else is anyHeap)
+    // platform-specific
     inferiorHeapType getDynamicHeapType() const; 
     
     // Hybrid Mode
@@ -521,7 +520,7 @@ protected:
             std::map<int, int> &result);
 
     // platform-specific, sets LD_PRELOAD with RT library 
-    static bool setEnvPreload(pdvector<std::string> &envp, std::string fileName);
+    static bool setEnvPreload(std::vector<std::string> &envp, std::string fileName);
 
     bool isInDebugSuicide() const;
 
@@ -587,7 +586,7 @@ protected:
 
     // Active instrumentation tracking
     codeRangeTree signalHandlerLocations_;
-    pdvector<mapped_object *> deletedObjects_;
+    std::vector<mapped_object *> deletedObjects_;
     std::vector<heapItem *> dyninstRT_heaps_;
     Address RT_address_cache_addr_;
 

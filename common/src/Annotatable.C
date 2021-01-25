@@ -33,8 +33,6 @@
 #include "common/src/headers.h"
 #include "dyntypes.h"
 #include "Annotatable.h"
-#include "Serialization.h"
-#include "common/src/serialize.h"
 
 using namespace Dyninst;
 
@@ -121,10 +119,8 @@ std::vector<AnnotationClassBase *> *AnnotationClassBase::annotation_types = NULL
 dyn_hash_map<std::string, AnnotationClassID> *AnnotationClassBase::annotation_ids_by_name = NULL;
 
 AnnotationClassBase::AnnotationClassBase(std::string n, 
-		anno_cmp_func_t cmp_func_, 
-		ser_func_t sf_) :
-   name(n),
-   serialize_func(sf_)
+		anno_cmp_func_t cmp_func_) :
+   name(n)
 {
 	annotations_debug_init();
     // Using a static vector led to the following pattern on AIX:
@@ -239,153 +235,6 @@ void AnnotationClassBase::dumpAnnotationClasses()
 	}
 }
 
-namespace Dyninst {
-
-#if !defined(SERIALIZATION_DISABLED)
-bool is_input(SerializerBase *sb)
-{
-	return sb->isInput();
-}
-bool is_output(SerializerBase *sb)
-{
-	return sb->isOutput();
-}
-bool serialize_annotation_list(void *id, std::vector<ser_rec_t> &sers, SerializerBase *sb, const char *tag)
-{
-	if (sers.size())
-		serialize_printf("%s[%d]:  welcome to serialize_annotation_list, size %lu, id = %p\n", FILE__, __LINE__, sers.size(), id);
-	assert(sb);
-	assert(id);
-	try {
-		sb->serialize_annotations(id, sers, tag);
-	} 
-	catch (const SerializerError &err)
-	{
-		fprintf(stderr, "%s[%d]:  serializer error translating annotations\n", FILE__, __LINE__);
-		printSerErr(err);
-		return false;
-	}
-	return true;
-}
-
-bool serialize_post_annotation(void *parent, void *anno, SerializerBase *sb, AnnotationClassBase *acb, sparse_or_dense_anno_t sod, const char *tag)
-{
-	serialize_printf("%s[%d]:  welcome to serialize_post_annotation_list, id = %p\n", 
-			FILE__, __LINE__, parent);
-	assert(parent);
-	assert(anno);
-	if (!sb)
-	{
-		fprintf(stderr, "%s[%d]:  no existing output serializer\n", FILE__, __LINE__);
-		return true;
-	}
-	try {
-		sb->serialize_post_annotation(parent, anno, acb, sod, tag);
-	}
-	catch (const SerializerError &err)
-	{
-		fprintf(stderr, "%s[%d]:  serializer error translating annotations\n", FILE__, __LINE__);
-		printSerErr(err);
-		return false;
-	}
-	return true;
-}
-
-bool add_annotations(SerializerBase *sb, AnnotatableSparse *an, std::vector<ser_rec_t> &sers)
-{
-	if (sers.size())
-		serialize_printf("%s[%d]:  welcome to addAnnotations: got %lu\n", FILE__, __LINE__, sers.size());
-	//  if we are not doing deserialization, there is nothing to do here, just return true
-	//  to keep from triggering error handling.
-	if (sb->isOutput())
-		return true;
-	bool err = false;
-	for (unsigned int i = 0; i < sers.size(); ++i)
-	{
-		ser_rec_t &sr = sers[i];
-		if (!sr.data)
-		{
-			fprintf(stderr, "%s[%d]:  bad deserialize annotation record\n", FILE__, __LINE__);
-			err = true;
-			continue;
-		}
-		if (!sr.acb)
-		{
-			fprintf(stderr, "%s[%d]:  bad deserialize annotation record\n", FILE__, __LINE__);
-			err = true;
-			continue;
-		}
-
-		if (!an->addAnnotation(sr.data, sr.acb->getID()))
-		{
-			fprintf(stderr, "%s[%d]:  failed to add deserialized annotation here\n", FILE__, __LINE__);
-			err = true;
-		}
-	}
-	return (err == false);
-}
-
-bool add_annotations(SerializerBase *sb, AnnotatableDense *an, std::vector<ser_rec_t> &sers)
-{
-	serialize_printf("%s[%d]:  welcome to addAnnotations: got %lu\n", FILE__, __LINE__, sers.size());
-	//  if we are not doing deserialization, there is nothing to do here, just return true
-	//  to keep from triggering error handling.
-	if (sb->isOutput())
-		return true;
-	bool err = false;
-	for (unsigned int i = 0; i < sers.size(); ++i)
-	{
-		ser_rec_t &sr = sers[i];
-		if (!sr.data)
-		{
-			fprintf(stderr, "%s[%d]:  bad deserialize annotation record\n", FILE__, __LINE__);
-			err = true;
-			continue;
-		}
-		if (!sr.acb)
-		{
-			fprintf(stderr, "%s[%d]:  bad deserialize annotation record\n", FILE__, __LINE__);
-			err = true;
-			continue;
-		}
-		serialize_printf("%s[%d]:  adding pre annotation\n", FILE__, __LINE__);
-		if (!an->addAnnotation(sr.data, sr.acb->getID()))
-		{
-			fprintf(stderr, "%s[%d]:  failed to add deserialized annotation here\n", FILE__, __LINE__);
-			err = true;
-		}
-	}
-	return (err == false);
-}
-
-#else
-bool is_input(SerializerBase *)
-{
-   return false;
-}
-
-bool is_output(SerializerBase *) {
-   return false;
-}
-
-bool serialize_annotation_list(void *, std::vector<ser_rec_t> &, SerializerBase *, const char *) {
-   return false;
-}
-
-bool serialize_post_annotation(void *, void *, SerializerBase *, AnnotationClassBase *, sparse_or_dense_anno_t, const char *) {
-   return false;
-}
-
-bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &) {
-   return false;
-}
-
-bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &) {
-   return false;
-}
-#endif
-
-}
 bool dummy_bs()
 {
    fprintf(stderr, "%s[%d]:  \n", FILE__, __LINE__);

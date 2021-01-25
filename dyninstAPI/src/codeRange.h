@@ -40,10 +40,9 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <vector>
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 #include "common/src/std_namesp.h"
-
 #include "dyninstAPI/src/patch.h"
 
 /** template class for codeRangeTree. The implementation is based on red black
@@ -188,7 +187,7 @@ class codeRangeTree {
 
     // Vector version of above
     // infix traverse of the RB tree. It traverses the tree in ascending order
-    void traverse(pdvector<codeRange *> &all, entry*) const;
+    void traverse(std::vector<codeRange *> &all, entry*) const;
 
     // deletes the tree structure for deconstructor.
     void destroy(entry*);
@@ -250,7 +249,7 @@ class codeRangeTree {
     codeRange ** elements(codeRange **) const;
 
     // And vector-style
-    bool elements(pdvector<codeRange *> &) const;
+    bool elements(std::vector<codeRange *> &) const;
 
     // method that replicates the tree structure of this tree
     entry* replicateTree(entry*,entry*,entry*,entry*);

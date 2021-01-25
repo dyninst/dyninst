@@ -159,6 +159,14 @@ bool DwarfWalker::parse() {
         compile_offset = next_cu_header;
     }
 
+    if (dwarf_getalt(dbg()) != NULL) {
+        DwarfWalker w(symtab(), dbg());
+        for (unsigned int i = 0; i < module_dies.size(); i++) {
+            w.push();
+            w.parseModule(module_dies[i],fixUnknownMod);
+            w.pop();
+        }
+    } else {
 #pragma omp parallel
     {
     DwarfWalker w(symtab(), dbg());
@@ -168,6 +176,7 @@ bool DwarfWalker::parse() {
         w.push();
         w.parseModule(module_dies[i],fixUnknownMod);
         w.pop();
+    }
     }
     }
 
@@ -343,19 +352,6 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
                 curEnclosure().get());
 
         bool ret = false;
-
-        // BLUEGENE BUG HACK
-#if defined(os_bg)
-        if (tag() == DW_TAG_base_type ||
-                tag() == DW_TAG_const_type ||
-                tag() == DW_TAG_pointer_type) {
-            // XLC compilers nest a bunch of stuff under an invented function; however,
-            // this is broken (they don't close the function properly). If we see a
-            // tag like this, close off the previous function immediately
-            clearFunc();
-        }
-#endif
-
         switch(tag()) {
             case DW_TAG_subprogram:
             case DW_TAG_entry_point:
@@ -929,11 +925,13 @@ void DwarfWalker::createGlobalVariable(const vector<VariableLocation> &locs, boo
    Offset addr = 0;
    if (locs.size() && locs[0].stClass == storageAddr)
          addr = locs[0].frameOffset;
-   Variable *var;
-   bool result = symtab()->findVariableByOffset(var, addr);
-   if (result) {
-         var->setType(type);
-      }
+   std::vector<Variable *> vars;
+   bool result = symtab()->findVariablesByOffset(vars, addr);
+   if (result)  {
+	for (auto v: vars)  {
+	    v->setType(type);
+	}
+   }
    tc()->addGlobalVariable(curName(), type);
 }
 
@@ -1575,26 +1573,18 @@ bool DwarfWalker::addFuncToContainer(boost::shared_ptr<Type> returnType) {
       functions, but confuses the tests.  Since Type uses vectors
       to hold field names, however, duplicate -- demangled names -- are OK. */
 
-   char * demangledName = P_cplus_demangle( curName().c_str(), isNativeCompiler() );
-   std::string toUse;
+   std::string demangledName = P_cplus_demangle( curName() );
 
-   if (!demangledName) {
-      dwarf_printf("(0x%lx) Unable to demangle %s, using it as mangled\n", id(), curName().c_str());
-      toUse = curName();
-   }
-   else {
-      // Strip everything left of the rightmost ':' off to get rid of the class names
-      toUse = demangledName;
-      // rfind finds the last occurrence of ':'; add 1 to get past it.
-      size_t offset = toUse.rfind(':');
-      if (offset != toUse.npos) {
-         toUse = toUse.substr(offset+1);
-      }
+   // Strip everything left of the rightmost ':' off to get rid of the class names
+   // rfind finds the last occurrence of ':'; add 1 to get past it.
+   size_t offset = demangledName.rfind(':');
+   if (offset != demangledName.npos) {
+      demangledName.erase(0, offset+1);
    }
 
-   curEnclosure()->asFieldListType().addField( toUse, Type::make_shared<typeFunction>(
-      type_id(), returnType, toUse));
-   free( demangledName );
+   curEnclosure()->asFieldListType().addField( demangledName, Type::make_shared<typeFunction>(
+      type_id(), returnType, demangledName));
+
    return true;
 }
 
@@ -1785,10 +1775,16 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         std::vector<LocDesc> locDescs;
         ptrdiff_t offset = 0;
         Dwarf_Addr basep, start, end;
+
         do {
             offset = dwarf_getlocations(&locationAttribute, offset, &basep,
                     &start, &end, &exprs, &exprlen);
-            if(offset==-1) return false;
+            if(offset==-1){
+                cerr << "err message: " << dwarf_errmsg(dwarf_errno()) << endl;
+                return false;
+            }
+            if(offset==0) break;
+
             LocDesc ld;
             ld.ld_lopc = start;
             ld.ld_hipc = end;

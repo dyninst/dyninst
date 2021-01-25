@@ -35,7 +35,6 @@
 #include "Symbol.h"
 
 #include "Annotatable.h"
-#include "Serialization.h"
 #include "IBSTree.h"
 #include "IBSTree-fast.h"
 #if defined(cap_dwarf)
@@ -185,7 +184,7 @@ namespace Dyninst{
 									 bool checkCase = true);
 
 			// Variable based methods
-			bool findVariableByOffset(Variable *&ret, const Offset offset);
+			bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset);
 			bool findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
 									 NameType nameType = anyName,
 									 bool isRegex = false,

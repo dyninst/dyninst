@@ -78,6 +78,12 @@ CodeObject::CodeObject(CodeSource *cs,
     process_hints(); // if any
     if (!ignoreParse)
       parse();
+    else {
+      // For cases where the user does not want to parse the CodeObject,
+      // the user may still provides hints from external source,
+      // we should report hints functions back.
+      parser->record_hint_functions();
+    }
 }
 
 void
@@ -103,6 +109,7 @@ CodeObject::process_hints()
 }
 
 CodeObject::~CodeObject() {
+	// NB: We do not own _cs. It is only a polymorphic view.
     if(owns_factory)
         delete _fact;
     delete _pcb;
@@ -114,6 +121,13 @@ Function *
 CodeObject::findFuncByEntry(CodeRegion * cr, Address entry)
 {
     return parser->findFuncByEntry(cr,entry);
+}
+
+int
+CodeObject::findFuncsByBlock(CodeRegion *cr, Block *b, set<Function*> &funcs)
+{
+    assert(parser);
+    return parser->findFuncsByBlock(cr, b, funcs);
 }
 
 int

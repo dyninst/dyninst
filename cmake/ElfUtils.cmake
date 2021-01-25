@@ -37,6 +37,7 @@ if(NOT UNIX)
 endif()
 
 # Minimum acceptable version of elfutils
+# NB: We need >=0.178 because libdw isn't thread-safe before then
 set(_min_version 0.178)
 
 set(ElfUtils_MIN_VERSION ${_min_version}
@@ -165,7 +166,3 @@ include_directories(${ElfUtils_INCLUDE_DIRS})
 message(STATUS "ElfUtils includes: ${ElfUtils_INCLUDE_DIRS}")
 message(STATUS "ElfUtils library dirs: ${ElfUtils_LIBRARY_DIRS}")
 message(STATUS "ElfUtils libraries: ${ElfUtils_LIBRARIES}")
-
-if(USE_COTIRE)
-  cotire(ElfUtils)
-endif()

@@ -37,7 +37,6 @@
 #include <string>
 
 #include "common/src/Types.h"
-#include "common/src/Vector.h"
 #include <unordered_map>
 #include "common/src/Pair.h"
 
@@ -403,9 +402,7 @@ BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 
 
 //this is the main method to create the basic blocks and the
-//the edges between basic blocks. The assumption of the
-//method is as follows: It assumes existence of four machine dependent
-//functions as given in InstrucIter.h.
+//the edges between basic blocks.
 //after finding the leaders, for each leader a basic block is created and
 //then the predecessors and successors of the basic blocks are inserted
 //to the basic blocks by passing from the function address space again, one

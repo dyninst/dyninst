@@ -71,22 +71,20 @@ class mapped_module {
       AddressSpace *proc() const;
 
       // A lot of stuff shared with the internal module
-      // Were we compiled with the native compiler?
-      bool isNativeCompiler() const;
 
       SymtabAPI::supportedLanguages language() const;
 
-      const pdvector<func_instance *> &getAllFunctions();
-      const pdvector<int_variable *> &getAllVariables();
+      const std::vector<func_instance *> &getAllFunctions();
+      const std::vector<int_variable *> &getAllVariables();
 
       bool findFuncVectorByPretty(const std::string &funcname,
-            pdvector<func_instance *> &funcs);
+            std::vector<func_instance *> &funcs);
 
       // Yeah, we can have multiple mangled matches -- for libraries there
       // is a single module. Even if we went multiple, we might not have
       // module information, and so we can get collisions.
       bool findFuncVectorByMangled(const std::string &funcname,
-            pdvector<func_instance *> &funcs);
+            std::vector<func_instance *> &funcs);
 
     bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
     bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
@@ -109,7 +107,7 @@ class mapped_module {
       // to. Calls the internal getAddrFromLine and then adds the base
       // address to the returned list of offsets.
       bool getAddrFromLine(unsigned lineNum,
-            pdvector<Address> &addresses,
+            std::vector<Address> &addresses,
             bool exactMatch);
 
       void addFunction(func_instance *func);
@@ -130,8 +128,8 @@ class mapped_module {
       mapped_module(mapped_object *obj,
             pdmodule *pdmod);
 
-      pdvector<func_instance *> everyUniqueFunction;
-      pdvector<int_variable *> everyUniqueVariable;
+      std::vector<func_instance *> everyUniqueFunction;
+      std::vector<int_variable *> everyUniqueVariable;
 };
 
 #endif

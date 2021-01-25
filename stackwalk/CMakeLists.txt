@@ -60,13 +60,6 @@ elseif (PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
             src/x86-swk.C 
         )
     endif()
-elseif (PLATFORM MATCHES bgq)
-    set (SRC_LIST ${SRC_LIST}
-        src/ppc-swk.C 
-        src/symtab-swk.C 
-        src/linuxbsd-swk.C
-        src/bluegeneq-swk.C
-    )
 endif()
 if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
     set (SRC_LIST ${SRC_LIST}
@@ -109,6 +102,3 @@ endif()
 
 dyninst_library(stackwalk ${DEPS})
 target_link_private_libraries(stackwalk ${Boost_LIBRARIES})
-if (USE_COTIRE)
-    cotire(stackwalk)
-endif()

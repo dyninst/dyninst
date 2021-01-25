@@ -249,15 +249,7 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
 		   char *passwd, char *cmd, int *fd2p) {
   return (rexec(ahost, inport, user, passwd, cmd, fd2p));}
 
-/* The following values are taken from demangle.h in binutils */
-#define DMGL_PARAMS      (1 << 0)       /* Include function args */
-#define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
-
-#define DMGL_ARM         (1 << 11)      /* Use C++ ARM name mangling */ 
-
-extern "C" char *cplus_demangle(char *, int);
-extern void dedemangle( char * demangled, char * dedemangled );
-extern COMMON_EXPORT char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
+extern COMMON_EXPORT std::string P_cplus_demangle( const std::string &symbol,
 				bool includeTypes = false );
 
 inline int P_mkdir(const char *pathname, mode_t mode) {

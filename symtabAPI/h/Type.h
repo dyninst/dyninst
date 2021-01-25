@@ -31,7 +31,6 @@
 #ifndef __Type_h__
 #define __Type_h__
 
-#include "Serialization.h"
 #include "Annotatable.h"
 #include "symutil.h"
 #include "concurrent.h"
@@ -109,7 +108,7 @@ SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 				  
 #define TYPE_ANNOTATABLE_CLASS AnnotatableDense
 
-class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS 
+class SYMTAB_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
 {
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
@@ -140,11 +139,8 @@ class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS
      self_ = sp;
    }
 
-   virtual void serialize_specific(SerializerBase *) 
-	   THROW_SPEC(SerializerError) {}
-
-   Serializable * serialize_impl(SerializerBase *, 
-		   const char * = "Type") THROW_SPEC (SerializerError);
+   // Maximum memory needed to store any of the possible Types.
+   static const std::size_t max_size;
 
  protected:
    typeId_t ID_;           /* unique ID of type */
@@ -246,7 +242,7 @@ public:
 
 #define FIELD_ANNOTATABLE_CLASS AnnotatableDense
 
-class SYMTAB_EXPORT Field : public Serializable, public FIELD_ANNOTATABLE_CLASS 
+class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
 {
    friend class typeStruct;
    friend class typeUnion;
@@ -281,8 +277,6 @@ class SYMTAB_EXPORT Field : public Serializable, public FIELD_ANNOTATABLE_CLASS
    int getOffset();
    
    void fixupUnknown(Module *);
-   Serializable * serialize_impl(SerializerBase *sb, 
-		   const char *tag="Field") THROW_SPEC(SerializerError);
    virtual bool operator==(const Field &) const;
 };
 
@@ -343,8 +337,6 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
    void addField(Field *fld);
    void addField(unsigned num, Field *fld);
   
-   void serialize_fieldlist(Dyninst::SerializerBase *, 
-		   const char * = "fieldListType") THROW_SPEC (SerializerError);
   // void addField(const std::string &fieldname,  dataClass typeDes, 
   //               Type *type, int offset, int size, visibility_t vis = visUnknown);
 };
@@ -359,8 +351,6 @@ class SYMTAB_EXPORT rangedType : public Type, public rangedInterface {
    //rangedType(const std::string &name, typeId_t ID, dataClass typeDes, int size, const char *low, const char *hi); 
    rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, unsigned long low, unsigned long hi);
    rangedType(std::string &name, dataClass typeDes, int size, unsigned long low, unsigned long hi);
-   void serialize_ranged(SerializerBase *, 
-		   const char * = "rangedType") THROW_SPEC (SerializerError);
  public:
    rangedType();
    ~rangedType();
@@ -383,8 +373,6 @@ class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
    bool operator==(const Type &) const;
    boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const;
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
-   void serialize_derived(SerializerBase *, 
-		   const char * = "derivedType") THROW_SPEC(SerializerError);
 };
 derivedType& Type::asDerivedType() { return dynamic_cast<derivedType&>(*this); }
 bool Type::isDerivedType() { return dynamic_cast<derivedType*>(this) != NULL; }
@@ -406,7 +394,6 @@ class SYMTAB_EXPORT typeEnum : public Type {
    bool setName(const char *name);
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 typeEnum& Type::asEnumType() { return dynamic_cast<typeEnum&>(*this); }
 bool Type::isEnumType() { return dynamic_cast<typeEnum*>(this) != NULL; }
@@ -444,7 +431,6 @@ class SYMTAB_EXPORT typeFunction : public Type {
    dyn_c_vector<boost::shared_ptr<Type>> &getParams();
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 typeFunction& Type::asFunctionType() { return dynamic_cast<typeFunction&>(*this); }
 
@@ -459,7 +445,6 @@ class SYMTAB_EXPORT typeScalar : public Type {
    bool isSigned();
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
 class SYMTAB_EXPORT typeCommon : public fieldListType {
@@ -477,12 +462,11 @@ class SYMTAB_EXPORT typeCommon : public fieldListType {
    dyn_c_vector<CBlock *> *getCblocks() const;
    void beginCommonBlock();
    void endCommonBlock(Symbol *, void *baseAddr);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 typeCommon& Type::asCommonType() { return dynamic_cast<typeCommon&>(*this); }
 bool Type::isCommonType() { return dynamic_cast<typeCommon*>(this) != NULL; }
 
-class SYMTAB_EXPORT CBlock : public Serializable, public AnnotatableSparse
+class SYMTAB_EXPORT CBlock : public AnnotatableSparse
 {
    friend class typeCommon;
  private:
@@ -498,9 +482,6 @@ class SYMTAB_EXPORT CBlock : public Serializable, public AnnotatableSparse
    dyn_c_vector<Symbol *> *getFunctions();
 
    void fixupUnknowns(Module *);
-   
-   Serializable * serialize_impl(SerializerBase *,
-		   const char *tag="CBlock") THROW_SPEC(SerializerError);
 };
 
 class SYMTAB_EXPORT typeStruct : public fieldListType {
@@ -530,7 +511,6 @@ class SYMTAB_EXPORT typeStruct : public fieldListType {
 
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 bool Type::isStructType() { return dynamic_cast<typeStruct*>(this) != NULL; }
 
@@ -560,7 +540,6 @@ class SYMTAB_EXPORT typeUnion : public fieldListType {
 							Symtab *obj = NULL);
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
 class SYMTAB_EXPORT typePointer : public derivedType {
@@ -588,7 +567,6 @@ class SYMTAB_EXPORT typePointer : public derivedType {
    bool isCompatible(Type *otype);
    bool setPtr(boost::shared_ptr<Type> ptr);
    bool setPtr(Type* ptr) { return setPtr(ptr->reshare()); };
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
 class SYMTAB_EXPORT typeTypedef: public derivedType {
@@ -615,7 +593,6 @@ class SYMTAB_EXPORT typeTypedef: public derivedType {
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
 class SYMTAB_EXPORT typeRef : public derivedType {
@@ -636,7 +613,6 @@ class SYMTAB_EXPORT typeRef : public derivedType {
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
 class SYMTAB_EXPORT typeSubrange : public rangedType {
@@ -649,7 +625,6 @@ class SYMTAB_EXPORT typeSubrange : public rangedType {
    static typeSubrange *create(std::string &name, int size, long low, long hi, Symtab *obj = NULL);
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
 class SYMTAB_EXPORT typeArray : public rangedType {
@@ -677,7 +652,6 @@ class SYMTAB_EXPORT typeArray : public rangedType {
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
    void fixupUnknowns(Module *);
-   void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 typeArray& Type::asArrayType() { return dynamic_cast<typeArray&>(*this); }
 bool Type::isArrayType() { return dynamic_cast<typeArray*>(this) != NULL; }

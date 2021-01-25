@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <signal.h>
 #include "../h/InstructionCategories.h"
 #include "../h/Instruction.h"
 #include "../h/Register.h"
@@ -226,9 +227,8 @@ namespace Dyninst
 
     INSTRUCTION_EXPORT void Instruction::getOperands(std::vector<Operand>& operands) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
       
       std::copy(m_Operands.begin(), m_Operands.end(), std::back_inserter(operands));
@@ -236,9 +236,8 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT Operand Instruction::getOperand(int index) const
      {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
 
         if(index < 0 || index >= (int)(m_Operands.size()))
@@ -283,10 +282,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {
-        if(m_Operands.empty())
-        {
-	        decodeOperands();
-        }
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
+      }
+
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -300,10 +299,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
     { 
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
+
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -317,10 +316,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT bool Instruction::isRead(Expression::Ptr candidate) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
+
       for(std::list<Operand >::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -335,10 +334,10 @@ namespace Dyninst
 
     INSTRUCTION_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
+
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -353,10 +352,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT bool Instruction::readsMemory() const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
+
       if(getCategory() == c_PrefetchInsn)
       {
           return false;
@@ -375,10 +374,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT bool Instruction::writesMemory() const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
+
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
           curOperand != m_Operands.end();
 	  ++curOperand)
@@ -393,10 +392,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
+
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -409,10 +408,10 @@ memAccessors.begin()));
     
     INSTRUCTION_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
       }
+
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
           curOperand != m_Operands.end();
 	  ++curOperand)
@@ -422,7 +421,36 @@ memAccessors.begin()));
       std::copy(m_InsnOp.getImplicitMemWrites().begin(), m_InsnOp.getImplicitMemWrites().end(), std::inserter(memAccessors,
 memAccessors.begin()));
     }
-    
+
+    INSTRUCTION_EXPORT Operand Instruction::getPredicateOperand() const
+    {
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+        decodeOperands();
+      }
+
+      for(auto const &op : m_Operands) {
+        if (op.isTruePredicate() || op.isFalsePredicate()) {
+          return op;
+        }
+      }
+
+      return Operand(Expression::Ptr(), false, false);
+    }
+    INSTRUCTION_EXPORT bool Instruction::hasPredicateOperand() const
+    {
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+        decodeOperands();
+      }
+
+      for(auto const &op : m_Operands) {
+        if (op.isTruePredicate() || op.isFalsePredicate()) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
     INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
     {
         // We assume control flow transfer instructions have the PC as
@@ -439,10 +467,10 @@ memAccessors.begin()));
         {
             return makeReturnExpression();
         }
-        if(m_Operands.empty())
-        {
-            decodeOperands();
+        if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
         }
+
         if(m_Successors.empty())
         {
             return Expression::Ptr();
@@ -456,9 +484,8 @@ memAccessors.begin()));
 
     INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
-        if(m_Operands.empty())
-        {
-            decodeOperands();
+        if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
         }
 
         //remove this once ArchSpecificFormatter is extended for all architectures
@@ -538,30 +565,33 @@ memAccessors.begin()));
       case e_sysexit:
       case e_call:
       case e_syscall:
-	return false;
-          case e_jnb:
-          case e_jb:
-          case e_jb_jnaej_j:
-          case e_jbe:
-          case e_jcxz_jec:
-          case e_jl:
-          case e_jle:
-          case e_jnb_jae_j:
-          case e_jnbe:
-          case e_jnl:
-          case e_jnle:
-          case e_jno:
-          case e_jnp:
-          case e_jns:
-          case e_jnz:
-          case e_jo:
-          case e_jp:
-          case e_js:
-          case e_jz:
-              return true;
+      //case amdgpu_op_s_swappc_b64:
+          return false;
+      case e_jnb:
+      case e_jb:
+      case e_jb_jnaej_j:
+      case e_jbe:
+      case e_jcxz_jec:
+      case e_jl:
+      case e_jle:
+      case e_jnb_jae_j:
+      case e_jnbe:
+      case e_jnl:
+      case e_jnle:
+      case e_jno:
+      case e_jnp:
+      case e_jns:
+      case e_jnz:
+      case e_jo:
+      case e_jp:
+      case e_js:
+      case e_jz:
+          return true;
       default:
       {
-	decodeOperands();
+        if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+          decodeOperands();
+        }
           for(cftConstIter targ = m_Successors.begin();
               targ != m_Successors.end();
               ++targ)
@@ -596,7 +626,9 @@ memAccessors.begin()));
        InsnCategory c = entryToCategory(m_InsnOp.getID());
        if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64))
        {
-          if(m_Operands.empty()) decodeOperands();
+         if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+           decodeOperands();
+         }
           for(cftConstIter cft = cft_begin();
               cft != cft_end();
               ++cft)
@@ -634,6 +666,12 @@ memAccessors.begin()));
         m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit));
     }
   
+    void Instruction::appendOperand(Expression::Ptr e, 
+		bool isRead, bool isWritten, bool isImplicit, bool trueP, bool falseP) const
+    {
+        m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
+    }
+
 
   };
 };

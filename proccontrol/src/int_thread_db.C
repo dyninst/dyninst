@@ -352,21 +352,11 @@ static void *dlopenThreadDB(char *path)
          filename += std::string("/");
       }
       filename += std::string("libthread_db.so");
-#if !defined(os_bg)
-      //On BG alt_filename would try to load /lib/libthread_db.so, which is
-      // for the IO node.
       alt_filename = std::string("libthread_db.so");
-#endif
-
    }
    else {
       filename = std::string("libthread_db.so");
    }
-
-#if defined(os_bgq)
-   alt_filename = filename;
-   filename = std::string("/bgsys/drivers/ppcfloor/gnu-linux/powerpc64-bgq-linux/lib/libthread_db.so.1");
-#endif
 
    pthrd_printf("Opening thread_db with %s\n", filename.c_str());
    void *libhandle = dlopen(filename.c_str(), RTLD_LAZY);
@@ -1455,8 +1445,11 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
    }
    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
    thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(ev->getThread()->llthrd());
-   pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
-   thrd->markDestroyed();
+
+   if(thrd) {
+      pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
+      thrd->markDestroyed();
+   }
 
    return Handler::ret_success;
 }

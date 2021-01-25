@@ -83,71 +83,9 @@ enum EdgeTypeEnum {
 
 PARSER_EXPORT std::string format(EdgeTypeEnum e);
 
-#define FLIST_BADNEXT ((void*)0x111)
-#define FLIST_BADPREV ((void*)0x222)
-
-/*
- * All CFG objects extend allocatable, which
- * allows them to be added and removed from
- * accounting structures in constant time
- */
-class PARSER_EXPORT allocatable {
- public:
-    allocatable() :
-       anext_((allocatable*)FLIST_BADNEXT),
-       aprev_((allocatable*)FLIST_BADPREV)
-    { }
-    allocatable * anext_;
-    allocatable * aprev_;
-
-    inline allocatable * alloc_next() const { return anext_; }
-    inline allocatable * alloc_prev() const { return aprev_; }
-    inline void alloc_set_next(allocatable *t) { anext_ = t; }
-    inline void alloc_set_prev(allocatable *t) { aprev_ = t; }
-
-    void remove() {
-        if(anext_ != (allocatable*)FLIST_BADNEXT)
-            anext_->aprev_ = aprev_;
-        if(aprev_ != (allocatable*)FLIST_BADPREV)
-            aprev_->anext_ = anext_;
-
-        anext_ = (allocatable*)FLIST_BADNEXT;
-        aprev_ = (allocatable*)FLIST_BADPREV;
-    }
-
-    void append(allocatable & new_elem) {
-        if(anext_ == (allocatable*)FLIST_BADNEXT ||
-           aprev_ == (allocatable*)FLIST_BADPREV)
-        {
-            fprintf(stderr,
-                "allocatable::append called on element not on list: %p\n",this);
-            return;
-        }
-        anext_->aprev_ = &new_elem;
-        new_elem.anext_ = anext_;
-        new_elem.aprev_ = this;
-        anext_ = &new_elem;
-    }
-
-    void prepend(allocatable & new_elem) {
-        if(anext_ == (allocatable*)FLIST_BADNEXT ||
-           aprev_ == (allocatable*)FLIST_BADPREV)
-        {
-            fprintf(stderr,
-               "allocatable::prepend called on element not on list: %p\n",this);
-            return;
-        }
-        aprev_->anext_ = &new_elem;
-        new_elem.aprev_ = aprev_;
-        new_elem.anext_ = this;
-        aprev_ = &new_elem;
-    }
-};
-
 class Block;
 
-
-class PARSER_EXPORT Edge : public allocatable {
+class PARSER_EXPORT Edge {
    friend class CFGModifier;
     friend class Block;
  protected:
@@ -302,13 +240,12 @@ class CodeRegion;
 
 class PARSER_EXPORT Block :
         public Dyninst::SimpleInterval<Address, int>,
-        public allocatable,
         public boost::lockable_adapter<boost::recursive_mutex> {
     friend class CFGModifier;
     friend class Parser;
  public:
     typedef std::map<Offset, InstructionAPI::Instruction> Insns;
-    typedef std::list<Edge*> edgelist;
+    typedef std::set<Edge*> edgelist;
 public:
     static Block * sink_block;
 
@@ -379,12 +316,11 @@ public:
     Function * createdByFunc() { return _createdByFunc; }
 
 private:
-    std::map<int, std::set<Address> > targetMap;
-    std::map<int, std::set<Address> > sourceMap;
     void addSource(Edge * e);
     void addTarget(Edge * e);
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
+    void moveTargetEdges(Block *);
     void removeFunc(Function *);
     friend class region_data;
     void updateEnd(Address addr);
@@ -443,7 +379,7 @@ class FuncExtent;
 class Loop;
 class LoopTreeNode;
 
-class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
+class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
    friend class CFGModifier;
    friend class LoopAnalyzer;
  protected:
@@ -578,7 +514,12 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     {
         bool operator()(const Function * f1, const Function * f2) const
         {
-            return f1->addr() < f2->addr();
+            if (f1->region() < f2->region()) return true;
+            else if (f1->region() == f2->region() &&
+                     f1->addr() < f2->addr()) {
+               return true;
+            }
+            return false;
         }
     };
 

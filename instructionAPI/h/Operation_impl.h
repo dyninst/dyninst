@@ -101,6 +101,7 @@ namespace Dyninst
       typedef std::set<Expression::Ptr> VCSet;
       friend class InstructionDecoder_power; // for editing mnemonics after creation
       friend class InstructionDecoder_aarch64;
+      friend class InstructionDecoder_amdgpu_vega;
       
     public:
       INSTRUCTION_EXPORT Operation_impl(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,

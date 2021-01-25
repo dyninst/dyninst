@@ -128,7 +128,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
  private:
     void updateCallTarget(func_instance *func);
     func_instance *findFunction(ParseAPI::Function *);
-
+    func_instance* callee(std::string const&);
     // edges srcs_;
     // edges trgs_;
 

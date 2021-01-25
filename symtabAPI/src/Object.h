@@ -177,8 +177,8 @@ friend class Module;
     Offset data_vldS_;
     Offset data_vldE_;
 
-    Offset loader_off_; //only used on aix right now.  could be
-    Offset loader_len_; //needed on other platforms in the future
+    Offset loader_off_;
+    Offset loader_len_;
 
 //    Offset loadAddress_;
 //    Offset entryAddress_;
@@ -218,7 +218,7 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#if defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_vxworks)
+#if defined(os_linux) || defined(os_freebsd)
 #include "Object-elf.h"
 #elif defined(os_windows)
 #include "Object-nt.h"

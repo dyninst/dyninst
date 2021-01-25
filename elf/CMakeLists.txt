@@ -32,6 +32,3 @@ if (ENABLE_DEBUGINFOD AND LibDebuginfod_FOUND)
 endif()
 
 add_definitions(-DDYNELF_LIB)
-if (USE_COTIRE)
-    cotire(dynElf)
-endif()

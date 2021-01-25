@@ -43,7 +43,6 @@
 
 #include "symutil.h"
 #include "Annotatable.h"
-#include "Serialization.h"
 #include <boost/shared_ptr.hpp>
 
 #ifndef CASE_RETURN_STR
@@ -69,8 +68,7 @@ class Symtab;
  * class Symbol
 ************************************************************************/
 
-class SYMTAB_EXPORT Symbol : public Serializable,
-               public AnnotatableSparse 
+class SYMTAB_EXPORT Symbol : public AnnotatableSparse
 {
    friend class typeCommon;
    friend class Symtab;
@@ -213,7 +211,7 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    int getStrIndex() const { return strindex_; }
    bool setStrIndex(int strindex) { strindex_ = strindex; return true; }
    void setReferringSymbol (Symbol *referringSymbol);
-   Symbol* getReferringSymbol ();
+   Symbol* getReferringSymbol () const;
 
    //////////////// Modification
    bool setOffset (Offset newOffset);
@@ -238,17 +236,17 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    bool  setVersionNum(unsigned verNum);
    void setVersionHidden() { versionHidden_ = true; }
 
-   bool  getVersionFileName(std::string &fileName);
-   bool  getVersions(std::vector<std::string> *&vers);
-   bool  getVersionNum(unsigned &verNum);
-   bool  getVersionHidden() { return versionHidden_; }
+   bool  getVersionFileName(std::string &fileName) const;
+   bool  getVersions(std::vector<std::string> *&vers) const;
+   bool  getVersionNum(unsigned &verNum) const;
+   bool  getVersionHidden() const { return versionHidden_; }
 
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
    public:
    static std::string emptyString;
-   int getInternalType() { return internal_type_; }
+   int getInternalType() const { return internal_type_; }
    void setInternalType(int i) { internal_type_ = i; }
 
    private:
@@ -282,14 +280,6 @@ class SYMTAB_EXPORT Symbol : public Serializable,
    std::vector<std::string> verNames_;
 
    bool versionHidden_;
-
-   void restore_module_and_region(SerializerBase *, 
-		   std::string &, Offset) THROW_SPEC (SerializerError);
-
-   public:
-
-   Serializable * serialize_impl(SerializerBase *, 
-		   const char *tag = "Symbol") THROW_SPEC (SerializerError);
 };
 
 class SYMTAB_EXPORT LookupInterface 
