@@ -28,7 +28,7 @@
 #
 #======================================================================================
 
-if(LibElf_FOUND AND LibDwarf_FOUND AND (LibDebuginfod_FOUND OR NOT ENABLE_DEBUGINFOD))
+if(LibElf_FOUND AND LibDwarf_FOUND AND NOT ENABLE_DEBUGINFOD)
   return()
 endif()
 
@@ -37,11 +37,7 @@ if(NOT UNIX)
 endif()
 
 # Minimum acceptable version of elfutils
-if(ENABLE_DEBUGINFOD)
-  set(_min_version 0.179)
-else()
-  set(_min_version 0.178)
-endif()
+set(_min_version 0.178)
 
 set(ElfUtils_MIN_VERSION ${_min_version}
     CACHE STRING "Minimum acceptable elfutils version")
@@ -81,7 +77,7 @@ find_package(LibElf ${ElfUtils_MIN_VERSION})
 if(LibElf_FOUND)
   find_package(LibDwarf ${ElfUtils_MIN_VERSION})
   if (ENABLE_DEBUGINFOD)
-    find_package(LibDebuginfod ${ElfUtils_MIN_VERSION})
+    find_package(LibDebuginfod ${ElfUtils_MIN_VERSION} REQUIRED)
   endif()
 endif()
 
@@ -99,8 +95,6 @@ if(LibElf_FOUND AND LibDwarf_FOUND AND (NOT ENABLE_DEBUGINFOD OR LibDebuginfod_F
     set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES})
   endif()
   add_library(ElfUtils SHARED IMPORTED)
-elseif(ENABLE_DEBUGINFOD AND NOT LibDebuginfod_FOUND)
-  message(FATAL_ERROR "Debuginfod enabled but not found")
 elseif(NOT (LibElf_FOUND AND LibDwarf_FOUND) AND STERILE_BUILD)
   message(FATAL_ERROR "Elfutils not found and cannot be downloaded because build is sterile.")
 else()
