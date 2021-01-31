@@ -156,9 +156,9 @@ namespace Dyninst {
 		}
 
 
-		bool InstructionDecoder_amdgpu_vega::decodeOperands(const Instruction *insn_to_complete) {
+		bool InstructionDecoder_amdgpu_vega::decodeOperands(const Instruction *) {
 			assert(0 && "decodeOperands deprecated for amdgpu");
-			return insn_to_complete != NULL;
+			return true;
 		}
 
 		Expression::Ptr InstructionDecoder_amdgpu_vega::decodeSGPRorM0(unsigned int offset){

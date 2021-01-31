@@ -64,7 +64,7 @@ IA_amdgpu* IA_amdgpu::clone() const {
     return new IA_amdgpu(*this);
 }
 
-bool IA_amdgpu::isFrameSetupInsn(Instruction i) const
+bool IA_amdgpu::isFrameSetupInsn(Instruction ) const
 {
     return false;
 }
@@ -83,8 +83,8 @@ bool IA_amdgpu::isThunk() const
     return false;
 }
 
-bool IA_amdgpu::isTailCall(const Function* context, EdgeTypeEnum type, unsigned int,
-        const std::set<Address>& knownTargets ) const
+bool IA_amdgpu::isTailCall(const Function*, EdgeTypeEnum , unsigned int,
+        const std::set<Address>&  ) const
 {
    return false;
 }
@@ -104,17 +104,17 @@ bool IA_amdgpu::cleansStack() const
    return false;
 }
 
-bool IA_amdgpu::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const
+bool IA_amdgpu::sliceReturn(ParseAPI::Block* , Address , ParseAPI::Function * ) const
 {
     return true;
 }
 
-bool IA_amdgpu::isReturnAddrSave(Address& retAddr) const
+bool IA_amdgpu::isReturnAddrSave(Address& ) const
 {
   return false;
 }
 
-bool IA_amdgpu::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
+bool IA_amdgpu::isReturn(Dyninst::ParseAPI::Function * , Dyninst::ParseAPI::Block*) const
 {
     return curInsn().getCategory() == c_ReturnInsn;
 }
