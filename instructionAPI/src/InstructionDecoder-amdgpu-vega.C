@@ -173,7 +173,6 @@ namespace Dyninst {
 
 		void InstructionDecoder_amdgpu_vega::finalizeFLATOperands(){
 			layout_flat & layout = insn_layout.flat;
-			//const amdgpu_insn_entry & insn_entry = amdgpu_vega::flat_insn_table[layout.op];
 
 			Expression::Ptr addr_ast = 
 				makeTernaryExpression(
@@ -198,7 +197,6 @@ namespace Dyninst {
 		}
 		void InstructionDecoder_amdgpu_vega::finalizeMUBUFOperands(){
 			layout_mubuf & layout = insn_layout.mubuf;
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mubuf_insn_table[layout.op];
 
 			MachRegister vsharp = makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.srsrc<<2,4);
 			Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
@@ -309,7 +307,6 @@ namespace Dyninst {
 
 		void InstructionDecoder_amdgpu_vega::finalizeMTBUFOperands(){
 			layout_mtbuf & layout = insn_layout.mtbuf;
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::mtbuf_insn_table[layout.op];
 
 			MachRegister vsharp = makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.srsrc<<2,4);
 			Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
@@ -393,7 +390,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeVOP1Operands(){
 
 			layout_vop1 & layout = insn_layout.vop1;
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
 			//cout << " finalizing vop1 operands , vdst = " << std::dec << layout.vdst << " src0 = " << layout.src0 <<endl;
 
 			insn_in_progress->appendOperand(decodeVDST(layout.vdst),false,true);
@@ -405,7 +401,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeSOP1Operands(){
 
 			layout_sop1 & layout = insn_layout.sop1;
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop1_insn_table[layout.op];
 
 			if(isBranch){
 				if(isModifyPC){
@@ -455,7 +450,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeSOPPOperands(){
 
 			layout_sopp & layout = insn_layout.sopp;
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
 
 			if(isBranch){
 				if(!isModifyPC){	
@@ -470,7 +464,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeSOPKOperands(){
 
 			layout_sopp & layout = insn_layout.sopp;
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
 
 			if(isBranch){
 				if(!isModifyPC){	
@@ -489,7 +482,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeSOP2Operands(){
 
 			layout_sop2 & layout = insn_layout.sop2;
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
 		    auto opID = insn_in_progress->getOperation().operationID ;	
 
             switch(opID){
@@ -513,7 +505,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeSMEMOperands(){
 			layout_smem & layout = insn_layout.smem;
 
-			//const amdgpu_insn_entry  &insn_entry = amdgpu_insn_entry::smem_insn_table[layout.op];
 			if(IS_LD_ST()){
 				Expression::Ptr offset_expr ;
 				Expression::Ptr inst_offset_expr ;
