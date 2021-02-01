@@ -70,13 +70,13 @@ namespace Dyninst
         uses.insert(shared_from_this());
         return;
     }
-    bool TernaryAST::isUsed(InstructionAST::Ptr findMe) const
+    bool TernaryAST::isUsed(InstructionAST::Ptr) const
     {
         return false; //TODO
         //return findMe->checkRegID(m_Reg, m_Low, m_High);
     }
 
-    std::string TernaryAST::format(Architecture arch, formatStyle f) const
+    std::string TernaryAST::format(Architecture, formatStyle f) const
     {
         return TernaryAST::format(f); // TODO
         //return ArchSpecificFormatter::getFormatter(arch).formatTernary(m_Reg.name());
@@ -89,20 +89,20 @@ namespace Dyninst
         return name;
     }
     
-    bool TernaryAST::operator<(const TernaryAST& rhs) const
+    bool TernaryAST::operator<(const TernaryAST&) const
     {
         return false;
     }
-    bool TernaryAST::isStrictEqual(const InstructionAST& rhs) const
+    bool TernaryAST::isStrictEqual(const InstructionAST&) const
     {
           return false;
     }
 
-    void TernaryAST::apply(Visitor* v)
+    void TernaryAST::apply(Visitor*)
     {
         //v->visit(this); // TODO need to support this in visitor
     }
-    bool TernaryAST::bind(Expression* e, const Result& val)
+    bool TernaryAST::bind(Expression*, const Result&)
     {
         return false; // TODO
 
