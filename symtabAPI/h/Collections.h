@@ -123,9 +123,9 @@ public:
     void addType(Type* t, dyn_mutex::unique_lock& g) {
       addType(t->reshare(), g);
     }
-    void addGlobalVariable(std::string &name, boost::shared_ptr<Type> type);
-    void addGlobalVariable(std::string &name, Type* t) {
-      addGlobalVariable(name, t->reshare());
+    void addGlobalVariable(boost::shared_ptr<Type> type);
+    void addGlobalVariable(Type* t) {
+      addGlobalVariable(t->reshare());
     }
 
     /* Some debug formats allow forward references.  Rather than

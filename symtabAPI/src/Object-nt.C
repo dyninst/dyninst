@@ -2104,10 +2104,9 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
          }
       }
       if (name) {
-         std::string vName = name;
 		 typeCollection *tc = typeCollection::getModTypeCollection(mod);
 		 assert(tc);
-         tc->addGlobalVariable(vName, type);
+         tc->addGlobalVariable(type);
       }
    }
    return TRUE;
