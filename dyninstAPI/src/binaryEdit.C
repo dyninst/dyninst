@@ -1026,7 +1026,11 @@ void BinaryEdit::addTrap(Address from, Address to, codeGen &gen) {
    gen.allocate(4);
    gen.setAddrSpace(this);
    gen.setAddr(from);
-   insnCodeGen::generateTrap(gen);
+   if (sigILLTrampoline_) {
+      insnCodeGen::generateIllegal(gen);
+   } else {
+      insnCodeGen::generateTrap(gen);
+   }
    trapMapping.addTrapMapping(from, to, true);
    springboard_cerr << "Generated springboard trap " << hex << from << "->" << to << dec << endl;
 }
