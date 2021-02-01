@@ -78,7 +78,7 @@ public:
     void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			   codeGen &gen);
     void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
-    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
+    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
     void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
@@ -201,7 +201,7 @@ public:
     void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			   codeGen &gen);
     void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
-    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
+    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
     void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
