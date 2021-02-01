@@ -17,11 +17,39 @@
 #include "Type.h"
 #include "Object.h"
 #include <boost/shared_ptr.hpp>
+#include <boost/functional/hash.hpp>
 #include <Collections.h>
 
 //Concurrent Hash Map
 #include "concurrent.h"
 #include <bits/stdc++.h>
+
+namespace Dyninst {
+namespace SymtabAPI {
+    typedef struct {
+        Dwarf_Off off;
+        bool file;
+        Module * m;
+    } type_key;
+}
+}
+
+namespace tbb {
+    using namespace Dyninst::SymtabAPI;
+    template<>
+    struct tbb_hash_compare<type_key> {
+        static size_t hash(const type_key& k) {
+            size_t seed = 0;
+            boost::hash_combine(seed, k.off);
+            boost::hash_combine(seed, k.file);
+            boost::hash_combine(seed, static_cast<void *>(k.m));
+            return seed;
+        }
+        static bool equal(const type_key& k1, const type_key& k2) {
+            return (k1.off==k2.off && k1.file==k2.file && k1.m==k2.m);
+        }
+    };
+}
 
 namespace Dyninst {
 namespace SymtabAPI {
@@ -38,6 +66,8 @@ class typeEnum;
 class fieldListType;
 class typeCollection;
 class Type;
+
+using namespace std;
 
 class DwarfParseActions {
 
@@ -393,10 +423,11 @@ private:
     // we need to subtract a "header overall offset".
     Dwarf_Off compile_offset;
 
+    typedef dyn_c_hash_map<type_key, typeId_t> type_map;
     // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
     // either .debug_info or .debug_types.
-    dyn_c_hash_map<std::pair<Dwarf_Off,bool>, typeId_t> info_type_ids_; // .debug_info offset -> id
-    dyn_c_hash_map<std::pair<Dwarf_Off,bool>, typeId_t> types_type_ids_; // .debug_types offset -> id
+    type_map info_type_ids_; // .debug_info offset -> id
+    type_map types_type_ids_; // .debug_types offset -> id
 
     // is_sup indicates it's in the dwarf supplemental file
     typeId_t get_type_id(Dwarf_Off offset, bool is_info, bool is_sup);

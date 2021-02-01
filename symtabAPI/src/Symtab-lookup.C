@@ -356,7 +356,6 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
         return true;
     }	
 
-    setSymtabError(No_Such_Symbol);
     return false;
 }
 
@@ -409,7 +408,6 @@ bool Symtab::findModuleByName(Module *&ret, const std::string name)
       return true;
    }
 
-   setSymtabError(No_Such_Module);
    ret = NULL;
    return false;
 }

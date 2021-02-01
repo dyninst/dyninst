@@ -91,7 +91,7 @@ void symtab_log_perror(const char *msg)
 };
 
 
-static thread_local SymtabError serr;
+static thread_local SymtabError serr = SymtabError::No_Error;
 
 std::vector<Symtab *> Symtab::allSymtabs;
 
@@ -1240,8 +1240,8 @@ bool Symtab::extractInfo(Object *linkedFile)
            if( object_type_ != obj_RelocatableFile ||
                linkedFile->code_ptr() == 0)
            {
-	        setSymtabError(Obj_Parsing);
-                return false;
+               setSymtabError(Obj_Parsing);
+               return false;
            }
        }
    }
