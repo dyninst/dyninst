@@ -228,17 +228,17 @@ bool IA_aarch64::cleansStack() const
     return false;
 }
 
-bool IA_aarch64::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const
+bool IA_aarch64::sliceReturn(ParseAPI::Block*, Address, ParseAPI::Function *) const
 {
     return true;
 }
 
-bool IA_aarch64::isReturnAddrSave(Address& retAddr) const
+bool IA_aarch64::isReturnAddrSave(Address&) const
 {
   return false;
 }
 
-bool IA_aarch64::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
+bool IA_aarch64::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block*) const
 {
     return curInsn().getCategory() == c_ReturnInsn;
 }
