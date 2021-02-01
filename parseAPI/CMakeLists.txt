@@ -76,6 +76,7 @@ set(ROSE_SRC
         ../dataflowAPI/rose/semantics/BaseSemantics2.C
         #../dataflowAPI/rose/semantics/ConcreteSemantics2.C
         ../dataflowAPI/rose/semantics/DispatcherARM64.C
+        ../dataflowAPI/rose/semantics/DispatcherAmdgpuVega.C
 	    ../dataflowAPI/rose/semantics/DispatcherPowerpc.C
         ../dataflowAPI/rose/semantics/RegisterParts.C
         ../dataflowAPI/rose/semantics/Registers.C

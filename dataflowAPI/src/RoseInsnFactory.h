@@ -36,6 +36,7 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/amdgpuInstructionEnum.h"
 #include "Visitor.h"
 #include "Instruction.h"
 #include "common/h/util.h"
@@ -86,6 +87,7 @@ namespace Dyninst {
         protected:
             typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
             typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+            uint64_t _addr = 0 ;
         public:
             DATAFLOW_EXPORT RoseInsnFactory(void) { };
 
@@ -187,7 +189,32 @@ namespace Dyninst {
 
             virtual Architecture arch() { return a; };
         };
-        
+         
+        class RoseInsnAmdgpuVegaFactory : public RoseInsnFactory {
+        public:
+            DATAFLOW_EXPORT RoseInsnAmdgpuVegaFactory(Architecture arch) : a(arch) { };
+
+            DATAFLOW_EXPORT virtual ~RoseInsnAmdgpuVegaFactory() { };
+
+        private:
+            Architecture a;
+
+            virtual SgAsmInstruction *createInsn();
+
+            virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem);
+
+            virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
+
+            virtual void massageOperands(const InstructionAPI::Instruction &insn,
+                                         std::vector<InstructionAPI::Operand> &operands );
+
+            virtual void setSizes(SgAsmInstruction *insn);
+
+            AmdgpuVegaInstructionKind convertKind(entryID opcode);
+
+            virtual Architecture arch() { return a; };
+        };
+       
     };
 };
 

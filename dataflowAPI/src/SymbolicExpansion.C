@@ -34,11 +34,13 @@
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmx86Instruction.h"
+#include "../rose/SgAsmAmdgpuVegaInstruction.h"
 
 #include "../rose/x86InstructionSemantics.h"
 #include "../rose/x86_64InstructionSemantics.h"
 
 #include "../rose/semantics/DispatcherARM64.h"
+#include "../rose/semantics/DispatcherAmdgpuVega.h"
 #include "../rose/semantics/DispatcherPowerpc.h"
 
 using namespace Dyninst;
@@ -102,6 +104,20 @@ bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics
     SgAsmArmv8Instruction *insn = static_cast<SgAsmArmv8Instruction *>(rose_insn);
 
     BaseSemantics::DispatcherPtr cpu = DispatcherARM64::instance(ops, 64);
+
+    try {
+        cpu->processInstruction(insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+    }
+
+    return false;
+}
+
+bool SymbolicExpansion::expandAmdgpuVega(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &insn_dump) {
+    SgAsmAmdgpuVegaInstruction *insn = static_cast<SgAsmAmdgpuVegaInstruction *>(rose_insn);
+
+    BaseSemantics::DispatcherPtr cpu = DispatcherAmdgpuVega::instance(ops, 64);
 
     try {
         cpu->processInstruction(insn);

@@ -95,6 +95,40 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateAST::convert(const RegisterDescri
     ASSERT_always_forbid("converting ROSE register to Dyninst register is platform specific, should not call this base class method.");
 }
 
+
+Dyninst::Absloc SymEvalSemantics::RegisterStateAST_AMDGPU_VEGA::convert(const RegisterDescriptor &reg) {
+    Dyninst::MachRegister mreg;
+
+    unsigned int major = reg.get_major();
+    unsigned int minor = reg.get_minor();
+    unsigned int size = reg.get_nbits();
+    //std::cout << "in func " << __func__ << " major = " << major  << " minor = " << minor << std::endl; 
+
+    switch (major) {
+        case amdgpu_regclass_sgpr_vec2 : {
+            Dyninst::MachRegister base = Dyninst::amdgpu_vega::sgpr_vec2_0;
+            
+           // std::cout << "dealing with sgpr pair in , offset = " << minor << std::endl;
+            mreg  = Dyninst::MachRegister(base.val() + minor) ;
+            break;
+        }
+        case amdgpu_regclass_sgpr : {
+            Dyninst::MachRegister base = Dyninst::amdgpu_vega::sgpr0;
+            //std::cout << "dealing with sgpr pair in , offset = " << minor << std::endl;
+            mreg  = Dyninst::MachRegister(base.val() + minor) ;
+            break;
+        }
+        case amdgpu_regclass_pc : {
+            mreg = Dyninst::amdgpu_vega::pc;
+            break;
+        }
+        default:
+            ASSERT_always_forbid("Unexpected register major type.");
+    }
+
+    return Dyninst::Absloc(mreg);
+}
+
 Dyninst::Absloc SymEvalSemantics::RegisterStateASTARM64::convert(const RegisterDescriptor &reg) {
     Dyninst::MachRegister mreg;
 

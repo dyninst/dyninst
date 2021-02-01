@@ -1,6 +1,6 @@
-#ifndef ROSE_AMDGPUINSTRUCTIONENUM_H
-#define ROSE_AMDGPUINSTRUCTIONENUM_H
-enum AMDGPURegisterClass{
+#ifndef ROSE_AMDGPU_VEGA_INSTRUCTIONENUM_H
+#define ROSE_AMDGPU_VEGA_INSTRUCTIONENUM_H
+enum AmdgpuVegaRegisterClass{
 	amdgpu_regclass_vgpr,
 	amdgpu_regclass_vgpr_vec4,
 	amdgpu_regclass_vgpr_vec8,
@@ -15,7 +15,7 @@ enum AMDGPURegisterClass{
 	amdgpu_regclass_sgpr_vec16,
 	amdgpu_regclass_pc
 };
-enum AMDGPUOtherRegister{
+enum AmdgpuVegaOtherRegister{
     amdgpu_pc,
 	amdgpu_exp_cnt,
 	amdgpu_lgkm_cnt,
@@ -79,7 +79,7 @@ enum AMDGPUOtherRegister{
 	amdgpu_xnack_mask_lo,
 	amdgpu_xnack_mask_hi
 };
-enum AMDGPUScalarGeneralPurposeRegister{
+enum AmdgpuVegaScalarGeneralPurposeRegister{
 	amdgpu_sgpr0,
 	amdgpu_sgpr1,
 	amdgpu_sgpr2,
@@ -185,7 +185,7 @@ enum AMDGPUScalarGeneralPurposeRegister{
 	amdgpu_sgpr102,
 	amdgpu_sgpr103
 };
-enum AMDGPUScalarGeneralPurposeRegisterVector2{
+enum AmdgpuVegaScalarGeneralPurposeRegisterVector2{
 	amdgpu_sgpr_vec2_0,
 	amdgpu_sgpr_vec2_2,
 	amdgpu_sgpr_vec2_4,
@@ -239,7 +239,7 @@ enum AMDGPUScalarGeneralPurposeRegisterVector2{
 	amdgpu_sgpr_vec2_100,
 	amdgpu_sgpr_vec2_102
 };
-enum AMDGPUScalarGeneralPurposeRegisterVector4{
+enum AmdgpuVegaScalarGeneralPurposeRegisterVector4{
 	amdgpu_sgpr_vec4_0,
 	amdgpu_sgpr_vec4_4,
 	amdgpu_sgpr_vec4_8,
@@ -267,7 +267,7 @@ enum AMDGPUScalarGeneralPurposeRegisterVector4{
 	amdgpu_sgpr_vec4_96,
 	amdgpu_sgpr_vec4_100
 };
-enum AMDGPUScalarGeneralPurposeRegisterVector8{
+enum AmdgpuVegaScalarGeneralPurposeRegisterVector8{
 	amdgpu_sgpr_vec8_0,
 	amdgpu_sgpr_vec8_8,
 	amdgpu_sgpr_vec8_16,
@@ -282,7 +282,7 @@ enum AMDGPUScalarGeneralPurposeRegisterVector8{
 	amdgpu_sgpr_vec8_88,
 	amdgpu_sgpr_vec8_96
 };
-enum AMDGPUVectorGeneralPurposeRegister{
+enum AmdgpuVegaVectorGeneralPurposeRegister{
 	amdgpu_vgpr0,
 	amdgpu_vgpr1,
 	amdgpu_vgpr2,
@@ -540,7 +540,7 @@ enum AMDGPUVectorGeneralPurposeRegister{
 	amdgpu_vgpr254,
 	amdgpu_vgpr255
 };
-enum AMDGPUVectorGeneralPurposeRegisterVector2{
+enum AmdgpuVegaVectorGeneralPurposeRegisterVector2{
 	amdgpu_vgpr_vec2_0,
 	amdgpu_vgpr_vec2_2,
 	amdgpu_vgpr_vec2_4,
@@ -670,7 +670,7 @@ enum AMDGPUVectorGeneralPurposeRegisterVector2{
 	amdgpu_vgpr_vec2_252,
 	amdgpu_vgpr_vec2_254
 };
-enum AMDGPUVectorGeneralPurposeRegisterVector4{
+enum AmdgpuVegaVectorGeneralPurposeRegisterVector4{
 	amdgpu_vgpr_vec4_0,
 	amdgpu_vgpr_vec4_4,
 	amdgpu_vgpr_vec4_8,
@@ -736,7 +736,7 @@ enum AMDGPUVectorGeneralPurposeRegisterVector4{
 	amdgpu_vgpr_vec4_248,
 	amdgpu_vgpr_vec4_252
 };
-enum AMDGPUVectorGeneralPurposeRegisterVector8{
+enum AmdgpuVegaVectorGeneralPurposeRegisterVector8{
 	amdgpu_vgpr_vec8_0,
 	amdgpu_vgpr_vec8_8,
 	amdgpu_vgpr_vec8_16,
@@ -770,7 +770,7 @@ enum AMDGPUVectorGeneralPurposeRegisterVector8{
 	amdgpu_vgpr_vec8_240,
 	amdgpu_vgpr_vec8_248
 };
-enum AMDGPUInstructionKind{
+enum AmdgpuVegaInstructionKind{
 	rose_amdgpu_op_INVALID		=0,
 	rose_amdgpu_op_ds_add_u32,
 	rose_amdgpu_op_s_nop,
