@@ -22,7 +22,6 @@ class IndirectControlFlowAnalyzer {
                    StridedInterval &,
                    int ,
                    bool, 
-                   bool, 
                    std::set<Address> &,
                    std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &,
                    Address &,
