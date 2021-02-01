@@ -92,7 +92,7 @@ std::string convertCharToString(const char *ptr){
 //    the non-terminal parsing function
 //	
 
-void vectorNameMatchKLUDGE(Module *mod, char *demangled_sym, std::vector<Function *> &bpfv, std::vector<int> &matches)
+void vectorNameMatchKLUDGE(char *demangled_sym, std::vector<Function *> &bpfv, std::vector<int> &matches)
 {
   // iterate through all matches and demangle names with extra parameters, compare
   for (unsigned int i = 0; i < bpfv.size(); ++i) {
@@ -140,7 +140,7 @@ Function *mangledNameMatchKLUDGE(const char *pretty, const char *mangled,
 
   std::vector<int> matches;
 
-  vectorNameMatchKLUDGE(mod, demangled_sym, bpfv, matches);
+  vectorNameMatchKLUDGE(demangled_sym, bpfv, matches);
 
   Function *ret = NULL;
 
@@ -151,7 +151,7 @@ Function *mangledNameMatchKLUDGE(const char *pretty, const char *mangled,
   bpfv.clear();
   matches.clear();
 
-  vectorNameMatchKLUDGE(mod, demangled_sym, bpfv, matches);
+  vectorNameMatchKLUDGE(demangled_sym, bpfv, matches);
   if (matches.size() == 1) {ret = bpfv[matches[0]]; goto clean_up;}
   if (matches.size() > 1) goto clean_up;
 
