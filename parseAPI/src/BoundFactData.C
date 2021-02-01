@@ -1345,15 +1345,3 @@ void BoundFact::SwapFact(AST::Ptr a, AST::Ptr b) {
 	       (*rit)->right = tmp;
 	   }
 }
-
-
-void BoundFact::CheckZeroExtend(AST::Ptr a) {
-/*
-    for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
-        if (*(fit->first) == *a) {
-	    StridedInterval *val = fit->second;
-	    if (val->tableReadSize > 0) val->isZeroExtend = true;
-	}
-    }
-*/
-}

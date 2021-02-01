@@ -204,7 +204,6 @@ struct BoundFact {
     bool PopAConst(AST::Ptr ast);
     
     void SwapFact(AST::Ptr a, AST::Ptr b);
-    void CheckZeroExtend(AST::Ptr a);
 
     BoundFact();
     ~BoundFact();
