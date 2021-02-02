@@ -112,6 +112,10 @@ dyninst_library(common)
 if(TARGET LibIberty)
   add_dependencies(common LibIberty)
   target_link_libraries(common PRIVATE LibIberty)
+
+  if(${ENABLE_STATIC_LIBS})
+	  target_link_libraries(common_static PRIVATE LibIberty)
+  endif()
 endif()
 
 if(TARGET TBB)
