@@ -1599,7 +1599,7 @@ void Object::load_object(bool alloc_syms) {
                     goto cleanup;
                 }
             }
-            parse_all_relocations(*elfHdr, dynsym_scnp, dynstr_scnp,
+            parse_all_relocations(dynsym_scnp, dynstr_scnp,
                                   symscnp, strscnp);
 
             handle_opd_relocations();
@@ -1754,7 +1754,7 @@ void Object::load_shared_object(bool alloc_syms) {
                 }
             }
 
-            parse_all_relocations(*elfHdr, dynsym_scnp, dynstr_scnp,
+            parse_all_relocations(dynsym_scnp, dynstr_scnp,
                                   symscnp, strscnp);
             // Apply relocations to opd
             handle_opd_relocations();
@@ -4892,7 +4892,7 @@ void Object::insertDynamicEntry(long name, long value) {
 
 // Parses sections with relocations and links these relocations to
 // existing symbols
-bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
+bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
 //fprintf(stderr, "enter parse_all_relocations for object %s\n", getFileName().c_str() );
