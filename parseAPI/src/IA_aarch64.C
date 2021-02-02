@@ -87,6 +87,7 @@ bool IA_aarch64::isFrameSetupInsn(Instruction i) const
 	    return true;
 	}
     }
+    return false;
 }
 
 bool IA_aarch64::isNop() const
