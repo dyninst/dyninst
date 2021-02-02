@@ -203,12 +203,11 @@ bool runHunt_binaryEdit()
     if (pid == 0) {
         // child case
         // run new binary
-        char * exeFile = (char *) malloc (1024);
-        if (config.use_exe) {
-            sprintf(exeFile, "./%s", config.exeFilePath);
-        } else {
-            sprintf(exeFile, "./%s", config.writeFilePath);
-        }
+    	char *exeFile = [](){
+    		std::string exeFile = std::string("./") + ((config.use_exe) ? config.exeFilePath : config.writeFilePath);
+    		return strdup(exeFile.c_str());
+    	}();
+
         int numargs = 0;
         char **arg = (char **) malloc (2 * sizeof(char*));
         arg[0] = exeFile;
