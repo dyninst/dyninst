@@ -808,7 +808,7 @@ boost::shared_ptr<Type> DwarfWalker::getCommonBlockType(string &commonBlockName)
    auto commonBlockType = tc()->findVariableType(commonBlockName, Type::share);
    if(!commonBlockType || !commonBlockType->isCommonType()) {
      commonBlockType = Type::make_shared<typeCommon>( type_id(), commonBlockName );
-     tc()->addGlobalVariable(commonBlockName, commonBlockType);
+     tc()->addGlobalVariable(commonBlockType);
    }
    return commonBlockType;
 }
@@ -932,7 +932,7 @@ void DwarfWalker::createGlobalVariable(const vector<VariableLocation> &locs, boo
 	    v->setType(type);
 	}
    }
-   tc()->addGlobalVariable(curName(), type);
+   tc()->addGlobalVariable(type);
 }
 
 void DwarfWalker::createLocalVariable(const vector<VariableLocation> &locs, boost::shared_ptr<Type> type,

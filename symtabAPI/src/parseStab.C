@@ -459,7 +459,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 	       }
 
 		   typeCollection *tc_to_use = typeCollection::getModTypeCollection(toUse);
-               tc_to_use->addGlobalVariable(name, BPtype);
+               tc_to_use->addGlobalVariable(BPtype);
             }
             else 
             break;
@@ -587,7 +587,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                                             true)) 
                   {
 		     
-                     tc->addGlobalVariable(nameTrailer, BPtype);
+                     tc->addGlobalVariable(BPtype);
                   }
                }
 

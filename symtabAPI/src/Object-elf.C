@@ -4719,7 +4719,7 @@ void Object::parseStabTypes() {
                         if (!commonBlock->isCommonType()) {
                             // its still the null type, create a new one for it
                             commonBlock = Type::make_shared<typeCommon>(*commonBlockName);
-                            tc->addGlobalVariable(*commonBlockName, commonBlock);
+                            tc->addGlobalVariable(commonBlock);
                         }
                         // reset field list
                         commonBlock->asCommonType().beginCommonBlock();
