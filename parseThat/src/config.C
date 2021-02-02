@@ -207,7 +207,10 @@ bool getNext_BatchDirectory()
             /*
              * Generate target filename in config.target from base_dir and d_entry->d_name.
              */
-            snprintf(config.target, sizeof(config.target), "%s%s", base_dir, d_entry->d_name);
+            {
+            	std::string s = std::string(base_dir) + d_entry->d_name;
+            	strncpy(config.target, s.c_str(), sizeof(config.target) - 1U);
+            }
             config.argv[0] = strrchr(config.target, '/') + 1;   /* strrchr() will never return NULL
                                                                    because we control base_dir. */
 
