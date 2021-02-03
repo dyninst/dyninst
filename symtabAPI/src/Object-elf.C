@@ -3191,7 +3191,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             size = 2;
             break;
         case DW_EH_PE_sdata2:
-            *value = (const int16_t) endian_16bit(*((const uint16_t *) addr), mi.big_input);
+            *value = endian_16bit(*((const uint16_t *) addr), mi.big_input);
             size = 2;
             break;
         case DW_EH_PE_udata4:
@@ -3199,7 +3199,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             size = 4;
             break;
         case DW_EH_PE_sdata4:
-            *value = (const int32_t) endian_32bit(*((const uint32_t *) addr), mi.big_input);
+            *value = endian_32bit(*((const uint32_t *) addr), mi.big_input);
             size = 4;
             break;
         case DW_EH_PE_udata8:
@@ -3207,7 +3207,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             size = 8;
             break;
         case DW_EH_PE_sdata8:
-            *value = (const int64_t) endian_64bit(*((const uint64_t *) addr), mi.big_input);
+            *value = endian_64bit(*((const uint64_t *) addr), mi.big_input);
             size = 8;
             break;
         default:
