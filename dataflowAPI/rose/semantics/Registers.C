@@ -601,6 +601,9 @@ RegisterDictionary::dictionary_amdgpu_vega() {
         /* 64-bit program counter register */
         regs->insert("pc", amdgpu_regclass_pc, 0, 0, 64);
 
+        regs->insert("scc", amdgpu_regclass_hwr, amdgpu_status, 0, 1);
+
+
         /* 32-bit pstate register and the four relevant flags.*/
         /* Each flag is added as a separate register for individual access. Only allowed minor is 0 (since there is only one pstate register);
          * the different offsets indicate the positions of the flags within the pstate register. */
