@@ -10,7 +10,7 @@
 #include <boost/property_map.hpp>
 #endif
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 #include <sstream>
 
@@ -146,10 +146,10 @@ bool dominates(Function& f, Address a, Address b)
   Function::blocklist::const_iterator found_a, found_b;
   found_a = std::find_if(f.blocks().begin(),
 		      f.blocks().end(),
-		      boost::bind(contains, _1, a));
+		      boost::bind(contains, boost::placeholders::_1, a));
   found_b = std::find_if(f.blocks().begin(),
 		      f.blocks().end(),
-		      boost::bind(contains, _1, b));
+		      boost::bind(contains, boost::placeholders::_1, b));
   // If either address is not in f,
   // then no dominator relationship
   if(found_a == f.blocks().end()) return false;

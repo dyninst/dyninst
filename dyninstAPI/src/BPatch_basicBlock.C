@@ -32,7 +32,7 @@
 
 #include <stdio.h>
 #include <iostream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 #include "util.h"
 #include "common/src/Types.h"
@@ -127,7 +127,7 @@ void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
   std::for_each(boost::make_filter_iterator(epred_, isrcs.begin(), isrcs.end()),
 		boost::make_filter_iterator(epred_, isrcs.end(), isrcs.end()),
 		boost::bind(source_helper,
-			    _1,
+			    boost::placeholders::_1,
 			    boost::ref(srcs),
 			    flowGraph,
 			    func));
