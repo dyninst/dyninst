@@ -50,9 +50,6 @@
 #include "debug_parse.h"
 #include "IndirectAnalyzer.h"
 
-#include <boost/bind/bind.hpp>
-
-
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
