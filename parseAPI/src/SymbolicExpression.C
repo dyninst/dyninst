@@ -47,7 +47,7 @@ bool SymbolicExpression::ReadMemory(Address addr, uint64_t &v, int ) {
 
 /*AST::Ptr SymbolicExpression::SimplifyRecursive(AST::Ptr ast, Address addr, bool keepMultiOne) {
 
-}*/
+  }*/
 AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepMultiOne) {
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
@@ -76,7 +76,11 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                                    size_t size = roseAST->val().size;
                                                    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-                                                   return ConstantAST::create(Constant(child0->val().val,size));
+                                                   uint64_t val = child0->val().val;
+                                                   if( size < 64)
+                                                       return ConstantAST::create( Constant(val & ((1ULL << size)-1),size));
+                                                   else
+                                                       return ConstantAST::create(Constant(val, 64));
                                                }
                                                return roseAST->child(0);
                                            }
@@ -187,6 +191,12 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                   return ConstantAST::create(Constant(0 , 32));
                                               }
                                           }
+                                          else if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+                                              ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+                                              ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+                                              return ConstantAST::create(Constant(child0->val().val ^ child1->val().val, 64));
+                                          }
+
                                           break;
             case ROSEOperation::derefOp:
                                           // Any 8-bit value is bounded in [0,255].
@@ -255,9 +265,29 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                               if (child1->val().val == 0 && !keepMultiOne) return roseAST->child(0);
                                           }
                                           break;
+
+            case ROSEOperation::equalToZeroOp:
+
+                                          if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+                                              ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+                                              if(child0->val().val == 0)
+                                                  return ConstantAST::create(Constant(1, 64));
+                                              else
+                                                  return ConstantAST::create(Constant(0, 64));
+                                          }
+
+                                          break;
+            case ROSEOperation::negateOp:
+                                          if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+                                              ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+                                              return ConstantAST::create(Constant(~child0->val().val, 64));
+                                          }
+
+                                          break;
+
             default:
-                std::cerr << " TODO: unkown case of rose operation " << roseAST->val().op;
-                break;
+                                          std::cerr << " TODO: unkown case of rose operation " << roseAST->val().op;
+                                          break;
 
         }
     } else if (ast->getID() == AST::V_VariableAST) {
@@ -276,9 +306,16 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
         ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
         size_t size = constAST->val().size;
         uint64_t val = constAST->val().val;	
-        if (size == 32)
-            if (!(val & (1ULL << (size - 1))))
-                return ConstantAST::create(Constant(val, 64));
+        if( size < 64)
+            return ConstantAST::create( val & ((1ULL << size)-1));
+        else
+            return ConstantAST::create(Constant(val, 64));
+        /*
+           if (size == 32)
+           if (!(val & (1ULL << (size - 1))))
+           return ConstantAST::create(Constant(val, 64));*/
+
+
     }
 
     return ast;
