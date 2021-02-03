@@ -28,16 +28,18 @@ namespace rose {
                     SValue(Dyninst::Absloc r, Dyninst::Address addr): BaseSemantics::SValue(64) {
                         expr = Dyninst::DataflowAPI::VariableAST::create(Dyninst::DataflowAPI::Variable(Dyninst::AbsRegion(r), addr));
                     }
-
+                    
                     SValue(size_t nbits, uint64_t num): BaseSemantics::SValue(nbits) {
                         expr = Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(num, nbits));
                     }
 
-                    //TODO possibly set width differently for register types
                     SValue(Dyninst::AST::Ptr expr): BaseSemantics::SValue(64) {
                         this->expr = expr;
                     }
-
+                    // Added this version to set register size according to descriptor 
+                    SValue(Dyninst::AST::Ptr expr, size_t nbits ): BaseSemantics::SValue(nbits) {
+                        this->expr = expr;
+                    }
                 public:
                     static SValuePtr instance(Dyninst::Absloc r, Dyninst::Address addr) {
                         return SValuePtr(new SValue(r, addr));
@@ -50,6 +52,11 @@ namespace rose {
                     static SValuePtr instance(Dyninst::AST::Ptr expr) {
                         return SValuePtr(new SValue(expr));
                     }
+
+                    static SValuePtr instance(Dyninst::AST::Ptr expr, size_t nbits) {
+                        return SValuePtr(new SValue(expr, nbits));
+                    }
+
 
                 public:
                     virtual BaseSemantics::SValuePtr undefined_(size_t nbits) const {
