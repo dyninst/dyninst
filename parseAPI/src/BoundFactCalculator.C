@@ -478,8 +478,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	parsing_printf("\t\t\t%s and %s are equal\n", calculation->format().c_str(), outAST->format().c_str());
 	newFact->InsertRelation(calculation, outAST, BoundFact::Equal);
     }
-//    if (id == e_movzx)
-//        newFact->CheckZeroExtend(outAST);
+
     newFact->AdjustPredicate(outAST, calculation);
 
     // Now try to track all aliasing.
