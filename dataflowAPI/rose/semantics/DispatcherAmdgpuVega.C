@@ -82,7 +82,15 @@ namespace rose {
                         BaseSemantics::SValuePtr n, z, c, v;
 
                         result = d->doAddOperation( src0 , src1 ,false,ops->boolean_(false),n,z,c,v);
-                        d->write(args[0],result);
+                        d->write(args[0],ops->extract(result,0,32));
+
+                        BaseSemantics::SValuePtr scc_value;
+                        scc_value = ops->ite(
+                                ops->isUnsignedGreaterThan(result,ops->number_(64,0x100000000)),
+                                ops->number_(1,1),
+                                ops->number_(1,0));
+
+                        d->writeRegister(d->REG_SCC,scc_value);
                     }
                 };
                 struct IP_s_addc_u32 : P {
@@ -90,8 +98,10 @@ namespace rose {
 
                         BaseSemantics::SValuePtr src1;
                         BaseSemantics::SValuePtr src0;
+
                         if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(args[1])){
                             src1 = ops->number_(ival->get_significantBits(), ival->get_value());
+
                         }else{
                             src1 = d->read(args[1]);
                         } 
@@ -104,9 +114,16 @@ namespace rose {
 
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr n, z, c, v;
+                        BaseSemantics::SValuePtr old_scc = d->readRegister(d->REG_SCC);
+                        result = d->doAddOperation( src0 , src1 ,false,
+                                d->readRegister(d->REG_SCC)
+                                ,n,z,c,v);
 
-                        result = d->doAddOperation( src0 , src1 ,false,ops->boolean_(false),n,z,c,v);
-                        d->write(args[0],result);
+
+
+                        d->write(args[0],ops->extract(result,0,32));
+                        d->writeRegister(d->REG_SCC,c);
+
                     }
                 };
  
@@ -115,7 +132,7 @@ namespace rose {
 
                         SgAsmIntegerValueExpression *ival = isSgAsmIntegerValueExpression(args[2]);
                         BaseSemantics::SValuePtr result = ops->number_(ival->get_significantBits(), ival->get_value());
-                        BaseSemantics::SValuePtr lowPC = result;
+                        BaseSemantics::SValuePtr lowPC = ops->extract(result,0,32);
                         BaseSemantics::SValuePtr highPC = ops->shiftRight(result,ops->number_(32,32)); 
  
                         d->write(args[0],lowPC);
@@ -126,8 +143,8 @@ namespace rose {
                 struct IP_s_setpc_b64 : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr result;
-                        BaseSemantics::SValuePtr lowPC = d->read(args[0]);
-                        BaseSemantics::SValuePtr highPC = d->SignExtend(d->read(args[1]),64);
+                        BaseSemantics::SValuePtr lowPC = ops->extract(d->read(args[0]),0,32);
+                        BaseSemantics::SValuePtr highPC = d->ZeroExtend(d->read(args[1]),64);
                         BaseSemantics::SValuePtr n, z, c, v;
                         result = d->doAddOperation( ops->shiftLeft(highPC, ops->number_(32,32)) , lowPC,false,ops->boolean_(false),n,z,c,v);
                         d->writeRegister(d->REG_PC, result);
@@ -144,8 +161,8 @@ namespace rose {
                         d->write(args[3],storehighPC);
  
                         BaseSemantics::SValuePtr n, z, c, v;
-                        BaseSemantics::SValuePtr lowPC = d->read(args[0]);
-                        BaseSemantics::SValuePtr highPC = d->SignExtend(d->read(args[1]),64);
+                        BaseSemantics::SValuePtr lowPC = ops->extract(d->read(args[0]),0,32);
+                        BaseSemantics::SValuePtr highPC = d->ZeroExtend(d->read(args[1]),64);
                         result = d->doAddOperation( ops->shiftLeft(highPC, ops->number_(32,32)) , lowPC,false,ops->boolean_(false),n,z,c,v);
                         d->writeRegister(d->REG_PC, result);
                     }
@@ -5143,6 +5160,8 @@ namespace rose {
                     REG_Z = findRegister("z", 1);
                     REG_C = findRegister("c", 1);
                     REG_V = findRegister("v", 1);
+
+                    REG_SCC = findRegister("scc", 1);
                     //REG_SP = findRegister("sp", 64); we don't have stack pointer
                 }
             }
