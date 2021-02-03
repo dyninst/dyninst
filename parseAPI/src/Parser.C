@@ -608,20 +608,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
 }
 
 
-static void
-InsertFrames
-(
- LockFreeQueueItem<ParseFrame *> *frames,
- LockFreeQueue<ParseFrame *> *q
-)
-{
-  if (frames) {
-    LockFreeQueue<ParseFrame *> myq(frames);
-    q->splice(myq);
-  }
-}
-
-
 void
 Parser::LaunchWork
 (
