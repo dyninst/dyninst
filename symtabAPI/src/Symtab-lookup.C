@@ -53,7 +53,7 @@
 
 #include "symtabAPI/src/Object.h"
 
-#include <boost/function_output_iterator.hpp>
+#include <boost/iterator/function_output_iterator.hpp>
 #include <boost/foreach.hpp>
 
 using namespace Dyninst;
