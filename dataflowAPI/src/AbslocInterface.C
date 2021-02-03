@@ -657,15 +657,29 @@ void AssignmentConverter::convert(const Instruction &I,
 
 
 
+    AbsRegion scc = AbsRegion(MachRegister(amdgpu_vega::scc)) ;
+    Assignment::Ptr scc_assign = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                             block,
+							 scc);
+
    
-   Assignment::Ptr add_assign = Assignment::makeAssignment(I, 
+    Assignment::Ptr add_assign = Assignment::makeAssignment(I, 
 							 addr,
 							 func,
                              block,
 							 dst1);
+
     add_assign->addInput(src1);
     add_assign->addInput(src0);
+    
+    scc_assign->addInput(src1);
+    scc_assign->addInput(src0);
+
+
     assignments.push_back(add_assign);
+    assignments.push_back(scc_assign);
 
 
     // TODO:
@@ -696,15 +710,17 @@ void AssignmentConverter::convert(const Instruction &I,
     regions.clear();
 
 
+    AbsRegion scc = AbsRegion(MachRegister(amdgpu_vega::scc)) ;
 
    
-   Assignment::Ptr add_assign = Assignment::makeAssignment(I, 
+    Assignment::Ptr add_assign = Assignment::makeAssignment(I, 
 							 addr,
 							 func,
                              block,
 							 dst1);
     add_assign->addInput(src1);
     add_assign->addInput(src0);
+    add_assign->addInput(scc);
     assignments.push_back(add_assign);
 
     // TODO:
