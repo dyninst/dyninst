@@ -191,8 +191,7 @@ namespace Dyninst {
             Block *block_at(ParseFrame &frame,
                             Function *owner,
                             Address addr,
-                            Block *&split,
-			    Block* src);
+                            Block *&split);
 
             pair<Block *, Edge *> add_edge(
                     ParseFrame &frame,

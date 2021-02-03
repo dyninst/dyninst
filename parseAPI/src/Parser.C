@@ -1273,7 +1273,7 @@ Parser::init_frame(ParseFrame & frame)
     Block * split = NULL;
     
     // Find or create a block
-        b = block_at(frame, frame.func, frame.func->addr(),split, NULL);
+        b = block_at(frame, frame.func, frame.func->addr(),split);
         if(b) {
             frame.leadersToBlock[frame.func->addr()] = b;
             frame.func->_entry = b;
@@ -1987,8 +1987,7 @@ Block *
 Parser::block_at(ParseFrame &frame,
         Function * owner,
         Address addr,
-        Block * & split, 
-	Block * src)
+        Block * & split)
 {
     Block * exist = NULL;
     Block * ret = NULL;
@@ -2061,7 +2060,7 @@ Parser::add_edge(
     // since adding into the worklist. We use the edge
     // source address and follow fall-througth edge
     // to find the correct block object
-    ret = block_at(frame, owner,dst, split, src);
+    ret = block_at(frame, owner,dst, split);
     retpair.first = ret;
 
     if(split == src) {

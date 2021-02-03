@@ -78,7 +78,7 @@ bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
         iter != input.rend(p); ++iter) {
       const SpringboardReq &req = iter->second;
       
-      switch (generateSpringboard(springboards, req, input)) {
+      switch (generateSpringboard(springboards, req)) {
          case Failed:
             if (p == FuncEntry) {
                return false;
@@ -260,8 +260,7 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
 
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
-					const SpringboardReq &r,
-                                        SpringboardMap &input) {
+					const SpringboardReq &r) {
    codeGen gen;
    codeGen tmpGen;
    bool usedTrap = false;

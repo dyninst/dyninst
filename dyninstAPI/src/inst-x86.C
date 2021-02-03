@@ -2097,7 +2097,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             opcode2 = 0x6; // XOR
             break;            
          case timesOp:
-            gen.codeEmitter()->emitTimesImm(dest, src1, src2imm, gen, s);
+            gen.codeEmitter()->emitTimesImm(dest, src1, src2imm, gen);
             return;
          case divOp:
             gen.codeEmitter()->emitDivImm(dest, src1, src2imm, gen, s);

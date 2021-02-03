@@ -193,7 +193,7 @@ class COMMON_EXPORT instruction {
     instruction(const void *ptr) {
       insn_ = *((const instructUnion *)ptr);
     }
-    instruction(const void *ptr, bool mode_64) {
+    instruction(const void *ptr, bool) {
       insn_ = *((const instructUnion *)ptr);
     }
 
