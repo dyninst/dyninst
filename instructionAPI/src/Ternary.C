@@ -85,7 +85,7 @@ namespace Dyninst
     std::string TernaryAST::format(formatStyle) const
     {
         std::string name = "("+cond->format() +"?" + first->format() + ":" + second->format()+ ")";
-        for (auto &c: name) ::toupper(c);
+        for (auto &c: name) c = ::toupper(c);
         return name;
     }
     
