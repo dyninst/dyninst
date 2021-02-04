@@ -334,7 +334,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    first = false;
 	    if (newCopy) newFact = prevFact; else newFact = new BoundFact(*prevFact);
 	} else {
-	    newFact->Meet(*prevFact, func->entry());
+	    newFact->Meet(*prevFact);
 	    if (newCopy) delete prevFact;
         }
     }
