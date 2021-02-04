@@ -360,7 +360,7 @@ void StridedInterval::Print() {
     parsing_printf("%s\n", format().c_str());
 }
 
-void BoundFact::Meet(BoundFact &bf, Block* b) {
+void BoundFact::Meet(BoundFact &bf) {
         for (auto fit = fact.begin(); fit != fact.end();) {
 	    StridedInterval *val2 = bf.GetBound(fit->first);
 	    // if ast fit->first cannot be found in bf,
