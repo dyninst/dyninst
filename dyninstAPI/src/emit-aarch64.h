@@ -127,7 +127,7 @@ public:
 
     virtual void emitASload(int, int, int, long, Register, int, codeGen &) { assert(0); }
 
-    virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
+    virtual void emitCSload(int, int, int, long, Register, codeGen &);
 
     virtual void emitPushFlags(codeGen &) { assert(0); }
 

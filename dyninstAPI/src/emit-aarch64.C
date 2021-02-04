@@ -110,6 +110,13 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
     gen.markRegDefined(src);
 }
 
+void EmitterAARCH64::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) {
+   assert(ra == -1);
+   assert(rb == -1);
+
+   gen.markRegDefined(dest);
+   emitLoadConst(dest, (int)imm, gen);
+}
 
 void EmitterAARCH64::emitOp(
         unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)

@@ -908,9 +908,14 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
 }
 
-void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
-                bool) {
-    assert(0); //Not implemented
+void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
+                bool noCost) {
+    long imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+    int sc  = as->getScale();
+
+    gen.codeEmitter()->emitCSload(ra, rb, sc, imm, dest, gen);
 }
 
 void emitVload(opCode op, Address src1, Register src2, Register dest,
