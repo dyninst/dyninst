@@ -186,7 +186,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
          */
         pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(n->assign(), true);
         if (!expandRet.second || expandRet.first == NULL) {
-            printf("\tWARNING: Jump table format slice contains unknown instructions: %s. Stop slicing along the path\n",
+            parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s. Stop slicing along the path\n",
                     n->assign()->insn().format().c_str());
             if (setFirstMemoryRead) firstMemoryRead = true;
             g->deleteNode(n);
