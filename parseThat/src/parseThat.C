@@ -832,7 +832,7 @@ void parseArgs(int argc, char **argv)
 
     // Prepare child arguments
     if (i < argc) {
-        strncpy(config.target, argv[i], sizeof(config.target));
+        strncpy(config.target, argv[i], sizeof(config.target) - 1U);
         config.argv = argv + i - 1;
         config.argc = argc - i;
 
@@ -952,7 +952,7 @@ void parseArgs(int argc, char **argv)
                     userError();
 
                 }
-                strncpy(config.pipe_filename, tmp_pipename, sizeof(config.pipe_filename));
+                strncpy(config.pipe_filename, tmp_pipename, sizeof(config.pipe_filename) - 1U);
             }
         }
     }
