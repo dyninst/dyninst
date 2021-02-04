@@ -387,10 +387,10 @@ pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign
             expandCache[assign] = calculation;
         } else {
             if (expandRet.first == NULL) {
-                printf("\t\t\t expansion returned null ast\n");
+                parsing_printf("\t\t\t expansion returned null ast\n");
             }
             if (expandRet.second == false) {
-                printf("\t\t\t expansion returned false\n");
+                parsing_printf("\t\t\t expansion returned false\n");
             }
             expandCache[assign] = AST::Ptr();
         }
