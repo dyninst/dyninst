@@ -286,7 +286,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                           break;
 
             default:
-                                          std::cerr << " TODO: unkown case of rose operation " << roseAST->val().op;
+                                          //std::cerr << " TODO: unkown case of rose operation " << roseAST->val().op;
                                           break;
 
         }
