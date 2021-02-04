@@ -52,8 +52,6 @@
 #include "parseAPI/h/CodeSource.h"
 #include "parseAPI/h/CodeObject.h"
 
-#include <boost/bind.hpp>
-
 #include <ctime>
 
 using namespace Dyninst;

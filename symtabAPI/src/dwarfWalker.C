@@ -43,7 +43,6 @@
 #include "pathName.h"
 #include "debug_common.h"
 #include "Type-mem.h"
-#include <boost/bind.hpp>
 #include "elfutils/libdw.h"
 #include <elfutils/libdw.h>
 

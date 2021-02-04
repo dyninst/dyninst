@@ -39,7 +39,7 @@
 
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 std::string regs1 = " ttttttttddddddddcccccccmxxxxxxxxxxxxxxxxgf                  rrrrrrrrrrrrrrrrr";
 std::string regs2 = " rrrrrrrrrrrrrrrrrrrrrrrm1111110000000000ssoscgfedrnoditszapci11111100dsbsbdca";
@@ -107,12 +107,11 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegs
 
     liveness_cerr << "getLivenessOut for block [" << hex << block->start() << "," << block->end() << "]" << dec << endl;
     
-
     std::for_each(boost::make_filter_iterator(epred, target_edges.begin(), target_edges.end()),
 		  boost::make_filter_iterator(epred, target_edges.end(), target_edges.end()),
 		  boost::bind(&LivenessAnalyzer::processEdgeLiveness, 
 			      this, 
-			      _1, 
+				  boost::placeholders::_1,
 			      boost::ref(data), 
 			      block,
 			      boost::ref(allRegsDefined)));

@@ -30,7 +30,7 @@
 
 #include "stackanalysis.h"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <queue>
 #include <stack>
 #include <vector>
@@ -268,7 +268,7 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
          boost::make_filter_iterator(epred, targs.begin(), targs.end()),
          boost::make_filter_iterator(epred, targs.end(), targs.end()),
          boost::bind(add_target_exclude, boost::ref(workstack),
-            boost::ref(doneSet), _1)
+            boost::ref(doneSet), boost::placeholders::_1)
       );
    }
 }
@@ -343,7 +343,7 @@ void StackAnalysis::fixpoint(bool verbose) {
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
          boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
          boost::bind(add_target_list_exclude, boost::ref(worklist),
-            boost::ref(workSet), _1)
+            boost::ref(workSet), boost::placeholders::_1)
       );
 
       firstBlock = false;
@@ -379,7 +379,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
          boost::make_filter_iterator(epred, targs.begin(), targs.end()),
          boost::make_filter_iterator(epred, targs.end(), targs.end()),
          boost::bind(add_target_exclude, boost::ref(workstack),
-            boost::ref(doneSet), _1)
+            boost::ref(doneSet), boost::placeholders::_1)
       );
    }
 }
@@ -494,10 +494,11 @@ void StackAnalysis::summaryFixpoint() {
       // Step 4: push all children on the worklist.
       boost::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
+
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
          boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
-         boost::bind(add_target, boost::ref(worklist), _1)
+         boost::bind(add_target, boost::ref(worklist), boost::placeholders::_1)
       );
 
       firstBlock = false;
@@ -2885,7 +2886,7 @@ void StackAnalysis::meetInputs(Block *block, AbslocState &blockInput,
       boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
       boost::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
       boost::bind(&StackAnalysis::meet, this,
-         boost::bind(&StackAnalysis::getSrcOutputLocs, this, _1),
+         boost::bind(&StackAnalysis::getSrcOutputLocs, this, boost::placeholders::_1),
          boost::ref(input)));
    stackanalysis_printf("\n");
 
@@ -2904,7 +2905,7 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
       boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
       boost::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
       boost::bind(&StackAnalysis::meetSummary, this,
-         boost::bind(&StackAnalysis::getSummarySrcOutputLocs, this, _1),
+         boost::bind(&StackAnalysis::getSummarySrcOutputLocs, this, boost::placeholders::_1),
          boost::ref(input)));
 
    meetSummary(blockInput, input);
