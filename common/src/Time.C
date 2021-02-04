@@ -30,6 +30,8 @@
 
 #include "common/src/Time.h"
 #include <iostream>
+#include <locale>
+#include <iterator>
 #include <ctime>
 #include <string.h>
 #include <iomanip>
@@ -319,34 +321,6 @@ ostream& operator<<(ostream& s, const timeParent &tp) {
 }
 */
 
-// only handles positives right now
-// string buffer should be atleast 16
-void insCommas(int num, char strbuf[]) {
-    char nsStr[20];
-    sprintf(nsStr,"%12d",num);
-    int nextIdx=0;
-    if(num>=1000000000) {
-      strncpy(&strbuf[nextIdx], &nsStr[0], 3);
-      nextIdx+=3;
-      strbuf[nextIdx++] = ',';  
-    }
-    if(num>=1000000) {
-      strncpy(&strbuf[nextIdx], &nsStr[3], 3);
-      nextIdx+=3;
-      strbuf[nextIdx++] = ',';  
-    }
-    if(num>=1000) {
-      strncpy(&strbuf[nextIdx], &nsStr[6], 3);
-      nextIdx+=3;
-      strbuf[nextIdx++] = ',';  
-    }
-    if(num>=0) {
-      strncpy(&strbuf[nextIdx], &nsStr[9], 3);
-      nextIdx+=3;
-    }
-    strbuf[nextIdx]=0;
-}
-
 ostream& operator<<(ostream&s, timeLength z) {
   timeLength tUser = z;
   int years = static_cast<int>(tUser.getI(timeUnit::year()));
@@ -412,9 +386,13 @@ ostream& operator<<(ostream&s, timeStamp z) {
     strcpy(dateStr, ctime(&s1970));
     char *p = strstr(dateStr, "\n");  // erase the nl
     if(p != NULL) {  *p++ = 0;   *p = 0; }
-    char strFmt[30];
-    insCommas(static_cast<int>(nsrem), strFmt);
-    s << "[" << dateStr << "  " << strFmt << "ns]";
+
+    s << "[" << dateStr << "  ";
+    s.imbue(std::locale("en_US.UTF-8"));
+    auto& f = std::use_facet<std::num_put<char>>(s.getloc());
+    f.put(std::ostreambuf_iterator<char>(s), s, ' ', nsrem);
+    s.imbue(std::locale(""));
+    s << "ns]";
   }
   return s;
 }
