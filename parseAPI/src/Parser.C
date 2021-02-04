@@ -1888,7 +1888,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     _pcb.patch_nop_jump(ah->getAddr());
                     unsigned bufsize =
                             func->region()->offset() + func->region()->length() - ah->getAddr();
-                    func->region()->offset() + func->region()->length() - ahPtr->getAddr();
                     const unsigned char* bufferBegin = (const unsigned char *)
                             (func->region()->getPtrToInstruction(ah->getAddr()));
                     dec = InstructionDecoder
