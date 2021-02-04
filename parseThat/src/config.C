@@ -295,7 +295,7 @@ bool getNext_BatchFile()
         cmdline = char2strlist(buf);
 
         strncpy(config.target, strlist_get(&cmdline, 0),
-                sizeof(config.target));
+                sizeof(config.target) - 1U);
 
         if (maxArgc < (cmdline.count + 1)) {
             char **newargv =(char **)realloc(config.argv, (cmdline.count + 1) * sizeof(char *));
