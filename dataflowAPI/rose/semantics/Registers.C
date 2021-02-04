@@ -607,11 +607,6 @@ RegisterDictionary::dictionary_amdgpu_vega() {
         /* 32-bit pstate register and the four relevant flags.*/
         /* Each flag is added as a separate register for individual access. Only allowed minor is 0 (since there is only one pstate register);
          * the different offsets indicate the positions of the flags within the pstate register. */
-        regs->insert("pstate", armv8_regclass_pstate, 0, armv8_pstatefield_pstate, 32);
-        regs->insert("n", armv8_regclass_pstate, 0, armv8_pstatefield_n, 1);
-        regs->insert("z", armv8_regclass_pstate, 0, armv8_pstatefield_z, 1);
-        regs->insert("c", armv8_regclass_pstate, 0, armv8_pstatefield_c, 1);
-        regs->insert("v", armv8_regclass_pstate, 0, armv8_pstatefield_v, 1);
     });
     return regs;
 }
