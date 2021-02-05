@@ -395,6 +395,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return InvalidReg;
         case Arch_cuda:
             return cuda::pc;
+        case Arch_intelGen9:
+            return InvalidReg;
         case Arch_amdgpu_vega:
             return amdgpu_vega::pc;
         case Arch_amdgpu_rdna:
@@ -423,6 +425,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
         case Arch_cuda:
         case Arch_amdgpu_vega: // TODO:Since amdgpu functions are all inlined, the return address is highly likely in sgpr[30:31]
         case Arch_amdgpu_rdna:
+        case Arch_intelGen9:
             assert(0);
         case Arch_none:
             return InvalidReg;
