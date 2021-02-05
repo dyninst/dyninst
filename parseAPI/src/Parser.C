@@ -2065,7 +2065,6 @@ pair<Function *,ParseAPI::Edge*>
 Parser::bind_call(ParseFrame & frame, Address target, Block * cur, ParseAPI::Edge * exist)
 {
     Function * tfunc = NULL;
-    Block * tblock = NULL;
 
     // look it up
     tfunc = _parse_data->findFunc(frame.codereg,target);
