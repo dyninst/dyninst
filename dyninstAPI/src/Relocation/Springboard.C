@@ -180,7 +180,6 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
 #endif
 
     // Extend the block to include any subsequent no-ops that are not part of other blocks
-    int size = bbl->size();
     ParseAPI::CodeObject* co = func->ifunc()->obj();
     ParseAPI::CodeRegion* cr = func->ifunc()->region();
     std::set<ParseAPI::Block*> blocks;
@@ -189,7 +188,8 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
     // Removal of the below code limits the size of range to the size of the block
     // Future fix is to actually do what the above comment ("int size" 
     //  suggest and look for noop's explicitly
-/*    while (isNoneContained(blocks) && cr->contains(end)) {
+/*  int size = bbl->size();
+ *     while (isNoneContained(blocks) && cr->contains(end)) {
         end++;
         size++;
         blocks.clear();
