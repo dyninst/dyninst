@@ -2601,7 +2601,6 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
 
 bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
     bool ret = false;
-    ParseWorkBundle *bundle = NULL;
     /* Right now, we just re-calculate jump table targets for 
      * every jump tables. An optimization is to improve the jump
      * table analysis to record which indirect jump is value
@@ -2624,7 +2623,6 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
         for (auto eit = block->targets().begin(); eit != block->targets().end(); ++eit) {
             existing.insert((*eit)->trg_addr());
         }
-        bool new_edges = false;
         for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) {
             if (existing.find(oit->first) != existing.end()) continue;
             // Find a new target and push it into work list
