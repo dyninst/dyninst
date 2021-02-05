@@ -1451,7 +1451,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             if (!frame_not_created && !work->callproc()) {
                 parsing_printf("[%s] binding call (call target should have been created) %lx->%lx\n",
                         FILE__,cur->lastInsnAddr(),work->target());
-                Function *tfunc = _parse_data->findFunc(frame.codereg,work->target());
                 work->mark_call();
             }
 
