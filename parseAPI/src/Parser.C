@@ -2563,9 +2563,7 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
 
                     Block * ret = factory()._mkblock(fA, b->region(),addr);
                     Block * exist = record_block(ret);
-                    bool block_exist = false;
                     if (exist != ret) {
-                        block_exist = true;
                         ret = exist;
                     }
                     ret->updateEnd(B->end());
