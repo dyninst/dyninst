@@ -478,8 +478,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                 work.insert(pf);
                 assert(pf->call_target);
                 parsing_printf("    call target %lx\n",pf->call_target->addr());
-                CodeRegion * cr = pf->call_target->region();
-                Address targ = pf->call_target->addr();
                 ParseFrame * tf = _parse_data->createAndRecordFrame(pf->call_target);
                 if (tf) {
                     // a new frame
