@@ -1961,10 +1961,7 @@ Parser::block_at(ParseFrame &frame,
         Address addr,
         Block * & split)
 {
-    Block * exist = NULL;
     Block * ret = NULL;
-    Block * inconsistent = NULL;
-    Address prev_insn = 0;
 
     split = NULL;
     CodeRegion *cr;
