@@ -259,7 +259,9 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
     return true;
 }
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
+namespace Dyninst {
+namespace SymtabAPI {
+std::ostream& operator<<(std::ostream &os, const Aggregate &a)
 {
   std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
   os   << "Aggregate{"
@@ -280,6 +282,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &
   
   return os;
 }
+}}
 
 bool Aggregate::operator==(const Aggregate &a)
 {
