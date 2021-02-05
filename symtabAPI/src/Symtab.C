@@ -2479,8 +2479,6 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 	{
 		return 0;
 	}
-	bool hasNoteSection = obj->hasNoteSection();
-	bool isStaticBinary = obj->isStaticBinary();
 #endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)

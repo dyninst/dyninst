@@ -579,7 +579,6 @@ void DwarfParseActions::addPrettyFuncName(std::string name)
 
 bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    bool name_result;
-   int old = common_debug_dwarf;
 
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
     parseRangeTypes(dbg(), entry());

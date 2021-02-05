@@ -4526,7 +4526,6 @@ void Object::parseStabTypes() {
     Symbol *commonBlockVar = NULL;
     string *commonBlockName = NULL;
     boost::shared_ptr<Type> commonBlock = NULL;
-    int mostRecentLinenum = 0;
 
     Module *mod;
     typeCollection *tc = NULL;
@@ -4623,7 +4622,6 @@ void Object::parseStabTypes() {
 #endif
                 break;
             case N_SLINE:
-                mostRecentLinenum = stabptr->desc(i);
                 break;
             default:
                 break;
