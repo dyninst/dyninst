@@ -181,6 +181,7 @@ const char *Region::regionType2Str(RegionType rt)
       CASE_RETURN_STR(RT_GNU_HASH);
       CASE_RETURN_STR(RT_OTHER);
       CASE_RETURN_STR(RT_INVALID);
+      CASE_RETURN_STR(RT_DYNSYM);
    };
    return "bad_RegionTypeype";
 };
