@@ -1455,11 +1455,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 parsing_printf("[%s] binding call (call target should have been created) %lx->%lx\n",
                         FILE__,cur->lastInsnAddr(),work->target());
                 Function *tfunc = _parse_data->findFunc(frame.codereg,work->target());
-                pair<Function*,ParseAPI::Edge*> ctp =
-                        bind_call(frame,
-                                  work->target(),
-                                  cur,
-                                  work->edge());
                 work->mark_call();
             }
 
