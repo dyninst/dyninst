@@ -2274,7 +2274,6 @@ fprintf(stderr, "In relink : src [%lx, %lx) dst [%lx, %lx)\n", src->start(), src
 assert(src->end() == dst->start());
         }
     }
-    unsigned long srcOut = 0, dstIn = 0, oldDstIn = 0;
     Block* oldDst = NULL;
     if(e->trg() && e->trg_addr() != std::numeric_limits<Address>::max()) {
         oldDst = e->trg();
