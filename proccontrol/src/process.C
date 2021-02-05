@@ -4447,10 +4447,11 @@ bool int_thread::StateTracker::setState(State to)
                 stateStr(state), stateStr(to));
    state = to;
 
+/*    Xiaozhu: the asserts can fail legitimately.
    if (up_thr->up_thread && !up_thr->suppressSanityChecks()) {
       int_thread::State handler_state = up_thr->getHandlerState().getState();
       int_thread::State generator_state = up_thr->getGeneratorState().getState();
-/*    Xiaozhu: the asserts can fail legitimately.
+
  *
  *    The handler status and generator status of a thread are never in sync by design.
  *    We will need to revisit such design.
@@ -4459,8 +4460,8 @@ bool int_thread::StateTracker::setState(State to)
          assert(generator_state == stopped || generator_state == exited || generator_state == detached );
       if (generator_state == running)
          assert(handler_state == running);
-*/
    }
+*/
 
    return true;
 }
