@@ -1412,7 +1412,6 @@ Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Re
     Offset endOffset = layoutRegions(lmap.tlsRegions,
             lmap.regionAllocs, lmap.tlsRegionOffset, globalOffset);
     if( endOffset == ~0UL ) return lmap.tlsRegionOffset;
-    Offset adjustedEnd = endOffset - lmap.tlsRegionOffset;
 
     // This is necessary so the offsets of existing TLS symbols can be updated
     // in a uniform, architecture independent way
