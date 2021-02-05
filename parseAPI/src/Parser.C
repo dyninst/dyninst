@@ -2007,7 +2007,6 @@ Parser::add_edge(
 {
     Block * split = NULL;
     Block * ret = NULL;
-    Block * original_block = NULL;
     ParseAPI::Edge * newedge = NULL;
     pair<Block *, ParseAPI::Edge *> retpair((Block *) NULL, (ParseAPI::Edge *) NULL);
 
