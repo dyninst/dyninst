@@ -1412,7 +1412,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
 
     /** Non-persistent intermediate state **/
     Address nextBlockAddr;
-    Block * nextBlock;
 
     while(!worklist.empty()) {
 
@@ -1721,7 +1720,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
         auto nextBlockIter = frame.leadersToBlock.upper_bound(frame.curAddr);
         if (nextBlockIter != frame.leadersToBlock.end()) {
             nextBlockAddr = nextBlockIter->first;
-            nextBlock = nextBlockIter->second;
         }
         bool isNopBlock = ah->isNop();
 
