@@ -1071,7 +1071,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
                 break;
             }
         }
-        assert(position!=-1);
+        assert(position!=-1U);
 
         // Insert new Segment at position
         if( position == segments.size() )

@@ -1666,7 +1666,7 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
   string debugFileFromDebugLink, debugFileFromBuildID;
   unsigned debugFileCrc = 0;
 
-  for(int i = 0; i < e_shnum(); i++) {
+  for(auto i = 0UL; i < e_shnum(); i++) {
      Elf_X_Shdr scn = get_shdr(i);
      if (!scn.isValid()) { // section is malformed
         continue;

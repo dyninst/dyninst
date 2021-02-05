@@ -623,12 +623,12 @@ SymtabCodeSource::init_linkage()
     }
     const unsigned char* buffer = (const unsigned char*)plt_got->getPtrToRawData(); 
     InstructionAPI::InstructionDecoder dec(buffer,plt_got->getMemSize(), getArch());
-    int decoded = 0;
+    unsigned long decoded = 0;
     while (decoded < plt_got->getMemSize()) {
         InstructionAPI::Instruction i = dec.decode();
-        if (buffer[decoded] == 0xff && buffer[decoded+1] == 0x25) {
+        if (buffer[decoded] == 0xff && buffer[decoded+1U] == 0x25) {
             uint64_t off = 0;
-            for (int j = 5; j >= 2; --j)
+            for (unsigned int j = 5; j >= 2; --j)
                 off = (off << 8) + buffer[decoded + j];
             Address rel_addr = plt_got->getMemOffset() + decoded + i.size() + off;
             if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {

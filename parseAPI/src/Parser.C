@@ -1194,7 +1194,7 @@ Parser::finalize_funcs(dyn_c_vector<Function *> &funcs)
 void
 Parser::finalize_ranges()
 {
-    for (int i = 0; i < funcs_to_ranges.size(); ++i) {
+    for (size_t i = 0; i < funcs_to_ranges.size(); ++i) {
         Function *f = funcs_to_ranges[i];
         region_data * rd = _parse_data->findRegion(f->region());
         for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
