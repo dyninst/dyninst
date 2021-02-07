@@ -1451,6 +1451,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             if (!frame_not_created && !work->callproc()) {
                 parsing_printf("[%s] binding call (call target should have been created) %lx->%lx\n",
                         FILE__,cur->lastInsnAddr(),work->target());
+                bind_call(frame, work->target(), cur, work->edge());
                 work->mark_call();
             }
 
