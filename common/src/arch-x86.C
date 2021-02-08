@@ -9706,34 +9706,6 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
 
     }
 
-    /* flip id of opcodes overloaded on operand size prefix */
-    int operSzAttr = getOperSz(pref);
-    if (operSzAttr == 1) 
-    {
-        entryID newID = gotit->id;
-
-        switch (gotit->id) 
-        {
-            case e_cwde: newID = e_cbw; break;
-            case e_cdq: newID = e_cwd; break;
-            case e_insd: newID = e_insw; break;
-            case e_lodsd: newID = e_lodsw; break;
-            case e_movsd: newID = e_movsw; break;
-            case e_outsd: newID = e_outsw; break;
-            case e_popad: newID = e_popa; break;
-            case e_popfd: newID = e_popf; break;
-            case e_pushad: newID = e_pusha; break;
-            case e_pushfd: newID = e_pushf; break;
-            case e_scasd: newID = e_scasw; break;
-            case e_stosd: newID = e_stosw; break;
-            default: break;
-        }
-
-#if STUB_OUT_TO_AVOID_RACE
-        gotit->id = newID;
-#endif
-    }
-
     instruct.entry = gotit;
     return instruct;
 }
