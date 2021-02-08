@@ -1145,7 +1145,7 @@ bool linux_process::plat_readMem(int_thread *thr, void *local,
    int fd = open(file, O_RDWR);
    ssize_t ret = pread(fd, local, size, remote);
    close(fd);
-   if (ret != size) {
+   if (static_cast<size_t>(ret) != size) {
       // Reads through procfs failed.
       // Fall back to use ptrace
       return LinuxPtrace::getPtracer()->ptrace_read(remote, size, local, thr->getLWP());
@@ -1162,7 +1162,7 @@ bool linux_process::plat_writeMem(int_thread *thr, const void *local,
    int fd = open(file, O_RDWR);
    ssize_t ret = pwrite(fd, local, size, remote);
    close(fd);
-   if (ret != size) {
+   if (static_cast<size_t>(ret) != size) {
       // Writes through procfs failed.
       // Fall back to use ptrace
       return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());

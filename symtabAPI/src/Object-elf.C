@@ -430,7 +430,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
     int dynamic_section_index = -1;
     unsigned int dynamic_section_type = 0;
     size_t dynamic_section_size = 0;
-    for (int i = 0; i < elfHdr->e_shnum(); ++i) {
+    for (auto i = 0UL; i < elfHdr->e_shnum(); ++i) {
         Elf_X_Shdr &scn = elfHdr->get_shdr(i);
         if (!scn.isValid()) {  // section is malformed
             continue;
@@ -2768,7 +2768,7 @@ void Object::find_code_and_data(Elf_X &elf,
    * when the sections are processed -> see loaded_elf()
    */
 
-    for (int i = 0; i < elf.e_phnum(); ++i) {
+    for (auto i = 0UL; i < elf.e_phnum(); ++i) {
         Elf_X_Phdr &phdr = elf.get_phdr(i);
 
         char *file_ptr = (char *) mf->base_addr();
@@ -4970,7 +4970,7 @@ bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
         result = shToRegion.insert(std::make_pair((*reg_it)->getRegionNumber(), (*reg_it)));
     }
 
-    for (auto i = 0;
+    for (size_t i = 0;
          i < allRegionHdrsByShndx.size();
             ++i) {
         auto shdr = allRegionHdrsByShndx[i];
