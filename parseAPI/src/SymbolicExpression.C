@@ -77,7 +77,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                    size_t size = roseAST->val().size;
                                                    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                                    uint64_t val = child0->val().val;
-                                                   if( size < 64)
+                                                   if(size >0 && size < 64)
                                                        return ConstantAST::create( Constant(val & ((1ULL << size)-1),size));
                                                    else
                                                        return ConstantAST::create(Constant(val, 64));
@@ -306,7 +306,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
         ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
         size_t size = constAST->val().size;
         uint64_t val = constAST->val().val;	
-        if( size < 64)
+        if(size >0 && size < 64)
             return ConstantAST::create( val & ((1ULL << size)-1));
         else
             return ConstantAST::create(Constant(val, 64));
