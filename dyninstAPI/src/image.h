@@ -447,6 +447,8 @@ class image : public codeRange {
    bool buildFunctionLists(std::vector<parse_func *> &raw_funcs);
    void analyzeImage();
 
+   void insertPLTParseFuncMap(const std::string&, parse_func*);
+
    //
    //  **** GAP PARSING SUPPORT  ****
    bool parseGaps() { return parseGaps_; }
@@ -530,6 +532,8 @@ class image : public codeRange {
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
+
+   dyn_hash_map<string, parse_func*> plt_parse_funcs;
 
 };
 

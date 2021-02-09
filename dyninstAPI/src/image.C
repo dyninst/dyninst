@@ -1936,8 +1936,16 @@ const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::stri
         if (imf) {
             res->push_back(imf);
         }
+    }
 
-    }	    
+    if (res->empty()) {
+        // Lookup PLT stubs
+        auto it = plt_parse_funcs.find(name);
+        if (it != plt_parse_funcs.end()) {
+            res->push_back(it->second);
+        }
+    }
+
     if(res->size()) 
 	return res;	    
     else {
@@ -2181,3 +2189,7 @@ void image::setImageLength(Address newlen)
 void image::destroy(ParseAPI::Block *) {}
 void image::destroy(ParseAPI::Edge *) {}
 void image::destroy(ParseAPI::Function *) {}
+
+void image::insertPLTParseFuncMap(const std::string & name, parse_func* f) {
+    plt_parse_funcs[name] = f;
+}
