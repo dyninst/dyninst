@@ -230,7 +230,7 @@ void EmitterIA32::emitRelOpImm(unsigned op, Register dest, Register src1, RegVal
 // where is this defined?
 extern bool isPowerOf2(int value, int &result);
 
-void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
+void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
    int result;
    
@@ -1453,7 +1453,7 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
       emitPopReg64(REGNUM_RDX, gen);
 }
 
-void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
+void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
    int result = -1;
 
@@ -2321,7 +2321,7 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
       // shift left by the given scale
       // emitTimesImm will do the right thing
       if(sc > 0)
-         emitTimesImm(dest, scratch, 1 << sc, gen, true);
+         emitTimesImm(dest, scratch, 1 << sc, gen);
    }
    else
       emitMovImmToReg64(dest, (int)imm, true, gen);       

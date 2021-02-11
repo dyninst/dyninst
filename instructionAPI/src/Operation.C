@@ -173,20 +173,20 @@ namespace Dyninst
     
     const Operation_impl::registerSet&  Operation_impl::implicitReads()
     {
-      SetUpNonOperandData(true);
+      SetUpNonOperandData();
       
       return otherRead;
     }
     const Operation_impl::registerSet&  Operation_impl::implicitWrites()
     {
-      SetUpNonOperandData(true);
+      SetUpNonOperandData();
 
       return otherWritten;
     }
     bool Operation_impl::isRead(Expression::Ptr candidate)
     {
      
-	SetUpNonOperandData(candidate->isFlag());
+	SetUpNonOperandData();
      
       for(registerSet::const_iterator r = otherRead.begin();
 	  r != otherRead.end();
@@ -210,19 +210,19 @@ namespace Dyninst
     }
     const Operation_impl::VCSet& Operation_impl::getImplicitMemReads()
     {
-      SetUpNonOperandData(true);
+      SetUpNonOperandData();
       return otherEffAddrsRead;
     }
     const Operation_impl::VCSet& Operation_impl::getImplicitMemWrites()
     {
-      SetUpNonOperandData(true);
+      SetUpNonOperandData();
       return otherEffAddrsWritten;
     }
 
     bool Operation_impl::isWritten(Expression::Ptr candidate)
     {
      
-	SetUpNonOperandData(candidate->isFlag());
+	SetUpNonOperandData();
       
       for(registerSet::const_iterator r = otherWritten.begin();
 	  r != otherWritten.end();
@@ -401,7 +401,7 @@ namespace Dyninst
                 return op_data_32;
         }
     }
-    void Operation_impl::SetUpNonOperandData(bool needFlags)
+    void Operation_impl::SetUpNonOperandData()
     {
         #if defined(arch_x86) || defined(arch_x86_64)
         std::call_once(data_initialized, [&]() {

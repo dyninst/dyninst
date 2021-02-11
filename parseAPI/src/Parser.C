@@ -50,9 +50,6 @@
 #include "debug_parse.h"
 #include "IndirectAnalyzer.h"
 
-#include <boost/bind/bind.hpp>
-
-
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
@@ -481,8 +478,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                 work.insert(pf);
                 assert(pf->call_target);
                 parsing_printf("    call target %lx\n",pf->call_target->addr());
-                CodeRegion * cr = pf->call_target->region();
-                Address targ = pf->call_target->addr();
                 ParseFrame * tf = _parse_data->createAndRecordFrame(pf->call_target);
                 if (tf) {
                     // a new frame
@@ -605,20 +600,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
             assert(0 && "invalid parse frame status");
     }
     return work.steal();
-}
-
-
-static void
-InsertFrames
-(
- LockFreeQueueItem<ParseFrame *> *frames,
- LockFreeQueue<ParseFrame *> *q
-)
-{
-  if (frames) {
-    LockFreeQueue<ParseFrame *> myq(frames);
-    q->splice(myq);
-  }
 }
 
 
@@ -1211,7 +1192,7 @@ Parser::finalize_funcs(dyn_c_vector<Function *> &funcs)
 void
 Parser::finalize_ranges()
 {
-    for (int i = 0; i < funcs_to_ranges.size(); ++i) {
+    for (size_t i = 0; i < funcs_to_ranges.size(); ++i) {
         Function *f = funcs_to_ranges[i];
         region_data * rd = _parse_data->findRegion(f->region());
         for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
@@ -1273,7 +1254,7 @@ Parser::init_frame(ParseFrame & frame)
     Block * split = NULL;
     
     // Find or create a block
-        b = block_at(frame, frame.func, frame.func->addr(),split, NULL);
+        b = block_at(frame, frame.func, frame.func->addr(),split);
         if(b) {
             frame.leadersToBlock[frame.func->addr()] = b;
             frame.func->_entry = b;
@@ -1429,7 +1410,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
 
     /** Non-persistent intermediate state **/
     Address nextBlockAddr;
-    Block * nextBlock;
 
     while(!worklist.empty()) {
 
@@ -1471,12 +1451,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             if (!frame_not_created && !work->callproc()) {
                 parsing_printf("[%s] binding call (call target should have been created) %lx->%lx\n",
                         FILE__,cur->lastInsnAddr(),work->target());
-                Function *tfunc = _parse_data->findFunc(frame.codereg,work->target());
-                pair<Function*,ParseAPI::Edge*> ctp =
-                        bind_call(frame,
-                                  work->target(),
-                                  cur,
-                                  work->edge());
+                bind_call(frame, work->target(), cur, work->edge());
                 work->mark_call();
             }
 
@@ -1743,7 +1718,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
         auto nextBlockIter = frame.leadersToBlock.upper_bound(frame.curAddr);
         if (nextBlockIter != frame.leadersToBlock.end()) {
             nextBlockAddr = nextBlockIter->first;
-            nextBlock = nextBlockIter->second;
         }
         bool isNopBlock = ah->isNop();
 
@@ -1905,7 +1879,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     _pcb.patch_nop_jump(ah->getAddr());
                     unsigned bufsize =
                             func->region()->offset() + func->region()->length() - ah->getAddr();
-                    func->region()->offset() + func->region()->length() - ahPtr->getAddr();
                     const unsigned char* bufferBegin = (const unsigned char *)
                             (func->region()->getPtrToInstruction(ah->getAddr()));
                     dec = InstructionDecoder
@@ -1987,13 +1960,9 @@ Block *
 Parser::block_at(ParseFrame &frame,
         Function * owner,
         Address addr,
-        Block * & split, 
-	Block * src)
+        Block * & split)
 {
-    Block * exist = NULL;
     Block * ret = NULL;
-    Block * inconsistent = NULL;
-    Address prev_insn = 0;
 
     split = NULL;
     CodeRegion *cr;
@@ -2039,7 +2008,6 @@ Parser::add_edge(
 {
     Block * split = NULL;
     Block * ret = NULL;
-    Block * original_block = NULL;
     ParseAPI::Edge * newedge = NULL;
     pair<Block *, ParseAPI::Edge *> retpair((Block *) NULL, (ParseAPI::Edge *) NULL);
 
@@ -2061,7 +2029,7 @@ Parser::add_edge(
     // since adding into the worklist. We use the edge
     // source address and follow fall-througth edge
     // to find the correct block object
-    ret = block_at(frame, owner,dst, split, src);
+    ret = block_at(frame, owner,dst, split);
     retpair.first = ret;
 
     if(split == src) {
@@ -2098,7 +2066,6 @@ pair<Function *,ParseAPI::Edge*>
 Parser::bind_call(ParseFrame & frame, Address target, Block * cur, ParseAPI::Edge * exist)
 {
     Function * tfunc = NULL;
-    Block * tblock = NULL;
 
     // look it up
     tfunc = _parse_data->findFunc(frame.codereg,target);
@@ -2308,7 +2275,6 @@ fprintf(stderr, "In relink : src [%lx, %lx) dst [%lx, %lx)\n", src->start(), src
 assert(src->end() == dst->start());
         }
     }
-    unsigned long srcOut = 0, dstIn = 0, oldDstIn = 0;
     Block* oldDst = NULL;
     if(e->trg() && e->trg_addr() != std::numeric_limits<Address>::max()) {
         oldDst = e->trg();
@@ -2589,9 +2555,7 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
 
                     Block * ret = factory()._mkblock(fA, b->region(),addr);
                     Block * exist = record_block(ret);
-                    bool block_exist = false;
                     if (exist != ret) {
-                        block_exist = true;
                         ret = exist;
                     }
                     ret->updateEnd(B->end());
@@ -2638,7 +2602,6 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
 
 bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
     bool ret = false;
-    ParseWorkBundle *bundle = NULL;
     /* Right now, we just re-calculate jump table targets for 
      * every jump tables. An optimization is to improve the jump
      * table analysis to record which indirect jump is value
@@ -2661,7 +2624,6 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
         for (auto eit = block->targets().begin(); eit != block->targets().end(); ++eit) {
             existing.insert((*eit)->trg_addr());
         }
-        bool new_edges = false;
         for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) {
             if (existing.find(oit->first) != existing.end()) continue;
             // Find a new target and push it into work list

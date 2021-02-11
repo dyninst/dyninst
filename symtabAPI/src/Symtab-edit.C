@@ -75,10 +75,14 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
     }
     case Symbol::ST_TLS:
     case Symbol::ST_OBJECT: {
-        Variable *var = NULL;
-        if (findVariableByOffset(var, sym->getOffset())) {
-            var->removeSymbol(sym);
-            // See above
+        std::vector<Variable *> vars;
+        if (findVariablesByOffset(vars, sym->getOffset())) {
+            for (auto v: vars)  {
+                if (v->getSize() == sym->getSize())  {
+                    v->removeSymbol(sym);
+                    // See above
+                }
+            }
         }
         break;
     }
@@ -113,10 +117,22 @@ bool Symtab::deleteFunction(Function *func) {
 }
 
 bool Symtab::deleteVariable(Variable *var) {
-    // First, remove the function
+    // remove variable from everyVariable
     everyVariable.erase(std::remove(everyVariable.begin(), everyVariable.end(), var), everyVariable.end());
 
-    varsByOffset.erase(var->getOffset());
+    // remove variable from varsByOffset
+    {
+        VarsByOffsetMap::accessor a;
+        bool found = !varsByOffset.find(a, var->getOffset());
+        if (found)  {
+            VarsByOffsetMap::mapped_type &vars = a->second;
+            vars.erase(std::remove(vars.begin(), vars.end(), var), vars.end());
+            if (vars.empty())  {
+                varsByOffset.erase(a);
+            }
+        }
+    }
+
     return deleteAggregate(var);
 }
 
@@ -165,7 +181,8 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     if (!everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
         assert(!"everyDefinedSymbol.by_offset.find(oa, sym->offset_)");
     }
-    std::remove(oa->second.begin(), oa->second.end(), sym);
+    auto &syms = oa->second;
+    syms.erase(std::remove(syms.begin(), syms.end(), sym), syms.end());
     everyDefinedSymbol.by_offset.insert(oa, newOffset);
     oa->second.push_back(sym);
 
@@ -188,8 +205,30 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
         }
     }
     if (var) {
-        varsByOffset.erase(oldOffset);
-        if (!varsByOffset.insert({newOffset, var})) {
+        VarsByOffsetMap::accessor a;
+        bool found = !varsByOffset.find(a, oldOffset);
+        VarsByOffsetMap::mapped_type &vars = a->second;
+        if (found)  {
+            vars.erase(std::remove(vars.begin(), vars.end(), var), vars.end());
+            if (vars.empty())  {
+                varsByOffset.erase(a);
+            }
+        }  else  {
+            assert(0);
+        }
+
+        found = !varsByOffset.insert(a, newOffset);
+        if (found)  {
+            found = false;
+            for (auto v: vars)  {
+                if (v->getSize() == var->getSize())  {
+                    found = true;
+                }
+            }
+        }
+        if (!found)  {
+            vars.push_back(var);
+        }  else  {
             // Already someone there... odd, so don't do anything.
         }
     }

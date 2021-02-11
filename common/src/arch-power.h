@@ -805,7 +805,7 @@ class COMMON_EXPORT instruction {
     instruction(const void *ptr) {
       insn_ = *((const instructUnion *)ptr);
     }
-    instruction(const void *ptr, bool mode_64) {
+    instruction(const void *ptr, bool) {
       insn_ = *((const instructUnion *)ptr);
     }
     instruction(const instruction &insn) :        insn_(insn.insn_) {};
@@ -819,7 +819,7 @@ class COMMON_EXPORT instruction {
     void setBits(unsigned int pos, unsigned int len, unsigned int value) {
         unsigned int mask;
 
-        mask = ~(~0 << len);
+        mask = ~(~0U << len);
         value = value & mask;
 
         mask = ~(mask << pos);

@@ -26,7 +26,6 @@ class BoundFactsCalculator {
     bool handleOneByteRead;
     SymbolicExpression &se;
 
-    void ThunkBound(BoundFact*& curFact, Node::Ptr src, Node::Ptr trg, bool &newCopy);
     BoundFact* Meet(Node::Ptr curNode);
     void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
 

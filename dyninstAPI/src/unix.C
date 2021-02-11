@@ -694,7 +694,6 @@ func_instance* block_instance::callee(std::string const& target_name) {
 		 }
 	  }
    }
-   assert(0 && "Unable to find callee by name");
    return nullptr;
 }
 

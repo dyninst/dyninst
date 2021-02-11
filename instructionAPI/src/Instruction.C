@@ -152,10 +152,10 @@ namespace Dyninst
     }
 
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
-      arch_decoded_from(o.arch_decoded_from),
       m_Operands(o.m_Operands),
       m_InsnOp(o.m_InsnOp),
       m_Valid(o.m_Valid),
+	  arch_decoded_from(o.arch_decoded_from),
       formatter(o.formatter)
 
     {

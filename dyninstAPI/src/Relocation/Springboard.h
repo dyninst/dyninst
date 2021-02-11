@@ -293,8 +293,7 @@ class SpringboardBuilder {
                    Priority p);
 
   generateResult_t generateSpringboard(std::list<codeGen> &gens,
-				       const SpringboardReq &p,
-                                       SpringboardMap &);
+				       const SpringboardReq &p);
 
   bool generateMultiSpringboard(std::list<codeGen> &input,
 				const SpringboardReq &p);

@@ -6,7 +6,7 @@ void InstructionDecoder_amdgpu_vega::decodeSOP2(){
 	layout.sdst      = longfield<16,22>(insn_long);
 	layout.op        = longfield<23,29>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOP2Operands();
 }
@@ -17,7 +17,7 @@ void InstructionDecoder_amdgpu_vega::decodeSOP1(){
 	layout.op        = longfield<8,15>(insn_long);
 	layout.sdst      = longfield<16,22>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop1_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOP1Operands();
 }
@@ -28,7 +28,7 @@ void InstructionDecoder_amdgpu_vega::decodeSOPK(){
 	layout.sdst      = longfield<16,22>(insn_long);
 	layout.op        = longfield<23,27>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopk_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOPKOperands();
 }
@@ -39,7 +39,7 @@ void InstructionDecoder_amdgpu_vega::decodeSOPC(){
 	layout.ssrc1     = longfield<8,15>(insn_long);
 	layout.op        = longfield<16,22>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopc_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOPCOperands();
 }
@@ -49,7 +49,7 @@ void InstructionDecoder_amdgpu_vega::decodeSOPP(){
 	layout.simm16    = longfield<0,15>(insn_long);
 	layout.op        = longfield<16,22>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOPPOperands();
 }
@@ -66,7 +66,7 @@ void InstructionDecoder_amdgpu_vega::decodeSMEM(){
 	layout.offset    = longfield<32,52>(insn_long);
 	layout.soffset   = longfield<57,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::smem_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSMEMOperands();
 }
@@ -107,7 +107,7 @@ void InstructionDecoder_amdgpu_vega::decodeVOP2(){
 		vop_literal.row_mask  = longfield<60,63>(insn_long);
 	}
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop2_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP2Operands();
 }
@@ -147,7 +147,7 @@ void InstructionDecoder_amdgpu_vega::decodeVOP1(){
 		vop_literal.row_mask  = longfield<60,63>(insn_long);
 	}
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP1Operands();
 }
@@ -185,7 +185,7 @@ void InstructionDecoder_amdgpu_vega::decodeVOPC(){
 		vop_literal.row_mask  = longfield<60,63>(insn_long);
 	}
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vopc_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOPCOperands();
 }
@@ -198,7 +198,7 @@ void InstructionDecoder_amdgpu_vega::decodeVINTRP(){
 	layout.op        = longfield<16,17>(insn_long);
 	layout.vdst      = longfield<18,25>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vintrp_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVINTRPOperands();
 }
@@ -214,7 +214,7 @@ void InstructionDecoder_amdgpu_vega::decodeDS(){
 	layout.data1     = longfield<48,55>(insn_long);
 	layout.vdst      = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::ds_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeDSOperands();
 }
@@ -235,7 +235,7 @@ void InstructionDecoder_amdgpu_vega::decodeMTBUF(){
 	layout.tfe       = longfield<55,55>(insn_long);
 	layout.soffset   = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::mtbuf_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeMTBUFOperands();
 }
@@ -255,7 +255,7 @@ void InstructionDecoder_amdgpu_vega::decodeMUBUF(){
 	layout.tfe       = longfield<55,55>(insn_long);
 	layout.soffset   = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::mubuf_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeMUBUFOperands();
 }
@@ -264,7 +264,7 @@ void InstructionDecoder_amdgpu_vega::decodeVOP3AB(){
 	layout_vop3ab & layout = insn_layout.vop3ab;
 	layout.op        = longfield<16,25>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop3ab_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP3ABOperands();
 }
@@ -283,7 +283,7 @@ void InstructionDecoder_amdgpu_vega::decodeVOP3P(){
 	layout.opsel_hi  = longfield<59,60>(insn_long);
 	layout.neg       = longfield<61,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop3p_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP3POperands();
 }
@@ -302,7 +302,7 @@ void InstructionDecoder_amdgpu_vega::decodeFLAT(){
 	layout.nv        = longfield<55,55>(insn_long);
 	layout.vdst      = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::flat_insn_table[layout.op];
-	decodeOperands(this->insn_in_progress.get(),insn_entry);
+	decodeOperands(insn_entry);
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeFLATOperands();
 }

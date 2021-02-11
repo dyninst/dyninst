@@ -59,7 +59,9 @@ class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
     typedef tbb::concurrent_hash_map<K, V,
         tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> base;
 public:
-    using value_type = typename base::value_type;
+    using typename base::value_type;
+    using typename base::mapped_type;
+    using typename base::key_type;
 
     class const_accessor : public base::const_accessor {
         friend class dyn_c_hash_map<K,V>;

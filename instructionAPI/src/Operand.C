@@ -133,7 +133,7 @@ namespace Dyninst
           Result res = op_value->eval();
           if (res.defined) {
               char hex[20];
-              snprintf(hex, 20, "%x", res.convert<uintmax_t>());
+              snprintf(hex, 20, "%lux", res.convert<uintmax_t>());
               return string(hex);
           }
       }

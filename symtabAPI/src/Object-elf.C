@@ -430,7 +430,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
     int dynamic_section_index = -1;
     unsigned int dynamic_section_type = 0;
     size_t dynamic_section_size = 0;
-    for (int i = 0; i < elfHdr->e_shnum(); ++i) {
+    for (auto i = 0UL; i < elfHdr->e_shnum(); ++i) {
         Elf_X_Shdr &scn = elfHdr->get_shdr(i);
         if (!scn.isValid()) {  // section is malformed
             continue;
@@ -1599,7 +1599,7 @@ void Object::load_object(bool alloc_syms) {
                     goto cleanup;
                 }
             }
-            parse_all_relocations(*elfHdr, dynsym_scnp, dynstr_scnp,
+            parse_all_relocations(dynsym_scnp, dynstr_scnp,
                                   symscnp, strscnp);
 
             handle_opd_relocations();
@@ -1754,7 +1754,7 @@ void Object::load_shared_object(bool alloc_syms) {
                 }
             }
 
-            parse_all_relocations(*elfHdr, dynsym_scnp, dynstr_scnp,
+            parse_all_relocations(dynsym_scnp, dynstr_scnp,
                                   symscnp, strscnp);
             // Apply relocations to opd
             handle_opd_relocations();
@@ -2789,7 +2789,7 @@ void Object::find_code_and_data(Elf_X &elf,
    * when the sections are processed -> see loaded_elf()
    */
 
-    for (int i = 0; i < elf.e_phnum(); ++i) {
+    for (auto i = 0UL; i < elf.e_phnum(); ++i) {
         Elf_X_Phdr &phdr = elf.get_phdr(i);
 
         char *file_ptr = (char *) mf->base_addr();
@@ -3212,7 +3212,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             size = 2;
             break;
         case DW_EH_PE_sdata2:
-            *value = (const int16_t) endian_16bit(*((const uint16_t *) addr), mi.big_input);
+            *value = endian_16bit(*((const uint16_t *) addr), mi.big_input);
             size = 2;
             break;
         case DW_EH_PE_udata4:
@@ -3220,7 +3220,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             size = 4;
             break;
         case DW_EH_PE_sdata4:
-            *value = (const int32_t) endian_32bit(*((const uint32_t *) addr), mi.big_input);
+            *value = endian_32bit(*((const uint32_t *) addr), mi.big_input);
             size = 4;
             break;
         case DW_EH_PE_udata8:
@@ -3228,7 +3228,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             size = 8;
             break;
         case DW_EH_PE_sdata8:
-            *value = (const int64_t) endian_64bit(*((const uint64_t *) addr), mi.big_input);
+            *value = endian_64bit(*((const uint64_t *) addr), mi.big_input);
             size = 8;
             break;
         default:
@@ -4557,7 +4557,6 @@ void Object::parseStabTypes() {
     Symbol *commonBlockVar = NULL;
     string *commonBlockName = NULL;
     boost::shared_ptr<Type> commonBlock = NULL;
-    int mostRecentLinenum = 0;
 
     Module *mod;
     typeCollection *tc = NULL;
@@ -4654,7 +4653,6 @@ void Object::parseStabTypes() {
 #endif
                 break;
             case N_SLINE:
-                mostRecentLinenum = stabptr->desc(i);
                 break;
             default:
                 break;
@@ -4750,7 +4748,7 @@ void Object::parseStabTypes() {
                         if (!commonBlock->isCommonType()) {
                             // its still the null type, create a new one for it
                             commonBlock = Type::make_shared<typeCommon>(*commonBlockName);
-                            tc->addGlobalVariable(*commonBlockName, commonBlock);
+                            tc->addGlobalVariable(commonBlock);
                         }
                         // reset field list
                         commonBlock->asCommonType().beginCommonBlock();
@@ -4923,7 +4921,7 @@ void Object::insertDynamicEntry(long name, long value) {
 
 // Parses sections with relocations and links these relocations to
 // existing symbols
-bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
+bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
 //fprintf(stderr, "enter parse_all_relocations for object %s\n", getFileName().c_str() );
@@ -5003,7 +5001,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         result = shToRegion.insert(std::make_pair((*reg_it)->getRegionNumber(), (*reg_it)));
     }
 
-    for (auto i = 0;
+    for (size_t i = 0;
          i < allRegionHdrsByShndx.size();
             ++i) {
         auto shdr = allRegionHdrsByShndx[i];

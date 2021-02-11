@@ -322,7 +322,7 @@ void codeGen::insert(const void *b, const unsigned size, const codeBufIndex_t in
 
     realloc(used() + size);
     auto * temp = get_ptr(index);
-    memmove(temp + size, temp, used()-index);
+    memmove(static_cast<char*>(temp) + size, temp, used()-index);
     memcpy(temp, b, size);
 
     moveIndex(size);

@@ -53,9 +53,10 @@ using namespace std;
 
 static const Dwfl_Callbacks dwfl_callbacks =
 {
-    .find_elf = dwfl_build_id_find_elf,
-    .find_debuginfo = dwfl_standard_find_debuginfo,
-    .section_address = dwfl_offline_section_address,
+    dwfl_build_id_find_elf,
+    dwfl_standard_find_debuginfo,
+    dwfl_offline_section_address,
+	nullptr
 };
 
 /*void DwarfHandle::defaultDwarfError(Dwarf_Error err, Dwarf_Ptr p) {

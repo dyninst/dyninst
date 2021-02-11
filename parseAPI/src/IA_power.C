@@ -462,8 +462,6 @@ typedef enum {
 
 linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
 {
-    instruction *insn = static_cast<instruction *>(insn_buf);
-
 #if defined(ppc64_linux)
     /*
      * Linker stubs seen from GNU's binutils.
@@ -507,6 +505,7 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
     //
     // This results in three possible stubs:
 
+    instruction *insn = static_cast<instruction *>(insn_buf);
     if (   (insn[0].asInt() & 0xffff0000) == ADDIS_R12_R2
         &&  insn[1].asInt()               == STD_R2_40R1
         && (insn[2].asInt() & 0xffff0000) == LD_R11_0R12
@@ -758,6 +757,8 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
         off = DFORM_SI(insn[1]);
         return STUB_TOC_BRANCH;
     }
+#else
+    (void)insn_buf;
 #endif
 
     off = 0;

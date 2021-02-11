@@ -61,7 +61,7 @@
 #include "Relocation/DynObject.h"
 #include "Relocation/DynInstrumenter.h"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 #include "dynThread.h"
 #include "pcEventHandler.h"
@@ -2233,7 +2233,7 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
 	    std::for_each(boost::make_filter_iterator(epred_, sourceEdges.begin(), sourceEdges.end()),
 			  boost::make_filter_iterator(epred_, sourceEdges.end(), sourceEdges.end()),
 			  boost::bind(updateSrcListAndVisited,
-				      _1,
+				      boost::placeholders::_1,
 				      boost::ref(srcList),
 				      boost::ref(visited)));
 
@@ -2256,7 +2256,7 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
 		   std::for_each(boost::make_filter_iterator(epred_, srcSrcs.begin(), srcSrcs.end()),
 				 boost::make_filter_iterator(epred_, srcSrcs.end(), srcSrcs.end()),
 				 boost::bind(updateSrcListAndVisited,
-					     _1,
+						 boost::placeholders::_1,
 					     boost::ref(srcList),
 					     boost::ref(visited)));
 		   

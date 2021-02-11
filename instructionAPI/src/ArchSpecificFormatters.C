@@ -161,7 +161,7 @@ std::string AmdgpuFormatter::formatImmediate(std::string evalString) {
 
 std::string AmdgpuFormatter::formatRegister(std::string regName) {
     std::string ret = regName;
-    for(auto &c : ret ) ::toupper(c);
+    for(auto &c : ret ) c = ::toupper(c);
     return ret;
 }
 

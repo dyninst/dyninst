@@ -65,7 +65,8 @@ namespace Dyninst {
             virtual void setMode(bool) { }
 
             virtual bool decodeOperands(const Instruction *insn_to_complete);
-            virtual bool decodeOperands(const Instruction *insn_to_complete, const amdgpu_insn_entry & insn_entry);
+            
+            bool decodeOperands(const amdgpu_insn_entry & insn_entry);
 
             virtual void doDelayedDecode(const Instruction *insn_to_complete);
 
@@ -195,7 +196,6 @@ namespace Dyninst {
             bool fix_bitfieldinsn_alias(int, int);
 	        void fix_condinsn_alias_and_cond(int &);
 	        void modify_mnemonic_simd_upperhalf_insns();
-            bool pre_process_checks(const amdgpu_insn_entry &);
 
             MachRegister makeAmdgpuRegID(MachRegister, unsigned int, unsigned int len = 1);
 

@@ -368,7 +368,7 @@ void typeCollection::addType(boost::shared_ptr<Type> type)
     }
 }
 
-void typeCollection::addGlobalVariable(std::string &name, boost::shared_ptr<Type> type)
+void typeCollection::addGlobalVariable(boost::shared_ptr<Type> type)
 {
     globalVarsByName.insert({type->getName(), type});
 }

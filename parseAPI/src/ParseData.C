@@ -90,7 +90,7 @@ ParseWorkElem * ParseFrame::mkWork(
 /**** Standard [no overlapping regions] ParseData ****/
 
 StandardParseData::StandardParseData(Parser *p) :
-    ParseData(p), _rdata(&p->obj(), p->obj().cs()->regions().empty() ? NULL : p->obj().cs()->regions()[0])
+    ParseData(p), _rdata{}
 { }
 
 StandardParseData::~StandardParseData() 
@@ -265,7 +265,7 @@ OverlappingParseData::OverlappingParseData(
     ParseData(p)
 {    
     for(unsigned i=0;i<regions.size();++i) {
-        rmap.insert(make_pair(regions[i], new region_data(&p->obj(), regions[i])));
+        rmap.insert(make_pair(regions[i], new region_data{}));
     } 
 }
 

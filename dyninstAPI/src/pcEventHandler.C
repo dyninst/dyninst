@@ -574,7 +574,6 @@ bool PCEventHandler::handleRTBreakpoint(EventBreakpoint::const_ptr ev, PCProcess
 
     int status = 0;
     Address arg1 = 0;
-    int zero = 0;
 
     // Check that all addresses could be determined
     if (rtTrapFuncAddr == 0
