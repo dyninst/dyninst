@@ -96,37 +96,25 @@ DynCFGFactory::DynCFGFactory(image * im) :
 }
 
 class PLTFunction : public Dyninst::SymtabAPI::Function {
+	Dyninst::SymtabAPI::relocationEntry r;
 public:
-    PLTFunction(Dyninst::SymtabAPI::relocationEntry r) :
-            SymtabAPI::Function(r.getDynSym()),
-            name(r.name()),
-            entry(r.target_addr()),
-            size(0),
-            module(NULL)
-    {
+    explicit PLTFunction(Dyninst::SymtabAPI::relocationEntry re) : Dyninst::SymtabAPI::Function(re.getDynSym()), r{re} {}
+
+    std::string getName() const override {
+    	return r.name();
     }
 
-    string getName() const  {
-        return name;
+    Offset getOffset() const override {
+    	return r.target_addr();
     }
 
-    Offset getOffset() const  {
-        return entry;
+    unsigned int getSize() const override {
+    	return 0;
     }
 
-    unsigned int getSize() const  {
-        return size;
+    SymtabAPI::Module* getModule() const override {
+    	return nullptr;
     }
-
-    SymtabAPI::Module *getModule() const  {
-        return module;
-    }
-private:
-    string name;
-    Offset entry;
-    unsigned int size;
-    SymtabAPI::Module* module;
-    SymtabAPI::Symbol* dynsym;
 };
 
 Function *
