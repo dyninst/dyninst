@@ -679,5 +679,11 @@ void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods,
             modResults.push_back(std::make_pair(func, func->addMods(mods)));
         }
     }
+#else
+    // Silence compiler warnings
+    (void)mods;
+    (void)interproc;
+    (void)modResults;
+    (void)depthLimit;
 #endif
 }
