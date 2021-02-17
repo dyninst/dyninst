@@ -467,6 +467,8 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
    tc_lock_unlock(&trap_mapping_lock);
    return header;
 #else
+	// Silence compiler warnings
+    (void)addr;
 	assert(0);
 	return NULL;
 #endif

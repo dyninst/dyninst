@@ -361,7 +361,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  relocation = (symbolOffset - 0x7000) & 0xffff;
 	  break;
 	default:
-	  fprintf(stderr, "Unhandled relocation type %d\n",rel.getRelType());
+	  fprintf(stderr, "Unhandled relocation type %lu\n",rel.getRelType());
 	  assert(0);
 	}
         rewrite_printf("\tbefore: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", 

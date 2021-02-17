@@ -84,7 +84,7 @@ Address PCProcess::getTOCoffsetInfo(func_instance *func) {
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
 }
 
-bool PCProcess::getOPDFunctionAddr(Address &addr) {
+bool PCProcess::getOPDFunctionAddr(Address &) {
     return true;
 }
 

@@ -109,7 +109,7 @@ Offset emitElfStatic::getGOTSize(LinkMap &) {
 #endif
 
 //steve: TODO
-Offset emitElfStatic::getGOTSize(Symtab *target, LinkMap &lmap, Offset &layoutStart) {
+Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
@@ -126,7 +126,7 @@ void emitElfStatic::buildGOT(LinkMap &) {
 #endif
 
 //steve: TODO
-void emitElfStatic::buildGOT(Symtab *target, LinkMap &lmap) {
+void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
 }
 
@@ -171,12 +171,12 @@ void emitElfStatic::getExcludedSymbolNames(set<string> &) {
 
 //************
 //steve: added
-Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset globalOffset){
+Offset emitElfStatic::allocStubRegions(LinkMap &, Offset){
   assert(!EMIT_STATIC_ASSERT);
 	return 0;
 }
 
-bool emitElfStatic::updateTOC(Symtab *file, LinkMap &lmap, Offset globalOffset){
+bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset){
   assert(!EMIT_STATIC_ASSERT);
 	return false;
 }

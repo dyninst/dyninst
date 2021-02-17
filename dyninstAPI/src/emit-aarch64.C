@@ -166,9 +166,9 @@ void EmitterAARCH64::emitRelOp(
 
 //#sasha Fix parameters number
 void EmitterAARCH64::emitGetParam(
-        Register dest, Register param_num,
-        instPoint::Type pt_type, opCode op,
-        bool addr_of, codeGen &gen)
+        Register, Register param_num,
+        instPoint::Type, opCode op,
+        bool, codeGen &gen)
 {
     registerSlot *regSlot = NULL;
     switch (op) {

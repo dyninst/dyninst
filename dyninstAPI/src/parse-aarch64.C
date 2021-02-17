@@ -70,8 +70,8 @@ static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
 static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
-static bool replaceHandler(func_instance *origHandler, func_instance *newHandler,
-        int_symbol *newList, const std::string &listRelName)
+static bool replaceHandler(func_instance *, func_instance *,
+        int_symbol *, const std::string &)
 {
 	assert(0);
     return false;
@@ -88,14 +88,14 @@ bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, 
 
 
 
-std::string parse_func::calcParentFunc(const parse_func * imf,
+std::string parse_func::calcParentFunc(const parse_func *,
                                     std::vector<image_parRegion *> &/*pR*/)
 {
 	assert(0);
 }
 
 
-void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum)
+void parse_func::parseOMP(image_parRegion *, parse_func *, int &)
 {
 	assert(0);
 }

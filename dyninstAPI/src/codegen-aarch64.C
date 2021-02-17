@@ -392,29 +392,29 @@ void insnCodeGen::generateBitwiseOpShifted(
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateLoadReg(codeGen &gen, Register rt,
-                                  Register ra, Register rb)
+void insnCodeGen::generateLoadReg(codeGen &, Register,
+                                  Register, Register)
 {
     assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateStoreReg(codeGen &gen, Register rt,
-                                   Register ra, Register rb)
+void insnCodeGen::generateStoreReg(codeGen &, Register,
+                                   Register, Register)
 {
     assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateLoadReg64(codeGen &gen, Register rt,
-                                    Register ra, Register rb)
+void insnCodeGen::generateLoadReg64(codeGen &, Register,
+                                    Register, Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateStoreReg64(codeGen &gen, Register rs,
-                                     Register ra, Register rb)
+void insnCodeGen::generateStoreReg64(codeGen &, Register,
+                                     Register, Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
@@ -582,28 +582,28 @@ void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
 }
 
 // rlwinm ra,rs,n,0,31-n
-void insnCodeGen::generateLShift(codeGen &gen, Register rs, int shift, Register ra)
+void insnCodeGen::generateLShift(codeGen &, Register, int, Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
 // rlwinm ra,rs,32-n,n,31
-void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register ra)
+void insnCodeGen::generateRShift(codeGen &, Register, int, Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
 // sld ra, rs, rb
-void insnCodeGen::generateLShift64(codeGen &gen, Register rs, int shift, Register ra)
+void insnCodeGen::generateLShift64(codeGen &, Register, int, Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
 // srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra)
+void insnCodeGen::generateRShift64(codeGen &, Register, int, Register)
 {
 assert(0);
 //not implemented
@@ -622,16 +622,16 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     }
 }
 
-void insnCodeGen::generateSimple(codeGen &gen, int op,
-                                 Register src1, Register src2,
-                                 Register dest)
+void insnCodeGen::generateSimple(codeGen &, int,
+                                 Register, Register,
+                                 Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
-                                Register rs2, Register rd)
+void insnCodeGen::generateRelOp(codeGen &, int, int, Register,
+                                Register, Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
@@ -653,19 +653,19 @@ void insnCodeGen::restoreRegister(codeGen &gen, Register r, int sp_offset, Index
 // Helper method.  Fills register with partial value to be completed
 // by an operation with a 16-bit signed immediate.  Such as loads and
 // stores.
-void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
+void insnCodeGen::loadPartialImmIntoReg(codeGen &, Register, long)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Register>& freeReg, std::vector<Register>& excludeReg){
+int insnCodeGen::createStackFrame(codeGen &, int, std::vector<Register>& freeReg, std::vector<Register>&){
 assert(0);
 //#warning "This function is not implemented yet!"
 		return freeReg.size();
 }
 
-void insnCodeGen::removeStackFrame(codeGen &gen) {
+void insnCodeGen::removeStackFrame(codeGen &) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
@@ -680,16 +680,16 @@ assert(0);
 //#warning "This function is not implemented yet!"
 return false; }
 
-void insnCodeGen::generateMoveFromLR(codeGen &gen, Register rt) {
+void insnCodeGen::generateMoveFromLR(codeGen &, Register) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateMoveToLR(codeGen &gen, Register rs) {
+void insnCodeGen::generateMoveToLR(codeGen &, Register) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
-void insnCodeGen::generateMoveToCR(codeGen &gen, Register rs) {
+void insnCodeGen::generateMoveToCR(codeGen &, Register) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
