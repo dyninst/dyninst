@@ -887,7 +887,7 @@ unsigned restoreGPRegisters(codeGen &gen,
  */
 
 unsigned saveFPRegisters(codeGen &gen,
-                         registerSpace * theRegSpace,
+                         registerSpace *,
                          int save_off)
 {
   unsigned numRegs = 0;
@@ -912,7 +912,7 @@ unsigned saveFPRegisters(codeGen &gen,
  */
 
 unsigned restoreFPRegisters(codeGen &gen, 
-                            registerSpace *theRegSpace,
+                            registerSpace *,
                             int save_off)
 {
   
@@ -3310,7 +3310,7 @@ bool EmitterPOWER64Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 
 bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
                                              func_instance *callee,
-                                             bool setTOC, Address) {
+                                             bool , Address) {
     // if the TOC changes, generate a PIC call
     Address dest =  callee->addr();
     if( dest == 0)

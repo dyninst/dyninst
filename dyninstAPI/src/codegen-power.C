@@ -905,7 +905,7 @@ void insnCodeGen::generateLShift64(codeGen &gen, Register rs, int shift, Registe
 }
 
 // srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra, bool s)
+void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra, bool)
 {
     // This function uses rotate-left to implement right shift.
     // Rotate left 64-n bits is rotating right n bits.
@@ -1140,7 +1140,7 @@ void insnCodeGen::generateMoveToCR(codeGen &gen, Register rs) {
 }    
 
 bool insnCodeGen::modifyJump(Address target,
-			     NS_power::instruction &insn,
+			     NS_power::instruction &,
 			     codeGen &gen) {
   failedLongBranchLocal = false;
   shouldAssertIfInLongBranch = false;
@@ -1159,7 +1159,7 @@ bool insnCodeGen::modifyJump(Address target,
 }
 
 bool insnCodeGen::modifyJumpCall(Address target,
-           NS_power::instruction &insn,
+           NS_power::instruction &,
            codeGen &gen) {
   failedLongBranchLocal = false;
   shouldAssertIfInLongBranch = false;

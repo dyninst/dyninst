@@ -1022,7 +1022,7 @@ Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
 	return 0;
 }
 
-bool emitElfStatic::createNewCtorRegion(LinkMap &lmap) {
+bool emitElfStatic::createNewCtorRegion(LinkMap &) {
 	return true;
 }
 
@@ -1060,7 +1060,7 @@ Offset emitElfStatic::layoutNewDtorRegion(LinkMap &lmap) {
 	return 0;
 }
 
-bool emitElfStatic::createNewDtorRegion(LinkMap &lmap) {
+bool emitElfStatic::createNewDtorRegion(LinkMap &) {
 	return true;
 }
 

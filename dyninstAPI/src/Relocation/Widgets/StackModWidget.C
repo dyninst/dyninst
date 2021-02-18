@@ -93,6 +93,7 @@ bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
     }
     return true;
 #else
+    (void)gen; // Silence compiler warning
     return false;
 #endif
 }
