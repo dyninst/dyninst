@@ -310,7 +310,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(
 }
 
 unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset, int force_save)
+        codeGen &gen, registerSpace *theRegSpace, int, int force_save)
 {
     int ret = 0;
 
@@ -581,10 +581,10 @@ Register emitFuncCall(opCode op,
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
 
-Register EmitterAARCH64::emitCallReplacement(opCode ocode,
-                                             codeGen &gen,
-                                             bool /* noCost */,
-                                             func_instance *callee) {
+Register EmitterAARCH64::emitCallReplacement(opCode,
+                                             codeGen &,
+                                             bool,
+                                             func_instance *) {
     assert(0); //Not implemented
     return 0;
 }
@@ -597,7 +597,7 @@ Register EmitterAARCH64::emitCallReplacement(opCode ocode,
 Register EmitterAARCH64::emitCall(opCode op,
                                   codeGen &gen,
                                   const std::vector<AstNodePtr> &operands,
-                                  bool noCost,
+                                  bool,
                                   func_instance *callee) 
 {
     //#sasha This function implementation is experimental.
@@ -711,8 +711,8 @@ Register EmitterAARCH64::emitCall(opCode op,
 }
 
 
-codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dest,
-        codeGen &gen, RegControl rc, bool noCost)
+codeBufIndex_t emitA(opCode op, Register src1, Register, long dest,
+        codeGen &gen, RegControl rc, bool)
 {
     codeBufIndex_t retval = 0;
 
@@ -740,7 +740,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dest,
 
 Register emitR(opCode op, Register src1, Register src2, Register dest,
                codeGen &gen, bool /*noCost*/,
-               const instPoint * location, bool /*for_MT*/)
+               const instPoint *, bool /*for_MT*/)
 {
     registerSlot *regSlot = NULL;
     unsigned addrWidth = gen.width();
@@ -833,13 +833,13 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 }
 
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
-static inline void restoreXERtoGPR(codeGen &gen, Register dest) {
+static inline void restoreXERtoGPR(codeGen &, Register) {
     assert(0); //Not implemented
 }
 
 // VG(03/15/02): Move bits 25:31 of GPR reg to GPR dest
-static inline void moveGPR2531toGPR(codeGen &gen,
-                                    Register reg, Register dest) {
+static inline void moveGPR2531toGPR(codeGen &,
+                                    Register, Register) {
     assert(0); //Not implemented
 }
 
@@ -869,7 +869,7 @@ void MovePCToReg(Register dest, codeGen &gen) {
 // by the address descriptor. Used for memory access stuff.
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
                 codeGen &gen,
-                bool noCost) {
+                bool) {
 
     // Haven't implemented non-zero shifts yet
     assert(stackShift == 0);
@@ -908,15 +908,15 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
 }
 
-void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
-                bool noCost) {
+void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
+                bool) {
     assert(0); //Not implemented
 }
 
 void emitVload(opCode op, Address src1, Register src2, Register dest,
                codeGen &gen, bool /*noCost*/,
                registerSpace * /*rs*/, int size,
-               const instPoint * /* location */, AddressSpace *proc)
+               const instPoint * /* location */, AddressSpace *)
 {
     switch(op)
     {
@@ -953,9 +953,9 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-        codeGen &gen, bool noCost,
+        codeGen &gen, bool,
         registerSpace * /* rs */, int size,
-        const instPoint * /* location */, AddressSpace *proc)
+        const instPoint * /* location */, AddressSpace *)
 {
     if (op ==  storeOp) {
         // [dest] = src1
@@ -1016,7 +1016,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 //   multiple functional units.  However, we can compute the number of
 //   instructions and hope that is fairly close. - jkh 1/30/96
 //
-int getInsnCost(opCode op) {
+int getInsnCost(opCode) {
     assert(0); //Not implemented
     return NULL;
 }
@@ -1160,7 +1160,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
                                         int /*size*/,
-                                        bool noCost)
+                                        bool)
 {
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
@@ -1245,7 +1245,7 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 }
 */
 
-bool EmitterAARCH64::emitCallRelative(Register dest, Address offset, Register base, codeGen &gen) {
+bool EmitterAARCH64::emitCallRelative(Register, Address, Register, codeGen &) {
     assert(0); //Not implemented
     return true;
 }
@@ -1284,9 +1284,9 @@ void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register
     }
 }
 
-bool EmitterAARCH64::emitMoveRegToReg(registerSlot *src,
-                                      registerSlot *dest,
-                                      codeGen &gen) {
+bool EmitterAARCH64::emitMoveRegToReg(registerSlot *,
+                                      registerSlot *,
+                                      codeGen &) {
     assert(0); //Not implemented
     return true;
 }
@@ -1357,7 +1357,7 @@ bool EmitterAARCH64Dyn::emitPIC(codeGen &gen, Address origAddr, Address relocAdd
 }
 */
 
-bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
+bool EmitterAARCH64Stat::emitPLTCommon(func_instance *, bool, codeGen &) {
     assert(0); //Not implemented
     return true;
 }
@@ -1445,7 +1445,7 @@ bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
 }
 #endif
 
-bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *, bool, codeGen &) {
     assert(0); //Not implemented
     return true;
 }
@@ -1531,14 +1531,14 @@ bool EmitterAARCH64Stat::emitTOCJump(block_instance *block, codeGen &gen) {
     return emitTOCCommon(block, false, gen);
 }
 
-bool EmitterAARCH64Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+bool EmitterAARCH64Stat::emitTOCCommon(block_instance *, bool, codeGen &) {
     assert(0); //Not implemented
     return false;
 }
 
-bool EmitterAARCH64Stat::emitCallInstruction(codeGen &gen,
-                                             func_instance *callee,
-                                             bool setTOC, Address) {
+bool EmitterAARCH64Stat::emitCallInstruction(codeGen &,
+                                             func_instance *,
+                                             bool, Address) {
     assert(0); //Not implemented
     return true;
 }
@@ -1548,7 +1548,7 @@ bool EmitterAARCH64Stat::emitCallInstruction(codeGen &gen,
 //
 // This should be able to stomp on the link register (LR) and TOC
 // register (r2), as they were saved by Emitter::emitCall() as necessary.
-bool EmitterAARCH64::emitCallInstruction(codeGen &gen, func_instance *callee, bool setTOC, Address toc_anchor) {
+bool EmitterAARCH64::emitCallInstruction(codeGen &, func_instance *, bool, Address) {
     assert(0); //Not implemented
     return true;
 }
