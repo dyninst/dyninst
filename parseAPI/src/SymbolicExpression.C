@@ -306,14 +306,14 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
         ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
         size_t size = constAST->val().size;
         uint64_t val = constAST->val().val;	
-        if(size >0 && size < 64)
+        /*if(size >0 && size < 64)
             return ConstantAST::create( val & ((1ULL << size)-1));
         else
-            return ConstantAST::create(Constant(val, 64));
-        /*
+            return ConstantAST::create(Constant(val, 64));*/
+        
            if (size == 32)
            if (!(val & (1ULL << (size - 1))))
-           return ConstantAST::create(Constant(val, 64));*/
+           return ConstantAST::create(Constant(val & ((1ULL << size)-1), 64));
 
 
     }
