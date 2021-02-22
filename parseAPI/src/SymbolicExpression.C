@@ -77,11 +77,14 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                    size_t size = roseAST->val().size;
                                                    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                                    uint64_t val = child0->val().val;
-                                                   if(size >0 && size < 64)
-                                                       return ConstantAST::create( Constant(val & ((1ULL << size)-1),size));
-                                                   else
-                                                       return ConstantAST::create(Constant(val, 64));
-                                               }
+                                                   uint64_t clipped_value =val & ((1ULL << size) -1);
+                                                   size_t new_size = (!(val&(1ULL <<(size-1)))) ? size + 1 : size;
+
+                                                   if(size != 0 && size != 64 ){ // we can't clip size 0 value, and there is no need to clip 64 bit value
+                                                       return ConstantAST::create(Constant(clipped_value, new_size));
+                                                   }
+
+                                              }
                                                return roseAST->child(0);
                                            }
             case ROSEOperation::signExtendOp: {
@@ -306,15 +309,17 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
         ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
         size_t size = constAST->val().size;
         uint64_t val = constAST->val().val;	
-        /*if(size >0 && size < 64)
-            return ConstantAST::create( val & ((1ULL << size)-1));
-        else
-            return ConstantAST::create(Constant(val, 64));*/
-        
-           if (size == 32)
-           if (!(val & (1ULL << (size - 1))))
-           return ConstantAST::create(Constant(val & ((1ULL << size)-1), 64));
 
+        uint64_t clipped_value =val & ((1ULL << size) -1);
+        size_t new_size = (!(val&(1ULL <<(size-1)))) ? size + 1 : size;
+
+        if(size != 0 && size != 64 ){ // we can't clip size 0 value, and there is no need to clip 64 bit value
+            return ConstantAST::create(Constant(clipped_value, new_size));
+        }
+        /*if (size == 32)
+          if (!(val & (1ULL << (size - 1))))
+          return ConstantAST::create(Constant(val & ((1ULL << size)-1), 64));
+          */
 
     }
 
@@ -419,21 +424,21 @@ AST::Ptr SymbolicExpression::SubstituteAnAST(AST::Ptr ast, const map<AST::Ptr, A
 }
 
 Address SymbolicExpression::PCValue(Address cur, size_t insnSize, Architecture a) {
-  switch (a) {
-    case Arch_x86:
-    case Arch_x86_64:
-    case Arch_amdgpu_vega:
-      return cur + insnSize;
-    case Arch_aarch64:
-    case Arch_amdgpu_rdna:
-    case Arch_ppc32:
-    case Arch_ppc64:
-      return cur;
-    case Arch_aarch32:
-    case Arch_intelGen9:
-    case Arch_cuda:
-    case Arch_none:
-      assert(0);
-  }    
-  return cur + insnSize;
+    switch (a) {
+        case Arch_x86:
+        case Arch_x86_64:
+        case Arch_amdgpu_vega:
+            return cur + insnSize;
+        case Arch_aarch64:
+        case Arch_amdgpu_rdna:
+        case Arch_ppc32:
+        case Arch_ppc64:
+            return cur;
+        case Arch_aarch32:
+        case Arch_intelGen9:
+        case Arch_cuda:
+        case Arch_none:
+            assert(0);
+    }    
+    return cur + insnSize;
 }
