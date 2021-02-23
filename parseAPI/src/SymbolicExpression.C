@@ -77,14 +77,12 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                    size_t size = roseAST->val().size;
                                                    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                                    uint64_t val = child0->val().val;
-                                                   uint64_t clipped_value =val & ((1ULL << size) -1);
-                                                   size_t new_size = (!(val&(1ULL <<(size-1)))) ? size + 1 : size;
-
-                                                   if(size != 0 && size != 64 ){ // we can't clip size 0 value, and there is no need to clip 64 bit value
-                                                       return ConstantAST::create(Constant(clipped_value, new_size));
-                                                   }
-
-                                              }
+                                                   // clip value according to size, but do not clip size 0 values
+                                                   uint64_t clipped_value = (size ==0 )? \ 
+                                                       val : val & ((1ULL << size) -1);
+                                                   
+                                                   return ConstantAST::create(Constant(clipped_value, size));
+                                               }
                                                return roseAST->child(0);
                                            }
             case ROSEOperation::signExtendOp: {
@@ -311,15 +309,11 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
         uint64_t val = constAST->val().val;	
 
         uint64_t clipped_value =val & ((1ULL << size) -1);
-        size_t new_size = (!(val&(1ULL <<(size-1)))) ? size + 1 : size;
 
-        if(size != 0 && size != 64 ){ // we can't clip size 0 value, and there is no need to clip 64 bit value
-            return ConstantAST::create(Constant(clipped_value, new_size));
-        }
-        /*if (size == 32)
-          if (!(val & (1ULL << (size - 1))))
-          return ConstantAST::create(Constant(val & ((1ULL << size)-1), 64));
-          */
+        if (size == 32)
+            if (!(val & (1ULL << (size - 1))))
+                return ConstantAST::create(Constant(clipped_value, 64));
+
 
     }
 
