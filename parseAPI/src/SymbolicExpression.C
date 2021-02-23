@@ -78,9 +78,10 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                                    uint64_t val = child0->val().val;
                                                    // clip value according to size, but do not clip size 0 values
-                                                   uint64_t clipped_value = (size ==0 )? \ 
+                                                   // and size 64 values
+                                                   uint64_t clipped_value = (size ==0 ||size ==64 )? \ 
                                                        val : val & ((1ULL << size) -1);
-                                                   
+
                                                    return ConstantAST::create(Constant(clipped_value, size));
                                                }
                                                return roseAST->child(0);
