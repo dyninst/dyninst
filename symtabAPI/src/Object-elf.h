@@ -546,7 +546,7 @@ private:
 
   // Parses sections with relocations and links these relocations to
   // existing symbols
-  bool parse_all_relocations(Elf_X &, Elf_X_Shdr *, Elf_X_Shdr *,
+  bool parse_all_relocations(Elf_X_Shdr *, Elf_X_Shdr *,
           Elf_X_Shdr *, Elf_X_Shdr *);
   
   void parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp, 

@@ -1256,13 +1256,13 @@ namespace Dyninst {
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPre() {
-            Result_Type rt;
+            Result_Type rt{};
             getMemRefPair_RT(rt);
             return makeDereferenceExpression(makeMemRefPair_addOffset7(), rt);
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost() {
-            Result_Type rt;
+            Result_Type rt{};
             getMemRefPair_RT(rt);
 
             return makeDereferenceExpression(makeRnExpr(), rt);

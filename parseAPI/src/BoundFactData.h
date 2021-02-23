@@ -181,7 +181,7 @@ struct BoundFact {
     StridedInterval* GetBound(const AST::Ptr ast); 
     StridedInterval* GetBound(const AST* ast);
     AST::Ptr GetAlias(const AST::Ptr ast);
-    void Meet(BoundFact &bf, ParseAPI::Block* b);
+    void Meet(BoundFact &bf);
 
 
     bool ConditionalJumpBound(InstructionAPI::Instruction insn, EdgeTypeEnum type);
@@ -204,7 +204,6 @@ struct BoundFact {
     bool PopAConst(AST::Ptr ast);
     
     void SwapFact(AST::Ptr a, AST::Ptr b);
-    void CheckZeroExtend(AST::Ptr a);
 
     BoundFact();
     ~BoundFact();

@@ -283,8 +283,6 @@ public:
     }
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
-    region_data(CodeObject* obj, CodeRegion* reg) {
-    }
 
     edge_data_map* get_edge_data_map() { return &edge_parsing_status; }
 

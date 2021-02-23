@@ -213,7 +213,7 @@ bool record_search(record_t *newRecord)
 		    chomp(buf);
 		    strlist lib_line = char2strlist(buf + 1);
 
-		    strncpy(newRecord->filename, strlist_get(&lib_line, 0), sizeof(newRecord->filename));
+		    strncpy(newRecord->filename, strlist_get(&lib_line, 0), sizeof(newRecord->filename) - 1U);
 		    strlist_pop_front(&lib_line);
 
 		    if (strlist_cmp(&lib_line, &newRecord->lib_line)) {
@@ -249,7 +249,11 @@ bool record_search(record_t *newRecord)
 	if (strrchr(prog_file, '/'))
 	    prog_file = strrchr(prog_file, '/') + 1;
 
-	snprintf(newRecord->filename, sizeof(newRecord->filename), "%s/%s-XXXXXX", config.record_dir, prog_file);
+	{
+		std::string s = std::string(config.record_dir) + "/" + prog_file + "-XXXXXX";
+		strncpy(newRecord->filename, s.c_str(), sizeof(newRecord->filename) - 1U);
+	}
+
 	int file_desc = mkstemp(newRecord->filename);
 	newRecord->fd = fdopen(file_desc, "a");
 

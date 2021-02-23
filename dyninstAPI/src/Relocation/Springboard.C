@@ -78,7 +78,7 @@ bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
         iter != input.rend(p); ++iter) {
       const SpringboardReq &req = iter->second;
       
-      switch (generateSpringboard(springboards, req, input)) {
+      switch (generateSpringboard(springboards, req)) {
          case Failed:
             if (p == FuncEntry) {
                return false;
@@ -180,7 +180,6 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
 #endif
 
     // Extend the block to include any subsequent no-ops that are not part of other blocks
-    int size = bbl->size();
     ParseAPI::CodeObject* co = func->ifunc()->obj();
     ParseAPI::CodeRegion* cr = func->ifunc()->region();
     std::set<ParseAPI::Block*> blocks;
@@ -189,7 +188,8 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
     // Removal of the below code limits the size of range to the size of the block
     // Future fix is to actually do what the above comment ("int size" 
     //  suggest and look for noop's explicitly
-/*    while (isNoneContained(blocks) && cr->contains(end)) {
+/*  int size = bbl->size();
+ *     while (isNoneContained(blocks) && cr->contains(end)) {
         end++;
         size++;
         blocks.clear();
@@ -260,22 +260,16 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
 
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
-					const SpringboardReq &r,
-                                        SpringboardMap &input) {
+					const SpringboardReq &r) {
    codeGen gen;
    codeGen tmpGen;
-   bool usedTrap = false;
+
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, tmpGen);
    unsigned size = tmpGen.used();
 
    // Check if the size of the branch will fit   
    if (r.useTrap || conflict(r.from, r.from + tmpGen.used(), r.fromRelocatedCode, r.func, r.priority)) {
-      // Errr...
-      // Fine. Let's do the trap thing. 
-
-      usedTrap = true;
-
       // Generate the trap
       generateTrap(r.from, r.destinations.begin()->second, gen);
       // This check must be left in place. 
@@ -294,11 +288,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       springboard_cerr << "\t Using a branch for springboard at addr: 0x" << std::hex << r.from 
                        << " with byte size = " << std::dec << gen.used() << std::endl;
    }
-/*
-   if (r.includeRelocatedCopies) {
-      createRelocSpringboards(r, usedTrap, input);
-   }
-*/   
+
    registerBranch(r.from, r.from + size, r.destinations, r.fromRelocatedCode, r.func, r.priority);
    if (gen.valid()) {
        springboards.push_back(gen);

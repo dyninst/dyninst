@@ -321,10 +321,8 @@ void codeRangeTree::insert(codeRange *value) {
 
  void codeRangeTree::remove(Address key){
 	entry* z = find_internal(key);
-	if(!z)
-            return;
-    if (z->key != key)
-        return;
+    if(!z) { return; }
+    if(z->key != key) { return; }
 
 	entry* y=((z->left == nil)||(z->right == nil)) ? z : treeSuccessor(z);
 	entry* x=(y->left != nil) ? y->left : y->right;

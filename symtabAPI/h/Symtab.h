@@ -183,7 +183,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getContainingInlinedFunction(Offset offset, FunctionBase* &func);
 
    // Variable
-   bool findVariableByOffset(Variable *&ret, const Offset offset);
+   bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset);
    bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
                                           NameType nameType = anyName, 
                                           bool isRegex = false, 
@@ -589,7 +589,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    // Similar for Variables
    std::vector<Variable *> everyVariable;
-   dyn_c_hash_map <Offset, Variable *> varsByOffset;
+   using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *> >;
+   VarsByOffsetMap varsByOffset;
 
     dyn_mutex im_lock;
     boost::multi_index_container<Module*,

@@ -169,6 +169,14 @@ bool DwarfWalker::parse() {
     }
     dwarf_printf("Modules from dwarf_nextcu: %zu\n", module_dies.size() - total_from_unit);
 
+    if (dwarf_getalt(dbg()) != NULL) {
+        DwarfWalker w(symtab(), dbg());
+        for (unsigned int i = 0; i < module_dies.size(); i++) {
+            w.push();
+            w.parseModule(module_dies[i],fixUnknownMod);
+            w.pop();
+        }
+    } else {
 #pragma omp parallel
     {
     DwarfWalker w(symtab(), dbg());
@@ -178,6 +186,7 @@ bool DwarfWalker::parse() {
         w.push();
         w.parseModule(module_dies[i],fixUnknownMod);
         w.pop();
+    }
     }
     }
 
@@ -832,7 +841,7 @@ boost::shared_ptr<Type> DwarfWalker::getCommonBlockType(string &commonBlockName)
    auto commonBlockType = tc()->findVariableType(commonBlockName, Type::share);
    if(!commonBlockType || !commonBlockType->isCommonType()) {
      commonBlockType = Type::make_shared<typeCommon>( type_id(), commonBlockName );
-     tc()->addGlobalVariable(commonBlockName, commonBlockType);
+     tc()->addGlobalVariable(commonBlockType);
    }
    return commonBlockType;
 }
@@ -949,12 +958,14 @@ void DwarfWalker::createGlobalVariable(const vector<VariableLocation> &locs, boo
    Offset addr = 0;
    if (locs.size() && locs[0].stClass == storageAddr)
          addr = locs[0].frameOffset;
-   Variable *var;
-   bool result = symtab()->findVariableByOffset(var, addr);
-   if (result) {
-         var->setType(type);
-      }
-   tc()->addGlobalVariable(curName(), type);
+   std::vector<Variable *> vars;
+   bool result = symtab()->findVariablesByOffset(vars, addr);
+   if (result)  {
+	for (auto v: vars)  {
+	    v->setType(type);
+	}
+   }
+   tc()->addGlobalVariable(type);
 }
 
 void DwarfWalker::createLocalVariable(const vector<VariableLocation> &locs, boost::shared_ptr<Type> type,

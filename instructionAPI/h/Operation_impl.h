@@ -153,7 +153,7 @@ namespace Dyninst
 
     private:
         std::once_flag data_initialized;
-      void SetUpNonOperandData(bool doFlags = false) ;
+      void SetUpNonOperandData();
       
       mutable registerSet otherRead;
       mutable registerSet otherWritten;

@@ -245,21 +245,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
 
 
 }
-bool JumpTableIndexPred::FillInOutEdges(StridedInterval &target, 
-                                                 vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-/*
-    set<int64_t> jumpTargets;						 
-    if (!PerformTableRead(target, jumpTargets, block->obj()->cs())) {
-        jumpTableFormat = false;
-	return false;
-    }
-    outEdges.clear();
-    for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
-        outEdges.push_back(make_pair(*tit, INDIRECT));
-    }
-*/
-    return true;
-}
+
 bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
                                        BoundFactsCalculator &bfc,
                                        StridedInterval &target) {

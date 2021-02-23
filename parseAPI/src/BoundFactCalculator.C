@@ -258,61 +258,6 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
     return true;
 }
 
-
-
-
-void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node::Ptr trg, bool &newCopy) {
-
-    // This function checks whether any found thunk is between
-    // the src node and the trg node. If there is any, then we have
-    // extra bound information to be added.
-/*    
-    ParseAPI::Block *srcBlock;
-    Address srcAddr = 0;
-    if (src == Node::Ptr())
-        srcBlock = func->entry();
-    else {
-        SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(src);
-	srcBlock = srcNode->block();
-	srcAddr = srcNode->addr();
-
-    }
-    SliceNode::Ptr trgNode = boost::static_pointer_cast<SliceNode>(trg);
-    ParseAPI::Block *trgBlock = trgNode->block();
-    Address trgAddr = trgNode->addr();
-
-    bool first = true;
-    for (auto tit = thunks.begin(); tit != thunks.end(); ++tit) {
-        ParseAPI::Block* thunkBlock = tit->second.block;
-	parsing_printf("\t\tCheck srcAddr at %lx, trgAddr at %lx, thunk at %lx\n", srcAddr, trgAddr, tit->first);
-	if (src != Node::Ptr()) {
-	    if (srcBlock == thunkBlock) {
-	        if (srcAddr > tit->first) continue;
-	    } else {
-	        if (rf.thunk_ins[thunkBlock].find(srcBlock) == rf.thunk_ins[thunkBlock].end()) continue;
-	    }
-	}
-	if (trgBlock == thunkBlock) {
-	    if (trgAddr < tit->first) continue;
-	} else {
-	    if (rf.thunk_outs[thunkBlock].find(trgBlock) == rf.thunk_outs[thunkBlock].end()) continue;
-	}
-
-	parsing_printf("\t\t\tfind thunk at %lx between the source and the target. Add fact", tit->first);
-	StridedInterval *bv = new StridedInterval(tit->second.value);
-	bv->Print();
-	if (first && !newCopy) {
-	    newCopy = true;
-	    curFact = new BoundFact(*curFact);
-	}
-	curFact->GenFact(VariableAST::create(Variable(AbsRegion(Absloc(tit->second.reg)))), bv, false);
-	first = false;
-    }
-*/
-
-}
-
-
 static bool IsConditionalJump(Instruction insn) {
     entryID id = insn.getOperation().getID();
     if (id == e_jz || id == e_jnz ||
@@ -377,7 +322,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	        parsing_printf("From %lx to %lx\n", srcNode->addr(), node->addr());
 	    }
 	}
-	//ThunkBound(prevFact, srcNode, node, newCopy);
+
 	parsing_printf("\t\tFact from %lx after applying transfer function\n", srcNode->addr());
 	prevFact->Print();
         if (first) {
@@ -389,7 +334,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    first = false;
 	    if (newCopy) newFact = prevFact; else newFact = new BoundFact(*prevFact);
 	} else {
-	    newFact->Meet(*prevFact, func->entry());
+	    newFact->Meet(*prevFact);
 	    if (newCopy) delete prevFact;
         }
     }
@@ -533,8 +478,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	parsing_printf("\t\t\t%s and %s are equal\n", calculation->format().c_str(), outAST->format().c_str());
 	newFact->InsertRelation(calculation, outAST, BoundFact::Equal);
     }
-//    if (id == e_movzx)
-//        newFact->CheckZeroExtend(outAST);
+
     newFact->AdjustPredicate(outAST, calculation);
 
     // Now try to track all aliasing.

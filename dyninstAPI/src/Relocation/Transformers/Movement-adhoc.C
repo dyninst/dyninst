@@ -294,6 +294,8 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
       case c_BranchInsn:
       case c_ReturnInsn:
           return false;
+      default:
+	  break;
   }
   if (insn.getControlFlowTarget()) return false;
 

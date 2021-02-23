@@ -76,12 +76,14 @@ and \code{false} if there are no modules. The error value is set to \code{No\_Su
 }
 
 \begin{apient}
-bool findVariableByOffset(Variable *&ret,
-                          const Offset offset)
+bool findVariablesByOffset(std::vector<Variable *> &ret,
+                           const Offset offset)
 \end{apient}
 \apidesc{
-This method returns the \code{Variable} object at \code{offset}. Returns \code{true} on success and
-\code{false} if there is no matching variable. The error value is set to \code{No\_Such\_Variable}.
+This method returns a vector of \code{Variable}s with the specified offset. 
+There may be more than one variable at an offset if they have different sizes.
+Returns \code{true} on success and \code{false} if there is no matching variable.
+The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}

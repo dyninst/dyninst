@@ -47,9 +47,9 @@ int instruction::signExtend(unsigned int i, unsigned int pos)
 {
     int ret;
     if (((i >> (--pos)) & 0x1) == 0x1) {
-        ret = i |  (~0 << pos);
+        ret = i |  (~0U << pos);
     } else {
-        ret = i & ~(~0 << pos);
+        ret = i & ~(~0U << pos);
     }
 
      return ret;

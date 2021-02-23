@@ -115,7 +115,6 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     }
 
     StridedInterval b;
-    bool scanTable = false;
     if (!variableArguFormat) {
         Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false);
 	JumpTableIndexPred jtip(func, block, jtfp.index, se);
@@ -140,7 +139,6 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
         } else {
             parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table for indirect jump at %lx\n", block->last());
 	    b = StridedInterval(1, 0, 255);
-	    scanTable = true;
         }
     } else {
         b = StridedInterval(1, 0, 8);
@@ -159,7 +157,6 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
               b,
               inst.memoryReadSize,
               inst.isZeroExtend,
-              scanTable,
               jtfp.constAddr,
               jumpTableOutEdges,
               inst.tableStart,
@@ -273,7 +270,6 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
                                             StridedInterval &indexBound,
                                             int memoryReadSize,
                                             bool isZeroExtend,
-                                            bool scanTable,
                                             set<Address> &constAddr,
                                             std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &targetEdges,
                                             Address &minReadAddress,

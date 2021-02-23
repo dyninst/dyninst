@@ -366,19 +366,21 @@ AST::Ptr SymbolicExpression::SubstituteAnAST(AST::Ptr ast, const map<AST::Ptr, A
 }
 
 Address SymbolicExpression::PCValue(Address cur, size_t insnSize, Architecture a) {
-    switch (a) {
-        case Arch_x86:
-	case Arch_x86_64:
+  switch (a) {
+    case Arch_x86:
+    case Arch_x86_64:
     case Arch_amdgpu_vega:
-	    return cur + insnSize;
-	case Arch_aarch64:
-        case Arch_ppc32:
-        case Arch_ppc64:
-	    return cur;
-        case Arch_aarch32:
-        case Arch_cuda:
-        case Arch_none:
-            assert(0);
-    }    
-    return cur + insnSize;
+      return cur + insnSize;
+    case Arch_aarch64:
+    case Arch_amdgpu_rdna:
+    case Arch_ppc32:
+    case Arch_ppc64:
+      return cur;
+    case Arch_aarch32:
+    case Arch_intelGen9:
+    case Arch_cuda:
+    case Arch_none:
+      assert(0);
+  }    
+  return cur + insnSize;
 }

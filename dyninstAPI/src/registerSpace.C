@@ -775,6 +775,11 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register source,
                                          unsigned) {
 #if defined(arch_aarch64)
+		// Silence compiler warnings
+		(void)gen;
+		(void)destination;
+		(void)source;
+
 		//not implemented yet
 		return false;
 #else

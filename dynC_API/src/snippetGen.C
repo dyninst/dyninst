@@ -250,7 +250,7 @@ BPatch_snippet *SnippetGenerator::findParameter(int index){
       return NULL;
    }
          
-   if(locals->size() <= (const unsigned int)index || index < 0){
+   if(locals->size() <= (unsigned int)index || index < 0){
       lastError << "Parameter index out of range:" << index << "for " << point->getFunction()->getTypedName(fnName, 512) << "";
       lastErrorInfo.type = SG_LookUpFailure;
       lastErrorInfo.fatal = false; //should this be false?

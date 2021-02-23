@@ -44,7 +44,6 @@
 #include <boost/iterator/transform_iterator.hpp>
 #include <functional>
 #include "concurrent.h"
-SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -62,7 +61,7 @@ class SYMTAB_EXPORT Aggregate
 {
    friend class Symtab;
    friend struct SymbolCompareByAddr;
-	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
+	friend std::ostream& operator<<(std::ostream &os, const Aggregate &);
    friend class DwarfWalker;
   protected:
       Aggregate();

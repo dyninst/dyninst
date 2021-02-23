@@ -475,6 +475,24 @@ bool Module::setDefaultNamespacePrefix(string str)
     return exec_->setDefaultNamespacePrefix(str);
 }
 
+bool Module::findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset)
+{
+    std::vector<Variable *> tmp;
+    if (!exec()->findVariablesByOffset(tmp, offset))  {
+        return false;
+    }
+
+    bool succ = false;
+    for (auto v: tmp)  {
+        if (v->getModule() == this)  {
+            ret.push_back(v);
+            succ = true;
+        }
+    }
+
+    return succ;
+}
+
 bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
 				 NameType nameType,
 				 bool isRegex,
