@@ -614,10 +614,8 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    bool name_result;
 
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
-   if(!parseRangeTypes(dbg(), entry()))
-       return false;
-   if(!setFunctionFromRange(func_type))
-       return false;
+   parseRangeTypes(dbg(), entry());
+   setFunctionFromRange(func_type);
 
    // Name first
    FunctionBase *func = curFunc();
@@ -1775,8 +1773,10 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     type = tc()->findOrCreateType( type_id, Type::share );
 
     // parse this referenced by type_id die type in case it hasn't yet
-    if(type->getDataClass()==dataUnknownType)
+    if(type->getDataClass()==dataUnknownType){
+        dwarf_printf("(0x%lx) type not parsed yet, calling parse_int() \n");
         parse_int(dieType, false);
+    }
 
     dwarf_printf("(0x%lx) type pointer %p / name:%s, type_id %d, tc():%p, mod: %s, specificType:%s\n",
             id(), type.get(), type->getName().c_str(), type_id, tc(), mod()->fullName().c_str(), type->specificType().c_str());

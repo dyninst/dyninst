@@ -96,37 +96,25 @@ DynCFGFactory::DynCFGFactory(image * im) :
 }
 
 class PLTFunction : public Dyninst::SymtabAPI::Function {
+	Dyninst::SymtabAPI::relocationEntry r;
 public:
-    PLTFunction(Dyninst::SymtabAPI::relocationEntry r) :
-            SymtabAPI::Function(r.getDynSym()),
-            name(r.name()),
-            entry(r.target_addr()),
-            size(0),
-            module(NULL)
-    {
+    explicit PLTFunction(Dyninst::SymtabAPI::relocationEntry re) : Dyninst::SymtabAPI::Function(re.getDynSym()), r{re} {}
+
+    std::string getName() const override {
+    	return r.name();
     }
 
-    string getName() const  {
-        return name;
+    Offset getOffset() const override {
+    	return r.target_addr();
     }
 
-    Offset getOffset() const  {
-        return entry;
+    unsigned int getSize() const override {
+    	return 0;
     }
 
-    unsigned int getSize() const  {
-        return size;
+    SymtabAPI::Module* getModule() const override {
+    	return nullptr;
     }
-
-    SymtabAPI::Module *getModule() const  {
-        return module;
-    }
-private:
-    string name;
-    Offset entry;
-    unsigned int size;
-    SymtabAPI::Module* module;
-    SymtabAPI::Symbol* dynsym;
 };
 
 Function *
@@ -164,6 +152,13 @@ DynCFGFactory::mkfunc(
         if(stf && stf->getFirstSymbol()) {
             ret = new parse_func(stf, pdmod,_img,obj,reg,isrc,src);
             ret->isPLTFunction_ = true;
+            // PLT stubs are typically are undefined symbols in the binary,
+            // so there is no corresponding SymtabAPI::Function at Symtab level.
+            // PLTFunction is a subclass of SymtabAPI::Function to represent PLT stubs.
+            // However, since there is no easy way to add a PLTFunction back to the
+            // Symtab object, we need to add PLTFunction to a data structure for
+            // future lookup.
+            _img->insertPLTParseFuncMap(stf->getName(), ret);
             _mtx.unlock();
             return ret;
         }

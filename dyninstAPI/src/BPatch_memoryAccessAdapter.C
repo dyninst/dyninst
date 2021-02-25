@@ -180,7 +180,6 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   assert(nac < 3);
   return bmap;
 #elif defined(arch_ppc)||defined(arch_ppc64)
-	(void) is64; //Silence warnings
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
@@ -222,8 +221,6 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
     }
     return NULL;
 #elif defined(arch_aarch64) 
-	
-	(void) is64; //Silence warnings
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
@@ -253,6 +250,10 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 #else 
     assert(!"Unimplemented architecture");
 #endif
+    // Silence compiler warnings
+    (void)insn;
+    (void)current;
+    (void)is64;
 }
 
 

@@ -887,7 +887,7 @@ unsigned restoreGPRegisters(codeGen &gen,
  */
 
 unsigned saveFPRegisters(codeGen &gen,
-                         registerSpace * theRegSpace,
+                         registerSpace *,
                          int save_off)
 {
   unsigned numRegs = 0;
@@ -912,7 +912,7 @@ unsigned saveFPRegisters(codeGen &gen,
  */
 
 unsigned restoreFPRegisters(codeGen &gen, 
-                            registerSpace *theRegSpace,
+                            registerSpace *,
                             int save_off)
 {
   
@@ -2486,7 +2486,7 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance * origFunc, Address target_addr) {
-   fprintf(stderr, "[PCProcess::bindPLTEntry] Relocation Entry location target: %llx, relocation: %llx - base_addr: %llx, original_function: %llx, original_name: %s, new_target: %llx\n", entry.target_addr(), entry.rel_addr(), base_addr, origFunc->getPtrAddress(), origFunc->name().c_str(), target_addr);
+   fprintf(stderr, "[PCProcess::bindPLTEntry] Relocation Entry location target: %lx, relocation: %lx - base_addr: %lx, original_function: %lx, original_name: %s, new_target: %lx\n", entry.target_addr(), entry.rel_addr(), base_addr, origFunc->getPtrAddress(), origFunc->name().c_str(), target_addr);
    Address got_entry = entry.rel_addr() + base_addr;
    return true;//writeDataSpace((void *)got_entry, sizeof(Address), &target_addr);
 
@@ -3310,7 +3310,7 @@ bool EmitterPOWER64Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 
 bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
                                              func_instance *callee,
-                                             bool setTOC, Address) {
+                                             bool , Address) {
     // if the TOC changes, generate a PIC call
     Address dest =  callee->addr();
     if( dest == 0)

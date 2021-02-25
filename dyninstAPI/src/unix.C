@@ -686,6 +686,11 @@ func_instance* block_instance::callee(std::string const& target_name) {
    }
    if (auto *bedit = dynamic_cast<BinaryEdit *>(proc())) {
 	  std::vector<func_instance *> pdfv;
+	  if (bedit->findFuncsByMangled(target_name, pdfv)) {
+         obj()->setCallee(this, pdfv[0]);
+		 updateCallTarget(pdfv[0]);
+		 return pdfv[0];
+	  }
 	  for (auto *sib : bedit->getSiblings()) {
 		 if (sib->findFuncsByMangled(target_name, pdfv)) {
 			obj()->setCallee(this, pdfv[0]);

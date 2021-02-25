@@ -280,6 +280,8 @@ DLLEXPORT void DYNINST_instForkExit(void *arg1) {
 
    tc_lock_unlock(&DYNINST_trace_lock);
 #else
+	// Silence compiler warnings
+    (void*)arg1;
 	assert(0);
 #endif
 }
@@ -302,6 +304,8 @@ DLLEXPORT void DYNINST_instExecEntry(void *arg1) {
 
    tc_lock_unlock(&DYNINST_trace_lock);
 #endif
+	// Silence compiler warnings
+   (void*)arg1;
 }
 
 
