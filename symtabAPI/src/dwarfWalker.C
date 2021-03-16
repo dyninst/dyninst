@@ -1210,7 +1210,8 @@ bool DwarfWalker::parseEnum() {
    if(!tc()) return false;
    dwarf_printf("(0x%lx) parseEnum entry\n", id());
    if (!findName(curName())) return false;
-   setEnum(tc()->addOrUpdateType( Type::make_shared<typeEnum>( type_id(), "enum " + curName())));
+   //setEnum(tc()->addOrUpdateType( Type::make_shared<typeEnum>( type_id(), "enum " + curName())));
+   setEnum(tc()->addOrUpdateType( Type::make_shared<typeEnum>( type_id(), curName())));
    return true;
 }
 
@@ -1273,7 +1274,7 @@ bool DwarfWalker::parseStructUnionClass() {
             ss << " at " << fileName << ":" << lineNumber;
         ss << "}";
         curName() = ss.str();
-    } else {
+    }/* else {
         stringstream ss;
         switch (tag()) {
             case DW_TAG_structure_type:
@@ -1284,7 +1285,7 @@ bool DwarfWalker::parseStructUnionClass() {
                 break;
         }
         curName() = ss.str() + curName();
-    }
+    }*/
 
     bool isDeclaration = false;
     if (!hasDeclaration(isDeclaration)) return false;
@@ -1774,7 +1775,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
 
     // parse this referenced by type_id die type in case it hasn't yet
     if(type->getDataClass()==dataUnknownType){
-        dwarf_printf("(0x%lx) type not parsed yet, calling parse_int() \n");
+        dwarf_printf("(0x%lx) type not parsed yet, calling parse_int() \n", id());
         parse_int(dieType, false);
     }
 
@@ -1824,12 +1825,13 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         Address *initialStackValue,
         std::vector<VariableLocation> &locs)
 {
-    locs.clear();
     Dwarf_Die e = entry();
     if (!dwarf_hasattr(&e, attr)) {
         dwarf_printf("(0x%lx): no such attribute 0x%x\n", id(), attr);
-        return false;
+        return true;
     }
+
+    locs.clear();
 
     /* Acquire the location of this formal parameter. */
     Dwarf_Attribute locationAttribute;
