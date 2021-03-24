@@ -28,6 +28,29 @@ containingFuncs & int & Number of Functions that contain this block. \\
 \end{tabular}
 
 \begin{apient}
+Block(CodeObject * o,
+      CodeRegion * r,
+      Address start,
+      Function* f = NULL)
+\end{apient}
+\apidesc{Creates a block at \code{start} in the code region and code object specified.
+Optionally, one can specify the function that will parse the block.
+This constructor is used by the ParseAPI parser, which will update its end address during parsing.}
+
+\begin{apient}
+Block(CodeObject * o,
+      CodeRegion * r,
+      Address start,
+      Address end,
+      Address last,
+      Function* f = NULL)
+\end{apient}
+\apidesc{Creates a block at \code{start} in the code region and code object specified.
+The block has its last instruction at address \code{last} and ends at address \code{end}.
+This constructor allows external parsers to construct their own blocks.}
+
+
+\begin{apient}
 bool consistent(Address addr,
                 Address & prev_insn)
 \end{apient}

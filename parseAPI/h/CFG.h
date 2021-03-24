@@ -249,7 +249,16 @@ class PARSER_EXPORT Block :
 public:
     static Block * sink_block;
 
+    // This constructor is used by the ParseAPI parser.
+    // The parser will update block end address during parsing.
     Block(CodeObject * o, CodeRegion * r, Address start, Function* f = NULL);
+
+    // This constructor is used by an external parser.
+    // We allow users to construct their own blocks when the external parser
+    // has determined the block address range.
+    Block(CodeObject * o, CodeRegion * r, Address start,
+          Address end, Address last, Function* f = NULL);
+
     virtual ~Block();
     boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 

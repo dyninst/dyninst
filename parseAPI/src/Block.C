@@ -59,6 +59,26 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start, Function *f) :
     }
 }
 
+Block::Block(
+    CodeObject * o,
+    CodeRegion *r,
+    Address start,
+    Address end,
+    Address last,
+    Function *f) :
+    SimpleInterval(start, end, 0),
+    _obj(o),
+    _region(r),
+    _start(start),
+    _end(end),
+    _lastInsn(last),
+    _func_cnt(0),
+    _parsed(false),
+    _createdByFunc(f)
+{
+}
+
+
 Block::~Block()
 {
     // nothing special
