@@ -1274,28 +1274,11 @@ bool DwarfWalker::parseStructUnionClass() {
             ss << " at " << fileName << ":" << lineNumber;
         ss << "}";
         curName() = ss.str();
-    }/* else {
-        stringstream ss;
-        switch (tag()) {
-            case DW_TAG_structure_type:
-                ss << "struct ";
-                break;
-            case DW_TAG_union_type:
-                ss << "union ";
-                break;
-        }
-        curName() = ss.str() + curName();
-    }*/
-
-    bool isDeclaration = false;
-    if (!hasDeclaration(isDeclaration)) return false;
-
-    unsigned size;
-    if (!findSize(size)) {
-        if (isDeclaration) return true;
-        else return false;
     }
 
+    unsigned size=0;
+    findSize(size);
+    
     boost::shared_ptr<Type> containingType;
     switch ( tag() ) {
         case DW_TAG_structure_type:

@@ -815,10 +815,10 @@ BPatch_type *BPatch_image::findType(const char *name)
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
     for (int m = mods->size() -1; m >= 0; m--) {
-	BPatch_module *module = (*mods)[m];
-	type = module->getModuleTypes()->findType(name);
-	if (type) {
-           return type;
+        BPatch_module *module = (*mods)[m];
+        type = module->getModuleTypes()->findType(name);
+        if (type) {
+            return type;
         }
     }
 
