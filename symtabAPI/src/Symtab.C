@@ -91,13 +91,14 @@ void symtab_log_perror(const char *msg)
 };
 
 
-static thread_local SymtabError serr;
+static thread_local SymtabError serr = SymtabError::No_Error;
 
 std::vector<Symtab *> Symtab::allSymtabs;
 
 SymtabError Symtab::getLastSymtabError()
 {
   SymtabError last = serr;
+  serr = No_Error;
   return last;
 }
 
@@ -1248,8 +1249,8 @@ bool Symtab::extractInfo(Object *linkedFile)
            if( object_type_ != obj_RelocatableFile ||
                linkedFile->code_ptr() == 0)
            {
-	        setSymtabError(Obj_Parsing);
-                return false;
+               setSymtabError(Obj_Parsing);
+               return false;
            }
        }
    }

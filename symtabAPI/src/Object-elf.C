@@ -2404,7 +2404,7 @@ bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &dies_seen) {
     size_t num_ranges;
     int status = dwarf_getaranges(dbg, &ranges, &num_ranges);
     if (status != 0) return false;
-//    cout << "Processing " << num_ranges << "DWARF ranges" << endl;
+    dwarf_printf("dwarf_parse_aranges: Processing %zu DWARF ranges\n", num_ranges);
     for (size_t i = 0; i < num_ranges; i++) {
         Dwarf_Arange *range = dwarf_onearange(ranges, i);
         if (!range) continue;
@@ -2420,10 +2420,10 @@ bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &dies_seen) {
         cu_die_off_p = dwarf_addrdie(dbg, start, &cu_die);
         assert(cu_die_off_p != NULL);
         auto off_die = dwarf_dieoffset(&cu_die);
-        if (dies_seen.find(off_die) != dies_seen.end()) continue;
+        //if (dies_seen.find(off_die) != dies_seen.end()) continue;
 
         std::string modname;
-        if (!DwarfWalker::findDieName(dbg, cu_die, modname)) {
+        if (!DwarfWalker::findDieName(cu_die, modname)) {
             modname = associated_symtab->file(); // default module
         }
 
@@ -2433,49 +2433,65 @@ bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &dies_seen) {
         Module *m = associated_symtab->getOrCreateModule(modname, actual_start);
         m->addRange(actual_start, actual_end);
         m->addDebugInfo(cu_die);
+        cerr << "File in module " << modname << ", DIE CU " << hex << off_die << dec << endl;
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
-        dies_seen.insert(off_die);
+        //dies_seen.insert(off_die);
     }
+    dwarf_printf("end of dwarf_parse_aranges\n");
     return true;
 }
 
 bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
-
     Dwarf **dbg_ptr = dwarf->type_dbg();
+    if (!dbg_ptr) return false;
 
-    if (!dbg_ptr)
-        return false;
+    dwarf_printf("At fix_global_symbol_modules_static_dwarf\n");
     Dwarf *dbg = *dbg_ptr;
     std::set<Dwarf_Off> dies_seen;
-    if (!dwarf_parse_aranges(dbg, dies_seen)) {
+    /*if (!dwarf_parse_aranges(dbg, dies_seen)) {
 	    return false;
-    }
+    }*/
 
     std::vector<Dwarf_Die> dies;
     size_t cu_header_size;
     for (Dwarf_Off cu_off = 0, next_cu_off;
          dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
                       NULL, NULL, NULL) == 0;
-         cu_off = next_cu_off) {
+         cu_off = next_cu_off)
+    {
         Dwarf_Off cu_die_off = cu_off + cu_header_size;
         Dwarf_Die cu_die, *cu_die_p;
         cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
+
+        Dwarf_Half moduleTag = dwarf_tag(&cu_die);
+        if (moduleTag != DW_TAG_compile_unit) {
+            continue;
+        }
 
         if (cu_die_p == NULL) continue;
         //if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
 
         dies.push_back(cu_die);
     }
+    dwarf_printf("Number of CU DIEs seen %zu\n", dies.size());
 
     /* Iterate over the compilation-unit headers. */
     for (size_t i = 0; i < dies.size(); i++) {
         Dwarf_Die cu_die = dies[i];
 
         std::string modname;
-        if (!DwarfWalker::findDieName(dbg, cu_die, modname)) {
+        if (!DwarfWalker::findDieName(cu_die, modname)) {
             modname = associated_symtab->file(); // default module
         }
+        if(modname=="<artificial>")
+        {
+            auto off_die = dwarf_dieoffset(&cu_die);
+            std::stringstream suffix;
+            suffix << std::hex << off_die;
+            modname  = "<artificial>" + suffix.str();
+        }
+
         //cerr << "Processing CU DIE for " << modname << " offset: " << next_cu_off << endl;
         Address tempModLow;
         Address modLow = 0;
@@ -2487,23 +2503,27 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         Module *m;
         #pragma omp critical
         m = associated_symtab->getOrCreateModule(modname, modLow);
-        for (auto r = mod_ranges.begin();
-             r != mod_ranges.end(); ++r) {
+        for (auto r = mod_ranges.begin(); r != mod_ranges.end(); ++r)
+        {
             m->addRange(r->first, r->second);
         }
-        if (!m->hasRanges()) {
+        if (!m->hasRanges())
+        {
 //            cout << "No ranges for module " << modname << ", need to extract from statements\n";
             Dwarf_Lines *lines;
             size_t num_lines;
-            if (dwarf_getsrclines(&cu_die, &lines, &num_lines) == 0) {
+            if (dwarf_getsrclines(&cu_die, &lines, &num_lines) == 0)
+            {
                 Dwarf_Addr low;
                 for (size_t i = 0; i < num_lines; ++i) {
                     Dwarf_Line *line = dwarf_onesrcline(lines, i);
-                    if ((dwarf_lineaddr(line, &low) == 0) && low) {
+                    if ((dwarf_lineaddr(line, &low) == 0) && low)
+                    {
                         Dwarf_Addr high = low;
                         int result = 0;
                         for (; (i < num_lines) &&
-                               (result == 0); ++i) {
+                               (result == 0); ++i)
+                        {
                             line = dwarf_onesrcline(lines, i);
                             if (!line) continue;
 
@@ -2524,6 +2544,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         }
         #pragma omp critical
         m->addDebugInfo(cu_die);
+        //cerr << "Files in module " << modname << endl;
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         // dies_seen.insert(cu_die_off);
     }
@@ -3760,9 +3781,10 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
         /* Only .debug_info for now, not .debug_types */
         size_t cu_header_size;
         for (Dwarf_Off cu_off = 0, next_cu_off;
-             dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
-                          NULL, NULL, NULL) == 0;
-             cu_off = next_cu_off) {
+                dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
+                    NULL, NULL, NULL) == 0;
+                cu_off = next_cu_off)
+        {
             Dwarf_Off cu_die_off = cu_off + cu_header_size;
             Dwarf_Die *cu_die_p;
             cu_die_p = dwarf_offdie(dbg, cu_die_off, &moduleDIE);
@@ -3770,7 +3792,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
 
             Dwarf_Half moduleTag = dwarf_tag(&moduleDIE);
             if (moduleTag != DW_TAG_compile_unit) {
-                break;
+                continue;
             }
 
             /* Extract the name of this module. */
@@ -3785,6 +3807,15 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                 ptr = moduleName;
 
             working_module = string(ptr);
+
+            if(working_module=="<artificial>")
+            {
+                auto off_die = dwarf_dieoffset(&moduleDIE);
+                std::stringstream suffix;
+                suffix << std::hex << off_die;
+                working_module  = "<artificial>" + suffix.str();
+            }
+
             auto attr_p = dwarf_attr(&moduleDIE, DW_AT_language, &languageAttribute);
             if (attr_p == NULL) {
                 break;

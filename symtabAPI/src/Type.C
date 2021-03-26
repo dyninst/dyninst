@@ -217,8 +217,8 @@ std::string &Type::getName()
 
 bool Type::setName(std::string name)
 {
-	if (!name.length()) return false;
-    name_ = std::string(name);
+    if (name.empty()) return false;
+    name_ = std::move(name);
     return true;
 }
 

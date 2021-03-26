@@ -248,8 +248,8 @@ bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
         dyn_c_hash_map<Offset,Function*>::const_accessor ca;
         if (funcsByOffset.find(ca, entry)) {
             ret = ca->second;
-        return true;
-    }
+            return true;
+        }
     }
     setSymtabError(No_Such_Symbol);
     return false;
@@ -357,7 +357,6 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
         return true;
     }	
 
-    setSymtabError(No_Such_Symbol);
     return false;
 }
 
@@ -410,7 +409,6 @@ bool Symtab::findModuleByName(Module *&ret, const std::string name)
       return true;
    }
 
-   setSymtabError(No_Such_Module);
    ret = NULL;
    return false;
 }

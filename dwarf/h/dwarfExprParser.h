@@ -58,13 +58,6 @@ DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op * expr,
 DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
-        Dyninst::ProcessReader *reader,
-        Dyninst::Architecture arch,
-        long int &end_result);
-
-DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op * expr,
-        Dwarf_Sword listlen,
-        long int *initialStackValue,
         DwarfResult &res,
         Dyninst::Architecture arch);
 

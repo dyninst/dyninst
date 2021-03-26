@@ -58,23 +58,6 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
 bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
-        ProcessReader *reader,
-        Address pc,
-        Dwarf * dbg,
-        Elf * dbg_eh_frame,
-        Dyninst::Architecture arch,
-        MachRegisterVal &end_result) {
-    ConcreteDwarfResult res(reader, arch, pc, dbg, dbg_eh_frame);
-    if (!decodeDwarfExpression(expr, listlen, initialStackValue, 
-                res, arch)) return false;
-    if (res.err()) return false;
-    end_result = res.val();
-    return true;
-}
-
-bool decodeDwarfExpression(Dwarf_Op * expr,
-        Dwarf_Sword listlen,
-        long int *initialStackValue,
         DwarfResult &cons,
         Dyninst::Architecture arch) {
     // This is basically a decode passthrough, with the work
@@ -365,7 +348,24 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
                 // the value is at the top of the stack
                 continue;
 
+            case DW_OP_entry_value:
+            case DW_OP_GNU_entry_value:
+                dwarf_printf("\t\t skipping GNU_entry_value\n", locations[i].number);
+                return false;
+
+            case DW_OP_convert:
+            case DW_OP_GNU_convert:
+
+                dwarf_printf("\t\t skipping GNU_convert\n", locations[i].number);
+                return false;
+
+            case DW_OP_implicit_pointer:
+            case DW_OP_GNU_implicit_pointer:
+                dwarf_printf("\t\t skipping GNU_implicit_pointer\n", locations[i].number);
+                return false;
+
             default:
+                dwarf_printf("\t\t error: unrecognized dwarf operation 0x%llx\n", locations[i].atom);
                 return false;
         } /* end operand switch */
     } /* end iteration over Dwarf_Op entries. */
