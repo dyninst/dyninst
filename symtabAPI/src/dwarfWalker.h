@@ -126,13 +126,13 @@ private:
                 offset(o.offset),
                 tag(o.tag),
                 base(o.base)
-        {
-        }
+        {}
     };
 
     std::stack<Context> c;
+
 public:
-    void push();
+    void push(bool dissociate_context=false);
     void pop();
     int stack_size() const {return c.size(); }
     FunctionBase *curFunc() { return c.top().func; }
@@ -215,9 +215,12 @@ protected:
 }; // class DwarfParseActions 
 
 struct ContextGuard {
-    DwarfParseActions& c;
-    ContextGuard(DwarfParseActions& c): c(c) { c.push(); }
-    ~ContextGuard() { c.pop(); }
+    DwarfParseActions& walker;
+    ContextGuard(DwarfParseActions& w, bool dissociate_context): walker(w)
+    {
+        walker.push(dissociate_context);
+    }
+    ~ContextGuard() { walker.pop(); }
 };
 
 class DwarfWalker : public DwarfParseActions {
@@ -261,7 +264,8 @@ public:
     // Non-recursive version of parse
     // A Context must be provided as an _input_ to this function,
     // whereas parse creates a context.
-    bool parse_int(Dwarf_Die entry, bool parseSiblings);
+    bool parse_int(Dwarf_Die entry, bool parseSiblings,
+            bool dissociate_context=false);
     
 private:
     Dwarf_Die current_cu_die;
