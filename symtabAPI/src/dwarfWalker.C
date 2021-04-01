@@ -167,6 +167,7 @@ bool DwarfWalker::parse() {
         module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
+    compile_offset = 0;
     dwarf_printf("Modules from dwarf_nextcu: %zu\n", module_dies.size() - total_from_unit);
 
     if (dwarf_getalt(dbg()) != NULL) {
@@ -343,15 +344,15 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
 // so we can have a non-Context-creating parse method that reuses
 // the Context from the parent. This allows us to pass in current
 // function, etc. without the Context stack exploding
-bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
+bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context) {
     dwarf_printf("PARSE_INT entry, context size %d\n", stack_size());
     // We escape the loop by checking parseSibling() after
     // parsing this DIE and its children, if any
     while(1) {
-        ContextGuard cg(*this);
+        ContextGuard cg(*this, dissociate_context);
 
         setEntry(e);
-        setParseSibling(p);
+        setParseSibling(parseSib);
 
         if (!findTag())
             return false;
@@ -1591,6 +1592,7 @@ bool DwarfWalker::getFrameBase() {
 }
 
 bool DwarfWalker::getReturnType(bool hasSpecification, boost::shared_ptr<Type>&returnType) {
+    dwarf_printf("(0x%lx) In getReturnType().\n", id());
     Dwarf_Attribute typeAttribute;
     Dwarf_Attribute* status = 0;
 
@@ -1759,7 +1761,8 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     // parse this referenced by type_id die type in case it hasn't yet
     if(type->getDataClass()==dataUnknownType){
         dwarf_printf("(0x%lx) type not parsed yet, calling parse_int() \n", id());
-        parse_int(dieType, false);
+        // call parse_int creating new context by context_dissociation = true;
+        parse_int(dieType, false, true);
     }
 
     dwarf_printf("(0x%lx) type pointer %p / name:%s, type_id %d, tc():%p, mod: %s, specificType:%s\n",
@@ -2070,7 +2073,7 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
     }
 
     Dwarf_Word visValue;
-    DWARF_FAIL_RET(dwarf_formudata( &visAttr, &visValue));
+    dwarf_formudata( &visAttr, &visValue);
 
     switch( visValue ) {
         case DW_ACCESS_public: visibility = visPublic; break;
@@ -2548,8 +2551,8 @@ void DwarfWalker::setEntry(Dwarf_Die entry) {
    DwarfParseActions::setSpecEntry(entry);
    DwarfParseActions::setAbstractEntry(entry);
 }
-void DwarfParseActions::push() {
-   if (c.empty()) {
+void DwarfParseActions::push(bool dissociate_context) {
+   if (c.empty() || dissociate_context) {
       c.push(Context());
    }
    else {
@@ -2724,6 +2727,7 @@ Offset DwarfParseActions::convertDebugOffset(Offset from) {
 }
 
 void DwarfWalker::setFuncReturnType() {
+    dwarf_printf("(0x%lx) In setFuncReturnType().\n", id());
    boost::shared_ptr<Type> returnType;
    boost::unique_lock<dyn_mutex> l(curFunc()->ret_lock);
    if (!curFunc()->getReturnType(Type::share)) {
