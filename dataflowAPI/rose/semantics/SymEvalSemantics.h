@@ -6,6 +6,7 @@
 #define DYNINST_SYMEVALSEMANTICS_H
 
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/amdgpuInstructionEnum.h"
 #include "BaseSemantics2.h"
 #include "../../h/SymEval.h"
 
@@ -27,16 +28,18 @@ namespace rose {
                     SValue(Dyninst::Absloc r, Dyninst::Address addr): BaseSemantics::SValue(64) {
                         expr = Dyninst::DataflowAPI::VariableAST::create(Dyninst::DataflowAPI::Variable(Dyninst::AbsRegion(r), addr));
                     }
-
+                    
                     SValue(size_t nbits, uint64_t num): BaseSemantics::SValue(nbits) {
                         expr = Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(num, nbits));
                     }
 
-                    //TODO possibly set width differently for register types
                     SValue(Dyninst::AST::Ptr expr): BaseSemantics::SValue(64) {
                         this->expr = expr;
                     }
-
+                    // Added this version to set register size according to descriptor 
+                    SValue(Dyninst::AST::Ptr expr, size_t nbits ): BaseSemantics::SValue(nbits) {
+                        this->expr = expr;
+                    }
                 public:
                     static SValuePtr instance(Dyninst::Absloc r, Dyninst::Address addr) {
                         return SValuePtr(new SValue(r, addr));
@@ -49,6 +52,11 @@ namespace rose {
                     static SValuePtr instance(Dyninst::AST::Ptr expr) {
                         return SValuePtr(new SValue(expr));
                     }
+
+                    static SValuePtr instance(Dyninst::AST::Ptr expr, size_t nbits) {
+                        return SValuePtr(new SValue(expr, nbits));
+                    }
+
 
                 public:
                     virtual BaseSemantics::SValuePtr undefined_(size_t nbits) const {
@@ -124,6 +132,7 @@ namespace rose {
                 typedef boost::shared_ptr<class RegisterStateASTARM64> RegisterStateASTARM64Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
+                typedef boost::shared_ptr<class RegisterStateAST_AMDGPU_VEGA> RegisterStateAST_AMDGPU_VEGA_Ptr;
 
                 class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
@@ -240,7 +249,33 @@ namespace rose {
 		private:
 		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
 		};
+        /**
+         * Register State AST for ADMGPU VEGA for Architecture 
+         * (Copied from RegisterSTateASTARM64)
+         *
+         *
+         */ 
+		class RegisterStateAST_AMDGPU_VEGA : public RegisterStateAST {
+		public:
+		    RegisterStateAST_AMDGPU_VEGA(const BaseSemantics::SValuePtr &protoval,
+                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
 
+                    static RegisterStateAST_AMDGPU_VEGA_Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                                             const RegisterDictionary *regdict) {
+                        return RegisterStateAST_AMDGPU_VEGA_Ptr(new RegisterStateAST_AMDGPU_VEGA(protoval, regdict));
+                    }
+
+                    static RegisterStateAST_AMDGPU_VEGA_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateAST_AMDGPU_VEGA_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_AMDGPU_VEGA>(from);
+                        ASSERT_not_null(retval);
+                        return retval;
+                    }
+
+		private:
+            // Given a register decriptor of roseformat, convert it back to MachRegister and encapsulate it in Dyninst Abstract location
+		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+		};
+	
 
                 /***************************************************************************************************/
                 /*                                           Memory State                                          */

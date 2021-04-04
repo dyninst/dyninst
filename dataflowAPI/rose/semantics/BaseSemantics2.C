@@ -701,9 +701,9 @@ Dispatcher::read(SgAsmExpression *e, size_t value_nbits/*=0*/, size_t addr_nbits
         SgAsmExpression *rhs = asr->get_rhs();
         retval = operators->shiftRightArithmetic(read(lhs, lhs->get_nBits()), read(rhs, rhs->get_nBits()));
     } else if(SgAsmBinaryLsr *lsr = isSgAsmBinaryLsr(e)) {
-	SgAsmExpression *lhs = lsr->get_lhs();
-	SgAsmExpression *rhs = lsr->get_rhs();
-	retval = operators->shiftRight(read(lhs, lhs->get_nBits()), read(rhs, rhs->get_nBits()));
+	    SgAsmExpression *lhs = lsr->get_lhs();
+	    SgAsmExpression *rhs = lsr->get_rhs();
+	    retval = operators->shiftRight(read(lhs, lhs->get_nBits()), read(rhs, rhs->get_nBits()));
     } else {
         ASSERT_not_implemented(e->class_name());
     }

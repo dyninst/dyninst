@@ -56,8 +56,12 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
     return IsIndexing(rt->child(1), index);
 
 }
-
+/*
+ * Insert edges found into the edges vector, and return true if the vector is non-empty
+ *
+ * */
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
+    
     parsing_printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
     parsing_printf("Looking for thunk\n");
 
@@ -77,24 +81,53 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     const unsigned char * buf = (const unsigned char*) block->region()->getPtrToInstruction(block->last());
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
 
-    // Here we want to skip the analysis for amdgpu, as it is still unclear how dataflow analysis should be done on amdgpu
-    if ( block->obj()->cs()->getArch() == Arch_amdgpu_vega)
-        return false;
-
     Instruction insn = dec.decode();
     AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;
     ac.convert(insn, block->last(), func, block, assignments);
+
     Slicer formatSlicer(assignments[0], block, func, false, false);
 
     SymbolicExpression se;
     se.cs = block->obj()->cs();
     se.cr = block->region();
     JumpTableFormatPred jtfp(func, block, rf, thunks, se);
+
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
-    //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
+    if (se.cs->getArch() == Arch_amdgpu_vega && insn.getOperation().getID() == amdgpu_op_s_swappc_b64 ) {
+        Result_t symRet;
+        auto ret = SymEval::expand(slice,symRet);
+        
+        //for (auto const & cd : symRet) {
+        //    std::cout << " f: " << cd.first << " " << cd.second << std::endl; 
+        //}
+
+        auto old_ast = symRet[assignments[0]];
+
+        auto new_ast = se.SimplifyAnAST(old_ast,0,false);
+
+        /*do {
+            old_ast = new_ast; 
+            new_ast = se.SimplifyAnAST(old_ast, 0, false);
+            std::cout  << " simplified: =  " << new_ast->format() << std::endl;
+        }while(old_ast -> format() != new_ast->format());*/
+
+        if( new_ast->getID() == AST::V_ConstantAST) {
+            ConstantAST::Ptr constAST = 
+                boost::static_pointer_cast<ConstantAST>(new_ast);
+            size_t size = constAST->val().size;
+            uint64_t val = constAST->val().val;
+            //std::cerr << " resolved, value = " <<  std::hex <<val <<std::endl;
+            outEdges.push_back(std::make_pair(Address(val),CALL));
+            Address ft_addr =  Address(block->last() +insn.size());
+            outEdges.push_back(std::make_pair(Address(ft_addr),CALL_FT));
+            return true;
+        }
+    }
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
+    //
+
     parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s, memory read loc %s, isJumpTableFormat %d\n", 
             func->name().c_str(), 
             block->last(), 
@@ -106,20 +139,20 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
     bool variableArguFormat = false;
     if (!jtfp.isJumpTableFormat()) {
-	if (jtfp.jumpTargetExpr && func->entry() == block && IsVariableArgumentFormat(jtfp.jumpTargetExpr, jtfp.index)) {
-	    parsing_printf("\tVariable number of arguments format, index %s\n", jtfp.index.format().c_str());
-	    variableArguFormat = true;
-	} else {
-            return false;
-	}
+        if (jtfp.jumpTargetExpr && func->entry() == block && IsVariableArgumentFormat(jtfp.jumpTargetExpr, jtfp.index)) {
+            parsing_printf("\tVariable number of arguments format, index %s\n", jtfp.index.format().c_str());
+            variableArguFormat = true;
+        } else {
+                return false;
+        }
     }
 
     StridedInterval b;
     if (!variableArguFormat) {
         Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false);
-	JumpTableIndexPred jtip(func, block, jtfp.index, se);
-	jtip.setSearchForControlFlowDep(true);
-	slice = indexSlicer.backwardSlice(jtip);
+	    JumpTableIndexPred jtip(func, block, jtfp.index, se);
+	    jtip.setSearchForControlFlowDep(true);
+	    slice = indexSlicer.backwardSlice(jtip);
 
         if (!jtip.findBound && block->obj()->cs()->getArch() != Arch_aarch64) {
 
@@ -127,18 +160,18 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
             // see if we can resolve the indirect jump by assuming
             // one byte read is in bound [0,255]
             GraphPtr g = jtip.BuildAnalysisGraph(indexSlicer.visitedEdges);
-	    BoundFactsCalculator bfc(func, g, func->entry() == block,  true, se);
-	    bfc.CalculateBoundedFacts();
-	
-	    StridedInterval target;
-	    jtip.IsIndexBounded(g, bfc, target);
+	        BoundFactsCalculator bfc(func, g, func->entry() == block,  true, se);
+	        bfc.CalculateBoundedFacts();
+	    
+	        StridedInterval target;
+	        jtip.IsIndexBounded(g, bfc, target);
         }
         if (jtip.findBound) {
             parsing_printf(" find bound %s for %lx\n", jtip.bound.format().c_str(), block->last());
-	    b = jtip.bound;
+	        b = jtip.bound;
         } else {
             parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table for indirect jump at %lx\n", block->last());
-	    b = StridedInterval(1, 0, 255);
+	        b = StridedInterval(1, 0, 255);
         }
     } else {
         b = StridedInterval(1, 0, 8);

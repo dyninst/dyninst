@@ -2,6 +2,7 @@
 //#include "sage3basic.h"
 #include "Registers.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include <boost/foreach.hpp>
@@ -578,6 +579,37 @@ RegisterDictionary::print(std::ostream &o) const {
 //    return regs;
 //}
 //
+
+
+/** AMDGPU Registers
+ * Scalar Registers : total 104 registers of 32 bits
+ *
+ */
+const RegisterDictionary *
+RegisterDictionary::dictionary_amdgpu_vega() {
+    static std::once_flag initialized;
+    static RegisterDictionary *regs = NULL;
+
+    std::call_once(initialized, []() {
+        regs = new RegisterDictionary("amdgpu_vega");
+
+        /* All 60 variations (32- and 64-bit) of the 32 general purpose registers  */
+        for (unsigned idx = 0; idx < 104; idx++) {
+            regs->insert("sgpr" + StringUtility::numberToString(idx), amdgpu_regclass_sgpr, amdgpu_sgpr0 + idx, 0, 32);
+        }
+
+        /* 64-bit program counter register */
+        regs->insert("pc", amdgpu_regclass_pc, 0, 0, 64);
+
+        regs->insert("scc", amdgpu_regclass_hwr, amdgpu_status, 0, 1);
+
+
+        /* 32-bit pstate register and the four relevant flags.*/
+        /* Each flag is added as a separate register for individual access. Only allowed minor is 0 (since there is only one pstate register);
+         * the different offsets indicate the positions of the flags within the pstate register. */
+    });
+    return regs;
+}
 
 /** ARMv8-A registers.
  * There are a total of 32 general purpose registers each 64 bits wide. Each of these registers can be addressed as its 32-bit or 64-bit form. The former are named with the prefix W and the latter with a prefix X. The 32nd register is not a physical register but the zero register and referred to as WZR/ZR. */

@@ -497,7 +497,10 @@ void AssignmentConverter::convert(const Instruction &I,
                                   ParseAPI::Block *block,
 				  std::vector<Assignment::Ptr> &assignments) {
   assignments.clear();
-  if (cache(func, addr, assignments)) return;
+  if (cache(func, addr, assignments)){ 
+      std::cout << "returning cached for " << I.format() << std::endl;
+      return;
+  }
 
   // Decompose the instruction into a set of abstract assignments.
   // We don't have the Definition class concept yet, so we'll do the 
@@ -509,6 +512,223 @@ void AssignmentConverter::convert(const Instruction &I,
 
   // Non-PC handling section
   switch(I.getOperation().getID()) {
+  case amdgpu_op_s_getpc_b64: {
+    // SGPR_PAIR[0] = PC & 0xffffffff
+    // SGPR_PARI[1] = PC >> 32
+    //
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+    assert(operands.size() == 1);
+    RegisterAST::Ptr sgpr_pair = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+    unsigned int offset = sgpr_pair->getID() - amdgpu_vega::sgpr_vec2_0 ;
+    AbsRegion lowpc_dst = AbsRegion(MachRegister(amdgpu_vega::sgpr0+offset)) ;
+    AbsRegion highpc_dst = AbsRegion(MachRegister(amdgpu_vega::sgpr0+offset+1)) ;
+
+    //AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
+    AbsRegion pc = AbsRegion(Absloc(addr));
+
+    Assignment::Ptr lowpcA = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                                                         block,
+							 lowpc_dst);
+    Assignment::Ptr highpcA = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                                                         block,
+							 highpc_dst);
+    //lowpcA->addInput(pc); // treating pc as constant
+    //highpcA->addInput(pc); //treating pc as constant
+
+    assignments.push_back(lowpcA);
+    assignments.push_back(highpcA);
+    // The slicing stops as long as we find at least one of the above assgignment 
+
+    // TODO:
+    // DST_SGPR_PAIR = PC+4
+    break;
+  }
+  case amdgpu_op_s_setpc_b64: {
+    // TODO:
+    // PC = SRC_SGPR_PAIR
+    AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
+    Assignment::Ptr pcA = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                                                         block,
+							 pc);
+
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+    // SETPC_B64 should only have one operand, which is the SGPR_PAIR that stores the new PC VALUE
+    // Since we don't want to introduce extra Class at the instructionAPI level, we need to break it down ourserlves here
+    // So we don't need to deal with reading the value in rose DispatcherAmdgpuVega
+    // Depends on the situation, we might also need to differentaite betwwen  vega and rdna, but for now we focus on vega
+    assert(operands.size() == 1);
+    RegisterAST::Ptr sgpr_pair = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+    unsigned int offset = sgpr_pair->getID() - amdgpu_vega::sgpr_vec2_0 ;
+    AbsRegion oper0 = AbsRegion(MachRegister(amdgpu_vega::sgpr0+offset)) ;
+    AbsRegion oper1 = AbsRegion(MachRegister(amdgpu_vega::sgpr0+offset+1)) ;
+    pcA->addInput(oper0);
+    pcA->addInput(oper1);
+
+    assignments.push_back(pcA);
+    break;
+  }
+  case amdgpu_op_s_swappc_b64: {
+    // TODO:DST_SGPR_PAIR= PC + 4
+    // PC = SRC_SGPR_PAIR
+
+    //PC = OPR[0] 
+    //OPR[1] = OLD_PC + 4
+    // => 
+    //PC  =  OPR[0:1] 
+    //OPR[2:3] = OLD_PC + 4
+    //
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+    assert(operands.size() == 2);
+
+    RegisterAST::Ptr store_sgpr_pair = boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue());
+    unsigned int store_offset = store_sgpr_pair->getID() - amdgpu_vega::sgpr_vec2_0 ;
+    AbsRegion store_oper0 = AbsRegion(MachRegister(amdgpu_vega::sgpr0+store_offset)) ;
+    AbsRegion store_oper1 = AbsRegion(MachRegister(amdgpu_vega::sgpr0+store_offset+1)) ;
+
+
+    AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
+
+    Assignment::Ptr store_pc_lowA = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                             block,
+							 store_oper0);
+    store_pc_lowA->addInput(pc);
+
+
+    Assignment::Ptr store_pc_highA = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                             block,
+							 store_oper1);
+    store_pc_highA->addInput(pc);
+
+    Assignment::Ptr pcA = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                             block,
+							 pc);
+
+    RegisterAST::Ptr target_sgpr_pair = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+    unsigned int target_offset = target_sgpr_pair->getID() - amdgpu_vega::sgpr_vec2_0 ;
+    AbsRegion target_oper0 = AbsRegion(MachRegister(amdgpu_vega::sgpr0+target_offset)) ;
+    AbsRegion target_oper1 = AbsRegion(MachRegister(amdgpu_vega::sgpr0+target_offset+1)) ;
+
+    pcA->addInput(target_oper0);
+    pcA->addInput(target_oper1);
+
+    assignments.push_back(pcA);
+    // while the below 2 assignments are also there, we comment it out for now TODO:
+    //assignments.push_back(store_pc_lowA); 
+    //assignments.push_back(store_pc_highA);
+
+
+    break;
+  }
+  case amdgpu_op_s_add_u32: {
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+
+
+    assert(operands.size() == 3 && "add_u32 needs 3 operands");
+
+    RegisterAST::Ptr dst_sgpr = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+
+    std::vector<AbsRegion> regions;
+
+    aConverter.convertAll(operands[0].getValue(), addr, func, block, regions);
+    AbsRegion dst1 = regions[0];
+    regions.clear();
+    aConverter.convertAll(operands[1].getValue(), addr, func, block, regions);
+    AbsRegion src1 = regions[0];
+    regions.clear();
+    aConverter.convertAll(operands[2].getValue(), addr, func, block, regions);
+    AbsRegion src0 = regions[0];
+    regions.clear();
+
+
+
+    AbsRegion scc = AbsRegion(MachRegister(amdgpu_vega::scc)) ;
+    Assignment::Ptr scc_assign = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                             block,
+							 scc);
+
+   
+    Assignment::Ptr add_assign = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                             block,
+							 dst1);
+
+    add_assign->addInput(src1);
+    add_assign->addInput(src0);
+    
+    scc_assign->addInput(src1);
+    scc_assign->addInput(src0);
+
+
+    assignments.push_back(add_assign);
+    assignments.push_back(scc_assign);
+
+
+    // TODO:
+    // D.U = S0.u +S1.U
+    // SCC= (S0.u + S1.U >= 0x100000000ULL ? 1 : 0 )
+    break;
+  }
+
+  case amdgpu_op_s_addc_u32: {
+    std::vector<Operand> operands;
+    I.getOperands(operands);
+
+
+    assert(operands.size() == 3 && "add_u32 needs 3 operands");
+
+    RegisterAST::Ptr dst_sgpr = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+
+    std::vector<AbsRegion> regions;
+
+    aConverter.convertAll(operands[0].getValue(), addr, func, block, regions);
+    AbsRegion dst1 = regions[0];
+    regions.clear();
+    aConverter.convertAll(operands[1].getValue(), addr, func, block, regions);
+    AbsRegion src1 = regions[0];
+    regions.clear();
+    aConverter.convertAll(operands[2].getValue(), addr, func, block, regions);
+    AbsRegion src0 = regions[0];
+    regions.clear();
+
+
+    AbsRegion scc = AbsRegion(MachRegister(amdgpu_vega::scc)) ;
+
+   
+    Assignment::Ptr add_assign = Assignment::makeAssignment(I, 
+							 addr,
+							 func,
+                             block,
+							 dst1);
+    add_assign->addInput(src1);
+    add_assign->addInput(src0);
+    add_assign->addInput(scc);
+    assignments.push_back(add_assign);
+
+    // TODO:
+    // D.U = S0.U +S1. U - SCC
+    // SCC= (S0.U +S1.U +SCC>= 0x100000000ULL? 1 : 0)
+    break;
+  }
+
   case e_push: {
     // SP = SP - 4 
     // *SP = <register>

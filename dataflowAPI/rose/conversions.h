@@ -57,6 +57,7 @@ class SgAsmScalarType;
 class SgAsmIntegerType;
 class SgAsmFloatType;
 class SgAsmArmv8Instruction;
+class SgAsmAmdgpuVegaInstruction;
 class SgAsmx86Instruction;
 class SgAsmPowerpcInstruction;
 
@@ -164,6 +165,8 @@ SgAsmPowerpcInstruction* isSgAsmPowerpcInstruction( SgNode *);
 const SgAsmPowerpcInstruction* isSgAsmPowerpcInstruction( const SgNode * s );
 SgAsmArmv8Instruction* isSgAsmArmv8Instruction( SgNode *);
 const SgAsmArmv8Instruction* isSgAsmArmv8Instruction( const SgNode * s );
+SgAsmAmdgpuVegaInstruction* isSgAsmAmdgpuVegaInstruction( SgNode *);
+const SgAsmAmdgpuVegaInstruction* isSgAsmAmdgpuVegaInstruction( const SgNode * s );
 SgAsmConstantExpression *isSgAsmConstantExpression( SgNode * );
 const SgAsmConstantExpression *isSgAsmConstantExpression( const SgNode *s );
 SgAsmIntegerValueExpression *isSgAsmIntegerValueExpression( SgNode * );

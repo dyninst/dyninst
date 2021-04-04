@@ -53,7 +53,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
     // TODO rose doesn't handle large values (XMM?)
 
     // build different kind of rose value object based on type
-    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_vega) {
         bool isSigned = false;
         switch (value.type) {
             case s8:
@@ -167,7 +167,7 @@ void ExpressionConversionVisitor::visit(Dereference *deref) {
 
     // TODO fix some mismatched types?
     // pick correct type
-    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_vega) {
         bool isSigned = false;
         switch (deref->eval().type) {
             case s8:
@@ -309,6 +309,20 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                                dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
                                return dre;
                            }
+        case Arch_amdgpu_vega: {
+                               int regClass;
+                               int regNum;
+                               int regPos;
+
+                               machReg.getROSERegister(regClass, regNum, regPos);
+                               if (regClass < 0) return NULL;
+                               //std::cout << " after get rose register, regClass = " << regClass << " regNum = " << regNum    << std::endl;
+                               // TODO : it is not clear how regsize adn such should be set, for now we just follow aarch64's implementation
+                               SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
+                               dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+                               return dre;
+                           }
+ 
         default:
                           return NULL;
     }

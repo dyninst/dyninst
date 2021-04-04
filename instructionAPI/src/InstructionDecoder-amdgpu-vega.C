@@ -197,7 +197,6 @@ namespace Dyninst {
 		}
 		void InstructionDecoder_amdgpu_vega::finalizeMUBUFOperands(){
 			layout_mubuf & layout = insn_layout.mubuf;
-
 			MachRegister vsharp = makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.srsrc<<2,4);
 			Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
 			Expression::Ptr const_stride_ast = makeRegisterExpression(vsharp,48,65); 
@@ -307,7 +306,6 @@ namespace Dyninst {
 
 		void InstructionDecoder_amdgpu_vega::finalizeMTBUFOperands(){
 			layout_mtbuf & layout = insn_layout.mtbuf;
-
 			MachRegister vsharp = makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.srsrc<<2,4);
 			Expression::Ptr const_base_ast   = makeRegisterExpression(vsharp,0,47); 
 			Expression::Ptr const_stride_ast = makeRegisterExpression(vsharp,48,65); 

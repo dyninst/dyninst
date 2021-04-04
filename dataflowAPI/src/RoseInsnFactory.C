@@ -32,9 +32,13 @@
 #include "Instruction.h"
 #include "Dereference.h"
 #include "Immediate.h"
+#include "instructionAPI/src/InstructionDecoderImpl.h"
+#include "common/src/singleton_object_pool.h"
 
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
+#include "../rose/SgAsmAmdgpuVegaInstruction.h"
+
 #include "../rose/SgAsmArmv8Instruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
@@ -53,7 +57,7 @@ using namespace DataflowAPI;
 
 SgAsmInstruction *RoseInsnFactory::convert(const Instruction &insn, uint64_t addr) {
   SgAsmInstruction *rinsn = createInsn();
-  
+  _addr = addr;  
   rinsn->set_address(addr);
   rinsn->set_mnemonic(insn.format());
   setOpcode(rinsn, insn.getOperation().getID(), insn.getOperation().getPrefixID(), insn.getOperation().format());
@@ -82,15 +86,15 @@ SgAsmInstruction *RoseInsnFactory::convert(const Instruction &insn, uint64_t add
    //std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   std::vector<InstructionAPI::Operand> operands;
   insn.getOperands(operands);
-   //std::cerr << "\t " << operands.size() << " operands" << std::endl;
   massageOperands(insn, operands);
   int i = 0;
-//   std::cerr << "converting insn " << insn.format(addr) << std::endl;
+  //std::cerr << "converting insn " << insn.format(addr) << std::endl;
+  //std::cerr << "\t " << operands.size() << " operands" << std::endl;
   for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
        opi != operands.end();
        ++opi, ++i) {
       InstructionAPI::Operand &currOperand = *opi;
-//       std::cerr << "Converting operand " << currOperand.format(arch(), addr) << std::endl;
+    //std::cerr << "Converting operand " << currOperand.format(arch(), addr) << std::endl;
       SgAsmExpression *converted = convertOperand(currOperand.getValue(), addr, insn.size());
       if (converted == NULL) return NULL;
       roperands->append_operand(converted);
@@ -402,8 +406,91 @@ bool RoseInsnArmv8Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsm
   return false;
 }
 
-void RoseInsnArmv8Factory::massageOperands(const Instruction &,
-                                           std::vector<InstructionAPI::Operand> &) {
-  return;
+void RoseInsnArmv8Factory::massageOperands(const Instruction &insn,
+        std::vector<InstructionAPI::Operand> &operands) {
+
+}
+ 
+
+void RoseInsnAmdgpuVegaFactory::setSizes(SgAsmInstruction */*insn*/) {
+
+}
+
+SgAsmInstruction *RoseInsnAmdgpuVegaFactory::createInsn() {
+  return new SgAsmAmdgpuVegaInstruction;
+}
+
+void RoseInsnAmdgpuVegaFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
+  SgAsmAmdgpuVegaInstruction *tmp = static_cast<SgAsmAmdgpuVegaInstruction *>(insn);
+  tmp->set_kind(convertKind(opcode));
+}
+bool RoseInsnAmdgpuVegaFactory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
+  return false;
+}
+
+// This helper function expand a single sgpr pair operand into two constructing components
+static std::pair<InstructionAPI::Operand,InstructionAPI::Operand> expandSgprPair(InstructionAPI::Operand orig){
+    RegisterAST::Ptr sgpr_pair = boost::dynamic_pointer_cast<RegisterAST>(orig.getValue());
+    unsigned int offset = sgpr_pair->getID() - amdgpu_vega::sgpr_vec2_0 ;
+
+    MachRegister m_low = MachRegister(amdgpu_vega::sgpr0+offset) ;
+    MachRegister m_high = MachRegister(amdgpu_vega::sgpr0+offset+1) ;
+    Expression::Ptr  e_oper0 = make_shared(singleton_object_pool<RegisterAST>::construct(m_low,0,m_low.size()*8));
+    Expression::Ptr  e_oper1 = make_shared(singleton_object_pool<RegisterAST>::construct(m_high,0,m_high.size()*8));
+
+    auto oper0 = Operand(e_oper0,orig.isRead(),orig.isWritten());
+    auto oper1 = Operand(e_oper1,orig.isRead(),orig.isWritten());
+
+    return std::make_pair(oper0,oper1);
+}
+
+// TODO: Turn sgpr_pair operands into individual registers
+void RoseInsnAmdgpuVegaFactory::massageOperands(const Instruction &insn,
+        std::vector<InstructionAPI::Operand> &operands) {
+    switch (insn.getOperation().getID()) {
+        case amdgpu_op_s_swappc_b64:
+            {
+                // swap pc has two operands
+                // first one is the source of new pc
+                // second one is dst for storing the pc, so we turn it into 4 registers
+                // TODO : Make this a function call 
+                assert(operands.size() == 2);
+                auto [oper0,oper1] = expandSgprPair(operands[0]);
+                auto [oper2,oper3] = expandSgprPair(operands[1]);
+                operands.resize(4);
+                operands[0] = oper0;
+                operands[1] = oper1;
+                operands[2] = oper2;
+                operands[3] = oper3;
+                break;
+
+
+            }
+ 
+        case amdgpu_op_s_setpc_b64:
+            {
+                assert(operands.size() == 1);
+                auto [oper0,oper1] = expandSgprPair(operands[0]);
+                operands.resize(2);
+                operands[0] = oper0;
+                operands[1] = oper1;
+
+                break;
+
+            }
+        case amdgpu_op_s_getpc_b64:
+            {
+                assert(operands.size() == 1);
+                auto [oper0,oper1] = expandSgprPair(operands[0]);
+                operands.resize(3);
+                operands[0] = oper0;
+                operands[1] = oper1;
+                operands[2] = Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false); 
+
+                break;
+            }
+        default:
+                    break;
+    }
 }
 
