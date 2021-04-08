@@ -1,6 +1,136 @@
 # Change Log
 
-## [10.2.1](https://github.com/dyninst/dyninst/tree/10.2.1) (2020-09-09)
+## [11.0.0](https://github.com/dyninst/dyninst/tree/v11.0.0) (2021-04-08)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v10.2.1...v11.0.0)
+
+**Minimum Version Changes:**
+
+- Bump minimum Boost version to 1.67 ([993](https://github.com/dyninst/dyninst/issues/993))
+- Require gcc >= 6.0 ([932](https://github.com/dyninst/dyninst/issues/932))
+- Add note about minimum elfutils version ([912](https://github.com/dyninst/dyninst/issues/912))
+- Require c++11 thread_local support ([860](https://github.com/dyninst/dyninst/issues/860))
+- Require standards-compliant c++11 ABI ([882](https://github.com/dyninst/dyninst/issues/882))
+
+**GPU Support:**
+
+- Add support for instructions with largest opcode in each instruction family ([1014](https://github.com/dyninst/dyninst/issues/1014))
+- Add Initial support for Analyzing Indirect Control Flow on Amdgpu Vega ([979](https://github.com/dyninst/dyninst/issues/979))
+- Fix unhandled enum values for Intel GPUs ([955](https://github.com/dyninst/dyninst/issues/955))
+- Fixing another bug related to amdgpu register names ([948](https://github.com/dyninst/dyninst/issues/948))
+- Fix a bug in MachRegister::name for AMD GPUs ([928](https://github.com/dyninst/dyninst/issues/928))
+- Add initial support for analyzing AMDGPU binaries ([900](https://github.com/dyninst/dyninst/issues/900))
+- Nvidia GPU slicing and support for opening Intel GPU binaries ([865](https://github.com/dyninst/dyninst/issues/865))
+- Add arch address for intel gen9 gpus ([874](https://github.com/dyninst/dyninst/issues/874))
+- Some necessary changes for overlapping text regions ([855](https://github.com/dyninst/dyninst/issues/855))
+
+**Enhancements:**
+
+- Update copyrights to 2021 ([1015](https://github.com/dyninst/dyninst/issues/1015))
+- Add a ParseAPI::Block constructor to allow external parsers to set correctly block end address ([1011](https://github.com/dyninst/dyninst/issues/1011))
+- Clean up PLTFunction in dyninstAPI/Parse ([1003](https://github.com/dyninst/dyninst/issues/1003))
+- add erase to 2 std::remove calls
+- Aggregate variable symbols based on offset and size ([933](https://github.com/dyninst/dyninst/issues/933))
+- make Symbol methods const ([936](https://github.com/dyninst/dyninst/issues/936))
+- Add direct tail call case for Point::getCallee ([931](https://github.com/dyninst/dyninst/issues/931))
+- Make assert expressions side effect free ([927](https://github.com/dyninst/dyninst/issues/927))
+- Improve single thread's backward slicing speed by 40% ([917](https://github.com/dyninst/dyninst/issues/917))
+- make symbol name demangling consistent (#872, #717)
+- Ensure data is copied in memoryTracker::realloc ([886](https://github.com/dyninst/dyninst/issues/886))
+- Include <iostream> in CodeTracker.C ([887](https://github.com/dyninst/dyninst/issues/887))
+- clean up BoundFactCalculator constructor ([884](https://github.com/dyninst/dyninst/issues/884))
+- CodeSource destructor cleanup ([883](https://github.com/dyninst/dyninst/issues/883))
+- Fix memory leaks in BinaryEdit::openResolvedLibraryName ([879](https://github.com/dyninst/dyninst/issues/879))
+- Add lookup by name in block_instance::callee ([875](https://github.com/dyninst/dyninst/issues/875))
+- cleanup memoryTracker memory handling ([876](https://github.com/dyninst/dyninst/issues/876))
+- Provide correct default constructor for parse_func class ([878](https://github.com/dyninst/dyninst/issues/878))
+- Correctly destruct AddressSpace objects ([871](https://github.com/dyninst/dyninst/issues/871))
+- Update documentation for ParseAPI::CodeObject::CodeObject ([870](https://github.com/dyninst/dyninst/issues/870))
+- Remove include cycle in dyntypes.h ([868](https://github.com/dyninst/dyninst/issues/868))
+- Cleanup dyn_hash_{set,map} ([861](https://github.com/dyninst/dyninst/issues/861))
+- parseThat: remove autotools build files ([858](https://github.com/dyninst/dyninst/issues/858))
+- Replace BPatch_vector internal implementation with std::vector ([844](https://github.com/dyninst/dyninst/issues/844))
+- InstructionAPI docs: Update InsnCategory values returned from Instruction::getCategory ([851](https://github.com/dyninst/dyninst/issues/851))
+
+**Bug Fixes:**
+
+- Remove assert in block_instance::callee(std::string const&) ([999](https://github.com/dyninst/dyninst/issues/999))
+- Fix breakage introduced by PR990 ([997](https://github.com/dyninst/dyninst/issues/997))
+- Fix non-deterministic inline function lookup when bad DWARF is generated for OpenMP outlined code ([1012](https://github.com/dyninst/dyninst/issues/1012))
+- Fix wrong return value in DwarfHandle::init_dbg ([939](https://github.com/dyninst/dyninst/issues/939))
+- Fix memory leaks in emitElf ([895](https://github.com/dyninst/dyninst/issues/895))
+- SymElf:  fix memory leak of cached demangled names
+- properly check for empty string in parseStabString
+- fix duplicate Windows demangle code
+- Fix PLT function call lookup ([1001](https://github.com/dyninst/dyninst/issues/1001))
+- Fix undefined behavior in usage of std::transform ([862](https://github.com/dyninst/dyninst/issues/862))
+
+**DWARF Changes:**
+
+- In DwarfWalker, start a new context dissociated from the current context ([1013](https://github.com/dyninst/dyninst/issues/1013))
+- DWARF supplemental file and type parsing ([1002](https://github.com/dyninst/dyninst/issues/1002))
+- Add debuginfod support ([736](https://github.com/dyninst/dyninst/issues/736))
+- Suppress parallelism in dwarf parsing when an alternative debug file is present ([929](https://github.com/dyninst/dyninst/issues/929))
+
+**Compiler Warning Cleanup:**
+
+- Clean up "unused parameter" warnings on Aarch64 ([1005](https://github.com/dyninst/dyninst/issues/1005))
+- Fix "unused parameter" warnings on PPC64 ([1004](https://github.com/dyninst/dyninst/issues/1004))
+- Remove dead code from ia32_decode ([989](https://github.com/dyninst/dyninst/issues/989))
+- Clean up sign-compare warnings ([991](https://github.com/dyninst/dyninst/issues/991))
+- Add the default case in adhocMovementTransformer::isPCRelData to suppress compiler warning ([995](https://github.com/dyninst/dyninst/issues/995))
+- Clean up "unused variable" warnings ([990](https://github.com/dyninst/dyninst/issues/990))
+- Correctly declare Aggregate::operator<< ([988](https://github.com/dyninst/dyninst/issues/988))
+- Fix unhandled switch case in Region::regionType2Str ([987](https://github.com/dyninst/dyninst/issues/987))
+- Fix unused values ([978](https://github.com/dyninst/dyninst/issues/978))
+- Remove unused parameter 'b' from BoundFactsCalculator::Meet ([983](https://github.com/dyninst/dyninst/issues/983))
+- Fix string truncations in parseThat ([982](https://github.com/dyninst/dyninst/issues/982))
+- Use std::locale when writing a timeStamp to a stream ([981](https://github.com/dyninst/dyninst/issues/981))
+- Remove ignored cast qualifier in SnippetGenerator::findParameter ([980](https://github.com/dyninst/dyninst/issues/980))
+- Fix shifts of negative values ([976](https://github.com/dyninst/dyninst/issues/976))
+- Remove unused function 'InsertFrames' in parseAPI/Parser ([977](https://github.com/dyninst/dyninst/issues/977))
+- Fix deprecated usage of boost::bind ([975](https://github.com/dyninst/dyninst/issues/975))
+- Fix inclusion of boost deprecated headers ([974](https://github.com/dyninst/dyninst/issues/974))
+- Fix constructor member intializer list reordering ([973](https://github.com/dyninst/dyninst/issues/973))
+- Fix pointer arithmetic on 'void*' in codeGen::insert ([972](https://github.com/dyninst/dyninst/issues/972))
+- Remove usage of designated initializer in dwarfHandle.C ([971](https://github.com/dyninst/dyninst/issues/971))
+- Fix possibly uninitialized local variable in InstructionDecoder_aarch64 ([970](https://github.com/dyninst/dyninst/issues/970))
+- Fix ignored qualifiers on some C-style casts in Object-elf::read_val_of_type ([969](https://github.com/dyninst/dyninst/issues/969))
+- Fix C-string format specifier mismatch in Operand::getReadSet ([968](https://github.com/dyninst/dyninst/issues/968))
+- Fix several C-string truncations in parseThat ([967](https://github.com/dyninst/dyninst/issues/967))
+- Fix possible buffer overflow in parseThat::runHunt_binaryEdit ([966](https://github.com/dyninst/dyninst/issues/966))
+- Clean up "unused parameter" warnings ([965](https://github.com/dyninst/dyninst/issues/965))
+- Fix misleading indentation compiler warning in codeRangeTree::remove ([964](https://github.com/dyninst/dyninst/issues/964))
+- Remove empty region_data constructor ([960](https://github.com/dyninst/dyninst/issues/960))
+- Fix -Wreturn-type warning ([956](https://github.com/dyninst/dyninst/issues/956))
+- Remove unused parameter 'elf' from Object::parse_all_relocations ([962](https://github.com/dyninst/dyninst/issues/962))
+- Remove unused 'name' parameter from Collections::addGlobalVariable ([961](https://github.com/dyninst/dyninst/issues/961))
+- Fix compile warnings for AMDGPU for Release 11.0 ([954](https://github.com/dyninst/dyninst/issues/954))
+
+**Build Changes:**
+
+- add missing libiberty include dir ([950](https://github.com/dyninst/dyninst/issues/950))
+- Make libiberty detection more flexible ([922](https://github.com/dyninst/dyninst/issues/922))
+- Correctly set up libiberty to be consumed by build system ([901](https://github.com/dyninst/dyninst/issues/901))
+
+**Remove Deprecated Functionality:**
+
+- Remove JumpTableIndexPred::FillInOutEdges ([959](https://github.com/dyninst/dyninst/issues/959))
+- Remove BoundFactCalculator::CheckZeroExtend ([958](https://github.com/dyninst/dyninst/issues/958))
+- Remove BoundsFactCalculator::ThunkBound ([957](https://github.com/dyninst/dyninst/issues/957))
+- API-breaking changes for 11.0 release ([920](https://github.com/dyninst/dyninst/issues/920))
+- Remove old InstrucIter class references ([890](https://github.com/dyninst/dyninst/issues/890))
+- code cleanup integer funcs to * and / by constants
+- Remove unused lineDict class ([880](https://github.com/dyninst/dyninst/issues/880))
+- Remove bluegene support ([847](https://github.com/dyninst/dyninst/issues/847))
+- Remove vxworks support ([859](https://github.com/dyninst/dyninst/issues/859))
+- Replace pdvector with std::vector ([856](https://github.com/dyninst/dyninst/issues/856))
+- Remove vectorSet ([857](https://github.com/dyninst/dyninst/issues/857))
+- Remove vestiges of sparc ([850](https://github.com/dyninst/dyninst/issues/850))
+- Remove vestiges of AIX ([849](https://github.com/dyninst/dyninst/issues/849))
+- Remove binaryEdit::deleteBinaryEdit ([866](https://github.com/dyninst/dyninst/issues/866))
+
+
+## [10.2.1](https://github.com/dyninst/dyninst/tree/v10.2.1) (2020-09-09)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v10.2.0...v10.2.1)
 
 **Implemented enhancements:**
@@ -27,7 +157,7 @@
 - Fix aliasing bug of Region::buffer on copy ([791](https://github.com/dyninst/dyninst/issues/791))
 - Cleanup memory handling when emitting Elf for static libraries ([789](https://github.com/dyninst/dyninst/issues/789))
 
-## [10.2.0](https://github.com/dyninst/dyninst/tree/10.2.0) (2020-07-30)
+## [10.2.0](https://github.com/dyninst/dyninst/tree/v10.2.0) (2020-07-30)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v10.1.0...v10.2.0)
 
 **Implemented enhancements:**
@@ -92,7 +222,7 @@
 - Delete .syntastic_cpp_config
 - Add note on TBB usage when built from source
 
-## [10.1.0](https://github.com/dyninst/dyninst/tree/10.1.0) (2019-05-15)
+## [10.1.0](https://github.com/dyninst/dyninst/tree/v10.1.0) (2019-05-15)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v10.0.0...10.1.0)
 
 **Implemented enhancements:**
