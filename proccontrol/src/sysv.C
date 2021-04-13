@@ -313,7 +313,9 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
    if (!aout) {
       LoadedLib *ll_aout = translator()->getExecutable();
       aout = (int_library *) (ll_aout ? ll_aout->getUpPtr() : NULL);
-      aout->markAOut();
+      if (aout)  {
+         aout->markAOut();
+      }
    }
 
    return true;

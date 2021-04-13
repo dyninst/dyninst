@@ -316,6 +316,10 @@ const char *DYNAMIC_NAME = ".dynamic";
 const char *EH_FRAME_NAME = ".eh_frame";
 const char *EXCEPT_NAME = ".gcc_except_table";
 const char *EXCEPT_NAME_ALT = ".except_table";
+const char *MODINFO_NAME = ".modinfo";
+const char *GNU_LINKONCE_THIS_MODULE_NAME = ".gnu.linkonce.this_module";
+const char DEBUG_PREFIX[] = ".debug_";
+const char ZDEBUG_PREFIX[] = ".zdebug_";
 
 
 extern template
@@ -343,6 +347,18 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         bool) {
     std::map<std::string, int> secnNameMap;
     dwarf_err_func = err_func_;
+
+    //Set object type
+    int e_type = elfHdr->e_type();
+
+    if (e_type == ET_DYN) {
+	obj_type_ = obj_SharedLib;
+    } else if (e_type == ET_EXEC) {
+	obj_type_ = obj_Executable;
+    } else if (e_type == ET_REL) {
+	obj_type_ = obj_RelocatableFile;
+    }
+
     entryAddress_ = elfHdr->e_entry();
 
     no_of_sections_ = elfHdr->e_shnum();
@@ -417,13 +433,9 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             dynamic_size_ = elfPhdr.p_memsz();
         } else if (elfPhdr.p_type() == PT_INTERP) {
             foundInterp = true;
+        } else if (elfPhdr.p_type() == PT_LOAD) {
+            hasProgramLoad_ = true;
         }
-    }
-
-    if (elfHdr->e_type() == ET_DYN || foundInterp || elfHdr->e_type() == ET_REL) {
-        is_static_binary_ = false;
-    } else {
-        is_static_binary_ = true;
     }
 
     bool foundDynamicSection = false;
@@ -435,6 +447,10 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
         if (!scn.isValid()) {  // section is malformed
             continue;
         }
+	if (scn.sh_type() != SHT_NOTE && scn.sh_type() != SHT_NOBITS
+		&& scn.sh_flags() & SHF_ALLOC)  {
+	    hasBitsAlloc_ = true;
+	}
         if ((dynamic_offset_ != 0) && (scn.sh_offset() == dynamic_offset_)) {
             if (!foundDynamicSection) {
                 dynamic_section_index = i;
@@ -513,7 +529,12 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         else if (dynsecData.d_val(j) == DT_RELA)
                             hasRelaplt_ = true;
                         break;
-
+		    case DT_FLAGS_1:
+			hasPieFlag_ = dynsecData.d_val(j) & DF_1_PIE;
+			break;
+		    case DT_DEBUG:
+			hasDtDebug_ = true;
+			break;
                 }
             }
         }
@@ -838,6 +859,10 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             dynstr_addr_ = scn.sh_addr();
         } else if (strcmp(name, ".debug_info") == 0) {
             dwarvenDebugInfo = true;
+            hasDebugSections_ = true;
+        } else if (strncmp(name, DEBUG_PREFIX, sizeof(DEBUG_PREFIX) - 1) == 0
+                || strncmp(name, ZDEBUG_PREFIX, sizeof(ZDEBUG_PREFIX) - 1) == 0)  {
+            hasDebugSections_ = true;
         } else if (strcmp(name, EH_FRAME_NAME) == 0) {
             eh_frame = scnp;
         } else if ((strcmp(name, EXCEPT_NAME) == 0) ||
@@ -845,6 +870,10 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             gcc_except = scnp;
         } else if (strcmp(name, INTERP_NAME) == 0) {
             interp_scnp = scnp;
+        } else if (strcmp(name, MODINFO_NAME) == 0) {
+            hasModinfo_ = true;
+        } else if (strcmp(name, GNU_LINKONCE_THIS_MODULE_NAME) == 0) {
+            hasGnuLinkonceThisModule_ = true;
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
@@ -888,6 +917,8 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             secTagRegionMapping[secAddrTagMapping[regions_[j]->getDiskOffset()]] = regions_[j];
         }
     }
+
+    is_static_binary_ = isOnlyExecutable() && !foundInterp;
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;
@@ -1472,14 +1503,6 @@ void Object::load_object(bool alloc_syms) {
 
     { // binding contour (for "goto cleanup")
 
-        // initialize object (for failure detection)
-        code_ptr_ = 0;
-        code_off_ = 0;
-        code_len_ = 0;
-        data_ptr_ = 0;
-        data_off_ = 0;
-        data_len_ = 0;
-
         // initialize "valid" regions of code and data segments
         code_vldS_ = (Offset) -1;
         code_vldE_ = 0;
@@ -1605,17 +1628,6 @@ void Object::load_object(bool alloc_syms) {
             handle_opd_relocations();
         }
 
-        //Set object type
-        int e_type = elfHdr->e_type();
-
-        if (e_type == ET_DYN) {
-            obj_type_ = obj_SharedLib;
-        } else if (e_type == ET_EXEC) {
-            obj_type_ = obj_Executable;
-        } else if (e_type == ET_REL) {
-            obj_type_ = obj_RelocatableFile;
-        }
-
         // Set rel type based on the ELF machine type
         relType_ = getRelTypeByElfMachine(elfHdr);
 
@@ -1634,154 +1646,6 @@ void Object::load_object(bool alloc_syms) {
        used for function parsing (see dyninstAPI/src/symtab.C) */
 
         create_printf("%s[%d]:  failed to load elf object\n", FILE__, __LINE__);
-    }
-}
-
-void Object::load_shared_object(bool alloc_syms) {
-    Elf_X_Shdr *bssscnp = 0;
-    Elf_X_Shdr *symscnp = 0;
-    Elf_X_Shdr *strscnp = 0;
-    Elf_X_Shdr *stabscnp = 0;
-    Elf_X_Shdr *stabstrscnp = 0;
-    Elf_X_Shdr *stabs_indxcnp = 0;
-    Elf_X_Shdr *stabstrs_indxcnp = 0;
-    Offset txtaddr = 0;
-    Offset dataddr = 0;
-    Elf_X_Shdr *rel_plt_scnp = 0;
-    Elf_X_Shdr *plt_scnp = 0;
-    Elf_X_Shdr *got_scnp = 0;
-    Elf_X_Shdr *dynsym_scnp = 0;
-    Elf_X_Shdr *dynstr_scnp = 0;
-    Elf_X_Shdr *dynamic_scnp = 0;
-    Elf_X_Shdr *eh_frame_scnp = 0;
-    Elf_X_Shdr *gcc_except = 0;
-    Elf_X_Shdr *interp_scnp = 0;
-    Elf_X_Shdr *opd_scnp = NULL;
-    Elf_X_Shdr *symtab_shndx_scnp = NULL;
-
-    { // binding contour (for "goto cleanup2")
-
-        // initialize "valid" regions of code and data segments
-        code_vldS_ = (Offset) -1;
-        code_vldE_ = 0;
-        data_vldS_ = (Offset) -1;
-        data_vldE_ = 0;
-
-        if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
-                        stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-                        rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                        dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp, opd_scnp, symtab_shndx_scnp))
-            goto cleanup2;
-
-        if (interp_scnp)
-            interpreter_name_ = (char *) interp_scnp->get_data().d_buf();
-
-        addressWidth_nbytes = elfHdr->wordSize();
-
-        // find code and data segments....
-        find_code_and_data(*elfHdr, txtaddr, dataddr);
-
-        get_valid_memory_areas(*elfHdr);
-
-#if (defined(os_linux) || defined(os_freebsd))
-//        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
-        if (eh_frame_scnp != 0 && gcc_except != 0) {
-            find_catch_blocks(eh_frame_scnp, gcc_except,
-                              txtaddr, dataddr, catch_addrs_);
-        }
-//        }
-#endif
-
-#if defined(TIMED_PARSE)
-        struct timeval starttime;
-    gettimeofday(&starttime, NULL);
-#endif
-
-        if (alloc_syms) {
-            // build symbol dictionary
-            string module = mf->pathname();
-            string name = "DEFAULT_NAME";
-
-            Elf_X_Data symdata, strdata;
-            if (symscnp && strscnp) {
-                symdata = symscnp->get_data();
-                strdata = strscnp->get_data();
-                if (!symdata.isValid() || !strdata.isValid()) {
-                    log_elferror(err_func_, "locating symbol/string data");
-                    goto cleanup2;
-                }
-                bool result = parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false, module);
-                if (!result) {
-                    log_elferror(err_func_, "locating symbol/string data");
-                    goto cleanup2;
-                }
-            }
-
-            no_of_symbols_ = nsymbols();
-            // try to resolve the module names of global symbols
-            // Sun compiler stab.index section
-            fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
-
-            // STABS format (.stab section)
-            fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
-
-            // DWARF format (.debug_info section)
-            fix_global_symbol_modules_static_dwarf();
-
-            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
-                symdata = dynsym_scnp->get_data();
-                strdata = dynstr_scnp->get_data();
-                parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
-            }
-
-#if defined(TIMED_PARSE)
-            struct timeval endtime;
-      gettimeofday(&endtime, NULL);
-      unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-      unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-      unsigned long difftime = lendtime - lstarttime;
-      double dursecs = difftime/(1000 * 1000);
-      cout << "*INSERT SYMBOLS* elf took "<<dursecs <<" msecs" << endl;
-      //cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
-#endif
-            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
-                parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
-            }
-
-            if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-                if (!get_relocation_entries(rel_plt_scnp, dynsym_scnp, dynstr_scnp)) {
-                    goto cleanup2;
-                }
-            }
-
-            parse_all_relocations(dynsym_scnp, dynstr_scnp,
-                                  symscnp, strscnp);
-            // Apply relocations to opd
-            handle_opd_relocations();
-        }
-
-        //Set object type
-        int e_type = elfHdr->e_type();
-        if (e_type == ET_DYN) {
-            obj_type_ = obj_SharedLib;
-        } else if (e_type == ET_EXEC) {
-            obj_type_ = obj_Executable;
-        } else if (e_type == ET_REL) {
-            obj_type_ = obj_RelocatableFile;
-        }
-
-
-        if (opd_scnp) {
-            parse_opd(opd_scnp);
-        }
-
-        // Set rel type based on the ELF machine type
-        relType_ = getRelTypeByElfMachine(elfHdr);
-
-    } // end binding contour (for "goto cleanup2")
-
-    cleanup2:
-    {
     }
 }
 
@@ -2893,6 +2757,13 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         dwarvenDebugInfo(false),
         loadAddress_(0), entryAddress_(0),
         interpreter_name_(NULL),
+        hasPieFlag_(false),
+        hasDtDebug_(false),
+        hasProgramLoad_(false),
+        hasBitsAlloc_(false),
+        hasDebugSections_(false),
+        hasModinfo_(false),
+        hasGnuLinkonceThisModule_(false),
         isStripped(false),
         dwarf(NULL),
         EEL(false), did_open(false),
@@ -2906,7 +2777,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
 #endif
-    is_aout_ = false;
 
     if (mf->base_addr() == NULL) {
         elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
@@ -2932,16 +2802,17 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 //        load_shared_object(alloc_syms);
         load_object(alloc_syms);
     } else if (elfHdr->e_type() == ET_REL || elfHdr->e_type() == ET_EXEC) {
-        // Differentiate between an executable and an object file
-        if (elfHdr->e_phnum()) is_aout_ = true;
-        else is_aout_ = false;
-
         load_object(alloc_syms);
     } else {
         log_perror(err_func_, "Invalid filetype in Elf header");
         has_error = true;
         return;
     }
+
+    // if this object can only be an executable, then say it is an executable
+    // and not a shared library.  This means that libraries that also
+    // executables are treated as shared libraries.
+    is_aout_ = isOnlyExecutable();
 
 #ifdef BINEDIT_DEBUG
     print_symbol_map(&symbols_);
@@ -5184,3 +5055,153 @@ std::string Object::getFileName() const {
     return mf->filename();
 }
 
+
+// Object::isLoadable
+//   True if this object is a loadable executable or library.  This function
+//   should produce the same result as the is_loadable() function in elfutils'
+//   elfclassify.c
+bool Object::isLoadable() const
+{
+    return (objType() == obj_Executable || objType() == obj_SharedLib)
+		&& hasProgramLoad()
+		&& (no_of_sections() == 0 || hasBitsAlloc());
+}
+
+
+// Object::isOnlyExecutable
+//   True if this object can only be an executable.  This function should
+//   produce the same result as the is_executable() function in elfutils'
+//   elfclassify.c
+bool Object::isOnlyExecutable() const
+{
+
+    return isLoadable() && !isOnlySharedLibrary();
+}
+
+
+// Object::isExecutable
+//   True if this object is an executable, but can also be a shared library
+//   (use isSharedLibrary to determine).  This function should produce the same
+//   result as the is_program() function in elfutils' elfclassify.c with the
+//   following exception:
+//
+//   If the entry point of the object is not the offset of the .text section
+//   and is within the text section then this is likely also an executable.
+//   This includes libraries that are also executables, but do not use an
+//   interpreter like ld.so.  The only eception to this exception this is
+//   vdso32.so (soname linux-gate.so.1) which sets the entry point to the
+//   LINUX_2.5 version of __kernel_vsyscall which is used to set the AT_SYSINFO
+//   auxv value.
+bool Object::isExecutable() const
+{
+    if (!isLoadable())  {
+	return false;
+    }  else if (objType() == obj_Executable)  {
+	return true;
+    }  else if (hasPieFlag())  {
+	return true;
+    }  else if (interpreter_name())  {
+	return true;
+    }  else if (hasDtDebug())  {
+	return true;
+    }  else  {
+	auto entry = getEntryAddress();
+	auto soname = getSoname();
+	const char ldSonamePrefix[] = "ld-linux";
+	const auto ldSonamePrefixLen = sizeof(ldSonamePrefix) - 1;
+	if (entry == getTextAddr())  {
+	    if (soname && strncmp(soname, ldSonamePrefix, ldSonamePrefixLen) == 0)  {
+		// Some ld.so objects happen to have their entry point be the
+		// beginning of the .txt section.  ld.so on linux are also
+		// executables so return true if this exception is found.
+		return true;
+	    }
+	}  else if (entry != getTextAddr() && isText(entry))  {
+	    // if entry point is in the .text section, but not the beginning
+	    // then this is likely an executable (and library) as the default
+	    // linker script sets entry to the beginning of .text or 0 if not
+	    // an executable
+	    if (!soname || strcmp(soname, "linux-gate.so.1"))  {
+		// with the exception of vdso32.so (soname of linux-gete.so.1)
+		return true;
+	    }
+	}
+    }
+
+    return false;
+}
+
+
+// Object::isSharedLibrary
+//   True if this object is  a shared library, but could also be an executable
+//   (use isExecutable to determine).  This function should produce the same
+//   result as the is_library() function in elfutils' elfclassify.c
+bool Object::isSharedLibrary() const
+{
+    if (!isLoadable())  {
+	return false;
+    }  else if (objType() != obj_SharedLib)  {
+	return false;
+    }  else if (!getDynamicAddr())  {
+	return false;
+    }  else if (hasPieFlag())  {
+	return false;
+    }  else if (hasDtDebug())  {
+	return false;
+    }
+
+    return true;
+}
+
+
+// Object::isOnlySharedLibrary
+//   True if this object can only be an shared library.  This function should
+//   produce the same result as the is_shared() function in elfutils'
+//   elfclassify.c
+bool Object::isOnlySharedLibrary() const
+{
+    if (!isLoadable())  {
+	return false;
+    }  else if (objType() == obj_Executable)  {
+	return false;
+    }  else if (!getDynamicAddr())  {
+	return false;
+    }  else if (hasPieFlag())  {
+	return false;
+    }  else if (getSoname())  {
+	return true;
+    }  else if (interpreter_name())  {
+	return false;
+    }  else if (hasDtDebug())  {
+	return false;
+    }
+
+    return true;
+}
+
+
+// Object::isDebugOnly
+//   True if this object only contains debug information for another object.
+//   This function should produce the same result as the is_debug_only()
+//   function in elfutils' elfclassify.c
+bool Object::isDebugOnly() const
+{
+    auto type = objType();
+
+    return (type == obj_RelocatableFile || type == obj_Executable
+                    || type == obj_SharedLib)
+	    && (hasDebugSections() || getSymtabAddr())
+	    && !hasBitsAlloc();
+}
+
+
+// Object::isLinuxKernelModule
+//   True if this object is a linux kernel module.  This function should
+//   produce the same result as the is_linux_kernel_module() function in
+//   elfutils' elfclassify.c
+bool Object::isLinuxKernelModule() const
+{
+    return objType() == obj_RelocatableFile
+            && hasModinfo()
+            && hasGnuLinkonceThisModule();
+}

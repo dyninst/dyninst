@@ -17,8 +17,10 @@ Method name & Return type & Method description \\
 \code{dataOffset} & Offset & Offset of the first data segment from the start of the binary. \\
 \code{imageLength} & Offset & Size of the primary code-containing region, typically .text. \\
 \code{dataLength} & Offset & Size of the primary data-containing region, typically .data. \\
-\code{isStaticBinary} & Offset & True if the binary was compiled statically. \\
-\code{isExec} & bool & True if the file is an executable, false if it is a shared library or object file. \\
+\code{isStaticBinary} & bool & True if the binary was compiled statically. \\
+\code{isExecutable} & bool & True if the file is an executable. \\
+\code{isSharedLibrary} & bool & True if the file is a shared library. \\
+\code{isExec} & bool & True if the file is can only be an executable, false otherwise including files that are both exeutables and shared libraries.  Typically files that are both executables and shared libraries are primarily used as libraries, if you need to determine specifics use the methods \code{isExecutable} and \code{isSharedLibrary}. \\
 \code{isStripped} & bool & True if the file was stripped of symbol table information. \\
 \code{getAddressWidth} & unsigned & Size (in bytes) of a pointer value in the Symtab; 4 for 32-bit binaries and 8 for 64-bit binaries. \\
 \code{getArchitecture} & Architecture & Representation of the system architecture for the binary. \\
@@ -33,6 +35,83 @@ ObjectType getObjectType() const
 \end{apient}
 \apidesc{
 This method queries information on the type of the object file.
+}
+
+\begin{apient}
+bool isExecutable()
+bool isSharedLibrary()
+bool isExec()
+\end{apient}
+\apidesc{
+These methods respectively return true if the Symtab's object is an executable, a shared
+library, and an executable is that is not a shared library.
+An object may be both an executable and a shared library.
+
+An Elf Object that can be loaded into memory to form an executable's image has
+one of two types:  ET\_EXEC and ET\_DYN.
+ET\_EXEC type objects are executables that are loaded at a fixed address
+determined at link time.
+ET\_DYN type objects historically were shared libraries that are loaded at an
+arbitrary location in memory and are position independent code (PIC).
+The ET\_DYN object type was reused for position independent executables (PIE)
+that allows the executable to be loaded at an arbitrary location in memory.
+Although generally not the case an object can be both a PIE executable and a
+shared library.
+Examples of these include libc.so and the dynamic linker library (ld.so).
+These objects are generally used as a shared library so \code{isExec()} will
+classify these based on their typical usage.
+The methods below use heuristics to classify ET\_DYN object types correctly
+based on the properties of the Elf Object, and will correctly classify most
+objects.
+Due to the inherent ambiguity of ET\_DYN object types, the heuristics may fail
+to classify some libraries that are also executables as an executable.
+This can happen in object is a shared library and an executable, and its entry
+point happens to be at the start of the .text section.
+
+\code{isExecutable()} is equivalent to elfutils' \code{elfclassify -{}-program}
+test with the refinement of the soname value and entry point tests.
+Pseudocode for the algorithm is shown below:
+
+\newcommand{\ifthenstmt}[2]{\textbf{if} (#1) \textbf{return} \textit{#2}}
+\newcommand{\otherwisestmt}[1]{\textbf{otherwise return} \textit{#1}}
+
+\begin{itemize}[leftmargin=+7em]
+\item \ifthenstmt{\textbf{not} loadable()}{false}
+\item \ifthenstmt{object type is ET\_EXEC}{true}
+\item \ifthenstmt{has an interpreter (PT\_INTERP segment exists)}{true}
+\item \ifthenstmt{PIE flag is set in FLAGS\_1 of the PT\_DYNAMIC segment}{true}
+\item \ifthenstmt{DT\_DEBUG tag exists in PT\_DYNAMIC segment}{true}
+\item \ifthenstmt{has a soname and its value is ``linux-gate.so.1''}{false}
+\item \ifthenstmt{entry point is in range .text section offset plus 1 to the end of the .text section}{true}
+\item \ifthenstmt{has a soname and its value starts with ``ld-linux''}{true}
+\item \otherwisestmt{false}
+\end{itemize}
+
+\code{isSharedLibrary()} is equivalent to elfutils' \code{elfclassify -{}-library}.
+Pseudocode for the algorithm is shown below:
+
+\begin{itemize}[leftmargin=7em]
+\item \ifthenstmt{\textbf{not} loadable()}{false}
+\item \ifthenstmt{object type is ET\_EXEC}{false}
+\item \ifthenstmt{there is no PT\_DYNAMIC segment}{false}
+\item \ifthenstmt{PIE flag is set in FLAGS\_1 of the PT\_DYNAMIC segment}{false}
+\item \ifthenstmt{DT\_DEBUG tag exists in PT\_DYNAMIC segment}{false}
+\item \otherwisestmt{true}
+\end{itemize}
+
+Elf files can also store data that is neither an executable nor a shared
+library including object files, core files and debug symbol files.
+To distinguish these cases the \code{loadable()} function is defined using the
+pseudocode shown below and returns true is the file can loaded into a process's
+address space:
+
+\begin{itemize}[leftmargin=7em]
+\item \ifthenstmt{object type is neither ET\_EXEC nor ET\_DYN}{false}
+\item \ifthenstmt{there is are no program segments with the PT\_LOAD flag set}{false}
+\item \ifthenstmt{contains no sections}{true}
+\item \ifthenstmt{contains a section with the SHF\_ALLOC flag set and a section type of neither SHT\_NOTE nor SHT\_NOBITS}{true}
+\item \otherwisestmt{false}
+\end{itemize}
 }
 
 \subsubsection{File opening/parsing}
@@ -534,7 +613,7 @@ Returns all the standard types that normally occur in a program.
 static std::vector<Type *> * getAllbuiltInTypes()
 \end{apient}
 \apidesc{
-Returns all the bulit-in types defined in the binary.
+Returns all the built-in types defined in the binary.
 }
 
 \begin{apient}

@@ -235,6 +235,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    /*****Query Functions*****/
    bool isExec() const;
+   bool isExecutable() const;
+   bool isSharedLibrary() const;
    bool isStripped();
    ObjectType getObjectType() const;
    Dyninst::Architecture getArchitecture() const;

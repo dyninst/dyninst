@@ -854,7 +854,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
 
         fileDescriptor tmpDesc((*i)->getAbsoluteName(), (*i)->getLoadAddress(),
-                    dataAddress, true);
+                    dataAddress);
 		if( execFd == tmpDesc ) {
             proccontrol_printf("%s[%d]: ignoring Library event for executable %s\n",
                     FILE__, __LINE__, (*i)->getAbsoluteName().c_str());
@@ -878,7 +878,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
         fileDescriptor rtLibDesc(evProc->dyninstRT_name, (*i)->getLoadAddress(),
-            dataAddress, true);
+            dataAddress);
         if( rtLibDesc == tmpDesc ) {
            proccontrol_printf("%s[%d]: library event contains RT library load\n", FILE__, __LINE__);
 
@@ -902,7 +902,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         Address dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
         deletedDescriptors.push_back(fileDescriptor((*i)->getAbsoluteName(), (*i)->getLoadAddress(),
-                    dataAddress, true));
+                    dataAddress));
     }
 
     const std::vector<mapped_object *> &currList = evProc->mappedObjects();

@@ -132,8 +132,7 @@ mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
                                                  bool parseGaps) {
    fileDescriptor desc(lib->getAbsoluteName(),
                        lib->getLoadAddress(),
-                       p->usesDataLoadAddress() ? lib->getDataLoadAddress() : lib->getLoadAddress(),
-                       lib->isSharedLib());
+                       p->usesDataLoadAddress() ? lib->getDataLoadAddress() : lib->getLoadAddress());
    return createMappedObject(desc, p, analysisMode, parseGaps);
 }
    
@@ -851,9 +850,7 @@ bool mapped_object::isSharedLib() const
 {
     if (isMemoryImg()) return false;
 
-    return parse_img()->isSharedObj();
-    // HELL NO
-    //return desc_.isSharedObject();
+    return parse_img()->isSharedLibrary();
 }
 
 bool mapped_object::isStaticExec() const
