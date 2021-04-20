@@ -121,7 +121,8 @@ if(BUILD_RTLIB)
     -DBUILD_RTLIB_32=${BUILD_RTLIB_32}
     -DPLATFORM=${PLATFORM}
     -G ${CMAKE_GENERATOR}
-    ${RT_SOURCE_DIR})
+    -B ${RT_BINARY_DIR}
+    -S ${RT_SOURCE_DIR})
   find_file(${RT_MAKEFILE} Makefile PATHS ${RT_BINARY_DIR} NO_DEFAULT_PATH)
   message(STATUS "RTlib Makefile: ${RT_MAKEFILE}")
   if(MSVC)
