@@ -506,6 +506,7 @@ class AddressSpace : public InstructionSource {
 
     bool heapInitialized_;
     bool useTraps_;
+    bool sigILLTrampoline_;
     inferiorHeap heap_;
 
     // Loaded mapped objects (may be just 1)

@@ -268,13 +268,22 @@ int DYNINSTinitializeTrapHandler()
 {
    int result;
    struct sigaction new_handler;
+   int signo = SIGTRAP;
+
+   // If environment variable DYNINST_SIGNAL_TRAMPOLINE_SIGILL is set,
+   // we use SIGILL as the signal for signal trampoline.
+   // The mutatee has to be generated with DYNINST_SIGNAL_TRAMPOLINE_SIGILL set
+   // so that the mutator will generates illegal instructions as trampolines.
+   if (getenv("DYNINST_SIGNAL_TRAMPOLINE_SIGILL")) {
+      signo = SIGILL;
+   }
 
    new_handler.sa_sigaction = dyninstTrapHandler;
    //new_handler.sa_restorer = NULL; obsolete
    sigemptyset(&new_handler.sa_mask);
    new_handler.sa_flags = SA_SIGINFO | SA_NODEFER;
    
-   result = sigaction(SIGTRAP, &new_handler, NULL);
+   result = sigaction(signo, &new_handler, NULL);
    return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;
 }
 

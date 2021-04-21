@@ -84,6 +84,7 @@ AddressSpace::AddressSpace () :
     new_instp_cb(NULL),
     heapInitialized_(false),
     useTraps_(true),
+    sigILLTrampoline_(false),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0),
@@ -102,6 +103,16 @@ AddressSpace::AddressSpace () :
        emulatePC_ = true;
    }
 #endif
+   // Historically, we only use SIGTRAP as the signal for tramopline.
+   // However, SIGTRAP is always intercepted by GDB, causing it is 
+   // almost impossible to debug through signal trampolines.
+   // Here, we add a new environment variable DYNINST_SIGNAL_TRAMPOLINE_SIGILL
+   // to control whether we use SIGILL as the signal for trampolines.
+   // In the case of binary rewriting, DYNINST_SIGNAL_TRAMPOLINE_SIGILL should be 
+   // consistently set or unset for rewriting the binary and running the rewritten binaries. 
+   if (getenv("DYNINST_SIGNAL_TRAMPOLINE_SIGILL")) {
+      sigILLTrampoline_ = true;
+   }
 }
 
 AddressSpace::~AddressSpace() {
