@@ -147,8 +147,8 @@ public:
 
     using base::clear;
 
-    using base::iterator;
-    using base::const_iterator;
+    using typename base::iterator;
+    using typename base::const_iterator;
     using base::begin;
     using base::end;
 };
