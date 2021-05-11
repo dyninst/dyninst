@@ -498,7 +498,6 @@ void AssignmentConverter::convert(const Instruction &I,
 				  std::vector<Assignment::Ptr> &assignments) {
   assignments.clear();
   if (cache(func, addr, assignments)){ 
-      std::cout << "returning cached for " << I.format() << std::endl;
       return;
   }
 
