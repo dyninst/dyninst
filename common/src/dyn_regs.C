@@ -30,6 +30,7 @@
 
 #define DYN_DEFINE_REGS
 #include "common/h/dyn_regs.h"
+#include "common/src/debug_common.h"
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
@@ -198,7 +199,7 @@ std::string MachRegister::name() const {
             return iter->second;
         }
     }
-    std::cout << " can't find " <<  std::hex << "0x" << reg << std::endl;
+    common_parsing_printf(" can't find register with index %x\n",reg);
     return std::string("<INVALID_REG>");
 
 }
@@ -313,8 +314,7 @@ unsigned int MachRegister::size() const {
                      case amdgpu_vega::BITS_512:
                          return 64;
                  }
-                 std::cerr << "unknown reg size " << std::hex << reg << std::endl;
-
+                 common_parsing_printf(" unknown reg size %x\n",reg);
                  assert(0);
              }
          }
