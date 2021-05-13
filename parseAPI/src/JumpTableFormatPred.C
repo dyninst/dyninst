@@ -516,7 +516,4 @@ bool JumpTableFormatPred::ignoreEdge(ParseAPI::Edge *e) {
     if (e->type() == INDIRECT) return true;
     return false;
 }
-/*bool JumpTableFormatPred::endAtPoint(AssignmentPtr ptr){
-    cout << "calling end at Point GG? " << endl;
-    return true;
-}*/
+
