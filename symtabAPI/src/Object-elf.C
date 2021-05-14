@@ -3238,6 +3238,13 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
 
     if (*value) {
         *value += base;
+        // The addition of the base can lead to arithemtic overflow.
+        // We need to adjust the final value based on its size.
+        if (size == 2) {
+            *value = (*value) & 0xFFFF;
+        } else if (size == 4) {
+            *value = (*value) & 0xFFFFFFFF;
+        }
         if (type & DW_EH_PE_indirect) {
             // When there is a indirect catch block,
             // it is often the case that the indirect pointer would point
