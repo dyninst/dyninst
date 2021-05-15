@@ -62,7 +62,7 @@ bool init_debug_common() {
            common_debug_lineinfo = 1;
     }
     
-    if(getenv("DYNINST_DEBUG_PARSING") || getenv("COMMON_DEBUG_PARSING")){
+    if(getenv("COMMON_DEBUG_PARSING")){
         common_debug_parsing = 1;  
     }
 
