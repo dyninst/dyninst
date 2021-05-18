@@ -1703,6 +1703,14 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             cur->region()->offset() + cur->region()->length() - curAddr;
         const unsigned char* bufferBegin =
             (const unsigned char *)(func->region()->getPtrToInstruction(curAddr));
+        if (bufferBegin == nullptr) {
+            // This can happen if jump table is over-approxiated.
+            // We ignore this block for now, and later the over-approximated block
+            // will be removed.
+            parsing_printf("\taddress %lx in a different region from the funcion entry at %lx, skip parsing\n", curAddr, func->addr());
+            continue;
+        }
+
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
         if (!ahPtr)
