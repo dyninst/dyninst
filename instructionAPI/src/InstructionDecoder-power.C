@@ -1123,7 +1123,9 @@ using namespace boost::assign;
             if(found != power_entry::extended_op_61.end())
                 return found->second;
         }
-        return power_entry::extended_op_61[field<21, 30>(insn)];
+        power_table::const_iterator found = power_entry::extended_op_61.find(field<21,30>(insn));
+        if(found != power_entry::extended_op_61.end()) return found->second;
+        return invalid_entry;
     }
 
     const power_entry& InstructionDecoder_power::extended_op_63()
