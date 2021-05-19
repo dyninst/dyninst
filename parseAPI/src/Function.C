@@ -256,35 +256,36 @@ Function::blocks_int()
     blockmap::iterator nextIt, curIt;
     for (curIt = _exitBL.begin(); curIt != _exitBL.end(); ) {
         Block *cur = curIt->second;
-	bool exit_func = false;
+        bool exit_func = false;
         bool found_call = false;
         bool found_call_ft = false;
         boost::lock_guard<Block> g(*cur);
-
-	if (cur->targets().empty()) exit_func = true;
-	for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit) {
-	    Edge *e = *eit;
-	    Block *t = e->trg();
+        
+        Block::edgelist targets;
+        cur->copy_targets(targets);
+        if (targets.empty()) exit_func = true;
+        for (auto e : targets) {
+            Block *t = e->trg();
             if(e->type() == CALL || e->interproc()) {
-	        found_call = true;
-	    }
+                found_call = true;
+            }
             if (e->type() == CALL_FT) {
                 found_call_ft = true;
             }
-
-	    if (e->type() == RET || !t || t->obj() != cur->obj()) {
-	        exit_func = true;
-		break;
-	    }
-	}
-	if (found_call && !found_call_ft && !obj()->defensiveMode()) exit_func = true;
-
-	if (!exit_func) { 
-	    nextIt = curIt;
-	    ++nextIt;
-	    _exitBL.erase(curIt);
-	    curIt = nextIt;
-	} else ++curIt;
+            
+            if (e->type() == RET || !t || t->obj() != cur->obj()) {
+                exit_func = true;
+                break;
+            }
+        }
+        if (found_call && !found_call_ft && !obj()->defensiveMode()) exit_func = true;
+        
+        if (!exit_func) { 
+            nextIt = curIt;
+            ++nextIt;
+            _exitBL.erase(curIt);
+            curIt = nextIt;
+        } else ++curIt;
     }
 
     // avoid adding duplicate return blocks
@@ -303,30 +304,26 @@ Function::blocks_int()
         bool exits_func = false;
         bool found_call = false;
         bool found_call_ft = false;
-        const Block::edgelist & trgs = cur->targets();
+        Block::edgelist trgs;
+        cur->copy_targets(trgs);
         if (trgs.empty()) {
-           // Woo hlt!
-	  parsing_printf("No targets, exits func\n");
-           exits_func = true;
+            // Woo hlt!
+            parsing_printf("No targets, exits func\n");
+            exits_func = true;
         }
-        for(Block::edgelist::const_iterator tit=trgs.begin();
-            tit!=trgs.end();++tit) {
-            Edge * e = *tit;
+        for(auto e : trgs) {
             Block * t = e->trg();
-
-            if(t)
-            {
+            if(t) {
                 parsing_printf("\t Considering target block [0x%lx,0x%lx) from edge %p\n",
                                t->start(), t->end(), e);
-
             }
 
             if (e->type() == CALL_FT) {
-               found_call_ft = true;
+                found_call_ft = true;
             }
 
             if(e->type() == CALL) {
-               parsing_printf("\t Call typed\n");
+                parsing_printf("\t Call typed\n");
                 _call_edge_list.insert(e);
                 found_call = true;
                 continue;
@@ -335,17 +332,17 @@ Function::blocks_int()
             if(e->type() == RET) {
                 link_return = true;
                 exits_func = true;
-		parsing_printf("Block has return edge\n");
+                parsing_printf("Block has return edge\n");
                 if (obj()->defensiveMode()) {
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
-                       continue;
+                        continue;
                 }
                 continue;
             }
 
             /* Handle tailcall edges */
             if(e->interproc()) {
-               parsing_printf("\t Interprocedural\n");
+                parsing_printf("\t Interprocedural\n");
                 _call_edge_list.insert(e);
                 found_call = true;
                 continue;
@@ -353,15 +350,15 @@ Function::blocks_int()
             // If we are heading to a different CodeObject, call it a return
             // and don't add target blocks.
             if (t && (t->obj() != cur->obj())) {
-               // This is a jump to a different CodeObject; call it an exit
-	      parsing_printf("Block exits object\n");
-               exits_func = true;
+                // This is a jump to a different CodeObject; call it an exit
+                parsing_printf("Block exits object\n");
+                exits_func = true;
                 continue;
             }
 
             /* sink edges receive no further processing */
             if(e->sinkEdge()) {
-               parsing_printf("\t Sink edge, skipping\n");
+                parsing_printf("\t Sink edge, skipping\n");
                 continue;
             }
 
@@ -374,25 +371,24 @@ Function::blocks_int()
                 }
             }
         }
+
         if (found_call && !found_call_ft && !obj()->defensiveMode()) {
-	  parsing_printf("\t exits func\n");
-           exits_func = true;
+            parsing_printf("\t exits func\n");
+            exits_func = true;
         }
 
         if (link_return) assert(exits_func);
 
         if(exits_func) {
-           if (link_return)
-              delayed_link_return(_obj,cur);
-           if(visited[cur->start()] <= 1) {
-	     _exitBL[cur->start()] = cur;
-	      parsing_printf("Adding block 0x%lx as exit\n", cur->start());
-              if (link_return) 
-	      {
-		_retBL[cur->start()] = cur;
-	      }
-	      
-           }
+            if (link_return)
+                delayed_link_return(_obj,cur);
+            if(visited[cur->start()] <= 1) {
+                _exitBL[cur->start()] = cur;
+                parsing_printf("Adding block 0x%lx as exit\n", cur->start());
+                if (link_return) {
+                    _retBL[cur->start()] = cur;
+                }
+            }
         }
     }
 
