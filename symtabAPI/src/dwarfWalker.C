@@ -360,11 +360,20 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
         setMangledName(false);
 
         Dwarf * desc = dwarf_cu_getdwarf(e.cu);
-        dwarf_printf("(0x%lx) Parsing entry with context size %d, func %s, encl %p, (%s), mod:%s, abbr: %d, tag: %x\n",
+        if (!common_debug_initialized || common_debug_dwarf) {
+            int tag = dwarf_tag(&e);
+            unsigned int abbrev_code = 0;
+            if (e.abbrev != DWARF_END_ABBREV) {
+                abbrev_code = dwarf_getabbrevcode(e.abbrev);
+            } else {
+                dwarf_printf("\t abbrev code is DWARF_END_ABBREV\n");
+            }
+            dwarf_printf("(0x%lx) Parsing entry with context size %d, func %s, encl %p, (%s), mod:%s, abbr: %d, tag: %x\n",
                 id(), stack_size(),
                 curFunc()?curFunc()->getName().c_str():"(N/A)",
                 curEnclosure().get(), (dbg()!=desc)?"sup":"not sup",
-                mod()->fullName().c_str(), dwarf_getabbrevcode(e.abbrev), dwarf_tag(&e));
+                mod()->fullName().c_str(), abbrev_code, tag);
+        }
 
         bool ret = false;
         switch(dwarf_tag(&e)) {

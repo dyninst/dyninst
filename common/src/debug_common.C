@@ -38,6 +38,7 @@ int common_debug_dwarf = 0;
 int common_debug_addrtranslate = 0;
 int common_debug_lineinfo = 0;
 int common_debug_parsing = 0;
+int common_debug_initialized = 0;
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -45,9 +46,8 @@ int common_debug_parsing = 0;
 #endif
 
 bool init_debug_common() {
-    static bool initialized = false;
-    if (initialized) return true;
-    initialized = true;
+    if (common_debug_initialized) return true;
+    common_debug_initialized = 1;
 
     if (getenv("COMMON_DEBUG_DWARF") ||
         getenv("DYNINST_DEBUG_DWARF")) {
