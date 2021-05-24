@@ -732,7 +732,7 @@ namespace Dyninst {
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
 				std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
-			//debug_instr();
+			debug_instr();
 			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
