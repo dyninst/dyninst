@@ -455,8 +455,9 @@ void RoseInsnAmdgpuVegaFactory::massageOperands(const Instruction &insn,
                 // second one is dst for storing the pc, so we turn it into 4 registers
                 // TODO : Make this a function call 
                 assert(operands.size() == 2);
-                auto [oper0,oper1] = expandSgprPair(operands[0]);
-                auto [oper2,oper3] = expandSgprPair(operands[1]);
+                InstructionAPI::Operand oper0,oper1,oper2,oper3;
+                std::tie(oper0,oper1) = expandSgprPair(operands[0]);
+                std::tie(oper2,oper3) = expandSgprPair(operands[1]);
                 operands.resize(4);
                 operands[0] = oper0;
                 operands[1] = oper1;
@@ -470,7 +471,9 @@ void RoseInsnAmdgpuVegaFactory::massageOperands(const Instruction &insn,
         case amdgpu_op_s_setpc_b64:
             {
                 assert(operands.size() == 1);
-                auto [oper0,oper1] = expandSgprPair(operands[0]);
+
+                InstructionAPI::Operand oper0,oper1;
+                std::tie(oper0,oper1) = expandSgprPair(operands[0]);
                 operands.resize(2);
                 operands[0] = oper0;
                 operands[1] = oper1;
@@ -481,7 +484,9 @@ void RoseInsnAmdgpuVegaFactory::massageOperands(const Instruction &insn,
         case amdgpu_op_s_getpc_b64:
             {
                 assert(operands.size() == 1);
-                auto [oper0,oper1] = expandSgprPair(operands[0]);
+
+                InstructionAPI::Operand oper0,oper1;
+                std::tie(oper0,oper1) = expandSgprPair(operands[0]);
                 operands.resize(3);
                 operands[0] = oper0;
                 operands[1] = oper1;
