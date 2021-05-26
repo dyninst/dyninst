@@ -35,6 +35,7 @@
 
 #include <map>
 #include <memory>
+#include <vector>
 
 #include "infHeap.h"
 #include "addressSpace.h"
@@ -211,7 +212,8 @@ class BinaryEdit : public AddressSpace {
    /* Function specific to rewritting static binaries */
    bool doStaticBinarySpecialCases();
     
-    codeRangeTree* memoryTracker_;
+    codeRangeTree memoryTracker_;
+    std::vector<memoryTracker*> trackers;
 
     mapped_object * addSharedObject(const std::string *fullPath);
 
