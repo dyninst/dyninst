@@ -1704,21 +1704,29 @@ void Slicer::markAsEndNode(Graph::Ptr ret, Direction dir, Element &e) {
 
 void Slicer::fastForward(Location &loc, Address
 			 addr) {
-  while ((loc.current != loc.end) &&
-	 (loc.addr() < addr)) {
-    loc.current++;
-  }
-  assert(loc.current != loc.end);
-  assert(loc.addr() == addr);
+    while ((loc.current != loc.end) && (loc.addr() < addr)) {
+        loc.current++;
+    }
+
+    if (loc.current == loc.end || loc.addr() != addr) {
+        slicing_cerr << "Cannot find addr " << std::hex << addr 
+            << "in block [" << loc.block->start() << "," << loc.block->end() << ")" 
+            << ", function " << loc.func->name() << " at " << loc.func->addr()
+            << std::dec << endl;
+    }
 }
 
 void Slicer::fastBackward(Location &loc, Address addr) {
-    while ((loc.rcurrent != loc.rend) &&
-	 (loc.addr() > addr)) {
-    loc.rcurrent++;
-  }
-  assert(loc.rcurrent != loc.rend);
-  assert(loc.addr() == addr);  
+    while ((loc.rcurrent != loc.rend) && (loc.addr() > addr)) {
+        loc.rcurrent++;
+    }
+
+    if (loc.rcurrent == loc.rend || loc.addr() != addr) {
+        slicing_cerr << "Cannot find addr " << std::hex << addr 
+            << "in block [" << loc.block->start() << "," << loc.block->end() << ")" 
+            << ", function " << loc.func->name() << " at " << loc.func->addr()
+            << std::dec << endl;
+    }
 }
 
 // removes unnecessary nodes from the slice graph. this is

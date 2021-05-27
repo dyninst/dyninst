@@ -830,31 +830,36 @@ Parser::finalize(Function *f)
 
     // Check whether there are tail calls to blocks within the same function
     dyn_hash_map<Block*, bool> visited;
-    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-        Block * b = *bit;
+    for (auto b: blocks) {
         visited[b] = true;
     }
 
     int block_cnt = 0;
-    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-        Block * b = *bit;
+    for (auto b : blocks) {
         block_cnt++;
-        for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
-            ParseAPI::Edge *e = *eit;
+        Block::edgelist targets;
+        // During this concurrent CFG traversal,
+        // it is possible that a block shared by mulitple functions
+        // will have new edges added to it.
+        // However, during this phase, we will only add RET edges.
+        // RET edges won't impact finalization.
+        // So, we only need to ensure thread safety.
+        b->copy_targets(targets);
+        for (auto e : targets) {
             // Tail call corretions are only relevant to non-sink COND_TAKEN or non-sink DIRECT edges
             if (e->sinkEdge()) continue;
             if (e->type() != COND_TAKEN && e->type() != DIRECT) continue;
 
             Block* trg_block = e->trg();
+
             bool trg_has_call_edge = false;
-            {
-                boost::unique_lock<Block> l(*trg_block);
-                for (auto eit2 = trg_block->sources().begin(); eit2 != trg_block->sources().end(); ++eit2)
-                    if ((*eit2)->type() == CALL) {
-                        trg_has_call_edge = true;
-                        break;
-                    }
-            }
+            Block::edgelist sources;
+            trg_block->copy_sources(sources);
+            for (auto e2: sources)
+                if (e2->type() == CALL) {
+                    trg_has_call_edge = true;
+                    break;
+                }
 
             // Rule 1:
             // If an edge is currently not a tail call, but the edge target has a CALL incoming edge,
@@ -896,8 +901,8 @@ Parser::finalize(Function *f)
             // If an edge is currently a tail call, but the edge target has only the current edge as incoming edges,
             // we treat this as not tail call.        
             bool only_incoming = true;
-            for (auto seit = trg_block->sources().begin(); seit != trg_block->sources().end(); ++seit)
-                if (*seit != e) {
+            for (auto e2: sources)
+                if (e2 != e) {
                     only_incoming = false;
                     break;
                 }
@@ -924,8 +929,9 @@ Parser::finalize(Function *f)
         Block::Insns insns;
         b->getInsns(insns);
         if (insns.size() == 1 && insns.begin()->second.getCategory() == c_BranchInsn) {
-            for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
-                ParseAPI::Edge *e = *eit;
+            Block::edgelist targets;
+            b->copy_targets(targets);
+            for (auto e : targets) {
                 if (!e->interproc() && (e->type() == INDIRECT || e->type() == DIRECT)) {
                     e->_type._interproc = true;
                     parsing_printf("from %lx to %lx, marked as tail call (jump at entry), re-finalize\n", b->last(), e->trg()->start());
@@ -971,8 +977,7 @@ Parser::finalize(Function *f)
     f->_cache_valid = cache_value; // see comment at function entry
 
     // Update funcsByBlockMap
-    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-        Block *b = *bit;
+    for (auto b : blocks) {
         dyn_c_hash_map<Block*, std::set<Function*> >::accessor a;
         std::set<Function*> new_value;
         new_value.insert(f);
