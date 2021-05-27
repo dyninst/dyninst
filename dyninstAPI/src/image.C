@@ -100,7 +100,6 @@ char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
     "_wWinMain",
     "tls_cb_0"};
 
-string fileDescriptor::emptyString(string(""));
 fileDescriptor::fileDescriptor():
         code_(0), data_(0), dynamic_(0),
         pid_(0), length_(0), rawPtr_(NULL)
