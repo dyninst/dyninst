@@ -501,8 +501,12 @@ void Function::set_retstatus(FuncReturnStatus rs)
     // looking like a return instruction, but actually is not.
     if (obj()->cs()->nonReturning(_name) && rs != NORETURN) return;
     parsing_printf("Set function %s at %lx ret status from %d to %d\n", _name.c_str(), addr(), _rs.load(), rs);
-    assert(!(_rs == RETURN && rs == NORETURN)); 
-    assert(!(_rs == NORETURN && rs == RETURN)); 
+    if (_rs == RETURN && rs == NORETURN) {
+        parsing_printf("\tERROR: ret status is already set to RETURN, now setting to NORETURN\n");
+    }
+    if (_rs == NORETURN && rs == RETURN) {
+        parsing_printf("\tERROR: ret status is already set to NORETURN, now setting to RETURN\n");
+    }
 
     // If we are changing the return status, update prev counter
     if (_rs != UNSET) {
