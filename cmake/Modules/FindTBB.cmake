@@ -151,7 +151,19 @@ find_path(TBB_INCLUDE_DIRS tbb/tbb.h
 # Set version strings
 #
 if(TBB_INCLUDE_DIRS)
-  file(READ "${TBB_INCLUDE_DIRS}/tbb/tbb_stddef.h" _tbb_version_file)
+  # Starting in 2020.1.1, tbb_stddef.h is replaced by version.h
+  set(_version_files
+  	"${TBB_INCLUDE_DIRS}/tbb/tbb_stddef.h"
+  	"${TBB_INCLUDE_DIRS}/tbb/version.h"
+  )
+  foreach(f IN ITEMS ${_version_files})
+    if(EXISTS ${f})
+  	  set(_version_file ${f})
+    endif()
+  endforeach()
+  unset(_version_files)
+ 
+  file(READ ${_version_file} _tbb_version_file)
   string(REGEX
          REPLACE ".*#define TBB_VERSION_MAJOR ([0-9]+).*"
                  "\\1"
