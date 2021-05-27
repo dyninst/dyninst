@@ -347,7 +347,6 @@ Symbol::Symbol () :
   isAbsolute_(false),
   isDebug_(false),
   aggregate_(NULL),
-  mangledName_(Symbol::emptyString),
   tag_(TAG_UNKNOWN) ,
   index_(-1),
   strindex_(-1),

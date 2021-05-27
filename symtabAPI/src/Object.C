@@ -52,8 +52,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-string Symbol::emptyString("");
-
 
 //#ifdef BINEDIT_DEBUG
 bool ____sym_hdr_printed = false;

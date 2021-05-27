@@ -245,7 +245,6 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
    public:
-   static std::string emptyString;
    int getInternalType() const { return internal_type_; }
    void setInternalType(int i) { internal_type_ = i; }
 
