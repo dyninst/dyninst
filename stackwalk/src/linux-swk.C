@@ -194,7 +194,6 @@ bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned in
    return true;
 }
 
-#define NUM_VSYS_SIGRETURNS 5
 static const char* vsys_sigreturns[] = {
    "sigreturn",
    "_sigreturn",
@@ -202,6 +201,7 @@ static const char* vsys_sigreturns[] = {
    "__kernel_sigreturn",
    "__kernel_rt_sigreturn"
 };
+static const size_t NUM_VSYS_SIGRETURNS = sizeof vsys_sigreturns / sizeof vsys_sigreturns[0];
 
 void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
 {
