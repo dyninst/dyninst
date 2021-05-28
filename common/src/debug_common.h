@@ -35,17 +35,18 @@
 #include "util.h"
 
 COMMON_EXPORT extern int common_debug_dwarf;
-extern int common_debug_addrtranslate;
-extern int common_debug_lineinfo;
-extern int common_debug_parsing;
+COMMON_EXPORT extern int common_debug_addrtranslate;
+COMMON_EXPORT extern int common_debug_lineinfo;
+COMMON_EXPORT extern int common_debug_parsing;
+COMMON_EXPORT extern int common_debug_initialized;
 
 #if defined(__GNUC__)
 #define dwarf_printf(format, ...)                                       \
    do {                                                                 \
-      dwarf_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+      if (!common_debug_initialized || common_debug_dwarf) dwarf_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
    } while (0)
 #else
-#define dwarf_printf dwarf_printf_int
+#define dwarf_printf if (!common_debug_initialized || common_debug_dwarf) dwarf_printf_int
 #endif
 
 COMMON_EXPORT int dwarf_printf_int(const char *format, ...);
@@ -53,10 +54,10 @@ COMMON_EXPORT int dwarf_printf_int(const char *format, ...);
 #if defined(__GNUC__)
 #define translate_printf(format, ...)                                       \
    do {                                                                 \
-      translate_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+      if (!common_debug_initialized || common_debug_addrtranslate) translate_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
    } while (0)
 #else
-#define translate_printf translate_printf_int
+#define translate_printf if (!common_debug_initialized || common_debug_addrtranslate) translate_printf_int
 #endif
 
 COMMON_EXPORT int translate_printf_int(const char *format, ...);
@@ -65,10 +66,10 @@ COMMON_EXPORT int translate_printf_int(const char *format, ...);
 #if defined(__GNUC__)
 #define lineinfo_printf(format, ...)                                       \
    do {                                                                 \
-	   lineinfo_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+	   if (!common_debug_initialized || common_debug_lineinfo) lineinfo_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
    } while (0)
 #else
-#define lineinfo_printf lineinfo_printf_int
+#define lineinfo_printf if (!common_debug_initialized || common_debug_lineinfo) lineinfo_printf_int
 #endif
 
 COMMON_EXPORT int lineinfo_printf_int(const char *format, ...);
@@ -76,10 +77,10 @@ COMMON_EXPORT int lineinfo_printf_int(const char *format, ...);
 #if defined(__GNUC__)
 #define common_parsing_printf(format, ...)                                       \
    do {                                                                 \
-	   common_parsing_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+	   if (!common_debug_initialized || common_debug_parsing) common_parsing_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
    } while (0)
 #else
-#define common_parsing_printf common_parsing_printf_int
+#define common_parsing_printf if (!common_debug_initialized || common_debug_parsing) common_parsing_printf_int
 #endif
 
 COMMON_EXPORT int common_parsing_printf_int(const char *format, ...);
