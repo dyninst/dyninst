@@ -437,9 +437,8 @@ bool PCProcess::getExecFileDescriptor(string filename,
    Address base = 0;
 
     desc = fileDescriptor(filename.c_str(),
-                          base, // code
-                          base, // data
-                          false); // a.out
+                          base,  // code
+                          base); // data
     return true;
 }
 

@@ -342,7 +342,6 @@ public:
 	// returns an offset from the base address of the object
 	// so the entry can easily be located in memory
 	Offset getPltSlot(std::string funcName) const ;
-	Offset textAddress(){ return text_addr_;}
 	bool isText( Offset addr ) const
 	{
 	    if( addr >= text_addr_ && addr <= text_addr_ + text_size_ )
@@ -388,6 +387,21 @@ public:
     Offset getRelPLTSize() const { return rel_plt_size_; }
     Offset getRelDynAddr() const { return rel_addr_; }
     Offset getRelDynSize() const { return rel_size_; }
+    const char* getSoname() const { return soname_; }
+    bool hasPieFlag() const { return hasPieFlag_; }
+    bool hasProgramLoad() const { return hasProgramLoad_; }
+    bool hasDtDebug() const { return hasDtDebug_; }
+    bool hasBitsAlloc() const { return hasBitsAlloc_; }
+    bool hasDebugSections() const { return hasDebugSections_; }
+    bool hasModinfo() const { return hasModinfo_; }
+    bool hasGnuLinkonceThisModule() const { return hasGnuLinkonceThisModule_; }
+    bool isLoadable() const;
+    SYMTAB_EXPORT bool isOnlyExecutable() const;
+    SYMTAB_EXPORT bool isExecutable() const;
+    SYMTAB_EXPORT bool isSharedLibrary() const;
+    SYMTAB_EXPORT bool isOnlySharedLibrary() const;
+    SYMTAB_EXPORT bool isDebugOnly() const;
+    SYMTAB_EXPORT bool isLinuxKernelModule() const;
 
     std::vector<relocationEntry> &getPLTRelocs() { return fbt_; }
     std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
@@ -466,6 +480,13 @@ public:
                                //   Set to 0 if it may load anywhere
   Offset entryAddress_;
   char *interpreter_name_;
+  bool  hasPieFlag_;
+  bool  hasDtDebug_;
+  bool  hasProgramLoad_;
+  bool  hasBitsAlloc_;
+  bool  hasDebugSections_;
+  bool  hasModinfo_;
+  bool  hasGnuLinkonceThisModule_;
   bool  isStripped;
 
   std::map<Offset, Offset> TOC_table_;

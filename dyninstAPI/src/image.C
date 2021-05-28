@@ -103,7 +103,7 @@ char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
 
 string fileDescriptor::emptyString(string(""));
 fileDescriptor::fileDescriptor():
-        code_(0), data_(0), dynamic_(0), shared_(false),
+        code_(0), data_(0), dynamic_(0),
         pid_(0), length_(0), rawPtr_(NULL)
 {
     // This shouldn't be called... must be public for std::vector, though
@@ -485,7 +485,7 @@ int image::findMain()
     // Only look for main in executables, but do allow position-independent
     // executables (PIE) which look like shared objects with an INTERP.
     // (Some strange DSOs also have INTERP, but this is rare.)
-    if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
+    if (linkedFile->isExec())
     {
         bool foundMain = false;
         bool foundStart = false;
@@ -578,7 +578,7 @@ int image::findMain()
     // Only look for main in executables, but do allow position-independent
     // executables (PIE) which look like shared objects with an INTERP.
     // (Some strange DSOs also have INTERP, but this is rare.)
-    if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
+    if(linkedFile->isExec())
     {
         bool foundMain = false;
         bool foundStart = false;
@@ -925,8 +925,7 @@ int image::findMain()
 }
 
 /*
- * We do a search for a "main" symbol (a couple of variants), and
- * if found we flag this image as the executable (a.out). 
+ * Check if image is libdyninstRT
  */
 bool image::determineImageType()
 {
@@ -935,22 +934,8 @@ bool image::determineImageType()
   gettimeofday(&starttime, NULL);
 #endif
 
-  //Checking "main" function names in same order as in the inst-*.C files
   vector <SymtabAPI::Function *>funcs;
-  if (linkedFile->findFunctionsByName(funcs,"main")       ||
-      linkedFile->findFunctionsByName(funcs,"_main")     
-#if defined(os_windows)
-      || linkedFile->findFunctionsByName(funcs,"WinMain")   ||
-      linkedFile->findFunctionsByName(funcs,"_WinMain")  ||
-      linkedFile->findFunctionsByName(funcs,"wWinMain")  ||
-      linkedFile->findFunctionsByName(funcs,"_wWinMain") 
-#endif
-      ) {
-      is_a_out = true;
-  }
-  else
-      is_a_out = false;
-  
+
   // Checking for libdyninstRT (DYNINSTinit())
   if (linkedFile->findFunctionsByName(funcs, "DYNINSTinit") ||
       linkedFile->findFunctionsByName(funcs, "_DYNINSTinit"))
@@ -1169,7 +1154,7 @@ unsigned int int_addrHash(const Address& addr) {
 
 /*
  * load an executable:
- *   1.) parse symbol table and identify rotuines.
+ *   1.) parse symbol table and identify routines.
  *   2.) scan executable to identify inst points.
  *
  *  offset is normally zero except on CM-5 where we have two images in one
@@ -1218,7 +1203,7 @@ image *image::parseImage(fileDescriptor &desc,
   image *ret = new image(desc, err, mode, parseGaps); 
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
-  if(desc.isSharedObject()) 
+  if (ret->isSharedObject()) 
       startup_printf("%s[%d]: processing shared object\n", FILE__, __LINE__);
   else  
       startup_printf("%s[%d]: processing executable object\n", FILE__, __LINE__);
@@ -1296,7 +1281,7 @@ void image::removeImage(image *img)
 int image::destroy() {
     refCount--;
     if (refCount == 0) {
-        if (!desc().isSharedObject()) {
+        if (linkedFile->isExec()) {
             // a.out... destroy it
             //delete this;
             return 0;
@@ -1426,7 +1411,6 @@ image::image(fileDescriptor &desc,
    dataOffset_(0),
    dataLen_(0),
    is_libdyninstRT(false),
-   is_a_out(false),
    main_call_addr_(0),
    linkedFile(NULL),
 #if defined(os_linux) || defined(os_freebsd)
@@ -1489,10 +1473,6 @@ image::image(fileDescriptor &desc,
 #endif
 
    err = false;
-
-   // fix isSharedObject flag in file descriptor
-   desc.setIsShared(!linkedFile->isExec());
-   desc_.setIsShared(!linkedFile->isExec());
 
    name_ = extract_pathname_tail(string(desc.file().c_str()));
 
@@ -1588,7 +1568,7 @@ image::image(fileDescriptor &desc,
    statusLine(msg.c_str());
 
 
-   // look for `main' or something similar to recognize a.outs
+   // Check if image is libdyninstRT
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
    determineImageType();
    if (isDyninstRTLib()) { // don't parse gaps in the runtime library

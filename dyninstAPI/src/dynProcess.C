@@ -200,7 +200,7 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
         for(unsigned i = 0; i < ret->mapped_objects.size(); ++i) {
             const fileDescriptor &desc = ret->mapped_objects[i]->getFileDesc();
             fileDescriptor tmpDesc(ret->dyninstRT_name,
-                    desc.code(), desc.data(), true);
+                    desc.code(), desc.data());
             if( desc == tmpDesc ) {
                 ret->runtime_lib.insert(ret->mapped_objects[i]);
                 break;
@@ -620,7 +620,7 @@ bool PCProcess::createInitialMappedObjects() {
        }
 
        const fileDescriptor &desc = newObj->getFileDesc();
-       fileDescriptor tmpDesc(dyninstRT_name, desc.code(), desc.data(), true);
+       fileDescriptor tmpDesc(dyninstRT_name, desc.code(), desc.data());
        if( desc == tmpDesc ) {
           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
                          FILE__, __LINE__);

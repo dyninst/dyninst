@@ -129,7 +129,7 @@ class fileDescriptor {
     // Some platforms have split code and data. If yours is not one of them,
     // hand in the same address for code and data.
     fileDescriptor(string file, Address code, Address data, 
-                   bool isShared=false, Address dynamic=0) :
+			Address dynamic=0) :
 #if defined(os_windows)
 		procHandle_(INVALID_HANDLE_VALUE),
 		fileHandle_(INVALID_HANDLE_VALUE),
@@ -139,7 +139,6 @@ class fileDescriptor {
         code_(code),
         data_(data),
 		dynamic_(dynamic),
-        shared_(isShared),
         pid_(0),
         length_(0),
         rawPtr_(NULL) {}
@@ -147,7 +146,7 @@ class fileDescriptor {
     // ctor for non-files
     fileDescriptor(string file, Address code, Address data, 
                    Address length, void* rawPtr,
-                   bool isShared=false, Address dynamic=0) :
+		    Address dynamic=0) :
 #if defined(os_windows)
 		procHandle_(INVALID_HANDLE_VALUE),
 		fileHandle_(INVALID_HANDLE_VALUE),
@@ -157,7 +156,6 @@ class fileDescriptor {
         code_(code),
         data_(data),
 		dynamic_(dynamic),
-        shared_(isShared),
         pid_(0),
         length_(length),
         rawPtr_(rawPtr) {}
@@ -184,7 +182,6 @@ class fileDescriptor {
      const string &member() const { return member_; }
      Address code() const { return code_; }
      Address data() const { return data_; }
-     bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
 //     Address loadAddr() const { return loadAddr_; }
      Address dynamic() const { return dynamic_; }
@@ -196,7 +193,6 @@ class fileDescriptor {
      void setData(Address d) { data_ = d; }
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
-     void setIsShared(bool shared) { shared_ = shared; }
      Address length() const { return length_; } //only for non-files
      void* rawPtr();                            //only for non-files
 
@@ -221,7 +217,6 @@ private:
      Address code_;
      Address data_;
      Address dynamic_; //Used on Linux, address of dynamic section.
-     bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
      Address length_;        // set only if this is not really a file
      void* rawPtr_; // set only if this is not really a file
@@ -361,8 +356,9 @@ class image : public codeRange {
    ParseAPI::CodeObject *codeObject() const { return obj_; }
 
    bool isDyninstRTLib() const { return is_libdyninstRT; }
-   bool isAOut() const { return is_a_out; }
-   bool isSharedObj() const { 
+   bool isExecutable() const { return getObject()->isExec(); }
+   bool isSharedLibrary() const { return getObject()->isSharedLibrary(); }
+   bool isSharedObject() const { 
     return (getObject()->getObjectType() == SymtabAPI::obj_SharedLib); 
    }
    bool isRelocatableObj() const { 
@@ -474,7 +470,6 @@ class image : public codeRange {
    //Address dataValidEnd_;
 
    bool is_libdyninstRT;
-   bool is_a_out;
    Address main_call_addr_; // address of call to main()
 
    // data from the symbol table 
