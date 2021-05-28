@@ -914,11 +914,11 @@ void FCNode::markInterpreter() {
    is_interpreter = true;
 }
 
-#define NUM_DBG_BREAK_NAMES 4
 const char *dbg_break_names[] = { "_dl_debug_fast_state",
                                   "_dl_debug_state",
                                   "r_debug_state",
                                   "_r_debug_state" };
+static const size_t NUM_DBG_BREAK_NAMES = sizeof dbg_break_names / sizeof dbg_break_names[0];
 
 void FCNode::parsefile()
 {
