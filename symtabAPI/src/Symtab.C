@@ -373,7 +373,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
 
 SYMTAB_EXPORT bool Symtab::isExec() const 
 {
-    assert( is_a_out == obj_private->isOnlyExecutable() );
     return is_a_out; 
 }
 
