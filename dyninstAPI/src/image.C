@@ -101,7 +101,7 @@ char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
     "tls_cb_0"};
 
 fileDescriptor::fileDescriptor():
-        code_(0), data_(0), dynamic_(0),
+        code_(0), data_(0),
         pid_(0), length_(0), rawPtr_(NULL)
 {
     // This shouldn't be called... must be public for std::vector, though
@@ -134,11 +134,9 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
 #endif
 #if 0
     cerr << hex << "Addr comparison: " << code_ << " ? " << fd.code_
-         << ", " << data_ << " ? " << fd.data_ 
-         << ", " << dynamic_ << " ? " << fd.dynamic_ << dec << endl;
+         << ", " << data_ << " ? " << fd.data_ << dec << endl;
 #endif
-    bool addr_match = ((code_ == fd.code_ && data_ == fd.data_) ||
-                       (dynamic_ && dynamic_ == fd.dynamic_));
+    bool addr_match = (code_ == fd.code_ && data_ == fd.data_);
 #if 0
     cerr << "file " << file_match_ 
          << ", addr " << addr_match

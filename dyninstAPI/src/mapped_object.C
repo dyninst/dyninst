@@ -161,26 +161,6 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    if (img->isDyninstRTLib()) {
        parseGaps = false;
    }
-#if defined(os_linux) && defined(arch_x86_64)
-   //Our x86_64 is actually reporting negative load addresses.  Go fig.
-   // On Linux/x86_64 with 32-bit mutatees this causes problems because we
-   // treat the load address as a unsigned 64 bit integer, and things don't
-   // correctly wrap.
-   //
-   // We'll detect this by noticing that the dynamic entry doesn't match up
-   // and then correct.
-   if (desc.dynamic() &&
-       p->getAddressWidth() == 4 &&
-       img->getObject()->getElfDynamicOffset() + desc.code() != desc.dynamic()) {
-      Address new_load_addr;
-      new_load_addr = desc.dynamic() - img->getObject()->getElfDynamicOffset();
-      startup_printf("[%s:%u] - Incorrect binary load address %lx, changing "
-              "to %lx\n", FILE__, __LINE__, (unsigned long) desc.code(),
-              (unsigned long) new_load_addr);
-      desc.setCode(new_load_addr);
-      desc.setData(new_load_addr);
-   }
-#endif
 
    // Adds exported functions and variables..
    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
