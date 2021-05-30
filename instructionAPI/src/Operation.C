@@ -403,7 +403,7 @@ namespace Dyninst
     }
     void Operation_impl::SetUpNonOperandData()
     {
-        #if defined(arch_x86) || defined(arch_x86_64)
+        if (archDecodedFrom != Arch_x86 && archDecodedFrom != Arch_x86_64) return;
         std::call_once(data_initialized, [&]() {
         if (prefixID == prefix_rep || prefixID == prefix_repnz) 	{
             otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
@@ -544,7 +544,6 @@ namespace Dyninst
                 }
             }
         });
-#endif
     return;
     }
   }
