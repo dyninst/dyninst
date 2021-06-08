@@ -96,7 +96,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
     if (se.cs->getArch() == Arch_amdgpu_vega && insn.getOperation().getID() == amdgpu_op_s_swappc_b64 ) {
         Result_t symRet;
-        auto ret = SymEval::expand(slice,symRet);
+        SymEval::expand(slice,symRet);
         
         //for (auto const & cd : symRet) {
         //    std::cout << " f: " << cd.first << " " << cd.second << std::endl; 
@@ -115,7 +115,6 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
         if( new_ast->getID() == AST::V_ConstantAST) {
             ConstantAST::Ptr constAST = 
                 boost::static_pointer_cast<ConstantAST>(new_ast);
-            size_t size = constAST->val().size;
             uint64_t val = constAST->val().val;
             //std::cerr << " resolved, value = " <<  std::hex <<val <<std::endl;
             outEdges.push_back(std::make_pair(Address(val),CALL));

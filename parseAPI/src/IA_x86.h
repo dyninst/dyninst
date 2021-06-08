@@ -49,6 +49,7 @@ class IA_x86 : public IA_IAPI {
 	       Dyninst::ParseAPI::Block * curBlk_);
 	IA_x86(const IA_x86 &);
 	virtual IA_x86* clone() const;
+	using IA_IAPI::isFrameSetupInsn;
         virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const;
 	virtual bool isNop() const;
 	virtual bool isThunk() const;

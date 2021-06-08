@@ -2263,7 +2263,7 @@ void pd_dwarf_handler() {
 Dwarf_Sword declFileNo = 0;
 char **declFileNoToName = NULL;
 
-bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &dies_seen) {
+bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &/*dies_seen*/) {
     Dwarf_Aranges *ranges;
     size_t num_ranges;
     int status = dwarf_getaranges(dbg, &ranges, &num_ranges);

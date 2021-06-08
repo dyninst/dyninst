@@ -121,9 +121,9 @@ private:
                 enclosure(o.enclosure),
                 parseSibling(o.parseSibling),
                 parseChild(o.parseChild),
+                offset(o.offset),
                 specEntry(o.specEntry),
                 abstractEntry(o.specEntry),
-                offset(o.offset),
                 tag(o.tag),
                 base(o.base)
         {}
