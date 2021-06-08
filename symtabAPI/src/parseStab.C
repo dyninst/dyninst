@@ -461,7 +461,8 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 		   typeCollection *tc_to_use = typeCollection::getModTypeCollection(toUse);
                tc_to_use->addGlobalVariable(BPtype);
             }
-            else 
+	    // else	// what should be done in the else case???
+			// the break was (probably wrongly?) part of the else
             break;
             }
 

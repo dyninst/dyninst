@@ -154,6 +154,7 @@ bool Codegen::generateNoops() {
          break;
       case Arch_aarch64:
          copyInt(0xd503201f);
+	 break;
       default:
          return false;
          break;
@@ -173,6 +174,7 @@ bool Codegen::generateTrap() {
          break;
       case Arch_aarch64:
          copyInt(0xd4200000);
+	 break;
       default:
          return false;
          break;
