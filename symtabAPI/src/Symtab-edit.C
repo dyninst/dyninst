@@ -69,8 +69,8 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
             func->removeSymbol(sym);
             // What if we removed the last symbol from the function?
             // Argh. Ah, well. Users may do that - leave it there for now.
-        break;
         }
+        break;
     }
     case Symbol::ST_TLS:
     case Symbol::ST_OBJECT: {
