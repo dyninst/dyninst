@@ -101,7 +101,14 @@ BPatch_function *BPatch_frame::findFunction()
    */
 
   Address callSite = reinterpret_cast<Address>(getPC()) - 1;
-  return thread->getProcess()->findFunctionByEntry(callSite);
+  std::vector<BPatch_function*> funcs;
+  thread->getProcess()->findFunctionsByAddr(callSite, funcs);
+
+  if(funcs.size() >= 1) {
+	  return funcs[0];
+  }
+
+  return nullptr;
 }
 
 BPatch_frame::BPatch_frame() : 
