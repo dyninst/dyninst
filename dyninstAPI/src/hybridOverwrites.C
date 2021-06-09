@@ -287,7 +287,7 @@ bool HybridAnalysisOW::removeLoop(owLoop *loop,
 
 
 bool HybridAnalysisOW::hasLoopInstrumentation
-    (bool activeOnly, BPatch_function &func, std::set<owLoop*> *loops)
+    (bool activeOnly, BPatch_function &func, std::set<owLoop*> *loops_)
 {
     //_ASSERTE(_CrtCheckMemory());
     // NEED TO BE CAREFUL BECAUSE WHEN WE OVERWRITE A BLOCK WE DON'T INVALIDATE
@@ -312,8 +312,8 @@ bool HybridAnalysisOW::hasLoopInstrumentation
         owLoop *loop = findLoop((*bIter)->getStartAddress());
         if (loop && (loop->isActive() || !activeOnly) ) {
             foundLoop = true;
-            if (loops) {
-                loops->insert(loop);
+            if (loops_) {
+                loops_->insert(loop);
             }
         }
     }
@@ -718,19 +718,19 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
 (BPatch_function &func, Address writeAddr, bool allowCallerLoop)
 {
     BPatch_flowGraph *graph = func.getCFG();
-    vector<BPatch_basicBlockLoop*> loops;
+    vector<BPatch_basicBlockLoop*> loops_;
     vector<BPatch_point*> blockPoints;
     vector<BPatch_basicBlock *>loopBlocks;
-    graph->getLoops(loops);
-    if (allowCallerLoop && loops.empty()) {
+    graph->getLoops(loops_);
+    if (allowCallerLoop && loops_.empty()) {
         BPatch_basicBlockLoop *pLoop = getParentLoop(func,writeAddr);
         if (pLoop) {
             return pLoop;
         }
     }
-    vector<BPatch_basicBlockLoop*>::iterator lIter = loops.begin();
+    vector<BPatch_basicBlockLoop*>::iterator lIter = loops_.begin();
     BPatch_basicBlockLoop *writeLoop = NULL;
-    while (lIter != loops.end()) {
+    while (lIter != loops_.end()) {
 
 //        mal_printf("found nat'l loop w/ block[0] at 0x%x, back edge at 0%x\n",
 //                   (*lIter)->getLoopHead()->getStartAddress(),

@@ -1542,8 +1542,7 @@ static bool do_detach(int_processSet *procset, bool temporary, bool leaveStopped
 
       int_threadPool *tp = proc->threadPool();
       bool has_rpc = false;
-      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
-         int_thread *thr = *i;
+      for (auto thr : *tp) {
          if (!thr->getPostedRPCs()->empty() || thr->runningRPC()) {
             has_rpc = true;
             break;
@@ -2095,8 +2094,8 @@ bool ProcessSet::rmBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) const
          continue;
       }
       all_responses.insert(resps.begin(), resps.end());
-      for (set<response::ptr>::iterator i=resps.begin(); i != resps.end(); i++)
-         resp_to_proc.insert(make_pair(*i, proc));
+      for (auto resp : resps)
+         resp_to_proc.insert(make_pair(resp, proc));
    }
 
    bool result = int_process::waitForAsyncEvent(all_responses);
@@ -3824,11 +3823,11 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
          start = mu;
          end = mu;
       }
-      for (int i = start; i <= end; i++) {
+      for (int j = start; j <= end; j++) {
          assert(cur < max_operations);
          MemUsageResp_t *resp = new MemUsageResp_t(result_sizes + cur++, proc);
          bool result = false;
-         switch ((mem_usage_t) i) {
+         switch ((mem_usage_t) j) {
             case mus_shared:
                result = proc->plat_getSharedUsage(resp);
                break;
@@ -3849,7 +3848,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
             continue;
          }
 
-         switch ((mem_usage_t) i) {
+         switch ((mem_usage_t) j) {
             case mus_shared:
                shared_results.insert(make_pair(proc, resp));
                break;

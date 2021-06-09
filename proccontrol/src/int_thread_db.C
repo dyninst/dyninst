@@ -1020,7 +1020,7 @@ async_ret_t thread_db_process::post_create(std::set<response::ptr> &async_respon
       completed_post = true;
    }
 
-   err_t last_error = getLastError();
+   err_t saved_error = getLastError();
    const char *last_err_msg = getLastErrorMsg();
 
    getMemCache()->setSyncHandling(true);
@@ -1033,7 +1033,7 @@ async_ret_t thread_db_process::post_create(std::set<response::ptr> &async_respon
    }
    getMemCache()->setSyncHandling(false);
 
-   setLastError(last_error, last_err_msg);
+   setLastError(saved_error, last_err_msg);
    return aret_success; //Swallow these errors, thread_db failure does not bring down rest of startup
 }
 
@@ -1046,7 +1046,7 @@ async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> 
       completed_post = true;
    }
 
-   err_t last_error = getLastError();
+   err_t saved_error = getLastError();
    const char *last_err_msg = getLastErrorMsg();
 
    getMemCache()->setSyncHandling(true);
@@ -1059,7 +1059,7 @@ async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> 
    }
    getMemCache()->setSyncHandling(false);
 
-   setLastError(last_error, last_err_msg);
+   setLastError(saved_error, last_err_msg);
    return aret_success; //Swallow these errors, thread_db failure does not bring down rest of startup
 }
 
@@ -1609,7 +1609,7 @@ int thread_db_process::threaddb_getPid()
 }
 
 async_ret_t thread_db_process::plat_calcTLSAddress(int_thread *thread, int_library *lib, Offset off,
-                                                   Address &outaddr, set<response::ptr> &resps)
+                                                   Address &outaddr, set<response::ptr> &resps_)
 {
    thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(thread);
    if (!thrd || !thrd->initThreadHandle()) {
@@ -1644,7 +1644,7 @@ async_ret_t thread_db_process::plat_calcTLSAddress(int_thread *thread, int_libra
 
    if (err != TD_OK && getMemCache()->hasPendingAsync()) {
       pthrd_printf("Async return in plat_calcTLSAddress\n");
-      getMemCache()->getPendingAsyncs(resps);
+      getMemCache()->getPendingAsyncs(resps_);
       return aret_async;
    }
    getMemCache()->setSyncHandling(false);
@@ -1740,15 +1740,15 @@ bool thread_db_thread::haveUserThreadInfo()
    return thread_initialized;
 }
 
-bool thread_db_thread::getTID(Dyninst::THR_ID &tid)
+bool thread_db_thread::getTID(Dyninst::THR_ID &tid_)
 {
    if (!fetchThreadInfo()) {
       return false;
    }
 #if defined(os_freebsd)
-   tid = (Dyninst::THR_ID) tinfo.ti_thread;
+   tid_ = (Dyninst::THR_ID) tinfo.ti_thread;
 #else
-   tid = (Dyninst::THR_ID) tinfo.ti_tid;
+   tid_ = (Dyninst::THR_ID) tinfo.ti_tid;
 #endif
    return true;
 }

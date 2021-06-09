@@ -602,7 +602,7 @@ void addModsFuncSet(const std::set<StackMod *> &mods,
 }  // namespace
 #endif
 
-void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods,
+void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods_,
     bool interproc,
     std::vector<std::pair<BPatch_function *, bool> > &modResults,
     unsigned depthLimit) {
@@ -668,7 +668,7 @@ void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods,
         // Analyze functions in topological order
         std::map<Address, StackAnalysis::TransferSet> funcEntryToSummary;
         while (!sortedSetList.empty()) {
-            addModsFuncSet(mods, allModFuncs, sortedSetList.front(),
+            addModsFuncSet(mods_, allModFuncs, sortedSetList.front(),
                 funcEntryToSummary, callResolutionMap, modResults);
             sortedSetList.pop();
         }
@@ -676,7 +676,7 @@ void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods,
         for (auto iter = allModFuncs.begin(); iter != allModFuncs.end();
             iter++) {
             BPatch_function *func = *iter;
-            modResults.push_back(std::make_pair(func, func->addMods(mods)));
+            modResults.push_back(std::make_pair(func, func->addMods(mods_)));
         }
     }
 #else

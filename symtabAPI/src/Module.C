@@ -172,16 +172,16 @@ supportedLanguages Module::language() const
    return language_;
 }
 
-bool Module::getAddressRanges(std::vector<AddressRange >&ranges,
+bool Module::getAddressRanges(std::vector<AddressRange >&ranges_,
       std::string lineSource, unsigned int lineNo)
 {
-   unsigned int originalSize = ranges.size();
+   unsigned int originalSize = ranges_.size();
 
    LineInformation *lineInformation = parseLineInformation();
    if (lineInformation)
-      lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
+      lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges_ );
 
-   if ( ranges.size() != originalSize )
+   if ( ranges_.size() != originalSize )
       return true;
 
    return false;

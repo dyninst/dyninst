@@ -409,7 +409,7 @@ bool EventBreakpoint::procStopper() const
       return false;
    }
 
-   int_process *proc = getProcess()->llproc();
+   int_process *p = getProcess()->llproc();
    int_thread *thrd = getThread()->llthrd();
    if (!int_bp->stopped_proc) {
       //Move the BreakpointHold state of the process to be stopped.
@@ -418,7 +418,7 @@ bool EventBreakpoint::procStopper() const
    }
    
    //We return true if the event isn't ready
-   return !proc->getProcStopManager().processStoppedTo(int_thread::BreakpointHoldStateID);
+   return !p->getProcStopManager().processStoppedTo(int_thread::BreakpointHoldStateID);
 }
 
 EventSignal::EventSignal(int sig_) :
@@ -634,7 +634,7 @@ int_eventRPC *EventRPC::getInternal() const
 
 bool EventRPCLaunch::procStopper() const
 {
-   int_process *proc = getProcess()->llproc();
+   int_process *p = getProcess()->llproc();
    int_thread *thrd = getThread()->llthrd();
 
    if (!handled_by.empty())
@@ -643,13 +643,13 @@ bool EventRPCLaunch::procStopper() const
    int_iRPC::ptr rpc = thrd->nextPostedIRPC();
    assert(rpc);
 
-   if (proc->plat_threadOpsNeedProcStop()) {
-      return !proc->getProcStopManager().processStoppedTo(int_thread::IRPCSetupStateID);
+   if (p->plat_threadOpsNeedProcStop()) {
+      return !p->getProcStopManager().processStoppedTo(int_thread::IRPCSetupStateID);
    }
    if (rpc->isProcStopRPC()) {
       return !rpc->isRPCPrepped();
    }
-   return !proc->getProcStopManager().threadStoppedTo(thrd, int_thread::IRPCSetupStateID);
+   return !p->getProcStopManager().threadStoppedTo(thrd, int_thread::IRPCSetupStateID);
 }
 
 EventRPCLaunch::EventRPCLaunch() :
@@ -682,18 +682,18 @@ EventSyscall::~EventSyscall()
 Address EventSyscall::getAddress() const
 {
     MachRegisterVal pc;
-    Process::const_ptr proc = getProcess();
+    Process::const_ptr p = getProcess();
     Thread::const_ptr thrd = getThread();
-    thrd->getRegister(MachRegister::getPC(proc->getArchitecture()), pc);
+    thrd->getRegister(MachRegister::getPC(p->getArchitecture()), pc);
     return pc;
 }
 
 long EventSyscall::getSyscallNumber() const
 {
     MachRegisterVal syscallNumber;
-    Process::const_ptr proc = getProcess();
+    Process::const_ptr p = getProcess();
     Thread::const_ptr thrd = getThread();
-    thrd->getRegister(MachRegister::getSyscallNumberOReg(proc->getArchitecture()), syscallNumber);
+    thrd->getRegister(MachRegister::getSyscallNumberOReg(p->getArchitecture()), syscallNumber);
     return syscallNumber;
 }
 
@@ -705,9 +705,9 @@ MachSyscall EventSyscall::getSyscall() const
 long EventPostSyscall::getReturnValue() const
 {
     MachRegisterVal syscallReturnValue;
-    Process::const_ptr proc = getProcess();
+    Process::const_ptr p = getProcess();
     Thread::const_ptr thrd = getThread();
-    thrd->getRegister(MachRegister::getSyscallReturnValueReg(proc->getArchitecture()), syscallReturnValue);
+    thrd->getRegister(MachRegister::getSyscallReturnValueReg(p->getArchitecture()), syscallReturnValue);
     return syscallReturnValue;
 }
 
@@ -755,8 +755,8 @@ bool EventBreakpointClear::procStopper() const
    if (!handled_by.empty())
       return false;
 
-   int_process *proc = getProcess()->llproc();
-   return !proc->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
+   int_process *p = getProcess()->llproc();
+   return !p->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
 }
 
 EventBreakpointRestore::EventBreakpointRestore(int_eventBreakpointRestore *iebpr) :
@@ -866,8 +866,8 @@ bool EventDetach::procStopper() const
    if (getInternal()->removed_bps)
       return false;
 
-   int_process *proc = getProcess()->llproc();
-   return !proc->getProcStopManager().processStoppedTo(int_thread::DetachStateID);
+   int_process *p = getProcess()->llproc();
+   return !p->getProcStopManager().processStoppedTo(int_thread::DetachStateID);
 }
 
 EventIntBootstrap::EventIntBootstrap(void *d) :
@@ -1052,7 +1052,7 @@ bool EventControlAuthority::procStopper() const
    if (iev->unset_desync)
       return false;
 
-   int_process *proc = getProcess()->llproc();
+   int_process *p = getProcess()->llproc();
    int_thread *thr = getThread()->llthrd();
 
    if (!iev->did_desync) {
@@ -1060,7 +1060,7 @@ bool EventControlAuthority::procStopper() const
       thr->getControlAuthorityState().desyncStateProc(int_thread::stopped);
       iev->did_desync = true;
    }
-   return !proc->getProcStopManager().processStoppedTo(int_thread::ControlAuthorityStateID);
+   return !p->getProcStopManager().processStoppedTo(int_thread::ControlAuthorityStateID);
 }
 
 std::string EventControlAuthority::otherToolName() const

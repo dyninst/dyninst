@@ -925,17 +925,17 @@ BPatch_variableExpr *BPatch_function::getFunctionRef()
   }
   typestr += " (*function)(";
   
-  BPatch_Vector<BPatch_localVar *> *params = getParams();
-  assert(params);
+  BPatch_Vector<BPatch_localVar *> *params_ = getParams();
+  assert(params_);
   
-  for (unsigned int i = 0; i < params->size(); ++i) {
-        typestr += (*params)[i]->getName();
+  for (unsigned int i = 0; i < params_->size(); ++i) {
+        typestr += (*params_)[i]->getName();
         //  no comma after last parameter
-     if (i <= (params->size() - 1)) {
+     if (i <= (params_->size() - 1)) {
         typestr +=  ",";
      }
   }
-  if(params->size()==0) {
+  if(params_->size()==0) {
       typestr += "void";
   }
   typestr += ")";

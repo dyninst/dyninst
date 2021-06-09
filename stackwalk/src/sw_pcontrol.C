@@ -545,13 +545,12 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
     * manually.
     **/
 
-   vector<pair<LibAddrPair, unsigned int> > arch_libs;
-   updateLibsArch(arch_libs);
-   vector<pair<LibAddrPair, unsigned int> >::iterator j;
-   for (j = arch_libs.begin(); j != arch_libs.end(); j++) {
-      string name = (*j).first.first;
-      Address start = (*j).first.second;
-      Address size = (*j).second;
+   vector<pair<LibAddrPair, unsigned int> > libs;
+   updateLibsArch(libs);
+   for (auto j : libs) {
+      string name = j.first.first;
+      Address start = j.first.second;
+      Address size = j.second;
       if (addr >= start && addr < start + size) {
          lib.first = name;
          lib.second = start;
@@ -705,11 +704,10 @@ bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs, bool allow_ref
       libs.push_back(LibAddrPair((*i)->getName(), (*i)->getLoadAddress()));
    }
 
-   vector<pair<LibAddrPair, unsigned int> > arch_libs;
-   vector<pair<LibAddrPair, unsigned int> >::iterator j;
-   updateLibsArch(arch_libs);
-   for (j = arch_libs.begin(); j != arch_libs.end(); j++) {
-      libs.push_back(j->first);
+   vector<pair<LibAddrPair, unsigned int> > a_libs;
+   updateLibsArch(a_libs);
+   for (auto j : a_libs) {
+      libs.push_back(j.first);
    }
 
    return true;

@@ -287,11 +287,11 @@ DynParseCallback::overlapping_blocks(Block*b1,Block*b2)
 
 extern bool codeBytesUpdateCB(void *objCB, Address targ);
 bool 
-DynParseCallback::updateCodeBytes(Address target)
+DynParseCallback::updateCodeBytes(Address target_)
 {   // calls function that updates bytes if needed
     assert(BPatch_normalMode != _img->hybridMode());
     return codeBytesUpdateCB( _img->cb_arg0(), 
-                              target + _img->desc().code() );
+                              target_ + _img->desc().code() );
 }
 
 bool

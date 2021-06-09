@@ -1,5 +1,5 @@
 void InstructionDecoder_amdgpu_vega::decodeSOP2(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_sop2 & layout = insn_layout.sop2;
 	layout.ssrc0     = longfield<0,7>(insn_long);
 	layout.ssrc1     = longfield<8,15>(insn_long);
@@ -7,54 +7,54 @@ void InstructionDecoder_amdgpu_vega::decodeSOP2(){
 	layout.op        = longfield<23,29>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop2_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOP2Operands();
 }
 void InstructionDecoder_amdgpu_vega::decodeSOP1(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_sop1 & layout = insn_layout.sop1;
 	layout.ssrc0     = longfield<0,7>(insn_long);
 	layout.op        = longfield<8,15>(insn_long);
 	layout.sdst      = longfield<16,22>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop1_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOP1Operands();
 }
 void InstructionDecoder_amdgpu_vega::decodeSOPK(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_sopk & layout = insn_layout.sopk;
 	layout.simm16    = longfield<0,15>(insn_long);
 	layout.sdst      = longfield<16,22>(insn_long);
 	layout.op        = longfield<23,27>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopk_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOPKOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeSOPC(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_sopc & layout = insn_layout.sopc;
 	layout.ssrc0     = longfield<0,7>(insn_long);
 	layout.ssrc1     = longfield<8,15>(insn_long);
 	layout.op        = longfield<16,22>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopc_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOPCOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeSOPP(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_sopp & layout = insn_layout.sopp;
 	layout.simm16    = longfield<0,15>(insn_long);
 	layout.op        = longfield<16,22>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopp_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOPPOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeSMEM(){
-	unsigned insn_size = 8;
+	unsigned insn_size_ = 8;
 	layout_smem & layout = insn_layout.smem;
 	layout.sbase     = longfield<0,5>(insn_long);
 	layout.sdata     = longfield<6,12>(insn_long);
@@ -67,11 +67,11 @@ void InstructionDecoder_amdgpu_vega::decodeSMEM(){
 	layout.soffset   = longfield<57,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::smem_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSMEMOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeVOP2(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_vop2 & layout = insn_layout.vop2;
 	layout.src0      = longfield<0,8>(insn_long);
 	layout.vsrc1     = longfield<9,16>(insn_long);
@@ -108,11 +108,11 @@ void InstructionDecoder_amdgpu_vega::decodeVOP2(){
 	}
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop2_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP2Operands();
 }
 void InstructionDecoder_amdgpu_vega::decodeVOP1(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_vop1 & layout = insn_layout.vop1;
 	layout.src0      = longfield<0,8>(insn_long);
 	layout.op        = longfield<9,16>(insn_long);
@@ -148,11 +148,11 @@ void InstructionDecoder_amdgpu_vega::decodeVOP1(){
 	}
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop1_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP1Operands();
 }
 void InstructionDecoder_amdgpu_vega::decodeVOPC(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_vopc & layout = insn_layout.vopc;
 	layout.src0      = longfield<0,8>(insn_long);
 	layout.vsrc1     = longfield<9,16>(insn_long);
@@ -186,11 +186,11 @@ void InstructionDecoder_amdgpu_vega::decodeVOPC(){
 	}
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vopc_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOPCOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeVINTRP(){
-	unsigned insn_size = 4;
+	unsigned insn_size_ = 4;
 	layout_vintrp & layout = insn_layout.vintrp;
 	layout.vsrc      = longfield<0,7>(insn_long);
 	layout.attr_chan = longfield<8,9>(insn_long);
@@ -199,11 +199,11 @@ void InstructionDecoder_amdgpu_vega::decodeVINTRP(){
 	layout.vdst      = longfield<18,25>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vintrp_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVINTRPOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeDS(){
-	unsigned insn_size = 8;
+	unsigned insn_size_ = 8;
 	layout_ds & layout = insn_layout.ds;
 	layout.offset0   = longfield<0,7>(insn_long);
 	layout.offset1   = longfield<8,15>(insn_long);
@@ -215,11 +215,11 @@ void InstructionDecoder_amdgpu_vega::decodeDS(){
 	layout.vdst      = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::ds_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeDSOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeMTBUF(){
-	unsigned insn_size = 8;
+	unsigned insn_size_ = 8;
 	layout_mtbuf & layout = insn_layout.mtbuf;
 	layout.offset    = longfield<0,11>(insn_long);
 	layout.offen     = longfield<12,12>(insn_long);
@@ -236,11 +236,11 @@ void InstructionDecoder_amdgpu_vega::decodeMTBUF(){
 	layout.soffset   = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::mtbuf_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeMTBUFOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeMUBUF(){
-	unsigned insn_size = 8;
+	unsigned insn_size_ = 8;
 	layout_mubuf & layout = insn_layout.mubuf;
 	layout.offset    = longfield<0,11>(insn_long);
 	layout.offen     = longfield<12,12>(insn_long);
@@ -256,20 +256,20 @@ void InstructionDecoder_amdgpu_vega::decodeMUBUF(){
 	layout.soffset   = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::mubuf_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeMUBUFOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeVOP3AB(){
-	unsigned insn_size = 8;
+	unsigned insn_size_ = 8;
 	layout_vop3ab & layout = insn_layout.vop3ab;
 	layout.op        = longfield<16,25>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop3ab_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP3ABOperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeVOP3P(){
-	unsigned insn_size = 8;
+	unsigned insn_size_ = 8;
 	layout_vop3p & layout = insn_layout.vop3p;
 	layout.vdst      = longfield<0,7>(insn_long);
 	layout.neg_hi    = longfield<8,10>(insn_long);
@@ -284,11 +284,11 @@ void InstructionDecoder_amdgpu_vega::decodeVOP3P(){
 	layout.neg       = longfield<61,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop3p_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeVOP3POperands();
 }
 void InstructionDecoder_amdgpu_vega::decodeFLAT(){
-	unsigned insn_size = 8;
+	unsigned insn_size_ = 8;
 	layout_flat & layout = insn_layout.flat;
 	layout.offset    = longfield<0,12>(insn_long);
 	layout.lds       = longfield<13,13>(insn_long);
@@ -303,7 +303,7 @@ void InstructionDecoder_amdgpu_vega::decodeFLAT(){
 	layout.vdst      = longfield<56,63>(insn_long);
 	const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::flat_insn_table[layout.op];
 	decodeOperands(insn_entry);
-	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeFLATOperands();
 }
 void InstructionDecoder_amdgpu_vega::mainDecode(InstructionDecoder::buffer &b){
@@ -372,109 +372,109 @@ void InstructionDecoder_amdgpu_vega::mainDecode(InstructionDecoder::buffer &b){
 }
 void InstructionDecoder_amdgpu_vega::mainDecodeOpcode(InstructionDecoder::buffer &b){
 	if(IS_SOP2(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop2_insn_table[longfield<23,29>(insn_long)];
 		setUseImm<0,7,255>(b,4);
 		setUseImm<8,15,255>(b,4);
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SOP2;
 	}
 	else if(IS_SOP1(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sop1_insn_table[longfield<8,15>(insn_long)];
 		setUseImm<0,7,255>(b,4);
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SOP1;
 	}
 	else if(IS_SOPK(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopk_insn_table[longfield<23,27>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SOPK;
 	}
 	else if(IS_SOPC(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopc_insn_table[longfield<16,22>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SOPC;
 	}
 	else if(IS_SOPP(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::sopp_insn_table[longfield<16,22>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SOPP;
 	}
 	else if(IS_SMEM(insn_long)){
-		unsigned insn_size = 8;
+		unsigned insn_size_ = 8;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::smem_insn_table[longfield<18,25>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = SMEM;
 	}
 	else if(IS_VOP2(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop2_insn_table[longfield<25,30>(insn_long)];
 		setUseImm<0,8,249>(b,4);
 		setUseImm<0,8,250>(b,4);
 		setUseImm<0,8,255>(b,4);
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOP2;
 	}
 	else if(IS_VOP1(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop1_insn_table[longfield<9,16>(insn_long)];
 		setUseImm<0,8,249>(b,4);
 		setUseImm<0,8,250>(b,4);
 		setUseImm<0,8,255>(b,4);
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOP1;
 	}
 	else if(IS_VOPC(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vopc_insn_table[longfield<17,24>(insn_long)];
 		setUseImm<0,8,255>(b,4);
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOPC;
 	}
 	else if(IS_VINTRP(insn_long)){
-		unsigned insn_size = 4;
+		unsigned insn_size_ = 4;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vintrp_insn_table[longfield<16,17>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VINTRP;
 	}
 	else if(IS_DS(insn_long)){
-		unsigned insn_size = 8;
+		unsigned insn_size_ = 8;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::ds_insn_table[longfield<17,24>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = DS;
 	}
 	else if(IS_MTBUF(insn_long)){
-		unsigned insn_size = 8;
+		unsigned insn_size_ = 8;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::mtbuf_insn_table[longfield<15,18>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = MTBUF;
 	}
 	else if(IS_MUBUF(insn_long)){
-		unsigned insn_size = 8;
+		unsigned insn_size_ = 8;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::mubuf_insn_table[longfield<18,24>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = MUBUF;
 	}
 	else if(IS_VOP3AB(insn_long)){
-		unsigned insn_size = 8;
+		unsigned insn_size_ = 8;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop3ab_insn_table[longfield<16,25>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOP3AB;
 	}
 	else if(IS_VOP3P(insn_long)){
-		unsigned insn_size = 8;
+		unsigned insn_size_ = 8;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::vop3p_insn_table[longfield<11,13>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = VOP3P;
 	}
 	else if(IS_FLAT(insn_long)){
-		unsigned insn_size = 8;
+		unsigned insn_size_ = 8;
 		const amdgpu_insn_entry &insn_entry = amdgpu_insn_entry::flat_insn_table[longfield<18,24>(insn_long)];
-		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size_+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = FLAT;
 	}
 	else{

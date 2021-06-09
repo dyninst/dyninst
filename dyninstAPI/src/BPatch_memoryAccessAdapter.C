@@ -53,9 +53,9 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
     
   int nac = 0;
     
-  ia32_memacc mac[3];
+  ia32_memacc mac_[3];
   ia32_condition cnd;
-  ia32_instruction i(mac, &cnd);
+  ia32_instruction i(mac_, &cnd);
     
   const unsigned char* addr = reinterpret_cast<const unsigned char*>(insn.ptr());
   BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;

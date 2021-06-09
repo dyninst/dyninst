@@ -324,10 +324,10 @@ void BPatch_image::getObjects(std::vector<BPatch_object *> &objs) {
    addSpace->getAS(as);
    
    for (unsigned i=0; i<as.size(); i++) {
-      const std::vector<mapped_object *> &objs = as[i]->mappedObjects();
+      const std::vector<mapped_object *> &mapped_objs = as[i]->mappedObjects();
 
-      for (unsigned j = 0; j < objs.size(); j++) {
-         findOrCreateObject(objs[j]);
+      for (unsigned j = 0; j < mapped_objs.size(); j++) {
+         findOrCreateObject(mapped_objs[j]);
       }
    }
 
@@ -502,9 +502,9 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
 	   ++ piter)
       {
          const string &pName = *piter;
-         int err;
+         int err_code;
 
-         if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
+         if (0 == (err_code = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
             if (func->isInstrumentable() || incUninstrumentable) {
                BPatch_function *foo = addSpace->findOrCreateBPFunc(func,NULL);
                //BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
@@ -521,9 +521,9 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
 	   ++miter) 
       {
          const string &mName = *miter;
-         int err;
+         int err_code;
 
-         if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
+         if (0 == (err_code = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
             if (func->isInstrumentable() || incUninstrumentable) {
                BPatch_function *foo = addSpace->findOrCreateBPFunc(func,NULL);
                //	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);

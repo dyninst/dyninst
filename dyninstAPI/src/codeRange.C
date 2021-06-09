@@ -272,7 +272,7 @@ void codeRangeTree::insert(codeRange *value) {
     //assert(value->get_size());
  	entry* x = treeInsert(value->get_address(), value);
 	if(!x) {
-         entry* x = find_internal(value->get_address());
+         x = find_internal(value->get_address());
          assert(value->get_size() == x->value->get_size());
          // We're done.
          return;

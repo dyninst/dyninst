@@ -207,8 +207,8 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                               uint64_t val = 0;
                                               ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-                                              Address addr = c->val().val;
-                                              if (ReadMemory(addr, val, roseAST->val().size / 8)) {
+                                              Address a = c->val().val;
+                                              if (ReadMemory(a, val, roseAST->val().size / 8)) {
                                                   return ConstantAST::create(Constant(val, 64));
                                               }
                                           }

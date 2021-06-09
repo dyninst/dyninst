@@ -48,8 +48,8 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    TernaryAST::TernaryAST(Expression::Ptr c, Expression::Ptr f, Expression::Ptr s , Result_Type result_type):
-        Expression(result_type) , cond(c) , first(f) , second(s)
+    TernaryAST::TernaryAST(Expression::Ptr c, Expression::Ptr f, Expression::Ptr s , Result_Type result_type_):
+        Expression(result_type_) , cond(c) , first(f) , second(s)
     {
     }
 

@@ -1173,7 +1173,6 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
                                        func_instance * callee)
 		   
 {
-  unsigned i;
   if (!callee) return true;
 
   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
@@ -1187,14 +1186,14 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
   if (callee->ifunc()->isLeafFunc()) {
       std::set<Register> * gprs = callee->ifunc()->usedGPRs();
       std::set<Register>::iterator It = gprs->begin();
-      for(i = 0; i < gprs->size(); i++) {
+      for(unsigned i = 0; i < gprs->size(); i++) {
           //while (It != gprs->end()){
           rs->GPRs()[*(It++)]->beenUsed = true;
       }
       
       std::set<Register> * fprs = callee->ifunc()->usedFPRs();
       std::set<Register>::iterator It2 = fprs->begin();
-      for(i = 0; i < fprs->size(); i++)
+      for(unsigned i = 0; i < fprs->size(); i++)
       {
           //while (It2 != fprs->end()){
           rs->FPRs()[*(It2++)]->beenUsed = true;

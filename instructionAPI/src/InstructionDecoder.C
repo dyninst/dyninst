@@ -37,14 +37,14 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch) :
-        m_buf(buffer, size)
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer_, size_t size, Architecture arch) :
+        m_buf(buffer_, size)
     {
         m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
         m_Impl->setMode(arch == Arch_x86_64);
     }
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const void* buffer, size_t size, Architecture arch) :
-        m_buf(reinterpret_cast<const unsigned char*>(buffer), size)
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const void* buffer_, size_t size, Architecture arch) :
+        m_buf(reinterpret_cast<const unsigned char*>(buffer_), size)
     {
         m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
         m_Impl->setMode(arch == Arch_x86_64);

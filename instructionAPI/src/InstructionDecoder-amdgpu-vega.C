@@ -136,9 +136,9 @@ namespace Dyninst {
 		}
 
 		void InstructionDecoder_amdgpu_vega::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
-				int immLen = 16) {
+				int immLen_ = 16) {
 			Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
-			int64_t offset = sign_extend64(immLen, immVal * 4);
+			int64_t offset = sign_extend64(immLen_, immVal * 4);
 
 			Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
 
@@ -569,8 +569,8 @@ namespace Dyninst {
 			return b.start[offset+3] << 24 | b.start[offset + 2] << 16 | b.start[offset +1 ] << 8 | b.start [offset];
 		}
 
-		void InstructionDecoder_amdgpu_vega::insnSize(unsigned int insn_size) {
-			this->insn_size = insn_size;
+		void InstructionDecoder_amdgpu_vega::insnSize(unsigned int insn_size_) {
+			this->insn_size = insn_size_;
 		}
 
 

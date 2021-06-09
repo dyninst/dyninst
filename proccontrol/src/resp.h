@@ -106,7 +106,7 @@ public:
    typedef Resp_ptr ptr;
 
    Resp(resp_process *proc_);
-   Resp(unsigned int multi_size, resp_process *proc);
+   Resp(unsigned int multi_size, resp_process *proc_);
    virtual ~Resp();
 
    resp_process *getProc();
@@ -123,14 +123,14 @@ class RespItem : public Resp
 protected:
    T *obj;
 public:
-   RespItem(T *obj_, resp_process *proc) :
-      Resp(proc),
+   RespItem(T *obj_, resp_process *proc_) :
+      Resp(proc_),
       obj(obj_)
    {
    }
 
-   RespItem(T *obj_, resp_process *proc, unsigned multi_size) :
-      Resp(multi_size, proc),
+   RespItem(T *obj_, resp_process *proc_, unsigned multi_size) :
+      Resp(multi_size, proc_),
       obj(obj_)
    {
    }

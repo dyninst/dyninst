@@ -405,9 +405,9 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const std::vector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
-    if( funcs != NULL ) {
-        return funcs->at(0);
+    const std::vector<func_instance *> *ctorFuncs = findFuncVectorByMangled(ctorHandler);
+    if( ctorFuncs != NULL ) {
+        return ctorFuncs->at(0);
     }
 
     /* If the symbol isn't found, try looking for it in a call instruction in
@@ -519,9 +519,9 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
 func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
     using namespace Dyninst::InstructionAPI;
 
-    const std::vector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
-    if( funcs != NULL ) {
-        return funcs->at(0);
+    const std::vector<func_instance *> *ctorFuncs = findFuncVectorByMangled(dtorHandler);
+    if( ctorFuncs != NULL ) {
+        return ctorFuncs->at(0);
     }
 
     /*

@@ -71,9 +71,9 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
       assert(reg == REGNUM_ESP);
       codeGen gen(1);
       //gen.fill(1, codeGen::cgTrap);
-      GET_PTR(insn, gen);
-      *insn++ = 0xC3; // RET
-      SET_PTR(insn, gen);
+      GET_PTR(insn_ptr, gen);
+      *insn_ptr++ = 0xC3; // RET
+      SET_PTR(insn_ptr, gen);
       buffer.addPIC(gen, tracker(trace));
       return true;
    }

@@ -615,9 +615,9 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             std::string sname(name);
             std::map<std::string, int>::iterator s = secnNameMap.find(sname);
             if (s != secnNameMap.end()) {
-                int i = (*s).second;
-                DebugSectionMap[i].dbg_offset = scn.sh_addr();
-                DebugSectionMap[i].dbg_size = scn.sh_size();
+                int j = (*s).second;
+                DebugSectionMap[j].dbg_offset = scn.sh_addr();
+                DebugSectionMap[j].dbg_size = scn.sh_size();
             }
             scn.setDebugFile(true);
 
@@ -1050,10 +1050,10 @@ bool Object::get_relocationDyn_entries(unsigned rel_scnp_index,
                 dyn_c_hash_map<std::string, std::vector<Symbol*>>::accessor a;
                 if (symbols_.find(a, &strs[sym.st_name(index)])) {
                     vector<Symbol *> &syms = a->second;
-                    for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
-                        if (!(*i)->isInDynSymtab())
+                    for (auto s: syms) {
+                        if (!s->isInDynSymtab())
                             continue;
-                        re.addDynSym(*i);
+                        re.addDynSym(s);
                         break;
                     }
                 }
@@ -1419,10 +1419,10 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
                     if (symbols_.find(ca, targ_name)) {
                         const vector<Symbol *> &syms = ca->second;
-                        for (auto i = syms.begin(); i != syms.end(); i++) {
-                            if (!(*i)->isInDynSymtab())
+			for (auto s: syms) {
+                            if (!s->isInDynSymtab())
                                 continue;
-                            dynsym_list.push_back(*i);
+                            dynsym_list.push_back(s);
                         }
                     } else {
                         dynsym_list.clear();
@@ -1442,10 +1442,10 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                             // we cannot call associated_symtab->findFuncByEntryOffset
                             for (iter = symbols_.begin(); iter != symbols_.end(); ++iter) {
                                 std::string name = iter->first;
-                                Symbol *sym = iter->second[0];
-                                if (sym->getOffset() == (Offset) addend) {
+                                Symbol *s = iter->second[0];
+                                if (s->getOffset() == (Offset) addend) {
                                     // Use dynsym_list.push_back(sym) instead?
-                                    re.addDynSym(sym);
+                                    re.addDynSym(s);
                                     break;
                                 }
                             }
@@ -2379,16 +2379,16 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
             if (dwarf_getsrclines(&cu_die, &lines, &num_lines) == 0)
             {
                 Dwarf_Addr low;
-                for (size_t i = 0; i < num_lines; ++i) {
-                    Dwarf_Line *line = dwarf_onesrcline(lines, i);
+                for (size_t j = 0; j < num_lines; ++j) {
+                    Dwarf_Line *line = dwarf_onesrcline(lines, j);
                     if ((dwarf_lineaddr(line, &low) == 0) && low)
                     {
                         Dwarf_Addr high = low;
                         int result = 0;
-                        for (; (i < num_lines) &&
-                               (result == 0); ++i)
+                        for (; (j < num_lines) &&
+                               (result == 0); ++j)
                         {
-                            line = dwarf_onesrcline(lines, i);
+                            line = dwarf_onesrcline(lines, j);
                             if (!line) continue;
 
                             bool is_end = false;
@@ -2550,10 +2550,10 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                         // TODO: set module
                         //		    symbols_[SymName][0]->setModuleName(module);
                     } else {
-                        for (unsigned int i = 0; i < syms.size(); i++) {
-                            if (syms[i]->getLinkage() == Symbol::SL_GLOBAL) {
+                        for (unsigned int j = 0; j < syms.size(); j++) {
+                            if (syms[j]->getLinkage() == Symbol::SL_GLOBAL) {
                                 // TODO: set module
-                                //			    symbols_[SymName][i]->setModuleName(module);
+                                //			    symbols_[SymName][j]->setModuleName(module);
                                 count++;
                             }
                         }
@@ -2610,8 +2610,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                     if (!symbols_.find(ca, nameFromStab))  {
                         assert(!"symbols_.find(ca, nameFromStab)");
                     }
-                    for (unsigned i = 0; i < ca->second.size(); i++) {
-                        symsToModules_.insert({ca->second[i], module});
+                    for (unsigned j = 0; j < ca->second.size(); j++) {
+                        symsToModules_.insert({ca->second[j], module});
                     }
                 } else {
                     if (!symsByOffset_.contains(entryAddr)) {
@@ -2623,8 +2623,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                     if (!symsByOffset_.find(ca, entryAddr))  {
                         assert(!"symsByOffset_.find(ca, entryAddr)");
                     }
-                    for (unsigned i = 0; i < ca->second.size(); i++) {
-                        symsToModules_.insert({ca->second[i], module});
+                    for (unsigned j = 0; j < ca->second.size(); j++) {
+                        symsToModules_.insert({ca->second[j], module});
                     }
                 }
                 break;
@@ -4197,14 +4197,14 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 }
 
 
-LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
+LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
 {
     if (li_for_object) {
         // The line information for this object has been parsed.
         return li_for_object;
     }
     li_for_object = new LineInformation(); 
-    li_for_object->setStrings(strings);
+    li_for_object->setStrings(strings_);
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr) return li_for_object;

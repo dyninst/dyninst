@@ -1676,11 +1676,11 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
     //Initialize the list of new prereq libraries
     set<string> &plibs = obj->getObject()->prereq_libs;
-    for (auto i = plibs.begin(); i != plibs.end(); i++) {
-        addDTNeeded(*i);
+    for (auto plib : plibs) {
+        addDTNeeded(plib);
     }
     new_dynamic_entries = obj->getObject()->new_dynamic_entries;
-    Object *object = obj->getObject();
+    Object *object_ = obj->getObject();
     // recreate a "dummy symbol"
     Elf_Sym *sym = new Elf_Sym();
     symbolStrs.push_back("");
@@ -1833,9 +1833,9 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     }
 
     if (!isStripped) {
-        Region *sec;
-        if (obj->findRegion(sec, ".symtab"))
-            sec->setPtrToRawData(syms, symbols.size() * sizeof(Elf_Sym));
+        Region *section;
+        if (obj->findRegion(section, ".symtab"))
+            section->setPtrToRawData(syms, symbols.size() * sizeof(Elf_Sym));
         else
             obj->addRegion(0, syms, symbols.size() * sizeof(Elf_Sym), ".symtab", Region::RT_SYMTAB);
     }
@@ -1844,9 +1844,9 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
     //reconstruct .strtab section
     if (!isStripped) {
-        Region *sec;
-        if (obj->findRegion(sec, ".strtab"))
-            sec->setPtrToRawData(str, symbolNamesLength);
+        Region *section;
+        if (obj->findRegion(section, ".strtab"))
+            section->setPtrToRawData(str, symbolNamesLength);
         else
             obj->addRegion(0, str, symbolNamesLength, ".strtab", Region::RT_STRTAB);
     }
@@ -1895,11 +1895,11 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
             // Need to ensure that DT_REL and related fields added to .dynamic
             // The values of these fields will be set
 /*
-        if( !object->hasReldyn() && !object->hasReladyn() ) {
-            if( object->getRelType() == Region::RT_REL ) {
+        if( !object_->hasReldyn() && !object_->hasReladyn() ) {
+            if( object_->getRelType() == Region::RT_REL ) {
                 new_dynamic_entries.push_back(make_pair(DT_REL,0));
                 new_dynamic_entries.push_back(make_pair(DT_RELSZ,0));
-            }else if( object->getRelType() == Region::RT_RELA ) {
+            }else if( object_->getRelType() == Region::RT_RELA ) {
                 new_dynamic_entries.push_back(make_pair(DT_RELA,0));
                 new_dynamic_entries.push_back(make_pair(DT_RELASZ,0));
             }else{
@@ -1964,22 +1964,22 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
         //Always create a dyn section, it may get our new relocations.
         //If both exist, then just try to maintain order.
-        bool has_plt = object->hasRelaplt() || object->hasRelplt();
-        bool has_dyn = object->hasReladyn() || object->hasReldyn();
+        bool has_plt = object_->hasRelaplt() || object_->hasRelplt();
+        bool has_dyn = object_->hasReladyn() || object_->hasReldyn();
         if (!has_plt) {
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
+            createRelocationSections(object_->getDynRelocs(), true, dynSymNameMapping);
         }
         else if (!has_dyn) {
-            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
+            createRelocationSections(object_->getPLTRelocs(), false, dynSymNameMapping);
+            createRelocationSections(object_->getDynRelocs(), true, dynSymNameMapping);
         }
-        else if (object->getRelPLTAddr() < object->getRelDynAddr()) {
-            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
+        else if (object_->getRelPLTAddr() < object_->getRelDynAddr()) {
+            createRelocationSections(object_->getPLTRelocs(), false, dynSymNameMapping);
+            createRelocationSections(object_->getDynRelocs(), true, dynSymNameMapping);
         }
         else {
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
-            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
+            createRelocationSections(object_->getDynRelocs(), true, dynSymNameMapping);
+            createRelocationSections(object_->getPLTRelocs(), false, dynSymNameMapping);
         }
 
         //add .dynamic section
@@ -2031,9 +2031,9 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             unsigned long sym_offset = 0;
             std::string sym_name = relocation_table[i].name();
             if (!sym_name.empty()) {
-                std::unordered_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
-                if (j != dynSymNameMapping.end())
-                    sym_offset = j->second;
+                std::unordered_map<string, unsigned long>::iterator it = dynSymNameMapping.find(sym_name);
+                if (it != dynSymNameMapping.end())
+                    sym_offset = it->second;
                 else {
                     Symbol *sym = relocation_table[i].getDynSym();
                     if (sym)
@@ -2055,16 +2055,16 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             unsigned long sym_offset = 0;
             std::string sym_name = relocation_table[i].name();
             if (!sym_name.empty()) {
-                std::unordered_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
-                if (j != dynSymNameMapping.end()) {
-                    sym_offset = j->second;
+                std::unordered_map<string, unsigned long>::iterator it = dynSymNameMapping.find(sym_name);
+                if (it != dynSymNameMapping.end()) {
+                    sym_offset = it->second;
                 }
                 else {
                     Symbol *sym = relocation_table[i].getDynSym();
                     if (sym) {
-                        j = dynSymNameMapping.find(sym->getMangledName());
-                        if (j != dynSymNameMapping.end())
-                            sym_offset = j->second;
+                        it = dynSymNameMapping.find(sym->getMangledName());
+                        if (it != dynSymNameMapping.end())
+                            sym_offset = it->second;
                     }
                 }
             }
@@ -2354,10 +2354,10 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
 }
 
 template<class ElfTypes>
-void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_Dyn *&dynsecData, unsigned &dynsecSize,
+void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_Dyn *&dynsecData, unsigned &dynsecSize,
                                                unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs) {
     dynamicSecData.clear();
-    Elf_Dyn *dyns = (Elf_Dyn *) dynData;
+    Elf_Dyn *dyns = (Elf_Dyn *) dynData_;
     unsigned count = size / sizeof(Elf_Dyn);
     vector<string> &libs_rmd = object->libsRMd();
     dynsecSize = 2 * (count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
