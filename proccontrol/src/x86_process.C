@@ -361,10 +361,10 @@ EventBreakpoint::ptr x86_thread::decodeHWBreakpoint(response::ptr &,
    MachRegisterVal new_dr6 = regval & ~0xfUL;
    if (new_dr6 != regval) {
       result_response::ptr result_resp = result_response::createResultResponse();
-      bool result = setRegister(reg, new_dr6, result_resp);
-      if (result)
+      bool r = setRegister(reg, new_dr6, result_resp);
+      if (r)
          int_process::waitForAsyncEvent(result_resp);
-      if (!result || result_resp->hasError()) {
+      if (!r || result_resp->hasError()) {
          pthrd_printf("Error while resetting dr6 register on %d/%d\n", proc->getPid(), getLWP());
          return EventBreakpoint::ptr();
       }

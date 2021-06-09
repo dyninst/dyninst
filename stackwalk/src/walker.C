@@ -816,7 +816,7 @@ bool WalkerSet::walkStacks(CallTree &tree, bool walk_initial_only) const {
          std::vector<Frame> swalk;
          THR_ID thr = *j;
 
-         bool result = walker->walkStack(swalk, thr);
+         result = walker->walkStack(swalk, thr);
          if (!result && swalk.empty()) {
             sw_printf("[%s:%u] - Error walking stack for %d/%d\n", FILE__, __LINE__,
                       walker->getProcessState()->getProcessId(), thr);

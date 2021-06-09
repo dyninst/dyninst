@@ -595,8 +595,8 @@ bool RemoteIO::getFileNames(FileSet *fset) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getFileNames", false);
-   int_remoteIO *proc = p->llproc()->getRemoteIO();
-   return proc->getFileNames(fset);
+   int_remoteIO *remoteIO = p->llproc()->getRemoteIO();
+   return remoteIO->getFileNames(fset);
 }
 
 bool RemoteIO::getFileStatData(FileSet *fset) const
@@ -604,8 +604,8 @@ bool RemoteIO::getFileStatData(FileSet *fset) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getStatData", false);
-   int_remoteIO *proc = p->llproc()->getRemoteIO();
-   return proc->getFileStatData(*fset);
+   int_remoteIO *remoteIO = p->llproc()->getRemoteIO();
+   return remoteIO->getFileStatData(*fset);
 }
 
 bool RemoteIO::readFileContents(const FileSet *fset)
@@ -613,8 +613,8 @@ bool RemoteIO::readFileContents(const FileSet *fset)
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getStatData", false);
-   int_remoteIO *proc = p->llproc()->getRemoteIO();
-   return proc->getFileDataAsync(*fset);
+   int_remoteIO *remoteIO = p->llproc()->getRemoteIO();
+   return remoteIO->getFileDataAsync(*fset);
 }
 
 RemoteIOSet::RemoteIOSet(ProcessSet::ptr procs_)

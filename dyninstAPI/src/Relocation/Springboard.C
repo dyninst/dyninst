@@ -155,11 +155,11 @@ bool isNoneContained(std::set<ParseAPI::Block*> &blocks) {
 }
 
 template <typename BlockIter>
-bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, BlockIter end) {
+bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter blocks_begin, BlockIter blocks_end) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
-  for (; begin != end; ++begin) {
-     block_instance *bbl = SCAST_BI(*begin);
+  for (; blocks_begin != blocks_end; ++blocks_begin) {
+     block_instance *bbl = SCAST_BI(*blocks_begin);
 
      //if (bbl->wasUserAdded()) continue;
      // Don't try to springboard a user-added block...

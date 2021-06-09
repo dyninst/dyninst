@@ -333,8 +333,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                     
                     Insert* insert = dynamic_cast<Insert*>(m);
                     
-                    for (auto iter = points->begin(); iter != points->end(); ++iter) {
-                        BPatch_point* point = *iter;
+                    for (auto point : *points) {
                         Address addr = (Address)(point->getAddress()); 
                         BPatch_snippet* snip = new BPatch_stackInsertExpr(insert->size());
                         stackmods_printf("\t Generating INSERT of size %d at 0x%lx\n", insert->size(), addr);
@@ -368,8 +367,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
 
                     Remove* remove = dynamic_cast<Remove*>(m);
                     
-                    for (auto iter = points->begin(); iter != points->end(); ++iter) {
-                        BPatch_point* point = *iter;
+                    for (auto point : *points) {
                         Address addr = (Address)(point->getAddress()); 
                         BPatch_snippet* snip = new BPatch_stackRemoveExpr(remove->size());
                         stackmods_printf("\t Generating REMOVE of size %d at 0x%lx\n", remove->size(), addr);
@@ -446,8 +444,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                         cleanupAndReturn = true;
                         break;
                     }
-                    for (auto iter = checkPoints.begin(); iter != checkPoints.end(); ++iter) {
-                        BPatch_point* point = *iter;
+                    for (auto point : checkPoints) {
                         Address addr = (Address)(point->getAddress());
                    
                         // We always insert a canary at entry
@@ -486,8 +483,7 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                         }
                     }
 
-                    for (auto iter = insertPoints.begin(); iter != insertPoints.end(); ++iter) {
-                        BPatch_point* point = *iter;
+                    for (auto point : insertPoints) {
                         Address addr = (Address)(point->getAddress());
                         BPatch_snippet* snip = new BPatch_canaryExpr();
                         stackmods_printf("\t Generating CANARY at 0x%lx\n", addr);
@@ -672,20 +668,20 @@ bool StackModChecker::accumulateStackRanges(StackMod* m)
     }
 
     for (auto rangeIter = begin; rangeIter != end; ++rangeIter) {
-        int start = (*rangeIter).first;
-        int end = (*rangeIter).second.first;
+        int first = (*rangeIter).first;
+        int last = (*rangeIter).second.first;
         StackMod::MType type = (*rangeIter).second.second;
 
         if (type == curType) {
-            if ( (start <= low) && (low <= end) ) {
+            if ( (first <= low) && (low <= last) ) {
                 found = true;
-                removeRangeAt = start; // This is inefficient...
-                newRanges.insert(make_pair(start, make_pair(high, type)));
+                removeRangeAt = first; // This is inefficient...
+                newRanges.insert(make_pair(first, make_pair(high, type)));
                 break;
-            } else if ( (start <= high) && (high <= end) ) {
+            } else if ( (first <= high) && (high <= last) ) {
                 found = true;
-                removeRangeAt = start;
-                newRanges.insert(make_pair(low, make_pair(end, type)));
+                removeRangeAt = first;
+                newRanges.insert(make_pair(low, make_pair(last, type)));
                 break;
             }
         } else {
@@ -693,15 +689,15 @@ bool StackModChecker::accumulateStackRanges(StackMod* m)
             // 1. m's range is contained inside existing range
             //      separate existing range into two disjoint ranges with same type,
             //      insert new range for m
-            if ( (start <= low) && (high <= end)) {
+            if ( (first <= low) && (high <= last)) {
                 found = true;
-                removeRangeAt = start;
-                if (!(start == low)) {
-                    newRanges.insert(make_pair(start, make_pair(low, type)));
+                removeRangeAt = first;
+                if (!(first == low)) {
+                    newRanges.insert(make_pair(first, make_pair(low, type)));
                 } 
 
-                if (!(end == high)) {
-                    newRanges.insert(make_pair(high, make_pair(end, type)));
+                if (!(last == high)) {
+                    newRanges.insert(make_pair(high, make_pair(last, type)));
                 }
 
                 newRanges.insert(make_pair(low, make_pair(high, curType)));
@@ -709,23 +705,23 @@ bool StackModChecker::accumulateStackRanges(StackMod* m)
             // 2. m's range encloses an existing range
             //      remove existing ranges
             //      insert a new range for m
-            if ( (low < start) && (high > end) ) {
+            if ( (low < first) && (high > last) ) {
                 found = true;
-                removeRangeAt = start;
+                removeRangeAt = first;
                 newRanges.insert(make_pair(low, make_pair(high, curType)));
             }
-            // 3. m's range overlaps with start
-            if ( (low < start) && (high > start) && (high < end) ) {
+            // 3. m's range overlaps with first
+            if ( (low < first) && (high > first) && (high < last) ) {
                 found = true;
-                removeRangeAt = start;
+                removeRangeAt = first;
                 newRanges.insert(make_pair(low, make_pair(high, curType)));
-                newRanges.insert(make_pair(high, make_pair(end, type)));
+                newRanges.insert(make_pair(high, make_pair(last, type)));
             }
-            // 4. m's range overlaps with end
-            if ( (low > start) && (low < end) && (high > end) ) {
+            // 4. m's range overlaps with last
+            if ( (low > first) && (low < last) && (high > last) ) {
                 found = true;
-                removeRangeAt = start;
-                newRanges.insert(make_pair(start, make_pair(low, type)));
+                removeRangeAt = first;
+                newRanges.insert(make_pair(first, make_pair(low, type)));
                 newRanges.insert(make_pair(low, make_pair(high, curType)));
             }
         }
@@ -1069,10 +1065,10 @@ bool StackModChecker::findInsertOrRemovePoints(StackAnalysis& sa, StackMod* m, s
             bool found = false;
             ParseAPI::Block::Insns insns;
             block->getInsns(insns);
-            BPatch_point* point;
+            BPatch_point* tmpPoint;
             for (auto iIter = insns.begin(); iIter != insns.end(); ++iIter) {
                 Address addr = (*iIter).first;
-                if (checkInsn(block, addr, loc, sa, point, dispFromRSP)) {
+                if (checkInsn(block, addr, loc, sa, tmpPoint, dispFromRSP)) {
                     // If this insn is part of a loop, not safe
                     for (auto iter = loops.begin(); iter != loops.end(); ++iter) {
                         BPatch_basicBlockLoop* bbl = *iter;
@@ -1086,7 +1082,7 @@ bool StackModChecker::findInsertOrRemovePoints(StackAnalysis& sa, StackMod* m, s
                         }
                     }
 
-                    tmpPoints.insert(point);
+                    tmpPoints.insert(tmpPoint);
                     found = true;
                 }
                 if (found) break;

@@ -226,7 +226,7 @@ bool Generator::getAndQueueEventInt(bool block)
 	   arch_event = *i;
       for (decoder_set_t::iterator j = decoders.begin(); j != decoders.end(); j++) {
          Decoder *decoder = *j;
-         bool result = decoder->decode(arch_event, events);
+         result = decoder->decode(arch_event, events);
          if (result)
             break;
       }

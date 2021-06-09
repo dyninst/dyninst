@@ -69,9 +69,9 @@ bool LineInformation::addLine( std::string lineSource,
                                Offset lowInclusiveAddr,
                                Offset highExclusiveAddr )
 {
-    auto index = strings_->get<1>().insert(StringTableEntry(lineSource,"")).first;
+    auto i = strings_->get<1>().insert(StringTableEntry(lineSource,"")).first;
 
-    return addLine(index->str, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
+    return addLine(i->str, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
 }
 
 void LineInformation::addLineInfo(LineInformation *lineInfo)
@@ -203,8 +203,8 @@ LineInformation::range(std::string file, const unsigned int lineNo) const
     std::pair<const_line_info_iterator, const_line_info_iterator > bounds;
     for(auto found = found_range.first; ((found != found_range.second) && (found != strings_->get<2>().end())); ++found)
     {
-        unsigned index = strings_->project<0>(found) - strings_->begin();
-        auto idx = boost::make_tuple(index, lineNo);
+        unsigned i = strings_->project<0>(found) - strings_->begin();
+        auto idx = boost::make_tuple(i, lineNo);
         bounds =  get<Statement::line_info>().equal_range(idx);
         if(bounds.first != bounds.second) {
             return bounds;
@@ -217,16 +217,16 @@ LineInformation::range(std::string file, const unsigned int lineNo) const
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
 LineInformation::equal_range(std::string file) const {
     auto found = strings_->get<1>().find(file);
-    unsigned index = strings_->project<0>(found) - strings_->begin();
-    return get<Statement::line_info>().equal_range(index);
+    unsigned i = strings_->project<0>(found) - strings_->begin();
+    return get<Statement::line_info>().equal_range(i);
 }
 
 StringTablePtr LineInformation::getStrings()  {
     return strings_;
 }
 
-void LineInformation::setStrings(StringTablePtr strings_) {
-    LineInformation::strings_ = strings_;
+void LineInformation::setStrings(StringTablePtr strings) {
+    LineInformation::strings_ = strings;
 }
 
 LineInformation::const_iterator LineInformation::find(Offset addressInRange, const_iterator hint) const {

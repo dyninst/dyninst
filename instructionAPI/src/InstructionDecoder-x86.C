@@ -1742,7 +1742,6 @@ namespace Dyninst
         return true;
     }
 
-    extern ia32_entry invalid;
     void InstructionDecoder_x86::doIA32Decode(InstructionDecoder::buffer& b)
     {
         if(decodedInstruction == NULL)

@@ -122,9 +122,9 @@ bool ProcessReaderPtrace::ReadMem(Address inTraced, void *inSelf, unsigned amoun
    return result;
 }
 
-ProcessReader *AddressTranslateSysV::createDefaultDebugger(int pid)
+ProcessReader *AddressTranslateSysV::createDefaultDebugger(int pid_)
 {
-  return new ProcessReaderPtrace(pid);
+  return new ProcessReaderPtrace(pid_);
 }
 
 bool AddressTranslateSysV::setInterpreter()

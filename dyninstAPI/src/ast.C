@@ -475,7 +475,7 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Of
 
 AstMemoryNode::AstMemoryNode(memoryType mem,
                              unsigned which,
-                             int size) :
+                             int size_) :
     AstNode(),
     mem_(mem),
     which_(which) {
@@ -486,7 +486,7 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
 
     switch(mem_) {
     case EffectiveAddr:
-        switch (size) {
+        switch (size_) {
             case 1:
                 bptype = BPatch::bpatch->stdTypes->findType("char");
                 break;
@@ -1173,7 +1173,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
 
 
 #if defined(arch_x86) || defined(arch_x86_64)
-bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size, bool noCost)
+bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost)
 {
    //Recognize the common case of 'a = a op constant' and try to
    // generate optimized code for this case.
@@ -1206,7 +1206,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size, bool n
    if (roperand->getoType() == Constant) {
       //Looks like 'global = constant'
 #if defined(arch_x86_64)
-     if (laddr >> 32 || ((Address) roperand->getOValue()) >> 32 || size == 8) {
+     if (laddr >> 32 || ((Address) roperand->getOValue()) >> 32 || size_ == 8) {
        // Make sure value and address are 32-bit values.
        return false;
      }
@@ -1932,12 +1932,9 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        break;
    case DataAddr:
-     {
        assert(oVar == NULL);
-       Address addr = reinterpret_cast<Address>(oValue);
+       addr = reinterpret_cast<Address>(oValue);
        emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
-     }
-
        break;
    case FrameAddr:
        addr = (Address) oValue;
@@ -2694,9 +2691,9 @@ BPatch_type *AstCallNode::checkType(BPatch_function* func) {
 
     unsigned i;
     for (i = 0; i < args_.size(); i++) {
-        BPatch_type *operandType = args_[i]->checkType(func);
+        BPatch_type *opType = args_[i]->checkType(func);
         /* XXX Check operands for compatibility */
-        if (operandType == BPatch::bpatch->type_Error) {
+        if (opType == BPatch::bpatch->type_Error) {
             errorFlag = true;
         }
     }
@@ -3515,10 +3512,10 @@ unsigned AstNode::getTreeSize() {
 	std::vector<AstNodePtr > children;
 	getChildren(children);
 
-	unsigned size = 1; // Us
+	unsigned size_ = 1; // Us
 	for (unsigned i = 0; i < children.size(); i++)
-		size += children[i]->getTreeSize();
-	return size;
+		size_ += children[i]->getTreeSize();
+	return size_;
 
 }
 
@@ -3535,31 +3532,31 @@ int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
 
 void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen,
 				      bool noCost, registerSpace* rs,
-				      int size, const instPoint* point, AddressSpace* as)
+				      int size_, const instPoint* point, AddressSpace* as)
 {
   int_variable* var = lookUpVar(as);
   if(var && !as->needsPIC(var))
   {
-    emitVload(op, var->getAddress(), src2, dest, gen, noCost, rs, size, point, as);
+    emitVload(op, var->getAddress(), src2, dest, gen, noCost, rs, size_, point, as);
   }
   else
   {
-    gen.codeEmitter()->emitLoadShared(op, dest, oVar, (var!=NULL),size, gen, 0);
+    gen.codeEmitter()->emitLoadShared(op, dest, oVar, (var!=NULL),size_, gen, 0);
   }
 }
 
 void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen,
 				      bool noCost, registerSpace* rs,
-				      int size, const instPoint* point, AddressSpace* as)
+				      int size_, const instPoint* point, AddressSpace* as)
 {
   int_variable* var = lookUpVar(as);
   if (var && !as->needsPIC(var))
   {
-    emitVstore(op, src1, src2, var->getAddress(), gen, noCost, rs, size, point, as);
+    emitVstore(op, src1, src2, var->getAddress(), gen, noCost, rs, size_, point, as);
   }
   else
   {
-    gen.codeEmitter()->emitStoreShared(src1, oVar, (var!=NULL), size, gen);
+    gen.codeEmitter()->emitStoreShared(src1, oVar, (var!=NULL), size_, gen);
   }
 }
 

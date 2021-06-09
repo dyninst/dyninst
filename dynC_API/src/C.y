@@ -878,7 +878,6 @@ inc_decr_expr:
 
 #include <stdio.h>
 
-std::stringstream * err;
 
 void yyerror(const char *s)
 {

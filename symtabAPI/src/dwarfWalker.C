@@ -52,18 +52,18 @@ using namespace DwarfDyninst;
 using namespace std;
 
 #define DWARF_FAIL_RET_VAL(x, v) {                                      \
-      int status = (x);                                                 \
-      if (status != 0) {                                                \
+      int dwarf_fail_ret_val_status = (x);                              \
+      if (dwarf_fail_ret_val_status != 0) {                             \
          types_printf("[%s:%d]: libdwarf returned %d, ret false\n",     \
-                 FILE__, __LINE__, status);                             \
+                 FILE__, __LINE__, dwarf_fail_ret_val_status);          \
          return (v);                                                    \
       }                                                                 \
    }
 #define DWARF_FAIL_RET(x) DWARF_FAIL_RET_VAL(x, false)
 
 #define DWARF_ERROR_RET_VAL(x, v) {                                     \
-      int status = (x);                                                 \
-      if (status == 1 /*DW_DLV_ERROR*/) {                               \
+      int dwarf_error_ret_val_status = (x);                             \
+      if (dwarf_error_ret_val_status == 1 /*DW_DLV_ERROR*/) {           \
          types_printf("[%s:%d]: parsing failure, ret false\n",          \
                  FILE__, __LINE__);                                     \
          return (v);                                                    \
@@ -1776,11 +1776,11 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     /* If this is a ref_sig8, look for the type elsewhere. */
     Dwarf_Half form = dwarf_whatform(&typeAttribute);
     if (form == DW_FORM_ref_sig8) {
-        Dwarf_Sig8 signature;
+        Dwarf_Sig8 sig8;
         const char * sig = dwarf_formstring(&typeAttribute);
         if(!sig) return false;
-        memcpy(signature.signature, sig, 8);
-        return findSig8Type(&signature, type);
+        memcpy(sig8.signature, sig, 8);
+        return findSig8Type(&sig8, type);
     }
 
     Dwarf_Off typeOffset;
@@ -2749,9 +2749,9 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
     return true;
 }
 
-bool DwarfWalker::findSig8Type(Dwarf_Sig8 * signature, boost::shared_ptr<Type>&returnType)
+bool DwarfWalker::findSig8Type(Dwarf_Sig8 * s, boost::shared_ptr<Type>&returnType)
 {
-   uint64_t sig8 = * reinterpret_cast<uint64_t*>(signature);
+   uint64_t sig8 = * reinterpret_cast<uint64_t*>(s);
    typeId_t type_id = 0;
    {
      dyn_c_hash_map<uint64_t, typeId_t>::const_accessor a;

@@ -3144,10 +3144,10 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
   }
   
   if(op == loadConstOp) {
-    int offset = addr - gen.currAddr();
+    int addr_offset = addr - gen.currAddr();
     // Brutal hack for IP-relative: displacement operand on 32-bit = IP-relative on 64-bit.
     if(is_local || !var)
-      emitLEA(Null_Register, Null_Register, 0, offset - 7, dest, gen);
+      emitLEA(Null_Register, Null_Register, 0, addr_offset - 7, dest, gen);
     else
        emitMovPCRMToReg64(dest, addr - gen.currAddr(), 8, gen, true);
     

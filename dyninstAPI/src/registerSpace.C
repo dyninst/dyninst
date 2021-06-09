@@ -383,8 +383,8 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
 		    reg->keptValue);
 
     bool found = false;
-    for (unsigned int i = 0; i < excluded.size(); ++i) {
-      Register &ex_reg = excluded[i];
+    for (unsigned int j = 0; j < excluded.size(); ++j) {
+      Register &ex_reg = excluded[j];
       if (reg->number == ex_reg) {
 	found = true;
 	break;

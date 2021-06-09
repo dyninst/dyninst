@@ -629,11 +629,11 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                // We assume that IDs are unique per type. Instead of reusing the 
                // underlying base ID, use a SymtabAPI-generated ID.
 
-               auto newType = Type::make_shared<typeTypedef>(ptrType, name);
+               auto t = Type::make_shared<typeTypedef>(ptrType, name);
 
-               if (newType) 
+               if (t) 
                {
-				   tc->addOrUpdateType(newType);
+				   tc->addOrUpdateType(t);
 			   }
 			}
             break;

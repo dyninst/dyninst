@@ -82,7 +82,6 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
     for (int curOrder = 1; curOrder <= orderStamp; ++curOrder) {
         // First determine all nodes in this SCC
         vector<Node::Ptr> curNodes;
-	NodeIterator nbegin, nend;
 	slice->allNodes(nbegin, nend);
 	for (; nbegin != nend; ++nbegin) {
 	    if (analysisOrder[*nbegin] == curOrder) {

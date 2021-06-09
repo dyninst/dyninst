@@ -501,8 +501,7 @@ bool ProbabilityCalculator::decodeInstruction(DecodeData &data, Address addr) {
 	    return false;
 	}
 	
-	auto op = insn.getOperation();
-	data.entry_id = op.getID();
+	data.entry_id = insn.getOperation().getID();
 
 	vector<Operand> ops;
 	insn.getOperands(ops);

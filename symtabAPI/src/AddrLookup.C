@@ -309,8 +309,7 @@ LoadedLib *AddressLookup::getLoadedLib(Symtab *sym)
    
    vector<LoadedLib *> libs;
    translator->getLibs(libs);
-   for (vector<LoadedLib *>::iterator i = libs.begin(); i != libs.end(); i++) {
-      LoadedLib *ll = *i;
+   for (auto ll : libs) {
       if (sym->file() == ll->getName() || 
           sym->name() == ll->getName())
       {

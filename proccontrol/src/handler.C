@@ -481,8 +481,7 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
       }
    }
 
-   for (set<Event::ptr>::iterator i = all_events.begin(); i != all_events.end(); i++) {
-      Event::ptr event = *i;
+   for (auto event : all_events) {
       clearEventAsync(event); //nop if ev wasn't async
    }
 

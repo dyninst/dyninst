@@ -893,11 +893,11 @@ namespace Dyninst
         *iptr = *(insn_in_progress.get());
 
     }
-    MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding, int field)
+    MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding, int field_)
     {
-        if(field != -1)
+        if(field_ != -1)
         {
-            return makePowerRegID(base, encoding, field * 4, field * 4 + 3);
+            return makePowerRegID(base, encoding, field_ * 4, field_ * 4 + 3);
         }
         return makePowerRegID(base, encoding, 0, 31);
     }

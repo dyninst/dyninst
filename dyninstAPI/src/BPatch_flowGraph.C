@@ -241,10 +241,9 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
     if (DEBUG_LOOP) fprintf(stderr,"loop end iter\n");
 
     // point for the backedge of this loop
-    BPatch_Vector<BPatch_edge*> backEdges;
-    loop->getBackEdges(backEdges);
-    for (auto eit = backEdges.begin(); eit != backEdges.end(); ++eit) {
-      BPatch_edge *edge = *eit;
+    BPatch_Vector<BPatch_edge*> edges;
+    loop->getBackEdges(edges);
+    for (auto edge : edges) {
       if (DEBUG_LOOP) edge->dump();
       BPatch_point *iP = edge->getPoint();
       iP->overrideType(BPatch_locLoopEndIter);

@@ -327,7 +327,7 @@ void BottomOfStackStepperImpl::initialize()
                    for (int i = 0; i < heuristic_length; ++i) {
                        end = start + heuristic_length_array[i];
                        uint8_t byteValue;
-                       bool result = proc->readMem(&byteValue, end - 1, 1);
+                       result = proc->readMem(&byteValue, end - 1, 1);
                        if (result && byteValue != expectedValue) continue; 
                        break;
                    }

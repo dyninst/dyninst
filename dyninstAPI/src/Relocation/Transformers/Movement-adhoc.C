@@ -682,9 +682,9 @@ bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
         // throwing an exception.
         delta = readDeltas[0].height() - regDeltas[0].height() -
             defDeltas[0].height();
-        for (unsigned i = 1; i < accessSetSize; i++) {
-            if (delta != readDeltas[i].height() - regDeltas[i].height() -
-                defDeltas[i].height()) {
+        for (unsigned j = 1; j < accessSetSize; j++) {
+            if (delta != readDeltas[j].height() - regDeltas[j].height() -
+                defDeltas[j].height()) {
                 fprintf(stderr, "Access to multiple locations is unresolvable: "
                     "different displacements required\n");
                 STACKMOD_ASSERT(false);

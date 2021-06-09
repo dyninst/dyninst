@@ -79,7 +79,7 @@ char *symbol_demangle(const char *symName, int includeParams)
     char *allocatedMangledName = 0;
     if (versionOrStabsOffset != -1)  {
 	// make a copy of the symName without version or stabs suffix
-	char *allocatedMangledName = malloc(versionOrStabsOffset + 1);
+	allocatedMangledName = malloc(versionOrStabsOffset + 1);
 	if (allocatedMangledName == 0)  {
 	    return NULL;
 	}

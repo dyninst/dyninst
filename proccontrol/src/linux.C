@@ -227,8 +227,7 @@ void GeneratorLinux::evictFromWaitpid()
 
    int result = sigaction(SIGUSR2, &newact, &oldact);
    if (result == -1) {
-      int error = errno;
-      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+      perr_printf("Error signaling generator thread: %s\n", strerror(errno));
       return;
    }
    on_sigusr2_hit = 0;
@@ -240,8 +239,7 @@ void GeneratorLinux::evictFromWaitpid()
 
    result = sigaction(SIGUSR2, &oldact, NULL);
    if (result == -1) {
-      int error = errno;
-      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+      perr_printf("Error signaling generator thread: %s\n", strerror(errno));
    }
 }
 
@@ -328,8 +326,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                // in case of a fake syscall exit BP is inserted,
                // it should be cleared when the actual stop is received.
                Dyninst::MachRegisterVal addr;
-               int result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
-               if (!result) {
+               int r = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+               if (!r) {
                    perr_printf("Failed to read PC address upon SIGTRAP|0x80\n");
                    return false;
                }
@@ -434,9 +432,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                     if (thread->getLWP() == proc->getPid())
 		            {
 		                unsigned long eventmsg = 0x0;
-		                int result = do_ptrace((pt_req)PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
+		                int r = do_ptrace((pt_req)PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
 					        NULL, &eventmsg);
-		                if(result == -1)
+		                if(r == -1)
 		                {
                             int error = errno;
                             perr_printf("Error getting event message from exit\n");
@@ -483,9 +481,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                                   ext == PTRACE_EVENT_FORK ? "fork" : "clone",
                                   proc->getPid(), thread->getLWP());
                      unsigned long cpid_l = 0x0;
-                     int result = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
+                     int r = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(),
                                             NULL, &cpid_l);
-                     if (result == -1) {
+                     if (r == -1) {
                         int error = errno;
                         perr_printf("Error getting event message from fork/clone\n");
                         if (error == ESRCH)
@@ -620,18 +618,18 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   break;
                }
                for (;;) {
-                  async_ret_t result = lproc->decodeTdbBreakpoint(event_bp);
-                  if (result == aret_error) {
+                  async_ret_t r = lproc->decodeTdbBreakpoint(event_bp);
+                  if (r == aret_error) {
                      //Not really an error, just how we say that it isn't
                      // a breakpoint.
                      break;
                   }
-                  if (result == aret_success) {
+                  if (r == aret_success) {
                      //decodeTdbBreakpoint added a subservient event if this hits
                      pthrd_printf("Breakpoint was thread event\n");
                      break;
                   }
-                  if (result == aret_async) {
+                  if (r == aret_async) {
                      pthrd_printf("decodeTdbBreakpoint returned async\n");
                      set<response::ptr> resps;
                      lproc->getMemCache()->getPendingAsyncs(resps);
@@ -839,8 +837,8 @@ int linux_process::computeAddrWidth()
       return -1;
    }
 
-   ssize_t result = read(fd, buffer, sizeof(buffer));
-   ssize_t words_read = (result / sizeof(uint32_t)) & ~3;
+   ssize_t nread = read(fd, buffer, sizeof(buffer));
+   ssize_t words_read = (nread / sizeof(uint32_t)) & ~3;
    close(fd);
 
    // We want to check the highest 4 bytes of each integer
@@ -917,8 +915,8 @@ bool linux_process::plat_create_int()
 
       //Child
       errno = 0;
-      long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
-      if (result == -1)
+      long int r = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
+      if (r == -1)
       {
          pthrd_printf("Failed to execute a PTRACE_TRACME.  Odd.\n");
          setLastError(err_internal, "Unable to debug trace new process");
@@ -953,12 +951,12 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
             // The stat looks something like: 123 (command) R 456...
             // We'll just look for the ") R " part.
             if (sfile.ignore(ignore_max, ')').peek() == ' ') {
-                char space, state;
+                char space, state_char;
 
                 // Eat the space we peeked and grab the state char.
-                if (sfile.get(space).get(state).peek() == ' ') {
+                if (sfile.get(space).get(state_char).peek() == ' ') {
                     // Found the state char -- 'T' means it's already stopped.
-                    runningStates.insert(make_pair(*i, (state != 'T')));
+                    runningStates.insert(make_pair(*i, (state_char != 'T')));
                     break;
                 }
 
@@ -1036,7 +1034,7 @@ bool linux_process::plat_attach(bool, bool &)
    if ( !attachWillTriggerStop ) {
        // Force the SIGSTOP delivered by the attach to be handled
        pthrd_printf("Attach will not trigger stop, calling PTRACE_CONT to flush out stop\n");
-       int result = do_ptrace((pt_req) PTRACE_CONT, pid, NULL, NULL);
+       result = do_ptrace((pt_req) PTRACE_CONT, pid, NULL, NULL);
        if( result != 0 ) {
            int errnum = errno;
            pthrd_printf("Unable to continue process %d to flush out attach: %s\n",
@@ -1092,7 +1090,7 @@ bool linux_process::plat_attachWillTriggerStop() {
     char procName[64];
     char cmd[256];
     pid_t tmpPid;
-    char state;
+    char state_char;
     int ttyNumber;
 
     // Retrieve the state of the process and its controlling tty
@@ -1105,7 +1103,7 @@ bool linux_process::plat_attachWillTriggerStop() {
     }
 
     if(fscanf(sfile.get(), "%d %255s %c %d %d %d",
-            &tmpPid, cmd, &state,
+            &tmpPid, cmd, &state_char,
             &tmpPid, &tmpPid, &ttyNumber) < 0) {
         perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
         return true;
@@ -1113,7 +1111,7 @@ bool linux_process::plat_attachWillTriggerStop() {
 
     // If the process is stopped and it has a controlling tty, an attach
     // will not trigger a stop
-    if ( state == 'T' && ttyNumber != 0 ) {
+    if ( state_char == 'T' && ttyNumber != 0 ) {
         return false;
     }
 
@@ -1731,12 +1729,12 @@ bool linux_process::preTerminate() {
          throwNopEvent();
          threw_event = true;
       }
-      bool exited = false;
-      auto pid = getPid();
-      int_process::waitAndHandleForProc(true, this, exited);
-      if (exited) {
+      bool is_exited = false;
+      auto pid_ = getPid();
+      int_process::waitAndHandleForProc(true, this, is_exited);
+      if (is_exited) {
          // Note, can't even call getPid() anymore, since 'this' is ironically deleted.
-         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", pid);
+         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", pid_);
          return false;
       }
    }
@@ -3451,9 +3449,9 @@ bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_,
 }
 
 
-void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
+void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen_)
 {
-   if (gen) return;
+   if (gen_) return;
 
    if (ev->getEventType().code() != EventType::LWPDestroy ||
        ev->getEventType().time() != EventType::Pre)

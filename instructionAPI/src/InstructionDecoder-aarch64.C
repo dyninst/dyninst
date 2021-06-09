@@ -478,10 +478,10 @@ namespace Dyninst {
                     }
                 }
                 else if (IS_INSN_SIMD_COPY(insn)) {
-                    unsigned int op = field<29, 29>(insn);
+                    unsigned int op_ = field<29, 29>(insn);
                     unsigned int imm4 = field<11, 14>(insn);
 
-                    if (op == 0x1)
+                    if (op_ == 0x1)
                         reg = aarch64::q0;
                     else {
                         switch (imm4) {
@@ -601,16 +601,16 @@ namespace Dyninst {
                         }
                     }
                     else {
-                        entryID op = insn_in_progress->getOperation().operationID;
+                        entryID op_ = insn_in_progress->getOperation().operationID;
                         
 			switch (_szField) {
                             case 0x0:
                                 reg = aarch64::s0;
-				if(op == aarch64_op_fcvtxn_advsimd)
+				if(op_ == aarch64_op_fcvtxn_advsimd)
 				    isValid = false;
                                 break;
                             case 0x1: {
-                                reg = (op == aarch64_op_fcvtxn_advsimd) ? aarch64::s0 : aarch64::d0;
+                                reg = (op_ == aarch64_op_fcvtxn_advsimd) ? aarch64::s0 : aarch64::d0;
                             }
                                 break;
                             default:
@@ -648,10 +648,10 @@ namespace Dyninst {
                         reg = _Q == 0x1 ? aarch64::q0 : aarch64::d0;
                 }
                 else if (IS_INSN_SIMD_3DIFF(insn)) {
-                    entryID op = insn_in_progress->getOperation().operationID;
+                    entryID op_ = insn_in_progress->getOperation().operationID;
 
-                    if (op == aarch64_op_addhn_advsimd || op == aarch64_op_subhn_advsimd ||
-                        op == aarch64_op_raddhn_advsimd || op == aarch64_op_rsubhn_advsimd)
+                    if (op_ == aarch64_op_addhn_advsimd || op_ == aarch64_op_subhn_advsimd ||
+                        op_ == aarch64_op_raddhn_advsimd || op_ == aarch64_op_rsubhn_advsimd)
                         reg = _Q == 0x1 ? aarch64::hq0 : aarch64::d0;
                     else
                         reg = aarch64::q0;
@@ -706,13 +706,13 @@ namespace Dyninst {
 
         void InstructionDecoder_aarch64::OPRRd() {
             Expression::Ptr reg = makeRdExpr();
-            int cmode = field<12, 15>(insn);
+            int cmode_ = field<12, 15>(insn);
 
             bool isRdRead = false;
-            if (((IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn)) && !(cmode & 0x8)) ||
+            if (((IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn)) && !(cmode_ & 0x8)) ||
                 (IS_INSN_SIMD_MOD_IMM(insn) &&
-                 (((cmode & 0x8) && !(cmode & 0x4) && (cmode & 0x1)) ||
-                  (!(cmode & 0x8) && (cmode & 0x1)))))
+                 (((cmode_ & 0x8) && !(cmode_ & 0x4) && (cmode_ & 0x1)) ||
+                  (!(cmode_ & 0x8) && (cmode_ & 0x1)))))
                 isRdRead = true;
             //for SIMD/Scalar vector indexed set, some instructions read Rd and some don't. This can be determined from the highest bit of the opcode field (bit 15)
             insn_in_progress->appendOperand(reg, isRdRead, true);
@@ -769,12 +769,12 @@ namespace Dyninst {
 
             if (isSIMDInsn && !IS_INSN_LDST(insn)) {
                 if (IS_INSN_SIMD_COPY(insn)) {
-                    unsigned int op = field<29, 29>(insn);
+                    unsigned int op_ = field<29, 29>(insn);
                     unsigned int imm4 = field<11, 14>(insn);
                     unsigned int imm5 = field<16, 20>(insn);
 
                     //ins (element)
-                    if (op == 0x1) {
+                    if (op_ == 0x1) {
                         reg = (imm4 & 0x8) ? aarch64::q0 : aarch64::d0;
                     }
                     else {
@@ -953,12 +953,12 @@ namespace Dyninst {
                     }
                 }
                 else if (IS_INSN_SIMD_3DIFF(insn)) {
-                    entryID op = insn_in_progress->getOperation().operationID;
+                    entryID op_ = insn_in_progress->getOperation().operationID;
 
-                    if (op == aarch64_op_saddw_advsimd || op == aarch64_op_ssubw_advsimd ||
-                        op == aarch64_op_addhn_advsimd || op == aarch64_op_subhn_advsimd ||
-                        op == aarch64_op_uaddw_advsimd || op == aarch64_op_usubw_advsimd ||
-                        op == aarch64_op_raddhn_advsimd || op == aarch64_op_rsubhn_advsimd)
+                    if (op_ == aarch64_op_saddw_advsimd || op_ == aarch64_op_ssubw_advsimd ||
+                        op_ == aarch64_op_addhn_advsimd || op_ == aarch64_op_subhn_advsimd ||
+                        op_ == aarch64_op_uaddw_advsimd || op_ == aarch64_op_usubw_advsimd ||
+                        op_ == aarch64_op_raddhn_advsimd || op_ == aarch64_op_rsubhn_advsimd)
                         reg = aarch64::q0;
                     else
                         reg = _Q == 0x1 ? aarch64::hq0 : aarch64::d0;
@@ -1037,8 +1037,8 @@ namespace Dyninst {
         }
 
         void InstructionDecoder_aarch64::getMemRefIndexLiteral_RT(Result_Type &rt) {
-            int size = field<30, 31>(insn);
-            switch (size) {
+            int size_ = field<30, 31>(insn);
+            switch (size_) {
                 case 0x0:
                     rt = u32;
                     break;
@@ -1079,10 +1079,10 @@ namespace Dyninst {
 // shared by ld/st uimm, post, pre, reg
         void InstructionDecoder_aarch64::getMemRefIndex_RT(Result_Type &rt) {
             unsigned int opc1 = field<23, 23>(insn);
-            unsigned int size = field<30, 31>(insn);
+            unsigned int size_ = field<30, 31>(insn);
 
             if (opc1 == 1) {
-                switch (size) {
+                switch (size_) {
                     case 0:
                         rt = s8;
                         break;
@@ -1102,7 +1102,7 @@ namespace Dyninst {
                 }
             }
             else {
-                switch (size) {
+                switch (size_) {
                     case 0:
                         rt = u8;
                         break;
@@ -1125,12 +1125,12 @@ namespace Dyninst {
 
         void InstructionDecoder_aarch64::getMemRefPair_RT(Result_Type &rt) {
             unsigned int isSigned = field<30, 30>(insn);
-            unsigned int size = field<31, 31>(insn);
+            unsigned int size_ = field<31, 31>(insn);
 
             // double the width
             switch (isSigned) {
                 case 0:
-                    switch (size) {
+                    switch (size_) {
                         case 0:
                             //rt = u32;
                             rt = u64;
@@ -1144,7 +1144,7 @@ namespace Dyninst {
                     }
                     break;
                 case 1:
-                    switch (size) {
+                    switch (size_) {
                         case 0:
                             //rt = s32;
                             rt = s64;
@@ -1160,11 +1160,11 @@ namespace Dyninst {
             }
         }
 
-        void InstructionDecoder_aarch64::getMemRefIndex_SizeSizelen(unsigned int &size, unsigned int &sizeLen) {
-            size = field<30, 31>(insn);
-            if (isSIMDInsn && size == 0x0 && field<23, 23>(insn) == 0x1)
-                size = 4;
-            sizeLen = 31 - 30 + 1 + (size / 4);
+        void InstructionDecoder_aarch64::getMemRefIndex_SizeSizelen(unsigned int &size_, unsigned int &sizeLen) {
+            size_ = field<30, 31>(insn);
+            if (isSIMDInsn && size_ == 0x0 && field<23, 23>(insn) == 0x1)
+                size_ = 4;
+            sizeLen = 31 - 30 + 1 + (size_ / 4);
             return;
         }
 
@@ -1192,11 +1192,11 @@ namespace Dyninst {
             int immVal = field<10, 21>(insn);
             int immLen = 21 - 10 + 1;
 
-            unsigned int size = 0, sizeLen = 0;
-            getMemRefIndex_SizeSizelen(size, sizeLen);
+            unsigned int size_ = 0, sizeLen = 0;
+            getMemRefIndex_SizeSizelen(size_, sizeLen);
 
             Expression::Ptr offset = Immediate::makeImmediate(
-                    Result(u64, unsign_extend64(immLen + size, immVal << size)));
+                    Result(u64, unsign_extend64(immLen + size_, immVal << size_)));
 
             Result_Type rt;
             getMemRefIndex_RT(rt);
@@ -1384,27 +1384,27 @@ namespace Dyninst {
         unsigned int InstructionDecoder_aarch64::getMemRefSIMD_SING_T() {
             unsigned int opcode = field<14, 15>(insn);
             unsigned int S = field<12, 12>(insn);
-            unsigned int size = field<10, 11>(insn);
+            unsigned int size_ = field<10, 11>(insn);
 
             switch (opcode) {
                 case 0x0:
                     return 8;
                 case 0x1:
-                    if ((size & 0x1) == 0x0)
+                    if ((size_ & 0x1) == 0x0)
                         return 16;
                     else
                         isValid = false;
                     break;
                 case 0x2:
-                    if (size == 0x0)
+                    if (size_ == 0x0)
                         return 32;
-                    else if (size == 0x1 && S == 0)
+                    else if (size_ == 0x1 && S == 0)
                         return 64;
                     else
                         isValid = false;
                     break;
                 case 0x3:
-                    return 8 << size;
+                    return 8 << size_;
                 default:
                     isValid = false;
             }
@@ -1425,8 +1425,8 @@ namespace Dyninst {
         }
 
         void InstructionDecoder_aarch64::getMemRefExPair_RT(Result_Type &rt) {
-            int size = field<30, 30>(insn);
-            switch (size) {
+            int size_ = field<30, 30>(insn);
+            switch (size_) {
                 case 0:
                     rt = u64;
                     break;
@@ -1484,10 +1484,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             int immLen = 2;
             int immVal = 0; //for amount
 
-            int size = field<30, 31>(insn);
+            int size_ = field<30, 31>(insn);
 
             if(sField == 1)
-                immVal = size;
+                immVal = size_;
             else
                 immVal = 0;
 
@@ -1752,10 +1752,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     }
                 }
                 else if (IS_INSN_SIMD_3DIFF(insn)) {
-                    entryID op = insn_in_progress->getOperation().operationID;
+                    entryID op_ = insn_in_progress->getOperation().operationID;
 
-                    if (op == aarch64_op_addhn_advsimd || op == aarch64_op_subhn_advsimd ||
-                        op == aarch64_op_raddhn_advsimd || op == aarch64_op_rsubhn_advsimd)
+                    if (op_ == aarch64_op_addhn_advsimd || op_ == aarch64_op_subhn_advsimd ||
+                        op_ == aarch64_op_raddhn_advsimd || op_ == aarch64_op_rsubhn_advsimd)
                         reg = aarch64::q0;
                     else
                         reg = _Q == 0x1 ? aarch64::hq0 : aarch64::d0;
@@ -2037,7 +2037,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
         void InstructionDecoder_aarch64::OPRRt() {
             int encoding = field<0, 4>(insn);
-            entryID op = insn_in_progress->getOperation().operationID;
+            entryID op_ = insn_in_progress->getOperation().operationID;
 
             if (IS_INSN_BRANCHING(insn)) {
                 if (encoding == 31)
@@ -2048,7 +2048,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             makeRegisterExpression(makeAarch64RegID(is64Bit ? aarch64::x0 : aarch64::w0, encoding)),
                             true, false);
             }
-            else if (op == aarch64_op_prfm_imm || op == aarch64_op_prfm_lit || op == aarch64_op_prfm_reg || op == aarch64_op_prfum) {
+            else if (op_ == aarch64_op_prfm_imm || op_ == aarch64_op_prfm_lit || op_ == aarch64_op_prfm_reg || op_ == aarch64_op_prfum) {
                 Expression::Ptr prfop;
 		Result arg = Result(u32, unsign_extend32(5, encoding));
 		
@@ -2349,7 +2349,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         }
 
         template<typename T>
-        Expression::Ptr InstructionDecoder_aarch64::makeLogicalImm(int immr, int imms, int immsLen, Result_Type rT) {
+        Expression::Ptr InstructionDecoder_aarch64::makeLogicalImm(int immr_, int imms, int immsLen, Result_Type rT) {
             int len = highest_set_bit((nField << immsLen) | (~imms & ((1 << immsLen) - 1))) - 1;
             int finalsize = (rT == u32 ? 32 : 64);
 
@@ -2364,7 +2364,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 isValid = false;
                 return Immediate::makeImmediate(Result(u32, 0));
             }
-            int R = immr & levels;
+            int R = immr_ & levels;
 
             int esize = 1 << len;
             T welem = (((T) 1) << (S + 1)) - 1;
@@ -2385,16 +2385,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             return Immediate::makeImmediate(Result(rT, wmask));
         }
 
-        bool InstructionDecoder_aarch64::fix_bitfieldinsn_alias(int immr, int imms) {
+        bool InstructionDecoder_aarch64::fix_bitfieldinsn_alias(int immr_, int imms) {
             entryID modifiedID = insn_in_progress->getOperation().operationID;
             bool do_further_processing = true;
 
             switch (field<27, 30>(insn)) {
                 case 0x6:
-                    modifiedID = (imms < immr) ? aarch64_op_bfi_bfm : aarch64_op_bfxil_bfm;
+                    modifiedID = (imms < immr_) ? aarch64_op_bfi_bfm : aarch64_op_bfxil_bfm;
                     break;
                 case 0x2:
-                    if (immr == 0 && (imms == 7 || imms == 15 || imms == 31)) {
+                    if (immr_ == 0 && (imms == 7 || imms == 15 || imms == 31)) {
                         do_further_processing = false;
                         switch (imms) {
                             case 7:
@@ -2668,10 +2668,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     int page = field<31, 31>(insn);
                     int64_t offset = (immVal << immloLen) | immlo;
                     offset = offset << (page * 12);
-                    int size = immloLen + immLen + (page * 12);
+                    int size_ = immloLen + immLen + (page * 12);
 
                     //insn_in_progress->appendOperand(makePCExpr(), true, false);
-                    Expression::Ptr imm = Immediate::makeImmediate(Result(s64, (offset << (64 - size)) >> (64 - size)));
+                    Expression::Ptr imm = Immediate::makeImmediate(Result(s64, (offset << (64 - size_)) >> (64 - size_)));
 
                     insn_in_progress->appendOperand(makeAddExpression(makePCExpr(), imm, u64), true, false);
                 }

@@ -267,13 +267,13 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	    return;
 	}
 	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
-	InsnAdapter::IA_IAPI* block = InsnAdapter::IA_IAPI::makePlatformIA_IAPI(b->obj()->cs()->getArch(), dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
+	InsnAdapter::IA_IAPI* insnBlock = InsnAdapter::IA_IAPI::makePlatformIA_IAPI(b->obj()->cs()->getArch(), dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
 	Address cur = b->start();
 	while (cur < b->end()) {
-	    if (block->getInstruction().getCategory() == c_CallInsn && block->isThunk()) {
+	    if (insnBlock->getInstruction().getCategory() == c_CallInsn && insnBlock->isThunk()) {
 	        bool valid;
 		Address addr;
-		boost::tie(valid, addr) = block->getCFT();
+		boost::tie(valid, addr) = insnBlock->getCFT();
 		const unsigned char *target = (const unsigned char *) b->region()->getPtrToInstruction(addr);
 		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
 		Instruction thunkFirst = targetChecker.decode();
@@ -283,17 +283,17 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 		for (auto curReg = thunkTargetRegs.begin(); curReg != thunkTargetRegs.end(); ++curReg) {
 		    ThunkInfo t;
 		    t.reg = (*curReg)->getID();
-		    t.value = block->getAddr() + block->getInstruction().size();
+		    t.value = insnBlock->getAddr() + insnBlock->getInstruction().size();
 		    t.value += ThunkAdjustment(t.value, t.reg, b);
 		    t.block = b;
-		    thunks.insert(make_pair(block->getAddr(), t));
-		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block->getAddr(), t.value , t.reg.name().c_str());
+		    thunks.insert(make_pair(insnBlock->getAddr(), t));
+		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", insnBlock->getAddr(), t.value , t.reg.name().c_str());
 		}
 	    }
-	    cur += block->getInstruction().size();
-	    if (cur < b->end()) block->advance();
+	    cur += insnBlock->getInstruction().size();
+	    if (cur < b->end()) insnBlock->advance();
 	}
-	delete block;
+	delete insnBlock;
     }
 }
 

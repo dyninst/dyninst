@@ -339,7 +339,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 
     // build up set of needed parse frames and load them with work elements
     set<ParseFrame*> frameset; // for dup checking
-    LockFreeQueue<ParseFrame*> frames;
+    LockFreeQueue<ParseFrame*> frameQ;
 
     for (unsigned idx=0; idx < work_elems.size(); idx++) {
 
@@ -424,7 +424,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
         frame->pushWork(elem);
         if (frameset.end() == frameset.find(frame)) {
             frameset.insert(frame);
-            frames.insert(frame);
+            frameQ.insert(frame);
         }
     }
     ScopeLock<Mutex<true> > L(parse_mutex);
@@ -432,7 +432,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
     if(_parse_state < PARTIAL)
         _parse_state = PARTIAL;
 
-    parse_frames( frames, true );
+    parse_frames( frameQ, true );
 
     if(_parse_state > COMPLETE)
         _parse_state = COMPLETE;
@@ -995,7 +995,7 @@ Parser::finalize(Function *f)
                 eit != edges.end();
                 eit++)
         {
-            boost::lock_guard<Block> g(*(*eit)->src());
+            boost::lock_guard<Block> blockGuard(*(*eit)->src());
             if (2 > (*eit)->src()->targets().size()) {
                 Block *ft = _parse_data->findBlock((*eit)->src()->region(),
                         (*eit)->src()->end());
@@ -1891,10 +1891,10 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     mal_printf("Nop jump at %lx, changing it to nop\n",ah->getAddr());
                     _pcb.patch_nop_jump(ah->getAddr());
                     unsigned bufsize = func->region()->offset() + func->region()->length() - ah->getAddr();
-                    const unsigned char* bufferBegin = (const unsigned char *)
+                    const unsigned char* bufBegin = (const unsigned char *)
                         (func->region()->getPtrToInstruction(ah->getAddr()));
                     dec = InstructionDecoder
-                        (bufferBegin, bufsize, frame.codereg->getArch());
+                        (bufBegin, bufsize, frame.codereg->getArch());
                     ah->reset(dec, curAddr, func->obj(),
                             func->region(), func->isrc(), cur);
                 } else {
@@ -2561,11 +2561,11 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
             for (auto iit = B_insns.begin(); iit != B_insns.end(); ++iit) {
                 auto ait = A_insns.find(iit->first);
                 if (ait != A_insns.end()) {
-                    Address addr = iit->first;
+                    Address address = iit->first;
                     --ait;
                     --iit;
 
-                    Block * ret = factory()._mkblock(fA, b->region(),addr);
+                    Block * ret = factory()._mkblock(fA, b->region(),address);
                     Block * exist = record_block(ret);
                     if (exist != ret) {
                         ret = exist;
@@ -2576,9 +2576,9 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
 
                     A->moveTargetEdges(ret);
                     B->moveTargetEdges(ret);
-                    A->updateEnd(addr);
+                    A->updateEnd(address);
                     A->_lastInsn = ait->first;
-                    B->updateEnd(addr);                    
+                    B->updateEnd(address);
                     B->_lastInsn = iit->first;
 
                     if (a2.empty()) {

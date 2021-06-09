@@ -204,8 +204,8 @@ bool runHunt_binaryEdit()
         // child case
         // run new binary
     	char *exeFile = [](){
-    		std::string exeFile = std::string("./") + ((config.use_exe) ? config.exeFilePath : config.writeFilePath);
-    		return strdup(exeFile.c_str());
+    		std::string filename = std::string("./") + ((config.use_exe) ? config.exeFilePath : config.writeFilePath);
+    		return strdup(filename.c_str());
     	}();
 
         int numargs = 0;

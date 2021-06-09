@@ -665,7 +665,6 @@ int image::findMain()
             co.parse(region, entry_point, true);
 
             /* Get the parsed Function */
-            vector<ParseAPI::Function*> funcs;
             Function* func = co.findFuncByEntry(region, entry_point);
 
             if(!func)

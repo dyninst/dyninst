@@ -1565,7 +1565,6 @@ bool PCProcess::walkStacks(std::vector<std::vector<Frame> > &stackWalks) {
 
 // Return a vector (possibly with one object) of active frames in the process
 bool PCProcess::getAllActiveFrames(std::vector<Frame> &activeFrames) {
-    Frame active;
     if( threadsByTid_.size() == 0 ) return false;
 
     for(map<dynthread_t, PCThread *>::iterator i = threadsByTid_.begin();

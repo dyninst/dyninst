@@ -401,10 +401,10 @@ AddressTranslateSysV::AddressTranslateSysV() :
 {
 }
 
-AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_, 
+AddressTranslateSysV::AddressTranslateSysV(int pid_, ProcessReader *reader_, 
                                            SymbolReaderFactory *reader_fact,
                                            std::string exename, Address interp_base) :
-   AddressTranslate(pid, INVALID_HANDLE_VALUE, exename),
+   AddressTranslate(pid_, INVALID_HANDLE_VALUE, exename),
    reader(reader_),
    interpreter_base(0),
    set_interp_base(false),
@@ -700,9 +700,8 @@ bool AddressTranslateSysV::refresh()
           return true;
        }
    }
-   std::vector<LoadedLib *>::iterator i;
-   for (i = libs.begin(); i != libs.end(); i++)
-      (*i)->setShouldClean(true);
+   for (auto i : libs)
+      i->setShouldClean(true);
    libs.clear();
 
    if (!exec) {

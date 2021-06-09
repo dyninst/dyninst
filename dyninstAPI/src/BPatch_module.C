@@ -349,10 +349,10 @@ bool BPatch_module::getProcedures(BPatch_Vector<BPatch_function*> &funcs,
        func_map.size() != mod->getFuncVectorSize() || 
        mod->obj()->isExploratoryModeOn())
    {
-      const std::vector<func_instance*> &funcs = mod->getAllFunctions();
-      for (unsigned i=0; i<funcs.size(); i++) {
-         if (!func_map.count(funcs[i])) {
-            addSpace->findOrCreateBPFunc(funcs[i], this); // adds func to func_map
+      const std::vector<func_instance*> &funcs_ = mod->getAllFunctions();
+      for (unsigned i=0; i<funcs_.size(); i++) {
+         if (!func_map.count(funcs_[i])) {
+            addSpace->findOrCreateBPFunc(funcs_[i], this); // adds func to func_map
          }
       }
       full_func_parse = true;
@@ -470,8 +470,8 @@ BPatch_module::findFunction(const char *name,
 	      piter != func->pretty_names_end();
 	      ++piter) {
 	   const string &pName = *piter;
-            int err;     
-            if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
+            int err_code;
+            if (0 == (err_code = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
                if (func->isInstrumentable() || incUninstrumentable) {
                   BPatch_function *foo = addSpace->findOrCreateBPFunc(func, NULL);
                   //	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
@@ -487,9 +487,9 @@ BPatch_module::findFunction(const char *name,
 	      miter != func->symtab_names_end();
 	      ++miter) {
 	   const string &mName = *miter;
-            int err;
+            int err_code;
 
-            if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
+            if (0 == (err_code = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
                if (func->isInstrumentable() || incUninstrumentable) {
                   BPatch_function *foo = addSpace->findOrCreateBPFunc(func, NULL);
                   //	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
@@ -652,10 +652,10 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
    if (!isValid())
       return false;
    if (!full_var_parse) {
-      const std::vector<int_variable*> &vars = mod->getAllVariables();
-      for (unsigned i=0; i<vars.size(); i++) {
-         if (!var_map.count(vars[i])) {
-            addSpace->findOrCreateVariable(vars[i]);
+      const std::vector<int_variable*> &vars_ = mod->getAllVariables();
+      for (unsigned i=0; i<vars_.size(); i++) {
+         if (!var_map.count(vars_[i])) {
+            addSpace->findOrCreateVariable(vars_[i]);
          }
       }
       full_var_parse = true;

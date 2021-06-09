@@ -110,8 +110,8 @@ bool TrackLibState::updateLibs()
       needs_update = true;
    }
 
-   vector<pair<LibAddrPair, unsigned int> > arch_libs;
-   if (!updateLibsArch(arch_libs)) {
+   vector<pair<LibAddrPair, unsigned int> > libs;
+   if (!updateLibsArch(libs)) {
 #if !defined(os_linux) && !defined(arch_x86_64)
       sw_printf("[%s:%u] - updateLibsArch failed\n",  FILE__, __LINE__);
 #endif

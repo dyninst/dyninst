@@ -281,7 +281,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                         fit != funcs.end();
                         fit++) 
                     {
-                        boost::lock_guard<Block> g(*worklist[idx].source);
+                        boost::lock_guard<Block> blockGuard(*worklist[idx].source);
                         const Block::edgelist & tedges = worklist[idx].source->targets();
                         for(Block::edgelist::const_iterator eit = tedges.begin();
                             eit != tedges.end();

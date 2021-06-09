@@ -593,7 +593,7 @@ block_instance *mapped_object::findBlockByEntry(Address addr)
 }
 
 
-bool mapped_object::findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks)
+bool mapped_object::findBlocksByAddr(const Address addr, std::set<block_instance *> &return_blocks)
 {
     // Quick bounds check...
     if (addr < codeAbs()) {
@@ -621,31 +621,31 @@ bool mapped_object::findBlocksByAddr(const Address addr, std::set<block_instance
             llf_iter != ll_funcs.end(); ++llf_iter) {
            block_instance *block = findBlock(*llb_iter);
            assert(block);
-           blocks.insert(block);
+           return_blocks.insert(block);
         }
     }
-    return !blocks.empty();
+    return !return_blocks.empty();
 }
 
-bool mapped_object::findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs)
+bool mapped_object::findFuncsByAddr(const Address addr, std::set<func_instance *> &return_funcs)
 {
     bool ret = false;
     // Quick and dirty implementation
-    std::set<block_instance *> blocks;
-    if (!findBlocksByAddr(addr, blocks)) return false;
-    for (std::set<block_instance *>::iterator iter = blocks.begin();
-         iter != blocks.end(); ++iter) {
-       (*iter)->getFuncs(std::inserter(funcs, funcs.end()));
+    std::set<block_instance *> found_blocks;
+    if (!findBlocksByAddr(addr, found_blocks)) return false;
+    for (std::set<block_instance *>::iterator iter = found_blocks.begin();
+         iter != found_blocks.end(); ++iter) {
+       (*iter)->getFuncs(std::inserter(return_funcs, return_funcs.end()));
        ret = true;
     }
     return ret;
 }
 
 func_instance *mapped_object::findFuncByEntry(const Address addr) {
-   std::set<func_instance *> funcs;
-   if (!findFuncsByAddr(addr, funcs)) return NULL;
-   for (std::set<func_instance *>::iterator iter = funcs.begin();
-        iter != funcs.end(); ++iter) {
+   std::set<func_instance *> found_funcs;
+   if (!findFuncsByAddr(addr, found_funcs)) return NULL;
+   for (std::set<func_instance *>::iterator iter = found_funcs.begin();
+        iter != found_funcs.end(); ++iter) {
       if ((*iter)->entryBlock()->start() == addr) return *iter;
    }
    return NULL;
@@ -665,8 +665,8 @@ const std::vector<mapped_module *> &mapped_object::getModules() {
     return everyModule;
 }
 
-bool mapped_object::getAllFunctions(std::vector<func_instance *> &funcs) {
-    unsigned start = funcs.size();
+bool mapped_object::getAllFunctions(std::vector<func_instance *> &return_funcs) {
+    unsigned start = return_funcs.size();
 
     const CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
     CodeObject::funclist::const_iterator fit = img_funcs.begin();
@@ -674,9 +674,9 @@ bool mapped_object::getAllFunctions(std::vector<func_instance *> &funcs) {
         if(funcs_.find((parse_func*)*fit) == funcs_.end()) {
             findFunction((parse_func*)*fit);
         }
-        funcs.push_back(SCAST_FI(funcs_[*fit]));
+        return_funcs.push_back(SCAST_FI(funcs_[*fit]));
     }
-    return funcs.size() > start;
+    return return_funcs.size() > start;
 }
 
 bool mapped_object::getAllVariables(std::vector<int_variable *> &vars) {

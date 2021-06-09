@@ -73,24 +73,24 @@ struct loop_sort {
 };
 
 void LoopAnalyzer::dfsCreateLoopHierarchy(LoopTreeNode * parent,
-                            vector<Loop *> &loops,
-                            std::string level)
+                            vector<Loop *> &loops_,
+                            std::string level_)
 {
-  for (unsigned int i = 0; i < loops.size(); i++) {
+  for (unsigned int i = 0; i < loops_.size(); i++) {
     // loop name is hierarchical level
-    std::string clevel = (level != "")
-      ? level + "." + utos(i+1)
+    std::string clevel = (level_ != "")
+      ? level_ + "." + utos(i+1)
       : utos(i+1);
 
     // add new tree nodes to parent
     LoopTreeNode * child =
-      new LoopTreeNode(loops[i], (std::string("loop_"+clevel)).c_str());
+      new LoopTreeNode(loops_[i], (std::string("loop_"+clevel)).c_str());
 
     parent->children.push_back(child);
 
     // recurse with this child's outer loops
     vector<Loop*> outerLoops;
-    loops[i]->getOuterLoops(outerLoops);
+    loops_[i]->getOuterLoops(outerLoops);
     loop_sort l;
     std::sort(outerLoops.begin(), outerLoops.end(), l);
     dfsCreateLoopHierarchy(child, outerLoops, clevel);
@@ -129,8 +129,8 @@ void LoopAnalyzer::createLoopHierarchy()
               if (callee->entry()->end() != target->start()) continue;
               // Make sure that the function entry block will fall through to the call target
               bool findFT = false;
-              for (auto eit = callee->entry()->targets().begin(); eit != callee->entry()->targets().end(); ++eit) {
-                  if ((*eit)->type() == FALLTHROUGH) {
+              for (auto i : callee->entry()->targets()) {
+                  if (i->type() == FALLTHROUGH) {
                       findFT = true;
                       break;
                   }

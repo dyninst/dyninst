@@ -141,17 +141,17 @@ void SymElf::init()
 #define UNSET_INDEX_CODE ((int) 0xfffffffe)
 
 #define FOR_EACH_SYMBOL(shdr, symbols, str_buffer, idx) \
-   Elf_X_Data sym_data = shdr.get_data(); \
-   Elf_X_Sym symbols = sym_data.get_sym(); \
-   int str_index = shdr.sh_link(); \
-   Elf_X_Shdr str_shdr = elf->get_shdr(str_index); \
+   Elf_X_Data FES_sym_data = shdr.get_data(); \
+   Elf_X_Sym symbols = FES_sym_data.get_sym(); \
+   int FES_str_index = shdr.sh_link(); \
+   Elf_X_Shdr str_shdr = elf->get_shdr(FES_str_index); \
    if (!str_shdr.isValid()) { \
       continue; \
    } \
-   Elf_X_Data str_data = str_shdr.get_data(); \
-   const char *str_buffer = (const char *) str_data.d_buf(); \
-   unsigned sym_count = symbols.count(); \
-   for (unsigned idx=0; idx<sym_count; idx++)
+   Elf_X_Data FES_str_data = str_shdr.get_data(); \
+   const char *str_buffer = (const char *) FES_str_data.d_buf(); \
+   unsigned FES_sym_count = symbols.count(); \
+   for (unsigned idx=0; idx<FES_sym_count; idx++)
 
 #define MAKE_SYMBOL(name, idx, shdr, sym) \
    sym.v1 = (void *) (const_cast<char *>(name)); \

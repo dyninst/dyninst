@@ -106,7 +106,7 @@ private:
         Dwarf * dbg;
         Elf * eh_frame;
         Architecture arch;
-        frameParser_key(Dwarf * d, Elf * eh_frame, Architecture a) : dbg(d), eh_frame(eh_frame), arch(a)
+        frameParser_key(Dwarf * d, Elf * eh_frame_, Architecture a) : dbg(d), eh_frame(eh_frame_), arch(a)
         {
         }
 

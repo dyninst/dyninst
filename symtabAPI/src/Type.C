@@ -70,10 +70,10 @@ typeId_t Type::getUniqueTypeId()
   return ::getUniqueTypeId();
 }
 
-void Type::updateUniqueTypeId(typeId_t ID_)
+void Type::updateUniqueTypeId(typeId_t id)
 {
   typeId_t val = user_type_id.load();
-  while((ID_ < 0) && (val >= ID_))
+  while((id < 0) && (val >= id))
   {
     user_type_id.compare_exchange_weak(val, val-1);
   }
@@ -1393,8 +1393,8 @@ void fieldListType::fixupComponents()
          /* FIXME: visibility can also be described on a per-name basis in the
             subclass.  We have now way to convey this information currently, but I'm not
             sure that it matters for our purposes... */
-         for( unsigned int i = 0; i < superClassFields->size(); i++ ) {
-            Field * currentSuperField = (*superClassFields)[i];
+         for( unsigned int j = 0; j < superClassFields->size(); j++ ) {
+            Field * currentSuperField = (*superClassFields)[j];
             // bperr( "Considering superfield '%s'\n", currentSuperField->getName() );
             
             if( currentSuperField->getVisibility() != visPrivate ) {

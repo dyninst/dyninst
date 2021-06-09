@@ -131,28 +131,28 @@ namespace Dyninst {
             }
 
 
-            int32_t sign_extend32(int size, int in) {
+            int32_t sign_extend32(int size_, int in) {
                 int32_t val = 0 | in;
 
-                return (val << (32 - size)) >> (32 - size);
+                return (val << (32 - size_)) >> (32 - size_);
             }
 
-            int64_t sign_extend64(int size, int in) {
+            int64_t sign_extend64(int size_, int in) {
                 int64_t val = 0 | in;
 
-                return (val << (64 - size)) >> (64 - size);
+                return (val << (64 - size_)) >> (64 - size_);
             }
 
-            uint32_t unsign_extend32(int size, int in) {
+            uint32_t unsign_extend32(int size_, int in) {
                 uint32_t mask = ~0;
 
-                return (mask >> (32 - size)) & in;
+                return (mask >> (32 - size_)) & in;
             }
 
-            uint64_t unsign_extend64(int size, int in) {
+            uint64_t unsign_extend64(int size_, int in) {
                 uint64_t mask = ~0;
 
-                return (mask >> (64 - size)) & in;
+                return (mask >> (64 - size_)) & in;
             }
 
             int highest_set_bit(int32_t val) {

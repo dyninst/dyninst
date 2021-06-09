@@ -259,7 +259,7 @@ Function::blocks_int()
         bool exit_func = false;
         bool found_call = false;
         bool found_call_ft = false;
-        boost::lock_guard<Block> g(*cur);
+        boost::lock_guard<Block> blockGuard(*cur);
         
         Block::edgelist targets;
         cur->copy_targets(targets);
@@ -409,7 +409,7 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
     Block::edgelist::const_iterator eit;
     dyn_hash_map<Address,bool> linked;
     {
-        boost::lock_guard<Block> g(*retblk);
+        boost::lock_guard<Block> blockGuard(*retblk);
         eit = retblk->targets().begin();
         for( ; eit != retblk->targets().end(); ++eit) {
             Edge * e = *eit;

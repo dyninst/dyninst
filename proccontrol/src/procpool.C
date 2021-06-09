@@ -76,8 +76,8 @@ void ProcessPool::rmProcess(int_process *proc)
    int_threadPool *tpool = proc->threadPool();
    if (!tpool)
       return;
-   for (int_threadPool::iterator i = tpool->begin(); i != tpool->end(); ++i) {
-      rmThread(*i);
+   for (auto t : *tpool) {
+      rmThread(t);
    }
 }
 

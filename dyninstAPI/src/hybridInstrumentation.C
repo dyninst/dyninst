@@ -1275,7 +1275,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
         // function so we can find the code at the call instruction's
         // fallthrough address
         proc()->beginInsertionSet();
-        BPatch_function *targFunc = proc()->findFunctionByEntry(target);
+        targFunc = proc()->findFunctionByEntry(target);
         if (!targFunc) {
             analyzeNewFunction(point,target,false,false);
             targFunc = proc()->findFunctionByEntry(target);

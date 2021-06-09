@@ -229,9 +229,9 @@ class NodeSearchIterator : public NodeIteratorImpl{
         return false;
     }
 
-    void updateVisited(Node::Ptr &current) {
-        assert(current);
-        visited.insert(current);
+    void updateVisited(Node::Ptr &node) {
+        assert(node);
+        visited.insert(node);
     }
 
     // This is where the direction and type of iterator come in.

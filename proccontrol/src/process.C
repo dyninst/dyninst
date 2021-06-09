@@ -869,8 +869,8 @@ bool int_process::syncRunState()
          int_thread::StateTracker &target = thr->getActiveState();
 
          char state_code[int_thread::NumStateIDs+1];
-         for (int i = 0; i < int_thread::NumStateIDs; i++) {
-            state_code[i] = int_thread::stateLetter(thr->getStateByID(i).getState());
+         for (int j = 0; j < int_thread::NumStateIDs; j++) {
+            state_code[j] = int_thread::stateLetter(thr->getStateByID(j).getState());
          }
          state_code[int_thread::NumStateIDs] = '\0';
          pthrd_printf("%d/%d hand: %s, gen: %s, %s: %s, code: %s\n",
@@ -2076,8 +2076,7 @@ bool int_process::removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, se
           bps_to_remove.insert(static_cast<bp_instance *>(swbp));
    }
 
-   for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
-      int_thread *thr = *i;
+   for (auto thr : *threadPool()) {
       hw_breakpoint *hwbp = thr->getHWBreakpoint(addr);
       if (hwbp && hwbp->containsIntBreakpoint(bp)) {
          bps_to_remove.insert(static_cast<bp_instance *>(hwbp));
@@ -2090,9 +2089,8 @@ bool int_process::removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, se
       return false;
    }
 
-   for (set<bp_instance *>::iterator i = bps_to_remove.begin(); i != bps_to_remove.end(); i++) {
+   for (auto ibp : bps_to_remove) {
       bool empty;
-      bp_instance *ibp = *i;
       bool result = ibp->rmBreakpoint(this, bp, empty, resps);
       if (!result) {
          pthrd_printf("rmBreakpoint failed on breakpoint at %lx in %d\n", addr, getPid());
@@ -4892,8 +4890,8 @@ bool bp_instance::checkBreakpoint(int_breakpoint *bp, int_process *p)
          if ((*i)->isCtrlTransfer()) {
             perr_printf("Error.  Attempted to add two control transfer breakpoints "
                         "at same place\n");
-            for (set<int_process *>::iterator i = p->memory()->procs.begin(); i != p->memory()->procs.end(); i++) {
-               (*i)->setLastError(err_badparam, "Attempted two control transfer breakpoints at "
+            for (auto j : p->memory()->procs) {
+               j->setLastError(err_badparam, "Attempted two control transfer breakpoints at "
                                   "same location\n");
             }
             return false;
@@ -5075,7 +5073,7 @@ sw_breakpoint *sw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyni
    return is.ibp;
 }
 
-bool sw_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr write_response)
+bool sw_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr write_response_)
 {
    assert(buffer_size != 0);
    unsigned char bp_insn[BP_BUFFER_SIZE];
@@ -5086,10 +5084,10 @@ bool sw_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr writ
          bp_insn[i] = buffer[i];
       }
    }
-   return proc->writeMem(bp_insn, addr, buffer_size, write_response, NULL, int_process::bp_install);
+   return proc->writeMem(bp_insn, addr, buffer_size, write_response_, NULL, int_process::bp_install);
 }
 
-bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read_response)
+bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read_response_)
 {
    if (buffer_size != 0) {
       return true;
@@ -5102,9 +5100,9 @@ bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read
    pthrd_printf("Saving original data for breakpoint insertion at %lx +%u\n", addr, (unsigned) buffer_size);
    assert(buffer_size <= BP_BUFFER_SIZE);
 
-   read_response->setBuffer(buffer, buffer_size);
-   bool ret = proc->readMem(addr, read_response);
-   if (read_response->isReady()) {
+   read_response_->setBuffer(buffer, buffer_size);
+   bool ret = proc->readMem(addr, read_response_);
+   if (read_response_->isReady()) {
       pthrd_printf("Buffer contents from read breakpoint:\n");
       for (int i = 0; i < buffer_size; ++i) {
          pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
@@ -5249,8 +5247,8 @@ bool sw_breakpoint::needsClear() {
 }
 
 hw_breakpoint::hw_breakpoint(int_thread *thread, unsigned mode, unsigned size,
-                             bool pwide, Dyninst::Address addr) :
-   bp_instance(addr),
+                             bool pwide, Dyninst::Address addr_) :
+   bp_instance(addr_),
    hw_perms(mode),
    hw_size(size),
    proc_wide(pwide),
@@ -5334,12 +5332,12 @@ hw_breakpoint *hw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyni
    while (!hw_bps.empty()) {
       set<response::ptr> resps;
       for (set<hw_breakpoint *>::iterator i = hw_bps.begin(); i != hw_bps.end();) {
-         hw_breakpoint *bp = *i;
+         hw_breakpoint *bps = *i;
          bool done = false;
-         bool result = bp->install(done, resps);
+         bool result = bps->install(done, resps);
          if (!result) {
             pthrd_printf("Error installing HW breakpoint on %d/%d at %lx\n",
-                         proc->getPid(), bp->getThread()->getLWP(), addr);
+                         proc->getPid(), bps->getThread()->getLWP(), addr);
             had_error = true;
             break;
          }

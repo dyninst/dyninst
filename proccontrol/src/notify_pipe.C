@@ -69,7 +69,6 @@ void int_notify::unix_details::readFromPipe()
       error = errno;
    } while (result == -1 && error == EINTR);
    if (result == -1) {
-      int error = errno;
       if (error == EAGAIN) {
          pthrd_printf("Notification pipe had no data available\n");
          return;

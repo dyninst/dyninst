@@ -1254,8 +1254,6 @@ void trampTrapMappings::flush() {
    //Each table entry has two pointers.
    unsigned entry_size = proc()->getAddressWidth() * 2;
 
-   Address write_addr = 0x0;
-
    allocateTable();
 
    //Add any new entries to the table
@@ -1278,7 +1276,7 @@ void trampTrapMappings::flush() {
       assert(cur == buffer + bytes_to_add);
       
       //Write the new entries into the process
-      write_addr = current_table + (table_used * entry_size);
+      Address write_addr = current_table + (table_used * entry_size);
       bool result = proc()->writeDataSpace((void *) write_addr, bytes_to_add, 
                                            buffer);
       assert(result);

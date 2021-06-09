@@ -106,9 +106,9 @@ void Symtab::setSymtabError(SymtabError new_err)
    serr = new_err;
 }
 
-std::string Symtab::printError(SymtabError serr)
+std::string Symtab::printError(SymtabError e)
 {
-    switch (serr)
+    switch (e)
     {
        case Obj_Parsing:
            return "Failed to parse the Object"+errMsg;
