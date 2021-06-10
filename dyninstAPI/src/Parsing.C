@@ -69,7 +69,7 @@ using namespace Dyninst::InstructionAPI;
 
 void DynCFGFactory::dump_stats()
 {
-    fprintf(stderr,"===DynCFGFactory for image %p===\n",_img);
+    fprintf(stderr,"===DynCFGFactory for image %p===\n", (void*)_img);
     fprintf(stderr,"   Functions:\n");
     fprintf(stderr,"   %-12s src\n","cnt");
     for(int i=0;i<_funcsource_end_;++i) {

@@ -162,7 +162,7 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
 
   if (DEBUG_LOOP)
     fprintf(stderr,"%s findLoopInstPoints 0x%p\n",
-            ll_func()->prettyName().c_str(), loop);
+            ll_func()->prettyName().c_str(), (void*)loop);
 
   BPatch_Vector<BPatch_point*> *points = new BPatch_Vector<BPatch_point *>;
 

@@ -890,7 +890,7 @@ void registerSpace::debugPrint() {
   if (!dyn_debug_regalloc) return;
 
   // Dump out our data
-  fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
+  fprintf(stderr, "Beginning debug print of registerSpace at %p...", (void*)this);
   fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n",
 	  (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
   fprintf(stderr, "Stack pointer is at %d\n",

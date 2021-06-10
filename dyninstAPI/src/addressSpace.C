@@ -316,9 +316,9 @@ void AddressSpace::inferiorFreeCompact() {
       assert(h1->length != 0);
       if (h1->addr + h1->length > h2->addr) {
          fprintf(stderr, "Error: heap 1 (%p) (0x%p to 0x%p) overlaps heap 2 (%p) (0x%p to 0x%p)\n",
-                 h1,
+                 (void*)h1,
                  (void *)h1->addr, (void *)(h1->addr + h1->length),
-                 h2,
+                 (void*)h2,
                  (void *)h2->addr, (void *)(h2->addr + h2->length));
       }
       assert(h1->addr + h1->length <= h2->addr);

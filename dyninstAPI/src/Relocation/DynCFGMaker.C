@@ -53,7 +53,7 @@ PatchFunction* DynCFGMaker::makeFunction(Function* f,
   mapped_module* mod = mo->findModule(img_func->pdmod());
   if (!mod) {
     fprintf(stderr, "%s[%d]: ERROR: cannot find module %p\n", FILE__, __LINE__,
-            img_func->pdmod());
+            (void*)img_func->pdmod());
     fprintf(stderr, "%s[%d]:  ERROR:  Cannot find module %s\n", FILE__, __LINE__,
             img_func->pdmod()->fileName().c_str());
   }

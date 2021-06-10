@@ -373,7 +373,7 @@ unsigned func_instance::getNumDynamicCalls()
 // warning: doesn't (and can't) force initialization of lazily-built 
 // data structures because this function is declared to be constant
 void func_instance::debugPrint() const {
-    fprintf(stderr, "Function debug dump (%p):\n", this);
+    fprintf(stderr, "Function debug dump (%p):\n", (const void*)this);
     fprintf(stderr, "  Symbol table names:\n");
     for (auto i = symtab_names_begin(); 
 	 i != symtab_names_end(); ++i) {
@@ -390,12 +390,12 @@ void func_instance::debugPrint() const {
       fprintf(stderr, "    %s\n", k->c_str());
     }
     fprintf(stderr, "  Address: 0x%lx\n", addr());
-    fprintf(stderr, "  Internal pointer: %p\n", ifunc());
+    fprintf(stderr, "  Internal pointer: %p\n", (void*)ifunc());
     fprintf(stderr, "  Object: %s (%p), module: %s (%p)\n",
             obj()->fileName().c_str(),
-            obj(),
+            (void*)obj(),
             mod()->fileName().c_str(),
-            mod());
+            (void*)mod());
     for (Blockset::const_iterator
          cb = all_blocks_.begin();
          cb != all_blocks_.end();

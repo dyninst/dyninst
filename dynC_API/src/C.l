@@ -134,7 +134,7 @@ L?'(\\.|[^\\'])+' { return(CONSTANT); }
                 }
 
    \\[0-7]{1,3} { /* octal escape sequence */
-                  int result;                                                        
+                  unsigned int result;
                   (void) sscanf( yytext + 1, "%o", &result );                        
                   if ( result > 0xff ){
                       /* error, constant is out-of-bounds */

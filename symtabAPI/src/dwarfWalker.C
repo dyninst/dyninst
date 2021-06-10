@@ -259,7 +259,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
         moduleName = "<artificial>" + suffix.str();
     }
 
-    dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), moduleDIE.addr, moduleTag);
+    dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), (void*)moduleDIE.addr, moduleTag);
 
     /* Set the language, if any. */
     Dwarf_Attribute languageAttribute;
@@ -363,7 +363,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
         dwarf_printf("(0x%lx) Parsing entry with context size %d, func %s, encl %p, (%s), mod:%s, tag: %x\n",
                 id(), stack_size(),
                 curFunc()?curFunc()->getName().c_str():"(N/A)",
-                curEnclosure().get(), (dbg()!=desc)?"sup":"not sup",
+                (void*)curEnclosure().get(), (dbg()!=desc)?"sup":"not sup",
                 mod()->fullName().c_str(), dwarf_tag(&e));
 
         bool ret = false;
@@ -458,7 +458,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
                     Dwarf_Die importedDIE;
                     auto die_p = dwarf_formref_die(&importAttribute, &importedDIE);
                     Dwarf * desc1 = dwarf_cu_getdwarf(importedDIE.cu);
-                    dwarf_printf("(0x%lx) Imported DIE dwarf_desc: %p\n", id(), desc1);
+                    dwarf_printf("(0x%lx) Imported DIE dwarf_desc: %p\n", id(), (void*)desc1);
                     if(!die_p) break;
                     if (!parse_int(importedDIE, true))
                         return false;
@@ -976,7 +976,7 @@ void DwarfWalker::createLocalVariable(const vector<VariableLocation> &locs, boos
                                          (int) variableLineNo,
                                          curFunc());
    dwarf_printf("(0x%lx) Created localVariable '%s' (%p), currentFunction %p\n",
-                   id(), curName().c_str(), newVariable, curFunc());
+                   id(), curName().c_str(), (void*)newVariable, curFunc());
 
    for (unsigned int i = 0; i < locs.size(); ++i) {
          dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
@@ -1066,7 +1066,7 @@ void DwarfWalker::createParameter(const vector<VariableLocation> &locs,
    dwarf_printf("(0x%lx) Creating new formal parameter %s/%p (%s) (%p)\n",
                 id(),
                 curName().c_str(),
-                paramType.get(), paramType->getName().c_str(),
+                (void*)paramType.get(), paramType->getName().c_str(),
 		//                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ?
 		//curFunc()->getAllMangledNames()[0].c_str() : ""),
                 curFunc());
@@ -1155,10 +1155,10 @@ bool DwarfWalker::parseBaseType() {
    typeScalar *debug = baseType.get();
    auto baseTy = tc()->addOrUpdateType( baseType );
    dwarf_printf("(0x%lx) Created type %p / %s (pre add %p / %s) for id %d, size %d, in TC %p\n", id(),
-                baseTy.get(), baseTy->getName().c_str(),
-                debug, debug->getName().c_str(),
+                (void*)baseTy.get(), baseTy->getName().c_str(),
+                (void*)debug, debug->getName().c_str(),
                 (int) offset(), size,
-                tc());
+                (void*)tc());
 
    return true;
 }
@@ -1176,8 +1176,8 @@ bool DwarfWalker::parseTypedef() {
 
     auto typeDef = tc()->addOrUpdateType( Type::make_shared<typeTypedef>( type_id(), referencedType, curName()) );
     dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
-            typeDef.get(), typeDef->getName().c_str(), type_id(),
-            (int) offset(), typeDef->getSize(), tc(), mod()->fullName().c_str());
+            (void*)typeDef.get(), typeDef->getName().c_str(), type_id(),
+            (int) offset(), typeDef->getSize(), (void*)tc(), mod()->fullName().c_str());
 
     return true;
 }
@@ -1276,7 +1276,7 @@ bool DwarfWalker::parseInheritance() {
    if (!findType(superClass, false)) return false;
    if (!superClass) return false;
 
-   dwarf_printf("(0x%lx) Found %p as superclass\n", id(), superClass.get());
+   dwarf_printf("(0x%lx) Found %p as superclass\n", id(), (void*)superClass.get());
 
    visibility_t visibility = visUnknown;
    if (!findVisibility(visibility)) return false;
@@ -1285,7 +1285,7 @@ bool DwarfWalker::parseInheritance() {
       Type::getComponents() will Do the Right Thing. */
    std::string fName = "{superclass}";
    curEnclosure()->asFieldListType().addField( fName, superClass, -1, visibility );
-   dwarf_printf("(0x%lx) Added type %p as %s to %p\n", id(), superClass.get(), fName.c_str(), curEnclosure().get());
+   dwarf_printf("(0x%lx) Added type %p as %s to %p\n", id(), (void*)superClass.get(), fName.c_str(), (void*)curEnclosure().get());
    return true;
 }
 
@@ -1341,8 +1341,8 @@ bool DwarfWalker::parseStructUnionClass() {
                 ts->setSize(size);
                 containingType = tc()->addOrUpdateType(ts);
                 dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
-                        containingType.get(), containingType->getName().c_str(), type_id(),
-                        (int) offset(), containingType->getSize(), tc(), mod()->fullName().c_str());
+                        (void*)containingType.get(), containingType->getName().c_str(), type_id(),
+                        (int) offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
                 break;
             }
         case DW_TAG_union_type:
@@ -1351,8 +1351,8 @@ bool DwarfWalker::parseStructUnionClass() {
                 tu->setSize(size);
                 containingType = tc()->addOrUpdateType(tu);
                 dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
-                        containingType.get(), containingType->getName().c_str(), type_id(),
-                        (int) offset(), containingType->getSize(), tc(), mod()->fullName().c_str());
+                        (void*)containingType.get(), containingType->getName().c_str(), type_id(),
+                        (int) offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
                 break;
             }
         default:
@@ -1365,7 +1365,7 @@ bool DwarfWalker::parseStructUnionClass() {
     }
     setEnclosure(containingType);
     dwarf_printf("(0x%lx) Started class, union, or struct: %p\n",
-            id(), containingType.get());
+            id(), (void*)containingType.get());
     return true;
 }
 

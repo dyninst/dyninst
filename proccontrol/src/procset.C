@@ -3683,7 +3683,7 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
    set<StatResp_t *> all_resps;
 
    for (FileSet::iterator i = fset->begin(); i != fset->end(); i++) {
-      pthrd_printf("About to access proc %p\n", i->first->llproc());
+      pthrd_printf("About to access proc %p\n", (void*)i->first->llproc());
       fflush(stderr);
       int_remoteIO *proc = i->first->llproc()->getRemoteIO();
       if (!proc) {
@@ -3759,7 +3759,7 @@ bool RemoteIOSet::readFileContents(const FileSet *fset)
 MemoryUsageSet::MemoryUsageSet(ProcessSet::ptr ps_) :
    wps(ps_)
 {
-   pthrd_printf("Constructed MemoryUsageSet %p on procset of size %lu\n", this, (unsigned long) ps_->size());
+   pthrd_printf("Constructed MemoryUsageSet %p on procset of size %lu\n", (void*)this, (unsigned long) ps_->size());
 }
 
 MemoryUsageSet::~MemoryUsageSet()

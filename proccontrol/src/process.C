@@ -793,7 +793,7 @@ int int_process::getContSignal() const {
 
 void int_process::setPid(Dyninst::PID p)
 {
-   pthrd_printf("Setting int_process %p to pid %d\n", this, p);
+   pthrd_printf("Setting int_process %p to pid %d\n", (void*)this, p);
    pid = p;
 }
 
@@ -1380,7 +1380,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    MemUsage_set(false),
    remoteIO_set(false)
 {
-    pthrd_printf("New int_process at %p\n", this);
+    pthrd_printf("New int_process at %p\n", (void*)this);
     clearLastError();
 	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
@@ -1428,7 +1428,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    MemUsage_set(false),
    remoteIO_set(false)
 {
-   pthrd_printf("New int_process at %p\n", this);
+   pthrd_printf("New int_process at %p\n", (void*)this);
    Process::ptr hlproc = Process::ptr(new Process());
    clearLastError();
    mem = new mem_state(*p->mem, this);
@@ -1487,7 +1487,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
 
    if (!plat_needsAsyncIO()) {
       pthrd_printf("Reading from remote memory %lx to %p, size = %lu on %d/%d\n",
-                   remote, result->getBuffer(), (unsigned long) result->getSize(),
+                   remote, (void*)result->getBuffer(), (unsigned long) result->getSize(),
 				   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 
       bresult = plat_readMem(thr, result->getBuffer(), remote, result->getSize());
@@ -1509,7 +1509,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    }
    else {
       pthrd_printf("Async read from remote memory %lx to %p, size = %lu on %d/%d\n",
-                   remote, result->getBuffer(), (unsigned long) result->getSize(),
+                   remote, (void*)result->getBuffer(), (unsigned long) result->getSize(),
                    getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 
       getResponses().lock();
@@ -2446,7 +2446,7 @@ bool int_process::plat_preAsyncWait()
 
 int_process::~int_process()
 {
-   pthrd_printf("Deleting int_process at %p\n", this);
+   pthrd_printf("Deleting int_process at %p\n", (void*)this);
    if (up_proc != Process::ptr())
    {
       proc_exitstate *exitstate = new proc_exitstate();
@@ -2728,13 +2728,13 @@ void hybrid_lwp_control_process::noteNewDequeuedEvent(Event::ptr ev)
    if (ev->getSyncType() == Event::sync_process) {
 	   pthrd_printf("Marking %d debugger suspended on event: %s\n", getPid(), ev->name().c_str());
       debugger_stopped = true;
-      pthrd_printf("Setting, debugger stopped: %d (%p) (%d)\n", debugger_stopped, this, getPid());
+      pthrd_printf("Setting, debugger stopped: %d (%p) (%d)\n", debugger_stopped, (void*)this, getPid());
    }
 }
 
 bool hybrid_lwp_control_process::plat_debuggerSuspended()
 {
-  pthrd_printf("Querying, debugger stopped: %d (%p) (%p) (%d)\n", debugger_stopped, &debugger_stopped, this, getPid());
+  pthrd_printf("Querying, debugger stopped: %d (%p) (%p) (%d)\n", debugger_stopped, (void*)&debugger_stopped, (void*)this, getPid());
    return debugger_stopped;
 }
 
@@ -4157,7 +4157,7 @@ void int_thread::markClearingBreakpoint(bp_instance *bp)
 {
    assert(!clearing_breakpoint || bp == NULL);
    pthrd_printf("%d/%d marking clearing bp %p (at 0x%lx)\n",
-	   llproc()->getPid(), getLWP(), bp, bp ? bp->getAddr() : 0);
+	   llproc()->getPid(), getLWP(), (void*)bp, bp ? bp->getAddr() : 0);
    clearing_breakpoint = bp;
    if (bp) {
       clearing_bp_count.inc();
