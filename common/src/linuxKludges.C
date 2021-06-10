@@ -88,10 +88,9 @@ static ssize_t process_vm_writev(pid_t pid,
 int P_getopt(int argc, char *argv[], const char *optstring)
 {
   /* On linux we prepend a + character */
-  char newopt[strlen(optstring)+5];
-  strcpy(newopt, "+");
-  strcat(newopt, optstring);
-  return getopt(argc, argv, newopt);
+  std::string newopt{"+"};
+  newopt += optstring;
+  return getopt(argc, argv, newopt.c_str());
 }
 
 int P_copy(const char *from, const char *to) {

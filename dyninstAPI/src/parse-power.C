@@ -108,10 +108,7 @@ std::string parse_func::calcParentFunc(const parse_func * imf,
       This wouldn't happen for OpenMP functions, but might for imposters*/
    if (strSize > 0)
    {
-      char tempBuf[strlen(nameStart)];
-      strncpy(tempBuf, nameStart, strSize);
-      tempBuf[strSize] = '\0';
-      std::string tempPDS(tempBuf);
+      std::string tempPDS(nameStart, strSize);
       return tempPDS;
    }
    else   /* if it starts with @ just return the full function as its parent, we'll sort it out later */

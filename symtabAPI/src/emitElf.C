@@ -432,19 +432,19 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     rewrite_printf("::driver for emitElf\n");
 
     string strtmpl = fName + "XXXXXX";
-    char buf[strtmpl.length() + 1];
-    strncpy(buf, strtmpl.c_str(), strtmpl.length() + 1);
+    auto buf = std::unique_ptr<char[]>(new char[strtmpl.length() + 1]);
+    strncpy(buf.get(), strtmpl.c_str(), strtmpl.length() + 1);
 
-    newfd = mkstemp(buf);
+    newfd = mkstemp(buf.get());
 
     if (newfd == -1) {
         log_elferror(err_func_, "error opening file to write symbols");
         return false;
     }
-    strtmpl = buf;
+    strtmpl = buf.get();
 
     fchmod(newfd, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP);
-    rewrite_printf("Emitting to temporary file %s\n", buf);
+    rewrite_printf("Emitting to temporary file %s\n", buf.get());
 
 #if 0
     //open ELF File for writing
