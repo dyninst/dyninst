@@ -309,8 +309,8 @@ public:
             // XXX debugging
             if(b1 != b2)
                 fprintf(stderr,"FATAL: blocks %p [%lx,%lx) and %p [%lx,%lx) "
-                            "conflict",b1,b1->start(),b1->end(),
-                            b2,b2->start(),b2->end());
+                            "conflict",(void*)b1,b1->start(),b1->end(),
+                            (void*)b2,b2->start(),b2->end());
 
             assert(b1 == b2);
             return false;

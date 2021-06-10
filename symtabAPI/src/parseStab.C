@@ -1150,11 +1150,11 @@ int guessSize(const char *low, const char *hi)
    long long l, h;
 
    if (low[0] == '0')
-      sscanf(low, "%llo", &l);
+      sscanf(low, "%llo", (unsigned long long *)&l);
    else
       sscanf(low, "%lld", &l);
    if (hi[0] == '0')
-      sscanf(hi, "%llo", &h);
+      sscanf(hi, "%llo", (unsigned long long *)&h);
    else
       sscanf(hi, "%lld", &h);
 

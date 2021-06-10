@@ -1162,7 +1162,7 @@ async_ret_t thread_db_process::ll_fetchThreadInfo(td_thrhandle_t *th, td_thrinfo
       perr_printf("Error calling td_thr_get_info: %s (%d)\n", tdErr2Str(result), (int) result);
       return aret_error;
    }
-   pthrd_printf("Successful ll_fetchThreadInfo for handle %p - tid = %lu, lid = %lu\n", th, (unsigned long) info->ti_tid, (unsigned long) info->ti_lid);
+   pthrd_printf("Successful ll_fetchThreadInfo for handle %p - tid = %lu, lid = %lu\n", (void*)th, (unsigned long) info->ti_tid, (unsigned long) info->ti_lid);
    return aret_success;
 }
 

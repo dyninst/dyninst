@@ -659,7 +659,7 @@ void AstNode::cleanUseCount(void)
 // node is shared
 Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
 {
-    ast_printf("Allocating register for node %p, useCount %d\n", this, useCount);
+    ast_printf("Allocating register for node %p, useCount %d\n", (void*)this, useCount);
     // Allocate a register
     Register dest = gen.rs()->allocateRegister(gen, noCost);
 
@@ -667,7 +667,7 @@ Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
     assert(dest != REG_NULL);
 
     if (useCount > 1) {
-        ast_printf("Adding kept register %d for node %p: useCount %d\n", dest, this, useCount);
+        ast_printf("Adding kept register %d for node %p: useCount %d\n", dest, (void*)this, useCount);
         // If use count is 0 or 1, we don't want to keep
         // it around. If it's > 1, then we can keep the node
         // (by construction) and want to since there's another
@@ -770,7 +770,7 @@ bool AstNode::previousComputationValid(Register &reg,
 	Register keptReg = gen.tracker()->hasKeptRegister(this);
 	if (keptReg != REG_NULL) {
 		reg = keptReg;
-		ast_printf("Returning previously used register %d for node %p\n", reg, this);
+		ast_printf("Returning previously used register %d for node %p\n", reg, (void*)this);
 		return true;
 	}
    return false;
@@ -1832,7 +1832,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
     Register src = Null_Register;
 
 #if defined(ASTDEBUG)
-   sprintf(errorLine,"### location: %p ###\n", gen.point());
+   sprintf(errorLine,"### location: %p ###\n", (void*)gen.point());
    logLine(errorLine);
 #endif
    // Allocate a register to return
@@ -2006,7 +2006,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
-                    gen.point(), gen.point()->insnAddr());
+                    (void*)gen.point(), gen.point()->insnAddr());
         }
         assert(bpoint);
         ma = bpoint->getMemoryAccess();
@@ -2888,7 +2888,7 @@ bool AstCallNode::canBeKept() const {
         for (unsigned i = 0; i < args_.size(); i++) {
             if (!args_[i]->canBeKept()) {
                 fprintf(stderr, "AST %p: labelled const func but argument %d cannot be kept!\n",
-                        this, i);
+                        (const void*)this, i);
                 return false;
             }
         }
@@ -3503,7 +3503,7 @@ void regTracker_t::debugPrint() {
 
     for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
        fprintf(stderr, "AstNode %p: register %d, condition level %d\n",
-               iter->first, iter->second.keptRegister, iter->second.keptLevel);
+               (void*)iter->first, iter->second.keptRegister, iter->second.keptLevel);
     }
     fprintf(stderr, "==== End debug dump of register tracker ====\n");
 }

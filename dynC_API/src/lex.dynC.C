@@ -1483,7 +1483,7 @@ case 45:
 YY_RULE_SETUP
 #line 136 "C.l"
 { /* octal escape sequence */
-                  int result;                                                        
+                  unsigned int result;
                   (void) sscanf( dynCtext + 1, "%o", &result );                        
                   if ( result > 0xff ){
                       /* error, constant is out-of-bounds */

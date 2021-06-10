@@ -155,7 +155,7 @@ class COMMON_EXPORT AnnotatableDense
 	  {
 		  if (annotation_debug_flag())
 		  {
-			  fprintf(stderr, "%s[%d]:  Dense(%p) add %s-%d\n", FILE__, __LINE__, this, 
+			  fprintf(stderr, "%s[%d]:  Dense(%p) add %s-%d\n", FILE__, __LINE__, (void*)this, 
 					  AnnotationClassBase::findAnnotationClass(id) 
 					  ? AnnotationClassBase::findAnnotationClass(id)->getName().c_str() 
 					  : "bad_anno_id", id);
@@ -213,7 +213,7 @@ class COMMON_EXPORT AnnotatableDense
 		  if (annotation_debug_flag())
 		  {
 			  fprintf(stderr, "%s[%d]:  Dense(%p):  Add %s-%d, %s\n", FILE__, __LINE__, 
-					  this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
+					  (void*)this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
 		  }
 
          int id = a_id.getID();
@@ -253,7 +253,7 @@ class COMMON_EXPORT AnnotatableDense
 		  if (annotation_debug_flag())
 		  {
 			  fprintf(stderr, "%s[%d]:  Dense(%p) remove %s-%d, %s\n", FILE__, __LINE__, 
-					  this, a_id.getName().c_str(), a_id.getID(), a_id.getTypeName());
+					  (void*)this, a_id.getName().c_str(), a_id.getID(), a_id.getTypeName());
 		  }
 
          if (!annotations) return false;
@@ -294,7 +294,7 @@ class COMMON_EXPORT AnnotatableDense
 			  }
 
 			  fprintf(stderr, "%s[%d]:  Dense(%p):  have %lu annotations\n", 
-				  FILE__, __LINE__, this, (unsigned long) atypes.size());
+				  FILE__, __LINE__, (void*)this, (unsigned long) atypes.size());
 
 			  for (unsigned int i = 0; i < atypes.size(); ++i)
 			  {
@@ -353,7 +353,7 @@ class COMMON_EXPORT AnnotatableSparse
 				  if (annotation_debug_flag())
 				  {
 					  fprintf(stderr, "%s[%d]:  Sparse(%p) dtor remove %s-%d\n", FILE__, __LINE__,  
-							  this, AnnotationClassBase::findAnnotationClass(i) 
+							  (void*)this, AnnotationClassBase::findAnnotationClass(i) 
 							  ? AnnotationClassBase::findAnnotationClass(i)->getName().c_str() 
 							  : "bad_anno_id", i);
 				  }
@@ -445,7 +445,7 @@ class COMMON_EXPORT AnnotatableSparse
 	  {
 		  if (annotation_debug_flag())
 		  {
-			  fprintf(stderr, "%s[%d]:  Sparse(%p) add %s-%d void\n", FILE__, __LINE__, this, 
+			  fprintf(stderr, "%s[%d]:  Sparse(%p) add %s-%d void\n", FILE__, __LINE__, (void*)this, 
 					  AnnotationClassBase::findAnnotationClass(aid) 
 					  ? AnnotationClassBase::findAnnotationClass(aid)->getName().c_str() 
 					  : "bad_anno_id", aid);
@@ -473,7 +473,7 @@ class COMMON_EXPORT AnnotatableSparse
 
 			  if (a != iter->second)
 			  {
-				  annotatable_printf("%s[%d]:  WEIRD:  already have annotation of this type: %p, replacing with %p\n", FILE__, __LINE__, iter->second, a);
+				  annotatable_printf("%s[%d]:  WEIRD:  already have annotation of this type: %p, replacing with %p\n", FILE__, __LINE__, (void*)iter->second, (const void*)a);
 				  iter->second = const_cast<void *>(a);
 			  }
 
@@ -574,7 +574,7 @@ class COMMON_EXPORT AnnotatableSparse
       AN_INLINE bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
          {
 		  annotatable_printf("%s[%d]:  Sparse(%p):  Add %s-%d, %s\n", FILE__, __LINE__, 
-				  this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
+				  (void*)this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
             void *obj = this;
             annos_by_type_t *abt = getAnnosOfType(a_id, true /*do create if needed*/);
             assert(abt);
@@ -638,7 +638,7 @@ class COMMON_EXPORT AnnotatableSparse
 		  if (annotation_debug_flag())
 		  {
 			  fprintf(stderr, "%s[%d]:  Sparse(%p) remove %s-%d, %s\n", FILE__, __LINE__,
-					  this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
+					  (void*)this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
 		  }
 
 		  void *obj = this;
@@ -688,7 +688,7 @@ class COMMON_EXPORT AnnotatableSparse
 		  }
 
 		  fprintf(stderr, "%s[%d]:  Sparse(%p):  have %lu annos:\n", FILE__, __LINE__, 
-			  this, (unsigned long) atypes.size());
+			  (void*)this, (unsigned long) atypes.size());
 		  for (unsigned int i = 0; i < atypes.size(); ++i)
 		  {
 			  fprintf(stderr, "\t%s-%d, %s\n", atypes[i]->getName().c_str(), 

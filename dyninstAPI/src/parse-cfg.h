@@ -118,7 +118,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
             // XXX the remainder is debugging, and should be removed
             if(b1 != b2)
                 fprintf(stderr,"error: two blocks (%p,%p) at 0x%lx\n",
-                    b1,b2,b1->firstInsnOffset());
+                    (void*)b1,(void*)b2,b1->firstInsnOffset());
 
             assert(b1 == b2);
             return false;

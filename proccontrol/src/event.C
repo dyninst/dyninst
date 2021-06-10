@@ -1329,12 +1329,12 @@ int_eventAsyncIO::int_eventAsyncIO(response::ptr resp_, asyncio_type iot_) :
    iot(iot_),
    rpool(NULL)
 {
-   pthrd_printf("Creating int_eventAsyncIO at %p\n", this);
+   pthrd_printf("Creating int_eventAsyncIO at %p\n", (void*)this);
 }
 
 int_eventAsyncIO::~int_eventAsyncIO()
 {
-   pthrd_printf("Deleting int_eventAsyncIO at %p\n", this);
+   pthrd_printf("Deleting int_eventAsyncIO at %p\n", (void*)this);
 }
 
 int_eventAsyncFileRead::int_eventAsyncFileRead() :

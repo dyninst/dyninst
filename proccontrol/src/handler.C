@@ -278,7 +278,7 @@ void HandlerPool::markEventAsyncPending(Event::ptr ev)
                 (int) pending_async_events.size(),
                 was_empty ? "true" : "false");
    for (set<Event::ptr>::iterator j = pending_async_events.begin(); j != pending_async_events.end(); j++) {
-      pthrd_printf("\tEvent %s (%p)\n", (*j)->name().c_str(), (*j).get());
+      pthrd_printf("\tEvent %s (%p)\n", (*j)->name().c_str(), (void*)(*j).get());
    }
 
    if (was_empty) {
@@ -291,9 +291,9 @@ void HandlerPool::clearEventAsync(Event::ptr ev)
    bool result = removeAsyncPendingEvent(ev);
    if (!result)
       return;
-   pthrd_printf("Erasing event %s (%p) from list\n", ev->name().c_str(), ev.get());
+   pthrd_printf("Erasing event %s (%p) from list\n", ev->name().c_str(), (void*)ev.get());
    for (set<Event::ptr>::iterator j = pending_async_events.begin(); j != pending_async_events.end(); j++) {
-      pthrd_printf("\tEvent %s (%p)\n", (*j)->name().c_str(), (*j).get());
+      pthrd_printf("\tEvent %s (%p)\n", (*j)->name().c_str(), (void*)(*j).get());
    }
 
    if (pending_async_events.empty()) {
@@ -1998,7 +1998,7 @@ Handler::handler_ret_t HandleAsyncIO::handleEvent(Event::ptr ev)
    EventAsyncIO::ptr evio = ev->getEventAsyncIO();
    assert(evio);
    int_eventAsyncIO *iev = evio->getInternalEvent();
-   pthrd_printf("Dealing with int_eventAsyncIO %p\n", iev);
+   pthrd_printf("Dealing with int_eventAsyncIO %p\n", (void*)iev);
    assert(iev);
    assert(iev->resp);
    (void)iev->resp->isReady();
@@ -2372,7 +2372,7 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
 
 bool HandleCallbacks::registerCallback_int(EventType ev, Process::cb_func_t func)
 {
-   pthrd_printf("Registering event %s with callback function %p\n", ev.name().c_str(), func);
+   pthrd_printf("Registering event %s with callback function %p\n", ev.name().c_str(), (void*)func);
    std::set<EventType, Dyninst::ProcControlAPI::eventtype_cmp>::iterator i = alleventtypes.find(ev);
    if (i == alleventtypes.end()) {
       pthrd_printf("Event %s does not have any handler\n", ev.name().c_str());
@@ -2438,7 +2438,7 @@ bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
    bool removed_cb = false;
    std::vector<EventType> real_ets;
    getRealEvents(oet, real_ets);
-   pthrd_printf("Removing event %s callback with function %p\n", oet.name().c_str(), func);
+   pthrd_printf("Removing event %s callback with function %p\n", oet.name().c_str(), (void*)func);
    
    for (std::vector<EventType>::iterator i = real_ets.begin(); i != real_ets.end(); i++)
    {
@@ -2520,7 +2520,7 @@ bool HandleCallbacks::removeCallback(Process::cb_func_t func)
          rmd_something = true;
    }
    if (!rmd_something) {
-      perr_printf("Attempted to remove non-existant callback %p\n", func);
+      perr_printf("Attempted to remove non-existant callback %p\n", (void*)func);
       ProcControlAPI::globalSetLastError(err_badparam, "Callback does not exist");
       return false;
    }
