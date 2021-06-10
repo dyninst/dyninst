@@ -422,7 +422,7 @@ Offset emitElfStatic::adjustTLSOffset(Offset curOffset, Offset tlsSize) {
 }
 
 char emitElfStatic::getPaddingValue(Region::RegionType rtype) {
-    const char X86_NOP = 0x90;
+    const char X86_NOP = (char)0x90;
 
     char retChar = 0;
     if( rtype == Region::RT_TEXT || rtype == Region::RT_TEXTDATA ) {
