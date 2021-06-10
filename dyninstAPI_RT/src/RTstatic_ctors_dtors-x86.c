@@ -29,6 +29,7 @@
  */
 
 #if defined(DYNINST_RT_STATIC_LIB)
+#include <stdint.h>
 void *DYNINSTirel_start;
 void *DYNINSTirel_end;
 
@@ -65,7 +66,7 @@ void DYNINSTglobal_ctors_handler() {
     void (**ctor)(void) = &DYNINSTctors_begin;
 
     while( ctor != ( &DYNINSTctors_end )) {
-	if(*ctor && (*ctor != (void*)-1))
+	if(*ctor && ((intptr_t)*ctor != -1))
 	    (*ctor)();
         ctor++;
     }
@@ -80,7 +81,7 @@ void DYNINSTglobal_dtors_handler() {
 
     // Destructors are called in the forward order that they are listed
     while( dtor != (&DYNINSTdtors_end )) {
-	if(*dtor && (*dtor != (void*)-1))
+	if(*dtor && ((intptr_t)*dtor != -1))
 	    (*dtor)();
 	dtor++;
     }
@@ -99,10 +100,11 @@ void DYNINSTglobal_irel_handler() {
   else {
     rel_t *rel = 0;
     for (rel = (rel_t *)(&DYNINSTirel_start); rel != (rel_t *)(&DYNINSTirel_end); ++rel) {
+      typedef long (*funcptr)(void);
       long (*ptr)(void) = 0;
       long result = 0;
       if (rel->info != 0x2a) continue;
-      ptr = (void*)*(rel->offset);
+      ptr = (funcptr)(*rel->offset);
       result = ptr();
       *(rel->offset) = result;
     }
