@@ -259,6 +259,6 @@ struct PaddingPatch : public Patch {
    block_instance *block_;
 };
 
-};
-};
+}
+}
 #endif

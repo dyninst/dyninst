@@ -191,6 +191,6 @@ class Target<Address> : public TargetInt {
   const Address t_;
 };
 
-};
-};
+}
+}
 #endif

@@ -41,7 +41,7 @@ using namespace Dyninst;
 
 thread_local dyn_thread dyn_thread::me;
 
-dyn_thread::dyn_thread() {};
+dyn_thread::dyn_thread() {}
 
 unsigned int dyn_thread::getId() {
 #if defined(_OPENMP) 

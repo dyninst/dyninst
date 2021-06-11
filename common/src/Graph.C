@@ -73,7 +73,7 @@ bool Graph::find(Address addr, NodeIterator &begin, NodeIterator &end) {
     return true;
 }
 
-Graph::Graph() {};
+Graph::Graph() {}
 
 Graph::Ptr Graph::createGraph() {
     return Graph::Ptr(new Graph());

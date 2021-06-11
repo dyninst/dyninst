@@ -1194,7 +1194,7 @@ COMMON_EXPORT bool insn_hasDisp32(unsigned ModRM);
 COMMON_EXPORT bool isStackFramePrecheck_msvs( const unsigned char *buffer );
 COMMON_EXPORT bool isStackFramePrecheck_gcc( const unsigned char *buffer );
 
-}; // namespace arch_x86
+} // namespace arch_x86
 
 #endif
 

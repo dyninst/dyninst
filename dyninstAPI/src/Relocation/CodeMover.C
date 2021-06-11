@@ -51,7 +51,7 @@ CodeMover::CodeMover(CodeTracker *t) :
    cfg_(new RelocGraph()),
    addr_(0),
    tracker_(t),
-   finalized_(false) {};
+   finalized_(false) {}
 
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
 

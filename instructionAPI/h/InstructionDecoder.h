@@ -90,7 +90,7 @@ namespace Dyninst
       boost::shared_ptr<InstructionDecoderImpl> m_Impl;
     };
 
-  };
-};
+  }
+}
 
 #endif //!defined(INSTRUCTION_DECODER_H)

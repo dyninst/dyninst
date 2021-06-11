@@ -470,7 +470,7 @@ protected:
 
 }; // class DwarfWalker
 
-}; // namespace SymtabAPI 
-}; // namespace Dyninst 
+} // namespace SymtabAPI 
+} // namespace Dyninst 
 
 #endif

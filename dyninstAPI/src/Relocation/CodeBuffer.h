@@ -190,8 +190,8 @@ class CodeBuffer {
 
    bool generated_;
 };
-};
-};
+}
+}
 
 
 #endif

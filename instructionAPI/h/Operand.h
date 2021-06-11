@@ -151,8 +151,8 @@ namespace Dyninst
       bool m_isTruePredicate;
       bool m_isFalsePredicate;
     };
-  };
-};
+  }
+}
 
 
 

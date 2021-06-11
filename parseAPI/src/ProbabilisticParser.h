@@ -213,7 +213,7 @@ public:
     static clock_t totalClocks;
 };
 
-};
+}
 
 #endif
 

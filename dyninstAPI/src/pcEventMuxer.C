@@ -54,7 +54,7 @@ Process::cb_ret_t PCEventMuxer::ret_continue(Process::cbProcContinue, Process::c
 Process::cb_ret_t PCEventMuxer::ret_default(Process::cbDefault, Process::cbDefault);
 
 PCEventMuxer::PCEventMuxer() : callbacksRegistered_(false), started_(false) {
-};
+}
 
 bool PCEventMuxer::start() {
 	if (muxer().started_) return true;
@@ -206,7 +206,7 @@ bool PCEventMuxer::registerCallbacks() {
 
 	callbacksRegistered_ = ret;
 	return ret;
-};
+}
 
 // Apologies for the #define, but I get tired of copying the same text over and over, and since this has
 // a shortcut return it can't be a subfunction. 

@@ -3232,7 +3232,7 @@ void LinuxHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
 }
 
 LinuxHandleForceTerminate::LinuxHandleForceTerminate() :
-   Handler("Linux Force Termination") {};
+   Handler("Linux Force Termination") {}
 
 LinuxHandleForceTerminate::~LinuxHandleForceTerminate() {}
 

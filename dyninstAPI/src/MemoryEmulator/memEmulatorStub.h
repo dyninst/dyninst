@@ -55,6 +55,6 @@ class MemoryEmulator {
   void debug() {};
 
 };
-};
+}
 
 #endif

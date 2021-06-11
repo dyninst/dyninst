@@ -446,8 +446,8 @@ void PatchBlock::getFuncs(OutputIterator result) {
 #define ASSERT_CONSISTENCY_FAILURE 1
 #define CONSIST_FAIL {if (ASSERT_CONSISTENCY_FAILURE) assert(0); return false;}
 
-};
-};
+}
+}
 
 
 #endif /* _PATCHAPI_DYNINST_CFG_H_ */

@@ -308,7 +308,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
       }
    }
    assert(0); return NULL; // unreachable, but keep compiler happy
-};
+}
 
 bool PatchFunction::findInsnPoints(Point::Type type,
                                    PatchBlock *block,

@@ -53,7 +53,7 @@ public:
         T* p = allocate(1);
         Alloc().construct(p, std::forward<Args>(args)...);
         return p;
-    };
+    }
     static void destroy(typename Alloc::pointer p)
     {
         Alloc().destroy(p);

@@ -100,7 +100,7 @@ class Modification : public Transformer {
     
   };
    
-};
-};
+}
+}
 
 #endif

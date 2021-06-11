@@ -87,7 +87,7 @@ void Symtab::version(int& major, int& minor, int& maintenance)
 void symtab_log_perror(const char *msg)
 {
    errMsg = std::string(msg);
-};
+}
 
 
 static thread_local SymtabError serr = SymtabError::No_Error;

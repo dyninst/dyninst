@@ -60,11 +60,11 @@ namespace Dyninst {
     typedef boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
     typedef boost::shared_ptr<Instance> InstancePtr;
     BPATCH_DLL_EXPORT PatchMgrPtr convert(const BPatch_addressSpace *);
-  };
+  }
   namespace SymtabAPI {
     class Symbol;
     struct AddressRange;
-  };
+  }
 }
 
 

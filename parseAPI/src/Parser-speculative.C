@@ -248,7 +248,7 @@ namespace hd {
 	delete ah;
         return ret;
     }
-};
+}
 
 /*
  * Uses platform-specific function preamble patterns to

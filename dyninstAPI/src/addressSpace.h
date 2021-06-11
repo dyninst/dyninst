@@ -93,7 +93,7 @@ namespace Dyninst {
    namespace InstructionAPI {
       class Instruction;
    }
-};
+}
 
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 

@@ -78,7 +78,7 @@ class Transformer {
   virtual ~Transformer() {};
 };
 
-};
-};
+}
+}
 
 #endif

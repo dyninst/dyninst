@@ -87,7 +87,7 @@ private:
 
   boost::atomic<item_type *> _next;
   T _value;
-  LFQ_DEBUG(item_type *validate);
+  LFQ_DEBUG(item_type *validate;)
 };
 
 

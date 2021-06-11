@@ -186,8 +186,8 @@ namespace Dyninst
             virtual bool isStrictEqual(const InstructionAST& rhs) const;
     };
 
-  };
-};
+  }
+}
 
 
 

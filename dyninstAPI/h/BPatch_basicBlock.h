@@ -57,12 +57,12 @@ namespace Dyninst {
   namespace ParseAPI {
     class Block;
     BPATCH_DLL_EXPORT Block *convert(const BPatch_basicBlock *);
-  };
+  }
   namespace PatchAPI {
     class PatchBlock;
     BPATCH_DLL_EXPORT PatchBlock *convert(const BPatch_basicBlock *);
-  };
-};
+  }
+}
 
 
 namespace std {
@@ -70,7 +70,7 @@ template <>
    struct less<BPatch_basicBlock *> {
    BPATCH_DLL_EXPORT bool operator()(const BPatch_basicBlock * const &l, const BPatch_basicBlock * const &r) const;
 };
-};
+}
 
 template <>
 struct comparison <BPatch_basicBlock *> {

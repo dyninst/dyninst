@@ -65,11 +65,11 @@ namespace Dyninst {
       class Function;
       class Block;
       class Edge;
-   };
+   }
    namespace InstructionAPI {
       class Instruction;
       class Expression;
-   };
+   }
 
 class StackAnalysis {
 public:

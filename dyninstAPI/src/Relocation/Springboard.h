@@ -331,7 +331,7 @@ class SpringboardBuilder {
 
 };
 
-};
-};
+}
+}
 
 #endif

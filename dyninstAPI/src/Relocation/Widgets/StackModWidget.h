@@ -89,7 +89,7 @@ struct StackModPatch : public Patch {
   Address addr;
 };
 
-};
-};
+}
+}
 
 #endif

@@ -417,7 +417,7 @@ void PatchMgr::enumerateTypes(Point::Type types, EnumeratedTypes &out) {
       Point::Type tmp = (Point::Type) type_val(i);
       if (types & tmp) out.push_back(tmp);
    }
-};
+}
 
 
 void PatchMgr::destroy(Point *p) {

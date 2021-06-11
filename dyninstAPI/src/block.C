@@ -47,7 +47,7 @@ block_instance::block_instance(ParseAPI::Block *ib,
                                mapped_object *obj)
   : PatchBlock(ib, obj), _ignorePowerPreamble(false) {
   // We create edges lazily
-};
+}
 
 // Fork constructor
 block_instance::block_instance(const block_instance *parent,

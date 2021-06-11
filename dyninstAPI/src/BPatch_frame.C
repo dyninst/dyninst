@@ -115,7 +115,7 @@ BPatch_frame::BPatch_frame() :
    thread(NULL), pc(NULL), fp(NULL), isSignalFrame(false), 
    isTrampFrame(false), isSynthFrame(false), point_(NULL)
 {
-};
+}
 
 BPatch_frame::BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp, 
                            bool isf, bool istr, BPatch_point *point,
@@ -126,7 +126,7 @@ BPatch_frame::BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp,
     point_(point)
 {
     if (isTrampFrame) assert(point_);
-};
+}
 
 bool BPatch_frame::isSynthesized() {
     return isSynthFrame;

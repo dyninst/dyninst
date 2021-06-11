@@ -48,8 +48,8 @@ class image;
 namespace Dyninst {
 namespace ParseAPI {
    class CodeObject;
-};
-};
+}
+}
 
 class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
   public:

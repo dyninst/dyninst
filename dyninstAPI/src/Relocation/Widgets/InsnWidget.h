@@ -72,7 +72,7 @@ class InsnWidget : public Widget {
 
 };
 
-};
-};
+}
+}
 
 #endif

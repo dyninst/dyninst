@@ -608,7 +608,7 @@ bool SymElf::isValidSection(Section_t sec)
 Dyninst::Offset SymElf::imageOffset() 
 { 
    assert(0); return 0;
-};
+}
 
 Dyninst::Offset SymElf::dataOffset() 
 { 

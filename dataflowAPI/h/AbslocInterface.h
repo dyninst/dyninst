@@ -47,7 +47,7 @@ namespace Dyninst {
   namespace ParseAPI {
     class Function; 
     class Block;
-  };
+  }
 
 class AbsRegionConverter {
  public:
@@ -161,6 +161,6 @@ class AssignmentConverter {
   AbsRegionConverter aConverter;
 };
 
-};
+}
 #endif
 

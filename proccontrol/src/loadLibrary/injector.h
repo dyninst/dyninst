@@ -22,7 +22,7 @@ class Injector {
    ProcControlAPI::Process *proc_;
 };
 
-};
-};
+}
+}
 
 #endif

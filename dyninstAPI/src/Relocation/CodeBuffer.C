@@ -47,7 +47,7 @@ using namespace InstructionAPI;
 const unsigned CodeBuffer::Label::INVALID = (unsigned) -1;
 
 
-CodeBuffer::BufferElement::BufferElement() : addr_(0), size_(0), patch_(NULL), labelID_(Label::INVALID) {};
+CodeBuffer::BufferElement::BufferElement() : addr_(0), size_(0), patch_(NULL), labelID_(Label::INVALID) {}
 
 CodeBuffer::BufferElement::~BufferElement() {
    if (patch_) delete patch_;
@@ -178,7 +178,7 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker *t) {
 CodeBuffer::CodeBuffer()
    : size_(0), curIteration_(0), curLabelID_(1), shift_(0), generated_(false) {}
 
-CodeBuffer::~CodeBuffer() {};
+CodeBuffer::~CodeBuffer() {}
 
 void CodeBuffer::initialize(const codeGen &templ, unsigned numBlocks) {
    gen_.applyTemplate(templ);
@@ -253,7 +253,7 @@ bool CodeBuffer::extractTrackers(CodeTracker *t) {
       if (!iter->extractTrackers(t)) return false;
    }
    return true;
-};
+}
 
 bool CodeBuffer::generate(Address baseAddr) {
    generated_ = false;

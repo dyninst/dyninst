@@ -680,11 +680,11 @@ Dyninst::PatchAPI::PatchBlock *Dyninst::PatchAPI::convert(const BPatch_basicBloc
 bool comparison<BPatch_basicBlock *>::operator()(const BPatch_basicBlock * const &x, 
                                                  const BPatch_basicBlock * const &y) const {
    return (x->getStartAddress() < y->getStartAddress());
-};
+}
 
 bool std::less<BPatch_basicBlock *>::operator()(const BPatch_basicBlock * const &l,
                                                 const BPatch_basicBlock * const &r) const {
    return (l->getStartAddress() < r->getStartAddress());
-};
+}
 
 

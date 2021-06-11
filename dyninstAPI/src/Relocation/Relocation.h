@@ -52,8 +52,8 @@ class SpringboardBuilder;
 typedef boost::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;
 typedef boost::shared_ptr<Dyninst::Relocation::SpringboardBuilder> SpringboardBuilderPtr;
 
-};
-};
+}
+}
 
 // This avoids the requirement to include CodeMover.h
 #endif

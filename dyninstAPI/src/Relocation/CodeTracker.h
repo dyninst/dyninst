@@ -276,8 +276,8 @@ class CodeTracker {
   TrackerList trackers_;
 };
 
-};
-};
+}
+}
 
 
 #endif

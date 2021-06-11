@@ -120,5 +120,5 @@ namespace Dyninst
             return true;
         }
 
-    };
-};
+    }
+}

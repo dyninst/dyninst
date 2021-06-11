@@ -228,7 +228,7 @@ namespace SymbolicEvaluation {
  class ConstantAST;
  class AbsRegionAST;
  class RoseAST;
- };
+ }
 
 class StackTamperVisitor : public ASTVisitor {
  public:

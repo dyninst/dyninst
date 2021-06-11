@@ -87,6 +87,6 @@ struct RemovedInstWidgetPatch : public Patch {
 };
 
 
-};
-};
+}
+}
 #endif

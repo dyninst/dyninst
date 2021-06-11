@@ -451,6 +451,6 @@ namespace Dyninst
     {
         return dynamic_cast<rightRotateResult*>(m_funcPtr.get()) != NULL;
     }
-  };
-};
+  }
+}
 

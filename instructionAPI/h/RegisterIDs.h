@@ -96,8 +96,8 @@ namespace Dyninst
       Result_Type regSize;
       std::string regName;
     };
-  };
-};
+  }
+}
 	  
 	  
 namespace Dyninst
@@ -122,8 +122,8 @@ namespace Dyninst
       
     };
 
-  };
-};
+  }
+}
 
 
 

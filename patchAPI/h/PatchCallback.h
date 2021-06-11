@@ -160,7 +160,7 @@ class PATCHAPI_EXPORT PatchCallback {
    std::vector<PointMod> pointMods_;
 };
 
-};
-};
+}
+}
 
 #endif

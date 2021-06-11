@@ -144,6 +144,6 @@ namespace Dyninst
     {
       return op_value;
     }
-  };
-};
+  }
+}
 

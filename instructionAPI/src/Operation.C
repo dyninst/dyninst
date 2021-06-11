@@ -548,4 +548,4 @@ namespace Dyninst
     }
   }
 
-};
+}

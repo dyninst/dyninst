@@ -103,8 +103,8 @@ namespace Dyninst
                 bool addrSizePrefixPresent;
                 bool is64BitMode;
         };
-    };
-};
+    }
+}
 
 
 #endif // !defined(INSTRUCTION_DECODER_X86_H)

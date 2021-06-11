@@ -72,7 +72,7 @@ namespace Dyninst {
             case aarch64_op_cneg_csneg: return "cneg";
             default: assert(!"no alias for entryID");
             };
-        };
+        }
         
         struct aarch64_insn_entry {
             entryID op;
@@ -3044,8 +3044,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
             return;
         }
-    };
-};
+    }
+}
 
 
 

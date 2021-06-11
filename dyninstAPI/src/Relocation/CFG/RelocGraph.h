@@ -224,8 +224,8 @@ template <class Predicate>
    return true;
 }
 
-};
-};
+}
+}
 
 #endif
 

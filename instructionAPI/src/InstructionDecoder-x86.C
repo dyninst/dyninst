@@ -1907,6 +1907,6 @@ namespace Dyninst
       decodeOperands(insn_to_complete);
     }
     
-};
-};
+}
+}
 

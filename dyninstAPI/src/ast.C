@@ -363,7 +363,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
        r->referenceCount++;
     if (e != AstNodePtr())
        e->referenceCount++;
-};
+}
 
     // Direct operand
 AstOperandNode::AstOperandNode(operandType ot, void *arg) :
@@ -508,7 +508,7 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
     }
     size = bptype->getSize();
     doTypeCheck = BPatch::bpatch->isTypeChecked();
-};
+}
 
 
 AstNodePtr AstNode::threadIndexNode() {

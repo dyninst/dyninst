@@ -303,10 +303,10 @@ namespace Dyninst {
            
             
             template<unsigned int num_elements>
-            void setLoad(){isLoad = true; this->num_elements = num_elements; };
+            void setLoad(){isLoad = true; this->num_elements = num_elements; }
             
             template<unsigned int num_elements>
-            void setStore() {isStore = true;this->num_elements = num_elements;};
+            void setStore() {isStore = true;this->num_elements = num_elements;}
 
             void setScratch() {isScratch = true;};
 

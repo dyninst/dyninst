@@ -60,7 +60,7 @@ namespace Dyninst {
       class Symtab;
       BPATCH_DLL_EXPORT Symtab *convert(const BPatch_object *);
    }
-};
+}
 
 
 class BPATCH_DLL_EXPORT BPatch_object {

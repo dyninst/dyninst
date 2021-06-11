@@ -130,7 +130,7 @@ std::string Node::DOTshape() const {
 std::string Node::DOTrank() const {
     // Use defaults...
     return std::string("// ") + format();
-};
+}
 
 std::string VirtualNode::DOTshape() const {
     return format() + std::string(" [shape=box];"); 

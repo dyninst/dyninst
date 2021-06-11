@@ -110,6 +110,6 @@ struct IPPatch : public Patch {
 };
 
 
-};
-};
+}
+}
 #endif

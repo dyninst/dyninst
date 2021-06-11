@@ -256,7 +256,7 @@ bool PatchMgr::findPoints(Scope scope,
       }
    }
    return true;
-};
+}
 
 template <class FilterFunc, class FilterArgument, class OutputIterator>
 bool PatchMgr::findPoints(Location loc, Point::Type types,
@@ -279,7 +279,7 @@ bool PatchMgr::findPoints(Location loc, Point::Type types,
    IdentityFilterFunc<char *> filter_func;
    char *dummy = NULL;
    return findPoints(loc, types, filter_func, dummy, outputIter, create);
-};
+}
 
 // Use default identity filter function
 template <class OutputIterator>
@@ -291,7 +291,7 @@ bool PatchMgr::findPoints(Scope scope,
    char* dummy = NULL;
    return findPoints<IdentityFilterFunc<char*>, char*, OutputIterator>
       (scope, types, filter_func, dummy, output_iter, create);
-};
+}
 
 template <class OutputIterator>
 bool PatchMgr::findPoint(Location loc, Point::Type type,
@@ -303,11 +303,11 @@ bool PatchMgr::findPoint(Location loc, Point::Type type,
       ++outputIter;
    }
    return (!create || p);
-};
+}
 
 
-};
-};
+}
+}
 
 
 

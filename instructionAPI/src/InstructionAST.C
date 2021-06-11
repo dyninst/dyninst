@@ -62,7 +62,7 @@ namespace Dyninst
         return false;
     }
 
-  };
-};
+  }
+}
 
   

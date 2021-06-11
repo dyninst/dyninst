@@ -52,7 +52,7 @@ namespace Dyninst {
 			switch(e) {
 				default: assert(!"no alias for entryID");
 			};
-		};
+		}
 
 #include "amdgpu_insn_entry.h"
 		struct amdgpu_mask_entry {
@@ -748,8 +748,8 @@ namespace Dyninst {
             *iptr = *(insn_in_progress.get());
 			b.start += insn_in_progress->size();
 		}
-	};
-};
+	}
+}
 
 
 

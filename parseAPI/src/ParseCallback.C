@@ -173,110 +173,110 @@ void ParseCallbackManager::splitBlock(Block *o, Block *n) {
 void ParseCallbackManager::interproc_cf(Function *f, Block *b, Address a, ParseCallback::interproc_details *d) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->interproc_cf(f, b, a, d);
-};
+}
 
 void ParseCallbackManager::instruction_cb(Function *f, Block *b, Address a, ParseCallback::insn_details *d) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->instruction_cb(f, b, a, d);
-};
+}
 
 void ParseCallbackManager::overlapping_blocks(Block *a, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->overlapping_blocks(a, b);
-};
+}
 
 void ParseCallbackManager::newfunction_retstatus(Function *f) {
    boost::lock_guard <Function> g(*f);
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->newfunction_retstatus(f);
-};
+}
 
 void ParseCallbackManager::patch_nop_jump(Address a) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->patch_nop_jump(a);
-};
+}
 
 bool ParseCallbackManager::updateCodeBytes(Address a) {
    bool ret = true;
    for (iterator iter = begin(); iter != end(); ++iter)
       if (!(*iter)->updateCodeBytes(a)) ret = false;
    return ret;
-};
+}
 
 void ParseCallbackManager::abruptEnd_cf(Address a, Block *b, ParseCallback::default_details *d) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->abruptEnd_cf(a, b, d);
-};
+}
 
 bool ParseCallbackManager::absAddr(Address abs, Address &load, CodeObject *&obj) {
    bool ret = true;
    for (iterator iter = begin(); iter != end(); ++iter)
       if (!(*iter)->absAddr(abs, load, obj)) ret = false;
    return ret;
-};
+}
 
 bool ParseCallbackManager::hasWeirdInsns(const Function *f) {
    bool ret = true;
    for (iterator iter = begin(); iter != end(); ++iter)
       if (!(*iter)->hasWeirdInsns(f)) ret = false;
    return ret;
-};
+}
 
 void ParseCallbackManager::foundWeirdInsns(Function *f) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->foundWeirdInsns(f);
-};
+}
 
 void ParseCallbackManager::split_block_cb(Block *a, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->split_block_cb(a, b);
-};
+}
 
 void ParseCallbackManager::discover_function(Function* f) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->function_discovery_cb(f);
-};
+}
 
 void ParseCallbackManager::destroy_cb(Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->destroy_cb(b);
-};
+}
 
 void ParseCallbackManager::destroy_cb(Edge *e) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->destroy_cb(e);
-};
+}
 
 void ParseCallbackManager::destroy_cb(Function *f) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->destroy_cb(f);
-};
+}
 
 void ParseCallbackManager::remove_edge_cb(Block *b, Edge *e, ParseCallback::edge_type_t t) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->remove_edge_cb(b, e, t);
-};
+}
 
 void ParseCallbackManager::add_edge_cb(Block *b, Edge *e, ParseCallback::edge_type_t t) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->add_edge_cb(b, e, t);
-};
+}
 
 void ParseCallbackManager::modify_edge_cb(Edge *e, Block *b, ParseCallback::edge_type_t t) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->modify_edge_cb(e, b, t);
-};
+}
 
 void ParseCallbackManager::remove_block_cb(Function *f, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->remove_block_cb(f, b);
-};
+}
 
 
 void ParseCallbackManager::add_block_cb(Function *f, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->add_block_cb(f, b);
-};
+}
 
 void ParseCallbackManager::registerCallback(ParseCallback *cb) {
    cbs_.push_back(cb);

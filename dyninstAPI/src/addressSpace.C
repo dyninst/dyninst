@@ -2017,7 +2017,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   }
 
   return true;
-};
+}
 
 void AddressSpace::causeTemplateInstantiations() {
 }
