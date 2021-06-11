@@ -107,7 +107,7 @@ namespace Dyninst {
             virtual ~x86Formatter() {}
         };
 
-    };
-};
+    }
+}
 
 #endif //DYNINST_ARCHSPECIFICFORMATTERS_H

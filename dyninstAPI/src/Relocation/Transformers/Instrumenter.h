@@ -90,8 +90,8 @@ class Instrumenter : public Transformer {
 
 };
 
-};
-};
+}
+}
 
 
 #endif

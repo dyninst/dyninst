@@ -78,7 +78,7 @@ class Codegen {
    int abiminversion_;
 };
 
-};
-};
+}
+}
 
 #endif

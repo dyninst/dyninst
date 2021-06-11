@@ -70,7 +70,7 @@ class ASTVisitor;
  class ConstantAST;
  class VariableAST;
  class RoseAST;
- };
+ }
  // Stack analysis...
  class StackAST;
 
@@ -109,7 +109,7 @@ class name : public AST {						\
    return t_ == other.t_;						\
  }									\
  const type t_;								\
- };									\
+ }									\
 
 #define DEF_AST_INTERNAL_TYPE(name, type)				\
 class name : public AST {						\
@@ -160,7 +160,7 @@ class name : public AST {						\
   }									\
   const type t_;							\
   Children kids_;							\
- };									\
+ }									\
 
 class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
  public:

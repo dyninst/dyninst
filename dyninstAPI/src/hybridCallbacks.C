@@ -110,15 +110,15 @@ bool HybridAnalysis::removeSignalHandlerCallback()
     return false;
 }
 
-void HybridAnalysis::signalHandlerEntryCB(BPatch_point *, Address) { };
-void HybridAnalysis::signalHandlerEntryCB2(BPatch_point *, Address) {};
-void HybridAnalysis::signalHandlerExitCB(BPatch_point *, void *) {};
+void HybridAnalysis::signalHandlerEntryCB(BPatch_point *, Address) { }
+void HybridAnalysis::signalHandlerEntryCB2(BPatch_point *, Address) {}
+void HybridAnalysis::signalHandlerExitCB(BPatch_point *, void *) {}
 
-void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *) { };
-void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *) { };
-void HybridAnalysis::virtualFreeCB(BPatch_point *, void *) { };
+void HybridAnalysis::virtualFreeAddrCB(BPatch_point *, void *) { }
+void HybridAnalysis::virtualFreeSizeCB(BPatch_point *, void *) { }
+void HybridAnalysis::virtualFreeCB(BPatch_point *, void *) { }
 
-void HybridAnalysis::abruptEndCB(BPatch_point *, void *) { };
+void HybridAnalysis::abruptEndCB(BPatch_point *, void *) { }
 #else 
 
 static void signalHandlerEntryCB_wrapper(BPatch_point *point, void *excRecAddr) 

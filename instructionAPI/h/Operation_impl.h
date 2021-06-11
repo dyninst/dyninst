@@ -177,8 +177,8 @@ namespace Dyninst
                 Architecture arch = Arch_none) : Operation_impl(e, p, l, arch) {}
         Operation() : Operation_impl() {}
     };
-  };
-};
+  }
+}
 
 
 #endif //!defined(DYN_OPERATION_H)

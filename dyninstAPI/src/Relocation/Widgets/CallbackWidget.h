@@ -62,6 +62,6 @@ class CallbackWidget : public Widget {
 
 };
 
-};
-};
+}
+}
 #endif

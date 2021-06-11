@@ -62,8 +62,8 @@ class instPoint;
 namespace Dyninst {
    namespace ParseAPI {
       class Block;
-   };
-};
+   }
+}
 
 using Dyninst::PatchAPI::PatchMgrPtr;
 

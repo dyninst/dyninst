@@ -317,8 +317,8 @@ namespace Dyninst
       static int numInsnsAllocated;
       ArchSpecificFormatter& formatter;
     };
-  };
-};
+  }
+}
 
 
 

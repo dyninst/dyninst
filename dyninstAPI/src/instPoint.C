@@ -114,7 +114,7 @@ instPoint::instPoint(Type t,
                      func_instance *f) :
    Point(t, mgr, f),
    baseTramp_(NULL) {
-};
+}
 
 instPoint::instPoint(Type          t,
                      PatchMgrPtr   mgr,
@@ -122,7 +122,7 @@ instPoint::instPoint(Type          t,
                      block_instance *b) :
   Point(t, mgr, f, b),
   baseTramp_(NULL) {
-};
+}
 
 instPoint::instPoint(Type          t,
                      PatchMgrPtr   mgr,
@@ -130,7 +130,7 @@ instPoint::instPoint(Type          t,
                      func_instance *f) :
   Point(t, mgr, b, f),
   baseTramp_(NULL) {
-};
+}
 
 instPoint::instPoint(Type t,
                      PatchMgrPtr mgr,
@@ -140,7 +140,7 @@ instPoint::instPoint(Type t,
                      func_instance *f) :
   Point(t, mgr, b, a, i, f),
   baseTramp_(NULL) {
-};
+}
 
 instPoint::instPoint(Type          t,
                      PatchMgrPtr   mgr,
@@ -148,7 +148,7 @@ instPoint::instPoint(Type          t,
                      func_instance *f) :
   Point(t, mgr, e, f),
   baseTramp_(NULL) {
-};
+}
 
 
 // If there is a logical "pair" (e.g., before/after) of instPoints return them.
@@ -266,7 +266,7 @@ instPoint::~instPoint() {
   //for (iterator iter = begin(); iter != end(); ++iter)
   //  delete *iter;
   if (baseTramp_) delete baseTramp_;
-};
+}
 
 
 AddressSpace *instPoint::proc() const {

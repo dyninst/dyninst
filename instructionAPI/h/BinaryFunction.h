@@ -408,8 +408,8 @@ namespace Dyninst
 		  funcT::Ptr m_funcPtr;
       
 		};
-	};
-};
+	}
+}
 
 
 #endif // !defined(BINARYFUNCTION_H)

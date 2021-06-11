@@ -97,8 +97,8 @@ namespace Dyninst
     private:
 	std::map<unsigned int, std::string> m_prfmTypeLookupMap;
     };
-  };
-};
+  }
+}
 
 
 

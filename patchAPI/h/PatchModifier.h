@@ -94,8 +94,8 @@ class PATCHAPI_EXPORT PatchModifier {
    static InsertedCode::Ptr insert(PatchObject *, void *start, unsigned size, Address base);
 };
 
-};
-};
+}
+}
 
 #endif
    

@@ -78,6 +78,6 @@ struct AstPatch : public Patch {
 
 
 
-};
-};
+}
+}
 #endif

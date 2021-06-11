@@ -1456,7 +1456,7 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which, int size)
   assert(_which >= 0 && _which <= (int) BPatch_instruction::nmaxacc_NP);
 #endif
   ast_wrapper = AstNodePtr(AstNode::memoryNode(AstNode::EffectiveAddr, _which, size));
-};
+}
 
 
 /*
@@ -1474,7 +1474,7 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
   assert(_which >= 0 && _which <= (int)BPatch_instruction::nmaxacc_NP);
 #endif
   ast_wrapper = AstNodePtr(AstNode::memoryNode(AstNode::BytesAccessed, _which));
-};
+}
 
 
 BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippet &tClause)
@@ -1483,7 +1483,7 @@ BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippe
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-};
+}
 
 BPatch_threadIndexExpr::BPatch_threadIndexExpr()
 {

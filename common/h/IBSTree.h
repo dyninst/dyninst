@@ -80,7 +80,7 @@ namespace Dyninst {
 
 namespace IBS {
 typedef enum { TREE_RED, TREE_BLACK } color_t;
-};
+}
 
 
 template <typename T = int, typename U = void*>
@@ -166,7 +166,7 @@ template<class ITYPE = SimpleInterval<> >
               << ", 0x" << (*i)->high() << std::dec << ")  ";
   }
   return os;
-};
+}
 
 template<class ITYPE = SimpleInterval<> >
 class IBSTree {

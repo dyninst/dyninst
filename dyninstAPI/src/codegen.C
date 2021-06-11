@@ -802,5 +802,5 @@ std::string codeGen::format() const {
    }
    ret << dec;
    return ret.str();
-};
+}
    

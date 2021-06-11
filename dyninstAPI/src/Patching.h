@@ -43,7 +43,7 @@ namespace Dyninst {
         class PatchObject;
         class Point;
         class edge_type_t;
-    };
+    }
      
 
 class DynPatchCallback : public PatchAPI::PatchCallback {
@@ -76,7 +76,7 @@ class DynPatchCallback : public PatchAPI::PatchCallback {
                            PatchAPI::PatchBlock *);
 #endif
 };
-};
+}
 
 #endif
 

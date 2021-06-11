@@ -38,12 +38,12 @@ Buffer::Buffer() : buffer_(NULL), size_(0), max_(0), start_(0) {}
 
 Buffer::Buffer(Address addr, unsigned initial_size) : buffer_(NULL), size_(0), max_(0), start_(0) {
    initialize(addr, initial_size);
-};
+}
 
 Buffer::~Buffer() {
    assert(buffer_);
    free(buffer_);
-};
+}
 
 void Buffer::initialize(Address a, unsigned s) {
    assert(buffer_ == NULL);
@@ -54,13 +54,13 @@ void Buffer::initialize(Address a, unsigned s) {
 
 unsigned Buffer::size() const {
    return size_;
-};
+}
 unsigned Buffer::max_size() const {
    return max_;
-};
+}
 bool Buffer::empty() const {
    return (size_ == 0);
-};
+}
 
 void Buffer::increase_allocation(int size) {
    if (size <= 0) return;

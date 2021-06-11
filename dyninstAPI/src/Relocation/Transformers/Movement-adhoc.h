@@ -42,7 +42,7 @@ class AddressSpace;
 namespace Dyninst {
    namespace InstructionAPI {
       class Instruction;
-   };
+   }
 
 namespace Relocation {
 class RelocInsn;
@@ -87,6 +87,6 @@ class adhocMovementTransformer : public Transformer {
   std::map<Address, std::pair<Offset, signed long> > definitionDeltas;
 };
 
-};
-};
+}
+}
 #endif

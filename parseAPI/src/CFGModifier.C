@@ -394,7 +394,7 @@ InsertedRegion::InsertedRegion(Address b, void *d, unsigned s, Architecture arch
    buf_ = malloc(s);
    assert(buf_);
    memcpy(buf_, d, s);
-};
+}
 
 InsertedRegion::~InsertedRegion()
 {

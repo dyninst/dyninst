@@ -124,8 +124,8 @@ namespace Dyninst
       virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const;
       virtual const Result& eval() const = 0;
     };
-  };
-};
+  }
+}
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif

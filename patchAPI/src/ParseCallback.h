@@ -82,7 +82,7 @@ class PatchParseCallback : public ParseAPI::ParseCallback {
    PatchObject *_obj;
 };
 
-};
-};
+}
+}
 
 #endif // _PATCHAPI_CALLBACK_H_

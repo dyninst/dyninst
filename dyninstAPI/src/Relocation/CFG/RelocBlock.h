@@ -207,6 +207,6 @@ class RelocBlock {
    Type type_;
 };
 
-};
-};
+}
+}
 #endif

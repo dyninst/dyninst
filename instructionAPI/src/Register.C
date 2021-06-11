@@ -213,5 +213,5 @@ namespace Dyninst
         //fprintf(stderr, "no\n");
         return false;
     }
-  };
-};
+  }
+}

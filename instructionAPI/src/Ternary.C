@@ -118,5 +118,5 @@ namespace Dyninst
         }*/
         //fprintf(stderr, "no\n");
     }
-  };
-};
+  }
+}

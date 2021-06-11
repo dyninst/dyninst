@@ -129,5 +129,5 @@ namespace Dyninst {
     }
 
 
-    };
-};
+    }
+}

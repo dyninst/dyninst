@@ -48,12 +48,12 @@ namespace Dyninst {
    namespace ParseAPI {
       class Edge;
       BPATCH_DLL_EXPORT Edge *convert(const BPatch_edge *);
-   };
+   }
    namespace PatchAPI {
       class PatchEdge;
       BPATCH_DLL_EXPORT PatchEdge *convert(const BPatch_edge *);
-   };
-};
+   }
+}
 
 
 

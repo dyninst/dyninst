@@ -64,7 +64,7 @@ struct RelocEdges {
    std::list<RelocEdge *> edges;
 };
 
-};
-};
+}
+}
 
 #endif

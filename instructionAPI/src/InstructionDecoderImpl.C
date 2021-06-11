@@ -166,6 +166,6 @@ namespace Dyninst
             return make_shared(singleton_object_pool<MaskRegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
 
-    };
-};
+    }
+}
 

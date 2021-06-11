@@ -41,7 +41,7 @@ using namespace Relocation;
 using namespace std;
 
 CodeTracker::CodeTracker() {
-};
+}
 
 CodeTracker::~CodeTracker() {
    // Pile of deallocatable stuff

@@ -53,7 +53,7 @@ namespace Dyninst {
  class ConstantAST;
  class AbsRegionAST;
  class RoseAST;
- };
+ }
 
  class StackAST;
 
@@ -162,7 +162,7 @@ class PCSensitiveTransformer : public Transformer {
   
 };
 
-};
-};
+}
+}
 
 #endif

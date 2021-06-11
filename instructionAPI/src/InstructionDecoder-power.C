@@ -1448,8 +1448,8 @@ using namespace boost::assign;
         }
         return;
     }
-  };
-};
+  }
+}
 
 
 

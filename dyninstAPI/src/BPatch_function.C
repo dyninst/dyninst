@@ -101,7 +101,7 @@ BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace,
    
    assert(mod && !mod->func_map.count(func));
    mod->func_map[func] = this;
-};
+}
 
 /*
  * BPatch_function::BPatch_function
@@ -128,7 +128,7 @@ BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, func_instance *
 
   assert(mod);
   mod->func_map[func] = this;
-};
+}
 
 
 BPatch_function::~BPatch_function()

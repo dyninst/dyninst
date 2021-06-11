@@ -184,7 +184,7 @@ const char *Region::regionType2Str(RegionType rt)
       CASE_RETURN_STR(RT_DYNSYM);
    };
    return "bad_RegionTypeype";
-};
+}
 
 unsigned Region::getRegionNumber() const
 {

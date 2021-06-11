@@ -51,7 +51,7 @@ Modification::Modification(const CallModMap &callMod,
                            const FuncWrapMap &funcWraps) :
   callMods_(callMod),
   funcReps_(funcRepl),
-  funcWraps_(funcWraps) {};
+  funcWraps_(funcWraps) {}
 
 bool Modification::process(RelocBlock *cur, RelocGraph *cfg) {
   //relocation_cerr << "Modification transformer, processing block" << endl;
@@ -226,7 +226,7 @@ RelocBlock *Modification::makeRelocBlock(block_instance *block, func_instance *f
 
 // TODO: make this mildly more efficient. On the other hand, is it a big deal?
 Modification::WrapperPredicate::WrapperPredicate(func_instance *f)
-   : f_(f) {};
+   : f_(f) {}
 
 
 bool Modification::WrapperPredicate::operator()(RelocEdge *e) {

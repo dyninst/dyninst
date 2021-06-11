@@ -158,8 +158,8 @@ class CodeMover {
 };
 
 
-};
+}
 
-};
+}
 
 #endif

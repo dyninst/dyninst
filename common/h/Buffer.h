@@ -141,7 +141,7 @@ template <class InputIterator>
       push_back(*begin);
       ++begin;
    }
-};
+}
 
 
 
@@ -153,7 +153,7 @@ template <class Input>
    Input *ptr = (Input *)cur_ptr();
    *ptr = i;
    size_ += sizeof(i);
-};
+}
 
 }
 

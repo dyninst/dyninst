@@ -673,6 +673,6 @@ memAccessors.begin()));
     }
 
 
-  };
-};
+  }
+}
 

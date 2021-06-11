@@ -1007,7 +1007,7 @@ EventThreadDB::~EventThreadDB()
 }
 
 EventWinStopThreadDestroy::EventWinStopThreadDestroy(EventType::Time time_) :
-EventThreadDestroy(EventType(time_, EventType::WinStopThreadDestroy)) {};
+EventThreadDestroy(EventType(time_, EventType::WinStopThreadDestroy)) {}
 
 EventWinStopThreadDestroy::~EventWinStopThreadDestroy() {}
 

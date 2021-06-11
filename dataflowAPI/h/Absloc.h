@@ -56,7 +56,7 @@ namespace Dyninst {
   namespace ParseAPI {
     class Function;
     class Block;
-  };
+  }
 
 class Absloc {
  public:
@@ -381,7 +381,7 @@ struct AssignmentPtrValueComp {
 };
 
 // Dyninst namespace
-};
+}
 
 
 

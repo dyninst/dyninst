@@ -132,8 +132,8 @@ namespace Dyninst
 
             virtual std::string format(formatStyle how = defaultStyle) const;
     };
-  };
-};
+  }
+}
 
 
   

@@ -245,8 +245,8 @@ namespace Dyninst
       Expression::Ptr addressToDereference;
   
     };
-  };
-};
+  }
+}
 
 
 

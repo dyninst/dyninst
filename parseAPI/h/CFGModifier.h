@@ -131,8 +131,8 @@ class InsertedRegion : public CodeRegion {
     Architecture arch_;
 };
 
-};
-};
+}
+}
 
 #endif
    

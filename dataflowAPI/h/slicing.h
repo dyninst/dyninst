@@ -57,7 +57,7 @@ namespace ParseAPI {
   class Block;
   class Edge;
   class Function;
-};
+}
 
 class Assignment;
 class AbsRegion;

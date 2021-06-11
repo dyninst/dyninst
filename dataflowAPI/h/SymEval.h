@@ -55,7 +55,7 @@ namespace Dyninst {
    namespace ParseAPI {
       class Function;
       class Block;
-   };
+   }
 
 namespace DataflowAPI {
 
@@ -298,9 +298,9 @@ Op op;
 size_t size;
 };
 
-};
+}
 
-};
+}
 
 
 namespace Dyninst {
@@ -369,7 +369,7 @@ public:
  static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
 };
 
-};
-};
+}
+}
 
 #endif

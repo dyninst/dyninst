@@ -1421,7 +1421,7 @@ unsigned long Elf_X_Rel::R_TYPE(int i) const
     return (!is64 ?
             static_cast<unsigned long>(ELF32_R_TYPE(rel32[i].r_info)) :
             static_cast<unsigned long>(ELF64_R_TYPE(rel64[i].r_info)));
-};
+}
 
 // Write Interface
 void Elf_X_Rel::r_offset(int i, unsigned long input)

@@ -38,7 +38,7 @@ namespace Dyninst {
       class Function;
       class Block;
       class Edge;
-   };
+   }
 
 namespace PatchAPI {
 
