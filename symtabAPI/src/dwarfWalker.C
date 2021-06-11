@@ -1081,11 +1081,6 @@ bool DwarfWalker::parseFormalParam() {
    }
 
    curName() = std::move(die_name());
-   /* We can't do anything with anonymous parameters. */
-   if (!nameDefined()) {
-     dwarf_printf("(0x%lx) No name associated with formal, returning\n", id());
-     return true;
-   }
 
    Dwarf_Word lineNo = 0;
    bool hasLineNumber = false;
