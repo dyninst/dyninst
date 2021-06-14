@@ -99,7 +99,7 @@ typedef enum {
   rtBPatch_dynamicCallEvent,
   rtBPatch_userEvent
 } rtBPatch_asyncEventType;
-char *asyncEventType2str(rtBPatch_asyncEventType);
+const char *asyncEventType2str(rtBPatch_asyncEventType);
 
 typedef struct {
   unsigned int pid;

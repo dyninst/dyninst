@@ -68,6 +68,6 @@ extern int DYNINSTdebugRTlib;
 DLLEXPORT extern int DYNINSTstaticMode;
 
 
-int rtdebug_printf(char *format, ...);
+int rtdebug_printf(const char *format, ...);
 #endif
        
