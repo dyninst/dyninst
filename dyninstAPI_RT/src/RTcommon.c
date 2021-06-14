@@ -650,7 +650,7 @@ void dyninst_unlock(dyninst_lock_t *lock)
    tc_lock_unlock(lock);
 }
 
-int rtdebug_printf(char *format, ...)
+int rtdebug_printf(const char *format, ...)
 {
   int ret;
   va_list va;
@@ -669,7 +669,7 @@ int rtdebug_printf(char *format, ...)
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
 
-char *asyncEventType2str(rtBPatch_asyncEventType t)
+const char *asyncEventType2str(rtBPatch_asyncEventType t)
 {
   switch (t) {
   CASE_RETURN_STR(rtBPatch_nullEvent);
