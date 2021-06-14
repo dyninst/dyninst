@@ -113,22 +113,24 @@ extern const std::string CODEGEN_REGISTER_TIMER;
 extern const std::string CODEGEN_LIVENESS_TIMER;
 
 // C++ prototypes
-#define signal_cerr       if (dyn_debug_signal) cerr
-#define startup_cerr      if (dyn_debug_startup) cerr
-#define parsing_cerr      if (dyn_debug_parsing) cerr
-#define proccontrol_cerr  if (dyn_debug_proccontrol) cerr
-#define stackwalk_cerr    if (dyn_debug_stackwalk) cerr
-#define relocation_cerr   if (dyn_debug_reloc) cerr
-#define springboard_cerr  if (dyn_debug_springboard) cerr
-#define malware_cerr      if (dyn_debug_malware) cerr
-#define trap_cerr         if (dyn_debug_trap) cerr
-#define sensitivity_cerr  if (dyn_debug_sensitivity) cerr
-#define dyn_unw_cerr      if (dyn_debug_dyn_unw) cerr
-#define thread_cerr       if (dyn_debug_thread) cerr
-#define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
-#define crash_cerr        if (dyn_debug_crash) cerr
-#define stackmods_cerr        if (dyn_debug_stackmods) cerr
-#define ast_cerr          if (dyn_debug_ast) cerr
+#define debug_sys_cerr(debug_sys)  if (dyn_debug_##debug_sys) cerr
+
+#define signal_cerr       debug_sys_cerr(signal)
+#define startup_cerr      debug_sys_cerr(startup)
+#define parsing_cerr      debug_sys_cerr(parsing)
+#define proccontrol_cerr  debug_sys_cerr(proccontrol)
+#define stackwalk_cerr    debug_sys_cerr(stackwalk)
+#define relocation_cerr   debug_sys_cerr(reloc)
+#define springboard_cerr  debug_sys_cerr(springboard)
+#define malware_cerr      debug_sys_cerr(malware)
+#define trap_cerr         debug_sys_cerr(trap)
+#define sensitivity_cerr  debug_sys_cerr(sensitivity)
+#define dyn_unw_cerr      debug_sys_cerr(dyn_unw)
+#define thread_cerr       debug_sys_cerr(thread)
+#define infmalloc_cerr    debug_sys_cerr(infmalloc)
+#define crash_cerr        debug_sys_cerr(crash)
+#define stackmods_cerr    debug_sys_cerr(stackmods)
+#define ast_cerr          debug_sys_cerr(ast)
 
 // C prototypes for internal debugging functions
 extern int mal_printf(const char *format, ...);
@@ -149,46 +151,25 @@ extern int infmalloc_printf_int(const char *format, ...);
 extern int crash_printf_int(const char *format, ...);
 extern int stackmods_printf_int(const char *format, ...);
 
-#if defined(__GNUC__)
 
-#define startup_printf(format, args...) do { if (dyn_debug_startup) startup_printf_int(format, ## args); } while(0)
-#define parsing_printf(format, args...) do {if (dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)
-#define proccontrol_printf(format, args...) do {if (dyn_debug_proccontrol) proccontrol_printf_int(format, ## args); } while(0)
-#define stackwalk_printf(format, args...) do {if (dyn_debug_stackwalk) stackwalk_printf_int(format, ## args); } while(0)
-#define inst_printf(format, args...) do {if (dyn_debug_inst) inst_printf_int(format, ## args); } while(0)
-#define reloc_printf(format, args...) do {if (dyn_debug_reloc) reloc_printf_int(format, ## args); } while(0)
-#define dyn_unw_printf(format, args...) do {if (dyn_debug_dyn_unw) dyn_unw_printf_int(format, ## args); } while(0)
-#define mutex_printf(format, args...) do {if (dyn_debug_mutex) mutex_printf_int(format, ## args); } while(0)
-#define thread_printf(format, args...) do {if (dyn_debug_thread) thread_printf_int(format, ## args); } while(0)
-#define catchup_printf(format, args...) do {if (dyn_debug_catchup) catchup_printf_int(format, ## args); } while(0)
-#define regalloc_printf(format, args...) do {if (dyn_debug_regalloc) regalloc_printf_int(format, ## args); } while(0)
-#define ast_printf(format, args...) do {if (dyn_debug_ast) ast_printf_int(format, ## args); } while(0)
-#define write_printf(format, args...) do {if (dyn_debug_write) write_printf_int(format, ## args); } while(0)
-#define infmalloc_printf(format, args...) do {if (dyn_debug_infmalloc) infmalloc_printf_int(format, ## args); } while(0)
-#define crash_printf(format, args...) do {if (dyn_debug_crash) crash_printf_int(format, ## args); } while(0)
-#define stackmods_printf(format, args...) do {if (dyn_debug_stackmods) stackmods_printf_int(format, ## args); } while(0)
+#define debug_sys_printf(debug_sys, ...) do { if (dyn_debug_##debug_sys) debug_sys##_printf_int(__VA_ARGS__); } while(0)
 
-#else
-// Non-GCC doesn't have the ## macro
-#define startup_printf startup_printf_int
-#define parsing_printf parsing_printf_int
-#define proccontrol_printf proccontrol_printf_int
-#define stackwalk_printf stackwalk_printf_int
-#define inst_printf inst_printf_int
-#define reloc_printf reloc_printf_int
-#define dyn_unw_printf dyn_unw_printf_int
-#define mutex_printf mutex_printf_int
-#define thread_printf thread_printf_int
-#define catchup_printf catchup_printf_int
-#define regalloc_printf regalloc_printf_int
-#define ast_printf ast_printf_int
-#define write_printf write_printf_int
-#define infmalloc_printf infmalloc_printf_int
-#define crash_printf crash_printf_int
-#define stackmods_printf stackmods_printf_int
-
-
-#endif
+#define startup_printf(...)     debug_sys_printf(startup, __VA_ARGS__)
+#define parsing_printf(...)     debug_sys_printf(parsing, __VA_ARGS__)
+#define proccontrol_printf(...) debug_sys_printf(proccontrol, __VA_ARGS__)
+#define stackwalk_printf(...)   debug_sys_printf(stackwalk, __VA_ARGS__)
+#define inst_printf(...)        debug_sys_printf(inst, __VA_ARGS__)
+#define reloc_printf(...)       debug_sys_printf(reloc, __VA_ARGS__)
+#define dyn_unw_printf(...)     debug_sys_printf(dyn_unw, __VA_ARGS__)
+#define mutex_printf(...)       debug_sys_printf(mutex, __VA_ARGS__)
+#define thread_printf(...)      debug_sys_printf(thread, __VA_ARGS__)
+#define catchup_printf(...)     debug_sys_printf(catchup, __VA_ARGS__)
+#define regalloc_printf(...)    debug_sys_printf(regalloc, __VA_ARGS__)
+#define ast_printf(...)         debug_sys_printf(ast, __VA_ARGS__)
+#define write_printf(...)       debug_sys_printf(write, __VA_ARGS__)
+#define infmalloc_printf(...)   debug_sys_printf(infmalloc, __VA_ARGS__)
+#define crash_printf(...)       debug_sys_printf(crash, __VA_ARGS__)
+#define stackmods_printf(...)   debug_sys_printf(stackmods, __VA_ARGS__)
 
 
 // And initialization

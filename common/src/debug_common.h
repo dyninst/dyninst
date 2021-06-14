@@ -40,49 +40,22 @@ COMMON_EXPORT extern int common_debug_lineinfo;
 COMMON_EXPORT extern int common_debug_parsing;
 COMMON_EXPORT extern int common_debug_initialized;
 
-#if defined(__GNUC__)
-#define dwarf_printf(format, ...)                                       \
+#define common_debug_printf(debug_sys_var, debug_sys_printf, ...) \
    do {                                                                 \
-      if (!common_debug_initialized || common_debug_dwarf) dwarf_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
+      if (!common_debug_initialized || common_debug_##debug_sys_var)  {     \
+        debug_sys_printf##_printf_int("[%s:%u] ", __FILE__, __LINE__); \
+        debug_sys_printf##_printf_int(__VA_ARGS__); \
+      } \
    } while (0)
-#else
-#define dwarf_printf if (!common_debug_initialized || common_debug_dwarf) dwarf_printf_int
-#endif
+
+#define dwarf_printf(...)             common_debug_printf(dwarf, dwarf, __VA_ARGS__)
+#define translate_printf(...)         common_debug_printf(addrtranslate, translate, __VA_ARGS__)
+#define lineinfo_printf(...)          common_debug_printf(lineinfo, lineinfo, __VA_ARGS__)
+#define common_parsing_printf(...)    common_debug_printf(parsing, common_parsing, __VA_ARGS__)
 
 COMMON_EXPORT int dwarf_printf_int(const char *format, ...);
-
-#if defined(__GNUC__)
-#define translate_printf(format, ...)                                       \
-   do {                                                                 \
-      if (!common_debug_initialized || common_debug_addrtranslate) translate_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
-   } while (0)
-#else
-#define translate_printf if (!common_debug_initialized || common_debug_addrtranslate) translate_printf_int
-#endif
-
 COMMON_EXPORT int translate_printf_int(const char *format, ...);
-
-
-#if defined(__GNUC__)
-#define lineinfo_printf(format, ...)                                       \
-   do {                                                                 \
-	   if (!common_debug_initialized || common_debug_lineinfo) lineinfo_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
-   } while (0)
-#else
-#define lineinfo_printf if (!common_debug_initialized || common_debug_lineinfo) lineinfo_printf_int
-#endif
-
 COMMON_EXPORT int lineinfo_printf_int(const char *format, ...);
-
-#if defined(__GNUC__)
-#define common_parsing_printf(format, ...)                                       \
-   do {                                                                 \
-	   if (!common_debug_initialized || common_debug_parsing) common_parsing_printf_int("[%s:%u] " format, __FILE__, __LINE__, ## __VA_ARGS__); \
-   } while (0)
-#else
-#define common_parsing_printf if (!common_debug_initialized || common_debug_parsing) common_parsing_printf_int
-#endif
-
 COMMON_EXPORT int common_parsing_printf_int(const char *format, ...);
 
 // And initialization
