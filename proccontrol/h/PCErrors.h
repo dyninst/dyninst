@@ -52,61 +52,66 @@ PC_EXPORT extern void pc_print_unlock();
 #define PC_PRINT_UNLOCK
 #endif
 
-#define pclean_printf(format, ...)                          \
+#define pclean_printf(...)                                  \
    do {                                                     \
      if (dyninst_debug_proccontrol) {                       \
         PC_PRINT_LOCK;                                      \
-        fprintf(pctrl_err_out, format, ## __VA_ARGS__);     \
+        fprintf(pctrl_err_out, __VA_ARGS__);                \
         PC_PRINT_UNLOCK;                                    \
      }                                                      \
   } while (0)
 
 #if defined(PROCCTRL_PRINT_TIMINGS)
 
-#define pthrd_printf(format, ...)                                       \
+#define pthrd_printf(...)                                               \
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - " format, FILE__, __LINE__, \
-                 thrdName(), gettod(), ## __VA_ARGS__);                 \
+         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - ", FILE__, __LINE__,  \
+                 thrdName(), gettod());                                 \
+         fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)
 
-#define perr_printf(format, ...)                                        \
+#define perr_printf(...)                                                \
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
+         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: ", FILE__, __LINE__, thrdName(), gettod()); \
+         fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)
 
 #else
 
-#define pthrd_printf(format, ...)                                       \
+#define pthrd_printf(...)                                               \
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - " format, FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+         fprintf(pctrl_err_out, "[%s:%u-%s] - ", FILE__, __LINE__, thrdName()); \
+         fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)
 
-#define perr_printf(format, ...)                \
+#define perr_printf(...)                                                \
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+         fprintf(pctrl_err_out, "[%s:%u-%s] - Error: ", FILE__, __LINE__, thrdName()); \
+         fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)
 
-#define parmerr_printf(format, ...)                \
+#define parmerr_printf(...)                                             \
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - Error-ARM: " format, FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+         fprintf(pctrl_err_out, "[%s:%u-%s] - Error-ARM: ", FILE__, __LINE__, thrdName()); \
+         fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
    } while (0)

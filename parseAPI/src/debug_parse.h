@@ -48,16 +48,11 @@ namespace ParseAPI {
 #define parsing_cerr if (dyn_debug_parsing) cerr
 #define malware_cerr if (dyn_debug_malware) cerr
 
-#if defined(__GNUC__)
-#define parsing_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)
-#define mal_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_malware) malware_printf_int(format, ## args); } while(0)
-#define indirect_collect_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_indirect_collect) indirect_collect_printf_int(format, ## args); } while(0)
+#define dyn_debug_printf(debug_sys, ...) do { if(!dyn_debug_initialized || dyn_debug_##debug_sys) debug_sys##_printf_int(__VA_ARGS__); } while(0)
 
-#else
-#define parsing_printf parsing_printf_int
-#define mal_printf malware_printf_int
-#define indirect_collect_printf indirect_collect_printf_int
-#endif
+#define parsing_printf(...)              dyn_debug_printf(parsing, __VA_ARGS__)
+#define mal_printf(...)                  dyn_debug_printf(malware, __VA_ARGS__)
+#define indirect_collect_printf(...)     dyn_debug_printf(indirect_collect, __VA_ARGS__)
 }
 }
 

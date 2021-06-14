@@ -102,11 +102,13 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 #else
 // Get basename
 #include <libgen.h> 
-#define patchapi_debug(PSTR, ...) do {        \
+#define patchapi_debug(...) do {        \
   if (getenv("DYNINST_DEBUG_PATCHAPI")) {   \
   const char* nodir = strrchr(__FILE__, '/'); \
   nodir = nodir ? nodir+1 : __FILE__; \
-  fprintf(stderr, "%s [%d]: " PSTR "\n", nodir, __LINE__, ## __VA_ARGS__); \
+  fprintf(stderr, "%s [%d]: ", nodir, __LINE__); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n"); \
   fflush(stderr); \
   } \
 } while(0)
