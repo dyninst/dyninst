@@ -1,5 +1,25 @@
 # Change Log
 
+## [11.0.1](https://github.com/dyninst/dyninst/tree/v11.0.1) (2021-06-14)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v11.0.0...v11.0.1)
+
+**Enhancements:**
+- fix Position Independent Executable (PIE) handling ([1042](https://github.com/dyninst/dyninst/issues/1042))
+
+**Bug Fixes:**
+- Find function by address, not by entry ([1047](https://github.com/dyninst/dyninst/issues/1047))
+- Fix implicit operand decoding of x86 instructions on non-x86 architectures ([1044](https://github.com/dyninst/dyninst/issues/1044))
+- Fixing calling `dwarf_getabbrevcode` and refactoring debug logging in common ([1037](https://github.com/dyninst/dyninst/issues/1037))
+- Search for 'version.h' when determining version for TBB ([1041](https://github.com/dyninst/dyninst/issues/1041))
+- Fix data races and asserts discovered on Power  ([1038](https://github.com/dyninst/dyninst/issues/1038))
+- Remove the use of C++17's structured binding ([1036](https://github.com/dyninst/dyninst/issues/1036))
+- Skip parsing of blocks whose code buffer is null ([1033](https://github.com/dyninst/dyninst/issues/1033))
+- Remove debug printing that causes large output ([1029](https://github.com/dyninst/dyninst/issues/1029))
+- Fix catch block parsing ([1030](https://github.com/dyninst/dyninst/issues/1030))
+- Do not treat symbols in any text sections as data (.text, .init, or .fini) ([1026](https://github.com/dyninst/dyninst/issues/1026))
+- Allow usage of SIGILL for signal trampolines ([963](https://github.com/dyninst/dyninst/issues/963))
+- Set -B and -S when configuring dyninstAPI_RT ([1020](https://github.com/dyninst/dyninst/issues/1020))
+
 ## [11.0.0](https://github.com/dyninst/dyninst/tree/v11.0.0) (2021-04-08)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v10.2.1...v11.0.0)
 
