@@ -5926,17 +5926,6 @@ int_registerPool::int_registerPool() :
    }
 }
 
-int_registerPool::int_registerPool(const int_registerPool &c) :
-   regs(c.regs),
-   full(c.full),
-   thread(c.thread)
-{
-}
-
-int_registerPool::~int_registerPool()
-{
-}
-
 Library::Library() : lib(NULL)
 {
 }

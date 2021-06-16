@@ -104,13 +104,12 @@ class COMMON_EXPORT CntStatistic : public Statistic {
     CntStatistic& operator--();  
 
     CntStatistic& operator=( long int );
-    CntStatistic& operator=( CntStatistic &);
 
     CntStatistic& operator+=( long int );
-    CntStatistic& operator+=( CntStatistic &);
+    CntStatistic& operator+=( const CntStatistic &);
     
     CntStatistic& operator-=( long int );
-    CntStatistic& operator-=(  CntStatistic &);
+    CntStatistic& operator-=(  const CntStatistic &);
 
     // Return the value of this statistic
     long int operator*();

@@ -229,16 +229,6 @@ char *AObject::mem_image() const
 	return NULL;
 }
 
-SYMTAB_EXPORT ExceptionBlock::~ExceptionBlock() 
-{
-}
-
-SYMTAB_EXPORT ExceptionBlock::ExceptionBlock() :
-  tryStart_(0), trySize_(0), catchStart_(0), hasTry_(false),
-  tryStart_ptr(0), tryEnd_ptr(0), catchStart_ptr(0), fdeStart_ptr(0), fdeEnd_ptr(0)
-{
-}
-
 SYMTAB_EXPORT Offset ExceptionBlock::catchStart() const 
 {
 	return catchStart_;
