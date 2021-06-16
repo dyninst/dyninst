@@ -175,15 +175,6 @@ CntStatistic::operator=( long int v )
 }
 
 CntStatistic& 
-CntStatistic::operator=(CntStatistic & v )
-{
-    if( this != &v ) {
-        cnt_ = v.cnt_;
-    }
-    return *this;
-}
-                                     
-CntStatistic& 
 CntStatistic::operator+=( long int v )
 {
     cnt_ += v;
@@ -191,7 +182,7 @@ CntStatistic::operator+=( long int v )
 }
 
 CntStatistic&
-CntStatistic::operator+=( CntStatistic & v )
+CntStatistic::operator+=( const CntStatistic & v )
 {
     cnt_ += v.cnt_;
     return *this;
@@ -206,7 +197,7 @@ CntStatistic::operator-=( long int v )
 }
 
 CntStatistic& 
-CntStatistic::operator-=( CntStatistic & v)
+CntStatistic::operator-=( const CntStatistic & v)
 {
     cnt_ -= v.cnt_;
     return *this;

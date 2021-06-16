@@ -679,9 +679,9 @@ class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
    public:
       ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       ExceptionBlock(Offset cStart);
-      ExceptionBlock(const ExceptionBlock &eb);
-      ~ExceptionBlock();
-      ExceptionBlock();
+      SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb) = default;
+      SYMTAB_EXPORT ~ExceptionBlock() = default;
+      SYMTAB_EXPORT ExceptionBlock() = default;
 
       bool hasTry() const;
       Offset tryStart() const;

@@ -675,8 +675,6 @@ class int_registerPool
 {
  public:
    int_registerPool();
-   int_registerPool(const int_registerPool &c);
-   ~int_registerPool();
 
    typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal> reg_map_t;
    reg_map_t regs;

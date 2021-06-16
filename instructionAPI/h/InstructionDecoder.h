@@ -60,8 +60,9 @@ namespace Dyninst
       InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
       InstructionDecoder(const void* buffer, size_t size, Architecture arch);
 
-      ~InstructionDecoder();
-      InstructionDecoder(const InstructionDecoder& o);
+      INSTRUCTION_EXPORT ~InstructionDecoder() = default;
+      INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o) = default;
+      INSTRUCTION_EXPORT InstructionDecoder& operator=(const InstructionDecoder  & o) = default;
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer

@@ -175,6 +175,7 @@ class inferiorHeap {
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
                                           // of src (used on fork)
+  inferiorHeap& operator=(const inferiorHeap &src);
   std::unordered_map<Address, heapItem*> heapActive; // active part of heap 
   std::vector<heapItem*> heapFree;           // free block of data inferior heap 
   std::vector<disabledItem> disabledList;    // items waiting to be freed.
