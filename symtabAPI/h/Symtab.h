@@ -562,7 +562,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
            master_t::iterator m;
        public:
            iterator(master_t::iterator i) : m(i) {};
-           ~iterator() {};
            bool operator==(const iterator& x) { return m == x.m; };
            bool operator!=(const iterator& x) { return !operator==(x); };
            Symbol* const& operator*() const { return m->first; };

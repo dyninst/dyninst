@@ -161,8 +161,6 @@ class PARSER_EXPORT Edge {
 class PARSER_EXPORT EdgePredicate 
 {
  public:
-  EdgePredicate() { }
-    virtual ~EdgePredicate() { }
     virtual bool pred_impl(Edge *) const;
     bool operator()(Edge* e) const 
     {
@@ -173,8 +171,6 @@ class PARSER_EXPORT EdgePredicate
 /* may follow branches into the function if there is shared code */
 class PARSER_EXPORT Intraproc : public EdgePredicate {
  public:
-    Intraproc() { }
-    ~Intraproc() { }
     bool pred_impl(Edge *) const;
 
 };
@@ -182,8 +178,6 @@ class PARSER_EXPORT Intraproc : public EdgePredicate {
 /* follow interprocedural edges */
  class PARSER_EXPORT Interproc : public EdgePredicate {
     public:
-        Interproc() {}
-        ~Interproc() { }
         bool pred_impl(Edge *) const;
 };
 
@@ -212,7 +206,6 @@ class Function;
         _context(f),
         _forward(forward),
         _backward(backward) { }
-    ~SingleContext() { }
     bool pred_impl(Edge *) const;
 };
 

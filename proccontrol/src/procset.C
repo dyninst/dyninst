@@ -2194,15 +2194,6 @@ ProcessSet::iterator::iterator(int_processSet::iterator i)
    int_iter = i;
 }
 
-ProcessSet::iterator::iterator()
-{
-}
-
-ProcessSet::iterator::~iterator()
-{
-}
-
-
 Process::ptr ProcessSet::iterator::operator*() const
 {
    return *int_iter;
@@ -3051,14 +3042,6 @@ const CallStackUnwindingSet *ThreadSet::getCallStackUnwinding() const
 ThreadSet::iterator::iterator(int_threadSet::iterator i)
 {
    int_iter = i;
-}
-
-ThreadSet::iterator::iterator()
-{
-}
-
-ThreadSet::iterator::~iterator()
-{
 }
 
 Thread::ptr ThreadSet::iterator::operator*()

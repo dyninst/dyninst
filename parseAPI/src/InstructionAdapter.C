@@ -72,10 +72,6 @@ InstructionAdapter::reset(
     _curBlk = curBlk;
 }
 
-InstructionAdapter::~InstructionAdapter()
-{
-}
-
 
 void InstructionAdapter::advance()
 {

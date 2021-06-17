@@ -46,7 +46,8 @@ namespace Dyninst {
             virtual std::string formatDeref(std::string) = 0;
             virtual std::string formatRegister(std::string) = 0;
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
-            virtual ~ArchSpecificFormatter() {}
+            virtual ~ArchSpecificFormatter() = default;
+	    ArchSpecificFormatter& operator=(const ArchSpecificFormatter&) = default;
             static INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter(Dyninst::Architecture a);
 
         };
@@ -60,7 +61,6 @@ namespace Dyninst {
             virtual std::string formatDeref(std::string);
             virtual std::string formatRegister(std::string);
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
-            virtual ~PPCFormatter() {}
 
         };
 
@@ -73,7 +73,6 @@ namespace Dyninst {
             virtual std::string formatDeref(std::string);
             virtual std::string formatRegister(std::string);
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
-            virtual ~ArmFormatter() {}
 
         private:
             std::map<std::string, std::string> binaryFuncModifier;
@@ -88,7 +87,6 @@ namespace Dyninst {
             virtual std::string formatDeref(std::string);
             virtual std::string formatRegister(std::string);
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
-            virtual ~AmdgpuFormatter() {}
 
         private:
             std::map<std::string, std::string> binaryFuncModifier;
@@ -104,7 +102,6 @@ namespace Dyninst {
             virtual std::string formatDeref(std::string);
             virtual std::string formatRegister(std::string);
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
-            virtual ~x86Formatter() {}
         };
 
     }

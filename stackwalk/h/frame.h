@@ -124,6 +124,8 @@ protected:
   // Also, signal handlers. 
   bool nonCall() const;
 
+  Frame& operator=(const Frame&) = default;
+  Frame(const Frame&) = default;
   ~Frame();
 };
 

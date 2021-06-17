@@ -77,7 +77,6 @@ public:
     } Operator;
 
     DwarfResult(Architecture a) : arch(a), error(false) {}
-    virtual ~DwarfResult() {};
 
     virtual void pushReg(Dyninst::MachRegister reg) = 0;
     virtual void readReg(Dyninst::MachRegister reg) = 0;
@@ -112,7 +111,6 @@ class DYNDWARF_EXPORT SymbolicDwarfResult : public DwarfResult {
 public:
     SymbolicDwarfResult(VariableLocation &v, Architecture a) :
         DwarfResult(a), var(v) {};
-    virtual ~SymbolicDwarfResult() {};
 
     virtual void pushReg(Dyninst::MachRegister reg);
     virtual void readReg(Dyninst::MachRegister reg);
