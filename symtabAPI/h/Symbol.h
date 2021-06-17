@@ -170,6 +170,7 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
 			 int strindex = -1,
                          bool cs = false);
    ~Symbol();
+   Symbol(const Symbol&) = default;
 
    bool          operator== (const Symbol &) const;
 

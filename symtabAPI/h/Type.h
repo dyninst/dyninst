@@ -174,7 +174,8 @@ public:
    Type(std::string name, dataClass dataTyp = dataNullType);
 
    Type();
-   virtual ~Type();
+   virtual ~Type() = default;
+   Type& operator=(const Type&) = default;
 
    // Fake unique_ptr type. TODO: Replace with std::unique_ptr for C++11
    class unique_ptr_Type {
@@ -286,20 +287,21 @@ class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
 
 class SYMTAB_EXPORT fieldListInterface {
  public:
-   virtual ~fieldListInterface() {};
+   virtual ~fieldListInterface() = default;
+   fieldListInterface& operator=(const fieldListInterface&) = default;
    virtual dyn_c_vector<Field *> *getComponents() const = 0;
 };
 
 class SYMTAB_EXPORT rangedInterface {
  public:
-   virtual ~rangedInterface() {};
+   virtual ~rangedInterface() = default;
+   rangedInterface& operator=(const rangedInterface&) = default;
    virtual unsigned long getLow() const = 0;
    virtual unsigned long getHigh() const  = 0;
 };  
 
 class SYMTAB_EXPORT derivedInterface{
  public:
-   virtual ~derivedInterface() {};
    virtual boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const = 0;
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
 };
@@ -318,6 +320,7 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
  public:
    fieldListType();
    ~fieldListType();
+   fieldListType& operator=(const fieldListType&) = default;
    bool operator==(const Type &) const;
    dyn_c_vector<Dyninst::SymtabAPI::Field*> *getComponents() const;
    
@@ -353,7 +356,6 @@ class SYMTAB_EXPORT rangedType : public Type, public rangedInterface {
    rangedType(std::string &name, dataClass typeDes, int size, unsigned long low, unsigned long hi);
  public:
    rangedType();
-   ~rangedType();
    bool operator==(const Type &) const;
    unsigned long getLow() const { return low_; }
    unsigned long getHigh() const { return hi_; }
@@ -369,7 +371,6 @@ class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
    derivedType(std::string &name, int size, dataClass typeDes);
  public:
    derivedType();
-   ~derivedType();
    bool operator==(const Type &) const;
    boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const;
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
@@ -420,7 +421,6 @@ class SYMTAB_EXPORT typeFunction : public Type {
      for(auto it = pp.begin(); it != pp.end(); ++it) p.push_back(it->get());
      return r;
    }
-   ~typeFunction();
    bool addParam(boost::shared_ptr<Type> type);
    bool addParam(Type* t) { return addParam(t->reshare()); }
    boost::shared_ptr<Type> getReturnType(Type::do_share_t) const;

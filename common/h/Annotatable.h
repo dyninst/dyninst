@@ -207,6 +207,34 @@ class COMMON_EXPORT AnnotatableDense
 		  }
 	  }
 
+	  AnnotatableDense(const AnnotatableDense&) = default;
+
+	  AnnotatableDense& operator=(const AnnotatableDense& rhs)
+	  {
+		  if (this != &rhs)
+		  {
+			  if (annotations)
+			  {
+				  if (annotations->data)
+					  free(annotations->data);
+				  free(annotations);
+			  }
+
+			  if (rhs.annotations)
+			  {
+				  annotations = (aInfo *) malloc(sizeof(aInfo));
+				  unsigned size = rhs.annotations->max;
+				  annotations->max = size;
+				  annotations->data = (anno_list_t *)calloc(sizeof(anno_list_t), (size));
+				  memcpy(annotations->data, rhs.annotations->data, size * sizeof(anno_list_t));
+			  }  else  {
+				  annotations = NULL;
+			  }
+		  }
+
+		  return *this;
+	  }
+
       template<class T> 
       bool addAnnotation(const T *a, AnnotationClass<T> &a_id) 
       {
@@ -329,7 +357,27 @@ class COMMON_EXPORT AnnotatableSparse
 
       typedef std::vector<annos_by_type_t *> annos_t;
 
+	  AnnotatableSparse() = default;
+
 	  ~AnnotatableSparse()
+	  {
+		  ClearAnnotations("dtor");
+	  }
+
+	  AnnotatableSparse(const AnnotatableSparse&) = default;
+
+	  AnnotatableSparse& operator=(const AnnotatableSparse &rhs)
+	  {
+		  if (this != &rhs)
+		  {
+			  ClearAnnotations("operator=");
+		  }
+
+		  return *this;
+	  }
+
+   private:
+	  void ClearAnnotations(const char *reason)
 	  {
 		  //  We need to remove annotations from the static map when objects
 		  //  are destroyed:  (1)  memory may be reclaimed and reused at the same
@@ -352,8 +400,8 @@ class COMMON_EXPORT AnnotatableSparse
 			  {
 				  if (annotation_debug_flag())
 				  {
-					  fprintf(stderr, "%s[%d]:  Sparse(%p) dtor remove %s-%d\n", FILE__, __LINE__,  
-							  (void*)this, AnnotationClassBase::findAnnotationClass(i) 
+					  fprintf(stderr, "%s[%d]:  Sparse(%p) %s remove %s-%d\n", FILE__, __LINE__,  
+							  (void*)this, reason, AnnotationClassBase::findAnnotationClass(i) 
 							  ? AnnotationClassBase::findAnnotationClass(i)->getName().c_str() 
 							  : "bad_anno_id", i);
 				  }
@@ -369,8 +417,6 @@ class COMMON_EXPORT AnnotatableSparse
 			  }
 		  }
 	  }
-
-   private:
 
 #if defined (NON_STATIC_SPARSE_MAP)
       //COMMON_EXPORT static annos_t *annos;

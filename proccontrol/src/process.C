@@ -5856,10 +5856,6 @@ RegisterPool::iterator::iterator(int_iter i_) :
 {
 }
 
-RegisterPool::iterator::~iterator()
-{
-}
-
 std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> RegisterPool::iterator::operator*()
 {
    return *i;
@@ -5884,10 +5880,6 @@ RegisterPool::const_iterator::const_iterator()
 
 RegisterPool::const_iterator::const_iterator(int_iter i_) :
    i(i_)
-{
-}
-
-RegisterPool::const_iterator::~const_iterator()
 {
 }
 
@@ -6070,10 +6062,6 @@ LibraryPool::iterator::iterator()
 {
 }
 
-LibraryPool::iterator::~iterator()
-{
-}
-
 Library::ptr LibraryPool::iterator::operator*() const
 {
    return (*int_iter)->up_lib;
@@ -6131,10 +6119,6 @@ LibraryPool::const_iterator LibraryPool::end() const
 }
 
 LibraryPool::const_iterator::const_iterator()
-{
-}
-
-LibraryPool::const_iterator::~const_iterator()
 {
 }
 
@@ -7976,10 +7960,6 @@ ThreadPool::iterator::iterator()
    curh = Thread::ptr();
 }
 
-ThreadPool::iterator::~iterator()
-{
-}
-
 bool ThreadPool::iterator::operator==(const iterator &i)
 {
    return (i.curh == curh);
@@ -8089,10 +8069,6 @@ ThreadPool::const_iterator::const_iterator()
    curp = NULL;
    curi = uninitialized_val;
    curh = Thread::ptr();
-}
-
-ThreadPool::const_iterator::~const_iterator()
-{
 }
 
 bool ThreadPool::const_iterator::operator==(const const_iterator &i)

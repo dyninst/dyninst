@@ -499,7 +499,8 @@ public:
       const std::map<Address, TransferSet> &fs,
       const std::set<Address> &toppable = std::set<Address>());
 
-    DATAFLOW_EXPORT virtual ~StackAnalysis();
+    DATAFLOW_EXPORT virtual ~StackAnalysis() = default;
+    DATAFLOW_EXPORT StackAnalysis& operator=(const Dyninst::StackAnalysis&) = default;
 
     DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
     DATAFLOW_EXPORT DefHeightSet findDefHeight(ParseAPI::Block *block,

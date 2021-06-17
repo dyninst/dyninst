@@ -66,9 +66,6 @@ class parse_block;
 
 class codeRange : public patchTarget {
   public:
-    codeRange() { }
-    virtual ~codeRange() { }
-
     //These are now inherited from relocTarget
     //virtual Address get_address() const = 0;
     //virtual unsigned get_size() const = 0;

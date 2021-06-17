@@ -61,7 +61,8 @@ class InstructionAdapter
     public:
         InstructionAdapter(Address start, ParseAPI::CodeObject *o , 
             ParseAPI::CodeRegion* r, InstructionSource * isrc,  ParseAPI::Block *);
-        virtual ~InstructionAdapter();
+        virtual ~InstructionAdapter() = default;
+	InstructionAdapter(const InstructionAdapter&) = default;
 
     // Reset to just-constructed state
     void reset(Address start, ParseAPI::CodeObject *o,

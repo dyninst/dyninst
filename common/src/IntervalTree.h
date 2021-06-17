@@ -49,9 +49,6 @@ class IntervalTree {
   typedef typename Tree::iterator iterator;
   typedef typename Tree::const_iterator const_iterator;
 
-  IntervalTree() {};
-  ~IntervalTree() {};
-
   iterator begin() { return tree_.begin(); }
   iterator end() { return tree_.end(); }
   c_r_iter rbegin() { return tree_.rbegin(); }

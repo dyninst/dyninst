@@ -100,6 +100,9 @@ class memEntry {
    memEntry();
    memEntry(token_t token);
    memEntry(Dyninst::Address remote, void *local, unsigned long size, bool is_read, memCache *cache);
+   memEntry(const memEntry *me, char* b);
+   memEntry& operator=(const memEntry&) = delete;
+   memEntry(const memEntry&) = delete;
    ~memEntry();
 
    Dyninst::Address getAddress() const;

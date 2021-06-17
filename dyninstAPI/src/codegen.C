@@ -663,10 +663,6 @@ std::string patchTarget::get_name() const {
    return std::string("UNNAMED");
 }
 
-patchTarget::~patchTarget()
-{
-}
-
 toAddressPatch::~toAddressPatch() {
 }
 

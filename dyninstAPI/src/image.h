@@ -152,8 +152,6 @@ class fileDescriptor {
         length_(length),
         rawPtr_(rawPtr) {}
 
-     ~fileDescriptor() {}
-
      bool operator==(const fileDescriptor &fd) const {
          return IsEqual(fd );
      }

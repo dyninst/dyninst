@@ -73,6 +73,19 @@ memEntry::memEntry(token_t t) :
 {
 }
 
+memEntry::memEntry(const memEntry *me, char *b) :
+   addr(me->addr),
+   buffer(b),
+   had_error(me->had_error),
+   size(me->size),
+   operation_num(me->operation_num),
+   clean_buffer(true),
+   is_read(me->is_read),
+   is_write(me->is_write),
+   token_type(me->token_type)
+{
+}
+
 memEntry::~memEntry()
 {
    if (buffer && clean_buffer)
@@ -288,9 +301,7 @@ async_ret_t memCache::doOperation(memEntry *me, int_thread *op_thread)
       return aret_error;
    }
 
-   memEntry *me_copy = new memEntry();
-   *me_copy = *me;
-   me_copy->clean_buffer = true;
+   memEntry *me_copy = new memEntry(me, me->buffer);
 
    mem_cache.push_back(me_copy);
    last_operation = mem_cache.end();

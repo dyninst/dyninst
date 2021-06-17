@@ -181,7 +181,6 @@ class PC_EXPORT LibraryPool
       std::set<int_library *>::iterator int_iter;
    public:
       iterator();
-      ~iterator();
       Library::ptr operator*() const;
       bool operator==(const iterator &i) const;
       bool operator!=(const iterator &i) const;
@@ -201,7 +200,6 @@ class PC_EXPORT LibraryPool
      std::set<int_library *>::iterator int_iter;
   public:
      const_iterator();
-     ~const_iterator();
      Library::const_ptr operator*() const;
      bool operator==(const const_iterator &i);
      bool operator!=(const const_iterator &i);
@@ -667,7 +665,6 @@ class PC_EXPORT ThreadPool
       int curi;
    public:
       iterator();
-      ~iterator();
       Thread::ptr operator*() const;
       bool operator==(const iterator &i);
       bool operator!=(const iterator &i);
@@ -688,7 +685,6 @@ class PC_EXPORT ThreadPool
       int curi;
    public:
       const_iterator();
-      ~const_iterator();
       Thread::const_ptr operator*() const;
       bool operator==(const const_iterator &i);
       bool operator!=(const const_iterator &i);
@@ -731,7 +727,6 @@ class PC_EXPORT RegisterPool
       iterator(int_iter i_);
    public:
       iterator();
-      ~iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*();
       bool operator==(const iterator &i);
       bool operator!=(const iterator &i);
@@ -750,7 +745,6 @@ class PC_EXPORT RegisterPool
       const_iterator(int_iter i_);
    public:
       const_iterator();
-      ~const_iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*() const;
       bool operator==(const const_iterator &i);
       bool operator!=(const const_iterator &i);

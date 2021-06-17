@@ -71,7 +71,8 @@ class COMMON_EXPORT Statistic  {
     Statistic(StatContainer *c) : 
         container_(c)
     { }
-    virtual ~Statistic() {}; // Avoid warnings
+    virtual ~Statistic() = default; // Avoid warnings
+    Statistic(const Statistic&) = default;
 
     StatContainer *container_;
 };

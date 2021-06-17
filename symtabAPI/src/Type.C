@@ -148,12 +148,6 @@ Type::Type(std::string name, dataClass dataTyp) :
 		name = std::string("unnamed_") + std::string(dataClass2Str(type_));
 }
 
-/* type destructor
- * Basic destructor for proper memory management.
- */
-Type::~Type()
-{
-}
 
 const char *Dyninst::SymtabAPI::dataClass2Str(dataClass dc)
 {
@@ -573,9 +567,6 @@ void typeFunction::fixupUnknowns(Module *module)
    }	 
 }
 
-typeFunction::~typeFunction()
-{ 
-}
 
 /*
  * RANGE
@@ -1512,8 +1503,6 @@ bool derivedType::operator==(const Type &otype) const {
    }
 }
 
-derivedType::~derivedType()
-{}
 
 /*
  * RANGED
@@ -1546,8 +1535,6 @@ rangedType::rangedType(const char *_name, int _ID, dataClass _class, int _size, 
 }
 */
 
-rangedType::~rangedType() {
-}
 
 bool rangedType::operator==(const Type &otype) const 
 {
