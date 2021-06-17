@@ -1045,6 +1045,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
  (e_fxch, "fxch")
   (e_fxrstor, "fxrstor")
   (e_fxsave, "fxsave")
+  (e_xsave, "xsave")
   (e_getsec, "getsec")
   (e_xbegin, "xbegin")
   (e_xabort, "xabort")
@@ -3918,7 +3919,7 @@ static ia32_entry groupMap2[][2][8] = {
       { e_fxrstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R | (fFXRSTOR << FPOS), 0 },
       { e_ldmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1R, 0 },
       { e_stmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_xsave, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_clwb, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
       { e_clflush, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
