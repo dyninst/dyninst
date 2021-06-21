@@ -36,6 +36,8 @@ set (SRC_LIST ${SRC_LIST}
     src/RTthread.c 
     src/RTspace.S 
     src/RTsignal.c
+)
+set (RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST}
     src/RTstatic_ctors_dtors_begin.c 
     src/RTstatic_ctors_dtors_end.c 
 )
@@ -52,26 +54,36 @@ endif ()
 set (SRC_LIST_i386
     src/RTthread-x86.c 
     src/RTtlsgetaddr-x86.S 
+)
+set (RT_STATIC_ONLY_SRC_LIST_i386
     src/RTstatic_ctors_dtors-x86.c
 )
 set (SRC_LIST_x86_64
     src/RTthread-x86-64.c 
     src/RTtlsgetaddr-x86.S
+)
+set (RT_STATIC_ONLY_SRC_LIST_x86_64
     src/RTstatic_ctors_dtors-x86.c
 )
 set (SRC_LIST_ppc32
     src/RTthread-powerpc.c
     src/RTthread-powerpc-asm.S
+)
+set (RT_STATIC_ONLY_SRC_LIST_ppc32
     src/RTstatic_ctors_dtors-ppc32.c
 )
 set (SRC_LIST_ppc64
     src/RTthread-powerpc.c
     src/RTthread-powerpc-asm.S
+)
+set (RT_STATIC_ONLY_SRC_LIST_ppc64
     src/RTstatic_ctors_dtors-ppc64.c                                                                                         
 )
 set (SRC_LIST_aarch64
     src/RTthread-aarch64.c
     #src/RTthread-aarch64-asm.S
+)
+set (RT_STATIC_ONLY_SRC_LIST_aarch64
     src/RTstatic_ctors_dtors-aarch64.c                                                                                         
 )
 
@@ -95,16 +107,23 @@ endif()
 if(UNIX)
 if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST_mabi ${SRC_LIST} ${SRC_LIST_i386})
+set (RT_STATIC_ONLY_SRC_LIST_mabi ${RT_STATIC_ONLY_SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST_i386})
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_x86_64})
+set (RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST_x86_64})
 elseif (PLATFORM MATCHES ppc64)
 set (SRC_LIST_mabi ${SRC_LIST} ${SRC_LIST_ppc32})
+set (RT_STATIC_ONLY_SRC_LIST_mabi ${RT_STATIC_ONLY_SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST_ppc32})
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_ppc64}) 
+set (RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST_ppc64})
 elseif (PLATFORM MATCHES i386)
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_i386})
+set (RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST_i386})
 elseif (PLATFORM MATCHES ppc32)
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_ppc32})
+set (RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST_ppc32})
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST} ${SRC_LIST_aarch64})
+set (RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST_aarch64})
 endif()
 endif()
 
@@ -119,7 +138,7 @@ else() # windows
     target_link_libraries (dyninstAPI_RT ws2_32 dbghelp psapi)
 endif()
 
-add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
+add_library (dyninstAPI_RT_static STATIC ${SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST})
 if(TARGET TBB)
     add_dependencies(dyninstAPI_RT_static TBB)
 endif()
@@ -204,7 +223,7 @@ if (BUILD_RTLIB_32 MATCHES "ON")
 
 add_library (dyninstAPI_RT_m32 SHARED ${SRC_LIST_mabi})
 target_link_libraries (dyninstAPI_RT_m32 ${CMAKE_DL_LIBS})
-add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi})
+add_library (dyninstAPI_RT_m32_static STATIC ${SRC_LIST_mabi} ${RT_STATIC_ONLY_SRC_LIST_mabi})
 
 set_target_properties (dyninstAPI_RT_m32
                       PROPERTIES
