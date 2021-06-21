@@ -1092,7 +1092,10 @@ bool DwarfWalker::parseBaseType() {
    }
 
    unsigned size = 0;
-   if (!findSize(size)) return false;
+   if (!findSize(size)) {
+	   dwarf_printf("(0x%lx) No size for type '%s', returning early\n", id(), curName().c_str());
+	   return false;
+   }
 
    /* Generate the appropriate built-in type; since there's no
       reliable way to distinguish between a built-in and a scalar,
