@@ -1722,7 +1722,6 @@ rangedType::rangedType() : low_(0), hi_(0) {}
 derivedType::derivedType() : baseType_(NULL) {}
 typeEnum::typeEnum() {}
 typeFunction::typeFunction() : retType_(NULL) {}
-typeScalar::typeScalar() : isSigned_(false) {}
 typeCommon::typeCommon() {}
 typeStruct::typeStruct() {}
 typeUnion::typeUnion() {}
