@@ -1040,17 +1040,6 @@ void typeUnion::fixupUnknowns(Module *module) {
 /*
  * SCALAR
  */
-
-   
-typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool isSigned) :
-    Type(name, ID, dataScalar), is_signed(isSigned)
-{
-   size_ = size;
-}
-
-typeScalar::typeScalar(unsigned int size, std::string name, bool isSigned) :
-    typeScalar(getUniqueTypeId(), size, name, isSigned){}
-
 typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
 {
    typeScalar *typ = new typeScalar(size, name);

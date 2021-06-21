@@ -439,8 +439,16 @@ class SYMTAB_EXPORT typeScalar : public Type {
    bool is_signed{false};
  public:
    typeScalar() = default;
-   typeScalar(typeId_t ID, unsigned int size, std::string name = "", bool isSigned = false);
-   typeScalar(unsigned int size, std::string name = "", bool isSigned = false);
+
+   typeScalar(typeId_t ID, unsigned int size, std::string name="", bool isSigned=false) :
+       Type(name, ID, dataScalar), is_signed(isSigned)
+   {
+      size_ = size;
+   }
+
+   typeScalar(unsigned int size, std::string name="", bool isSigned=false) :
+       typeScalar(this->getUniqueTypeId(), size, name, isSigned){}
+
    static typeScalar *create(std::string &name, int size, Symtab *obj = NULL);
    bool isSigned();
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
