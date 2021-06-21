@@ -2662,7 +2662,8 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
   unsigned int val = getNextTypeId();
   {
     type_map::accessor a;
-    type_ids.insert(a, make_pair((type_key){offset,is_sup,mod()}, val));
+    type_key tk{offset, is_sup, mod()};
+    type_ids.insert(a, make_pair(tk, val));
     dwarf_printf("(0x%lx) type_id %d, key created {0x%x,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fullName().c_str());
   }
 
