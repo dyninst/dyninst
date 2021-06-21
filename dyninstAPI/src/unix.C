@@ -566,7 +566,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
   }
 
   // A little helper to fix some clunky checks
-  auto is_compatible = [this](std::string const &path, std::string const &member = {}) {
+  auto is_compatible = [this](std::string const &path, std::string const &member) {
     auto temp = std::unique_ptr<BinaryEdit>{BinaryEdit::openFile(path, mgr(), patcher(), member)};
     if (temp && temp->getAddressWidth() == getAddressWidth()) {
       return temp;
@@ -581,7 +581,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
   Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
   if (!origSymtab->isStaticBinary()) {
     for (auto const &path : paths) {
-      if (auto temp = is_compatible(path)) {
+      if (auto temp = is_compatible(path, {})) {
         auto ret = retMap.emplace(path, temp.release());
         return (*ret.first).second->getMappedObject();
       }
@@ -633,7 +633,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
       Symtab *singleObject{nullptr};
       if (Symtab::openFile(singleObject, path)) {
         std::unique_ptr<Symtab> obj{singleObject};
-        if (auto temp = is_compatible(path)) {
+        if (auto temp = is_compatible(path, {})) {
           if (obj->getObjectType() == obj_SharedLib || obj->getObjectType() == obj_Executable) {
             startup_printf(
                 "%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", FILE__,
