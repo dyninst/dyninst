@@ -1049,10 +1049,7 @@ typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool is
 }
 
 typeScalar::typeScalar(unsigned int size, std::string name, bool isSigned) :
-    Type(name, ::getUniqueTypeId(), dataScalar), isSigned_(isSigned)
-{
-   size_ = size;
-}
+    typeScalar(getUniqueTypeId(), size, name, isSigned){}
 
 typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
 {
