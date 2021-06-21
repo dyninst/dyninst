@@ -436,7 +436,7 @@ typeFunction& Type::asFunctionType() { return dynamic_cast<typeFunction&>(*this)
 
 class SYMTAB_EXPORT typeScalar : public Type {
  private:
-   bool isSigned_{false};
+   bool is_signed{false};
  public:
    typeScalar() = default;
    typeScalar(typeId_t ID, unsigned int size, std::string name = "", bool isSigned = false);

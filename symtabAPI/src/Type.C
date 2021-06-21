@@ -1043,7 +1043,7 @@ void typeUnion::fixupUnknowns(Module *module) {
 
    
 typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool isSigned) :
-    Type(name, ID, dataScalar), isSigned_(isSigned)
+    Type(name, ID, dataScalar), is_signed(isSigned)
 {
    size_ = size;
 }
@@ -1064,7 +1064,7 @@ typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
 }
 
 bool typeScalar::isSigned(){
-    return isSigned_;
+    return is_signed;
 }
 
 bool typeScalar::isCompatible(Type *otype) {
