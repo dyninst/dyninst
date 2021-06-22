@@ -1052,10 +1052,6 @@ typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
    return typ;	
 }
 
-bool typeScalar::isSigned(){
-    return is_signed;
-}
-
 bool typeScalar::isCompatible(Type *otype) {
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;

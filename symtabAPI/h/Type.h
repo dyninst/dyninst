@@ -435,24 +435,53 @@ class SYMTAB_EXPORT typeFunction : public Type {
 typeFunction& Type::asFunctionType() { return dynamic_cast<typeFunction&>(*this); }
 
 class SYMTAB_EXPORT typeScalar : public Type {
- private:
-   bool is_signed{false};
- public:
-   typeScalar() = default;
+public:
+  struct properties_t {
+	  // Summary properties
+	  // NB: See DwarfWalker::parseBaseType for how these are computed
+	  bool is_integral;
+	  bool is_floating_point;
+	  bool is_string;
 
-   typeScalar(typeId_t ID, unsigned int size, std::string name="", bool isSigned=false) :
-       Type(name, ID, dataScalar), is_signed(isSigned)
-   {
-      size_ = size;
-   }
+	  // Detailed properties
+	  bool is_address;
+	  bool is_boolean;
+	  bool is_complex_float;
+	  bool is_float;
+	  bool is_imaginary_float;
+	  bool is_decimal_float;
+	  bool is_signed;
+	  bool is_signed_char;
+	  bool is_unsigned;
+	  bool is_unsigned_char;
+	  bool is_UTF;
+  };
 
-   typeScalar(unsigned int size, std::string name="", bool isSigned=false) :
-       typeScalar(this->getUniqueTypeId(), size, name, isSigned){}
+private:
+  properties_t props{};
 
-   static typeScalar *create(std::string &name, int size, Symtab *obj = NULL);
-   bool isSigned();
-   bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
-   bool isCompatible(Type *otype);
+public:
+  typeScalar() = default;
+
+  typeScalar(typeId_t ID, unsigned int size, std::string name, properties_t p)
+      : Type(name, ID, dataScalar), props{p} {
+    size_ = size;
+  }
+
+  typeScalar(typeId_t ID, unsigned int size, std::string name = "", bool isSigned = false)
+      : Type(name, ID, dataScalar) {
+	props.is_signed = isSigned;
+    size_ = size;
+  }
+
+  typeScalar(unsigned int size, std::string name = "", bool isSigned = false)
+      : typeScalar(this->getUniqueTypeId(), size, name, isSigned) {}
+
+  static typeScalar *create(std::string &name, int size, Symtab *obj = NULL);
+  bool isSigned() const { return props.is_signed; }
+  properties_t const& properties() const { return props; }
+  bool isCompatible(boost::shared_ptr<Type> x) {return isCompatible(x.get());};
+  bool isCompatible(Type *otype);
 };
 
 class SYMTAB_EXPORT typeCommon : public fieldListType {

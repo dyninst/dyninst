@@ -1097,10 +1097,59 @@ bool DwarfWalker::parseBaseType() {
 	   return false;
    }
 
+   // Fetch the encoding
+   Dwarf_Die e = entry();
+   Dwarf_Attribute encoding_attr{};
+
+   if(!dwarf_attr(&e, DW_AT_encoding, &encoding_attr)) {
+	   dwarf_printf("(0x%lx) Unable to determine encoding for type '%s'\n", id(), curName().c_str());
+       return false;
+   }
+
+   Dwarf_Sword encoding{};
+   DWARF_FAIL_RET(dwarf_formsdata(&encoding_attr, &encoding));
+
+   // linear machine address (for segmented addressing modes)
+   const bool is_address = encoding == DW_ATE_address;
+
+   // Integral types
+   // NB: We explicitly don't support DW_ATE_[un]signed_fixed and DW_ATE_packed_decimal
+   //     because we don't support languages that use those (e.g., COBOL)
+   const bool is_boolean = encoding == DW_ATE_boolean;
+   const bool is_signed_int = encoding == DW_ATE_signed;
+   const bool is_signed_char = encoding == DW_ATE_signed_char;
+   const bool is_unsigned_int = encoding == DW_ATE_unsigned;
+   const bool is_unsigned_char = encoding == DW_ATE_unsigned_char;
+
+   // Float types
+   const bool is_complex_float = encoding == DW_ATE_complex_float;
+   const bool is_float = encoding == DW_ATE_float;
+   const bool is_imaginary_float = encoding == DW_ATE_imaginary_float;
+   const bool is_decimal_float = encoding == DW_ATE_decimal_float;
+
+   // Stringy types
+   // NB: We explicitly don't support DW_ATE_edited and DW_ATE_numeric_string
+   //     because we don't support languages that use those (e.g., COBOL)
+   const bool is_UTF = encoding == DW_ATE_UTF;
+
+   const bool is_signed = is_signed_int || is_signed_char;
+   const bool is_unsigned = is_unsigned_int || is_unsigned_char;
+   const bool is_integral = is_boolean || is_signed || is_unsigned;
+   const bool is_floating_point = is_float || is_complex_float || is_imaginary_float || is_decimal_float;
+   const bool is_string = is_UTF;
+
+   typeScalar::properties_t p = {
+	   is_integral, is_floating_point, is_string,
+	   is_address, is_boolean,
+	   is_complex_float, is_float, is_imaginary_float, is_decimal_float,
+	   is_signed, is_signed_char, is_unsigned, is_unsigned_char,
+	   is_UTF
+   };
+
    /* Generate the appropriate built-in type; since there's no
       reliable way to distinguish between a built-in and a scalar,
       we don't bother to try. */
-   auto baseType = Type::make_shared<typeScalar>( type_id(), (unsigned int) size, curName());
+   auto baseType = Type::make_shared<typeScalar>( type_id(), size, curName(), p);
 
    /* Add the basic type to our collection. */
    typeScalar *debug = baseType.get();
