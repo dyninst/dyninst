@@ -123,14 +123,15 @@ localVar::localVar(std::string name,  boost::shared_ptr<Type> typ, std::string f
 }
 
 localVar::localVar(localVar &lvar)
+:
+	AnnotatableSparse(),
+	name_(lvar.name_),
+	type_(lvar.type_),
+	fileName_(lvar.fileName_),
+	lineNum_(lvar.lineNum_),
+	func_(lvar.func_),
+	locsExpanded_(lvar.locsExpanded_)
 {
-	name_ = lvar.name_;
-	type_ = lvar.type_;
-	fileName_ = lvar.fileName_;
-	lineNum_ = lvar.lineNum_;
-        func_ = lvar.func_;
-        locsExpanded_ = lvar.locsExpanded_;
-
         std::copy(lvar.locs_.begin(), lvar.locs_.end(),
                   std::back_inserter(locs_));
 }

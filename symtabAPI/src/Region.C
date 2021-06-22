@@ -73,6 +73,7 @@ Region::Region(unsigned regnum, std::string name, Offset diskOff,
 }
 
 Region::Region(const Region &reg) :
+   AnnotatableSparse(),
    regNum_(reg.regNum_), name_(reg.name_),
    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
    memSize_(reg.memSize_), fileOff_(reg.fileOff_), rawDataPtr_(reg.rawDataPtr_),
