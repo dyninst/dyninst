@@ -915,10 +915,10 @@ std::string getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
 				if( brCnt != 0 && stabstr[ cnt + i ] != '\0' ) {
 					i++;
 					}
-				else if( brCnt ) {
-					//bperr( "Failed to find identifier in stabstring '%s;\n", stabstr );
-					idChar = false;
-					}
+//				else if( brCnt ) {
+//					//bperr( "Failed to find identifier in stabstring '%s;\n", stabstr );
+//					idChar = false;
+//					}
 				else {
 					idChar = false;
 					}
