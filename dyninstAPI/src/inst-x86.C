@@ -1532,8 +1532,19 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
    RealRegister reg;
 
    int addr_width = gen.addrSpace()->getAddressWidth();
+#if defined(__GNUC__)
+ #pragma GCC diagnostic push
+ #if __GNUC__ >= 7
+  // disable warning as the registers numbers are identical for 32-bit
+  // and 64-bit but use semantically distinct names
+  #pragma GCC diagnostic ignored "-Wduplicated-branches"
+ #endif
+#endif
    RealRegister plat_bp(addr_width == 4 ? REGNUM_EBP : REGNUM_RBP);
    RealRegister plat_sp(addr_width == 4 ? REGNUM_ESP : REGNUM_RSP); 
+#if defined(__GNUC__)
+ #pragma GCC diagnostic pop
+#endif
 
    if (sitem.item == stackItem::reg_item && sitem.reg.reg() == plat_sp.reg())
    {
@@ -2371,7 +2382,18 @@ Emitter *AddressSpace::getEmitter()
 
 #if defined(arch_x86_64)
 int registerSpace::framePointer() { 
+#if defined(__GNUC__)
+ #pragma GCC diagnostic push
+ #if __GNUC__ >= 7
+  // disable warning as the registers numbers are identical for 32-bit
+  // and 64-bit but use semantically distinct names
+  #pragma GCC diagnostic ignored "-Wduplicated-branches"
+ #endif
+#endif
    return addr_width == 8 ? REGNUM_RBP : REGNUM_EBP; 
+#if defined(__GNUC__)
+ #pragma GCC diagnostic pop
+#endif
 }
 #elif defined(arch_x86)
 int registerSpace::framePointer() { 

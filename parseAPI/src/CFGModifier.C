@@ -285,14 +285,14 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
          deadEdges.push_back(edge);
          pcb->removeEdge(b, edge, ParseCallback::target);
          ParseCallbackManager *pcbTrg = edge->trg()->obj()->_pcb;
-         if (!edge->sinkEdge()) {
+//       if (!edge->sinkEdge()) {
             pcbTrg->removeEdge(edge->trg(), edge, ParseCallback::source);
-         } else {
-            // we don't actually wire up edges to the sink block in the PatchAPI, 
-            // but I'm not sure why not, so I'll keep this here in case that
-            // changes in the future
-            pcbTrg->removeEdge(edge->trg(), edge, ParseCallback::source);
-         }
+//       } else {
+//          // we don't actually wire up edges to the sink block in the PatchAPI, 
+//          // but I'm not sure why not, so I'll keep this here in case that
+//          // changes in the future
+//          pcbTrg->removeEdge(edge->trg(), edge, ParseCallback::source);
+//       }
          edge->trg()->removeSource(edge); // even sink edge has source list
       }
 
