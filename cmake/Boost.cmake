@@ -274,7 +274,7 @@ endif()
 set(Boost_LIBRARIES ${Boost_LIBRARIES} CACHE FILEPATH "Boost library files" FORCE)
 
 link_directories(${Boost_LIBRARY_DIRS})
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")

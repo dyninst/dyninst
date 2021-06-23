@@ -171,7 +171,7 @@ else()
   )
 endif()
  
-include_directories(${TBB_INCLUDE_DIRS})
+include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 link_directories(${TBB_LIBRARY_DIRS})
 
 message(STATUS "TBB include directory: ${TBB_INCLUDE_DIRS}")
