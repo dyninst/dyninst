@@ -752,6 +752,12 @@ bool StackModChecker::accumulateStackRanges(StackMod* m)
     return true;
 }
 
+/*
+ * WARNING: The methods alignStackRanges and findContiguousRange function
+ *          are fundamentally broken and need to be rewritten.  There is
+ *          much wrong here, but it may work in limited circumstances.
+ *
+ */
 /* Conform to alignment requirements of the current platform */
 bool StackModChecker::alignStackRanges(int alignment, StackMod::MOrder order, std::vector<StackMod*>& mods)
 {
@@ -768,15 +774,17 @@ bool StackModChecker::alignStackRanges(int alignment, StackMod::MOrder order, st
     }
 
     for (rangeIterator rIter = begin; rIter != end; ) {
-        rangeIterator end = rIter;
-        findContiguousRange(rIter, end);
+	/* endXXX renamed from end to unshadow original end, no other
+	 * brokenness was fixed in this function */
+        rangeIterator endXXX = rIter;
+        findContiguousRange(rIter, endXXX);
 
         // Need to account for INSERTs vs. REMOVEs
         int size = 0;
-        if (rIter == end) {
+        if (rIter == endXXX) {
             size = (*rIter).second.first - (*rIter).first;
         } else {
-            for (auto iter = rIter; iter != end; ++iter) {
+            for (auto iter = rIter; iter != endXXX; ++iter) {
                 int curSize = (*iter).second.first - (*iter).first;
                 StackMod::MType type = (*iter).second.second;
                 if (type == StackMod::INSERT) {
@@ -793,13 +801,13 @@ bool StackModChecker::alignStackRanges(int alignment, StackMod::MOrder order, st
             // Pad out to alignment requirements; for now, we'll pad above (WLOG) 
             int fixup = alignment - d.rem;
             if (order == StackMod::NEW) {
-                mods.push_back(new Insert(StackMod::NEW, (*end).second.first - fixup, (*end).second.first));
+                mods.push_back(new Insert(StackMod::NEW, (*endXXX).second.first - fixup, (*endXXX).second.first));
             } else if (order == StackMod::CLEANUP) {
-                mods.insert(mods.begin(), new Remove(StackMod::CLEANUP, (*end).second.first - fixup, (*end).second.first));
+                mods.insert(mods.begin(), new Remove(StackMod::CLEANUP, (*endXXX).second.first - fixup, (*endXXX).second.first));
             }
         }
 
-        rIter = ++end;
+        rIter = ++endXXX;
     } 
     return true;
 }
