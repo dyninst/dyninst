@@ -3435,7 +3435,7 @@ int read_except_table_gcc3(
 
 
 struct exception_compare : public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool> {
-    bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
+    bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) const {
         if (e1.tryStart() < e2.tryStart())
             return true;
         return false;

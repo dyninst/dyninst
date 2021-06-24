@@ -97,7 +97,7 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 //---------------------------------------------------------------------------
 struct	CompareSymAddresses: public binary_function<const Object::intSymbol*, const Object::intSymbol*, bool> 
 {
-	bool operator()(const Object::intSymbol *s1, const Object::intSymbol* s2) {
+	bool operator()(const Object::intSymbol *s1, const Object::intSymbol* s2) const {
 		bool ret = false;
 		// first try comparing by address
 		if( s1->GetAddr() < s2->GetAddr() ) 
@@ -1097,7 +1097,7 @@ struct line_info_tmp_t {
 };
 
 struct line_info_tmp_lt {
-	bool operator()(const line_info_tmp_t &a, const line_info_tmp_t &b) {
+	bool operator()(const line_info_tmp_t &a, const line_info_tmp_t &b) const {
       return a.addr < b.addr;
 	};
 };

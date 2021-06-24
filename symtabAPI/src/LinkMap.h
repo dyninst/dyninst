@@ -47,7 +47,7 @@ namespace SymtabAPI{
 template <typename T>
 struct CtorComp
 {
-  bool operator()(T lhs, T rhs)
+  bool operator()(T lhs, T rhs) const
   {
     static std::string first_ctor_name("RTstatic_ctors_dtors_begin.c.o");
     static std::string last_ctor_name("RTstatic_ctors_dtors_end.c.o");

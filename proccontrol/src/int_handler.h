@@ -41,7 +41,7 @@ using namespace ProcControlAPI;
 
 struct handler_cmp
 {
-   bool operator()(const Handler* a, const Handler* b)
+   bool operator()(const Handler* a, const Handler* b) const
    {
       return a->getPriority() < b->getPriority();
    }

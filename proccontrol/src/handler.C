@@ -143,7 +143,7 @@ void HandlerPool::addHandler(Handler *handler)
 struct eh_cmp_func
 {
    bool operator()(const pair<Event::ptr, Handler*> &a,
-                   const pair<Event::ptr, Handler*> &b)
+                   const pair<Event::ptr, Handler*> &b) const
    {
       //Async events go first
       if (a.first->getEventType().code() != EventType::Async ||

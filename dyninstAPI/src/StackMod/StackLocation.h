@@ -180,7 +180,7 @@ class tmpObject
 
 struct less_tmpObject: public std::binary_function<tmpObject, tmpObject, bool>
 {
-    bool operator()(tmpObject a, tmpObject b){
+    bool operator()(tmpObject a, tmpObject b) const {
         if (a.offset() < b.offset()) {
             return true;
         } else if (a.offset() == b.offset()) {

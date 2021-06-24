@@ -58,7 +58,7 @@ namespace Dyninst {
 // Error reporting
 
         struct sortByOffsetNewIndices {
-            bool operator()(Symbol *lhs, Symbol *rhs) {
+            bool operator()(Symbol *lhs, Symbol *rhs) const {
                 auto lIndex = lhs->getIndex();
                 auto rIndex = rhs->getIndex();
                 if(lIndex==-1 && rIndex==-1)
@@ -69,7 +69,7 @@ namespace Dyninst {
             }
         };
         struct sortByIndex {
-            bool operator()(Symbol *lhs, Symbol *rhs) {
+            bool operator()(Symbol *lhs, Symbol *rhs) const {
                 return lhs->getIndex() < rhs->getIndex();
             }
         };

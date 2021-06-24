@@ -258,7 +258,7 @@ class ParseWorkElem
      * Sorts by parse_work_order, then bundle, then address
     */
     struct compare {
-        bool operator()(const ParseWorkElem * e1, const ParseWorkElem * e2)
+        bool operator()(const ParseWorkElem * e1, const ParseWorkElem * e2) const
         {
             parse_work_order o1 = e1->order();
             parse_work_order o2 = e2->order();   

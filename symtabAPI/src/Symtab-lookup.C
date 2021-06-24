@@ -693,7 +693,7 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
 
 struct Dyninst::SymtabAPI::SymbolCompareByAddr
 {
-    bool operator()(Function *a, Function *b)
+    bool operator()(Function *a, Function *b) const
     {
        return (a->offset_ < b->offset_);
     }
