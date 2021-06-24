@@ -30,7 +30,6 @@ set (SRC_LIST
      src/BPatch_addressSpace.C 
      src/BPatch_binaryEdit.C 
      src/BPatch_memoryAccess.C 
-#     src/dummy.C
      src/debug.C 
      src/ast.C 
      src/registerSpace.C 
