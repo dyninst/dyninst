@@ -74,13 +74,11 @@ set(ROSE_SRC
         ../dataflowAPI/rose/util/Combinatorics.C
         ../dataflowAPI/rose/util/LinearCongruentialGenerator.C
         ../dataflowAPI/rose/semantics/BaseSemantics2.C
-        #../dataflowAPI/rose/semantics/ConcreteSemantics2.C
         ../dataflowAPI/rose/semantics/DispatcherARM64.C
         ../dataflowAPI/rose/semantics/DispatcherAmdgpuVega.C
 	    ../dataflowAPI/rose/semantics/DispatcherPowerpc.C
         ../dataflowAPI/rose/semantics/RegisterParts.C
         ../dataflowAPI/rose/semantics/Registers.C
-        #../dataflowAPI/rose/semantics/SMTSolver.C
         ../dataflowAPI/rose/semantics/BinarySymbolicExpr.C
         ../dataflowAPI/rose/semantics/RegisterStateGeneric.C
         ../dataflowAPI/rose/semantics/SymEvalSemantics.C
