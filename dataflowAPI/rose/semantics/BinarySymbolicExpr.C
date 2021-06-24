@@ -138,7 +138,7 @@ commentEscape(const std::string &s) {
 }
 
 bool
-ExpressionLessp::operator()(const Ptr &a, const Ptr &b) {
+ExpressionLessp::operator()(const Ptr &a, const Ptr &b) const {
     if (a == NULL || b == NULL)
         return a == NULL && b != NULL;
     return a->hash() < b->hash();

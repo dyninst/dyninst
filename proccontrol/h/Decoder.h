@@ -51,7 +51,7 @@ class PC_EXPORT Decoder
 
 struct decoder_cmp
 {
-   bool operator()(const Decoder* a, const Decoder* b)
+   bool operator()(const Decoder* a, const Decoder* b) const
    {
       return a->getPriority() < b->getPriority();
    }

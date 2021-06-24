@@ -629,7 +629,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
 struct compareByEntryAddr
 {
-    bool operator()(const BPatch_basicBlock* lhs, const BPatch_basicBlock* rhs)
+    bool operator()(const BPatch_basicBlock* lhs, const BPatch_basicBlock* rhs) const
     {
         return const_cast<BPatch_basicBlock*>(lhs)->getStartAddress() < 
 			const_cast<BPatch_basicBlock*>(rhs)->getStartAddress();

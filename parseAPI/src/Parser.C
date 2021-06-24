@@ -67,7 +67,7 @@ typedef vector< edge_pair_t > Edges_t;
 
 namespace {
     struct less_cr {
-        bool operator()(CodeRegion * x, CodeRegion * y)
+        bool operator()(CodeRegion * x, CodeRegion * y) const
         {
             return x->offset() < y->offset();
         }
