@@ -792,11 +792,9 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
     else {
        useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
                 ( BPatch::bpatch->isSaveFPROn()      &&
-                  gen.rs()->anyLiveFPRsAtEntry()     &&
-                  bt->saveFPRs()               &&
-                  !bt->makesCall() );
+                  gen.rs()->anyLiveFPRsAtEntry());
        createFrame = true;
-       saveOrigAddr = bt->instP();
+       saveOrigAddr = false;
        alignStack = true;
     }
 
@@ -2722,9 +2720,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
    else {
       useFPRs =  BPatch::bpatch->isForceSaveFPROn() ||
          ( BPatch::bpatch->isSaveFPROn()      &&
-           gen.rs()->anyLiveFPRsAtEntry()     &&
-           bt->saveFPRs()               &&
-           !bt->makesCall() );
+           gen.rs()->anyLiveFPRsAtEntry());
       createFrame = true;
       saveOrigAddr = false;
       alignStack = true;
