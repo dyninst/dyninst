@@ -37,13 +37,13 @@
 template <typename T, typename Alloc = std::allocator<T> >
 class singleton_object_pool : public Alloc
 {
-    using typename Alloc::pointer;
     using typename Alloc::size_type;
+    using pointer = T*;
 public:
-    static typename Alloc::pointer allocate( size_type n ) {
+    static pointer allocate( size_type n ) {
         return  Alloc().allocate(n);
     }
-    static void deallocate( typename Alloc::pointer p ) {
+    static void deallocate( pointer p ) {
         Alloc().deallocate(p, 1);
     }
 
@@ -51,12 +51,20 @@ public:
     static T* construct(Args&&... args)
     {
         T* p = allocate(1);
+#if __cplusplus < 202002L
         Alloc().construct(p, std::forward<Args>(args)...);
+#else
+        std::construct_at(p, std::forward<Args>(args)...);
+#endif
         return p;
     }
-    static void destroy(typename Alloc::pointer p)
+    static void destroy(pointer p)
     {
+#if __cplusplus < 202002L
         Alloc().destroy(p);
+#else
+        std::destroy_at(p);
+#endif
         deallocate(p);
     };
 
