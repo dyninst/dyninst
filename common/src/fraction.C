@@ -29,7 +29,6 @@
  */
 
 #include "common/src/fraction.h"
-#include "common/src/int64iostream.h"
 
 fraction::ostream_fmt fraction::curFmt = sparse;
 

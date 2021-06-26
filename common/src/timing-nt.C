@@ -37,8 +37,6 @@
 #include <shlwapi.h>
 #include "common/src/timing.h"
 
-#include "common/src/int64iostream.h"
-
 // returns us since 1970 at ms granularity
 int64_t getRawTime1970() {
   struct _timeb timebuffer;
