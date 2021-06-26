@@ -317,11 +317,12 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
     std::vector<registerSlot *> spRegs;
     map<registerSlot *, int> regMap;
 
-    registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
-    assert(regNzcv);
-    regMap[regNzcv] = SPR_NZCV;
-    if(force_save || regNzcv->liveState == registerSlot::spilled)
-        spRegs.push_back(regNzcv);
+
+    registerSlot *regFpsr = (*theRegSpace)[registerSpace::fpsr];
+    assert(regFpsr);
+    regMap[regFpsr] = SPR_FPSR;
+    if(force_save || regFpsr->liveState == registerSlot::spilled)
+        spRegs.push_back(regFpsr);
 
     registerSlot *regFpcr = (*theRegSpace)[registerSpace::fpcr];
     assert(regFpcr);
@@ -329,11 +330,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
     if(force_save || regFpcr->liveState == registerSlot::spilled)
         spRegs.push_back(regFpcr);
 
-    registerSlot *regFpsr = (*theRegSpace)[registerSpace::fpsr];
-    assert(regFpsr);
-    regMap[regFpsr] = SPR_FPSR;
-    if(force_save || regFpsr->liveState == registerSlot::spilled)
-        spRegs.push_back(regFpsr);
+    registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
+    assert(regNzcv);
+    regMap[regNzcv] = SPR_NZCV;
+    if(force_save || regNzcv->liveState == registerSlot::spilled)
+        spRegs.push_back(regNzcv);
 
     for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
