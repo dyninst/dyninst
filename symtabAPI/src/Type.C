@@ -1040,20 +1040,6 @@ void typeUnion::fixupUnknowns(Module *module) {
 /*
  * SCALAR
  */
-
-   
-typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool isSigned) :
-    Type(name, ID, dataScalar), isSigned_(isSigned)
-{
-   size_ = size;
-}
-
-typeScalar::typeScalar(unsigned int size, std::string name, bool isSigned) :
-    Type(name, ::getUniqueTypeId(), dataScalar), isSigned_(isSigned)
-{
-   size_ = size;
-}
-
 typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
 {
    typeScalar *typ = new typeScalar(size, name);
@@ -1064,10 +1050,6 @@ typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
    //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
-}
-
-bool typeScalar::isSigned(){
-    return isSigned_;
 }
 
 bool typeScalar::isCompatible(Type *otype) {
@@ -1722,7 +1704,6 @@ rangedType::rangedType() : low_(0), hi_(0) {}
 derivedType::derivedType() : baseType_(NULL) {}
 typeEnum::typeEnum() {}
 typeFunction::typeFunction() : retType_(NULL) {}
-typeScalar::typeScalar() : isSigned_(false) {}
 typeCommon::typeCommon() {}
 typeStruct::typeStruct() {}
 typeUnion::typeUnion() {}
