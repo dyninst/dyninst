@@ -35,7 +35,6 @@
 #include <string.h>
 
 #include "common/src/Time.h"
-#include "common/src/timing.h"
 
 #include "BPatch.h"
 #include "BPatch_addressSpace.h"
