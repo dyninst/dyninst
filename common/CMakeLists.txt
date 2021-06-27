@@ -16,7 +16,6 @@ endif()
 set (SRC_LIST
     src/pfq-rwlock.C
     src/concurrent.C
-    src/string-regex.C
     src/Timer.C 
     src/Types.C 
     src/lprintf.C

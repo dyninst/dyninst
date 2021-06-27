@@ -129,10 +129,6 @@ std::string concat_pathname_components(const std::string &comp1, const std::stri
    // if comp2 begins with a "/" then no need to add slash
    if (comp2.length() && comp2[0] == '/')
 	   needToAddSlash = false;
-#if 0
-   if (comp2.prefixed_by("/"))
-      needToAddSlash = false;
-#endif
 
    std::string result = comp1;
    if (needToAddSlash)
