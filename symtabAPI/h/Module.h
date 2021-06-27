@@ -189,8 +189,6 @@ namespace Dyninst{
 									 NameType nameType = anyName,
 									 bool isRegex = false,
 									 bool checkCase = true);
-			bool getAllVariables(std::vector<Variable *> &ret);
-
 
 			// Type output methods
 			virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
