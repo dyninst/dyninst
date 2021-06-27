@@ -72,7 +72,7 @@ boost::shared_ptr<Type> Variable::getType(Type::do_share_t)
 	return type_;
 }
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
+std::ostream& operator<<(std::ostream &os, Variable const& v)
 {
 	boost::shared_ptr<Type> var_t = (const_cast<Variable &>(v)).getType(Type::share);
 	std::string tname(var_t ? var_t->getName() : "no_type");
