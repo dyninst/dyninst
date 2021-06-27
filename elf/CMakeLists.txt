@@ -13,13 +13,6 @@ set (SRC_LIST
      src/Elf_X.C
   )
 
-if (SYSTAP_PARSE)
-set (SRC_LIST
-     ${SRC_LIST}
-     src/SystemTap.C
-  )
-endif()
-
 dyninst_library(dynElf ${LibElf_LIBRARIES})
 if(TARGET TBB)
     add_dependencies(dynElf TBB)
