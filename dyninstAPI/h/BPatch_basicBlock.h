@@ -311,4 +311,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
 };
 
+BPATCH_DLL_EXPORT std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
+
 #endif /* _BPatch_basicBlock_h_ */
