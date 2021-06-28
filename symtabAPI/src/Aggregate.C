@@ -259,30 +259,24 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
     return true;
 }
 
-namespace Dyninst {
-namespace SymtabAPI {
-std::ostream& operator<<(std::ostream &os, const Aggregate &a)
-{
-  std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
+void Aggregate::print(std::ostream &os) const {
+  std::string modname = module_ ? module_->fullName() : std::string("no_mod");
   os   << "Aggregate{"
        << " Module=" << modname
        << " MangledNames=[";
   ostream_iterator<string> out_iter(std::cout, ", ");
-  std::copy(a.mangled_names_begin(), a.mangled_names_end(), out_iter);
+  std::copy(mangled_names_begin(), mangled_names_end(), out_iter);
   os << "]";
   
   os << " PrettyNames=["; 
-  std::copy(a.pretty_names_begin(), a.pretty_names_end(), out_iter);
+  std::copy(pretty_names_begin(), pretty_names_end(), out_iter);
   os << "]";
   os << " TypedNames=["; 
-  std::copy(a.typed_names_begin(), a.typed_names_end(), out_iter);
+  std::copy(typed_names_begin(), typed_names_end(), out_iter);
   
   os << "]";
   os << " }";
-  
-  return os;
 }
-}}
 
 bool Aggregate::operator==(const Aggregate &a)
 {

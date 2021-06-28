@@ -72,21 +72,18 @@ boost::shared_ptr<Type> Variable::getType(Type::do_share_t)
 	return type_;
 }
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
-{
-	boost::shared_ptr<Type> var_t = (const_cast<Variable &>(v)).getType(Type::share);
+void Variable::print(std::ostream &os) const {
+	boost::shared_ptr<Type> var_t = const_cast<Variable *>(this)->getType(Type::share);
 	std::string tname(var_t ? var_t->getName() : "no_type");
-	const auto& ag = dynamic_cast<const Aggregate &>(v);
 
 	os  << "Variable{"        
 		<< " type=" 
 		<< tname
 	    << " ";
-	os  << 	ag;					   
+	Aggregate::print(os);
 	os  << 	"}";
-	return os;	
-
 }
+
 bool Variable::operator==(const Variable &v)
 {
 	if (type_ && !v.type_)

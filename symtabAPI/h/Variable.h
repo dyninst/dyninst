@@ -37,9 +37,6 @@
 #include "dyn_regs.h"
 #include "VariableLocation.h"
 
-//class Dyninst::SymtabAPI::Variable;
-SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
-
 namespace Dyninst {
 namespace SymtabAPI {
 
@@ -52,8 +49,7 @@ class FunctionBase;
 
 class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
 	friend class Symtab;
-	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
-
+	friend std::ostream &operator<<(std::ostream &os, const Variable &);
 	private:
    Variable(Symbol *sym);
    static Variable *createVariable(Symbol *sym);
@@ -69,9 +65,16 @@ class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
    Type* getType() { return getType(Type::share).get(); }
    bool operator==(const Variable &v);
 
+   friend std::ostream &operator<<(std::ostream &os, Variable const& v) {
+	   v.print(os);
+	   return os;
+   }
+
  private:
 
    boost::shared_ptr<Type> type_;
+
+   void print(std::ostream &) const;
 };
 
 class SYMTAB_EXPORT localVar : public AnnotatableSparse
@@ -127,6 +130,5 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
 
 }
 }
-
 
 #endif
