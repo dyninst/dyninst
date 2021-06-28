@@ -61,7 +61,6 @@ class SYMTAB_EXPORT Aggregate
 {
    friend class Symtab;
    friend struct SymbolCompareByAddr;
-	friend std::ostream& operator<<(std::ostream &os, const Aggregate &);
    friend class DwarfWalker;
   protected:
       Aggregate();
@@ -105,6 +104,10 @@ class SYMTAB_EXPORT Aggregate
       
 	  bool operator==(const Aggregate &a);
 
+	  friend std::ostream& operator<<(std::ostream &os, Aggregate const& a) {
+		  a.print(os);
+		  return os;
+	  }
 
    protected:
       bool removeSymbolInt(Symbol *sym);
@@ -121,6 +124,8 @@ class SYMTAB_EXPORT Aggregate
       Offset offset_;       // cached for speed
 
       bool addMangledNameInternal(std::string name, bool isPrimary, bool demangle);
+
+      void print(std::ostream &) const;
 };
 
 }
