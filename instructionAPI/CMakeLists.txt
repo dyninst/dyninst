@@ -26,12 +26,18 @@ set (SRC_LIST
   )
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
-# Shave 3 minute off of the time it takes to compile this file by falling back to not tracking
-# variables by default, rather then waiting until the variable tracking limit
-# is reached.
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-set_source_files_properties(src/InstructionDecoder-aarch64.C
-        PROPERTIES COMPILE_FLAGS -fno-var-tracking-assignments)
+    if (${CMAKE_CXX_COMPILER_VERSION} MATCHES "^([1-9]|1[01])(\.|$)")
+	# Disable var-tracking-assignments for InstructionDecoder-power.C.
+	# The default max size is too small so it fails, and adjusting it
+	# using
+	#
+	#   PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=900000000"
+	#
+	# succeeds, but the object file produced is >1GB, so disable it.
+	SET_SOURCE_FILES_PROPERTIES(src/InstructionDecoder-power.C
+	    PROPERTIES COMPILE_FLAGS "-fno-var-tracking-assignments")
+    endif()
 endif()
 
 ADD_DEFINITIONS(-DINSTRUCTION_LIB)
