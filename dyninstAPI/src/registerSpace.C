@@ -72,7 +72,6 @@ registerSpace *registerSpace::globalRegSpace64_ = NULL;
 bool registerSpace::hasXMM = false;
 
 void registerSlot::cleanSlot() {
-    assert(this);
     // number does not change
     refCount = 0;
     //liveState = live;
