@@ -699,7 +699,6 @@ class PARSER_EXPORT FuncExtent : public Dyninst::SimpleInterval<Address, Functio
 class PARSER_EXPORT Loop  
 {
 	friend class LoopAnalyzer;
-	friend std::ostream& operator<<(std::ostream&,Loop&);
 
 private:
         std::set<Edge*> backEdges;
