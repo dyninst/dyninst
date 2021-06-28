@@ -69,7 +69,6 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph :
   friend class dominatorCFG;
   friend class func_instance; // This is illegal here... keeps us from having to
                             // have a public constructor...  PDSEP
-  friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
   friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
                                      BPatch_Vector<BPatch_basicBlockLoop *> &loops,
                                      std::string level);
