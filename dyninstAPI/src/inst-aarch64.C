@@ -660,8 +660,9 @@ Register EmitterAARCH64::emitCall(opCode op,
     assert(scratch != REG_NULL && "cannot get a scratch register");
     gen.markRegDefined(scratch);
 
-    if (gen.addrSpace()->edit() != NULL) {
-        // gen.as.edit() checks if we are in rewriter mode
+    if (gen.addrSpace()->edit() != NULL
+	&& gen.func()->obj() != callee->obj()) {
+        // In rewriter mode with a callee and caller not in the same module
         Address dest = getInterModuleFuncAddr(callee, gen);
 
         // emit ADR instruction
@@ -670,7 +671,6 @@ Register EmitterAARCH64::emitCall(opCode op,
         instruction insn;
         insn.clear();
         INSN_SET(insn, 31, 31, 0);
-        //INSN_SET(insn, 29, 30, disp & 0x3);
         INSN_SET(insn, 28, 28, 1);
         INSN_SET(insn, 5, 23, disp >> 2);
         INSN_SET(insn, 0, 4, scratch);
