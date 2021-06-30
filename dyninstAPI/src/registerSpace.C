@@ -108,6 +108,8 @@ unsigned registerSlot::encoding() const {
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
 #elif defined(arch_aarch64) 
+    if(number == registerSpace::sp)
+        return REG_SP;
     switch (type) {
         case GPR:
             return registerSpace::GPR(number);
@@ -340,7 +342,7 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
       }
     }
 
-    reg->markUsed(true);
+    //reg->markUsed(true);
     gen.markRegDefined(reg->number);
 
 
