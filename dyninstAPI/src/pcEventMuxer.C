@@ -96,14 +96,14 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
          proccontrol_printf("[%s:%d] Failed to handle event\n", FILE__, __LINE__);
          return Error;
       }
-      proccontrol_printf("[%s:%d] PC event handling completed; mailbox size is %d\n",
+      proccontrol_printf("[%s:%d] PC event handling completed; mailbox size is %u\n",
     		  	  FILE__, __LINE__, mailbox_.size());
       return EventsReceived;
    }
       // It's really annoying from a user design POV that ProcControl methods can
       // trigger callbacks; it means that we can't just block here, because we may
       // have _already_ gotten a callback and just not finished processing...
-     proccontrol_printf("[%s:%d] PCEventMuxer::wait_internal, blocking, mailbox size is %d\n", 
+     proccontrol_printf("[%s:%d] PCEventMuxer::wait_internal, blocking, mailbox size is %u\n", 
 			FILE__, __LINE__, mailbox_.size());
      while (mailbox_.size() == 0) {
        if (!Process::handleEvents(true)) {
@@ -111,7 +111,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 	 return Error;
        }
      }
-     proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
+     proccontrol_printf("[%s:%d] after PC event handling, %u events in mailbox\n", FILE__, __LINE__, mailbox_.size());
      if (!handle(NULL)) {
     	 proccontrol_printf("[%s:%d] PC event handling failed\n", FILE__, __LINE__);
     	 return Error;
@@ -223,7 +223,7 @@ bool PCEventMuxer::registerCallbacks() {
 #define DEFAULT_RETURN \
 	PCEventMuxer &m = PCEventMuxer::muxer(); \
 	m.enqueue(ev); \
-        proccontrol_printf("%s[%d]: after muxing event, mailbox size is %d\n", \
+        proccontrol_printf("%s[%d]: after muxing event, mailbox size is %u\n", \
                            FILE__, __LINE__, m.mailbox_.size()); \
 	return ret;
 
@@ -490,7 +490,7 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 	    // Only add the event to the queue if the underlying process is still valid
 	    eventQueue.push(ev);
 	    procCount[evProc->getPid()]++;
-		proccontrol_printf("%s[%d]: Added event %s from process %d to mailbox, size now %ld\n",
+		proccontrol_printf("%s[%d]: Added event %s from process %d to mailbox, size now %lu\n",
 						   FILE__, __LINE__, ev->name().c_str(), evProc->getPid(), eventQueue.size());
 	} else {
 		proccontrol_printf("%s[%d]: Got bad process: event %s not added\n",

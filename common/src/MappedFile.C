@@ -358,7 +358,7 @@ bool MappedFile::map_file()
    map_addr = mmap(0, file_size, mmap_prot, mmap_flags, fd, 0);
    if (MAP_FAILED == map_addr) {
       sprintf(ebuf, "mmap(0, %lu, prot=0x%x, flags=0x%x, %d, 0): %s", 
-            file_size, mmap_prot, mmap_flags, fd, strerror(errno));
+            file_size, (unsigned int)mmap_prot, (unsigned int)mmap_flags, fd, strerror(errno));
       goto err;
    }
 

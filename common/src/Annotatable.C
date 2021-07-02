@@ -206,7 +206,7 @@ Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned 
 {
 	if(id > annotation_types->size())
 	{
-		fprintf(stderr, "%s[%d]:  cannot find annotation class base for id %d, max is %ld\n", FILE__, __LINE__, id, (long int) annotation_types->size());
+		fprintf(stderr, "%s[%d]:  cannot find annotation class base for id %u, max is %ld\n", FILE__, __LINE__, id, (long int) annotation_types->size());
 		return NULL;
 	}
 	if (NULL == (*annotation_types)[id])
@@ -215,7 +215,7 @@ Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned 
 	}
 	if ((*annotation_types)[id]->getID() != id)
 	{
-		fprintf(stderr, "%s[%d]:  FIXME:  have bad id in annotation class: %d, not %d\n", FILE__, __LINE__, (*annotation_types)[id]->getID(), id);
+		fprintf(stderr, "%s[%d]:  FIXME:  have bad id in annotation class: %d, not %u\n", FILE__, __LINE__, (*annotation_types)[id]->getID(), id);
 		return NULL;
 	}
 	return (*annotation_types)[id];

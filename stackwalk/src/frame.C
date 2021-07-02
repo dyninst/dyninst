@@ -66,7 +66,7 @@ Frame::Frame() :
   sp_loc.location = loc_unknown;
   sp_loc.val.addr = 0x0;
   
-  sw_printf("[%s:%u] - Created null frame at %p\n", FILE__, __LINE__, (void*)this);
+  sw_printf("[%s:%d] - Created null frame at %p\n", FILE__, __LINE__, (void*)this);
 }
 
 Frame::Frame(Walker *parent_walker) :
@@ -93,14 +93,14 @@ Frame::Frame(Walker *parent_walker) :
   sp_loc.location = loc_unknown;
   sp_loc.val.addr = 0x0;
   
-  sw_printf("[%s:%u] - Created frame at %p\n", FILE__, __LINE__, (void*)this);
+  sw_printf("[%s:%d] - Created frame at %p\n", FILE__, __LINE__, (void*)this);
 }
 
 Frame *Frame::newFrame(Dyninst::MachRegisterVal pc, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker) {
-  sw_printf("[%s:%u] - Manually creating frame with %lx, %lx, %lx, %p\n",
+  sw_printf("[%s:%d] - Manually creating frame with %lx, %lx, %lx, %p\n",
 	    FILE__, __LINE__, pc, sp, fp, (void*)walker);
   if (!walker) {
-    sw_printf("[%s:%u] - Trying to create Frame with NULL Walker\n",
+    sw_printf("[%s:%d] - Trying to create Frame with NULL Walker\n",
 	      FILE__, __LINE__);
     setLastError(err_badparam, "Walker parameter cannot be NULL when creating frame");
   }
@@ -130,19 +130,19 @@ bool Frame::operator==(const Frame &F) const
 }
 
 void Frame::setStepper(FrameStepper *newstep) {
-  sw_printf("[%s:%u] - Setting frame %p's stepper to %p\n", 
+  sw_printf("[%s:%d] - Setting frame %p's stepper to %p\n", 
 	    FILE__, __LINE__, (void*)this, (void*)newstep);
   stepper = newstep;
 }
 
 void Frame::markTopFrame() {
-  sw_printf("[%s:%u] - Marking frame %p as top\n",
+  sw_printf("[%s:%d] - Marking frame %p as top\n",
 	    FILE__, __LINE__, (void*)this);
   top_frame = true;
 }
 
 void Frame::markBottomFrame() {
-  sw_printf("[%s:%u] - Marking frame %p as bottom\n", 
+  sw_printf("[%s:%d] - Marking frame %p as bottom\n", 
 	    FILE__, __LINE__, (void*)this);
   bottom_frame = true;
 }
@@ -172,33 +172,33 @@ location_t Frame::getFPLocation() const {
 }
 
 void Frame::setRA(Dyninst::MachRegisterVal newval) {
-  sw_printf("[%s:%u] - Setting ra of frame %p to %lx\n",
+  sw_printf("[%s:%d] - Setting ra of frame %p to %lx\n",
 	    FILE__, __LINE__, (void*)this, newval);
   ra = newval;
   frame_complete = true;
 }
 
 void Frame::setFP(Dyninst::MachRegisterVal newval) {
-  sw_printf("[%s:%u] - Setting fp of frame %p to %lx\n",
+  sw_printf("[%s:%d] - Setting fp of frame %p to %lx\n",
 			  FILE__, __LINE__, (void*)this, newval);
   fp = newval;
 }
 
 void Frame::setSP(Dyninst::MachRegisterVal newval) {
-  sw_printf("[%s:%u] - Setting sp of frame %p to %lx\n",
+  sw_printf("[%s:%d] - Setting sp of frame %p to %lx\n",
 	    FILE__, __LINE__, (void*)this, newval);
   sp = newval;
 }
 
 static void debug_print_location(const char *s, Frame *f, location_t val) {
   if (val.location == loc_address)
-    sw_printf("[%s:%u] - Setting frame %p %s location to address %lx\n",
+    sw_printf("[%s:%d] - Setting frame %p %s location to address %lx\n",
               FILE__, __LINE__, (void*)f, s, val.val.addr);
   else if (val.location == loc_register)
-    sw_printf("[%s:%u] - Setting frame %p %s location to register %s\n",
+    sw_printf("[%s:%d] - Setting frame %p %s location to register %s\n",
               FILE__, __LINE__, (void*)f, s, val.val.reg.name().c_str());
   else if (val.location == loc_unknown)
-     sw_printf("[%s:%u] - Setting frame %p %s location to unknown\n",
+     sw_printf("[%s:%d] - Setting frame %p %s location to unknown\n",
                FILE__, __LINE__, (void*)f, s);
 }
 
@@ -229,7 +229,7 @@ void Frame::setNameValue() const {
   
   if (!walker) {
     setLastError(err_nosymlookup, "No Walker object was associated with this frame");
-    sw_printf("[%s:%u] - Error, No walker found.\n", FILE__, __LINE__);
+    sw_printf("[%s:%d] - Error, No walker found.\n", FILE__, __LINE__);
     name_val_set = nv_err;
     return;
   }
@@ -237,7 +237,7 @@ void Frame::setNameValue() const {
   SymbolLookup *lookup = walker->getSymbolLookup();
   if (!lookup) {
     setLastError(err_nosymlookup, "No SymbolLookup object was associated with the Walker");
-    sw_printf("[%s:%u] - Error, No symbol lookup found.\n", FILE__, __LINE__);
+    sw_printf("[%s:%d] - Error, No symbol lookup found.\n", FILE__, __LINE__);
     name_val_set = nv_err;
     return;
   }
@@ -250,11 +250,11 @@ void Frame::setNameValue() const {
   // address, we will get C rather than A. 
   bool result = lookup->lookupAtAddr(getRA() - 1, sym_name, sym_value);
   if (!result) {
-    sw_printf("[%s:%u] - Error, returned by lookupAtAddr().\n", FILE__, __LINE__);
+    sw_printf("[%s:%d] - Error, returned by lookupAtAddr().\n", FILE__, __LINE__);
     name_val_set = nv_err;
   }
   
-  sw_printf("[%s:%u] - Successfully looked up symbol for frame %p\n",
+  sw_printf("[%s:%d] - Successfully looked up symbol for frame %p\n",
 	    FILE__, __LINE__, (const void*)this);
   
   name_val_set = nv_set;
@@ -264,12 +264,12 @@ bool Frame::getName(std::string &str) const {
   setNameValue();
   if (name_val_set == nv_set) {
     str = sym_name;
-    sw_printf("[%s:%u] - Frame::getName (frame %p) returning %s\n",
+    sw_printf("[%s:%d] - Frame::getName (frame %p) returning %s\n",
 	      FILE__, __LINE__, (const void*)this, str.c_str());
     return true;
   }
   else {
-    sw_printf("[%s:%u] - Frame::getName (frame %p) returning error\n",
+    sw_printf("[%s:%d] - Frame::getName (frame %p) returning error\n",
 	      FILE__, __LINE__, (const void*)this);
     return false;
   }
@@ -279,12 +279,12 @@ bool Frame::getObject(void* &obj) const {
   setNameValue();
   if (name_val_set == nv_set) {
     obj = sym_value;
-    sw_printf("[%s:%u] - Frame::getObject (frame %p) returning %p\n",
+    sw_printf("[%s:%d] - Frame::getObject (frame %p) returning %p\n",
 	      FILE__, __LINE__, (const void*)this, obj);
     return true;
   }
   else {
-    sw_printf("[%s:%u] - Frame::getObject (frame %p) returning error\n",
+    sw_printf("[%s:%d] - Frame::getObject (frame %p) returning error\n",
 	      FILE__, __LINE__, (const void*)this);
     return false;
   }
@@ -319,14 +319,14 @@ bool Frame::isFrameComplete() const {
 }
 
 Frame::~Frame() {
-  sw_printf("[%s:%u] - Destroying frame %p\n", FILE__, __LINE__, (void*)this);
+  sw_printf("[%s:%d] - Destroying frame %p\n", FILE__, __LINE__, (void*)this);
 }
 
 bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab) const
 {
   LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();
   if (!libstate) {
-    sw_printf("[%s:%u] - getLibraryAtAddr, had no library tracker\n",
+    sw_printf("[%s:%d] - getLibraryAtAddr, had no library tracker\n",
               FILE__, __LINE__);
     setLastError(err_unsupported, "No valid library tracker registered");
     return false;
@@ -335,7 +335,7 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symta
   LibAddrPair la;
   bool result = libstate->getLibraryAtAddr(getRA(), la);
   if (!result) {
-    sw_printf("[%s:%u] - getLibraryAtAddr returned false for %lx\n",
+    sw_printf("[%s:%d] - getLibraryAtAddr returned false for %lx\n",
               FILE__, __LINE__, getRA());
     return false;
   }

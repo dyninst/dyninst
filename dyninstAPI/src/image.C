@@ -653,7 +653,7 @@ int image::findMain()
             /* We should only get one region */
             if(regions.size() != 1)
             {
-                startup_printf("%s[%u]: Overlapping or non existant regions!\n",
+                startup_printf("%s[%d]: Overlapping or non existant regions!\n",
                         FILE__, __LINE__);
                 return -1;
             }
@@ -669,7 +669,7 @@ int image::findMain()
 
             if(!func)
             {
-                startup_printf("%s[%u]: No functions found in our region.\n",
+                startup_printf("%s[%d]: No functions found in our region.\n",
                         FILE__, __LINE__);
                 return -1;
             }
@@ -682,7 +682,7 @@ int image::findMain()
 
             if(!e)
             {
-                startup_printf("%s[%u]: Error: no call edges found for this function.\n",
+                startup_printf("%s[%d]: Error: no call edges found for this function.\n",
                         FILE__, __LINE__);
                 return -1;
             }
@@ -694,7 +694,7 @@ int image::findMain()
 	    Block::Insns insns;
 	    b->getInsns(insns);
 	    if (insns.size() < 2) {
-	        startup_printf("%s[%u]: should have at least two instructions\n", FILE__, __LINE__);   
+	        startup_printf("%s[%d]: should have at least two instructions\n", FILE__, __LINE__);   
 		return -1;
 	    }
 
@@ -717,10 +717,10 @@ int image::findMain()
                 {
                     /* expand failed */
                     mainAddress = 0x0;
-		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(),
+		    startup_printf("%s[%d]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(),
                            assignment->insn().format().c_str());
                 } else { 
-		    startup_printf("%s[%u]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
+		    startup_printf("%s[%d]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
                     FindMainVisitor fmv;
                     ast->accept(&fmv);
                     if(fmv.resolved)
@@ -728,7 +728,7 @@ int image::findMain()
                         mainAddress = fmv.target;
                     } else {
                         mainAddress = 0x0;
-			startup_printf("%s[%u]:  FindMainVisitor cannot find main address in %s\n", FILE__, __LINE__, ast->format().c_str());   
+			startup_printf("%s[%d]:  FindMainVisitor cannot find main address in %s\n", FILE__, __LINE__, ast->format().c_str());   
 
                     }
                 }
@@ -774,10 +774,10 @@ int image::findMain()
 #endif
 
             if(!mainAddress || !scs.isValidAddress(mainAddress)) {
-                startup_printf("%s[%u]:  invalid main address 0x%lx\n",
+                startup_printf("%s[%d]:  invalid main address 0x%lx\n",
                         FILE__, __LINE__, mainAddress);   
             } else {
-                startup_printf("%s[%u]:  set main address to 0x%lx\n",
+                startup_printf("%s[%d]:  set main address to 0x%lx\n",
                         FILE__,__LINE__,mainAddress);
             }
 

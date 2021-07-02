@@ -69,13 +69,13 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 
    SymReader *orig_reader = LibraryWrapper::getLibrary(s);
    if (!orig_reader) {
-      sw_printf("[%s:%u] - Error.  Could not find elf handle for %s\n",
+      sw_printf("[%s:%d] - Error.  Could not find elf handle for %s\n",
                 FILE__, __LINE__, s.c_str());
       return DwarfFrameParser::Ptr();
    }
    Elf_X *orig_elf = (Elf_X *) orig_reader->getElfHandle();
    if (!orig_elf) {
-      sw_printf("[%s:%u] - Error. Could not find elf handle for file %s\n",
+      sw_printf("[%s:%d] - Error. Could not find elf handle for file %s\n",
                 FILE__, __LINE__, s.c_str());
       dwarf_aux_info[s] = DwarfFrameParser::Ptr();
       return DwarfFrameParser::Ptr();
@@ -83,7 +83,7 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 
    DwarfHandle::ptr dwarf = DwarfHandle::createDwarfHandle(s, orig_elf);
    assert(dwarf);
-   sw_printf("[%s:%u] - Separate debug file used: %s\n",
+   sw_printf("[%s:%d] - Separate debug file used: %s\n",
            FILE__, __LINE__, dwarf->getDebugFilename().c_str());
 
    // MJMTODO - Need to check whether this is supposed to work or not
@@ -160,7 +160,7 @@ location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 {
-   sw_printf("[%s:%u] Attempt to get value for reg %s\n", FILE__, __LINE__, reg.name().c_str());
+   sw_printf("[%s:%d] Attempt to get value for reg %s\n", FILE__, __LINE__, reg.name().c_str());
    if (reg.isFramePointer()) {
       val = static_cast<MachRegisterVal>(depth_frame->getFP());
       return true;
@@ -201,7 +201,7 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 
           SigHandlerStepper * ss = dynamic_cast<SigHandlerStepper*> (prevDepthFrame->getStepper());
 	  if (ss != NULL) {
-	      sw_printf("[%s:%u] - Not the first frame, cannot find dbg information, and previous frame is a signal trampoline frame. Try to get x30 from ucontext as RA\n",
+	      sw_printf("[%s:%d] - Not the first frame, cannot find dbg information, and previous frame is a signal trampoline frame. Try to get x30 from ucontext as RA\n",
                 FILE__, __LINE__);
               static     ucontext_t dummy_context;
 	      static int lr_offset = (char*)&(dummy_context.uc_mcontext.regs[30]) - (char*)&dummy_context;
@@ -212,11 +212,11 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 	          int addr_size = 8;
 	          Address lr_addr = signal_frame->getSP() + ucontext_offset + lr_offset;
 		  result = getProcessState()->readMem(&val, lr_addr, addr_size);
-	      sw_printf("[%s:%u] - readMem results %d, get %lx as RA\n",
+	      sw_printf("[%s:%d] - readMem results %d, get %lx as RA\n",
                 FILE__, __LINE__, result, val);
 
 	      } else {
-	      sw_printf("[%s:%u] - the signal trampoline frame does not have a parent frame\n",
+	      sw_printf("[%s:%d] - the signal trampoline frame does not have a parent frame\n",
                 FILE__, __LINE__);
 	      }
 	  } else {
@@ -251,12 +251,12 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    // the input frame.
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
-      sw_printf("[%s:%u] - Stackwalking with PC at %lx, which is not found in any known libraries\n",
+      sw_printf("[%s:%d] - Stackwalking with PC at %lx, which is not found in any known libraries\n",
                 FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
    Address pc = in.getRA() - lib.second;
-   sw_printf("[%s:%u] Dwarf-based stackwalking, using local address 0x%lx from 0x%lx - 0x%lx\n",
+   sw_printf("[%s:%d] Dwarf-based stackwalking, using local address 0x%lx from 0x%lx - 0x%lx\n",
              FILE__, __LINE__, pc, in.getRA(), lib.second);
    if (in.getRALocation().location != loc_register && !in.nonCall()) {
       /**
@@ -284,7 +284,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     **/
    DwarfFrameParser::Ptr dauxinfo = getAuxDwarfInfo(lib.first);
    if (!dauxinfo || !dauxinfo->hasFrameDebugInfo()) {
-      sw_printf("[%s:%u] - Library %s does not have stackwalking debug info\n",
+      sw_printf("[%s:%d] - Library %s does not have stackwalking debug info\n",
                  FILE__, __LINE__, lib.first.c_str());
       return gcf_not_me;
    }
@@ -297,7 +297,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    isVsyscallPage = (strstr(lib.first.c_str(), "[vsyscall-") != NULL);
 #endif
 
-   sw_printf("[%s:%u] - Using DWARF debug file info for %s\n",
+   sw_printf("[%s:%d] - Using DWARF debug file info for %s\n",
                    FILE__, __LINE__, lib.first.c_str());
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, isVsyscallPage);
@@ -307,7 +307,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    if (!result) return gcf_not_me;
 
    if (gcresult == gcf_success) {
-      sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
+      sw_printf("[%s:%d] - Success walking with DWARF aux file\n",
                 FILE__, __LINE__);
       return gcf_success;
    }
@@ -363,7 +363,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                          ret_value, this, frame_error);
    }
    if (!result) {
-      sw_printf("[%s:%u] - Couldn't get return debug info at %lx, error: %u\n",
+      sw_printf("[%s:%d] - Couldn't get return debug info at %lx, error: %d\n",
                 FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
    }
@@ -378,7 +378,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    result = dinfo->getRegValueAtFrame(pc, frame_reg,
                                       frame_value, this, frame_error);
    if (!result) {
-      sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
+      sw_printf("[%s:%d] - Couldn't get frame debug info at %lx\n",
                  FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
@@ -387,7 +387,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                       stack_value, this, frame_error);
    if (!result) {
-      sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
+      sw_printf("[%s:%d] - Couldn't get stack debug info at %lx\n",
                  FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
@@ -538,7 +538,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                          ret_value, this, frame_error);
    }
    if (!result) {
-      sw_printf("[%s:%u] - Couldn't get return debug info at %lx, error: %u\n",
+      sw_printf("[%s:%d] - Couldn't get return debug info at %lx, error: %d\n",
                 FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
    }
@@ -551,7 +551,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    result = dinfo->getRegValueAtFrame(pc, frame_reg,
                                       frame_value, this, frame_error);
    if (!result) {
-      sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
+      sw_printf("[%s:%d] - Couldn't get frame debug info at %lx\n",
                  FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
@@ -561,7 +561,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                       stack_value, this, frame_error);
    if (!result) {
-      sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
+      sw_printf("[%s:%d] - Couldn't get stack debug info at %lx\n",
                  FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }

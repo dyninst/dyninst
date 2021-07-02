@@ -300,7 +300,7 @@ bool responses_pending::waitFor(response::ptr resp)
 
    if (resp->isReady()) {
       cvar.unlock();
-      pthrd_printf("Waiting for async event %d, complete\n", resp->getID());
+      pthrd_printf("Waiting for async event %u, complete\n", resp->getID());
       return true;
    }
 
@@ -309,13 +309,13 @@ bool responses_pending::waitFor(response::ptr resp)
    assert(i != pending.end());
 
    while (!resp->isReady()) {
-      pthrd_printf("Waiting for async event %d, iter = %d\n", resp->getID(), iter);
+      pthrd_printf("Waiting for async event %u, iter = %u\n", resp->getID(), iter);
       cvar.wait();
       iter++;
    }
    cvar.unlock();
 
-   pthrd_printf("Waiting for async event %d, complete\n", resp->getID());
+   pthrd_printf("Waiting for async event %u, complete\n", resp->getID());
 
    return true;
 }
@@ -371,7 +371,7 @@ CondVar<> &responses_pending::condvar()
 
 void responses_pending::addResponse(response::ptr r, int_process *proc)
 {
-   pthrd_printf("Adding response %d of type %s to list of pending responses\n", r->getID(), r->name().c_str());
+   pthrd_printf("Adding response %u of type %s to list of pending responses\n", r->getID(), r->name().c_str());
    Event::ptr ev = proc->handlerPool()->curEvent();
    if (r->isSyncHandled)
       ev = Event::ptr();

@@ -117,20 +117,20 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    AuxvParser *parser = AuxvParser::createAuxvParser(ps->getProcessId(),
                                                      ps->getAddressWidth());
    if (!parser) {
-      sw_printf("[%s:%u] - Unable to parse auxv for %d\n", FILE__, __LINE__,
+      sw_printf("[%s:%d] - Unable to parse auxv for %d\n", FILE__, __LINE__,
                 ps->getProcessId());
       goto done;
    }
 
    start = parser->getVsyscallBase();
    end = parser->getVsyscallEnd();
-   sw_printf("[%s:%u] - Found vsyscall over range %lx to %lx\n",
+   sw_printf("[%s:%d] - Found vsyscall over range %lx to %lx\n",
              FILE__, __LINE__, start, end);   
    parser->deleteAuxvParser();
    
    if (!start || !end || end == start)
    {
-      sw_printf("[%s:%u] - Error collecting vsyscall base and end\n",
+      sw_printf("[%s:%d] - Error collecting vsyscall base and end\n",
                 FILE__, __LINE__);
       goto done;
    }
@@ -144,20 +144,20 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    assert(buffer);
    result = ps->readMem(buffer, start, end - start);
    if (!result) {
-      sw_printf("[%s:%u] - Error reading vsys memory\n", FILE__, __LINE__);
+      sw_printf("[%s:%d] - Error reading vsys memory\n", FILE__, __LINE__);
       goto done;
    }
    ret->vsys_mem = buffer;
 
    fact = Walker::getSymbolReader();
    if (!fact) {
-      sw_printf("[%s:%u] - No symbol reading capability\n",
+      sw_printf("[%s:%d] - No symbol reading capability\n",
                 FILE__, __LINE__);
       goto done;
    }   
    reader = fact->openSymbolReader(buffer, end - start);
    if (!reader) {
-      sw_printf("[%s:%u] - Error reading symbol info\n", FILE__, __LINE__);
+      sw_printf("[%s:%d] - Error reading symbol info\n", FILE__, __LINE__);
       goto done;
    }
    ret->syms = reader;
@@ -205,34 +205,34 @@ static const size_t NUM_VSYS_SIGRETURNS = sizeof vsys_sigreturns / sizeof vsys_s
 
 void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
 {
-  sw_printf("[%s:%u] - Begin SigHandlerStepperImpl::registerStepperGroup\n", FILE__, __LINE__);
+  sw_printf("[%s:%d] - Begin SigHandlerStepperImpl::registerStepperGroup\n", FILE__, __LINE__);
    ProcessState *ps = getProcessState();
    assert(ps);
 
    LibraryState *libs = getProcessState()->getLibraryTracker();
    if (!libs) {
-      sw_printf("[%s:%u] - Custom library tracker.  Don't know how to"
+      sw_printf("[%s:%d] - Custom library tracker.  Don't know how to"
                 " to get libc\n", FILE__, __LINE__);
       return;
    }
    SymbolReaderFactory *fact = Walker::getSymbolReader();
    if (!fact) {
-      sw_printf("[%s:%u] - Failed to get symbol reader\n", FILE__, __LINE__);
+      sw_printf("[%s:%d] - Failed to get symbol reader\n", FILE__, __LINE__);
       return;
    }
-  sw_printf("[%s:%u] - Got lib tracker and sym reader OK, checking for __restore_rt...\n", FILE__, __LINE__);
+  sw_printf("[%s:%d] - Got lib tracker and sym reader OK, checking for __restore_rt...\n", FILE__, __LINE__);
 
    if (!init_libc) {
       /**
        * Get __restore_rt out of libc
        **/
-      sw_printf("[%s:%u] - Getting __restore_rt from libc\n", FILE__, __LINE__);
+      sw_printf("[%s:%d] - Getting __restore_rt from libc\n", FILE__, __LINE__);
       LibAddrPair libc_addr;
       Dyninst::SymReader *libc = NULL;
       Symbol_t libc_restore;
       bool result = libs->getLibc(libc_addr);
       if (!result) {
-         sw_printf("[%s:%u] - Unable to find libc, not registering restore_rt"
+         sw_printf("[%s:%d] - Unable to find libc, not registering restore_rt"
                    "tracker.\n", FILE__, __LINE__);
       }
       if (!init_libc) {
@@ -240,7 +240,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
             init_libc = true;
             libc = fact->openSymbolReader(libc_addr.first);
             if (!libc) {
-               sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
+               sw_printf("[%s:%d] - Unable to open libc, not registering restore_rt\n",
                          FILE__, __LINE__);
             }   
          }
@@ -248,7 +248,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
             init_libc = true;
             libc_restore = libc->getSymbolByName("__restore_rt");
             if (!libc->isValidSymbol(libc_restore)) {
-               sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+               sw_printf("[%s:%d] - Unable to find restore_rt in libc\n",
                          FILE__, __LINE__);
             }
             else {
@@ -256,7 +256,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                Dyninst::Address end = libc->getSymbolSize(libc_restore) + start;
                if (start == end)
                   end = start + 16; //Estimate--annoying
-               sw_printf("[%s:%u] - Registering libc restore_rt as at %lx to %lx\n",
+               sw_printf("[%s:%d] - Registering libc restore_rt as at %lx to %lx\n",
                          FILE__, __LINE__, start, end);
                group->addStepper(parent_stepper, start, end);
             }
@@ -268,19 +268,19 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
       /**
        * Get __restore_rt out of libpthread
        **/
-      sw_printf("[%s:%u] - Getting __restore_rt out of libpthread\n", FILE__, __LINE__);
+      sw_printf("[%s:%d] - Getting __restore_rt out of libpthread\n", FILE__, __LINE__);
       LibAddrPair libpthread_addr;
       Dyninst::SymReader *libpthread = NULL;
       Symbol_t libpthread_restore;
       bool result  = libs->getLibthread(libpthread_addr);
       if (!result) {
-         sw_printf("[%s:%u] - Unable to find libpthread, not registering restore_rt"
+         sw_printf("[%s:%d] - Unable to find libpthread, not registering restore_rt"
                    "pthread tracker.\n", FILE__, __LINE__);
       }
       if (result) {
          libpthread = fact->openSymbolReader(libpthread_addr.first);
          if (!libpthread) {
-            sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
+            sw_printf("[%s:%d] - Unable to open libc, not registering restore_rt\n",
                       FILE__, __LINE__);
          }
          init_libthread = true;
@@ -288,7 +288,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
       if (libpthread) {
          libpthread_restore = libpthread->getSymbolByName("__restore_rt");
          if (!libpthread->isValidSymbol(libpthread_restore)) {
-            sw_printf("[%s:%u] - Unable to find restore_rt in libpthread\n",
+            sw_printf("[%s:%d] - Unable to find restore_rt in libpthread\n",
                       FILE__, __LINE__);
          }
          else {
@@ -296,7 +296,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
             Dyninst::Address end = libpthread->getSymbolSize(libpthread_restore) + start;
             if (start == end)
                end = start + 16; //Estimate--annoying
-            sw_printf("[%s:%u] - Registering libpthread restore_rt as at %lx to %lx\n",
+            sw_printf("[%s:%d] - Registering libpthread restore_rt as at %lx to %lx\n",
                       FILE__, __LINE__, start, end);
             group->addStepper(parent_stepper, start, end);
          }
@@ -306,12 +306,12 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    /**
     * Get symbols out of vsyscall page
     **/
-   sw_printf("[%s:%u] - Getting vsyscall page symbols\n", FILE__, __LINE__);
+   sw_printf("[%s:%d] - Getting vsyscall page symbols\n", FILE__, __LINE__);
    vsys_info *vsyscall = getVsysInfo(ps);
    if (!vsyscall)
    {
 #if !defined(arch_x86_64) && !defined(arch_aarch64)
-      sw_printf("[%s:%u] - Odd.  Couldn't find vsyscall page. Signal handler"
+      sw_printf("[%s:%d] - Odd.  Couldn't find vsyscall page. Signal handler"
                 " stepping may not work\n", FILE__, __LINE__);
 #endif
    }
@@ -319,7 +319,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    {
       SymReader *vsys_syms = vsyscall->syms;
       if (!vsys_syms) {
-         sw_printf("[%s:%u] - Vsyscall page wasn't parsed\n", FILE__, __LINE__);
+         sw_printf("[%s:%d] - Vsyscall page wasn't parsed\n", FILE__, __LINE__);
       }
       else {
          for (unsigned i=0; i<NUM_VSYS_SIGRETURNS; i++)

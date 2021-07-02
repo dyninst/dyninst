@@ -160,11 +160,11 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
     if (ABS(disp) > MAX_BRANCH) {
 	// Too far to branch, and no proc to register trap.
 	fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-           ABS(disp), (unsigned long) MAX_BRANCH);
-	bperr( "Error: attempted a branch of 0x%lx\n", disp);
+           (unsigned long)ABS(disp), (unsigned long) MAX_BRANCH);
+	bperr( "Error: attempted a branch of 0x%lx\n", (unsigned long)disp);
 	logLine("a branch too far\n");
 	showErrorCallback(52, "Internal error: branch too far");
-	bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
+	bperr( "Attempted to make a branch of offset 0x%lx\n", (unsigned long)disp);
 	assert(0);
     }
 
@@ -710,11 +710,11 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
       } else {
           // Too far to branch and no proc to register trap.
           fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                  ABS(disp), (unsigned long) MAX_BRANCH);
-          bperr( "Error: attempted a branch of 0x%lx\n", disp);
+                  (unsigned long)ABS(disp), (unsigned long) MAX_BRANCH);
+          bperr( "Error: attempted a branch of 0x%lx\n", (unsigned long)disp);
           logLine("a branch too far\n");
           showErrorCallback(52, "Internal error: branch too far");
-          bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
+          bperr( "Attempted to make a branch of offset 0x%lx\n", (unsigned long)disp);
           assert(0);
       }
     }

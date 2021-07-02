@@ -635,7 +635,7 @@ bool getMemoryOffset(ParseAPI::Function *func,
     }
 
     for (unsigned i = 0; i < operands.size(); i++) {
-        stackmods_printf("\t\t\t\t operand[%d] = %s\n", i,
+        stackmods_printf("\t\t\t\t operand[%u] = %s\n", i,
             operands[i].getValue()->format(insn.getArch()).c_str());
 
         // Set match if reg is read or written

@@ -199,7 +199,7 @@ std::string MachRegister::name() const {
             return iter->second;
         }
     }
-    common_parsing_printf(" can't find register with index %x\n",reg);
+    common_parsing_printf(" can't find register with index %x\n", (unsigned int)reg);
     return std::string("<INVALID_REG>");
 
 }
@@ -314,7 +314,7 @@ unsigned int MachRegister::size() const {
                      case amdgpu_vega::BITS_512:
                          return 64;
                  }
-                 common_parsing_printf(" unknown reg size %x\n",reg);
+                 common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
                  assert(0);
              }
          }

@@ -67,7 +67,7 @@ PC_EXPORT extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - ", FILE__, __LINE__,  \
+         fprintf(pctrl_err_out, "[%s:%d-%s@%lu] - ", FILE__, __LINE__,  \
                  thrdName(), gettod());                                 \
          fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
@@ -78,7 +78,7 @@ PC_EXPORT extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: ", FILE__, __LINE__, thrdName(), gettod()); \
+         fprintf(pctrl_err_out, "[%s:%d-%s@%lu] - Error: ", FILE__, __LINE__, thrdName(), gettod()); \
          fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
@@ -90,7 +90,7 @@ PC_EXPORT extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - ", FILE__, __LINE__, thrdName()); \
+         fprintf(pctrl_err_out, "[%s:%d-%s] - ", FILE__, __LINE__, thrdName()); \
          fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
@@ -100,7 +100,7 @@ PC_EXPORT extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - Error: ", FILE__, __LINE__, thrdName()); \
+         fprintf(pctrl_err_out, "[%s:%d-%s] - Error: ", FILE__, __LINE__, thrdName()); \
          fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \
@@ -110,7 +110,7 @@ PC_EXPORT extern void pc_print_unlock();
    do {                                                                 \
       if (dyninst_debug_proccontrol) {                                  \
          PC_PRINT_LOCK;                                                 \
-         fprintf(pctrl_err_out, "[%s:%u-%s] - Error-ARM: ", FILE__, __LINE__, thrdName()); \
+         fprintf(pctrl_err_out, "[%s:%d-%s] - Error-ARM: ", FILE__, __LINE__, thrdName()); \
          fprintf(pctrl_err_out, __VA_ARGS__);                           \
          PC_PRINT_UNLOCK;                                               \
       }                                                                 \

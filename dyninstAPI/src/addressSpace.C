@@ -362,7 +362,7 @@ int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi)
       heapItem *h = freeList[i];
       // check if free block matches allocation constraints
       // Split out to facilitate debugging
-      infmalloc_printf("%s[%d]: comparing heap %d: 0x%lx-0x%lx/%d to desired %d bytes in 0x%lx-0x%lx/%d\n",
+      infmalloc_printf("%s[%d]: comparing heap %u: 0x%lx-0x%lx/%d to desired %u bytes in 0x%lx-0x%lx/%d\n",
                        FILE__, __LINE__, 
                        i,
                        h->addr, 
@@ -425,7 +425,7 @@ Address AddressSpace::inferiorMallocInternal(unsigned size,
                                              Address lo,
                                              Address hi,
                                              inferiorHeapType type) {
-   infmalloc_printf("%s[%d]: inferiorMallocInternal, %d bytes, type %d, between 0x%lx - 0x%lx\n",
+   infmalloc_printf("%s[%d]: inferiorMallocInternal, %u bytes, type %d, between 0x%lx - 0x%lx\n",
                     FILE__, __LINE__, size, type, lo, hi);
    int freeIndex = findFreeIndex(size, type, lo, hi);
    if (freeIndex == -1) return 0; // Failure is often an option
@@ -485,7 +485,7 @@ void AddressSpace::inferiorFreeInternal(Address block) {
 
    heap_.totalFreeMemAvailable += h->length;
    heap_.freed += h->length;
-   infmalloc_printf("%s[%d]: Freed block from 0x%lx - 0x%lx, %d bytes, type %d\n",
+   infmalloc_printf("%s[%d]: Freed block from 0x%lx - 0x%lx, %u bytes, type %d\n",
                     FILE__, __LINE__,
                     h->addr,
                     h->addr + h->length,
@@ -505,7 +505,7 @@ bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
    inferiorMallocAlign(newSize);
    //#endif
     
-   infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %d\n",
+   infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %u\n",
                     FILE__, __LINE__, block, newSize);
 
    auto iter = heap_.heapActive.find(block);
@@ -516,7 +516,7 @@ bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
    }
    heapItem *h = iter->second;
    assert(h);
-   infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %d\n",
+   infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %u\n",
                     FILE__, __LINE__, h->addr, h->length);
 
    if (h->length == newSize)
@@ -557,7 +557,7 @@ bool AddressSpace::inferiorShrinkBlock(heapItem *h,
       }
    }
    if (succ != NULL) {
-      infmalloc_printf("%s[%d]: enlarging existing block; old 0x%lx - 0x%lx (%lu), new 0x%lx - 0x%lx (%d)\n",
+      infmalloc_printf("%s[%d]: enlarging existing block; old 0x%lx - 0x%lx (%lu), new 0x%lx - 0x%lx (%u)\n",
                        FILE__, __LINE__,
                        succ->addr,
                        succ->addr + succ->length,

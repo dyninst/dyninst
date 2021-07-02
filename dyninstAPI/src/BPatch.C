@@ -1295,14 +1295,14 @@ bool BPatch::pollForStatusChange()
         return false;
     }
 
-    proccontrol_printf("[%s:%u] Polling for events\n", FILE__, __LINE__);
+    proccontrol_printf("[%s:%d] Polling for events\n", FILE__, __LINE__);
 
     recursiveEventHandling = true;
     PCEventMuxer::WaitResult result = PCEventMuxer::wait(false);
     recursiveEventHandling = false;
 
     if( result == PCEventMuxer::Error ) {
-        proccontrol_printf("[%s:%u] Failed to poll for events\n",
+        proccontrol_printf("[%s:%d] Failed to poll for events\n",
                 FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0, 
                 "Failed to handle events and deliver callbacks");
@@ -1311,11 +1311,11 @@ bool BPatch::pollForStatusChange()
 
 
     if( result == PCEventMuxer::EventsReceived ) {
-        proccontrol_printf("[%s:%u] Events received\n", FILE__, __LINE__);
+        proccontrol_printf("[%s:%d] Events received\n", FILE__, __LINE__);
         return true;
     }
   
-    proccontrol_printf("[%s:%u] No events available\n", FILE__, __LINE__);
+    proccontrol_printf("[%s:%d] No events available\n", FILE__, __LINE__);
     return false;
 }
 

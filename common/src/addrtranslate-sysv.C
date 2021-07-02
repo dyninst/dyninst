@@ -364,7 +364,7 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
 {
    translate_printf("Creating AddressTranslateSysV\n");
    AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename, interp_base);
-   translate_printf("Created: %lx\n",  (long)at);
+   translate_printf("Created: %lx\n", (unsigned long)at);
    
    if (!at) {
       return NULL;

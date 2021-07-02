@@ -268,7 +268,7 @@ WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address func_entry, Addre
   func_instance *callee_func = proc_->findOneFuncByAddr(func_entry),
                 *cur_func    = proc_->findOneFuncByAddr(pc);
 
-  stackwalk_printf("[%s:%u] - DynWandererHelper called for func entry: %lx, pc: %lx - "
+  stackwalk_printf("[%s:%d] - DynWandererHelper called for func entry: %lx, pc: %lx - "
                      "found callee func: %p, cur func: %p\n", __FILE__, __LINE__, 
                      func_entry, pc, (void*)callee_func, (void*)cur_func);
 

@@ -64,7 +64,7 @@ bool Walker::createDefaultSteppers()
   result = addStepper(stepper);
   if (!result)
      goto error;
-  sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
+  sw_printf("[%s:%d] - Stepper %p is DebugStepper\n",
             FILE__, __LINE__, (void*)stepper);
 
   frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
@@ -72,7 +72,7 @@ bool Walker::createDefaultSteppers()
   result = addStepper(stepper);
   if (!result)
      goto error;
-  sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
+  sw_printf("[%s:%d] - Stepper %p is FrameFuncStepper\n",
             FILE__, __LINE__, (void*)stepper);
 
   //Call getLookupFuncStart twice to get reference counts correct.
@@ -82,21 +82,21 @@ bool Walker::createDefaultSteppers()
   result = addStepper(stepper);
   if (!result)
      goto error;
-  sw_printf("[%s:%u] - Stepper %p is StepperWanderer\n",
+  sw_printf("[%s:%d] - Stepper %p is StepperWanderer\n",
             FILE__, __LINE__, (void*)stepper);
 
   stepper = new SigHandlerStepper(this);
   result = addStepper(stepper);
   if (!result)
      goto error;
-  sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
+  sw_printf("[%s:%d] - Stepper %p is SigHandlerStepper\n",
             FILE__, __LINE__, (void*)stepper);
 
   stepper = new BottomOfStackStepper(this);
   result = addStepper(stepper);
   if (!result)
      goto error;
-  sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
+  sw_printf("[%s:%d] - Stepper %p is BottomOfStackStepper\n",
             FILE__, __LINE__, (void*)stepper);
 
 #ifdef USE_PARSE_API
@@ -104,7 +104,7 @@ bool Walker::createDefaultSteppers()
   result = addStepper(stepper);
   if (!result)
      goto error;
-  sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n",
+  sw_printf("[%s:%d] - Stepper %p is AnalysisStepper\n",
             FILE__, __LINE__, (void*)stepper);
 #endif
 
@@ -115,7 +115,7 @@ bool Walker::createDefaultSteppers()
 
   return true;
  error:
-  sw_printf("[%s:%u] - Error adding stepper %p\n",
+  sw_printf("[%s:%d] - Error adding stepper %p\n",
             FILE__, __LINE__, (void*)stepper);
     return false;
 }

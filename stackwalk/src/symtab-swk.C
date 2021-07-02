@@ -64,7 +64,7 @@ Symtab *SymtabWrapper::getSymtab(std::string filename)
      return wrapper->map[filename];
   }
   
-  sw_printf("[%s:%u] - Trying to open symtab object %s\n", 
+  sw_printf("[%s:%d] - Trying to open symtab object %s\n", 
             FILE__, __LINE__, filename.c_str());
   Symtab *symtab;
   bool result = Symtab::openFile(symtab, filename);

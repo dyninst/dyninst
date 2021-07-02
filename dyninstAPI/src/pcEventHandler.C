@@ -390,7 +390,7 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
 
     if( evProc->getThread(pcThr->getTID()) != NULL ) {
         proccontrol_printf("%s[%d]: thread already created with TID 0x%lx, ignoring thread create on thread %d/%d\n",
-                FILE__, __LINE__, pcThr->getTID(), evProc->getPid(), ev->getLWP());
+                FILE__, __LINE__, (unsigned long)pcThr->getTID(), evProc->getPid(), ev->getLWP());
         return true;
     }
 

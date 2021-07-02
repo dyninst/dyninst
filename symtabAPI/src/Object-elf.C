@@ -822,7 +822,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                             plt_entry_size_ = 8;
                         else {
                             if (plt_entry_size_ != 8)
-                                create_printf("%s[%d]:  weird plt_entry_size_ is %d, not 8\n",
+                                create_printf("%s[%d]:  weird plt_entry_size_ is %u, not 8\n",
                                               FILE__, __LINE__, plt_entry_size_);
                         }
 
@@ -1234,7 +1234,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     }
 
                 } else {
-                    create_printf("ERROR: Can't handle %d PLT entry size\n",
+                    create_printf("ERROR: Can't handle %u PLT entry size\n",
                                   plt_entry_size_);
                     return false;
                 }

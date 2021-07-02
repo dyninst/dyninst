@@ -305,7 +305,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                 thread ? thread->getLWP() : -1);
 
    const int status = archevent->status;
-   pthrd_printf("ARM-debug: status 0x%x\n",status);
+   pthrd_printf("ARM-debug: status 0x%x\n",(unsigned int)status);
    if (WIFSTOPPED(status))
    {
       const int stopsig = WSTOPSIG(status);
@@ -1303,7 +1303,7 @@ void linux_thread::fake_async_main(void *)
       fake_async_msgs[elem] = fake_async_msgs[size-1];
       fake_async_msgs.pop_back();
 
-      pthrd_printf("Faking response for event %d\n", id);
+      pthrd_printf("Faking response for event %u\n", id);
       //Pull the response from the list
       response::ptr resp = getResponses().rmResponse(id);
       assert(resp != response::ptr());
@@ -1643,7 +1643,7 @@ void linux_thread::setOptions()
                           (void *) options);
       if (result == -1) {
          int error = errno;
-         pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+         pthrd_printf("Failed to set options for %ld: %s\n", tid, strerror(errno));
          if (error == ESRCH)
             setLastError(err_exited, "Process exited during operation");
       }
@@ -1658,7 +1658,7 @@ bool linux_thread::unsetOptions()
             (void *) options);
     if (result == -1) {
         int error = errno;
-        pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+        pthrd_printf("Failed to set options for %ld: %s\n", tid, strerror(errno));
         if (error == ESRCH)
            setLastError(err_exited, "Process exited during operation");
         return false;
@@ -2406,7 +2406,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
            assert(0);
         }
 
-        pthrd_printf("Register %2s has value %16lx, offset %d\n", reg.name().c_str(), val, offset);
+        pthrd_printf("Register %2s has value %16lx, offset %u\n", reg.name().c_str(), val, offset);
         regpool.regs[reg] = val;
     }
     return true;
@@ -2688,7 +2688,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       else {
          assert(0);
       }
-      pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name().c_str(), val, offset);
+      pthrd_printf("Register %s gets value %lx, offset %u\n", reg.name().c_str(), val, offset);
    }
 
    if (!gprs_only && (num_found != regpool.regs.size()))

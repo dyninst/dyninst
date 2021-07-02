@@ -371,7 +371,7 @@ Address instPoint::addr_compat() const {
       }
       default:
           mal_printf("ERROR: returning 0 from instPoint::nextExecutedAddr "
-                  "for point of type %x in block [%lx %lx)\n", type(),
+                  "for point of type %x in block [%lx %lx)\n", (unsigned int)type(),
                   block()->start(), block()->end());
          return 0;
    }

@@ -868,7 +868,7 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
          i++;
          continue;
       }
-      pthrd_printf("Erasing process %d from attach return set because err = %d\n",
+      pthrd_printf("Erasing process %d from attach return set because err = %u\n",
                    proc->getPid(), last_error);
       ai.error_ret = last_error;
       ai.proc = Process::ptr();

@@ -1281,7 +1281,7 @@ bool func_instance::createOffsetVector_Symbols()
             continue;
         }
 
-        stackmods_printf("\t\t\t Found %s (type %s) @ %ld, size = %d\n", var->getName().c_str(), var->getType(Type::share)->getName().c_str(), offset, var->getType(Type::share)->getSize());
+        stackmods_printf("\t\t\t Found %s (type %s) @ %ld, size = %u\n", var->getName().c_str(), var->getType(Type::share)->getName().c_str(), offset, var->getType(Type::share)->getSize());
         for (auto locIter = locs.begin(); locIter != locs.end(); ++locIter) {
             VariableLocation curLoc = *locIter;
             if (curLoc.mr_reg == MachRegister::getFramePointer(arch)) {
@@ -1323,7 +1323,7 @@ bool func_instance::createOffsetVector_Symbols()
             continue;
         }
 
-        stackmods_printf("\t\t\t Found %s (type %s) @ %ld, size = %d\n", var->getName().c_str(), var->getType(Type::share)->getName().c_str(), offset, var->getType(Type::share)->getSize());
+        stackmods_printf("\t\t\t Found %s (type %s) @ %ld, size = %u\n", var->getName().c_str(), var->getType(Type::share)->getName().c_str(), offset, var->getType(Type::share)->getSize());
 
         for (auto locIter = locs.begin(); locIter != locs.end(); ++locIter) {
             VariableLocation curLoc = *locIter;

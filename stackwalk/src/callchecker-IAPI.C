@@ -42,7 +42,7 @@ CallChecker::~CallChecker() {}
 
 bool CallChecker::isPrevInstrACall(Address addr, Address &target)
 {
-    sw_printf("[%s:%u] - isPrevInstrACall on %lx\n", FILE__, __LINE__, addr);
+    sw_printf("[%s:%d] - isPrevInstrACall on %lx\n", FILE__, __LINE__, addr);
     if (addr == 0) return false;
     const unsigned max_call_length = 6;
     unsigned char buffer[max_call_length];
@@ -80,9 +80,9 @@ bool CallChecker::isPrevInstrACall(Address addr, Address &target)
              (prevInsn.getOperation().getID() == e_call) ) {
             int disp = *((int*)(bufferPtr+(size-prevInsn.size() + 2)));
             target = addr + disp;
-            sw_printf("[%s:%u] - Found call encoded by %d to %lx (addr = %lx, disp = %x)\n",
+            sw_printf("[%s:%d] - Found call encoded by %d to %lx (addr = %lx, disp = %x)\n",
                     FILE__, __LINE__,
-                    (int)buffer[0], target, addr, disp);
+                    buffer[0], target, addr, (unsigned int)disp);
             return true;
         } else {
             bufferPtr++;

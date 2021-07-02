@@ -203,7 +203,7 @@ char *encodeStr(const char *s)
     if (len < maxlen) {
 	char *newbuf = (char *)realloc(buf, maxlen);
 	if (!newbuf) {
-	    dlog(ERR, "Could not allocate %d bytes in encodeStr().\n", maxlen);
+	    dlog(ERR, "Could not allocate %u bytes in encodeStr().\n", maxlen);
 	    return NULL;
 	}
 	buf = newbuf;
@@ -235,7 +235,7 @@ char *decodeStr(const char *s, char **end_ptr)
     if (newlen > len) {
 	char *newbuf = (char *)realloc(buf, newlen);
 	if (!newbuf) {
-	    dlog(ERR, "Could not allocate %d bytes in decodeStr().\n", newlen);
+	    dlog(ERR, "Could not allocate %u bytes in decodeStr().\n", newlen);
 	    return NULL;
 	}
 	len = newlen;

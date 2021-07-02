@@ -663,11 +663,11 @@ Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
     // Allocate a register
     Register dest = gen.rs()->allocateRegister(gen, noCost);
 
-    ast_printf("Allocator returned %d\n", dest);
+    ast_printf("Allocator returned %u\n", dest);
     assert(dest != REG_NULL);
 
     if (useCount > 1) {
-        ast_printf("Adding kept register %d for node %p: useCount %d\n", dest, (void*)this, useCount);
+        ast_printf("Adding kept register %u for node %p: useCount %d\n", dest, (void*)this, useCount);
         // If use count is 0 or 1, we don't want to keep
         // it around. If it's > 1, then we can keep the node
         // (by construction) and want to since there's another
@@ -770,7 +770,7 @@ bool AstNode::previousComputationValid(Register &reg,
 	Register keptReg = gen.tracker()->hasKeptRegister(this);
 	if (keptReg != REG_NULL) {
 		reg = keptReg;
-		ast_printf("Returning previously used register %d for node %p\n", reg, (void*)this);
+		ast_printf("Returning previously used register %u for node %p\n", reg, (void*)this);
 		return true;
 	}
    return false;
@@ -1786,10 +1786,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
              doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
-               ast_printf("Operator node, const RHS, allocated register %d\n", retReg);
+               ast_printf("Operator node, const RHS, allocated register %u\n", retReg);
             }
             else
-               ast_printf("Operator node, const RHS, keeping register %d\n", retReg);
+               ast_printf("Operator node, const RHS, keeping register %u\n", retReg);
 
             emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
@@ -2888,7 +2888,7 @@ bool AstCallNode::canBeKept() const {
     if (constFunc_) {
         for (unsigned i = 0; i < args_.size(); i++) {
             if (!args_[i]->canBeKept()) {
-                fprintf(stderr, "AST %p: labelled const func but argument %d cannot be kept!\n",
+                fprintf(stderr, "AST %p: labelled const func but argument %u cannot be kept!\n",
                         (const void*)this, i);
                 return false;
             }
@@ -3450,14 +3450,14 @@ Register regTracker_t::hasKeptRegister(AstNode *n) {
 // and if so nuke it.
 
 bool regTracker_t::stealKeptRegister(Register r) {
-	ast_printf("STEALING kept register %d for someone else\n", r);
+	ast_printf("STEALING kept register %u for someone else\n", r);
         for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
            if (iter->second.keptRegister == r) {
               tracker.erase(iter);
               return true;
            }
         }
-	fprintf(stderr, "Odd - couldn't find kept register %d\n", r);
+	fprintf(stderr, "Odd - couldn't find kept register %u\n", r);
 	return true;
 }
 
@@ -3503,7 +3503,7 @@ void regTracker_t::debugPrint() {
     fprintf(stderr, "Condition level: %d\n", condLevel);
 
     for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
-       fprintf(stderr, "AstNode %p: register %d, condition level %d\n",
+       fprintf(stderr, "AstNode %p: register %u, condition level %d\n",
                (void*)iter->first, iter->second.keptRegister, iter->second.keptLevel);
     }
     fprintf(stderr, "==== End debug dump of register tracker ====\n");

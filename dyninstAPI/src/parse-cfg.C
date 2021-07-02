@@ -250,7 +250,7 @@ void parse_block::debugPrint() {
     unsigned s = 0;
     for ( ; sit != srcs.end(); ++sit) {
         parse_block * src = static_cast<parse_block*>((*sit)->src());
-        parsing_printf("    %d: block %d (%s)\n",
+        parsing_printf("    %u: block %d (%s)\n",
                        s, src->blockNumber_,
                        static_cast<image_edge*>(*sit)->getTypeString());
         ++s;
@@ -261,7 +261,7 @@ void parse_block::debugPrint() {
     unsigned t = 0;
     for( ; tit != trgs.end(); ++tit) {
         parse_block * trg = static_cast<parse_block*>((*tit)->trg());
-        parsing_printf("    %d: block %d (%s)\n",
+        parsing_printf("    %u: block %d (%s)\n",
                        t, trg->blockNumber_,
                        static_cast<image_edge*>(*tit)->getTypeString());
         ++t;

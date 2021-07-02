@@ -141,7 +141,7 @@ bool x86_thread::rmHWBreakpoint(hw_breakpoint *bp,
                    reg.name().c_str(), new_dr7);
       bool result = setRegister(reg, new_dr7, resp);
       if (!result) {
-         pthrd_printf("Error setting %s in thread %u\n", reg.name().c_str(),
+         pthrd_printf("Error setting %s in thread %d\n", reg.name().c_str(),
                       lwp);
          return false;
       }
@@ -273,7 +273,7 @@ bool x86_thread::addHWBreakpoint(hw_breakpoint *bp,
       resp->markSyncHandled();
       bool result = setRegister(reg, addr, resp);
       if (!result) {
-         pthrd_printf("Error setting %s in thread %u\n", reg.name().c_str(),
+         pthrd_printf("Error setting %s in thread %d\n", reg.name().c_str(),
                       lwp);
          return false;
       }
@@ -288,7 +288,7 @@ bool x86_thread::addHWBreakpoint(hw_breakpoint *bp,
                    reg.name().c_str(), new_dr7);
       bool result = setRegister(reg, new_dr7, resp);
       if (!result) {
-         pthrd_printf("Error setting %s in thread %u\n", reg.name().c_str(),
+         pthrd_printf("Error setting %s in thread %d\n", reg.name().c_str(),
                       lwp);
          return false;
       }

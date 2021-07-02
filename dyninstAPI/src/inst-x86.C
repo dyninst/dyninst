@@ -167,7 +167,7 @@ void registerSpace::initialize32() {
     // "Virtual" registers
     for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
 		char buf[128];
-        sprintf(buf, "virtGPR%d", i);
+        sprintf(buf, "virtGPR%u", i);
 
         registerSlot *virt = new registerSlot(i,
                                               buf,

@@ -432,22 +432,22 @@ namespace Dyninst
 	    snprintf(hex, 20, "%x", val.u8val);
 	    break;
 	  case s8:
-	    snprintf(hex, 20, "%x", val.s8val);
+	    snprintf(hex, 20, "%x", (unsigned int)val.s8val);
 	    break;
 	  case u16:
 	    snprintf(hex, 20, "%x", val.u16val);
 	    break;
 	  case s16:
-	    snprintf(hex, 20, "%x", val.s16val);
+	    snprintf(hex, 20, "%x", (unsigned int)val.s16val);
 	    break;
 	  case u24:
-	    snprintf(hex, 20, "%x", val.u24val);
+	    snprintf(hex, 20, "%x", (unsigned int)val.u24val);
 	    break;
 	  case u32:
 	    snprintf(hex, 20, "%x", val.u32val);
 	    break;
 	  case s32:
-	    snprintf(hex, 20, "%x", val.s32val);
+	    snprintf(hex, 20, "%x", (unsigned int)val.s32val);
 	    break;
 	  case u64:
 	    return std::to_string(val.u64val);
@@ -461,7 +461,7 @@ namespace Dyninst
 	    snprintf(hex, 20, "%lf", val.dblval);
 	    break;
 	  case bit_flag:
-	    snprintf(hex, 20, "%x", val.bitval);
+	    snprintf(hex, 20, "%x", (unsigned int)val.bitval);
 	    break;
 	  case u48:
 	    return std::to_string(val.s48val);
