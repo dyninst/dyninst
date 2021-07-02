@@ -739,7 +739,7 @@ SymtabCodeSource::overlapping_warn(const char * file, unsigned line) const
 {
     
     if(regionsOverlap()) {
-        parsing_printf("Invocation of routine at %s:%d is ambiguous for "
+        parsing_printf("Invocation of routine at %s:%u is ambiguous for "
                        "binaries with overlapping code regions\n",
             file,line);
     }

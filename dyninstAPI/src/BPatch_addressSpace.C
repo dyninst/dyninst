@@ -863,7 +863,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
       for (unsigned i=0; i<points.size(); i++) {
          f = points[i]->getFunction();
          const string sname = f->func->prettyName();
-         inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
+         inst_printf("[%s:%d] - %u. Insert instrumentation at function %s, "
                "address %p, when %d, order %d\n",
                FILE__, __LINE__, i,
                sname.c_str(), points[i]->getAddress(), (int) when, (int) order);
@@ -873,7 +873,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 
   if (BPatch::bpatch->isTypeChecked()) {
       if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
-	fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
+	fprintf(stderr, "[%s:%d] - Type error inserting instrumentation\n",
 		FILE__, __LINE__);
         //expr.ast_wrapper->debugPrint();
          return NULL;
@@ -902,7 +902,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
       callOrder ipOrder;
 
       if (!BPatchToInternalArgs(bppoint, when, order, ipWhen, ipOrder)) {
-        fprintf(stderr, "[%s:%u] - BPatchToInternalArgs failed for point %d\n",
+        fprintf(stderr, "[%s:%d] - BPatchToInternalArgs failed for point %u\n",
                FILE__, __LINE__, i);
          return retHandle;
       }

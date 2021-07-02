@@ -201,7 +201,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
         if (ap && ap->block() && ap->block()->obj()->cs()->getArch() == Arch_aarch64) {
             unknownInstruction = true;
         }
-        parsing_printf("\t add unknown instruction, opcode %d, %d\n", ap->insn().getOperation().getID(), ap->insn().getOperation().getID() == aarch64_op_b_cond); 
+        parsing_printf("\t add unknown instruction, opcode %u, %d\n", ap->insn().getOperation().getID(), ap->insn().getOperation().getID() == aarch64_op_b_cond); 
         return true;
     }
 
@@ -292,7 +292,7 @@ bool JumpTableIndexPred::MatchReadAST(Assignment::Ptr a) {
 }
 
 bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer *) {
-    parsing_printf("\tIn JumpTableIndexPred::modifyCurrentFrame, size %d\n", g->size());
+    parsing_printf("\tIn JumpTableIndexPred::modifyCurrentFrame, size %u\n", g->size());
 
     if (g->size() == 1) {
         /* This is the start of the jump table index slice.

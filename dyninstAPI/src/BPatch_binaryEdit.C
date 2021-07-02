@@ -86,12 +86,12 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
 
   std::string directoryName = "";
 
-  startup_printf("[%s:%u] - Opening original file %s\n",
+  startup_printf("[%s:%d] - Opening original file %s\n",
                  FILE__, __LINE__, path);
   origBinEdit = BinaryEdit::openFile(std::string(path));
 
   if (!origBinEdit){
-     startup_printf("[%s:%u] - Creation error opening %s\n",
+     startup_printf("[%s:%d] - Creation error opening %s\n",
                     FILE__, __LINE__, path);
      creation_error = true;
      return;

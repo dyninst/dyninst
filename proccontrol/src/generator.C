@@ -388,7 +388,7 @@ GeneratorMT::~GeneratorMT()
 void GeneratorMT::start() 
 {
    setGeneratorThread(DThread::self());
-   pthrd_printf("Generator started on thread %lx\n", DThread::self());
+   pthrd_printf("Generator started on thread %lx\n", (unsigned long)DThread::self());
    bool result;
 
    sync->init_cond.lock();

@@ -649,9 +649,9 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
 //debug
 #if 1
         pthrd_printf("ARM-info: dump alloc snippet...\n");
-        pthrd_printf("addr %ld, 0x%lx\n", addr, addr);
-        pthrd_printf("size %ld, 0x%lx\n", size, size);
-        pthrd_printf("flags 0x%x:\n", flags);
+        pthrd_printf("addr %lu, 0x%lx\n", addr, addr);
+        pthrd_printf("size %lu, 0x%lx\n", size, size);
+        pthrd_printf("flags 0x%x:\n", (unsigned int)flags);
 
         for(unsigned int i = 0; i< buffer_size ; i+=4){
             pthrd_printf("0x%8x\n", *((unsigned int *)(((char *)buffer)+i)) );

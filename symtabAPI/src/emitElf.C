@@ -351,7 +351,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 
                     if (verneedEntries.find(fileName) != verneedEntries.end()) {
                         if (verneedEntries[fileName].find((*vers)[0]) != verneedEntries[fileName].end()) {
-                            mpos += sprintf(mpos, "  vernum: %d\n", verneedEntries[fileName][(*vers)[0]]);
+                            mpos += sprintf(mpos, "  vernum: %u\n", verneedEntries[fileName][(*vers)[0]]);
                             versionSymTable.push_back((unsigned short) verneedEntries[fileName][(*vers)[0]]);
                         }
                         else {
@@ -750,7 +750,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
                        name, (long unsigned int)newshdr->sh_addr, (long unsigned int)newshdr->sh_offset, (long unsigned int)newshdr->sh_size);
-        rewrite_printf(" %02d Link(%d) Info(%d) change(%d)\n",
+        rewrite_printf(" %02u Link(%u) Info(%u) change(%u)\n",
                 sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
                 changeMapping[sectionNumber]);
 

@@ -847,7 +847,7 @@ void *AuxvParser::readAuxvFromProc() {
          pos += READ_BLOCK_SIZE;
       }
       else {
-         fprintf(stderr, "[%s:%u] - Unknown error reading auxv\n",
+         fprintf(stderr, "[%s:%d] - Unknown error reading auxv\n",
                  __FILE__, __LINE__);
          goto done_err;
       }
@@ -964,7 +964,7 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
       int lwp_ppid = 0;
       if (!lwp_id)
          continue;
-      sprintf(name, "/proc/%d/status", lwp_id);
+      sprintf(name, "/proc/%u/status", lwp_id);
       FILE *fd = P_fopen(name, "r");
       if (!fd) {
          continue;

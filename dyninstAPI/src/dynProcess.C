@@ -734,7 +734,7 @@ void PCProcess::findSignalHandler(mapped_object *obj) {
         unsigned size_to_use = sigSym.getSize();
         if (!size_to_use) size_to_use = 1;
 
-        startup_printf("%s[%d]: findSignalhandler(%p): addingSignalHandler(%p, %d)\n", FILE__, __LINE__, (void*)obj, (void *) sigSym.getAddr(), size_to_use);
+        startup_printf("%s[%d]: findSignalhandler(%p): addingSignalHandler(%p, %u)\n", FILE__, __LINE__, (void*)obj, (void *) sigSym.getAddr(), size_to_use);
         addSignalHandler(sigSym.getAddr(), size_to_use);
     }
 
@@ -775,7 +775,7 @@ void PCProcess::addInferiorHeap(mapped_object *obj) {
             heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
                                         infHeaps[j].type(), false);
 
-            infmalloc_printf("%s[%d]: Adding heap from 0x%lx - 0x%lx (%d bytes, type %d) from mapped object %s\n",
+            infmalloc_printf("%s[%d]: Adding heap from 0x%lx - 0x%lx (%u bytes, type %d) from mapped object %s\n",
                              FILE__, __LINE__,
                              infHeaps[j].addr(),
                              infHeaps[j].addr() + infHeaps[j].size(),
@@ -1546,7 +1546,7 @@ bool PCProcess::walkStacks(std::vector<std::vector<Frame> > &stackWalks) {
             retval = false;
             proccontrol_printf("%s[%d]: failed to walk stack for thread 0x%lx(%d)\n",
                     FILE__, __LINE__,
-                    curThr->getTid(), curThr->getLWP());
+                    (unsigned long)curThr->getTid(), curThr->getLWP());
         }else{
             stackWalks.push_back(stackWalk);
         }
@@ -1623,7 +1623,7 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
     // Set the lo/hi constraints (if necessary)
     inferiorMallocConstraints(near_, lo, hi, type);
 
-    infmalloc_printf("%s[%d]: inferiorMalloc entered; size %d, type %d, near 0x%lx (0x%lx to 0x%lx)\n",
+    infmalloc_printf("%s[%d]: inferiorMalloc entered; size %u, type %d, near 0x%lx (0x%lx to 0x%lx)\n",
                      FILE__, __LINE__, size, type, near_, lo, hi);
 
     // find free memory block (multiple attempts)
@@ -1643,13 +1643,13 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
         case NewSegment1MBConstrained: 
             infmalloc_printf("%s[%d]:  (3) inferiorMallocDynamic "
                     "for %d (0x%x) bytes between 0x%lx - 0x%lx\n", FILE__, __LINE__,
-                    HEAP_DYN_BUF_SIZE, HEAP_DYN_BUF_SIZE, lo, hi);
+                    HEAP_DYN_BUF_SIZE, (unsigned int)HEAP_DYN_BUF_SIZE, lo, hi);
             inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
             break;
         case NewSegmentSizedConstrained: 
             infmalloc_printf("%s[%d]:  (4) inferiorMallocDynamic "
-                    "for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, size, size, lo, hi);
+                    "for %u (0x%x) bytes between 0x%lx - 0x%lx\n",
+                             FILE__, __LINE__, size, (unsigned int)size, lo, hi);
             inferiorMallocDynamic(size, lo, hi);
             break;
         case RemoveRangeConstraints: 
@@ -1664,12 +1664,12 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
             break;
         case NewSegment1MBUnconstrained: 
             infmalloc_printf("%s[%d]:  (6) inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, HEAP_DYN_BUF_SIZE, lo, hi);
+                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, (unsigned int)HEAP_DYN_BUF_SIZE, lo, hi);
             inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
             break;
         case NewSegmentSizedUnconstrained: 
-            infmalloc_printf("%s[%d]:  (7) inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, size, size, lo, hi);
+            infmalloc_printf("%s[%d]:  (7) inferiorMallocDynamic for %u (0x%x) bytes between 0x%lx - 0x%lx\n",
+                             FILE__, __LINE__, size, (unsigned int)size, lo, hi);
             inferiorMallocDynamic(size, lo, hi);
             break;
         case DeferredFreeAgain: 
@@ -2933,8 +2933,8 @@ bool PCProcess::triggerStopThread(Address pointAddress, int callbackID, void *ca
         return false;
     }
 
-    mal_printf("handling stopThread %lx[%lx]=>%lx %s[%d]\n",
-            ri.reloc, pointAddress, (long)calculation, FILE__, __LINE__);
+    mal_printf("handling stopThread %lx[%lx]=>%p %s[%d]\n",
+            ri.reloc, pointAddress, calculation, FILE__, __LINE__);
 
     /* 2. If the callbackID is negative, the calculation is meant to be
       interpreted as the address of code, so we call stopThreadCtrlTransfer

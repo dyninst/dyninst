@@ -706,13 +706,13 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
         // 2.1 if the target is new, parse at the target
         if ( ! targFunc ) {
-            mal_printf("stopThread instrumentation found call %lx=>%lx, "
+            mal_printf("stopThread instrumentation found call %p=>%lx, "
                       "parsing at call target %s[%d]\n",
-                     (long)point->getAddress(), target,FILE__,__LINE__);
+                     point->getAddress(), target,FILE__,__LINE__);
             if (!analyzeNewFunction( point,target,false,false )) {
                 //this happens for some single-instruction functions
-                mal_printf("ERROR: parse of call target %lx=>%lx failed %s[%d]\n",
-                         (long)point->getAddress(), target, FILE__,__LINE__);
+                mal_printf("ERROR: parse of call target %p=>%lx failed %s[%d]\n",
+                         point->getAddress(), target, FILE__,__LINE__);
                 assert(0);
                 instrumentModules(false);
                 proc()->finalizeInsertionSet(false);
@@ -811,9 +811,9 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 getPreCallPoints(returningCallB.first, proc(), callPoints);
                 assert(!callPoints.empty());
 
-                mal_printf("stopThread instrumentation found return at %lx, "
+                mal_printf("stopThread instrumentation found return at %p, "
                           "parsing return addr %lx as fallthrough of call "
-                          "instruction at %p %s[%d]\n", (long)point->getAddress(), 
+                          "instruction at %p %s[%d]\n", point->getAddress(), 
                           target,callPoints[0]->getAddress(),FILE__,__LINE__);
 
                 if (point->llpoint()->block()->llb()->isShared()) {
@@ -874,13 +874,13 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     if ( 0 == targFuncs.size() ) { 
         newParsing = true;
         mal_printf("stopThread instrumentation found jump "
-                "at 0x%lx leading to an unparsed target at 0x%lx\n",
-                (long)point->getAddress(), target);
+                "at 0x%p leading to an unparsed target at 0x%lx\n",
+                point->getAddress(), target);
     } else {
         newParsing = false;
         mal_printf("stopThread instrumentation added an edge for jump "
-                " at 0x%lx leading to a previously parsed target at 0x%lx\n",
-                (long)point->getAddress(), target);
+                " at 0x%p leading to a previously parsed target at 0x%lx\n",
+                point->getAddress(), target);
     }
 
     // add the new edge to the program, parseNewEdgeInFunction will figure

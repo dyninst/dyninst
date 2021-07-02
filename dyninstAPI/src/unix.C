@@ -184,7 +184,7 @@ bool PCProcess::instrumentMTFuncs() {
                 __FILE__, __LINE__, (long) pthread_self_funcs.size());
         for (unsigned j=0; j<pthread_self_funcs.size(); j++) {
             func_instance *ps = pthread_self_funcs[j];
-            fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
+            fprintf(stderr, "[%s:%d] - %s in module %s at %lx\n", __FILE__, __LINE__,
                     ps->prettyName().c_str(), ps->mod()->fullName().c_str(),
                     ps->addr());
         }
@@ -462,7 +462,7 @@ bool PCProcess::hasPassedMain()
 
    if (!path) {
       //Strange... This shouldn't happen on a normal linux system
-      startup_printf("[%s:%u] - Couldn't find /lib/ld-x.x.x in hasPassedMain\n",
+      startup_printf("[%s:%d] - Couldn't find /lib/ld-x.x.x in hasPassedMain\n",
                      FILE__, __LINE__);
       return true;
    }
@@ -489,14 +489,14 @@ bool PCProcess::hasPassedMain()
 
    //Open /lib/ld-x.x.x and find the entry point
    if (!Symtab::openFile(ld_file, derefPath)) {
-      startup_printf("[%s:%u] - Unable to open %s in hasPassedMain\n", 
+      startup_printf("[%s:%d] - Unable to open %s in hasPassedMain\n", 
                      FILE__, __LINE__, path);
       return true;
    }
 
    entry_addr = ld_file->getEntryOffset();
    if (!entry_addr) {
-      startup_printf("[%s:%u] - No entry addr for %s\n", 
+      startup_printf("[%s:%d] - No entry addr for %s\n", 
                      FILE__, __LINE__, path);
       return true;
    }
@@ -505,15 +505,15 @@ bool PCProcess::hasPassedMain()
 
    Region* reg = NULL;
    if (ld_file->findRegion(reg, ".opd") && reg) {  
-     startup_printf("{%s:%u] - there is a .opd section. The entry offset points to the pointer to the real entry\n",
+     startup_printf("{%s:%d] - there is a .opd section. The entry offset points to the pointer to the real entry\n",
             FILE__, __LINE__);
      if( !getOPDFunctionAddr(entry_addr) ) {
-        startup_printf("[%s:%u] - failed to read entry addr function pointer\n",
+        startup_printf("[%s:%d] - failed to read entry addr function pointer\n",
                 FILE__, __LINE__);
         return false;
      }
    } else {
-     startup_printf("{%s:%u] - there is no .opd section. The entry offset is the entry\n", FILE__, __LINE__);
+     startup_printf("{%s:%d] - there is no .opd section. The entry offset is the entry\n", FILE__, __LINE__);
    }
 
    if( entry_addr < ldso_start_addr ) {
@@ -521,7 +521,7 @@ bool PCProcess::hasPassedMain()
    }
    
    bool result = (entry_addr != current_pc);
-   startup_printf("[%s:%u] - hasPassedMain returning %d (%lx %lx)\n",
+   startup_printf("[%s:%d] - hasPassedMain returning %d (%lx %lx)\n",
                   FILE__, __LINE__, (int) result, entry_addr, current_pc);
 
    return result;
@@ -561,7 +561,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                                                    std::map<std::string, BinaryEdit *> &retMap) {
   std::vector<std::string> paths;
   if (!getResolvedLibraryPath(filename, paths)) {
-    startup_printf("[%s:%u] - Unable to resolve library path for '%s'\n", FILE__, __LINE__,
+    startup_printf("[%s:%d] - Unable to resolve library path for '%s'\n", FILE__, __LINE__,
                    filename.c_str());
     return nullptr;
   }
@@ -587,7 +587,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
         return (*ret.first).second->getMappedObject();
       }
     }
-    startup_printf("[%s:%u] - Unable to find compatible BinaryEdit for '%s'\n", FILE__, __LINE__,
+    startup_printf("[%s:%d] - Unable to find compatible BinaryEdit for '%s'\n", FILE__, __LINE__,
                    filename.c_str());
     return nullptr;
   }
@@ -628,7 +628,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
         }
       }
       startup_printf(
-          "[%s:%u] - Failed to find archive members in '%s' for static executable '%s'\n", FILE__,
+          "[%s:%d] - Failed to find archive members in '%s' for static executable '%s'\n", FILE__,
           __LINE__, path.c_str(), filename.c_str());
     } else {
       Symtab *singleObject{nullptr};
@@ -650,7 +650,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
     }
   }
 
-  startup_printf("[%s:%u] - Creation error opening %s\n", FILE__, __LINE__, filename.c_str());
+  startup_printf("[%s:%d] - Creation error opening %s\n", FILE__, __LINE__, filename.c_str());
   return nullptr;
 }
 

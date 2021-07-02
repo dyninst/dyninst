@@ -314,7 +314,7 @@ class COMMON_EXPORT AnnotatableDense
 					  AnnotationClassBase *acb = AnnotationClassBase::findAnnotationClass(i);
 					  if (!acb)
 					  {
-						  fprintf(stderr, "%s[%d]:  ERROR:  failed to find acb for %d\n", 
+						  fprintf(stderr, "%s[%d]:  ERROR:  failed to find acb for %u\n", 
 								  FILE__, __LINE__, i);
 						  continue;
 					  }
@@ -402,7 +402,7 @@ class COMMON_EXPORT AnnotatableSparse
 			  {
 				  if (annotation_debug_flag())
 				  {
-					  fprintf(stderr, "%s[%d]:  Sparse(%p) %s remove %s-%d\n", FILE__, __LINE__,  
+					  fprintf(stderr, "%s[%d]:  Sparse(%p) %s remove %s-%u\n", FILE__, __LINE__,  
 							  (void*)this, reason, AnnotationClassBase::findAnnotationClass(i) 
 							  ? AnnotationClassBase::findAnnotationClass(i)->getName().c_str() 
 							  : "bad_anno_id", i);
@@ -602,7 +602,7 @@ class COMMON_EXPORT AnnotatableSparse
                //  even if not explicitly specified, a default pointer-compare
                //  function should be returned here.
 
-               fprintf(stderr, "%s[%d]:  no cmp func for anno id %d\n", 
+               fprintf(stderr, "%s[%d]:  no cmp func for anno id %u\n", 
                      FILE__, __LINE__, i);
                return false;
             }

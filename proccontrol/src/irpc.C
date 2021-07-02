@@ -1094,7 +1094,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
          }
 #endif
       } else {
-         pthrd_printf("RPC thread %d has %d active RPCs, parking thread\n",
+         pthrd_printf("RPC thread %d has %u active RPCs, parking thread\n",
                       thr->getLWP(), mgr->numActiveRPCs(thr));
          // don't do an extra desync here, it's handled by throwEventsBeforeContinue()
       }

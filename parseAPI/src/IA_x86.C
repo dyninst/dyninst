@@ -83,7 +83,7 @@ bool IA_x86::isFrameSetupInsn(Instruction i) const
             }
             else
             {
-                parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, size mismatch for %d-byte addr width\n",
+                parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, size mismatch for %u-byte addr width\n",
                                FILE__, __LINE__, i.format().c_str(), _isrc->getAddressWidth());
             }
         }

@@ -139,16 +139,16 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
    std::vector<registerSlot *> &regs = rs->trampRegs();
    for (unsigned i = 0; i < regs.size(); i++) {
       registerSlot *reg = regs[i];
-      regalloc_printf("[%s:%u] - checking reg (index %d, number %d, encoding %d)\n", __FILE__, 
+      regalloc_printf("[%s:%d] - checking reg (index %u, number %u, encoding %u)\n", __FILE__, 
 		      __LINE__, i, reg->number, reg->encoding());
 
       if (reg->spilledState != registerSlot::unspilled) {
-         regalloc_printf("[%s:%u] - reg %d saved\n", __FILE__, 
+         regalloc_printf("[%s:%d] - reg %u saved\n", __FILE__, 
                          __LINE__, reg->number);
          actually_saved++;
       }
       if (definedRegs[reg->encoding()]) {
-         regalloc_printf("[%s:%u] - reg %d used\n", __FILE__, 
+         regalloc_printf("[%s:%d] - reg %u used\n", __FILE__, 
                          __LINE__, reg->number);
          needed_saved++;
       }
@@ -158,7 +158,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
           (!reg->offLimits))
       {
          saved_unneeded++;
-         regalloc_printf("[%s:%u] - baseTramp saved unneeded register %d, "
+         regalloc_printf("[%s:%d] - baseTramp saved unneeded register %u, "
                          "suggesting regen (%d, %d, %d)\n", __FILE__, __LINE__, reg->number,
                          reg->spilledState,
                          (definedRegs[reg->encoding()] ? 1 : 0),
@@ -167,11 +167,11 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
       if (reg->liveState != registerSlot::spilled &&
           definedRegs[reg->encoding()])
       {
-         regalloc_printf("[%s:%u] - Decided not to save a defined register %d. "
+         regalloc_printf("[%s:%d] - Decided not to save a defined register %u. "
                          "App liveness?\n",  __FILE__, __LINE__, reg->number);         
       }
    }
-   regalloc_printf("[%s:%u] - Should regen found %d unneeded saves\n",
+   regalloc_printf("[%s:%d] - Should regen found %d unneeded saves\n",
                    __FILE__, __LINE__, saved_unneeded);
 #if defined(arch_x86_64) || defined(arch_x86)
    if (proc()->getAddressWidth() == 4)
@@ -189,7 +189,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
 
 bool baseTramp::generateCode(codeGen &gen,
                              Address baseInMutatee) {
-   inst_printf("baseTramp %p ::generateCode(%p, 0x%lx, %d)\n",
+   inst_printf("baseTramp %p ::generateCode(%p, 0x%lx, %u)\n",
                (void*)this, gen.start_ptr(), baseInMutatee, gen.used());
    initializeFlags();
 
@@ -208,7 +208,7 @@ bool baseTramp::generateCode(codeGen &gen,
    int count = 0;
 
    for (;;) {
-      regalloc_printf("[%s:%u] - Beginning baseTramp generate iteration # %d\n",
+      regalloc_printf("[%s:%d] - Beginning baseTramp generate iteration # %d\n",
                       __FILE__, __LINE__, ++count);
       codeBufIndex_t start = gen.getIndex();
 

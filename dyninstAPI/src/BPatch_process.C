@@ -996,7 +996,7 @@ bool BPatch_process::oneTimeCodeAsync(const BPatch_snippet &expr,
 BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
 {
    if (!libname) {
-      fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
+      fprintf(stderr, "[%s:%d] - loadLibrary called with NULL library name\n",
               __FILE__, __LINE__);
       return NULL;
    }

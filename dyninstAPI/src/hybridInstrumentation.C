@@ -283,7 +283,7 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
     }
 
     mal_printf("FAILED TO INSTRUMENT at point %lx %s[%d]\n", 
-               (long) point->llpoint()->block()->last(),FILE__,__LINE__);
+               (unsigned long)point->llpoint()->block()->last(),FILE__,__LINE__);
     return 0;
 }
 
@@ -398,7 +398,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             BPatch_stopThreadExpr *dynamicTransferSnippet;
             bool useCache = canUseCache(curPoint);
             mal_printf("hybridInstrumentation[%d] monitoring unresolved at 0x%lx: "
-                       "indirect, useCache=%d\n", __LINE__,(long)curPoint->llpoint()->block()->last(),(int)useCache);
+                       "indirect, useCache=%d\n", __LINE__,(unsigned long)curPoint->llpoint()->block()->last(),(int)useCache);
             if (useCache) {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
                     dynTarget, *curPoint->llpoint()->func()->obj(), true, BPatch_interpAsTarget);
@@ -430,8 +430,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             // don't need to instrument them
             vector<Address> targets;
             if (!getCFTargets(curPoint, targets)) {
-                mal_printf("ERROR: Could not get target for static point[%d] "
-                       "[%lx] -> [?]\n", pidx, (long)curPoint->llpoint()->block()->last());
+                mal_printf("ERROR: Could not get target for static point[%u] "
+                       "[%lx] -> [?]\n", pidx, curPoint->llpoint()->block()->last());
                 continue;
             }
 
@@ -444,11 +444,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
             if (curPoint->getPointType() == BPatch_locSubroutine) {
                 mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: call 0x%lx\n",
-                            __LINE__,(long)curPoint->llpoint()->block()->last(), 
+                            __LINE__,curPoint->llpoint()->block()->last(), 
                             target);
             } else {
                 mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: jump 0x%lx\n",
-                            __LINE__,(long)curPoint->llpoint()->block()->last(), 
+                            __LINE__,curPoint->llpoint()->block()->last(), 
                             target);
             }
 
@@ -483,7 +483,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         }
         BPatch_point *curPoint = points[pidx];
         mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: abruptEnd point\n",
-                    __LINE__,(long)curPoint->llpoint()->block()->last());
+                    __LINE__,curPoint->llpoint()->block()->last());
 
         // set up args and instrument
         if (useInsertionSet && 0 == pointCount) {
@@ -568,7 +568,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     func->getAddressRange(s, e);
                     mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
                                s, e,
-                               (long)curPoint->llpoint()->block()->last());
+                               curPoint->llpoint()->block()->last());
                 }
                 else if (curPoint->isDynamic()) {
                     // case 2: above check ensures that this is not a return 
@@ -839,7 +839,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             {
                 mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "
                           "after calls to the function at %lx\n", __FILE__,__LINE__,
-                          callPoint->llpoint()->block()->last(), (long)(*cIter)->llpoint()->block()->last());
+                          callPoint->llpoint()->block()->last(), (*cIter)->llpoint()->block()->last());
 
                 parseNewEdgeInFunction( *cIter , curFallThroughAddr , false );
 
@@ -1056,7 +1056,7 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
        targVec.push_back(target);
        if (!proc()->getImage()->parseNewFunctions(affectedMods, targVec)) {
            fprintf(stderr, "WARNING: call to parseNewFunctions failed to parse region "
-                   "containing target addr %lx  %s[%d]\n", (long)target, FILE__, __LINE__);
+                   "containing target addr %lx  %s[%d]\n", target, FILE__, __LINE__);
            parsed = false;
        }
     }
@@ -1249,14 +1249,14 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
         if (point->getPointType() == BPatch_subroutine) {
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                 "target is in module %s, parsing at fallthrough %s[%d]\n",
-                (long)point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
+                point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
             parseAfterCallAndInstrument(point, targFunc, false);
             doMoreProcessing = false;
         } else if (point->getPointType() == BPatch_exit) {
             mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
                 "into module %s, this indicates obfuscation or that there was a "
                 "call from that module into our code %s[%d]\n",
-                (long)point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
+                point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
             instReturns = true;
         } else {
             // jump into system library
@@ -1267,7 +1267,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
             // jump ptr
             mal_printf("WARNING: transfer into non-instrumented system module "
                 "%s at: %lx=>%lx %s[%d]\n", modName, 
-                (long)point->llpoint()->block()->last(), target,FILE__,__LINE__);
+                point->llpoint()->block()->last(), target,FILE__,__LINE__);
             instReturns = true;
         }
 
@@ -1290,13 +1290,13 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     else if ( targMod->isExploratoryModeOn() ) { 
         mal_printf("WARNING: Transfer into instrumented module %s "
                 "func %s at: %lx=>%lx %s[%d]\n", modName, funcName, 
-                (long)point->llpoint()->block()->last(), target, FILE__,__LINE__);
+                point->llpoint()->block()->last(), target, FILE__,__LINE__);
     } else { // jumped or called into module that's not recognized as a 
              // system library and is not instrumented
         mal_printf("WARNING: Transfer into non-instrumented module "
                 "%s func %s that is not recognized as a system lib: "
                 "%lx=>%lx %s[%d]\n", modName, funcName, 
-                (long)point->llpoint()->block()->last(), target, FILE__,__LINE__);
+                point->llpoint()->block()->last(), target, FILE__,__LINE__);
     }
     return doMoreProcessing;
 }

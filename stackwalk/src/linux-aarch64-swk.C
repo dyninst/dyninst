@@ -61,44 +61,44 @@ bool Walker::createDefaultSteppers()
     stepper = new FrameFuncStepper(this);
     result = addStepper(stepper);
     if (!result) {
-        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+        sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
                   (void*)stepper);
         return false;
     } else {
-        sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
+        sw_printf("[%s:%d] - Stepper %p is FrameFuncStepper\n",
                   FILE__, __LINE__, (void*)stepper);
     }
 
     stepper = new DebugStepper(this);
     result = addStepper(stepper);
     if (!result){
-        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+        sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
                   (void*)stepper);
         return false;
     } else{
-        sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
+        sw_printf("[%s:%d] - Stepper %p is DebugStepper\n",
                   FILE__, __LINE__, (void*)stepper);
     }
 
     stepper = new SigHandlerStepper(this);
     result = addStepper(stepper);
     if (!result) {
-        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+        sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
                   (void*)stepper);
         return false;
     }else {
-        sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
+        sw_printf("[%s:%d] - Stepper %p is SigHandlerStepper\n",
                   FILE__, __LINE__, (void*)stepper);
     }
 
     stepper = new BottomOfStackStepper(this);
     result = addStepper(stepper);
     if (!result){
-        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+        sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
                   (void*)stepper);
         return false;
     }else{
-        sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
+        sw_printf("[%s:%d] - Stepper %p is BottomOfStackStepper\n",
                   FILE__, __LINE__, (void*)stepper);
     }
 
@@ -150,7 +150,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     {
         result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
         if (!result) {
-            sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+            sw_printf("[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
                       FILE__, __LINE__, sp_loc.val.addr);
             return gcf_error;
         }
@@ -166,11 +166,11 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     Address fp = 0x0;
     fp_loc.location = loc_address;
     fp_loc.val.addr = in.getFP() + fp_offset - sizeof(dummy_context);
-    sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
+    sw_printf("[%s:%d] - SigHandler Reading FP from %lx\n",
               FILE__, __LINE__, fp_loc.val.addr);
     result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
     if (!result) {
-        sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+        sw_printf("[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
                   FILE__, __LINE__, fp_loc.val.addr);
         return gcf_error;
     }
@@ -179,11 +179,11 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     Address pc = 0x0;
     pc_loc.location = loc_address;
     pc_loc.val.addr = in.getFP() + pc_offset - sizeof(dummy_context);
-    sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
+    sw_printf("[%s:%d] - SigHandler Reading PC from %lx\n",
               FILE__, __LINE__, pc_loc.val.addr);
     result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
     if (!result) {
-        sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+        sw_printf("[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
                   FILE__, __LINE__, pc_loc.val.addr);
         return gcf_error;
     }

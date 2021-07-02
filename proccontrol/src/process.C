@@ -3491,7 +3491,7 @@ int_thread *int_thread::createThread(int_process *proc,
    }
    pthrd_printf("Creating %s thread %d/%d, thr_id = 0x%lx\n",
                 initial_thrd ? "initial" : "new",
-                proc->getPid(), newthr->getLWP(), thr_id);
+                proc->getPid(), newthr->getLWP(), (unsigned long)thr_id);
 
    proc->threadPool()->addThread(newthr);
    if (initial_thrd) {

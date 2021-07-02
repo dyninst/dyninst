@@ -299,7 +299,7 @@ bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
 
   reg->markUsed(true);
 
-  regalloc_printf("Allocated register %d\n", num);
+  regalloc_printf("Allocated register %u\n", num);
 
   return true;
 }
@@ -307,7 +307,7 @@ bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 					     bool noCost)
 {
-  regalloc_printf("Allocating specific register %d\n", num);
+  regalloc_printf("Allocating specific register %u\n", num);
 
   debugPrint();
 
@@ -343,7 +343,7 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
     gen.markRegDefined(reg->number);
 
 
-    regalloc_printf("Allocated register %d\n", num);
+    regalloc_printf("Allocated register %u\n", num);
 
     return true;
 }
@@ -372,7 +372,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
   for (unsigned i = 0; i < regs.size(); i++) {
     registerSlot *reg = regs[i];
 
-    regalloc_printf("%s[%d]: getting scratch register, examining %d of %lu: reg %d (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
+    regalloc_printf("%s[%d]: getting scratch register, examining %u of %lu: reg %u (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
 		    FILE__, __LINE__, i, regs.size(),
 		    reg->number,
 		    reg->name.c_str(),
@@ -451,7 +451,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
 {
   regalloc_printf("Allocating and retaining register...\n");
   Register reg = getScratchRegister(gen, noCost, realReg);
-  regalloc_printf("retaining register %d\n", reg);
+  regalloc_printf("retaining register %u\n", reg);
   if (reg == REG_NULL) return REG_NULL;
   if (realReg) {
     physicalRegs(reg)->refCount = 1;
@@ -459,7 +459,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
   else {
     registers_[reg]->refCount = 1;
   }
-  regalloc_printf("Allocated register %d\n", reg);
+  regalloc_printf("Allocated register %u\n", reg);
   return reg;
 }
 
@@ -476,7 +476,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
     assert(registers_[reg]->keptValue == true);
     assert(registers_[reg]->liveState != registerSlot::live);
 
-    regalloc_printf("Stealing register %d\n", reg);
+    regalloc_printf("Stealing register %u\n", reg);
 
     // Let the AST know it just lost...
     if (!gen.tracker()->stealKeptRegister(registers_[reg]->number)) return false;
@@ -622,7 +622,7 @@ void registerSpace::freeRegister(Register num)
     if (!reg) return;
 
     reg->refCount--;
-    regalloc_printf("Freed register %d: refcount now %d\n", num, reg->refCount);
+    regalloc_printf("Freed register %u: refcount now %d\n", num, reg->refCount);
 
     if( reg->refCount < 0 ) {
         //bperr( "Freed free register!\n" );
@@ -839,7 +839,7 @@ bool registerSpace::markSavedRegister(RealRegister num, int offsetFromFP) {
 }
 
 bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
-    regalloc_printf("Marking register %d as saved, %d from frame pointer\n",
+    regalloc_printf("Marking register %u as saved, %d from frame pointer\n",
                     num, offsetFromFP);
     // Find the register slot
     registerSlot *s = findRegister(num);
@@ -872,7 +872,7 @@ void registerSlot::debugPrint(const char *prefix) {
     if (!dyn_debug_regalloc) return;
 
 	if (prefix) fprintf(stderr, "%s", prefix);
-	fprintf(stderr, "Num: %d, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d, alloc %d\n",
+	fprintf(stderr, "Num: %u, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d, alloc %d\n",
                 number,
                 name.c_str(),
                 (type == GPR) ? "GPR" : ((type == FPR) ? "FPR" : "SPR"),
@@ -914,13 +914,13 @@ void registerSpace::debugPrint() {
 }
 
 bool registerSpace::markKeptRegister(Register reg) {
-	regalloc_printf("Marking register %d as kept\n", reg);
+	regalloc_printf("Marking register %u as kept\n", reg);
    registers_[reg]->keptValue = true;
    return false;
 }
 
 void registerSpace::unKeepRegister(Register reg) {
-	regalloc_printf("Marking register %d as unkept\n", reg);
+	regalloc_printf("Marking register %u as unkept\n", reg);
    registers_[reg]->keptValue = false;
 }
 

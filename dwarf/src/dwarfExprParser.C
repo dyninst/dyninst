@@ -76,7 +76,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
     unsigned count = listlen;
     for ( unsigned int i = 0; i < count; i++ ) 
     {
-        dwarf_printf("\tAtom %d of %d: val 0x%x\n", i+1, count, locations[i].atom);
+        dwarf_printf("\tAtom %u of %u: val 0x%x\n", i+1, count, locations[i].atom);
         /* lit0 - lit31 : the constants 0..31 */
         if ( DW_OP_lit0 <= locations[i].atom && locations[i].atom <= DW_OP_lit31 ) 
         {

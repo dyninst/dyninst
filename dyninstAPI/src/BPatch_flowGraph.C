@@ -655,7 +655,7 @@ void BPatch_flowGraph::dump()
 {
    for (std::set<BPatch_basicBlock *>::iterator iter = allBlocks.begin();
         iter != allBlocks.end(); ++iter) {
-      fprintf(stderr,"[%u 0x%p 0x%p]\n",
+      fprintf(stderr,"[%d 0x%p 0x%p]\n",
               (*iter)->blockNo(),
               (void *)((*iter)->getStartAddress()),
               (void *)((*iter)->getEndAddress()));

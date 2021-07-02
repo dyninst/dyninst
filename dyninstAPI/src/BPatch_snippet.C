@@ -1503,8 +1503,8 @@ BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
   proc->getImage()->findFunction("dyn_pthread_self", thread_funcs);
   if (thread_funcs.size() != 1)
   {
-    fprintf(stderr, "[%s:%u] - Internal Dyninst error.  Found %lu copies of "
-            "DYNINSTthreadIndex.  Expected 1\n", __FILE__, __LINE__, (long) thread_funcs.size());
+    fprintf(stderr, "[%s:%d] - Internal Dyninst error.  Found %lu copies of "
+            "DYNINSTthreadIndex.  Expected 1\n", __FILE__, __LINE__, thread_funcs.size());
     if (!thread_funcs.size())
       return;
   }

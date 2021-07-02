@@ -127,7 +127,7 @@ int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, 
   char errbuf[ERR_BUF_SIZE];
 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
-  int header_len = sprintf(errbuf, "[%ld]%s[%d]: ", getExecThreadID(), __file__, __line__);
+  int header_len = sprintf(errbuf, "[%lu]%s[%u]: ", getExecThreadID(), __file__, __line__);
 
   fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
   va_list va;
@@ -416,7 +416,7 @@ int signal_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -434,7 +434,7 @@ int inferiorrpc_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -452,7 +452,7 @@ int startup_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -490,7 +490,7 @@ int proccontrol_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -508,7 +508,7 @@ int stackwalk_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -526,7 +526,7 @@ int inst_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -544,7 +544,7 @@ int reloc_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -562,7 +562,7 @@ int dyn_unw_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -580,7 +580,7 @@ int mutex_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -599,7 +599,7 @@ int catchup_printf_int(const char *format, ...)
 
     debugPrintLock->lock();
 
-    fprintf(stderr, "[%ld]", getExecThreadID());
+    fprintf(stderr, "[%lu]", getExecThreadID());
     va_list va;
     va_start(va, format);
     int ret = vfprintf(stderr, format, va);
@@ -617,7 +617,7 @@ int bpatch_printf(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -635,7 +635,7 @@ int regalloc_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -653,7 +653,7 @@ int ast_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -699,7 +699,7 @@ int infmalloc_printf_int(const char *format, ...)
 
   debugPrintLock->lock();
 
-  fprintf(stderr, "[%ld]", getExecThreadID());
+  fprintf(stderr, "[%lu]", getExecThreadID());
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);

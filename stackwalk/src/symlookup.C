@@ -45,13 +45,13 @@ SymbolLookup::SymbolLookup(std::string exec_path) :
    walker(NULL),
    executable_path(exec_path)
 {
-  sw_printf("[%s:%u] - Creating SymbolLookup %p\n", 
+  sw_printf("[%s:%d] - Creating SymbolLookup %p\n", 
 	    FILE__, __LINE__, (void*)this);
 }
 
 SymbolLookup::~SymbolLookup() {
   walker = NULL;
-  sw_printf("[%s:%u] - Destroying SymbolLookup %p\n", FILE__, __LINE__, (void*)this);
+  sw_printf("[%s:%d] - Destroying SymbolLookup %p\n", FILE__, __LINE__, (void*)this);
 }
 
 Walker *SymbolLookup::getWalker()
@@ -80,7 +80,7 @@ bool SwkSymtab::lookupAtAddr(Dyninst::Address,
                              std::string &,
                              void* &)
 {
-   sw_printf("[%s:%u] - Error: Called root symbol lookup\n", FILE__, __LINE__);
+   sw_printf("[%s:%d] - Error: Called root symbol lookup\n", FILE__, __LINE__);
    assert(0);
    return false;
 }
@@ -102,14 +102,14 @@ bool SymDefaultLookup::lookupAtAddr(Dyninst::Address addr,
    LibAddrPair lib;
    bool result = ls->getLibraryAtAddr(addr, lib);
    if (!result) {
-      sw_printf("[%s:%u] - Failed to find a library at %lx for lookup\n",
+      sw_printf("[%s:%d] - Failed to find a library at %lx for lookup\n",
                 FILE__, __LINE__, addr);
       return false;
    }
 
    SymReader *reader = LibraryWrapper::getLibrary(lib.first);
    if (!reader) {
-      sw_printf("[%s:%u] - Failed to open a symbol reader for %s\n", 
+      sw_printf("[%s:%d] - Failed to open a symbol reader for %s\n", 
                 FILE__, __LINE__, lib.first.c_str());
       return false;
    }
@@ -117,13 +117,13 @@ bool SymDefaultLookup::lookupAtAddr(Dyninst::Address addr,
    Offset off = addr - lib.second;
    Symbol_t sym = reader->getContainingSymbol(off);
    if (!reader->isValidSymbol(sym)) {
-      sw_printf("[%s:%u] - Could not find symbol in binary\n", FILE__, __LINE__);
+      sw_printf("[%s:%d] - Could not find symbol in binary\n", FILE__, __LINE__);
       return false;
    }
 
    out_name = reader->getDemangledName(sym);
    out_value = NULL;
-   sw_printf("[%s:%u] - Found symbol %s at address %lx\n", FILE__, __LINE__, out_name.c_str(), addr);
+   sw_printf("[%s:%d] - Found symbol %s at address %lx\n", FILE__, __LINE__, out_name.c_str(), addr);
    return true;
 }
 

@@ -1734,7 +1734,7 @@ namespace Dyninst
                 insn_to_complete->appendOperand(Immediate::makeImmediate(Result(makeSizeType(optype), 1)), isRead, isWritten, isImplicit);
                 break;
             default:
-                printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
+                printf("decodeOneOperand() called with unknown addressing method %u\n", operand.admet);
                 // assert(0);
                 return false;
         }

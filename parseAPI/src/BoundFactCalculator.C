@@ -355,7 +355,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // The predecessor is not a conditional jump,
     // then we can determine buond fact based on the src assignment
     parsing_printf("\t\tThe predecessor node is normal node\n");
-    parsing_printf("\t\t\tentry id %d\n", id);
+    parsing_printf("\t\t\tentry id %u\n", id);
 
     AbsRegion &ar = node->assign()->out();
     Instruction insn = node->assign()->insn();

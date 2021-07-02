@@ -46,7 +46,7 @@ using namespace Dyninst::Stackwalker;
 FrameStepper::FrameStepper(Walker *w) :
   walker(w)
 {
-  sw_printf("[%s:%u] - Creating FrameStepper %p with walker %p\n",
+  sw_printf("[%s:%d] - Creating FrameStepper %p with walker %p\n",
 	    FILE__, __LINE__, (void*)this, (void*)walker);
   assert(walker);
 }
@@ -54,7 +54,7 @@ FrameStepper::FrameStepper(Walker *w) :
 FrameStepper::~FrameStepper()
 {
   walker = NULL;
-  sw_printf("[%s:%u] - Deleting FrameStepper %p\n", FILE__, __LINE__, (void*)this);
+  sw_printf("[%s:%d] - Deleting FrameStepper %p\n", FILE__, __LINE__, (void*)this);
 }
 
 Walker *FrameStepper::getWalker()
@@ -108,14 +108,14 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
 
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
-      sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
+      sw_printf("[%s:%d] - Stackwalking through an invalid PC at %lx\n",
                  FILE__, __LINE__, in.getRA());
       return gcf_error;
    }
 
    SymReader *reader = LibraryWrapper::getLibrary(lib.first);
    if (!reader) {
-      sw_printf("[%s:%u] - Could not open file %s\n",
+      sw_printf("[%s:%d] - Could not open file %s\n",
                  FILE__, __LINE__, lib.first.c_str());
       setLastError(err_nofile, "Could not open file for Debugging stackwalker\n");
       return gcf_error;
@@ -132,7 +132,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
      is_rewritten_binary = (*i).second;
    }
    if (!is_rewritten_binary) {
-     sw_printf("[%s:%u] - Decided that current binary is not rewritten, "
+     sw_printf("[%s:%d] - Decided that current binary is not rewritten, "
 	       "DyninstInstrStepper returning gcf_not_me at %lx\n",
 	       FILE__, __LINE__, in.getRA());
      return gcf_not_me;
@@ -143,26 +143,26 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
    const char *s = name.c_str();
    if (strstr(s, "dyninst") != s)
    {
-     sw_printf("[%s:%u] - Current function %s not dyninst generated\n",
+     sw_printf("[%s:%d] - Current function %s not dyninst generated\n",
 		FILE__, __LINE__, s);
      return gcf_not_me;
    }
 
    if (strstr(s, "dyninstBT") != s)
    {
-     sw_printf("[%s:%u] - Dyninst, but don't know how to read non-tramp %s\n",
+     sw_printf("[%s:%d] - Dyninst, but don't know how to read non-tramp %s\n",
 		FILE__, __LINE__, s);
      return gcf_not_me;
    }
 
-   sw_printf("[%s:%u] - Current function %s is baseTramp\n",
+   sw_printf("[%s:%d] - Current function %s is baseTramp\n",
 	      FILE__, __LINE__, s);
    Address base;
    unsigned size;
    int num_read = sscanf(s, "dyninstBT_%lx_%u_%x", &base, &size, &stack_height);
    bool has_stack_frame = (num_read == 3);
    if (!has_stack_frame) {
-      sw_printf("[%s:%u] - Don't know how to walk through instrumentation without a stack frame\n",
+      sw_printf("[%s:%d] - Don't know how to walk through instrumentation without a stack frame\n",
                 FILE__, __LINE__);
      return gcf_not_me;
    }
@@ -196,7 +196,7 @@ BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepp
    aout_init(false),
    libthread_init(false)
 {
-   sw_printf("[%s:%u] - Constructing BottomOfStackStepperImpl at %p\n",
+   sw_printf("[%s:%d] - Constructing BottomOfStackStepperImpl at %p\n",
              FILE__, __LINE__, (void*)this);
    initialize();
 }
@@ -373,19 +373,19 @@ gcframe_ret_t DyninstInstFrameStepperImpl::getCallerFrame(const Frame &in, Frame
     // Check if the FP is close to the SP. If it is not, the FP is likely invalid and this
     // isn't an instrimentation frame. This check is required to prevent a deref of an invalid FP. 
     if ( diff >= (addr_width * 500) ) {
-      sw_printf("[%s:%u] - I am Rejecting frame because (FP - stackPtr) > 500 stack positions - FP: %lx , SP: %lx, DIFF: %lu, Check: %u\n",
+      sw_printf("[%s:%d] - I am Rejecting frame because (FP - stackPtr) > 500 stack positions - FP: %lx , SP: %lx, DIFF: %lu, Check: %u\n",
           FILE__, __LINE__, framePtr, stackPtr, diff,  (addr_width * 500));          
       return gcf_not_me;
     }
 
-    sw_printf("[%s:%u] - %lx reading from memory at location %lx with framePtr %lx\n",
+    sw_printf("[%s:%d] - %lx reading from memory at location %lx with framePtr %lx\n",
         FILE__, __LINE__, ret, framePtr + addr_width, framePtr);    
 
     // Read the location in the stack where the Special Value should be.
     // This value was inserted into the stack at inst frame creation. 
     if (getWord(ret, framePtr + magicWordPos)) {    
         // check the return 
-        sw_printf("[%s:%u] - %lx read from memory at location %lx\n",
+        sw_printf("[%s:%d] - %lx read from memory at location %lx\n",
             FILE__, __LINE__, ret, magicWordPos);
         // Check if that value is equal to the magic word, if its not we are not in 
         // an instrimentation frame
@@ -394,13 +394,13 @@ gcframe_ret_t DyninstInstFrameStepperImpl::getCallerFrame(const Frame &in, Frame
             Address sp, ra, fp;
             // Read SP and FP for the next frame.
             if (!getWord(fp, framePtr) || !getWord(sp, framePtr + spPosition)) {
-                sw_printf("[%s:%u] - unable to read SP or FP from frame\n",
+                sw_printf("[%s:%d] - unable to read SP or FP from frame\n",
                     FILE__, __LINE__);           
                 return gcf_not_me;
             }
             // Get the return address by reading the SP.
             if (!getWord(ra, sp)) {
-                sw_printf("[%s:%u] - unable to read return address from %lx\n",
+                sw_printf("[%s:%d] - unable to read return address from %lx\n",
                     FILE__, __LINE__, sp);           
                 return gcf_not_me;
             }
@@ -410,7 +410,7 @@ gcframe_ret_t DyninstInstFrameStepperImpl::getCallerFrame(const Frame &in, Frame
             out.setRA(ra);
             out.setFP(fp);
             out.setSP(sp);
-            sw_printf("[%s:%u] - Accepted frame, output new frame with SP: %lx\n",
+            sw_printf("[%s:%d] - Accepted frame, output new frame with SP: %lx\n",
                     FILE__, __LINE__, sp);           
             return gcf_success;
         }
@@ -422,14 +422,14 @@ bool DyninstInstFrameStepperImpl::getWord(Address &word_out, Address start)
 {
    const unsigned addr_width = getProcessState()->getAddressWidth();
    if (start < 1024) {
-      sw_printf("[%s:%u] - %lx too low to be valid memory\n",
+      sw_printf("[%s:%d] - %lx too low to be valid memory\n",
                 FILE__, __LINE__, start);
       return false;
    }
    word_out = 0x0;
    bool result = getProcessState()->readMem(&word_out, start, addr_width);
    if (!result) {
-      sw_printf("[%s:%u] - DyninstInstFrameStepperImpl couldn't read from stack at 0x%lx\n",
+      sw_printf("[%s:%d] - DyninstInstFrameStepperImpl couldn't read from stack at 0x%lx\n",
                 FILE__, __LINE__, start);
       return false;
    }

@@ -211,7 +211,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
             stackmods_printf(" ... is Stack Frame SENSITIVE at 0x%lx\n",
               (*iter)->addr());
-            stackmods_printf("\t\t origDisp = %ld, delta = %ld, newDisp = %ld\n",
+            stackmods_printf("\t\t origDisp = %lu, delta = %ld, newDisp = %ld\n",
               origDisp, delta, newDisp);
 
             relocation_cerr << " ... is Stack Frame Sensitive at "

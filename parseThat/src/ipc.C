@@ -368,7 +368,7 @@ void sigchldHandler(int signal)
 	errno = 0;
 	pid = waitpid(-1, &status, options);
 
-	dlog(DEBUG, "waitpid returned %x status for pid %d\n", status, pid);
+	dlog(DEBUG, "waitpid returned %x status for pid %d\n", (unsigned int)status, pid);
 	if (pid > 0) {
 	    if (WIFSTOPPED(status)) {
 		dlog(WARN, "\n*\n* Abnormal case: Dyninst mutator stopped on signal %d.  Ignorning.\n*\n", WSTOPSIG(status));

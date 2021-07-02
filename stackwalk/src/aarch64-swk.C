@@ -91,7 +91,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
      if( val != 0) found_reg = true;
   }
 
-  sw_printf("[%s:%u] - Returning value %lx for reg %s\n",
+  sw_printf("[%s:%d] - Returning value %lx for reg %s\n",
             FILE__, __LINE__, val, reg.name().c_str());
   return found_reg;
 }
@@ -135,7 +135,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   // FrameFuncStepper needs an input FP
   if (!in.getFP())
   {
-      sw_printf("[%s:%u] - in.getFP() %lx\n", FILE__, __LINE__, in.getFP());
+      sw_printf("[%s:%d] - in.getFP() %lx\n", FILE__, __LINE__, in.getFP());
       return gcf_not_me;
   }
   // Look for function prologue to see if it is a standard frame 
@@ -175,7 +175,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
 
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %lx\n", FILE__, __LINE__, in_fp);
+    sw_printf("[%s:%d] - Couldn't read from %lx\n", FILE__, __LINE__, in_fp);
     return gcf_error;
   }
 
@@ -211,7 +211,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
         //result = getProcessState()->getRegValue(aarch32::lr, in.getThread(), out_ra);
     }
     if (!result) {
-        sw_printf("[%s:%u] - Error getting PC value for thrd %d\n",
+        sw_printf("[%s:%d] - Error getting PC value for thrd %d\n",
                   FILE__, __LINE__, (int) in.getThread());
         return gcf_error;
     }
@@ -291,21 +291,21 @@ WandererHelper::WandererHelper(ProcessState *proc_) :
 
 bool WandererHelper::isPrevInstrACall(Address, Address&)
 {
-   sw_printf("[%s:%u] - Unimplemented on this platform!\n", FILE__, __LINE__);
+   sw_printf("[%s:%d] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return false;
 }
 
 WandererHelper::pc_state WandererHelper::isPCInFunc(Address, Address)
 {
-   sw_printf("[%s:%u] - Unimplemented on this platform!\n", FILE__, __LINE__);
+   sw_printf("[%s:%d] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return unknown_s;
 }
 
 bool WandererHelper::requireExactMatch()
 {
-   sw_printf("[%s:%u] - Unimplemented on this platform!\n", FILE__, __LINE__);
+   sw_printf("[%s:%d] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return true;
 }
@@ -358,7 +358,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   result = getProcessState()->readMem(&ra_fp_pair, out_fp_loc,
                                       sizeof(ra_fp_pair));
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read instrumentation FP and RA from %lx\n", FILE__, __LINE__, out_fp_loc);
+    sw_printf("[%s:%d] - Couldn't read instrumentation FP and RA from %lx\n", FILE__, __LINE__, out_fp_loc);
     return gcf_error;
   }
   out.setRA(ra_fp_pair.LR);
@@ -433,7 +433,7 @@ FrameFuncHelper::alloc_frame_t aarch64_LookupFuncStart::allocatesFrame(Address a
 
    result = checkCache(addr, res);
    if (result) {
-      sw_printf("[%s:%u] - Cached value for %lx is %d/%d\n",
+      sw_printf("[%s:%d] - Cached value for %lx is %d/%d\n",
                 FILE__, __LINE__, addr, (int) res.first, (int) res.second);
       return res;
    }
@@ -441,27 +441,27 @@ FrameFuncHelper::alloc_frame_t aarch64_LookupFuncStart::allocatesFrame(Address a
    result = proc->getLibraryTracker()->getLibraryAtAddr(addr, lib);
    if (!result)
    {
-      sw_printf("[%s:%u] - No library at %lx\n", FILE__, __LINE__, addr);
+      sw_printf("[%s:%d] - No library at %lx\n", FILE__, __LINE__, addr);
       goto done;
    }
 
    reader = LibraryWrapper::getLibrary(lib.first);
    if (!reader) {
-      sw_printf("[%s:%u] - Failed to open symbol reader %s\n",
+      sw_printf("[%s:%d] - Failed to open symbol reader %s\n",
                 FILE__, __LINE__, lib.first.c_str() );
       goto done;
    }
    off = addr - lib.second;
    sym = reader->getContainingSymbol(off);
    if (!reader->isValidSymbol(sym)) {
-      sw_printf("[%s:%u] - Could not find symbol in binary\n", FILE__, __LINE__);
+      sw_printf("[%s:%d] - Could not find symbol in binary\n", FILE__, __LINE__);
       goto done;
    }
    func_addr = reader->getSymbolOffset(sym) + lib.second;
 
    result = proc->readMem(mem, func_addr, FUNCTION_PROLOG_TOCHECK);
    if (!result) {
-      sw_printf("[%s:%u] - Error.  Couldn't read from memory at %lx\n",
+      sw_printf("[%s:%d] - Error.  Couldn't read from memory at %lx\n",
                 FILE__, __LINE__, func_addr);
       goto done;
    }
@@ -505,7 +505,7 @@ FrameFuncHelper::alloc_frame_t aarch64_LookupFuncStart::allocatesFrame(Address a
       res.second = set_frame;
 
  done:
-   sw_printf("[%s:%u] - Function containing %lx has frame type %d/%d\n",
+   sw_printf("[%s:%d] - Function containing %lx has frame type %d/%d\n",
              FILE__, __LINE__, addr, (int) res.first, (int) res.second);
    updateCache(addr, res);
    return res;

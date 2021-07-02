@@ -243,7 +243,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
         uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
         char buf[20];
-        snprintf(buf, sizeof(buf), "{%016llx}", (long long) sig8);
+        snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)sig8);
         moduleName = buf;
     }
 
@@ -364,7 +364,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
                 id(), stack_size(),
                 curFunc()?curFunc()->getName().c_str():"(N/A)",
                 (void*)curEnclosure().get(), (dbg()!=desc)?"sup":"not sup",
-                mod()->fullName().c_str(), dwarf_tag(&e));
+                mod()->fullName().c_str(), (unsigned int)dwarf_tag(&e));
 
         bool ret = false;
         switch(dwarf_tag(&e)) {
@@ -466,7 +466,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
                 }
             default:
                 dwarf_printf("(0x%lx) Warning: unparsed entry with tag 0x%x, dwarf_tag(): 0x%x\n",
-                        id(), tag(), dwarf_tag(&e));
+                        id(), tag(), (unsigned int)dwarf_tag(&e));
                 ret = true;
                 break;
         }
@@ -979,7 +979,7 @@ void DwarfWalker::createLocalVariable(const vector<VariableLocation> &locs, boos
                    id(), curName().c_str(), (void*)newVariable, (void*)curFunc());
 
    for (unsigned int i = 0; i < locs.size(); ++i) {
-         dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
+         dwarf_printf("(0x%lx) (%s) Adding location %u of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
                       id(), newVariable->getName().c_str(), i + 1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC,
                       storageClass2Str(locs[i].stClass),
                       storageRefClass2Str(locs[i].refClass),
@@ -1154,7 +1154,7 @@ bool DwarfWalker::parseBaseType() {
    /* Add the basic type to our collection. */
    typeScalar *debug = baseType.get();
    auto baseTy = tc()->addOrUpdateType( baseType );
-   dwarf_printf("(0x%lx) Created type %p / %s (pre add %p / %s) for id %d, size %d, in TC %p\n", id(),
+   dwarf_printf("(0x%lx) Created type %p / %s (pre add %p / %s) for id %d, size %u, in TC %p\n", id(),
                 (void*)baseTy.get(), baseTy->getName().c_str(),
                 (void*)debug, debug->getName().c_str(),
                 (int) offset(), size,
@@ -1175,9 +1175,9 @@ bool DwarfWalker::parseTypedef() {
     }
 
     auto typeDef = tc()->addOrUpdateType( Type::make_shared<typeTypedef>( type_id(), referencedType, curName()) );
-    dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
+    dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
             (void*)typeDef.get(), typeDef->getName().c_str(), type_id(),
-            (int) offset(), typeDef->getSize(), (void*)tc(), mod()->fullName().c_str());
+            offset(), typeDef->getSize(), (void*)tc(), mod()->fullName().c_str());
 
     return true;
 }
@@ -1232,7 +1232,7 @@ bool DwarfWalker::parseArray() {
    /* The baseArrayType is an anonymous type with its own typeID.  Extract
       the information and add an array type for this DIE. */
     std::string baseTypeName = baseArrayType.getBaseType(Type::share)->getName();
-   dwarf_printf("(0x%lx) Creating array with base type %s, low bound %ld, high bound %ld, named %s\n",
+   dwarf_printf("(0x%lx) Creating array with base type %s, low bound %lu, high bound %lu, named %s\n",
                 id(), baseTypeName.c_str(),
                 baseArrayType.getLow(),
                 baseArrayType.getHigh(),
@@ -1340,9 +1340,9 @@ bool DwarfWalker::parseStructUnionClass() {
                 auto ts = Type::make_shared<typeStruct>( type_id(), curName());
                 ts->setSize(size);
                 containingType = tc()->addOrUpdateType(ts);
-                dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
+                dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                         (void*)containingType.get(), containingType->getName().c_str(), type_id(),
-                        (int) offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
+                        offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
                 break;
             }
         case DW_TAG_union_type:
@@ -1350,16 +1350,16 @@ bool DwarfWalker::parseStructUnionClass() {
                 auto tu = Type::make_shared<typeUnion>( type_id(), curName());
                 tu->setSize(size);
                 containingType = tc()->addOrUpdateType(tu);
-                dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
+                dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                         (void*)containingType.get(), containingType->getName().c_str(), type_id(),
-                        (int) offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
+                        offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
                 break;
             }
         default:
             {
                 Dwarf_Die e = entry();
                 dwarf_printf("(0x%lx) Warning: type not created tag 0x%x, dwarf_tag(): 0x%x\n",
-                        id(), tag(), dwarf_tag(&e));
+                        id(), tag(), (unsigned int)dwarf_tag(&e));
             }
 
     }
@@ -1484,20 +1484,20 @@ bool DwarfWalker::parseTypeReferences() {
       case DW_TAG_pointer_type:
          indirectType = tc()->addOrUpdateType(Type::make_shared<typePointer>(
                             type_id(), typePointedTo, curName()));
-         dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
+         dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                  (void*)indirectType.get(), indirectType->getName().c_str(), type_id(),
-                 (int) offset(), indirectType->getSize(), (void*)tc(), mod()->fullName().c_str());
+                 offset(), indirectType->getSize(), (void*)tc(), mod()->fullName().c_str());
          break;
       case DW_TAG_reference_type:
          indirectType = tc()->addOrUpdateType(Type::make_shared<typeRef>(
                             type_id(), typePointedTo, curName()));
-         dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p\n", id(),
+         dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p\n", id(),
                  (void*)indirectType.get(), indirectType->getName().c_str(), type_id(),
-                 (int) offset(), indirectType->getSize(), (void*)tc());
+                 offset(), indirectType->getSize(), (void*)tc());
          break;
       default:
          dwarf_printf("(0x%lx) Warning: nothing done for tag 0x%x, dwarf_tag(): 0x%x\n",
-                 id(), tag(), dwarf_tag(&e));
+                 id(), tag(), (unsigned int)dwarf_tag(&e));
          return false;
    }
 
@@ -1804,7 +1804,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     bool is_sup = dbg()!=desc;
     typeId_t type_id = get_type_id(typeOffset, is_info, is_sup);
 
-    dwarf_printf("(0x%lx) type offset 0x%x, is_supplemental=%s\n", id(), (int) typeOffset, is_sup?"true":"false");
+    dwarf_printf("(0x%lx) type offset 0x%lx, is_supplemental=%s\n", id(), (unsigned long)typeOffset, is_sup?"true":"false");
 
     /* The typeOffset forms a module-unique type identifier,
        so the Type look-ups by it rather than name. */
@@ -2291,7 +2291,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
         hi_conv = LONG_MAX;
     }
 
-    dwarf_printf("(0x%lx) Adding subrange type: id %d, low %ld, high %ld, named %s\n",
+    dwarf_printf("(0x%lx) Adding subrange type: id %d, low %lu, high %lu, named %s\n",
             id(), type_id,
             low_conv, hi_conv, curName().c_str());
     boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(
@@ -2520,10 +2520,10 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
         // If location == 0..-1, it's "unset" and we keep the big range unless
         // we're in a lexical block construct.
         //
-        dwarf_printf("(0x%lx) Decoding entry %d of %d over range 0x%lx - 0x%lx, mod 0x%lx - 0x%lx, base 0x%lx\n",
+        dwarf_printf("(0x%lx) Decoding entry %u of %d over range 0x%lx - 0x%lx, mod 0x%lx - 0x%lx, base 0x%lx\n",
                 id(), locIndex+1, (int) listLength,
-                (long) location->ld_lopc,
-                (long) location->ld_hipc,
+                location->ld_lopc,
+                location->ld_hipc,
                 modLow, modHigh, base);
 
         if (location->ld_lopc == max_addr) {
@@ -2664,7 +2664,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
     type_map::accessor a;
     type_key tk{offset, is_sup, mod()};
     type_ids.insert(a, make_pair(tk, val));
-    dwarf_printf("(0x%lx) type_id %d, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fullName().c_str());
+    dwarf_printf("(0x%lx) type_id %u, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fullName().c_str());
   }
 
   return val;
@@ -2746,7 +2746,7 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
       dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
       sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
     }
-    dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);
+    dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
     return true;
 }
 
@@ -2761,11 +2761,11 @@ bool DwarfWalker::findSig8Type(Dwarf_Sig8 * s, boost::shared_ptr<Type>&returnTyp
 
    if(type_id){
      returnType = tc()->findOrCreateType(type_id, Type::share);
-     dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (long long) sig8, type_id);
+     dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
      return true;
    }
 
-   dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (long long) sig8);
+   dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (unsigned long long) sig8);
    return false;
 }
 

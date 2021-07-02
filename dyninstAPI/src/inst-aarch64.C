@@ -92,10 +92,7 @@ void registerSpace::initialize64() {
     //GPRs
     for (unsigned idx = r0; idx <= r28; idx++) {
         char name[32];
-        if (idx < 10)
-            sprintf(name, "r%1d", idx - r0);
-        else
-            sprintf(name, "r%2d", idx - r0);
+        sprintf(name, "r%u", idx - r0);
         registers.push_back(new registerSlot(idx,
                                              name,
                                              false,
@@ -116,7 +113,7 @@ void registerSpace::initialize64() {
     //FPRs
     for (unsigned idx = fpr0; idx <= fpr31; idx++) {
         char name[32];
-        sprintf(name, "fpr%d", idx - fpr0);
+        sprintf(name, "fpr%u", idx - fpr0);
         registers.push_back(new registerSlot(idx,
                                              name,//TODO mov SP to FP
                                              false,

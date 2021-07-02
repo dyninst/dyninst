@@ -541,7 +541,7 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
             boundsArray[boundsIdx-1] = (*bIter)->getEndAddress();
         } else {
             if (boundsIdx > 0) {
-                mal_printf("BA[%d] = [%lx %lx]\n", boundsIdx-2, 
+                mal_printf("BA[%u] = [%lx %lx]\n", boundsIdx-2, 
                            boundsArray[boundsIdx-2],boundsArray[boundsIdx-1]);
             }
             boundsArray[boundsIdx]   = (*bIter)->getStartAddress();
@@ -551,7 +551,7 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         bIter++; 
     }
     if (boundsIdx > 0) {
-        mal_printf("BA[%d] = [%lx %lx]\n", 
+        mal_printf("BA[%u] = [%lx %lx]\n", 
                    boundsIdx-2, boundsArray[boundsIdx-2], boundsArray[boundsIdx-1]);
     }
     mal_printf("instrumenting %lu store instructions in loop %d %s[%d]\n",
