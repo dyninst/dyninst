@@ -52,10 +52,10 @@ using namespace Dyninst::Stackwalker;
 #error Unknown platform
 #endif
 
-typedef struct pair{
+struct ra_fp_pair_t  {
     unsigned long FP;
     unsigned long LR;
-} ra_fp_pair_t;
+};
 
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
