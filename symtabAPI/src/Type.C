@@ -742,10 +742,16 @@ bool typeArray::isCompatible(Type *otype)
 
    if (ec1 != ec2) 
    {
-      char message[80];
-      sprintf(message, "Incompatible number of elements [%lu..%lu] vs. [%lu..%lu]",
-	      this->low_, this->hi_, oArraytype->low_, oArraytype->hi_);
-      //reportError(BPatchWarning, 112, message);
+//      char message[126];
+//      int r = snprintf(message, sizeof message,
+//              "Incompatible number of elements [%lu..%lu] vs. [%lu..%lu]",
+//              this->low_, this->hi_, oArraytype->low_, oArraytype->hi_);
+//      if (r < 0 || (size_t)r >= sizeof message)  {
+//         // Ignore truncation this is just debugging, and if unsigned
+//         // longs are 64-bit this cannot overflow
+//         ;
+//      }
+//      //reportError(BPatchWarning, 112, message);
       return false;
    }
 
