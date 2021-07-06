@@ -2423,7 +2423,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                                 break;
                         }
                     }
-		    else if((imms != 31 || imms != 63) && (imms + 1) == immr)
+		    else if((imms + 1) == immr)
 			modifiedID = aarch64_op_lsl_ubfm;
 		    else if((imms & 0x1F) == 0x1F)
 			modifiedID = aarch64_op_lsr_ubfm;
