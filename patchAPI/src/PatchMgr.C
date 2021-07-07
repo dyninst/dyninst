@@ -34,6 +34,7 @@
 #include "PatchCFG.h"
 #include "Point.h"
 #include "PatchCallback.h"
+#include "compiler_annotations.h"
 
 #include "dyninstversion.h"
 
@@ -437,6 +438,7 @@ bool PatchMgr::verify(Location &loc) {
       case Location::InstructionInstance_:
          if (loc.func->blocks().find(loc.block) == loc.func->blocks().end()) return false;
          // Fall through to Instruction_ case for detailed checking.
+         DYNINST_FALLTHROUGH;
       case Location::Instruction_:
          if (loc.addr < loc.block->start()) return false;
          if (loc.addr > loc.block->last()) return false;

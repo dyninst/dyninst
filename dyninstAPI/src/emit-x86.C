@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "common/src/Types.h"
+#include "compiler_annotations.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/emit-x86.h"
@@ -2231,6 +2232,7 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
       switch(rb) {
          case IA32_NESCAS:
             neg = true;
+	    DYNINST_FALLTHROUGH;
          case IA32_ESCAS:
             opcode_small = 0xAE;
             opcode_large = 0xAF;
@@ -2238,6 +2240,7 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
             break;
          case IA32_NECMPS:
             neg = true;
+	    DYNINST_FALLTHROUGH;
          case IA32_ECMPS:
             opcode_small = 0xA6;
             opcode_large = 0xA7;

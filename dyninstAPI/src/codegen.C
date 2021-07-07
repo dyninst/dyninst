@@ -38,6 +38,7 @@
 #include "dynThread.h"
 #include "dynProcess.h"
 #include "common/src/Types.h"
+#include "compiler_annotations.h"
 #include "codegen.h"
 #include "util.h"
 #include "function.h"
@@ -638,6 +639,7 @@ void relocPatch::applyPatch()
    switch (ptype_) {
       case pcrel:
 	addr = addr - (gen_->startAddr() + offset_);
+	DYNINST_FALLTHROUGH;
       case abs:
 	gen_->copy(&addr, size_, dest_);
 	break;

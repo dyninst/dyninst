@@ -36,6 +36,7 @@
 #include <cstdint>
 #include <limits.h>
 #include "common/src/headers.h"
+#include "compiler_annotations.h"
 #include <unordered_map>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
@@ -1809,6 +1810,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
       switch(rb) {
         case IA32_NESCAS:
            neg = true;
+	   DYNINST_FALLTHROUGH;
         case IA32_ESCAS: {
            // plan: restore flags, edi, eax, ecx; do rep(n)e scas(b/w);
            // compute (saved_ecx - ecx) << sc;
@@ -1832,6 +1834,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
                 break;
              case 1:
                 emitSimpleInsn(0x66, gen); // operand size override for scasw;
+		DYNINST_FALLTHROUGH;
              case 2:
                 emitSimpleInsn(0xAF, gen); // scasw/d
                 break;
@@ -1849,6 +1852,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
         }
         case IA32_NECMPS:
            neg = true;
+	   DYNINST_FALLTHROUGH;
         case IA32_ECMPS: {
            // plan: restore flags, esi, edi, ecx; do rep(n)e cmps(b/w);
            // compute (saved_ecx - ecx) << sc;
@@ -1873,6 +1877,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
                 break;
              case 1:
                 emitSimpleInsn(0x66, gen); // operand size override for cmpsw;
+		DYNINST_FALLTHROUGH;
              case 2:
                 emitSimpleInsn(0xA7, gen); // cmpsw/d
                 break;

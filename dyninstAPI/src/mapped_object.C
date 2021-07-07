@@ -51,6 +51,7 @@
 #include "BPatch_image.h"
 #include "PatchCFG.h"
 #include "PCProcess.h"
+#include "compiler_annotations.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -884,12 +885,15 @@ bool mapped_object::getInfHeapList(std::vector<heapDescriptor> &infHeaps) {
         case 'g':
         case 'G':
             heap_size *= 1024;
+	    DYNINST_FALLTHROUGH;
         case 'm':
         case 'M':
             heap_size *= 1024;
+	    DYNINST_FALLTHROUGH;
         case 'k':
         case 'K':
             heap_size *= 1024;
+	    break;
         default:
             break;
         }
