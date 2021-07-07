@@ -1719,6 +1719,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                 emitR(getRetAddrOp, Null_Register,
                       src1, src2, gen, noCost, gen.point(),
                       gen.addrSpace()->multithread_capable());
+                break;
             default: {
                // Could be an error, could be an attempt to load based on an arithmetic expression
                // Generate the left hand side, store the right to that address

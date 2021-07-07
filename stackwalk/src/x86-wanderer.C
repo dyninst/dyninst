@@ -40,6 +40,8 @@
 
 #include "common/src/Types.h"
 
+#include "compiler_annotations.h"
+
 #include "common/h/SymReader.h"
 
 using namespace Dyninst;
@@ -106,11 +108,12 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
           case WandererHelper::outside_func:
             // TODO re-enable this heuristic for Dyninst when the Analysis Stepper is working
             if (whelper->requireExactMatch()) {  
-            sw_printf("[%s:%u] - Wanderer discarded word 0x%lx at 0x%lx\n",
+                sw_printf("[%s:%u] - Wanderer discarded word 0x%lx at 0x%lx\n",
                       FILE__, __LINE__, word, current_stack);
-            // not a candidate
-            break;
+                // not a candidate
+                break;
             }
+            DYNINST_FALLTHROUGH;
           case WandererHelper::unknown_s:
             sw_printf("[%s:%u] - Wanderer added word 0x%lx at 0x%lx as candidate return "
                       " address\n", FILE__, __LINE__, word, current_stack);
