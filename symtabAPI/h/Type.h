@@ -268,7 +268,7 @@ class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
    
    // Copy constructor
    Field(Field &f);
-   ~Field();
+   virtual ~Field();
 
    std::string &getName();
    boost::shared_ptr<Type> getType(Type::do_share_t);
@@ -302,6 +302,7 @@ class SYMTAB_EXPORT rangedInterface {
 
 class SYMTAB_EXPORT derivedInterface{
  public:
+   virtual ~derivedInterface() = default;
    virtual boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const = 0;
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
 };

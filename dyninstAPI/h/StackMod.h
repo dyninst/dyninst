@@ -73,6 +73,7 @@ class BPATCH_DLL_EXPORT StackMod
         MOrder order() const { return _order; }
 
         // Virtual Functions
+	virtual ~StackMod() = default;
         virtual std::string format() const { return ""; }
 
     protected:

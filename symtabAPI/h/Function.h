@@ -130,7 +130,7 @@ class SYMTAB_EXPORT FunctionBase
    FunctionBase(Symbol *);
    FunctionBase(Module *);
    FunctionBase();
-   ~FunctionBase();
+   virtual ~FunctionBase();
 
    localVarCollection *locals;
    localVarCollection *params;
