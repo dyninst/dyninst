@@ -11973,6 +11973,7 @@ entryID ia32_entry::getID(ia32_locations* l) const
             default:
                break;
          }
+	 break;
       case t_coprocEsc:
          return e_fp_generic;
       case t_3dnow:

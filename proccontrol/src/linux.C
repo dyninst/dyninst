@@ -45,6 +45,8 @@
 #include "common/h/dyn_regs.h"
 #include "common/h/dyntypes.h"
 
+#include "compiler_annotations.h"
+
 #include "common/src/pathName.h"
 #include "PCErrors.h"
 #include "Generator.h"
@@ -372,6 +374,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	          return false;
 	        }
 
+            DYNINST_FALLTHROUGH;
+
          case SIGSTOP:
             if (!proc) {
                //The child half of an event pair.  Find the parent or postpone it.
@@ -398,6 +402,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                event = Event::ptr(new EventBootstrap());
                break;
             }
+
+            DYNINST_FALLTHROUGH;
+
          case SIGTRAP: {
             {
 #if 0
@@ -650,6 +657,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
 
          }
+
+         DYNINST_FALLTHROUGH;
+
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
