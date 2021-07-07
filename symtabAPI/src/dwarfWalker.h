@@ -92,6 +92,7 @@ public:
             c(o.c), symtab_(o.symtab_)
             {
             }
+    virtual ~DwarfParseActions() = default;
     typedef std::vector<std::pair<Address, Address> > range_set_t;
     typedef boost::shared_ptr<std::vector<std::pair<Address, Address> > > range_set_ptr;
 private:

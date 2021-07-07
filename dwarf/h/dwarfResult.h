@@ -78,6 +78,8 @@ public:
 
     DwarfResult(Architecture a) : arch(a), error(false) {}
 
+    virtual ~DwarfResult() = default;
+
     virtual void pushReg(Dyninst::MachRegister reg) = 0;
     virtual void readReg(Dyninst::MachRegister reg) = 0;
     virtual void pushUnsignedVal(Dyninst::MachRegisterVal constant) = 0;
