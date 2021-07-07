@@ -148,6 +148,7 @@
 #include <boost/thread/mutex.hpp>
 #include "common/src/arch-x86.h"
 #include "dyn_regs.h"
+#include "compiler_annotations.h"
 
 // #define VEX_DEBUG
 // #define VEX_PEDANTIC
@@ -11407,6 +11408,7 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
          case PREFIX_XOP:
          // XOP prefix has the same structure as VEX3
             pref.XOP = true;
+	    DYNINST_FALLTHROUGH;
          case PREFIX_VEX3:
             pref.vex_present = true;
             pref.vex_type = VEX_TYPE_VEX3;

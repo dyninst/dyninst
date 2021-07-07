@@ -37,6 +37,7 @@
 #include "VariableLocation.h"
 #include "ProcReader.h"
 #include "Types.h"
+#include "compiler_annotations.h"
 
 using namespace std;
 
@@ -318,8 +319,8 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
                     }
 
                     if (value == 0) break;
-                    // Do not break; fall through to skip
                 }
+		DYNINST_FALLTHROUGH;
             case DW_OP_skip: 
                 {
                     int bytes = (int)(Dwarf_Sword)locations[i].number;

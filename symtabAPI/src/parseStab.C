@@ -40,6 +40,7 @@
 #include "Collections.h"
 #include "annotations.h"
 #include "common/src/headers.h"
+#include "compiler_annotations.h"
 #include "Type-mem.h"
 
 #include "debug.h"
@@ -1895,12 +1896,14 @@ static char *parseCPlusPlusInfo(Module *mod,
 
 	case 'S':
 	    nestedType = true;
+	    DYNINST_FALLTHROUGH;
 	case 's':
 	    typdescr = dataStructure;
 	    break;
 
 	case 'U':
 	    nestedType = true;
+	    DYNINST_FALLTHROUGH;
 	case 'u':
 	    typdescr = dataUnion;
 	    break;
