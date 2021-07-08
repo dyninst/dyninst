@@ -367,12 +367,12 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
 		  realReg ? (realRegisters_.empty() ? "GPRS" : "Real registers") : "GPRs");
 
   std::vector<registerSlot *> &regs = (realReg ? (realRegisters_.empty() ? GPRs_ : realRegisters_ ) : GPRs_ );
-  regalloc_printf("%d options in registers\n", regs.size());
+  regalloc_printf("%lu options in registers\n", regs.size());
 
   for (unsigned i = 0; i < regs.size(); i++) {
     registerSlot *reg = regs[i];
 
-    regalloc_printf("%s[%d]: getting scratch register, examining %d of %d: reg %d (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
+    regalloc_printf("%s[%d]: getting scratch register, examining %d of %lu: reg %d (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
 		    FILE__, __LINE__, i, regs.size(),
 		    reg->number,
 		    reg->name.c_str(),

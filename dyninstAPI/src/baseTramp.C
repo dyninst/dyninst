@@ -131,7 +131,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
    unsigned actually_saved = 0;
    int needed_saved = 0;
    
-   regalloc_printf("BT: checking for unneeded saved registers (in %p)\n", this);
+   regalloc_printf("BT: checking for unneeded saved registers (in %p)\n", (void*)this);
 
    if (spilledRegisters && !createdLocalSpace)
       return true;
@@ -189,8 +189,8 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
 
 bool baseTramp::generateCode(codeGen &gen,
                              Address baseInMutatee) {
-   inst_printf("baseTramp %p ::generateCode(%p, 0x%x, %d)\n",
-               this, gen.start_ptr(), baseInMutatee, gen.used());
+   inst_printf("baseTramp %p ::generateCode(%p, 0x%lx, %d)\n",
+               (void*)this, gen.start_ptr(), baseInMutatee, gen.used());
    initializeFlags();
 
    doOptimizations();

@@ -535,7 +535,7 @@ DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     while (lowIdx < highIdx)
     {
         if (idx > arrayLen || idx < 0)
-            rtdebug_printf("ERROR: out of bounds idx=%d, arrayLen = %d [%d]\n", idx, arrayLen, __LINE__);
+            rtdebug_printf("ERROR: out of bounds idx=%d, arrayLen = %ld [%d]\n", idx, arrayLen, __LINE__);
         rtdebug_printf("D_bc: low=%d high=%d arr[%d]=%lx [%d]\n", lowIdx, highIdx, idx, boundsArray[idx], __LINE__);
         if (writeTarget < boundsArray[idx]) {
             rtdebug_printf("D_bc: [%d]\n", __LINE__);
@@ -553,7 +553,7 @@ DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
             break;
         }
     }
-    rtdebug_printf("D_bc: boundsArray=%p ret=%d [%d]\n", boundsArray, callStopThread, __LINE__);
+    rtdebug_printf("D_bc: boundsArray=%p ret=%d [%d]\n", (void*)boundsArray, callStopThread, __LINE__);
     return callStopThread;
 }
 

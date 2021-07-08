@@ -200,7 +200,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     if (jumpTableOutEdges.size() > 0 && inst.indexStride > 0)
         func->getJumpTables()[block->last()] = inst;
 
-    parsing_printf(", find %d edges\n", jumpTableOutEdges.size());
+    parsing_printf(", find %lu edges\n", jumpTableOutEdges.size());
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
     return !jumpTableOutEdges.empty();
 }						       
@@ -354,7 +354,7 @@ int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
     Instruction i = memLoc->insn();
     std::vector<Operand> ops;
     i.getOperands(ops);
-    parsing_printf("\t there are %d operands\n", ops.size());
+    parsing_printf("\t there are %lu operands\n", ops.size());
     for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
         Operand o = *oit;
 	if (o.readsMemory()) {

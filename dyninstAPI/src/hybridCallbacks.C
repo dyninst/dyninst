@@ -692,7 +692,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     /* Code sharing will change the loops, the appropriate response
                     is to trigger early exit analysis and remove the loops if 
                     the underlying code hasn't changed */
-                    mal_printf("[%d] Removing loop instrumentation for func %lx\n", 
+                    mal_printf("[%d] Removing loop instrumentation for func %p\n", 
                                 __LINE__,curFunc->getBaseAddr());
                     std::set<HybridAnalysisOW::owLoop*>::iterator lIter = 
                         loops.begin();
@@ -813,7 +813,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
                 mal_printf("stopThread instrumentation found return at %lx, "
                           "parsing return addr %lx as fallthrough of call "
-                          "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
+                          "instruction at %p %s[%d]\n", (long)point->getAddress(), 
                           target,callPoints[0]->getAddress(),FILE__,__LINE__);
 
                 if (point->llpoint()->block()->llb()->isShared()) {
@@ -839,7 +839,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 // because we want to catch its callbacks into our code, but in
                 // the process are catching calls into other modules
                 mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
-                        "instruction semantics for insn at %lx target %lx\n",
+                        "instruction semantics for insn at %p target %lx\n",
                         __LINE__, point->getAddress(), returnAddr);
             }
             analyzeNewFunction( point, returnAddr, true , true );

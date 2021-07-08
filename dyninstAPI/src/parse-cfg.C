@@ -445,7 +445,7 @@ void parse_func::getReachableBlocks
  std::set<parse_block*> &reachBlocks)
 {
     using namespace ParseAPI;
-    mal_printf("reachable blocks for func %lx from %d start blocks\n",
+    mal_printf("reachable blocks for func %lx from %lu start blocks\n",
                addr(), seedBlocks.size());
 
     // init visited set with seed and except blocks

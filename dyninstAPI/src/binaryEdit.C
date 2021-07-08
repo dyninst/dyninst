@@ -110,7 +110,7 @@ bool BinaryEdit::writeTextSpace(void *inOther,
        assert(offset < range->get_size());
        
        void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
-       inst_printf("Copying to 0x%lx [base=0x%lx] from 0x%lx (%d bytes)  target=0x%lx  offset=0x%lx\n", 
+       inst_printf("Copying to 0x%p [base=0x%p] from 0x%lx (%d bytes)  target=0x%lx  offset=0x%lx\n", 
               local_ptr, range->get_local_ptr(), local, chunk_size, addr, offset);
        //range->print_range();
        memcpy(local_ptr, (void *)local, chunk_size);

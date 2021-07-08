@@ -80,7 +80,7 @@ bool CallChecker::isPrevInstrACall(Address addr, Address &target)
              (prevInsn.getOperation().getID() == e_call) ) {
             int disp = *((int*)(bufferPtr+(size-prevInsn.size() + 2)));
             target = addr + disp;
-            sw_printf("[%s:%u] - Found call encoded by %d to %lx (addr = %lx, disp = %lx)\n",
+            sw_printf("[%s:%u] - Found call encoded by %d to %lx (addr = %lx, disp = %x)\n",
                     FILE__, __LINE__,
                     (int)buffer[0], target, addr, disp);
             return true;

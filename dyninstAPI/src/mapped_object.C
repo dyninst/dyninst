@@ -104,9 +104,9 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    
    startup_printf("[%s:%d] Creating new mapped_object %s/%s\n",
                   FILE__, __LINE__, fullName_.c_str(), getFileDesc().member().c_str());
-   startup_printf("[%s:%d] \tcodeBase 0x%lx, codeOffset 0x%lx, size %d\n",
+   startup_printf("[%s:%d] \tcodeBase 0x%lx, codeOffset 0x%lx, size %lu\n",
                   FILE__, __LINE__, codeBase_, image_->imageOffset(), image_->imageLength());
-   startup_printf("[%s:%d] \tdataBase 0x%lx, dataOffset 0x%lx, size %d\n",
+   startup_printf("[%s:%d] \tdataBase 0x%lx, dataOffset 0x%lx, size %lu\n",
                   FILE__, __LINE__, dataBase_, image_->dataOffset(), image_->dataLength());
    startup_printf("[%s:%d] \tfileDescriptor: code at 0x%lx, data 0x%lx\n",
                   FILE__, __LINE__, fileDesc.code(), fileDesc.data());

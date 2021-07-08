@@ -216,7 +216,7 @@ block_instance * func_instance::setNewEntry(block_instance *def,
     if (newEntry->isShared()) {
         mal_printf("New entry block chosen for func 0x%lx is shared\n",addr_);
     }
-    mal_printf("Func has new entry block [%lx %lx)\n",addr_, 
+    mal_printf("Func has new entry block [%lx %lx)\n",
                newEntry->start(), newEntry->end());
     return newEntry;
 }
@@ -1419,7 +1419,7 @@ bool func_instance::addToOffsetVector(StackAnalysis::Height off, int size, Stack
             }
         }
 
-        stackmods_printf("\t\t\t addToOffsetVector: added %s %d\n", StackAccess::printStackAccessType(type).c_str(), off.height());
+        stackmods_printf("\t\t\t addToOffsetVector: added %s %ld\n", StackAccess::printStackAccessType(type).c_str(), off.height());
         StackLocation* tmp = new StackLocation(off, type, reg);
         _offVec->insert(off, off+size, tmp, isRegisterHeight);
         return ret;

@@ -47,14 +47,14 @@ FrameStepper::FrameStepper(Walker *w) :
   walker(w)
 {
   sw_printf("[%s:%u] - Creating FrameStepper %p with walker %p\n",
-	    FILE__, __LINE__, this, walker);
+	    FILE__, __LINE__, (void*)this, (void*)walker);
   assert(walker);
 }
 
 FrameStepper::~FrameStepper()
 {
   walker = NULL;
-  sw_printf("[%s:%u] - Deleting FrameStepper %p\n", FILE__, __LINE__, this);
+  sw_printf("[%s:%u] - Deleting FrameStepper %p\n", FILE__, __LINE__, (void*)this);
 }
 
 Walker *FrameStepper::getWalker()
@@ -132,7 +132,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
      is_rewritten_binary = (*i).second;
    }
    if (!is_rewritten_binary) {
-     sw_printf("[%s:u] - Decided that current binary is not rewritten, "
+     sw_printf("[%s:%u] - Decided that current binary is not rewritten, "
 	       "DyninstInstrStepper returning gcf_not_me at %lx\n",
 	       FILE__, __LINE__, in.getRA());
      return gcf_not_me;
@@ -197,7 +197,7 @@ BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepp
    libthread_init(false)
 {
    sw_printf("[%s:%u] - Constructing BottomOfStackStepperImpl at %p\n",
-             FILE__, __LINE__, this);
+             FILE__, __LINE__, (void*)this);
    initialize();
 }
 
@@ -373,13 +373,13 @@ gcframe_ret_t DyninstInstFrameStepperImpl::getCallerFrame(const Frame &in, Frame
     // Check if the FP is close to the SP. If it is not, the FP is likely invalid and this
     // isn't an instrimentation frame. This check is required to prevent a deref of an invalid FP. 
     if ( diff >= (addr_width * 500) ) {
-      sw_printf("[%s:%u] - I am Rejecting frame because (FP - stackPtr) > 500 stack positions - FP: %lx , SP: %lx, DIFF: %llu, Check: %u\n",
+      sw_printf("[%s:%u] - I am Rejecting frame because (FP - stackPtr) > 500 stack positions - FP: %lx , SP: %lx, DIFF: %lu, Check: %u\n",
           FILE__, __LINE__, framePtr, stackPtr, diff,  (addr_width * 500));          
       return gcf_not_me;
     }
 
     sw_printf("[%s:%u] - %lx reading from memory at location %lx with framePtr %lx\n",
-        FILE__, __LINE__, ret, framePtr + addr_width);    
+        FILE__, __LINE__, ret, framePtr + addr_width, framePtr);    
 
     // Read the location in the stack where the Special Value should be.
     // This value was inserted into the stack at inst frame creation. 

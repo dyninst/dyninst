@@ -166,7 +166,7 @@ std::string pair_to_string(T pr)
 Parser::parse()
 {
     parsing_printf("[%s:%d] parse() called on Parser %p with state %d\n",
-            FILE__,__LINE__,this, _parse_state);
+            FILE__,__LINE__,(void*)this, _parse_state);
 
     if(_parse_state == UNPARSEABLE) {
         record_hint_functions();
@@ -184,7 +184,7 @@ Parser::parse()
     if(_parse_state < COMPLETE)
         _parse_state = COMPLETE;
 
-    parsing_printf("[%s:%d] parsing complete for Parser %p with state %d\n", FILE__, __LINE__, this, _parse_state);
+    parsing_printf("[%s:%d] parsing complete for Parser %p with state %d\n", FILE__, __LINE__, (void*)this, _parse_state);
 #ifdef ADD_PARSE_FRAME_TIMERS
     std::ofstream stat_log("functions.csv");
     stat_log << "Results for " << time_histogram.size() << " buckets\n";
@@ -281,7 +281,7 @@ Parser::parse_vanilla()
     LockFreeQueue<ParseFrame *> work;
 
     parsing_printf("[%s:%d] entered parse_vanilla()\n",FILE__,__LINE__);
-    parsing_printf("\t%d function hints\n",hint_funcs.size());
+    parsing_printf("\t%lu function hints\n",hint_funcs.size());
 
     if(_parse_state < PARTIAL)
         _parse_state = PARTIAL;
@@ -1138,8 +1138,8 @@ Parser::delete_bogus_blocks(Edge* e)
     Block* cur = e->trg();
 
     parsing_printf("Remove an edge from %p[%lx, %lx) to %p[%lx, %lx), type %d\n",
-            e->src(), e->src()->start(), e->src()->end(),
-            e->trg(), e->trg()->start(), e->trg()->end(),
+            (void*)e->src(), e->src()->start(), e->src()->end(),
+            (void*)e->trg(), e->trg()->start(), e->trg()->end(),
             e->type());
     e->src()->removeTarget(e);
     // Bogus control flow may lead to invalid instructions,
@@ -1511,7 +1511,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     }
 
                     if (is_nonret) {
-                        parsing_printf("[%s] no fallthrough for non-returning syscall\n",
+                        parsing_printf("[%s] edge %lx, no fallthrough for non-returning syscall\n",
                                 FILE__,
                                 work->edge()->src()->lastInsnAddr());
 
@@ -1661,7 +1661,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             parsing_printf("[%s] parsing block %lx\n",
                     FILE__,cur->start());
             if (frame.func->obj()->defensiveMode()) {
-                mal_printf("new block at %lx (0x%lx)\n",cur->start(), cur);
+                mal_printf("new block at %lx (0x%p)\n",cur->start(), (void*)cur);
             }
 
             cur->_parsed = true;
@@ -2416,7 +2416,7 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
                 ++fIter) {
             work.insert(*fIter);
             Function *f = (*fIter)->func;
-            parsing_printf("\t undelay function %s at %lx, frame delay work size %d\n", f->name().c_str(), f->addr(), (*fIter)->delayedWork.size()); 
+            parsing_printf("\t undelay function %s at %lx, frame delay work size %lu\n", f->name().c_str(), f->addr(), (*fIter)->delayedWork.size()); 
         }
         // remove func from delayedFrames map
         delayed_frames.erase(a);

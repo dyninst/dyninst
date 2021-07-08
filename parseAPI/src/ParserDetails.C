@@ -413,7 +413,7 @@ bool Parser::ProcessCFInsn(
     // Instruction adapter provides edge estimates from an instruction
     parsing_printf("Getting edges\n");
     ah->getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries, frame.knownTargets);
-    parsing_printf("Returned %d edges\n", edges_out.size());
+    parsing_printf("Returned %lu edges\n", edges_out.size());
     if (unlikely(_obj.defensiveMode() && !ah->isCall() && edges_out.size())) {
         // only parse branch edges that align with existing blocks
         //
@@ -496,7 +496,7 @@ bool Parser::ProcessCFInsn(
     // and later on is set set to true for transfers to bad addresses
     bool has_unres = ah->hasUnresolvedControlFlow(frame.func, frame.num_insns);
 
-    parsing_printf("\t\t%d edges:\n", edges_out.size());
+    parsing_printf("\t\t%lu edges:\n", edges_out.size());
     for (Edges_t::iterator curEdge = edges_out.begin();
          curEdge != edges_out.end(); ++curEdge) {
         Edge *newedge = NULL;
@@ -531,8 +531,8 @@ bool Parser::ProcessCFInsn(
                 newedge = link_block(cur, _sink, CALL, true);
             }
             if (!ah->isCall()) {
-                parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
-                               newedge,
+                parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to interproc\n",
+                               (void*)newedge,
                                newedge->src()->start(),
                                newedge->trg_addr());
                 newedge->_type._interproc = true;
@@ -550,8 +550,8 @@ bool Parser::ProcessCFInsn(
 
         if (ah->isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
             tailcall = true;
-            parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc (tail call)\n",
-                           newedge,
+            parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to interproc (tail call)\n",
+                           (void*)newedge,
                            newedge->src()->start(),
                            newedge->trg_addr());
             newedge->_type._interproc = true;
@@ -581,7 +581,7 @@ bool Parser::ProcessCFInsn(
         if (resolvable_edge) {
             parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                            FILE__, __LINE__, we->target());
-            parsing_printf("[%s:%d] new edge is %p\n", FILE__, __LINE__, newedge);
+            parsing_printf("[%s:%d] new edge is %p\n", FILE__, __LINE__, (void*)newedge);
             frame.pushWork(we);
 
             if (unlikely(_obj.defensiveMode())) {

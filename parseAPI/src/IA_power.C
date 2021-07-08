@@ -291,7 +291,7 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
       ci.getWriteSet (regs);
       if (regs.size () != 1)
 	{
-	  parsing_printf ("mfspr wrote %d registers instead of 1. insn: %s\n",
+	  parsing_printf ("mfspr wrote %lu registers instead of 1. insn: %s\n",
 			  regs.size (), ci.format ().c_str ());
 	  return 0;
 	}
@@ -325,7 +325,7 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
 	  ++cnt;
 	}
     }
-  parsing_printf ("[%s:%d] isReturnAddrSave examined %d instructions - returning %d \n", FILE__, __LINE__, cnt, ret);
+  parsing_printf ("[%s:%d] isReturnAddrSave examined %d instructions - returning %lu\n", FILE__, __LINE__, cnt, ret);
   return ret;
 }
 
@@ -378,7 +378,7 @@ bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI
 	}
       for(iter = copy.allInsns.rbegin(); iter != copy.allInsns.rend(); iter++)
 	{
-	  parsing_printf ("\t\tchecking insn 0x%x: %s \n", iter->first,
+	  parsing_printf ("\t\tchecking insn 0x%lx: %s \n", iter->first,
 		  iter->second.format ().c_str ());
 	  if (iter->second.getOperation().getID () == power_op_mtspr &&
 	      iter->second.isWritten (regLR))

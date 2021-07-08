@@ -58,7 +58,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
      //Generate some (skipped) code involving frame_pointer before
      // the assembly snippet.  This keeps gcc from optimizing 
      // the below snippet by pulling it up into the function prolog.
-     sw_printf("%p%p\n", frame_pointer, &frame_pointer);
+     sw_printf("%p%p\n", (void*)frame_pointer, (void*)&frame_pointer);
   }
 
 #if defined(arch_x86_64) && (defined(os_linux) || defined(os_freebsd))
@@ -483,7 +483,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
       return gcf_error;
     }
 
-    sw_printf("[%s:%u] - Read SP %p from addr %p, using stack height of 0x%lx\n",
+    sw_printf("[%s:%u] - Read SP %lx from addr %lx, using stack height of 0x%x\n",
               FILE__, __LINE__, sp_value, sp_addr, stack_height);
     out.setSP(sp_value);
   }

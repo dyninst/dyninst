@@ -68,7 +68,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
 
     int addr_width = getArchAddressWidth(arch);
     if (initialStackValue != NULL) {
-        dwarf_printf("\tInitializing expr stack with 0x%lx\n", initialStackValue);
+        dwarf_printf("\tInitializing expr stack with 0x%p\n", (void*)initialStackValue);
         cons.pushUnsignedVal((Dyninst::MachRegisterVal) *initialStackValue);
     }
 
@@ -80,7 +80,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
         /* lit0 - lit31 : the constants 0..31 */
         if ( DW_OP_lit0 <= locations[i].atom && locations[i].atom <= DW_OP_lit31 ) 
         {
-            dwarf_printf("\t\t Pushing unsigned val 0x%lx\n", locations[i].atom - DW_OP_lit0);
+            dwarf_printf("\t\t Pushing unsigned val 0x%lx\n", (unsigned long)(locations[i].atom - DW_OP_lit0));
             cons.pushUnsignedVal((Dyninst::MachRegisterVal) (locations[i].atom - DW_OP_lit0));
             continue;
         }
@@ -99,7 +99,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
         /* breg0 - breg31: register contents plus an optional offset */
         if ( DW_OP_breg0 <= locations[i].atom && locations[i].atom <= DW_OP_breg31 ) 
         {
-            dwarf_printf("\t\t Pushing reg %s + %d\n",MachRegister::DwarfEncToReg(locations[i].atom - DW_OP_reg0,
+            dwarf_printf("\t\t Pushing reg %s + %lu\n",MachRegister::DwarfEncToReg(locations[i].atom - DW_OP_reg0,
                         arch).name().c_str(),
                     locations[i].number);
             cons.readReg(MachRegister::DwarfEncToReg(locations[i].atom - DW_OP_breg0,
@@ -115,7 +115,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
             // The register is in number
             // The offset is in number2
             case DW_OP_bregx:
-                dwarf_printf("\t\t Pushing reg %s + %d\n",MachRegister::DwarfEncToReg(locations[i].number,
+                dwarf_printf("\t\t Pushing reg %s + %lu\n",MachRegister::DwarfEncToReg(locations[i].number,
                             arch).name().c_str(),
                         locations[i].number2);
 
@@ -171,7 +171,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
                 break;
 
             case DW_OP_pick: 
-                dwarf_printf("\t\t Pushing pick %d\n", locations[i].number);
+                dwarf_printf("\t\t Pushing pick %lu\n", locations[i].number);
                 cons.pushOp(DwarfResult::Pick, locations[i].number);
                 break;
 
@@ -200,7 +200,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
                 break;
 
             case DW_OP_deref_size:
-                dwarf_printf("\t\t Pushing deref %d\n", locations[i].number);
+                dwarf_printf("\t\t Pushing deref %lu\n", locations[i].number);
                 cons.pushOp(DwarfResult::Deref, locations[i].number);
                 break;
 
@@ -261,7 +261,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
                 break;
 
             case DW_OP_plus_uconst:
-                dwarf_printf("\t\t Pushing add 0x%llx\n", locations[i].number);
+                dwarf_printf("\t\t Pushing add 0x%lu\n", locations[i].number);
                 cons.pushOp(DwarfResult::Add, locations[i].number);
                 break;
 
@@ -351,22 +351,22 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
 
             case DW_OP_entry_value:
             case DW_OP_GNU_entry_value:
-                dwarf_printf("\t\t skipping GNU_entry_value\n", locations[i].number);
+                dwarf_printf("\t\t skipping GNU_entry_value\n");
                 return false;
 
             case DW_OP_convert:
             case DW_OP_GNU_convert:
 
-                dwarf_printf("\t\t skipping GNU_convert\n", locations[i].number);
+                dwarf_printf("\t\t skipping GNU_convert\n");
                 return false;
 
             case DW_OP_implicit_pointer:
             case DW_OP_GNU_implicit_pointer:
-                dwarf_printf("\t\t skipping GNU_implicit_pointer\n", locations[i].number);
+                dwarf_printf("\t\t skipping GNU_implicit_pointer\n");
                 return false;
 
             default:
-                dwarf_printf("\t\t error: unrecognized dwarf operation 0x%llx\n", locations[i].atom);
+                dwarf_printf("\t\t error: unrecognized dwarf operation 0x%d\n", locations[i].atom);
                 return false;
         } /* end operand switch */
     } /* end iteration over Dwarf_Op entries. */

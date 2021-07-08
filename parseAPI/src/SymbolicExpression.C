@@ -374,7 +374,7 @@ pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign
             return make_pair(ast, false);
         }
     } else {
-        parsing_printf("\t\tExpanding instruction @ %x: %s, assignment %s\n",
+        parsing_printf("\t\tExpanding instruction @ %lx: %s, assignment %s\n",
                 assign->addr(), assign->insn().format().c_str(), assign->format().c_str());
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
         if (expandRet.second && expandRet.first) {

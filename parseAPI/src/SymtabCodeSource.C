@@ -425,7 +425,7 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
         _symtab->getMappedRegions(regs);
     }
 
-    parsing_printf("[%s:%d] processing %d symtab regions in %s\n",
+    parsing_printf("[%s:%d] processing %lu symtab regions in %s\n",
         FILE__,__LINE__,regs.size(),_symtab->name().c_str());
 
     _symtab->getAllSymbols(symbols);
@@ -479,7 +479,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
     SeenMap seen;
     dyn_c_vector<Hint> h;
 
-    parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
+    parsing_printf("[%s:%d] processing %lu symtab hints\n",FILE__,__LINE__,
         fsyms.size());
 
 #pragma omp parallel for schedule(auto)

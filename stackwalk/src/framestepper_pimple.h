@@ -71,7 +71,7 @@ PIMPL_CLASS::PIMPL_CLASS(Walker *w
 
 #if defined(PIMPL_NAME)
   sw_printf("[%s:%u] - Constructing " PIMPL_NAME " at %p\n",
-	    FILE__, __LINE__, this);
+	    FILE__, __LINE__, (void*)this);
 #endif
   impl = new PIMPL_IMPL_CLASS(w, this
 #if defined(PIMPL_ARG1)
@@ -142,7 +142,7 @@ void PIMPL_CLASS::registerStepperGroup(StepperGroup *group)
 PIMPL_CLASS::~PIMPL_CLASS()
 {
 #if defined(PIMPL_NAME)
-  sw_printf("[%s:%u] - Destructing " PIMPL_NAME " at %p\n", FILE__, __LINE__, this);
+  sw_printf("[%s:%u] - Destructing " PIMPL_NAME " at %p\n", FILE__, __LINE__, (void*)this);
 #endif
   if (impl)
     delete impl;

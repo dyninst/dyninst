@@ -44,7 +44,7 @@ COMMON_EXPORT extern int common_debug_initialized;
 #define common_debug_printf(debug_sys_var, debug_sys_printf, ...) \
    do {                                                                 \
       if (!common_debug_initialized || common_debug_##debug_sys_var)  {     \
-        debug_sys_printf##_printf_int("[%s:%u] ", __FILE__, __LINE__); \
+        debug_sys_printf##_printf_int("[%s:%d] ", __FILE__, __LINE__); \
         debug_sys_printf##_printf_int(__VA_ARGS__); \
       } \
    } while (0)

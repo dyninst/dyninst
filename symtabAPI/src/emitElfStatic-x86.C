@@ -157,7 +157,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
             return false;
         }
 
-        rewrite_printf("relocation for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx\n",
+        rewrite_printf("relocation for '%s': TYPE = %s(%lu) S = %lx A = %x P = %lx\n",
                 rel.name().c_str(), 
                 relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
                 rel.getRelType(), symbolOffset, addend, relOffset);
@@ -257,7 +257,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
             return false;
         }
 
-        rewrite_printf("relocation for '%s': TYPE = %s(%lu) S = %llx A = %llx P = %llx Z = %lx\n",
+        rewrite_printf("relocation for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx Z = %x\n",
                 rel.name().c_str(), 
                 relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
                 rel.getRelType(),
@@ -361,7 +361,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
                 return false;
         }
 
-        rewrite_printf("relocation = 0x%llx @ 0x%llx\n", relocation, relOffset);
+        rewrite_printf("relocation = 0x%lx @ 0x%lx\n", relocation, relOffset);
 
         memcpy(&targetData[dest], &relocation, fieldSize);
     }else{

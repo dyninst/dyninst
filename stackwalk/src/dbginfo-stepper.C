@@ -197,7 +197,7 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
       }
 #if defined(arch_aarch64)
       if (!result) {
-          sw_printf("Cast framestepper %p for frame %p to SigHandlerStepper at address %lx\n", prevDepthFrame->getStepper(), prevDepthFrame, prevDepthFrame->getRA());
+          sw_printf("Cast framestepper %p for frame %p to SigHandlerStepper at address %lx\n", (void*)prevDepthFrame->getStepper(), (const void*)prevDepthFrame, prevDepthFrame->getRA());
 
           SigHandlerStepper * ss = dynamic_cast<SigHandlerStepper*> (prevDepthFrame->getStepper());
 	  if (ss != NULL) {

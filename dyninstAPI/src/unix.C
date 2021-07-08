@@ -505,7 +505,8 @@ bool PCProcess::hasPassedMain()
 
    Region* reg = NULL;
    if (ld_file->findRegion(reg, ".opd") && reg) {  
-     startup_printf("{%s:%u] - there is a .opd section. The entry offset points to the pointer to the real entry\n");
+     startup_printf("{%s:%u] - there is a .opd section. The entry offset points to the pointer to the real entry\n",
+            FILE__, __LINE__);
      if( !getOPDFunctionAddr(entry_addr) ) {
         startup_printf("[%s:%u] - failed to read entry addr function pointer\n",
                 FILE__, __LINE__);

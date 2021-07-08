@@ -379,7 +379,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
     set<Expression::Ptr> memReads;
     n->assign()->insn().getMemoryReadOperands(memReads);
     if (memReads.size() != 1) {
-        parsing_printf("\tThe instruction has %d memory read operands, Should have only one\n", memReads.size());
+        parsing_printf("\tThe instruction has %lu memory read operands, Should have only one\n", memReads.size());
         return Assignment::Ptr();
     }
     Expression::Ptr memRead = *memReads.begin();

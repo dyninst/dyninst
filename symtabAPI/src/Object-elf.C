@@ -1775,7 +1775,7 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
     // special location 0 and only record differences.
     Offset baseTOC = buf[1];
     TOC_table_[0] = baseTOC;
-    create_printf("Set base TOC to %p\n", baseTOC);
+    create_printf("Set base TOC to %p\n", (void*)baseTOC);
 
     // Note the lack of 32/64 here: okay because the only platform with an OPD
     // is 64-bit elf.
@@ -1793,7 +1793,7 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
 
         if (toc != baseTOC) {
             TOC_table_[func] = toc;
-            create_printf("Set TOC for %p to %p\n", func, toc);
+            create_printf("Set TOC for %p to %p\n", (void*)func, (void*)toc);
         }
         i += 2;
     }
@@ -4181,7 +4181,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
                         (unsigned int)(current_line.line_number),
                         (unsigned int)(current_line.column_number),
                         current_line.start_addr, current_line.end_addr);
-            	lineinfo_printf("[%d, %d) %s:%d %s\n", current_line.start_addr, current_line.end_addr,
+            	lineinfo_printf("[%lu, %lu) %s:%d %s\n", current_line.start_addr, current_line.end_addr,
             			((*strings)[current_line.string_table_index]).str.c_str(), current_line.line_number, (success?" inserted":" not"));
                 current_line = current_statement;
 
@@ -4461,7 +4461,7 @@ void Object::parseStabTypes() {
     //Using the Object to get the pointers to the .stab and .stabstr
     // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
     next_stabstr = stabptr->getStringBase();
-    types_printf("\t Parsing %d stab entries\n", stabptr->count());
+    types_printf("\t Parsing %lu stab entries\n", stabptr->count());
     for (i = 0; i < stabptr->count(); i++) {
         switch (stabptr->type(i)) {
             case N_UNDF: /* start of object file */

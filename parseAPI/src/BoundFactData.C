@@ -439,7 +439,7 @@ void BoundFact::Print() {
         parsing_printf("\t\t\t\t%s = %s\n", ait->first->format().c_str(), ait->second->format().c_str());
     }
     if (stackTop.valid) {
-        parsing_printf("\t\t\tStack top is %lld\n", stackTop.value);
+        parsing_printf("\t\t\tStack top is %ld\n", stackTop.value);
     } else {
         parsing_printf("\t\t\tNo known value at the top of the stack\n");
     }

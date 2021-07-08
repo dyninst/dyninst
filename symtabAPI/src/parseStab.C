@@ -199,7 +199,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    cnt= 0;
 
    types_printf("parseStabString, mod %p/%s, linenum %d, stabstr %s\n",
-		mod,
+		(void*)mod,
 		(mod != NULL) ? mod->fileName().c_str() : "NULL",
 		linenum, 
 		stabstr);

@@ -219,7 +219,7 @@ bool ProcDebug::preStackwalk(THR_ID tid)
    CHECK_PROC_LIVE;
    if (tid == NULL_THR_ID)
       getDefaultThread(tid);
-   sw_printf("[%s:%u] - Calling preStackwalk for thread %d\n", FILE__, __LINE__, tid);
+   sw_printf("[%s:%u] - Calling preStackwalk for thread %ld\n", FILE__, __LINE__, tid);
 
    ThreadPool::iterator thread_iter = proc->threads().find(tid);
    if (thread_iter == proc->threads().end()) {
@@ -230,7 +230,7 @@ bool ProcDebug::preStackwalk(THR_ID tid)
    Thread::ptr active_thread = *thread_iter;
 
    if (active_thread->isRunning()) {
-      sw_printf("[%s:%u] - Stopping running thread %d\n", FILE__, __LINE__, tid);
+      sw_printf("[%s:%u] - Stopping running thread %ld\n", FILE__, __LINE__, tid);
       bool result = active_thread->stopThread();
       if (!result) {
          sw_printf("[%s:%u] - Error stopping thread\n", FILE__, __LINE__);
@@ -247,7 +247,7 @@ bool ProcDebug::postStackwalk(THR_ID tid)
    CHECK_PROC_LIVE;
    if (tid == NULL_THR_ID)
       getDefaultThread(tid);
-   sw_printf("[%s:%u] - Calling postStackwalk for thread %d\n", FILE__, __LINE__, tid);
+   sw_printf("[%s:%u] - Calling postStackwalk for thread %ld\n", FILE__, __LINE__, tid);
 
    ThreadPool::iterator thread_iter = proc->threads().find(tid);
    if (thread_iter == proc->threads().end()) {
@@ -259,10 +259,10 @@ bool ProcDebug::postStackwalk(THR_ID tid)
 
    set<Thread::ptr>::iterator i = needs_resume.find(active_thread);
    if (i != needs_resume.end()) {
-      sw_printf("[%s:%u] - Resuming thread %d after stackwalk\n", FILE__, __LINE__, tid);
+      sw_printf("[%s:%u] - Resuming thread %ld after stackwalk\n", FILE__, __LINE__, tid);
       bool result = active_thread->continueThread();
       if (!result) {
-         sw_printf("[%s:%u] - Error resuming stopped thread %d\n", FILE__, __LINE__, tid);
+         sw_printf("[%s:%u] - Error resuming stopped thread %ld\n", FILE__, __LINE__, tid);
          Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
          return false;
       }
@@ -294,16 +294,16 @@ bool ProcDebug::pause(THR_ID tid)
       return false;
    }
    Thread::ptr thread = *thread_iter;
-   sw_printf("[%s:%u] - Stopping thread %d\n", FILE__, __LINE__, tid);
+   sw_printf("[%s:%u] - Stopping thread %ld\n", FILE__, __LINE__, tid);
 
    if (thread->isStopped()) {
-      sw_printf("[%s:%u] - Thread %d is already stopped\n", FILE__, __LINE__, tid);
+      sw_printf("[%s:%u] - Thread %ld is already stopped\n", FILE__, __LINE__, tid);
       return true;
    }
 
    bool result = thread->stopThread();
    if (!result) {
-      sw_printf("[%s:%u] - Error stopping thread %d\n", FILE__, __LINE__, tid);
+      sw_printf("[%s:%u] - Error stopping thread %ld\n", FILE__, __LINE__, tid);
       Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
       return false;
    }
@@ -334,16 +334,16 @@ bool ProcDebug::resume(THR_ID tid)
       return false;
    }
    Thread::ptr thread = *thread_iter;
-   sw_printf("[%s:%u] - Running thread %d\n", FILE__, __LINE__, tid);
+   sw_printf("[%s:%u] - Running thread %ld\n", FILE__, __LINE__, tid);
 
    if (thread->isRunning()) {
-      sw_printf("[%s:%u] - Thread %d is already running\n", FILE__, __LINE__, tid);
+      sw_printf("[%s:%u] - Thread %ld is already running\n", FILE__, __LINE__, tid);
       return true;
    }
 
    bool result = thread->continueThread();
    if (!result) {
-      sw_printf("[%s:%u] - Error running thread %d\n", FILE__, __LINE__, tid);
+      sw_printf("[%s:%u] - Error running thread %ld\n", FILE__, __LINE__, tid);
       Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
       return false;
    }

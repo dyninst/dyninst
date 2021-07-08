@@ -206,7 +206,7 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
         BPatch_Vector<BPatch_point*>* init_entry = init_funcs[0]->findPoint(BPatch_entry);
         if(init_entry && !init_entry->empty() && (*init_entry)[0])
         {
-            startup_printf("\tinserting init snippet at 0x%lx\n", (*init_entry)[0]->getAddress());
+            startup_printf("\tinserting init snippet at 0x%p\n", (*init_entry)[0]->getAddress());
             return as()->insertSnippet(callback, *((*init_entry)[0]));
         }
     }
@@ -224,7 +224,7 @@ BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
         BPatch_Vector<BPatch_point*>* fini_exit = fini_funcs[0]->findPoint(BPatch_exit);
         if(fini_exit && !fini_exit->empty() && (*fini_exit)[0])
         {
-            startup_printf("\tinserting fini snippet at 0x%lx\n", (*fini_exit)[0]->getAddress());
+            startup_printf("\tinserting fini snippet at 0x%p\n", (*fini_exit)[0]->getAddress());
             return as()->insertSnippet(callback, *((*fini_exit)[0]));
         }
     }
@@ -659,7 +659,7 @@ void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods_,
             ssl2.pop();
             stackmods_printf("{");
             for (auto iter = fSet.begin(); iter != fSet.end(); iter++) {
-                stackmods_printf("%s (%lx), ", (*iter)->getName().c_str(),
+                stackmods_printf("%s (%p), ", (*iter)->getName().c_str(),
                     (*iter)->getBaseAddr());
             }
             stackmods_printf("}, %s\n", cycle ? "TRUE" : "FALSE");

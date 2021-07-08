@@ -149,7 +149,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   // address, we will get information for C rather than A. 
   alloc_frame = helper->allocatesFrame(in.getRA() - 1);
   if (alloc_frame.first != FrameFuncHelper::standard_frame) {
-      sw_printf("[%s:%u] - alloc_frame.first!=standard_frame (== %lx)\n", FILE__, __LINE__, alloc_frame.first);
+      sw_printf("[%s:%d] - alloc_frame.first!=standard_frame (== %x)\n", FILE__, __LINE__, (unsigned int)alloc_frame.first);
       // If we are dealing with the first frame,
       // the frame information is in the register state.
       // We continue this function 
@@ -291,21 +291,21 @@ WandererHelper::WandererHelper(ProcessState *proc_) :
 
 bool WandererHelper::isPrevInstrACall(Address, Address&)
 {
-   sw_printf("[%s:%u] - Unimplemented on this platform!\n");
+   sw_printf("[%s:%u] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return false;
 }
 
 WandererHelper::pc_state WandererHelper::isPCInFunc(Address, Address)
 {
-   sw_printf("[%s:%u] - Unimplemented on this platform!\n");
+   sw_printf("[%s:%u] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return unknown_s;
 }
 
 bool WandererHelper::requireExactMatch()
 {
-   sw_printf("[%s:%u] - Unimplemented on this platform!\n");
+   sw_printf("[%s:%u] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return true;
 }

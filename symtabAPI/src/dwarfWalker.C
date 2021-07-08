@@ -109,7 +109,7 @@ static inline void ompc_leftmost(Module* &out, Module* &in) {
     initializer(omp_priv = NULL)
 
 bool DwarfWalker::parse() {
-    dwarf_printf("In DwarfWalker::parse() Parsing DWARF for %s, dgb():0x%x\n",filename().c_str(), dbg());
+    dwarf_printf("In DwarfWalker::parse() Parsing DWARF for %s, dgb():0x%p\n",filename().c_str(), (void*)dbg());
 
     /* Start the dwarven debugging. */
     Module *fixUnknownMod = NULL;
@@ -238,7 +238,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     // DIEs without name or named <artificial> will be associated to
     // the default module (whose name is ELF filename)
     setModuleFromName(moduleName);
-    dwarf_printf("Mapped to Symtab module 0x%x %s\n", mod(), mod()->fileName().c_str());
+    dwarf_printf("Mapped to Symtab module 0x%p %s\n", (void*)mod(), mod()->fileName().c_str());
 
     if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
         uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
@@ -714,7 +714,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 
    parsedFuncs.insert(func);
     if (func_type == InlinedFunc) {
-        dwarf_printf("End parseSubprogram for inlined func at 0x%x\n", func->getOffset());
+        dwarf_printf("End parseSubprogram for inlined func at 0x%p\n", (void*)func->getOffset());
     }
 
    return true;
@@ -976,7 +976,7 @@ void DwarfWalker::createLocalVariable(const vector<VariableLocation> &locs, boos
                                          (int) variableLineNo,
                                          curFunc());
    dwarf_printf("(0x%lx) Created localVariable '%s' (%p), currentFunction %p\n",
-                   id(), curName().c_str(), (void*)newVariable, curFunc());
+                   id(), curName().c_str(), (void*)newVariable, (void*)curFunc());
 
    for (unsigned int i = 0; i < locs.size(); ++i) {
          dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
@@ -1069,7 +1069,7 @@ void DwarfWalker::createParameter(const vector<VariableLocation> &locs,
                 (void*)paramType.get(), paramType->getName().c_str(),
 		//                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ?
 		//curFunc()->getAllMangledNames()[0].c_str() : ""),
-                curFunc());
+                (void*)curFunc());
 
    for (unsigned int i = 0; i < locs.size(); ++i)
    {
@@ -1429,7 +1429,7 @@ bool DwarfWalker::parseMember() {
 
    int offset_to_use = locs[0].frameOffset;
 
-   dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
+   dwarf_printf("(0x%lx) Using offset of 0x%x\n", id(), (unsigned int)offset_to_use);
 
    if (nameDefined()) {
       curEnclosure()->asFieldListType().addField(curName(), memberType, offset_to_use);
@@ -1485,15 +1485,15 @@ bool DwarfWalker::parseTypeReferences() {
          indirectType = tc()->addOrUpdateType(Type::make_shared<typePointer>(
                             type_id(), typePointedTo, curName()));
          dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p, mod:%s\n", id(),
-                 indirectType.get(), indirectType->getName().c_str(), type_id(),
-                 (int) offset(), indirectType->getSize(), tc(), mod()->fullName().c_str());
+                 (void*)indirectType.get(), indirectType->getName().c_str(), type_id(),
+                 (int) offset(), indirectType->getSize(), (void*)tc(), mod()->fullName().c_str());
          break;
       case DW_TAG_reference_type:
          indirectType = tc()->addOrUpdateType(Type::make_shared<typeRef>(
                             type_id(), typePointedTo, curName()));
          dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%x, size %d, in TC %p\n", id(),
-                 indirectType.get(), indirectType->getName().c_str(), type_id(),
-                 (int) offset(), indirectType->getSize(), tc());
+                 (void*)indirectType.get(), indirectType->getName().c_str(), type_id(),
+                 (int) offset(), indirectType->getSize(), (void*)tc());
          break;
       default:
          dwarf_printf("(0x%lx) Warning: nothing done for tag 0x%x, dwarf_tag(): 0x%x\n",
@@ -1614,7 +1614,7 @@ bool DwarfWalker::findFuncName() {
         dwarf_printf("(0x%lx) Found DW_AT_linkage_name of %s, using\n", id(), curName().c_str());
         return true;
     }
-    dwarf_printf("(0x%lx) DW_AT_linkage_name name not found\n", id(), curName().c_str());
+    dwarf_printf("(0x%lx) DW_AT_linkage_name name not found\n", id());
 
     setMangledName(false);
     return findDieName(entry(), curName());
@@ -1818,7 +1818,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     }
 
     dwarf_printf("(0x%lx) type pointer %p / name:%s, type_id %d, tc():%p, mod: %s, specificType:%s\n",
-            id(), type.get(), type->getName().c_str(), type_id, tc(), mod()->fullName().c_str(), type->specificType().c_str());
+            id(), (void*)type.get(), type->getName().c_str(), type_id, (void*)tc(), mod()->fullName().c_str(), type->specificType().c_str());
 
     return true;
 }
@@ -1837,7 +1837,7 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
         Dwarf_Word fileNameDeclVal;
         DWARF_FAIL_RET(dwarf_formudata(&fileDeclAttribute, &fileNameDeclVal));
         if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
-            dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
+            dwarf_printf("Dwarf error reading line index %lu from srcFiles of size %lu\n",
                     fileNameDeclVal, files->size());
             return false;
         }
@@ -1920,7 +1920,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
             locDescs.push_back(ld);
         }while(offset > 0);
         if (locDescs.size() <= 0) {
-            dwarf_printf("(0x%lx) Failed loclist decode: %d\n", id());
+            dwarf_printf("(0x%lx) Failed loclist decode\n", id());
             return true;
         }
 
@@ -1964,8 +1964,8 @@ bool DwarfWalker::findString(Dwarf_Half attr,
         StringTablePtr strs = mod()->getStrings();
         boost::unique_lock<dyn_mutex> l(strs->lock);
         if (line_index >= strs->size()) {
-            dwarf_printf("Dwarf error reading line index %d from srcFiles(%p) of size %lu\n",
-                    line_index, strs.get(), strs->size());
+            dwarf_printf("Dwarf error reading line index %lu from srcFiles(%p) of size %lu\n",
+                    line_index, (void*)strs.get(), strs->size());
             return false;
         }
         //       cout << "findString found " << (*srcFiles())[line_index].str << " at srcFiles[" << line_index << "] for " << mod()->fileName() << endl;
@@ -2296,7 +2296,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
             low_conv, hi_conv, curName().c_str());
     boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(
       Type::make_shared<typeSubrange>( type_id, 0, low_conv, hi_conv, curName()));
-    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), rangeType.get(), tc());
+    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), (void*)rangeType.get(), (void*)tc());
     return true;
 }
 
@@ -2350,7 +2350,7 @@ boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range
     auto outerType = tc()->addOrUpdateType(
         Type::make_shared<typeArray>( innerType,
           atoi(loBound.c_str()), atoi(hiBound.c_str()), aName));
-    dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 0, lower bound %d, upper bound %d\n",id(), outerType->asArrayType().getLow(), outerType->asArrayType().getHigh());
+    dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 0, lower bound %lu, upper bound %lu\n",id(), outerType->asArrayType().getLow(), outerType->asArrayType().getHigh());
     return outerType;
 } /* end parseMultiDimensionalArray() */
 
@@ -2664,7 +2664,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
     type_map::accessor a;
     type_key tk{offset, is_sup, mod()};
     type_ids.insert(a, make_pair(tk, val));
-    dwarf_printf("(0x%lx) type_id %d, key created {0x%x,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fullName().c_str());
+    dwarf_printf("(0x%lx) type_id %d, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fullName().c_str());
   }
 
   return val;

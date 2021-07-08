@@ -668,7 +668,7 @@ void PCProcess::addASharedObject(mapped_object *newObj) {
             newObj->fileName().c_str(),
             newObj->getBaseAddress(),
             newObj->getBaseAddress() + newObj->get_size());
-    parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
+    parsing_printf("Adding shared object %s, addr range 0x%lx to 0x%lx\n",
             newObj->fileName().c_str(),
             newObj->getBaseAddress(),
             newObj->getBaseAddress() + newObj->get_size());
@@ -695,7 +695,7 @@ void PCProcess::removeASharedObject(mapped_object *obj) {
     if (runtime_lib.end() != runtime_lib.find(obj)) {
         runtime_lib.erase( runtime_lib.find(obj) );
     }
-    proccontrol_printf("Removing shared object %s, addr range 0x%x to 0x%x\n",
+    proccontrol_printf("Removing shared object %s, addr range 0x%lx to 0x%x\n",
                   obj->fileName().c_str(),
                   obj->getBaseAddress(),
                   obj->get_size());
@@ -721,24 +721,24 @@ bool PCProcess::setAOut(fileDescriptor &desc) {
 
 // We keep a vector of all signal handler locations
 void PCProcess::findSignalHandler(mapped_object *obj) {
-    startup_printf("%s[%d]: findSignalhandler(%p)\n", FILE__, __LINE__, obj);
+    startup_printf("%s[%d]: findSignalhandler(%p)\n", FILE__, __LINE__, (void*)obj);
     assert(obj);
 
     int_symbol sigSym;
     string signame(SIGNAL_HANDLER);
 
-    startup_printf("%s[%d]: findSignalhandler(%p): gettingSymbolInfo\n", FILE__, __LINE__, obj);
+    startup_printf("%s[%d]: findSignalhandler(%p): gettingSymbolInfo\n", FILE__, __LINE__, (void*)obj);
     if (obj->getSymbolInfo(signame, sigSym)) {
         // Symbols often have a size of 0. This b0rks the codeRange code,
         // so override to 1 if this is true...
         unsigned size_to_use = sigSym.getSize();
         if (!size_to_use) size_to_use = 1;
 
-        startup_printf("%s[%d]: findSignalhandler(%p): addingSignalHandler(%p, %d)\n", FILE__, __LINE__, obj, (void *) sigSym.getAddr(), size_to_use);
+        startup_printf("%s[%d]: findSignalhandler(%p): addingSignalHandler(%p, %d)\n", FILE__, __LINE__, (void*)obj, (void *) sigSym.getAddr(), size_to_use);
         addSignalHandler(sigSym.getAddr(), size_to_use);
     }
 
-    startup_printf("%s[%d]: leaving findSignalhandler(%p)\n", FILE__, __LINE__, obj);
+    startup_printf("%s[%d]: leaving findSignalhandler(%p)\n", FILE__, __LINE__, (void*)obj);
 }
 
 // NUMBER_OF_MAIN_POSSIBILITIES is defined in image.h
@@ -949,12 +949,12 @@ bool PCProcess::insertBreakpointAtMain() {
     // Create the breakpoint
     mainBrkPt_ = Breakpoint::newBreakpoint();
     if( !pcProc_->addBreakpoint(addr, mainBrkPt_) ) {
-        startup_printf("%s[%d]: failed to insert a breakpoint at main entry: 0x%x\n",
+        startup_printf("%s[%d]: failed to insert a breakpoint at main entry: 0x%lx\n",
                 FILE__, __LINE__, addr);
         return false;
     }
 
-    startup_printf("%s[%d]: added trap to entry of main, address 0x%x\n", 
+    startup_printf("%s[%d]: added trap to entry of main, address 0x%lx\n", 
             FILE__, __LINE__, addr);
 
     return true;
@@ -970,7 +970,7 @@ bool PCProcess::removeBreakpointAtMain() {
     Address addr = main_function_->addr();
 
     if( !pcProc_->rmBreakpoint(addr, mainBrkPt_) ) {
-        startup_printf("%s[%d]: failed to remove breakpoint at main entry: 0x%x\n",
+        startup_printf("%s[%d]: failed to remove breakpoint at main entry: 0x%lx\n",
                 FILE__, __LINE__, addr);
         return false;
     }
@@ -1177,7 +1177,7 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
             write_printf("unknown_");
             break;
     }
-    write_printf("%lx_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
+    write_printf("%p_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
 
     if( amount > 0 ) {
        const unsigned char *buffer = (const unsigned char *)inSelf;
@@ -1359,7 +1359,7 @@ bool PCProcess::removeThread(dynthread_t tid) {
     toDelete->markExited();
 
     // Note: don't delete the thread here, the BPatch_thread takes care of it
-    proccontrol_printf("%s[%d]: removed thread %lu from process %d\n",
+    proccontrol_printf("%s[%d]: removed thread %d from process %d\n",
             FILE__, __LINE__, toDelete->getLWP(), getPid());
     return true;
 }
@@ -1476,7 +1476,7 @@ void PCProcess::addThread(PCThread *thread) {
     result = threadsByTid_.insert(make_pair(thread->getTid(), thread));
 
     assert( result.second && "Thread already in collection of threads" );
-    proccontrol_printf("%s[%d]: added thread %lu to process %d\n",
+    proccontrol_printf("%s[%d]: added thread %d to process %d\n",
             FILE__, __LINE__, thread->getLWP(), getPid());
 }
 
@@ -1789,7 +1789,7 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
     vector<func_instance *> instrumentedFuncs;
 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
-      inst_printf("%s[%d]: handling request %d of %d\n", FILE__, __LINE__, lcv+1, requests.size());
+      inst_printf("%s[%d]: handling request %u of %lu\n", FILE__, __LINE__, lcv+1, requests.size());
 
         instMapping *req = requests[lcv];
         
@@ -1803,7 +1803,7 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
             return;
         }
         else {
-            inst_printf("%s[%d]: found %d functions matching %s (lib %s), instrumenting...\n",
+            inst_printf("%s[%d]: found %lu functions matching %s (lib %s), instrumenting...\n",
                         FILE__, __LINE__, matchingFuncs.size(), req->func.c_str(), req->lib.c_str());
         }
 
@@ -1859,7 +1859,7 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
                          req->where);
                  break;
            } // switch
-	   inst_printf("%s[%d]: found %d points to instrument\n", FILE__, __LINE__, points.size());
+	   inst_printf("%s[%d]: found %lu points to instrument\n", FILE__, __LINE__, points.size());
            for (std::vector<Point *>::iterator iter = points.begin();
                 iter != points.end(); ++iter) {
               Dyninst::PatchAPI::Instance::Ptr inst = (req->order == orderFirstAtPoint) ? 
@@ -2242,7 +2242,7 @@ bool PCProcess::getOverwrittenBlocks
 
         curObject->findBlocksByRange((*rIter).first,(*rIter).second,curBBIs);
         if (curBBIs.size()) {
-            mal_printf("overwrote %d blocks in range %lx %lx \n",
+            mal_printf("overwrote %lu blocks in range %lx %lx \n",
                        curBBIs.size(),(*rIter).first,(*rIter).second);
             writtenBBIs.splice(writtenBBIs.end(), curBBIs);
         }

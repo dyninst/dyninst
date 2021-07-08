@@ -51,42 +51,42 @@ bool PCProcess::createStackwalkerSteppers()
     stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
     if (!stackwalker_->addStepper(stepper))
     {
-        startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+        startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
         return false;
     }
-    startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
+    startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", (void*)stepper);
 
     stepper = new FrameFuncStepper(stackwalker_);
     if (!stackwalker_->addStepper(stepper))
     {
-        startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+        startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
         return false;
     }
-    startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
+    startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", (void*)stepper);
 
   stepper = new DebugStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a DebugStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a DebugStepper\n", (void*)stepper);
 
   stepper = new SigHandlerStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", (void*)stepper);
 
   stepper = new BottomOfStackStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", (void*)stepper);
 
     return true;
 }

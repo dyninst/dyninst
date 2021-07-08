@@ -54,7 +54,7 @@ dynHandle *mutatorInit(void)
 {
     dynHandle *dh = new dynHandle;
     if (!dh) {
-	dlog(ERR, "Could not allocate %d bytes of memory in mutatorInit().\n", sizeof(dynHandle));
+	dlog(ERR, "Could not allocate %zu bytes of memory in mutatorInit().\n", sizeof(dynHandle));
 	return NULL;
     }
 

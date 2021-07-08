@@ -101,7 +101,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         Function* shared_func);
     void pushWork(ParseWorkElem * elem) {
         boost::lock_guard<ParseFrame> g(*this);
-        parsing_printf("\t pushing work element for block %p, edge %p, target %p\n", elem->cur(), elem->edge(), elem->target());
+        parsing_printf("\t pushing work element for block %p, edge %p, target %p\n", (void*)elem->cur(), (void*)elem->edge(), (void*)elem->target());
         worklist.push(elem);
     }
     ParseWorkElem * popWork() {
