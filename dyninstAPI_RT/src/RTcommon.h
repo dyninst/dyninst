@@ -34,6 +34,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTthread.h"
 #include <stdarg.h>
+#include "common/h/compiler_annotations.h"
 
 void DYNINSTtrapFunction();
 void DYNINSTbreakPoint();
@@ -68,6 +69,6 @@ extern int DYNINSTdebugRTlib;
 DLLEXPORT extern int DYNINSTstaticMode;
 
 
-int rtdebug_printf(const char *format, ...);
+int rtdebug_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 #endif
        

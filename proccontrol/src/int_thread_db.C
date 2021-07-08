@@ -41,6 +41,7 @@
 #include <iostream>
 
 #include "common/src/dthread.h"
+#include "compiler_annotations.h"
 #include "common/h/SymReader.h"
 #include "int_event.h"
 #include "Mailbox.h"
@@ -50,6 +51,9 @@
 using namespace std;
 
 #if defined(cap_thread_db)
+
+
+void ps_plog(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 
 /*
  * proc_service interface implementation, needed by libthread_db

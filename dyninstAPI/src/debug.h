@@ -33,17 +33,19 @@
 
 #include <string>
 #include "common/src/Pair.h"
+#include "compiler_annotations.h"
 
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
 extern void logLine(const char *line);
 extern void statusLine(const char *line, bool force = false);
 extern char errorLine[];
-extern int bpfatal(const char *format, ...);
-extern int bperr(const char *format, ...);
-extern int bpwarn(const char *format, ...);
-extern int bpinfo(const char *format, ...);
+extern int bpfatal(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int bperr(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int bpwarn(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int bpinfo(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 
-extern int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, ...);
+extern int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, ...)
+	DYNINST_PRINTF_ANNOTATION(3, 4);
 
 
 extern void showErrorCallback(int num, std::string msg);
@@ -133,23 +135,25 @@ extern const std::string CODEGEN_LIVENESS_TIMER;
 #define ast_cerr          debug_sys_cerr(ast)
 
 // C prototypes for internal debugging functions
-extern int mal_printf(const char *format, ...);
-extern int startup_printf_int(const char *format, ...);
-extern int parsing_printf_int(const char *format, ...);
-extern int proccontrol_printf_int(const char *format, ...);
-extern int stackwalk_printf_int(const char *format, ...);
-extern int inst_printf_int(const char *format, ...);
-extern int reloc_printf_int(const char *format, ...);
-extern int dyn_unw_printf_int(const char *format, ...);
-extern int mutex_printf_int(const char *format, ...);
-extern int thread_printf_int(const char *format, ...);
-extern int catchup_printf_int(const char *format, ...);
-extern int regalloc_printf_int(const char *format, ...);
-extern int ast_printf_int(const char *format, ...);
-extern int write_printf_int(const char *format, ...);
-extern int infmalloc_printf_int(const char *format, ...);
-extern int crash_printf_int(const char *format, ...);
-extern int stackmods_printf_int(const char *format, ...);
+#define DECLARE_PRINTF_FUNC(f) extern int f(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2)
+
+DECLARE_PRINTF_FUNC(mal_printf);
+DECLARE_PRINTF_FUNC(startup_printf_int);
+DECLARE_PRINTF_FUNC(parsing_printf_int);
+DECLARE_PRINTF_FUNC(proccontrol_printf_int);
+DECLARE_PRINTF_FUNC(stackwalk_printf_int);
+DECLARE_PRINTF_FUNC(inst_printf_int);
+DECLARE_PRINTF_FUNC(reloc_printf_int);
+DECLARE_PRINTF_FUNC(dyn_unw_printf_int);
+DECLARE_PRINTF_FUNC(mutex_printf_int);
+DECLARE_PRINTF_FUNC(thread_printf_int);
+DECLARE_PRINTF_FUNC(catchup_printf_int);
+DECLARE_PRINTF_FUNC(regalloc_printf_int);
+DECLARE_PRINTF_FUNC(ast_printf_int);
+DECLARE_PRINTF_FUNC(write_printf_int);
+DECLARE_PRINTF_FUNC(infmalloc_printf_int);
+DECLARE_PRINTF_FUNC(crash_printf_int);
+DECLARE_PRINTF_FUNC(stackmods_printf_int);
 
 
 #define debug_sys_printf(debug_sys, ...) do { if (dyn_debug_##debug_sys) debug_sys##_printf_int(__VA_ARGS__); } while(0)

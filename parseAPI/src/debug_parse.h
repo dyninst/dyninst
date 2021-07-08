@@ -33,13 +33,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <util.h>
+#include "compiler_annotations.h"
 
 namespace Dyninst {
 namespace ParseAPI {
 
-    extern int PARSER_EXPORT parsing_printf_int(const char *format, ...);
-    extern int PARSER_EXPORT malware_printf_int(const char *format, ...);
-    extern int PARSER_EXPORT indirect_collect_printf_int(const char *format, ...);
+    extern int PARSER_EXPORT parsing_printf_int(const char *format, ...)
+            DYNINST_PRINTF_ANNOTATION(1, 2);
+    extern int PARSER_EXPORT malware_printf_int(const char *format, ...)
+            DYNINST_PRINTF_ANNOTATION(1, 2);
+    extern int PARSER_EXPORT indirect_collect_printf_int(const char *format, ...)
+            DYNINST_PRINTF_ANNOTATION(1, 2);
     extern int dyn_debug_parsing;
     extern int dyn_debug_malware;
     extern int dyn_debug_indirect_collect;

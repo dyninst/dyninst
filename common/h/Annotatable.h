@@ -44,12 +44,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "util.h"
+#include "compiler_annotations.h"
 
 namespace Dyninst
 {
 
 COMMON_EXPORT bool annotation_debug_flag();
-COMMON_EXPORT int annotatable_printf(const char *format, ...);
+COMMON_EXPORT int annotatable_printf(const char *format, ...)
+	DYNINST_PRINTF_ANNOTATION(1, 2);
 
 typedef unsigned short AnnotationClassID;
 typedef bool (*anno_cmp_func_t)(void *, void*);

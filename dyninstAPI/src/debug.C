@@ -39,6 +39,7 @@
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"
 #include "common/src/dthread.h"
+#include "compiler_annotations.h"
 #include "os.h"
 
 unsigned long getExecThreadID() {
@@ -48,6 +49,13 @@ unsigned long getExecThreadID() {
     return (unsigned long) pthread_self();
 #endif
 }
+
+
+int trap_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+int signal_printf_int(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+int inferiorrpc_printf_int(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+int startup_printf_int(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+int bpatch_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 
 // Make a lock.
 
