@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <cassert>
+
 #ifndef INST_AARCH64_H
 #define INST_AARCH64_H
 
@@ -121,15 +123,29 @@
 #define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE_64)
 #define FUNC_CALL_SAVE_64   (LINKAREA_64 + FUNCARGS_64)
 
-#define TRAMP_GPR_OFFSET_32 ({assert(0); 0;})
-#define TRAMP_GPR_OFFSET(x) (((x) == 8) ? TRAMP_GPR_OFFSET_64 : TRAMP_GPR_OFFSET_32)
+inline int TRAMP_GPR_OFFSET(int x) {
+  if(x == 8) {
+    return TRAMP_GPR_OFFSET_64;
+  }
+  assert(!"32-bit offsets not support on aarch64");
+  return 0;
+}
 
-#define TRAMP_FPR_OFFSET_32 ({assert(0); 0;})
-#define TRAMP_FPR_OFFSET(x) (((x) == 8) ? TRAMP_FPR_OFFSET_64 : TRAMP_FPR_OFFSET_32)
+inline int TRAMP_FPR_OFFSET(int x) {
+  if(x == 8) {
+    return TRAMP_FPR_OFFSET_64;
+  }
+  assert(!"32-bit offsets not support on aarch64");
+  return 0;
+}
 
-#define TRAMP_SPR_OFFSET_32 ({assert(0); 0;})
-#define TRAMP_SPR_OFFSET(x) (((x) == 8) ? TRAMP_SPR_OFFSET_64 : TRAMP_SPR_OFFSET_32)
-
+inline int TRAMP_SPR_OFFSET(int x) {
+  if(x == 8) {
+    return TRAMP_SPR_OFFSET_64;
+  }
+  assert(!"32-bit offsets not support on aarch64");
+  return 0;
+}
 
 class codeGen;
 
