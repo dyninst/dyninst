@@ -341,7 +341,7 @@ bool IA_IAPI::isInvalidInsn() const
     entryID e = curInsn().getOperation().getID();
     if(e == e_No_Entry)
     {
-        parsing_printf("...WARNING: un-decoded instruction at 0x%x\n", current);
+        parsing_printf("...WARNING: un-decoded instruction at 0x%lx\n", current);
         return true;
     }
     return false;
@@ -533,7 +533,7 @@ bool IA_IAPI::isIndirectJump() const {
     Address target;
     boost::tie(valid, target) = getCFT(); 
     if (valid) return false;
-    parsing_printf("... indirect jump at 0x%x, delay parsing it\n", current);
+    parsing_printf("... indirect jump at 0x%lx, delay parsing it\n", current);
     return true;
 }
 
@@ -662,7 +662,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 }
                 else
                 {
-                    parsing_printf("%s[%d]: PLT tail call to %x (%s)\n", 
+                    parsing_printf("%s[%d]: PLT tail call to %lx (%s)\n", 
                             FILE__, __LINE__, target,
                             (*plt_entries)[target].c_str());
                     outEdges.push_back(std::make_pair(target, DIRECT));
@@ -671,7 +671,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
             else
             {
-                parsing_printf("%s[%d]: tail call to %x\n", 
+                parsing_printf("%s[%d]: tail call to %lx\n", 
                         FILE__, __LINE__, target);
                 outEdges.push_back(std::make_pair(target, DIRECT));
             }
@@ -679,7 +679,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         }
         else
         {
-            parsing_printf("... indirect jump at 0x%x\n", current);
+            parsing_printf("... indirect jump at 0x%lx\n", current);
             if( num_insns == 2 ) {
                 // Handle a pernicious indirect tail call idiom here
                 // What we've seen is mov (%rdi), %rax; jmp *%rax
@@ -858,7 +858,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
     if (!callTarget) return make_pair(false, 0);
     // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
-    parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
+    parsing_printf("%s[%d]: binding PC %s in %s to 0x%lx...", FILE__, __LINE__,
             thePC[_isrc->getArch()]->format(curInsn().getArch()).c_str(), curInsn().format().c_str(), current);
 
     Result actualTarget = callTarget->eval();
@@ -866,18 +866,18 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
     if(actualTarget.defined)
     {
         cachedCFT = std::make_pair(true, actualTarget.convert<Address>());
-        parsing_printf("SUCCESS (CFT=0x%x)\n", cachedCFT.second);
+        parsing_printf("SUCCESS (CFT=0x%lx)\n", cachedCFT.second);
     }
     else
     {
         cachedCFT = std::make_pair(false, 0); 
-        parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n",
+        parsing_printf("FAIL (CFT=0x%lx), callTarget exp: %s\n",
                 cachedCFT.second,callTarget->format(curInsn().getArch()).c_str());
     }
     validCFT = true;
 
     if(isLinkerStub()) {
-        parsing_printf("Linker stub detected: Correcting CFT.  (CFT=0x%x)\n",
+        parsing_printf("Linker stub detected: Correcting CFT.  (CFT=0x%lx)\n",
                 cachedCFT.second);
     }
 
@@ -917,7 +917,7 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
     IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
     bool ret = icfa.NewJumpTableAnalysis(outEdges);
 
-    parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
+    parsing_printf("Jump table parser returned %d, %lu edges\n", ret, outEdges.size());
     for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) parsing_printf("edge target at %lx\n", oit->first);
     // Update statistics 
     currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);

@@ -157,7 +157,7 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    }   
    reader = fact->openSymbolReader(buffer, end - start);
    if (!reader) {
-      sw_printf("[%s:%u] - Error reading symbol info\n");
+      sw_printf("[%s:%u] - Error reading symbol info\n", FILE__, __LINE__);
       goto done;
    }
    ret->syms = reader;

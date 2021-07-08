@@ -315,7 +315,7 @@ Function::blocks_int()
             Block * t = e->trg();
             if(t) {
                 parsing_printf("\t Considering target block [0x%lx,0x%lx) from edge %p\n",
-                               t->start(), t->end(), e);
+                               t->start(), t->end(), (void*)e);
             }
 
             if (e->type() == CALL_FT) {
@@ -660,7 +660,7 @@ Function::tampersStack(bool recalculate)
             }
         }
         if (sliceAtRet == NULL) {
-            mal_printf("Failed to produce a slice for retn at %x %s[%d]\n",
+            mal_printf("Failed to produce a slice for retn at %lx %s[%d]\n",
                        retnAddr, FILE__,__LINE__);
             continue;
         } 
@@ -696,7 +696,7 @@ Function::tampersStack(bool recalculate)
 
     if ( TAMPER_UNSET == _tamper ) {
         mal_printf("WARNING: we found no valid slices for function at %lx "
-                   "%s[%d]\n", _start, _tamper_addr, FILE__,__LINE__);
+                   "%s[%d]\n", _start, FILE__,__LINE__);
         _tamper = TAMPER_NONZERO;
     }
 

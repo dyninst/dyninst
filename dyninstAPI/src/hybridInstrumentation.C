@@ -635,8 +635,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     
     // close insertion set
     if (proc()->lowlevel_process()->isMemoryEmulated() || pointCount) {
-        mal_printf("instrumented %d points in function at %lx\n", 
-                    pointCount,func->getBaseAddr());
+        mal_printf("instrumented %d points in function at %p\n", 
+                    pointCount, func->getBaseAddr());
         if (useInsertionSet) {
             proc()->finalizeInsertionSet(false);
         }
@@ -663,7 +663,7 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
     std::set<HybridAnalysisOW::owLoop*> loops;
     if ( hybridOW() && hybridOW()->hasLoopInstrumentation(false, *func, &loops) ) {
         mal_printf("Removing loop instrumentation for func "
-                  "%lx [%d]\n", func->getBaseAddr(), __LINE__);
+                  "%p [%d]\n", func->getBaseAddr(), __LINE__);
         std::set<HybridAnalysisOW::owLoop*>::iterator lIter= loops.begin();
         for(; lIter != loops.end(); lIter++) {
            mal_printf("Removing active loop %d\n", (*lIter)->getID());
@@ -1237,7 +1237,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     } else {
         funcName[0]= '\0';
         mal_printf("%lx => %lx, in module %s \n",
-                    point->llpoint()->block()->last(),target,modName,funcName);
+                    point->llpoint()->block()->last(),target,modName);
     }
 
     // 1.1 if targMod is a system library don't parse at target.  However, if the 
@@ -1295,7 +1295,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
              // system library and is not instrumented
         mal_printf("WARNING: Transfer into non-instrumented module "
                 "%s func %s that is not recognized as a system lib: "
-                "%lx=>%lx [%d]\n", modName, funcName, 
+                "%lx=>%lx %s[%d]\n", modName, funcName, 
                 (long)point->llpoint()->block()->last(), target, FILE__,__LINE__);
     }
     return doMoreProcessing;

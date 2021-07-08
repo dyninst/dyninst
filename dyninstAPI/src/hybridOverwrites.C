@@ -272,8 +272,8 @@ bool HybridAnalysisOW::removeLoop(owLoop *loop,
         if ( !(*bIter)->lowlevel_block() ) {
             mal_printf("WARNING: Can't remove overwritten loop block, the "
                        "internal block was deleted so we can't ascertain its "
-                       "address: loopID %d block %lx %s[%d]\n", 
-                       loop->getID(), *bIter,FILE__,__LINE__);
+                       "address: loopID %d block %p %s[%d]\n", 
+                       loop->getID(), (void*)*bIter,FILE__,__LINE__);
         } else {
             blockToLoop.erase((*bIter)->getStartAddress());
         }
@@ -400,7 +400,7 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
     BPatchSnippetHandle *snippetHandle = NULL;
     while (eIter != instEdges.end()) {
         BPatch_point *edgePoint = (*eIter)->getPoint();
-        mal_printf(" instr edge: 0x%x -> 0x%x\n", 
+        mal_printf(" instr edge: 0x%lx -> 0x%lx\n", 
             (*eIter)->getSource()->getLastInsnAddress(),
             (*eIter)->getTarget()->getStartAddress());
         snippetHandle = hybridow_->proc()->insertSnippet
@@ -414,8 +414,8 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
     std::set<BPatch_point*>::iterator uIter = unresExits_.begin();
     while (uIter != unresExits_.end()) {
         Address uAddr = (Address)(*uIter)->getAddress();
-        mal_printf(" instr unresolved: 0x%x in func at 0x%lx\n", 
-                  uAddr, (*uIter)->getFunction()->getBaseAddr());
+        mal_printf(" instr unresolved: 0x%p in func at 0x%p\n", 
+                  (void*)uAddr, (*uIter)->getFunction()->getBaseAddr());
         if ((*uIter)->isDynamic()) {
             long st = 0;
             vector<Address> targs;
@@ -554,7 +554,7 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         mal_printf("BA[%d] = [%lx %lx]\n", 
                    boundsIdx-2, boundsArray[boundsIdx-2], boundsArray[boundsIdx-1]);
     }
-    mal_printf("instrumenting %d store instructions in loop %d %s[%d]\n",
+    mal_printf("instrumenting %lu store instructions in loop %d %s[%d]\n",
                loopWrites.size(),loopID_,FILE__,__LINE__);
     // array length is now probably smaller than earlier worst case value
     array_length = boundsIdx;
@@ -600,7 +600,7 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
             (overwriteAnalysis_wrapper, 
              BPatch_constExpr(-1*loopID_), 
              false,BPatch_noInterp);
-        mal_printf("BoundsCheck Call at %lx\n",loopWrites[wIdx]->getAddress());
+        mal_printf("BoundsCheck Call at %p\n",loopWrites[wIdx]->getAddress());
         // create the if expression
         BPatch_ifExpr ifBoundsThenStop(condition, stopForAnalysis);
         // insert the snippet 
@@ -763,11 +763,11 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
                     if ((*pIter)->isDynamic()) {
                         vector<Address> targs;
                         if (!hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(),targs)) {
-                            mal_printf("loop has an unresolved indirect transfer at %lx\n", 
+                            mal_printf("loop has an unresolved indirect transfer at %p\n", 
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
                         } else if (targs.size() > 1) {
-                            mal_printf("loop has an indirect transfer resolving to multiple targets at %lx\n", 
+                            mal_printf("loop has an indirect transfer resolving to multiple targets at %p\n", 
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
                         } 
@@ -856,7 +856,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             if ((*bIter)->lowlevel_block()->llb()->isCallBlock() && 
                 NULL == (*bIter)->lowlevel_block()->getFallthrough()) 
             {
-                mal_printf("loop %d calls func %lx which has a non-returning "
+                mal_printf("loop %d calls func %p which has a non-returning "
                            "call at %lx %s[%d]\n", loop->getID(), 
                            (*fIter)->getBaseAddr(), 
                            (*bIter)->getLastInsnAddress(), FILE__,__LINE__);
@@ -892,8 +892,8 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
             if (1 != targs.size()) {
                 loop->unresExits_.insert(*pIter);
                 hasUnresolved = true;
-                mal_printf("loop %d calls func %lx which has an indirect "
-                           "transfer at %lx that resolves to %d targets "
+                mal_printf("loop %d calls func %p which has an indirect "
+                           "transfer at %p that resolves to %lu targets "
                            "%s[%d]\n", loop->getID(), (*fIter)->getBaseAddr(), 
                            (*pIter)->getAddress(), targs.size(), FILE__,__LINE__);
             } else {
@@ -908,7 +908,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
         if ( ParseAPI::RETURN != 
              (*fIter)->lowlevel_func()->ifunc()->retstatus() ) 
         {
-            mal_printf("loop %d calls func %lx which could be "
+            mal_printf("loop %d calls func %p which could be "
                        "non-returning %s[%d]\n", loop->getID(), 
                        (*fIter)->getBaseAddr(), FILE__,__LINE__);
             hasUnresolved = true;
@@ -977,7 +977,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                 vector<Address> targs;
                 hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(), targs);
                 assert(targs.size() == 1); 
-                mal_printf("loop %d has a resolved indirect transfer at %lx with "
+                mal_printf("loop %d has a resolved indirect transfer at %p with "
                           "target %lx\n", loop->getID(), (*pIter)->getAddress(), 
                           *targs.begin());
 
@@ -988,7 +988,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                 {
                     loopFuncs.insert(targFuncs.begin(),targFuncs.end());
                 } else if (!targFuncs.empty()) {
-                    mal_printf("loop contains call to non-mal-func:%lx %d\n",
+                    mal_printf("loop contains call to non-mal-func:%p %d\n",
                                targFuncs[0]->getBaseAddr(), __LINE__);
                 }
             }
@@ -1003,12 +1003,12 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
         if (targFunc && 
             (*bIter)->getFlowGraph()->getModule() == targFunc->getModule()) 
         { 
-            mal_printf("loop has a function call %lx->%lx\n", 
+            mal_printf("loop has a function call %lx->%p\n", 
                       (*bIter)->getLastInsnAddress(), targFunc->getBaseAddr());
             loopFuncs.insert(targFunc);
 
         } else if (targFunc) {
-            mal_printf("loop calls func at %lx in different module [%d]\n",
+            mal_printf("loop calls func at %p in different module [%d]\n",
                        targFunc->getBaseAddr(), __LINE__);
         }
     }
@@ -1392,7 +1392,7 @@ void HybridAnalysisOW::overwriteSignalCB
       an adjacent page or is in a subsequent iteration of the instrumented loop: */
     owLoop *loop = findLoop(faultBlocks[0]->getStartAddress());
     if ( loop ) {
-        mal_printf("matches existing loop %d of %d blocks\n", loop->getID(), loop->blocks.size());
+        mal_printf("matches existing loop %d of %lu blocks\n", loop->getID(), loop->blocks.size());
         //make sure we haven't added this page to the loop's shadows already
         assert(loop->shadowMap.end() == loop->shadowMap.find(pageAddress));
 
@@ -1424,7 +1424,7 @@ void HybridAnalysisOW::overwriteSignalCB
 
     // grab the next available loopID 
     loop = new owLoop(this, writeTarget);
-    mal_printf("new overwrite loop %d %d[%d]\n", loop->getID(), FILE__,__LINE__);
+    mal_printf("new overwrite loop %d %s[%d]\n", loop->getID(), FILE__,__LINE__);
 
     // find loops surrounding the write insn
     BPatch_basicBlockLoop *bblLoop = getWriteLoop(*faultFuncs[0],faultInsnAddr,true);
@@ -1491,7 +1491,7 @@ void HybridAnalysisOW::overwriteSignalCB
     else {
         // . Instrument the loop
         loop->instrumentOverwriteLoop(faultInsnAddr);
-        mal_printf("Instrumenting loop for write at %lx, loop has %d blocks, "
+        mal_printf("Instrumenting loop for write at %lx, loop has %lx blocks, "
                    "loopID=%d %s[%d]\n", faultInsnAddr, 
                    loop->blocks.size(), loop->getID(), FILE__, __LINE__);
     }

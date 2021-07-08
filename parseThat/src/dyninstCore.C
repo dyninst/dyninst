@@ -835,7 +835,7 @@ bool insertTraceSnippet(dynHandle *dh, BPatch_function *func, BPatch_Vector<BPat
       sendMsg(config.outfd, ID_TRACE_INSERT_ONE, VERB4);
 
       point = (*points)[i];
-      buf = sprintf_static("%0*lx", trace_msglen, (void *)point);
+      buf = sprintf_static("%*p", trace_msglen, (void *)point);
 
       BPatch_constExpr data(buf);
       BPatch_constExpr len(trace_msglen);
@@ -956,7 +956,7 @@ void readTracePipe()
          if (pFunc->getName(buf, sizeof(buf)))
             pName = sprintf_static("function %s", buf);
          else
-            pName = sprintf_static("anonymous function at 0x%0*lx", sizeof(void *), pFunc->getBaseAddr());
+            pName = sprintf_static("anonymous function at 0x%*p", trace_msglen, pFunc->getBaseAddr());
       }
 
       if (config.pipefd > 0) {

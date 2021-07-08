@@ -749,7 +749,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             dataLinkInfo[string(name)] = std::make_pair(shdr->sh_link, shdr->sh_info);
 
         rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
-                       name, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size);
+                       name, (long unsigned int)newshdr->sh_addr, (long unsigned int)newshdr->sh_offset, (long unsigned int)newshdr->sh_size);
         rewrite_printf(" %02d Link(%d) Info(%d) change(%d)\n",
                 sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
                 changeMapping[sectionNumber]);
@@ -1088,7 +1088,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
     {
         memcpy(newPhdr, &segments[i], oldEhdr->e_phentsize);
         rewrite_printf("Updated program header: type %u (%s), offset 0x%lx, addr 0x%lx\n",
-                newPhdr->p_type, phdrTypeStr(newPhdr->p_type).c_str(), newPhdr->p_offset, newPhdr->p_vaddr);
+                newPhdr->p_type, phdrTypeStr(newPhdr->p_type).c_str(), (long unsigned int)newPhdr->p_offset, (long unsigned int)newPhdr->p_vaddr);
         ++newPhdr;
     }
 
@@ -1441,8 +1441,8 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         currEndAddress = newshdr->sh_addr + newshdr->sh_size;
 
         rewrite_printf("new section %s addr = %lx off = %lx size = %lx\n",
-                       newSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset,
-                       newshdr->sh_size);
+                       newSecs[i]->getRegionName().c_str(), (long unsigned int)newshdr->sh_addr, (long unsigned int)newshdr->sh_offset,
+                       (long unsigned int)newshdr->sh_size);
 
         newdata->d_version = 1;
         if (newshdr->sh_addralign < newdata->d_align) {

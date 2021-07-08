@@ -213,7 +213,7 @@ bool PCEventMuxer::registerCallbacks() {
 #define INITIAL_MUXING \
    PCProcess *process = static_cast<PCProcess *>(ev->getProcess()->getData()); \
    proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p, event %s\n", \
-                      FILE__, __LINE__, process, ev->name().c_str());     \
+                      FILE__, __LINE__, (void*)process, ev->name().c_str());     \
    if( process == NULL ) {                                              \
       proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__); \
       return ret_default;                                               \
@@ -490,7 +490,7 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 	    // Only add the event to the queue if the underlying process is still valid
 	    eventQueue.push(ev);
 	    procCount[evProc->getPid()]++;
-		proccontrol_printf("%s[%d]: Added event %s from process %d to mailbox, size now %d\n",
+		proccontrol_printf("%s[%d]: Added event %s from process %d to mailbox, size now %ld\n",
 						   FILE__, __LINE__, ev->name().c_str(), evProc->getPid(), eventQueue.size());
 	} else {
 		proccontrol_printf("%s[%d]: Got bad process: event %s not added\n",
@@ -567,7 +567,7 @@ unsigned int PCEventMailbox::size() {
 
 bool PCEventMailbox::find(PCProcess *proc) {
     std::lock_guard<CondVar<>> l{queueCond};
-    proccontrol_printf("Calling find for process %p (%d)\n", proc, proc->getPid());
+    proccontrol_printf("Calling find for process %p (%d)\n", (void*)proc, proc->getPid());
     assert(proc != nullptr);
     auto it = procCount.find(proc->getPid());
     if (it != procCount.end()) {

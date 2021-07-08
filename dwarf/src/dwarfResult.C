@@ -141,20 +141,20 @@ void ConcreteDwarfResult::readReg(MachRegister reg) {
    Dyninst::MachRegisterVal v;
    if (!reader->GetReg(reg, v)) error = true;
    push(v);
-   dwarf_printf("readReg %s, got 0x%lx, queue size %d\n",
+   dwarf_printf("readReg %s, got 0x%lx, queue size %lu\n",
                 reg.name().c_str(), v, operands.size());
 }
 
 void ConcreteDwarfResult::pushUnsignedVal(MachRegisterVal v) {
    // Someday this will matter...
    push(v);
-   dwarf_printf("pushUnsigned 0x%lx, queue size %d\n", v, operands.size());
+   dwarf_printf("pushUnsigned 0x%lx, queue size %lu\n", v, operands.size());
 }
 
 void ConcreteDwarfResult::pushSignedVal(MachRegisterVal v) {
    // Someday this will matter...
    push(v);
-   dwarf_printf("pushSigned 0x%lx, queue size %d\n", v, operands.size());
+   dwarf_printf("pushSigned 0x%lx, queue size %lu\n", v, operands.size());
 }
 
 
@@ -296,7 +296,7 @@ void ConcreteDwarfResult::pushOp(Operator op) {
          error = true;
          break;
    }
-   dwarf_printf("\t After queue manipulation, size %d\n", operands.size());
+   dwarf_printf("\t After queue manipulation, size %lu\n", operands.size());
 }
 
 void ConcreteDwarfResult::pushOp(Operator op, long long ref) {
@@ -375,19 +375,19 @@ void ConcreteDwarfResult::pushCFA() {
 }
 
 MachRegisterVal ConcreteDwarfResult::peek(int index) {
-   dwarf_printf("peek @ %d, returning index %d of size %d\n",
+   dwarf_printf("peek @ %d, returning index %lu of size %lu\n",
                 index, operands.size() - (index + 1), operands.size());
    return operands[operands.size() - (index + 1)];
 }
 
 void ConcreteDwarfResult::pop(int num) {
-   dwarf_printf("pop @ %d, deleting index %d of size %d\n",
+   dwarf_printf("pop @ %d, deleting index %lu of size %lu\n",
                 num, operands.size() - (num + 1), operands.size());
    operands.erase(operands.begin() + (operands.size() - (num + 1)));
 }
 
 void ConcreteDwarfResult::popRange(int start, int end) {
-   dwarf_printf("popRange %d .. %d of %d\n", start, end, operands.size());
+   dwarf_printf("popRange %d .. %d of %lu\n", start, end, operands.size());
    std::vector<MachRegisterVal>::iterator b, e;
    if (start > end) {
       b = operands.begin() + (operands.size() - (start + 1));
@@ -398,7 +398,7 @@ void ConcreteDwarfResult::popRange(int start, int end) {
       e = operands.begin() + (operands.size() - start);
    }
    operands.erase(b, e);
-   dwarf_printf("\t After popRange, size %d\n", operands.size());
+   dwarf_printf("\t After popRange, size %lu\n", operands.size());
 }
 
 void ConcreteDwarfResult::push(MachRegisterVal v) {
@@ -412,7 +412,7 @@ bool ConcreteDwarfResult::eval(MachRegisterVal &v) {
 }
 
 MachRegisterVal ConcreteDwarfResult::val() {
-   dwarf_printf("Eval: returning top value 0x%lx, stack size %d\n",
+   dwarf_printf("Eval: returning top value 0x%lx, stack size %lu\n",
                 operands.back(), operands.size());
    return operands.back();
 }

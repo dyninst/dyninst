@@ -51,52 +51,52 @@ bool PCProcess::createStackwalkerSteppers()
   stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", (void*)stepper);
 
   stepper = new DebugStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a DebugStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a DebugStepper\n", (void*)stepper);
 
   dynFrameHelper = new DynFrameHelper(this);
   stepper = new FrameFuncStepper(stackwalker_, dynFrameHelper);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", (void*)stepper);
 
     stepper = new AnalysisStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", (void*)stepper);
 
 
   stepper = new SigHandlerStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", (void*)stepper);
 
   stepper = new BottomOfStackStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", (void*)stepper);
 
   // create a separate helper to avoid double deletion
   dynFrameHelper = new DynFrameHelper(this);
@@ -104,10 +104,10 @@ bool PCProcess::createStackwalkerSteppers()
   stepper = new StepperWanderer(stackwalker_, dynWandererHelper, dynFrameHelper);
   if (!stackwalker_->addStepper(stepper))
   {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
     return false;
   }
-  startup_printf("Stackwalker stepper %p is a WandererStepper\n", stepper);
+  startup_printf("Stackwalker stepper %p is a WandererStepper\n", (void*)stepper);
 
   return true;
 }
@@ -270,7 +270,7 @@ WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address func_entry, Addre
 
   stackwalk_printf("[%s:%u] - DynWandererHelper called for func entry: %lx, pc: %lx - "
                      "found callee func: %p, cur func: %p\n", __FILE__, __LINE__, 
-                     func_entry, pc, callee_func, cur_func);
+                     func_entry, pc, (void*)callee_func, (void*)cur_func);
 
   if (!callee_func || !cur_func)
   {

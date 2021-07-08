@@ -370,7 +370,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
 					}
 				}
 				if (call_fallthrough) {
-					parsing_printf("\tprev insn was %s, but it is the next instruction of a function call, not a tail call %x %x\n",
+					parsing_printf("\tprev insn was %s, but it is the next instruction of a function call, not a tail call\n",
                                    prevInsn.format().c_str());
 				}	else {
 					parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn.format().c_str());

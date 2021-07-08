@@ -299,7 +299,7 @@ void BottomOfStackStepperImpl::initialize()
    }
    SymbolReaderFactory *fact = Walker::getSymbolReader();
    if (!fact) {
-      sw_printf("[%s:%u] - Failed to get symbol reader\n");
+      sw_printf("[%s:%u] - Failed to get symbol reader\n", FILE__, __LINE__);
       return;
    }
 

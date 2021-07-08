@@ -101,7 +101,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
          result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
          if (!result) {
             sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                      FILE__, __LINE__);
+                      FILE__, __LINE__, last_read_sp_addr);
             return gcf_error;
          }
          last_read_sp_addr = sp_loc.val.addr;
@@ -127,7 +127,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
       if (!result) {
          sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                   FILE__, __LINE__);
+                   FILE__, __LINE__, fp_loc.val.addr);
          return gcf_error;
       }
 
@@ -140,7 +140,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
       if (!result) {
          sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                   FILE__, __LINE__);
+                   FILE__, __LINE__, pc_loc.val.addr);
          return gcf_error;
       }
 

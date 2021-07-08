@@ -188,7 +188,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
 
     currentAssigns.insert(ap);
 
-    parsing_printf("Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn().format().c_str(), ap->addr(), currentAssigns.size());
+    parsing_printf("Adding assignment %s in instruction %s at %lx, total %lu\n", ap->format().c_str(), ap->insn().format().c_str(), ap->addr(), currentAssigns.size());
 /*
     if (ap->insn() && ap->insn().readsMemory() && firstMemoryRead) {
         firstMemoryRead = false;

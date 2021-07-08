@@ -2359,7 +2359,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
   }
   
    if (inst->point()) {
-      regalloc_printf("\t shouldSaveReg for BT %p, from 0x%lx\n", inst, inst->point()->insnAddr() );
+      regalloc_printf("\t shouldSaveReg for BT %p, from 0x%lx\n", (void*)inst, inst->point()->insnAddr() );
    }
    else {
       regalloc_printf("\t shouldSaveReg for iRPC\n");

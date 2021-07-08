@@ -80,7 +80,7 @@ AddrRangeGroup::AddrRangeGroup(Walker *new_walker) :
    StepperGroup(new_walker)
 {
    sw_printf("[%s:%u] - Constructing new AddrRangeGroup at %p\n",
-              FILE__, __LINE__, this);
+              FILE__, __LINE__, (void*)this);
    impl = new AddrRangeGroupImpl();
 }
 

@@ -209,7 +209,7 @@ int DYNINSTwriteEvent(void *ev, size_t sz)
   if (DYNINSTstaticMode)
      return 0;
   
-    rtdebug_printf("%s[%d]:  welcome to DYNINSTwriteEvent: %d bytes\n", __FILE__, __LINE__, sz);
+    rtdebug_printf("%s[%d]:  welcome to DYNINSTwriteEvent: %zu bytes\n", __FILE__, __LINE__, sz);
   if (-1 == async_socket)
   {
 	  rtdebug_printf("%s[%d]:  failed to DYNINSTwriteEvent, no socket\n", __FILE__, __LINE__);

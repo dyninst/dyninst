@@ -1036,7 +1036,7 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     fullNm = name;
     fileNm = extract_pathname_tail(name);
 
-    create_printf("%s[%d]: In %p: Creating new module '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str());
+    create_printf("%s[%d]: In %p: Creating new module '%s'/'%s'\n", FILE__, __LINE__, (void*)this, fileNm.c_str(), fullNm.c_str());
 
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
@@ -1172,15 +1172,15 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    // Initialize error parameter
    err = false;
   
-   create_printf("%s[%d]: created symtab for memory image at addr %u\n", 
-                 FILE__, __LINE__, mem_image);
+   create_printf("%s[%d]: created symtab for memory image at addr %p\n", 
+                 FILE__, __LINE__, (void*)mem_image);
 
    //  createMappedFile handles reference counting
    mf = MappedFile::createMappedFile(mem_image, image_size, name);
    if (!mf) {
       create_printf("%s[%d]: WARNING: creating symtab for memory image at " 
-                    "addr %u, createMappedFile() failed\n", FILE__, __LINE__, 
-                    mem_image);
+                    "addr %p, createMappedFile() failed\n", FILE__, __LINE__, 
+                    (void*)mem_image);
       err = true;
       return;
    }
@@ -1195,7 +1195,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    if (!extractInfo(obj_private))
    {
       create_printf("%s[%d]: WARNING: creating symtab for memory image at addr" 
-                    "%u, extractInfo() failed\n", FILE__, __LINE__, mem_image);
+                    "%p, extractInfo() failed\n", FILE__, __LINE__, (void*)mem_image);
       err = true;
    }
 
@@ -1452,7 +1452,7 @@ Symtab::Symtab(const Symtab& obj) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-    create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
+    create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, (const void*)this, (const void*)&obj);
 
    unsigned i;
 
@@ -1668,7 +1668,7 @@ Symtab::~Symtab()
       delete excpBlocks[i];
 
    create_printf("%s[%d]: Symtab::~Symtab removing %p from allSymtabs\n", 
-         FILE__, __LINE__, this);
+         FILE__, __LINE__, (void*)this);
 
    deps_.clear();
 

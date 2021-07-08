@@ -46,12 +46,12 @@ SymbolLookup::SymbolLookup(std::string exec_path) :
    executable_path(exec_path)
 {
   sw_printf("[%s:%u] - Creating SymbolLookup %p\n", 
-	    FILE__, __LINE__, this);
+	    FILE__, __LINE__, (void*)this);
 }
 
 SymbolLookup::~SymbolLookup() {
   walker = NULL;
-  sw_printf("[%s:%u] - Destroying SymbolLookup %p\n", FILE__, __LINE__);
+  sw_printf("[%s:%u] - Destroying SymbolLookup %p\n", FILE__, __LINE__, (void*)this);
 }
 
 Walker *SymbolLookup::getWalker()

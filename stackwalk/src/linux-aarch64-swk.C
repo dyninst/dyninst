@@ -62,44 +62,44 @@ bool Walker::createDefaultSteppers()
     result = addStepper(stepper);
     if (!result) {
         sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-                  stepper);
+                  (void*)stepper);
         return false;
     } else {
         sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
-                  FILE__, __LINE__, stepper);
+                  FILE__, __LINE__, (void*)stepper);
     }
 
     stepper = new DebugStepper(this);
     result = addStepper(stepper);
     if (!result){
         sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-                  stepper);
+                  (void*)stepper);
         return false;
     } else{
         sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-                  FILE__, __LINE__, stepper);
+                  FILE__, __LINE__, (void*)stepper);
     }
 
     stepper = new SigHandlerStepper(this);
     result = addStepper(stepper);
     if (!result) {
         sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-                  stepper);
+                  (void*)stepper);
         return false;
     }else {
         sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
-                  FILE__, __LINE__, stepper);
+                  FILE__, __LINE__, (void*)stepper);
     }
 
     stepper = new BottomOfStackStepper(this);
     result = addStepper(stepper);
     if (!result){
         sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-                  stepper);
+                  (void*)stepper);
         return false;
     }else{
         sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
-                  FILE__, __LINE__, stepper);
+                  FILE__, __LINE__, (void*)stepper);
     }
 
     return true;
@@ -151,7 +151,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
         result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
         if (!result) {
             sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                      FILE__, __LINE__);
+                      FILE__, __LINE__, sp_loc.val.addr);
             return gcf_error;
         }
         last_read_sp_addr = sp_loc.val.addr;
@@ -171,7 +171,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
     if (!result) {
         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                  FILE__, __LINE__);
+                  FILE__, __LINE__, fp_loc.val.addr);
         return gcf_error;
     }
 
@@ -184,7 +184,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
     if (!result) {
         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                  FILE__, __LINE__);
+                  FILE__, __LINE__, pc_loc.val.addr);
         return gcf_error;
     }
 

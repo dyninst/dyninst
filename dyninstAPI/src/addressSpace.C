@@ -557,7 +557,7 @@ bool AddressSpace::inferiorShrinkBlock(heapItem *h,
       }
    }
    if (succ != NULL) {
-      infmalloc_printf("%s[%d]: enlarging existing block; old 0x%lx - 0x%lx (%d), new 0x%lx - 0x%lx (%d)\n",
+      infmalloc_printf("%s[%d]: enlarging existing block; old 0x%lx - 0x%lx (%lu), new 0x%lx - 0x%lx (%d)\n",
                        FILE__, __LINE__,
                        succ->addr,
                        succ->addr + succ->length,
@@ -1858,11 +1858,11 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
           list<Address> relocPCs;
           getRelocAddrs(orig, block, func, relocPCs, true);
-          mal_printf("Found %d matches for address 0x%lx\n", relocPCs.size(), orig);
+          mal_printf("Found %lu matches for address 0x%lx\n", relocPCs.size(), orig);
           if (!relocPCs.empty()) {
              (*titer)->changePC(relocPCs.back() + offset);
              mal_printf("Pulling active frame PC into newest relocation "
-                        "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)]\n", orig, 
+                        "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%x)]\n", orig, 
                         tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset);
              break;
           }

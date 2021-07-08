@@ -70,7 +70,7 @@ Walker::Walker(ProcessState *p,
    proc->walker = this;
 
    sw_printf("[%s:%u] - Creating new Walker with proc=%p, sym=%p, step = %d\n",
-             FILE__, __LINE__, proc, sym, (int) default_steppers);
+             FILE__, __LINE__, (void*)proc, (void*)sym, (int) default_steppers);
    group = grp ? grp : createDefaultStepperGroup();
    if (default_steppers) {
       result = createDefaultSteppers();
@@ -107,12 +107,12 @@ Walker* Walker::newWalker(std::string exec_name)
   Walker *newwalker = new Walker(newproc, NULL, NULL, true, exec_name);
   if (!newwalker || newwalker->creation_error) {
     sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-	      FILE__, __LINE__, newwalker);
+	      FILE__, __LINE__, (void*)newwalker);
     return NULL;
   }
 
   sw_printf("[%s:%u] - Successfully created Walker %p\n",
-	    FILE__, __LINE__, newwalker);
+	    FILE__, __LINE__, (void*)newwalker);
 
   return newwalker;
 }
@@ -133,12 +133,12 @@ Walker *Walker::newWalker(Dyninst::PID pid,
   Walker *newwalker = new Walker(newproc, NULL, NULL, true, executable);
   if (!newwalker || newwalker->creation_error) {
     sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-	      FILE__, __LINE__, newwalker);
+	      FILE__, __LINE__, (void*)newwalker);
     return NULL;
   }
 
   sw_printf("[%s:%u] - Successfully created Walker %p\n",
-	    FILE__, __LINE__, newwalker);
+	    FILE__, __LINE__, (void*)newwalker);
 
   return newwalker;
 }
@@ -159,12 +159,12 @@ Walker *Walker::newWalker(std::string exec_name,
    Walker *newwalker = new Walker(newproc, NULL, NULL, true, exec_name);
    if (!newwalker || newwalker->creation_error) {
       sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-                FILE__, __LINE__, newwalker);
+                FILE__, __LINE__, (void*)newwalker);
       return NULL;
    }
 
    sw_printf("[%s:%u] - Successfully created Walker %p\n",
-             FILE__, __LINE__, newwalker);
+             FILE__, __LINE__, (void*)newwalker);
 
    return newwalker;
 }
@@ -182,17 +182,17 @@ Walker *Walker::newWalker(ProcessState *proc,
       return NULL;
    }
    sw_printf("[%s:%u] - Creating custom Walker with proc = %p" \
-             "lookup = %p\n", FILE__, __LINE__, proc, lookup);
+             "lookup = %p\n", FILE__, __LINE__, (void*)proc, (void*)lookup);
 
    Walker *newwalker = new Walker(proc, grp, lookup, default_steppers, "");
    if (!newwalker || newwalker->creation_error) {
       sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-                FILE__, __LINE__, newwalker);
+                FILE__, __LINE__, (void*)newwalker);
       return NULL;
    }
 
    sw_printf("[%s:%u] - Successfully created Walker %p\n",
-             FILE__, __LINE__, newwalker);
+             FILE__, __LINE__, (void*)newwalker);
 
    return newwalker;
 }
@@ -217,12 +217,12 @@ Walker *Walker::newWalker(Dyninst::ProcControlAPI::Process::ptr proc)
   Walker *newwalker = new Walker(newproc, NULL, NULL, true, string());
   if (!newwalker || newwalker->creation_error) {
     sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-	      FILE__, __LINE__, newwalker);
+	      FILE__, __LINE__, (void*)newwalker);
     return NULL;
   }
 
   sw_printf("[%s:%u] - Successfully created Walker %p\n",
-	    FILE__, __LINE__, newwalker);
+	    FILE__, __LINE__, (void*)newwalker);
 
   return newwalker;
 }
@@ -261,7 +261,7 @@ bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
      Walker *newwalker = new Walker((ProcessState *) pd, NULL, NULL, true, executable);
      if (!newwalker || newwalker->creation_error) {
         sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-                  FILE__, __LINE__, newwalker);
+                  FILE__, __LINE__, (void*)newwalker);
         walkers_out.push_back(NULL);
         num_errors++;
         continue;
@@ -392,14 +392,14 @@ bool Walker::walkStack(std::vector<Frame> &stackwalk, THR_ID thread)
 
    getInitialFrameImpl(initialFrame, thread);
    if (!result) {
-      sw_printf("[%s:%u] - Failed to get registers from process\n",
+      sw_printf("[%s:%u] - Failed to get registers from process on thread %d\n",
                 FILE__, __LINE__, (int) thread);
       goto done;
    }
 
    result = walkStackFromFrame(stackwalk, initialFrame);
    if (!result) {
-      sw_printf("[%s:%u] - walkStackFromFrame failed\n",
+      sw_printf("[%s:%u] - walkStackFromFrame failed on thread %d\n",
                 FILE__, __LINE__, (int) thread);
       goto done;
    }
@@ -549,8 +549,8 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
        goto done;
      }
      else if (gcf_result == gcf_error) {
-        sw_printf("[%s:%u] - A stepper reported error %d on frame at %lx\n",
-                  FILE__, __LINE__, cur_stepper, in.getRA());
+        sw_printf("[%s:%u] - A stepper reported error %p on frame at %lx\n",
+                  FILE__, __LINE__, (void*)cur_stepper, in.getRA());
        result = false;
        goto done;
      }
@@ -579,7 +579,7 @@ bool Walker::getInitialFrame(Frame &frame, THR_ID thread) {
 
    getInitialFrameImpl(frame, thread);
    if (!result) {
-      sw_printf("[%s:%u] - getInitialFrameImpl failed\n",
+      sw_printf("[%s:%u] - getInitialFrameImpl failed on thread %d\n",
                 FILE__, __LINE__, (int) thread);
    }
    bool postresult = callPostStackwalk(thread);
@@ -600,7 +600,7 @@ bool Walker::getAvailableThreads(std::vector<THR_ID> &threads) const {
          sw_printf("[%s:%u] - getThreadIds error\n", FILE__, __LINE__);
       }
       else {
-         sw_printf("[%s:%u] - getThreadIds returning %d values:\t\n",
+         sw_printf("[%s:%u] - getThreadIds returning %lu values:\t\n",
                    FILE__, __LINE__, threads.size());
          for (unsigned i=0; i<threads.size(); i++) {
             sw_printf("%d ", (int) threads[i]);
@@ -655,7 +655,7 @@ bool Walker::addStepper(FrameStepper *s)
 {
    assert(group);
    sw_printf("[%s:%u] - Registering stepper %s with group %p\n",
-             FILE__, __LINE__, s->getName(), group);
+             FILE__, __LINE__, s->getName(), (void*)group);
    group->registerStepper(s);
    return true;
 }
@@ -818,7 +818,7 @@ bool WalkerSet::walkStacks(CallTree &tree, bool walk_initial_only) const {
 
          result = walker->walkStack(swalk, thr);
          if (!result && swalk.empty()) {
-            sw_printf("[%s:%u] - Error walking stack for %d/%d\n", FILE__, __LINE__,
+            sw_printf("[%s:%u] - Error walking stack for %d/%ld\n", FILE__, __LINE__,
                       walker->getProcessState()->getProcessId(), thr);
             had_error = true;
             continue;
