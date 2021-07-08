@@ -35,9 +35,13 @@
 #include <stdlib.h>
 #include <string>
 #include "dyninstAPI/src/debug.h"
+#include "compiler_annotations.h"
 
 int patch_debug_relocation = 0;
 int patch_debug_springboard = 0;
+
+int relocation_printf_int(const char *format, ...)  DYNINST_PRINTF_ANNOTATION(1, 2);
+int springboard_printf_int(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 
 bool init_debug_patchapi() {
   static bool init = false;

@@ -31,10 +31,11 @@
 #define __UTILS_H__
 
 #include <stdio.h>
+#include "compiler_annotations.h"
 
 char *chomp(char *);
 char *fgets_static(FILE *);
-char *sprintf_static(const char *, ...);
+char *sprintf_static(const char *, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 char *strcat_static(char *, char *);
 char *strcat_static(const char *, const char *);
 char *encodeStr(const char *);

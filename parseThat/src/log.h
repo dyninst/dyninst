@@ -31,6 +31,7 @@
 #define __LOG_H__
 
 #include <cstdarg>
+#include "compiler_annotations.h"
 using namespace std;
 
 enum logLevel {
@@ -46,6 +47,6 @@ enum logLevel {
     LOG_ONLY
 };
 
-void dlog(logLevel, const char *, ...);
+void dlog(logLevel, const char *, ...)  DYNINST_PRINTF_ANNOTATION(2, 3);
 
 #endif

@@ -42,12 +42,12 @@ extern int sym_debug_object;
 extern int sym_debug_types;
 extern int sym_debug_rewrite;
 
-extern int parsing_printf(const char *format, ...);
-extern int aggregate_printf(const char *format, ...);
-extern int create_printf(const char *format, ...);
-extern int object_printf(const char *format, ...);
-extern int types_printf(const char *format, ...);
-extern int rewrite_printf(const char *format, ...);
+extern int parsing_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int aggregate_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int create_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int object_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int types_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int rewrite_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 
 // And initialization
 extern bool init_debug_symtabAPI();

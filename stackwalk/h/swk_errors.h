@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "util.h"
+#include "compiler_annotations.h"
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -69,7 +70,7 @@ namespace Stackwalker {
 
   SW_EXPORT FILE *getDebugChannel();
 
-  extern int sw_printf(const char *format, ...);
+  extern int sw_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
   extern int dyn_debug_stackwalk;
 
 }
