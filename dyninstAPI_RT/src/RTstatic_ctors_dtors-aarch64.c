@@ -31,6 +31,9 @@
 //#warning "This file is not implemented yet!"
 
 #if defined(DYNINST_RT_STATIC_LIB)
+
+#include <assert.h>
+
 void (*DYNINSTctors_addr)(void);
 void (*DYNINSTdtors_addr)(void);
 
