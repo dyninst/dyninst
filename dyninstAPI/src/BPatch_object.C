@@ -681,7 +681,7 @@ void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods_,
     }
 #else
     // Silence compiler warnings
-    (void)mods;
+    (void)mods_;
     (void)interproc;
     (void)modResults;
     (void)depthLimit;

@@ -857,7 +857,6 @@ void MovePCToReg(Register dest, codeGen &gen) {
     INSN_SET(insn, 0, 4, dest);
 
     insnCodeGen::generate(gen, insn);
-    Address ret = gen.currAddr();
     return;
 }
 

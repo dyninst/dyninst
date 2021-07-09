@@ -35,10 +35,10 @@ void (*DYNINSTctors_addr)(void);
 void (*DYNINSTdtors_addr)(void);
 
 //#if defined(MUTATEE64)
-static const unsigned long long CTOR_LIST_TERM = 0x0000000000000000ULL;
-static const unsigned long long CTOR_LIST_START = 0xffffffffffffffffULL;
-static const unsigned long long DTOR_LIST_TERM = 0x0000000000000000ULL;
-static const unsigned long long DTOR_LIST_START = 0xffffffffffffffffULL;
+//static const unsigned long long CTOR_LIST_TERM = 0x0000000000000000ULL;
+//static const unsigned long long CTOR_LIST_START = 0xffffffffffffffffULL;
+//static const unsigned long long DTOR_LIST_TERM = 0x0000000000000000ULL;
+//static const unsigned long long DTOR_LIST_START = 0xffffffffffffffffULL;
 //#else
 /*
 static const unsigned CTOR_LIST_TERM = 0x00000000;

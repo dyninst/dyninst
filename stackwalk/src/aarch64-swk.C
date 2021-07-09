@@ -130,8 +130,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   ra_fp_pair_t this_frame_pair;
   ra_fp_pair_t *actual_frame_pair_p;
 
-  Address actual_fp;
-
   // FrameFuncStepper needs an input FP
   if (!in.getFP())
   {
@@ -185,7 +183,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   if (FrameFuncHelper::no_frame == alloc_frame.first)
   {
     actual_frame_pair_p = &this_frame_pair;
-    actual_fp = in_fp;
   }
   else
   {

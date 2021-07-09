@@ -70,12 +70,6 @@ static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
 static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
-static bool replaceHandler(func_instance *, func_instance *,
-        int_symbol *, const std::string &)
-{
-	assert(0);
-    return false;
-}
 /*
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're

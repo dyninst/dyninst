@@ -188,7 +188,7 @@ void EmitterAARCH64::emitGetParam(
     } // end of swich(op)
 
     assert(regSlot);
-    Register reg = regSlot->number;
+    //Register reg = regSlot->number;
 
     //return reg;
 }
