@@ -33,7 +33,7 @@
 int tc_lock_lock(tc_lock_t *t)
 {
   dyntid_t me = dyn_pthread_self();
-  bool* l = (bool*)(&(t->mutex));
+  volatile bool* l = (volatile bool*)(&(t->mutex));
   while (__atomic_test_and_set(l, __ATOMIC_ACQUIRE))
       if (t->tid == me) return DYNINST_DEAD_LOCK;
   return 0;
