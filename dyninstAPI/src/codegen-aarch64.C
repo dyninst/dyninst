@@ -734,7 +734,6 @@ bool insnCodeGen::modifyJcc(Address target,
     if(labs(disp) > MAX_CBRANCH_OFFSET ||
             (isTB && labs(disp) > MAX_TBRANCH_OFFSET))
     {
-        const unsigned char *origInsn = insn.ptr();
         Address origFrom = gen.currAddr();
 
         /*

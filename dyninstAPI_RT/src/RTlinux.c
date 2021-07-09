@@ -417,9 +417,6 @@ void r_debugCheck() { assert(_r_debug.r_map); }
 #define NUM_LIBRARIES_BITMASK_SIZE (1 + NUM_LIBRARIES / WORD_SIZE)
 struct trap_mapping_header *all_headers[NUM_LIBRARIES];
 
-static unsigned all_headers_current[NUM_LIBRARIES_BITMASK_SIZE];
-static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
-
 #if !defined(arch_x86_64) || defined(MUTATEE_32)
 typedef Elf32_Dyn ElfX_Dyn;
 #else
@@ -427,6 +424,10 @@ typedef Elf64_Dyn ElfX_Dyn;
 #endif
 
 struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
+
+#if !defined (arch_aarch64)
+static unsigned all_headers_current[NUM_LIBRARIES_BITMASK_SIZE];
+static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
 
 static int parse_libs();
 static int parse_link_map(struct link_map *l);
@@ -439,6 +440,7 @@ static unsigned get_next_free_bitmask(unsigned *bit_mask, int last_pos);
 static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos);
 
 static tc_lock_t trap_mapping_lock;
+#endif
 
 static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 {
@@ -474,6 +476,7 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 #endif
 }
 
+#if !defined (arch_aarch64)
 static int parse_libs()
 {
    struct link_map *l_current;
@@ -630,6 +633,7 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
    }
    return NUM_LIBRARIES;
 }
+#endif
 
 #endif
 
