@@ -146,19 +146,19 @@ public:
       Height_t height() const { return height_; }
         
       // FIXME if we stop using TOP == MAXINT and BOT == MININT...
-      bool operator<(const Height &rhs) const {
+      bool operator<(const Height &rhs) const noexcept {
          return (height_ < rhs.height_);
       }
 
-      bool operator>(const Height &rhs) const {
+      bool operator>(const Height &rhs) const noexcept {
          return (height_ > rhs.height_);
       }
 
-      bool operator<=(const Height &rhs) const {
+      bool operator<=(const Height &rhs) const noexcept {
          return (height_ <= rhs.height_);
       }
 
-      bool operator>=(const Height &rhs) const {
+      bool operator>=(const Height &rhs) const noexcept {
          return (height_ >= rhs.height_);
       }
 
