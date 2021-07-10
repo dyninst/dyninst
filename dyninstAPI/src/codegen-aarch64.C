@@ -373,6 +373,8 @@ void insnCodeGen::generateBitwiseOpShifted(
             break;
         case insnCodeGen::Eor: opcode = EORShiftOp;
             break;
+        default:
+            assert(!"insnCodeGen::generateBitwiseOpShifted op is not And, Or or Eor");
     }
     INSN_SET(insn, 24, 30, opcode);
 
