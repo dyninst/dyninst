@@ -1190,7 +1190,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target == registerSpace::ignored) return false;
 
     //jumping to Xn (BLR Xn)
-    args.push_back(AstNode::operandNode(AstNode::origRegister,(void *) branch_target));
+    args.push_back(AstNode::operandNode(AstNode::origRegister,(void *)(long)branch_target));
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *) addr));
 
     //inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",

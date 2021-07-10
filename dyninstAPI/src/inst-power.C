@@ -2588,7 +2588,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     {
         // Where we're jumping to (link register, count register)
         args.push_back( AstNode::operandNode(AstNode::origRegister,
-                        (void *) branch_target));
+                        (void *)(long)branch_target));
 
         // Where we are now
         args.push_back( AstNode::operandNode(AstNode::Constant,
