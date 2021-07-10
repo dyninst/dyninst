@@ -114,8 +114,8 @@ private:
             enumType(NULL), enclosure(NULL),
             parseSibling(true), parseChild(true),
             tag(0), base(0) {
-        };
-        Context(const Context& o) :
+        }
+        Context(const Context& o) noexcept :
                 func(o.func),
                 commonBlock(o.commonBlock),
                 enumType(o.enumType),

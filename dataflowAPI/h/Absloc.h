@@ -278,7 +278,7 @@ class Assignment {
  public:
   typedef boost::shared_ptr<Assignment> Ptr;
   struct AssignmentPtrHasher {
-    size_t operator() (const Ptr& ap) const {
+    size_t operator() (const Ptr& ap) const noexcept {
       return (size_t)ap.get();
     }
   };

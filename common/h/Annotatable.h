@@ -343,7 +343,7 @@ class COMMON_EXPORT AnnotatableSparse
    public:
       struct void_ptr_hasher
       {
-         size_t operator()(const void* a) const
+         size_t operator()(const void* a) const noexcept
          {
             return (size_t) a;
          }

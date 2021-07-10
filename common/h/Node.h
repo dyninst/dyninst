@@ -64,7 +64,7 @@ class COMMON_EXPORT Node  {
  public:
 	 typedef boost::shared_ptr<Node> Ptr;
 	 struct NodePtrHasher {
-	     size_t operator() (const Ptr &n) const {
+	     size_t operator() (const Ptr &n) const noexcept {
 	         return (size_t)n.get();
 	     }
 	 };

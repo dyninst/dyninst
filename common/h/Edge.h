@@ -48,7 +48,7 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
  public:
     typedef boost::shared_ptr<Edge> Ptr;
     struct EdgePtrHasher {
-        size_t operator() (const Ptr &e) const {
+        size_t operator() (const Ptr &e) const noexcept {
 	    return (size_t)e.get();
 	}
     };
