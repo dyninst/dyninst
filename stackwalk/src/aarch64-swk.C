@@ -178,16 +178,8 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
 
 
-  // Set actual stack frame based on
-  // whether the function creates a frame or not
-  if (FrameFuncHelper::no_frame == alloc_frame.first)
-  {
-    actual_frame_pair_p = &this_frame_pair;
-  }
-  else
-  {
-    actual_frame_pair_p = &this_frame_pair;
-  }
+  // Set actual stack frame
+  actual_frame_pair_p = &this_frame_pair;
 
   // Handle leaf functions
   if (FrameFuncHelper::unset_frame == alloc_frame.second)
