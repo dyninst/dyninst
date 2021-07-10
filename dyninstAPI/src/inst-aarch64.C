@@ -175,7 +175,7 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
     int ret = 0;
     if(numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
 
-    for(unsigned int idx = 0; idx < numReqGPRs; idx++) {
+    for(int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
 	// We always save FP and LR for stack walking out of instrumentation
         if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
@@ -619,7 +619,7 @@ Register EmitterAARCH64::emitCall(opCode op,
     vector<int> savedRegs;
 
     // save r0-r7
-    for(size_t id = 0; id < gen.rs()->numGPRs(); id++)
+    for(int id = 0; id < gen.rs()->numGPRs(); id++)
     {
         registerSlot *reg = gen.rs()->GPRs()[id];
 

@@ -217,7 +217,7 @@ void parse_func::calcUsedRegs()
         (*curBlock)->size(),
         isrc()->getArch());
         Instruction i;
-        int size = 0;
+        unsigned size = 0;
         while(size < (*curBlock)->size())
         {
             i = d.decode();
