@@ -510,7 +510,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case eqOp:
             {
                 Register scratch = gen.rs()->getScratchRegister(gen);
-                emitVload(loadConstOp, src2imm, NULL, scratch, gen, true);
+                emitVload(loadConstOp, src2imm, 0, scratch, gen, true);
                 emitV(op, src1, scratch, dest, gen, true);
             }
             break;
@@ -1013,7 +1013,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 //
 int getInsnCost(opCode) {
     assert(0); //Not implemented
-    return NULL;
+    return 0;
 }
 
 #if 0
