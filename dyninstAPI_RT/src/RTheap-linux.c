@@ -92,7 +92,6 @@ DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
     Address saddr = 0, eaddr = 0;
     int num_matches;
     procmaps = fopen("/proc/self/maps", "r");
-    char ch;
     dyninstmm_t* maps = *mapp;
     if(procmaps == NULL) return -1;
     *nump = 0;
@@ -102,6 +101,7 @@ DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
             maps[*nump].pr_size = eaddr - saddr;
             (*nump)++;
             // skip to next line
+            int ch;
             while ((ch = fgetc(procmaps)) != '\n' && ch != EOF) {
                 if (ch == EOF) break;
             }
