@@ -655,7 +655,7 @@ namespace Dyninst {
 				 * double:
 				 *      0x3fc45f306dc9c882
 				 */
-				return Immediate::makeImmediate(Result(dp_float, (1.0f / (3.1415926535*2)) ) );
+				return Immediate::makeImmediate(Result(dp_float, (1.0 / (3.1415926535*2)) ) );
 			}else if (249 == index  || 250 == index){
 				assert ( 0 && "reserved index " ) ;
 			}else if ( 251 == index ){
