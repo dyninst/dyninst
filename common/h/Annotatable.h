@@ -98,7 +98,7 @@ class AnnotationClass : public AnnotationClassBase {
 	  }
 
 	  const char *getTypeName() { return typeid(T).name();}
-	  void *allocate() 
+	  void *allocate() DYNINST_MALLOC_ANNOTATION
 	  {
 		  return (void *) new T();
 	  }

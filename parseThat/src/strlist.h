@@ -30,6 +30,8 @@
 #ifndef __STRLIST_H__
 #define __STRLIST_H__
 
+#include "compiler_annotations.h"
+
 struct strlist_elm {
     char *data;
     strlist_elm *next;
@@ -42,7 +44,7 @@ struct strlist {
 
 #define STRLIST_INITIALIZER { NULL, NULL, 0 }
 
-strlist *strlist_alloc();
+strlist *strlist_alloc() DYNINST_MALLOC_ANNOTATION;
 void strlist_clear(strlist *);
 
 // Alpha-numeric sorted insert.

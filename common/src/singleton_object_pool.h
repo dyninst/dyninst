@@ -32,6 +32,7 @@
 
 #include "pool_allocators.h"
 #include "dthread.h"
+#include "compiler_annotations.h"
 
 // This is only safe for objects with nothrow constructors...
 template <typename T, typename Alloc = std::allocator<T> >
@@ -40,9 +41,7 @@ class singleton_object_pool : public Alloc
     using typename Alloc::size_type;
     using pointer = T*;
 public:
-    static pointer allocate( size_type n ) {
-        return  Alloc().allocate(n);
-    }
+    static pointer allocate( size_type n ) DYNINST_MALLOC_ANNOTATION;
     static void deallocate( pointer p ) {
         Alloc().deallocate(p, 1);
     }
@@ -69,6 +68,11 @@ public:
     };
 
 };
+
+template <typename T, typename Alloc>
+typename singleton_object_pool<T, Alloc>::pointer singleton_object_pool<T, Alloc>::allocate( size_type n ) {
+    return  Alloc().allocate(n);
+}
 
 template <typename T>
 struct PoolDestructor

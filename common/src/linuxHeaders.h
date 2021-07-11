@@ -59,6 +59,8 @@
 #include <sys/un.h>
 #include <sys/syscall.h>
 
+#include "compiler_annotations.h"
+
 #define PDSOCKET_ERROR (-1)
 typedef int PDSOCKET;
 /* Not going to use on Linux Platform - already declared in /usr/include/errno.h
@@ -154,6 +156,7 @@ inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char * P_strcpy (char *TO, const char *FROM) {
   return (strcpy(TO, FROM));}
+inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
 inline char *P_strdup(const char *S) { return (strdup(S));}
 inline size_t P_strlen (const char *S) { return (strlen(S));}
 inline char * P_strncat (char *TO, const char *FROM, size_t SIZE) {

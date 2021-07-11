@@ -21,6 +21,9 @@ IS(u|U|l|L)*
 #include <vector>
 #include "dynC.tab.h"
 #include "snippetGen.h"
+#include "compiler_annotations.h"
+
+void *dynCalloc (yy_size_t  size ) DYNINST_MALLOC_ANNOTATION;
 
 int line_num = 1;
 
