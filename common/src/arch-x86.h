@@ -1116,7 +1116,13 @@ class instruction {
              *p == MOV_RM16_TO_R16 || *p == MOV_RM32_TO_R32;   }
   bool isXORRegMemRegMem() const
       { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
-        return *p == XOR_RM16_R16 || *p ==  XOR_RM32_R32 ||
+        return
+               *p == XOR_RM16_R16 ||
+#if !defined(XOR_RM16_R16) || !defined(XOR_RM32_R32) || (XOR_RM16_R16) != (XOR_RM32_R32)
+// XOR_RM16_R16 and XOR_RM32_R32 are macros with the same value so disable this
+// clause as it is unnecessary and produces a compiler warning
+               *p ==  XOR_RM32_R32 ||
+#endif
                *p ==  XOR_R8_RM8  || *p ==  XOR_R16_RM16 ||
                *p == XOR_R32_RM32; }
   bool isANearBranch() const { return isJumpDir(); }

@@ -2371,8 +2371,15 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
    if (saveFlags) {
       // Saving flags takes up EAX/RAX, and so if they're live they must
       // be saved even if we don't explicitly use them
+#if !defined(__GNUC__) || __GNUC__ >= 10
       if (reg->number == REGNUM_EAX ||
           reg->number == REGNUM_RAX) return true;
+#else
+      // eliminate warning with gcc < 10 about duplicate logical or clauses
+      // since REGNUM_EAX is a macro that with value 0 and REGNUM_RAX is an
+      // enum that has a value 0
+      if (reg->number == REGNUM_EAX) return true;
+#endif
    }
    if (inst && inst->validOptimizationInfo() && !inst->definedRegs[reg->encoding()]) {
       regalloc_printf("\t Base tramp instance doesn't have reg %u (num %u) defined; concluding don't save\n",
