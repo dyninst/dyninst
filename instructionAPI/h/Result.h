@@ -455,7 +455,7 @@ namespace Dyninst
 	    return std::to_string(val.s64val);
 	    break;
 	  case sp_float:
-	    snprintf(hex, 20, "%f", val.floatval);
+	    snprintf(hex, 20, "%f", (double)val.floatval);
 	    break;
 	  case dp_float:
 	    snprintf(hex, 20, "%lf", val.dblval);
