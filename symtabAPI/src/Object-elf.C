@@ -47,6 +47,8 @@
 
 #include "dwarfWalker.h"
 
+#include "Object-elf.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::DwarfDyninst;
@@ -3357,7 +3359,9 @@ class open_statement {
             end_addr = noAddress();
             line_number = 0;
             column_number = 0;
-        }
+            context = 0;
+            funcname_offset = 0;
+        };
         bool sameFileLineColumn(const open_statement &rhs) {
             return ((string_table_index == rhs.string_table_index) &&
                     (line_number == rhs.line_number) &&
@@ -3369,12 +3373,31 @@ class open_statement {
             end_addr = rhs.end_addr;
             line_number = rhs.line_number;
             column_number = rhs.column_number;
-        }
+            context = rhs.context;
+            funcname_offset = rhs.funcname_offset;
+        };
         friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
         {
-            os << hex << st.start_addr << " " << st.end_addr << " line:"
-                << dec << st.line_number << " file:" << st.string_table_index << " col:" << st.column_number << std::endl;
+	    st.dump(os, 0, true);
             return os;
+	};
+        const char * str(Region *r, unsigned int offset) const {
+	  return ((char *) r->getPtrToRawData()) + offset;
+	};
+        void dump(std::ostream& os, Region *debug_str, bool addrRange) const {
+	  // unsigned int o = 0x2868;
+	  // unsigned int o = 0x2868 + 0x500;
+	   unsigned int o = 0x2868 + 0x700;
+            if (addrRange) os << "[" << hex << start_addr - o << ", " << end_addr - o << "]";
+	    else os << "inlined at";
+            os << " file:" << string_table_index;
+            os << " line:" << dec << line_number;
+            os << " col:" << column_number;
+            if (context) {
+              os << " context " << context;  
+              os << " function name " << str(debug_str, funcname_offset);  
+            }
+            os << std::endl;
         }
     public:
         Dwarf_Word string_table_index;
@@ -3382,6 +3405,8 @@ class open_statement {
         Dwarf_Addr end_addr;
         int line_number;
         int column_number;
+        unsigned int context;
+        unsigned int funcname_offset;
 };
 
 
@@ -3564,8 +3589,46 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 }
 
 
-LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
+void
+dumpLineContext
+(
+ Region *debug_str,
+ open_statement &saved_statement, 
+ vector<open_statement> &inline_context ) {
+  cout << "--" << endl;
+  saved_statement.dump(cout, debug_str, true);
+  if (inline_context.size()) {
+    for (unsigned int i = inline_context.size(); i > 0; i--) {
+      inline_context[i -1].dump(cout, debug_str, false);
+    }
+  }
+}
+
+bool
+replaceInlineContext
+(
+ vector<open_statement> &inline_context,
+ open_statement &saved_statement
+) 
 {
+  if (saved_statement.context) {
+    for (unsigned int i = 0; i < inline_context.size(); i++) {
+      if (inline_context[i].context == saved_statement.context) {
+	inline_context.erase(inline_context.begin() + i, inline_context.end());
+	return true;
+      }
+    }
+  }
+  return false;
+}
+
+
+LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
+{
+    Region *debug_str;
+    std::string debug_str_secname = ".debug_str";
+    bool has_debug_str = associated_symtab->findRegion(debug_str, debug_str_secname);
+
     if (li_for_object) {
         // The line information for this object has been parsed.
         return li_for_object;
@@ -3626,9 +3689,11 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
 
     Offset baseAddr = getBaseAddress();
 
-    /* Iterate over this CU's source lines. */
-    open_statement current_line;
+    /* Iterate over this object's source lines. */
+    open_statement saved_statement;
     open_statement current_statement;
+
+    vector<open_statement> inline_context;
     for(size_t i = 0; i < lineCount; i++ )
     {
         auto line = dwarf_onesrcline(lineBuffer, i); 
@@ -3698,21 +3763,73 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
             cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-	if (current_line.uninitialized()) {
-	  current_line = current_statement;
+
+        status = dwarf_linecontext(line, &current_statement.context);
+        if(status != 0) {
+            cout << "dwarf_linecontext failed" << endl;
+            continue;
+        }
+
+        status = dwarf_linefunctionname(line, &current_statement.funcname_offset);
+        if(status != 0) {
+            cout << "dwarf_linefunctionname failed" << endl;
+            continue;
+	}
+	
+	if (saved_statement.uninitialized()) {
+	  saved_statement = current_statement;
 	} else {
-	      current_line.end_addr = current_statement.start_addr;
-	      if (!current_line.sameFileLineColumn(current_statement) ||
-		  isEndOfSequence) {
-                li_for_object->addLine((unsigned int)(current_line.string_table_index),
-                                       (unsigned int)(current_line.line_number),
-                                       (unsigned int)(current_line.column_number),
-                                       current_line.start_addr, current_line.end_addr);
-		current_line = current_statement;
-	      }
+	  bool pushed = false;
+	  saved_statement.end_addr = current_statement.start_addr;
+	  // need to be comparing saved with prev not current with saved
+	  if (1 || current_statement.context != saved_statement.context) {
+	    // if (current_statement.context) {
+	    if (saved_statement.context || current_statement.context) {
+	      // if current_statement has a non-zero context, then saved_statement
+	      // is part of the inlined_at context for the saved_statement. there 
+	      // are two cases to consider:
+	      // 1) if the context of saved_statement is the same as the context of
+	      //    a statement that is already part of the inlined context, then update
+	      //    the matching item in the inlined context with saved_statement and 
+	      //    remove any nested items.
+	      // 2) if saved_statement.context doesn't match anything already in the
+	      //    inlined context, add it to the end.
+
+	      bool replaced = replaceInlineContext(inline_context, saved_statement);
+
+	      if (current_statement.start_addr != saved_statement.start_addr)
+		dumpLineContext(debug_str, saved_statement, inline_context);
+
+	      // if (!replaced) inline_context.push_back(saved_statement);
+	      inline_context.push_back(saved_statement);
+
+	      pushed = true;
+	    } 
+	  } 
+	  if ((!saved_statement.sameFileLineColumn(current_statement) ||
+	       isEndOfSequence)) {
+	    // if we didn't add saved_statement to the inlined context, then
+	    // the context for the saved_statement needs to be emitted.
+	    if (!pushed) { 
+	      dumpLineContext(debug_str, saved_statement, inline_context);
+	    }
+
+	    li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
+				   (unsigned int)(saved_statement.line_number),
+				   (unsigned int)(saved_statement.column_number),
+				   saved_statement.start_addr, saved_statement.end_addr);
+
+	    // a statement with context 0 clears all inlined context. remove all 
+	    // inlined context entries in the vector.
+	    if (current_statement.context == 0) {
+	      inline_context.resize(0);
+	    }
+
+	    saved_statement = current_statement;
+	  }
 	}
 	if (isEndOfSequence) {
-	  current_line.reset();
+	  saved_statement.reset();
 	}
     } 
     }
