@@ -3385,19 +3385,20 @@ class open_statement {
 	  return ((char *) r->getPtrToRawData()) + offset;
 	};
         void dump(std::ostream& os, Region *debug_str, bool addrRange) const {
-	  // unsigned int o = 0x2868;
-	  // unsigned int o = 0x2868 + 0x500;
-	   unsigned int o = 0x2868 + 0x700;
-            if (addrRange) os << "[" << hex << start_addr - o << ", " << end_addr - o << "]";
-	    else os << "inlined at";
-            os << " file:" << string_table_index;
-            os << " line:" << dec << line_number;
-            os << " col:" << column_number;
-            if (context) {
-              os << " context " << context;  
-              os << " function name " << str(debug_str, funcname_offset);  
-            }
-            os << std::endl;
+	    // to facilitate comparison with nvdisasm output, where each function starts at 0,
+	    // set o to an offset that makes a function of interest report addresses that
+	    // match its unrelocated offsets reported by nvdisasm
+	    unsigned int o = 0;
+	    if (addrRange) os << "[" << hex << start_addr - o << ", " << end_addr - o << "]";
+	    else os << "  inlined at";
+	    os << " file:" << string_table_index;
+	    os << " line:" << dec << line_number;
+	    os << " col:" << column_number;
+	    if (context) {
+	        os << " context " << context;
+	        os << " function name " << str(debug_str, funcname_offset);
+	    }
+	    os << std::endl;
         }
     public:
         Dwarf_Word string_table_index;
@@ -3590,12 +3591,13 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
 
 void
-dumpLineContext
+dumpLineWithInlineContext
 (
  Region *debug_str,
- open_statement &saved_statement, 
- vector<open_statement> &inline_context ) {
-  cout << "--" << endl;
+ open_statement &saved_statement,
+ vector<open_statement> &inline_context
+)
+{
   saved_statement.dump(cout, debug_str, true);
   if (inline_context.size()) {
     for (unsigned int i = inline_context.size(); i > 0; i--) {
@@ -3604,22 +3606,50 @@ dumpLineContext
   }
 }
 
-bool
-replaceInlineContext
+
+void
+recordLine
+(
+ LineInformation *li_for_object,
+ Region *debug_str,
+ open_statement &saved_statement,
+ vector<open_statement> &inline_context
+)
+{
+  // record line map entry
+  li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
+			 (unsigned int)(saved_statement.line_number),
+			 (unsigned int)(saved_statement.column_number),
+			 saved_statement.start_addr, saved_statement.end_addr);
+
+  // record inline context, if any
+  if (inline_context.size()) {
+    for (unsigned int i = inline_context.size(); i > 0; i--) {
+      // record inline context for inline_context[i -1]
+    }
+  }
+
+  dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
+}
+
+
+void
+deleteAnyMatchingInlinedContext
 (
  vector<open_statement> &inline_context,
  open_statement &saved_statement
-) 
+)
 {
-  if (saved_statement.context) {
+  unsigned int c = saved_statement.context;
+  if (c) {
     for (unsigned int i = 0; i < inline_context.size(); i++) {
-      if (inline_context[i].context == saved_statement.context) {
+      if (inline_context[i].context == c) {
+	// delete the entry matching c and any nexted entries
 	inline_context.erase(inline_context.begin() + i, inline_context.end());
-	return true;
+	return;
       }
     }
   }
-  return false;
 }
 
 
@@ -3633,8 +3663,8 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
         // The line information for this object has been parsed.
         return li_for_object;
     }
-    li_for_object = new LineInformation(); 
-    li_for_object->setStrings(strings_);
+    li_for_object = new LineInformation();
+    li_for_object->setStrings(strings);
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr) return li_for_object;
@@ -3696,7 +3726,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     vector<open_statement> inline_context;
     for(size_t i = 0; i < lineCount; i++ )
     {
-        auto line = dwarf_onesrcline(lineBuffer, i); 
+        auto line = dwarf_onesrcline(lineBuffer, i);
 
         /* Acquire the line number, address, source, and end of sequence flag. */
         status = dwarf_lineno(line, &current_statement.line_number);
@@ -3723,7 +3753,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
             if (result)
                 current_statement.start_addr = new_lineAddr;
         }
-        
+
         //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char * file_name = dwarf_linesrc(line, NULL, NULL);
         if ( !file_name ) {
@@ -3736,9 +3766,9 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
         int index = -1;
         for(size_t idx = offset; idx < strings->size(); ++idx)
         {
-            if((*strings)[idx].str==file_name_str) 
-            {  
-                index = idx; 
+            if((*strings)[idx].str==file_name_str)
+            {
+                index = idx;
                 break;
             }
         }
@@ -3781,47 +3811,34 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 	} else {
 	  bool pushed = false;
 	  saved_statement.end_addr = current_statement.start_addr;
-	  // need to be comparing saved with prev not current with saved
-	  if (1 || current_statement.context != saved_statement.context) {
-	    // if (current_statement.context) {
-	    if (saved_statement.context || current_statement.context) {
-	      // if current_statement has a non-zero context, then saved_statement
-	      // is part of the inlined_at context for the saved_statement. there 
-	      // are two cases to consider:
-	      // 1) if the context of saved_statement is the same as the context of
-	      //    a statement that is already part of the inlined context, then update
-	      //    the matching item in the inlined context with saved_statement and 
-	      //    remove any nested items.
-	      // 2) if saved_statement.context doesn't match anything already in the
-	      //    inlined context, add it to the end.
+	  if (saved_statement.context || current_statement.context) {
+	    // if saved_statement.context is non-zero, we need to remove any previously
+	    // recorded inlined context that matches saved_statement.context or is
+	    // nexted inside the matching context
+	    deleteAnyMatchingInlinedContext(inline_context, saved_statement);
 
-	      bool replaced = replaceInlineContext(inline_context, saved_statement);
+	    // record saved_statement and its inlining context if any addresses fall
+	    // between saved_statement and current_statement.
+	    if (current_statement.start_addr != saved_statement.start_addr)
+	      recordLine (li_for_object, debug_str, saved_statement, inline_context);
 
-	      if (current_statement.start_addr != saved_statement.start_addr)
-		dumpLineContext(debug_str, saved_statement, inline_context);
+	    // record saved_statement as inlined context for current_statement`
+	    inline_context.push_back(saved_statement);
 
-	      // if (!replaced) inline_context.push_back(saved_statement);
-	      inline_context.push_back(saved_statement);
-
-	      pushed = true;
-	    } 
-	  } 
+	    pushed = true;
+	  }
 	  if ((!saved_statement.sameFileLineColumn(current_statement) ||
 	       isEndOfSequence)) {
-	    // if we didn't add saved_statement to the inlined context, then
-	    // the context for the saved_statement needs to be emitted.
-	    if (!pushed) { 
-	      dumpLineContext(debug_str, saved_statement, inline_context);
+
+	    if (!pushed) {
+	    // we didn't add saved_statement to the inlined context of current_statement,
+	    // so a line map entry for saved_statement needs to be recorded
+	      recordLine (li_for_object, debug_str, saved_statement, inline_context);
 	    }
 
-	    li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
-				   (unsigned int)(saved_statement.line_number),
-				   (unsigned int)(saved_statement.column_number),
-				   saved_statement.start_addr, saved_statement.end_addr);
-
-	    // a statement with context 0 clears all inlined context. remove all 
-	    // inlined context entries in the vector.
 	    if (current_statement.context == 0) {
+	      // a line map statement with context 0 clears all inlined context.
+	      // remove all inlined context entries in the vector.
 	      inline_context.resize(0);
 	    }
 
@@ -3831,7 +3848,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 	if (isEndOfSequence) {
 	  saved_statement.reset();
 	}
-    } 
+    }
     }
     return li_for_object;
 }
@@ -3913,7 +3930,7 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
     int hi = DebugSectionMap.size();
 
     if (hi == 0) {
-      // DebugSectionMap is empty; handle this case separately 
+      // DebugSectionMap is empty; handle this case separately
       DbgSectionMapSorted = true;
       return true;
     }
