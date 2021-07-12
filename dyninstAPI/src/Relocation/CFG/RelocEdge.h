@@ -35,7 +35,7 @@ namespace Relocation {
 
 struct RelocEdge {
    RelocEdge(TargetInt *s, TargetInt *t, edge_instance* e, ParseAPI::EdgeTypeEnum et) :
-     src(s), trg(t), edge(e), type(et) {};
+     src(s), trg(t), edge(e), type(et) {}
 
    ~RelocEdge();
 
@@ -46,7 +46,7 @@ struct RelocEdge {
 };
 
 struct RelocEdges {
-   RelocEdges() {};
+   RelocEdges() {}
 
    typedef std::list<RelocEdge *>::iterator iterator;
    typedef std::list<RelocEdge *>::const_iterator const_iterator;

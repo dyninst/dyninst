@@ -51,8 +51,8 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
       unsigned sp_delta;
       // Note: ra and fp are differences in address, sp is difference in value. 
 
-    cache_t() : ra_delta((unsigned) -1), fp_delta((unsigned) -1), sp_delta((unsigned) -1) {};
-    cache_t(unsigned a, unsigned b, unsigned c) : ra_delta(a), fp_delta(b), sp_delta(c) {};
+    cache_t() : ra_delta((unsigned) -1), fp_delta((unsigned) -1), sp_delta((unsigned) -1) {}
+    cache_t(unsigned a, unsigned b, unsigned c) : ra_delta(a), fp_delta(b), sp_delta(c) {}
     };
 
     dyn_hash_map<Address, cache_t> cache_;

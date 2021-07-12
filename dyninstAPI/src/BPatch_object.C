@@ -54,7 +54,7 @@ class BPatch_object_getMod {
       BPatch_module *mod = img->findOrCreateModule(m);
       if (mod) mods.push_back(mod);
    }
-   BPatch_object_getMod(BPatch_image *i, std::vector<BPatch_module *> &m) : img(i), mods(m) {};
+   BPatch_object_getMod(BPatch_image *i, std::vector<BPatch_module *> &m) : img(i), mods(m) {}
    BPatch_image *img;
    std::vector<BPatch_module *> &mods;
 };
@@ -121,7 +121,7 @@ struct findFunc {
             std::vector<BPatch_function *> &f,
             bool n_o_f, bool r, bool i, bool d) : 
       name(n), funcs(f), notify_on_failure(n_o_f),
-      regex_case_sensitive(r), incUninstrumentable(i), dont_use_regex(d) {};
+      regex_case_sensitive(r), incUninstrumentable(i), dont_use_regex(d) {}
 
    std::string name;
    std::vector<BPatch_function *> &funcs;

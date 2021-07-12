@@ -52,7 +52,7 @@ class PATCHAPI_EXPORT InsertedCode {
    friend class PatchModifier;
 
   public:
-  InsertedCode() : entry_(NULL) {};
+  InsertedCode() : entry_(NULL) {}
 
    typedef boost::shared_ptr<InsertedCode> Ptr;
    PatchBlock *entry() { return entry_; }

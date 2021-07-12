@@ -67,7 +67,7 @@ typedef enum BPatch_sourceType {
 
 class BPATCH_DLL_EXPORT BPatch_sourceObj {
  public:
-    virtual ~BPatch_sourceObj() { };
+    virtual ~BPatch_sourceObj() { }
 
       BPatch_sourceType getSrcType() { return _srcType; }
       virtual bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &) = 0;

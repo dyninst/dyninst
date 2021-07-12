@@ -99,9 +99,9 @@ class BPATCH_DLL_EXPORT BPatch_Set {
    DO_INLINE_F reverse_iterator rend() { return int_set.rend(); }
    DO_INLINE_F const_reverse_iterator rend() const { return int_set.rend(); }
 
-   DO_INLINE_F BPatch_Set() {};
+   DO_INLINE_F BPatch_Set() {}
 
-   DO_INLINE_F BPatch_Set(int_t s) : int_set(s) {};
+   DO_INLINE_F BPatch_Set(int_t s) : int_set(s) {}
 
    /** copy constructor.
     * @param newBPatch_Set the BPatch_Set which will be copied

@@ -60,7 +60,7 @@ class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
     bool removeSymbol(Symbol *sym);      
 
    void setType(boost::shared_ptr<Type> type);
-   void setType(Type* t) { setType(t->reshare()); };
+   void setType(Type* t) { setType(t->reshare()); }
    boost::shared_ptr<Type> getType(Type::do_share_t);
    Type* getType() { return getType(Type::share).get(); }
    bool operator==(const Variable &v);
@@ -107,7 +107,7 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
             std::vector<VariableLocation> *locs = NULL);
 	localVar(std::string n, Type* t, std::string fn, int l, FunctionBase *f, 
             std::vector<VariableLocation> *ls = NULL)
-      : localVar(n, t->reshare(), fn, l, f, ls) {};
+      : localVar(n, t->reshare(), fn, l, f, ls) {}
             
 	// Copy constructor
 	localVar(localVar &lvar);
@@ -121,7 +121,7 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
 	boost::shared_ptr<Type> getType(Type::do_share_t);
     Type* getType() { return getType(Type::share).get(); }
 	bool setType(boost::shared_ptr<Type> newType);
-	bool setType(Type* t) { return setType(t->reshare()); };
+	bool setType(Type* t) { return setType(t->reshare()); }
 	int  getLineNum();
 	std::string &getFileName();
 	std::vector<VariableLocation> &getLocationLists();

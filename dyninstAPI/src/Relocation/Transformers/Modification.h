@@ -65,7 +65,7 @@ class Modification : public Transformer {
                  const FuncModMap &funcRepl,
                  const FuncWrapMap &funcWrap);
 
-    virtual ~Modification() {};
+    virtual ~Modification() {}
 
   private:
 
@@ -89,10 +89,10 @@ class Modification : public Transformer {
     };
 
     struct WrapperPatch : public Patch {
-      WrapperPatch(func_instance *func, std::string name) : func_(func), name_(name) {};
+      WrapperPatch(func_instance *func, std::string name) : func_(func), name_(name) {}
        virtual bool apply(codeGen &gen, CodeBuffer *buf);
        virtual unsigned estimate(codeGen &) { return 0; }
-       virtual ~WrapperPatch() {};
+       virtual ~WrapperPatch() {}
 
        func_instance *func_;
        std::string name_;

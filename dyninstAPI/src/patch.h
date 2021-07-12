@@ -51,7 +51,7 @@ class toAddressPatch : public patchTarget {
  private:
    Address addr;
  public:
-   toAddressPatch(Address a) : addr(a) {};
+   toAddressPatch(Address a) : addr(a) {}
    virtual ~toAddressPatch();
 
    virtual Address get_address() const;
@@ -96,7 +96,7 @@ class ifTargetPatch : public patchTarget
    signed int targetOffset;
  public:
    ifTargetPatch(signed int o) { targetOffset = o; }
-   virtual Address get_address() const { return (Address) targetOffset; };
+   virtual Address get_address() const { return (Address) targetOffset; }
    virtual unsigned get_size() const { return 0; }
    virtual std::string get_name() const { return std::string("ifTarget"); }
    virtual ~ifTargetPatch() { }

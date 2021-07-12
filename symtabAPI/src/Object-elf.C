@@ -3979,30 +3979,30 @@ void Object::parseStabFileLineInfo() {
 
 class open_statement {
     public:
-        open_statement() { reset(); };
+        open_statement() { reset(); }
         Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
         bool uninitialized() {
             return start_addr == noAddress();
-        };
+        }
         void reset() {
             string_table_index = -1;
             start_addr = noAddress();
             end_addr = noAddress();
             line_number = 0;
             column_number = 0;
-        };
+        }
         bool sameFileLineColumn(const open_statement &rhs) {
             return ((string_table_index == rhs.string_table_index) &&
                     (line_number == rhs.line_number) &&
                     (column_number == rhs.column_number));
-        };
+        }
         void operator=(const open_statement &rhs) {
             string_table_index = rhs.string_table_index;
             start_addr = rhs.start_addr;
             end_addr = rhs.end_addr;
             line_number = rhs.line_number;
             column_number = rhs.column_number;
-        };
+        }
         friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
         {
             os << hex << st.start_addr << " " << st.end_addr << " line:"

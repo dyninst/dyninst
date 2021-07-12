@@ -246,7 +246,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
       friend class Dyninst::ProcControlAPI::ProcessSet;
      private:
       int_processSet::iterator int_iter;
-	  const_iterator(int_processSet::iterator i) : int_iter(i) {};
+	  const_iterator(int_processSet::iterator i) : int_iter(i) {}
      public:
       const_iterator();
       ~const_iterator();

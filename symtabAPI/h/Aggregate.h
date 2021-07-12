@@ -69,7 +69,7 @@ class SYMTAB_EXPORT Aggregate
   public:
 
       
-      virtual ~Aggregate() {};
+      virtual ~Aggregate() {}
 
       virtual Offset   getOffset() const;
       virtual unsigned getSize() const;

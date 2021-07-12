@@ -128,7 +128,7 @@ public:
                                                   Dyninst::MachRegisterVal & /*reg_result*/,
                                                   Dyninst::SymtabAPI::MemRegReader * /*reader*/) {return false;}
     
-    SYMTAB_EXPORT virtual Dyninst::Architecture getArch() const { return Arch_none; };
+    SYMTAB_EXPORT virtual Dyninst::Architecture getArch() const { return Arch_none; }
     SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
     SYMTAB_EXPORT void setModuleForOffset(Offset sym_off, std::string module);
     SYMTAB_EXPORT void clearSymsToMods();
@@ -142,8 +142,8 @@ public:
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
     // Only implemented for ELF right now
-    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {};
-	SYMTAB_EXPORT virtual void rebase(Offset) {};
+    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {}
+	SYMTAB_EXPORT virtual void rebase(Offset) {}
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected

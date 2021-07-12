@@ -65,7 +65,7 @@ public:
         std::destroy_at(p);
 #endif
         deallocate(p);
-    };
+    }
 
 };
 

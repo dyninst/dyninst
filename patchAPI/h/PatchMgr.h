@@ -56,9 +56,9 @@ struct Scope {
    PatchFunction *func;
    PatchBlock *block;
    bool wholeProgram;
-Scope(PatchBlock *b) : obj(NULL), func(NULL), block(b), wholeProgram(false) {};
-Scope(PatchFunction *f, PatchBlock *b) : obj(NULL), func(f), block(b), wholeProgram(false) {};
-Scope(PatchFunction *f) : obj(NULL), func(f), block(NULL), wholeProgram(false) {};
+Scope(PatchBlock *b) : obj(NULL), func(NULL), block(b), wholeProgram(false) {}
+Scope(PatchFunction *f, PatchBlock *b) : obj(NULL), func(f), block(b), wholeProgram(false) {}
+Scope(PatchFunction *f) : obj(NULL), func(f), block(NULL), wholeProgram(false) {}
 };
 
 

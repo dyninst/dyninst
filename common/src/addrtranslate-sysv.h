@@ -107,7 +107,7 @@ public:
                         std::string exe_name,
                         Address interp_base);
    AddressTranslateSysV();
-   virtual ~AddressTranslateSysV() {};
+   virtual ~AddressTranslateSysV() {}
 
 private:
    ProcessReader *reader;

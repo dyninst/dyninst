@@ -299,8 +299,8 @@ class M_A_Predicates : public Slicer::Predicates {
 public:
   bool haveWidened;
 
-  M_A_Predicates() : haveWidened(false) {};
-  virtual ~M_A_Predicates() {};
+  M_A_Predicates() : haveWidened(false) {}
+  virtual ~M_A_Predicates() {}
 
   virtual bool endAtPoint (Assignment::Ptr p) {
     if (p->out().absloc().isPC()) return true;
@@ -318,7 +318,7 @@ public:
 			return true;
 	}
 	return false;
-  };
+  }
 
   virtual bool widenAtAssignment(const AbsRegion &search, const AbsRegion &found) {
     if (search != found) {

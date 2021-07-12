@@ -307,8 +307,8 @@ class parse_func : public ParseAPI::Function
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
                                 // parse at a weird instruction (e.g., arpl)
    void setHasWeirdInsns(bool wi);
-   void setPrevBlocksUnresolvedCF(size_t newVal) { prevBlocksUnresolvedCF_ = newVal; };
-   size_t getPrevBlocksUnresolvedCF() const { return prevBlocksUnresolvedCF_; };
+   void setPrevBlocksUnresolvedCF(size_t newVal) { prevBlocksUnresolvedCF_ = newVal; }
+   size_t getPrevBlocksUnresolvedCF() const { return prevBlocksUnresolvedCF_; }
 
 
    // ----------------------------------------------------------------------

@@ -73,8 +73,8 @@ class COMMON_EXPORT Buffer {
       friend class Buffer;
 
      public:
-     iterator() : pos((storage *)-1) {};
-      ~iterator() {};
+     iterator() : pos((storage *)-1) {}
+      ~iterator() {}
       storage operator*() const {
          assert(valid);
          return *pos;
@@ -100,8 +100,8 @@ class COMMON_EXPORT Buffer {
       }
 
      private:
-      bool valid() const { return pos != (storage *)-1; };
-     iterator(storage *start) : pos(start) {};
+      bool valid() const { return pos != (storage *)-1; }
+     iterator(storage *start) : pos(start) {}
       storage *pos;
    };
 

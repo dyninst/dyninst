@@ -57,7 +57,7 @@ class mapped_module;
 class int_symbol {
  public:
     int_symbol(SymtabAPI::Symbol *sym, Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
-    int_symbol() : addr_(0), sym_(NULL) {};
+    int_symbol() : addr_(0), sym_(NULL) {}
 
     Address getAddr() const { return addr_; }
     unsigned getSize() const { return sym_->getSize(); }
@@ -76,7 +76,7 @@ class int_variable {
     // Should subclass this and function off the same thing...
 
  private:
-    int_variable() {};
+    int_variable() {}
  public:
     int_variable(image_variable *var,
                  Address base,
@@ -94,7 +94,7 @@ class int_variable {
     
     //const vector<string>& prettyNameVector() const;
     //const vector<string>& symTabNameVector() const;
-    mapped_module *mod() const { return mod_; };
+    mapped_module *mod() const { return mod_; }
     //AddressSpace *as() const { return mod()->proc(); }
     const image_variable *ivar() const { return ivar_; }
 
@@ -198,7 +198,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     static bool isSystemLib(const std::string &name);
     bool isMemoryImg() const { return memoryImg_; }
 
-    void setMemoryImg() { memoryImg_ = true; };
+    void setMemoryImg() { memoryImg_ = true; }
 
     // Return an appropriate identification string for debug purposes.
     // Will eventually be required by a debug base class.
@@ -410,7 +410,7 @@ public:
 // Aggravation: a mapped object might very well occupy multiple "ranges".
 class mappedObjData : public codeRange {
  public:
-    mappedObjData(mapped_object *obj_) : obj(obj_) {};
+    mappedObjData(mapped_object *obj_) : obj(obj_) {}
     Address get_address() const { return obj->dataAbs(); }
     unsigned get_size() const { return obj->dataSize(); }
     mapped_object *obj;

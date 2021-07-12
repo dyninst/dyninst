@@ -124,7 +124,7 @@ class BPATCH_DLL_EXPORT BPatch_branchInstruction : public BPatch_instruction{
         BPatch_instruction(insn, _addr),
         target_(target) {}
 
-    ~BPatch_branchInstruction() {};
+    ~BPatch_branchInstruction() {}
 
     void *getTarget() { return target_; }
 
@@ -150,7 +150,7 @@ class BPATCH_DLL_EXPORT BPatch_register {
     BPatch_register(std::string n,
                     int e) :
         name_(n),
-        number_(e) {};
+        number_(e) {}
     
     std::string name_;
     int number_;

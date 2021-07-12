@@ -54,7 +54,7 @@ namespace ParseAPI {
 class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
   public:
     DynCFGFactory(image * im);
-    ~DynCFGFactory() {};
+    ~DynCFGFactory() {}
     
     ParseAPI::Function * mkfunc(Address addr, FuncSource src, std::string name,
             ParseAPI::CodeObject * obj, ParseAPI::CodeRegion * reg,

@@ -115,7 +115,7 @@ public:
    virtual bool is_valid() = 0;   
    virtual Address map_address() = 0;
    virtual bool load_link(Address addr) = 0;
-   virtual ~link_map_xplat() {};
+   virtual ~link_map_xplat() {}
 };
 
 template<class link_map_X> 

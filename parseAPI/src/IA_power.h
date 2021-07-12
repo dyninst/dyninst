@@ -50,7 +50,7 @@ class PPC_BLR_Visitor: public ASTVisitor
     PPC_BLR_NOTRETURN } ReturnState;
 
  PPC_BLR_Visitor(Address ret)
-   : ret_(ret), return_(PPC_BLR_UNSET) {};
+   : ret_(ret), return_(PPC_BLR_UNSET) {}
 
      virtual AST::Ptr visit(AST *);
      virtual AST::Ptr visit(DataflowAPI::BottomAST *);
@@ -58,16 +58,16 @@ class PPC_BLR_Visitor: public ASTVisitor
      virtual AST::Ptr visit(DataflowAPI::VariableAST *);
      virtual AST::Ptr visit(DataflowAPI::RoseAST *);
      //virtual AST::Ptr visit(StackAST *);
-     virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
-     virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
-     virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
-     virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
-     virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();};
+     virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
+     virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
+     virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
+     virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
+     virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
 
   
-   virtual ~PPC_BLR_Visitor() {};
+   virtual ~PPC_BLR_Visitor() {}
 
-  ReturnState returnState() const { return return_; };
+  ReturnState returnState() const { return return_; }
 
   private:
      using ASTVisitor::visit;

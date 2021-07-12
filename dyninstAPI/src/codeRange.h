@@ -190,7 +190,7 @@ class codeRangeTree {
     void destroy(entry*);
 
     /** copy constructor */
-    codeRangeTree(const codeRangeTree &/* y */) {};
+    codeRangeTree(const codeRangeTree &/* y */) {}
 
   public:
 

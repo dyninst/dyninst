@@ -137,25 +137,25 @@ class ParseCallback {
                        Address & /*loadAddr*/, 
                        CodeObject *& /*containerObject*/) 
       { return false; }
-  virtual bool hasWeirdInsns(const Function*) const { return false; };
-  virtual void foundWeirdInsns(Function*) {};
+  virtual bool hasWeirdInsns(const Function*) const { return false; }
+  virtual void foundWeirdInsns(Function*) {}
 
   // User override time
   // (orig, new split block)
-  virtual void split_block_cb(Block *, Block *) {};
+  virtual void split_block_cb(Block *, Block *) {}
 
-  virtual void destroy_cb(Block *) {};
-  virtual void destroy_cb(Edge *) {};
-  virtual void destroy_cb(Function *) {};
+  virtual void destroy_cb(Block *) {}
+  virtual void destroy_cb(Edge *) {}
+  virtual void destroy_cb(Function *) {}
 
-  virtual void remove_edge_cb(Block *, Edge *, edge_type_t) {};
-  virtual void add_edge_cb(Block *, Edge *, edge_type_t) {};
+  virtual void remove_edge_cb(Block *, Edge *, edge_type_t) {}
+  virtual void add_edge_cb(Block *, Edge *, edge_type_t) {}
   
-  virtual void remove_block_cb(Function *, Block *) {};
-  virtual void add_block_cb(Function *, Block *) {};
+  virtual void remove_block_cb(Function *, Block *) {}
+  virtual void add_block_cb(Function *, Block *) {}
 
-  virtual void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t) {};
-    virtual void function_discovery_cb(Function*) {};
+  virtual void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t) {}
+    virtual void function_discovery_cb(Function*) {}
 
   private:
 };
@@ -232,7 +232,7 @@ class ParseCallbackManager {
      Edge *edge;
      ParseCallback::edge_type_t type;
      mod_t action;
-  BlockMod(Block *b, Edge *e, ParseCallback::edge_type_t t, mod_t m) : block(b), edge(e), type(t), action(m) {};
+  BlockMod(Block *b, Edge *e, ParseCallback::edge_type_t t, mod_t m) : block(b), edge(e), type(t), action(m) {}
   };     
 
   struct EdgeMod {
@@ -241,14 +241,14 @@ class ParseCallbackManager {
      ParseCallback::edge_type_t action;
      
   EdgeMod(Edge *e, Block *b, ParseCallback::edge_type_t t) : 
-     edge(e), block(b), action(t) {};
+     edge(e), block(b), action(t) {}
   };
 
   struct FuncMod {
      Function *func;
      Block *block;
      mod_t action;
-  FuncMod(Function *f, Block *b, mod_t m) : func(f), block(b), action(m) {};
+  FuncMod(Function *f, Block *b, mod_t m) : func(f), block(b), action(m) {}
   };     
 
   typedef std::pair<Block *, Block *> BlockSplit;

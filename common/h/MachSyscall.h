@@ -13,7 +13,7 @@ class Platform
     public: 
         Platform(Architecture a, OSType o): _arch(a), _os(o) {}
 
-        Architecture arch() const { return _arch; };
+        Architecture arch() const { return _arch; }
         OSType os() const { return _os; }
         
         bool operator==(const Platform &) const;

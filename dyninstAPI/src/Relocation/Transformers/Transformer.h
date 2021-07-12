@@ -75,7 +75,7 @@ class Transformer {
   virtual bool process(RelocBlock *, 
                        RelocGraph *) = 0;
 
-  virtual ~Transformer() {};
+  virtual ~Transformer() {}
 };
 
 }

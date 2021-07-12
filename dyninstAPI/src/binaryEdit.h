@@ -184,7 +184,7 @@ class BinaryEdit : public AddressSpace {
    void addDyninstSymbol(SymtabAPI::Symbol *sym) { newDyninstSyms_.push_back(sym); }
 
    virtual void addTrap(Address from, Address to, codeGen &gen);
-   virtual void removeTrap(Address /*from*/) {};
+   virtual void removeTrap(Address /*from*/) {}
     static bool getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths);
 
  private:

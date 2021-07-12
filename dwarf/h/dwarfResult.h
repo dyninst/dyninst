@@ -112,7 +112,7 @@ class DYNDWARF_EXPORT SymbolicDwarfResult : public DwarfResult {
 
 public:
     SymbolicDwarfResult(VariableLocation &v, Architecture a) :
-        DwarfResult(a), var(v) {};
+        DwarfResult(a), var(v) {}
 
     virtual void pushReg(Dyninst::MachRegister reg);
     virtual void readReg(Dyninst::MachRegister reg);
@@ -143,9 +143,9 @@ public:
     ConcreteDwarfResult(ProcessReader *r, Architecture a, 
             Address p, Dwarf * d, Elf * e) :
         DwarfResult(a), reader(r), 
-        pc(p), dbg(d), dbg_eh_frame(e) {};
-    ConcreteDwarfResult() : DwarfResult(Arch_none) {};
-    virtual ~ConcreteDwarfResult() {};
+        pc(p), dbg(d), dbg_eh_frame(e) {}
+    ConcreteDwarfResult() : DwarfResult(Arch_none) {}
+    virtual ~ConcreteDwarfResult() {}
 
     virtual void pushReg(Dyninst::MachRegister reg);
     virtual void readReg(Dyninst::MachRegister reg);

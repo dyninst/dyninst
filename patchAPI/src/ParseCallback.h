@@ -55,8 +55,8 @@ class PatchObject;
 
 class PatchParseCallback : public ParseAPI::ParseCallback {
   public:
-  PatchParseCallback(PatchObject *obj) : ParseAPI::ParseCallback(), _obj(obj) {};
-   ~PatchParseCallback() {};
+  PatchParseCallback(PatchObject *obj) : ParseAPI::ParseCallback(), _obj(obj) {}
+   ~PatchParseCallback() {}
    
   protected:
    // Callbacks we want to know about: CFG mangling

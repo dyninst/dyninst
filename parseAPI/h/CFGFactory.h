@@ -78,7 +78,7 @@ enum EdgeState {
 
 class PARSER_EXPORT CFGFactory  {
  public:
-    CFGFactory() {};
+    CFGFactory() {}
     virtual ~CFGFactory();
     
     /*

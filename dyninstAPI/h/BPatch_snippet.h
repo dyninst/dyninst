@@ -244,7 +244,7 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 
     // Should _always_ have a default constructor. This
     // one produces a 0
-    BPatch_constExpr() : BPatch_snippet() {};
+    BPatch_constExpr() : BPatch_snippet() {}
 
 };
 

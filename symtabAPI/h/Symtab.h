@@ -561,12 +561,12 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
        class iterator : public std::iterator<std::forward_iterator_tag,Symbol*> {
            master_t::iterator m;
        public:
-           iterator(master_t::iterator i) : m(i) {};
-           bool operator==(const iterator& x) { return m == x.m; };
-           bool operator!=(const iterator& x) { return !operator==(x); };
-           Symbol* const& operator*() const { return m->first; };
-           Symbol* const* operator->() const { return &operator*(); };
-           iterator& operator++() { ++m; return *this; };
+           iterator(master_t::iterator i) : m(i) {}
+           bool operator==(const iterator& x) { return m == x.m; }
+           bool operator!=(const iterator& x) { return !operator==(x); }
+           Symbol* const& operator*() const { return m->first; }
+           Symbol* const* operator->() const { return &operator*(); }
+           iterator& operator++() { ++m; return *this; }
            iterator operator++(int) {
                iterator old(m);
                operator++();

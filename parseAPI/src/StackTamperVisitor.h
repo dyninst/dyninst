@@ -118,9 +118,9 @@ struct Var {
     return false;
   }
 
-Var() : x(0) {};
-Var(int a) : x(a) {};
-Var(T a) : x(0) { unknowns[a] = 1; };
+Var() : x(0) {}
+Var(int a) : x(a) {}
+Var(T a) : x(0) { unknowns[a] = 1; }
 
   int x;
   Unknowns unknowns;
@@ -203,11 +203,11 @@ struct linVar {
     return linVar<T>();
   }
   
-linVar() : bottom(true) {};
-linVar(T x, T y) : bottom(false), a(x), b(y) {};
-linVar(int x, int y) : bottom(false), a(x), b(y) {};
-linVar(T x, int y): bottom(false), a(x), b(y) {};
-linVar(Var<T> x, Var<T> y) : bottom(false), a(x), b(y) {};
+linVar() : bottom(true) {}
+linVar(T x, T y) : bottom(false), a(x), b(y) {}
+linVar(int x, int y) : bottom(false), a(x), b(y) {}
+linVar(T x, int y): bottom(false), a(x), b(y) {}
+linVar(Var<T> x, Var<T> y) : bottom(false), a(x), b(y) {}
   bool bottom;
   Var<T> a;
   Var<T> b;
@@ -245,7 +245,7 @@ class StackTamperVisitor : public ASTVisitor {
   virtual ASTVisitor::ASTPtr visit(StpAST *x) { return ASTVisitor::visit(x); }
   virtual ASTVisitor::ASTPtr visit(YicesAST *x) { return ASTVisitor::visit(x); }
   virtual ASTVisitor::ASTPtr visit(SemanticsAST *x) { return ASTVisitor::visit(x); }
-  virtual ~StackTamperVisitor() {};
+  virtual ~StackTamperVisitor() {}
   
   ParseAPI::StackTamper tampersStack(AST::Ptr a, Address &modAddr);
 

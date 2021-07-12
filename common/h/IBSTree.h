@@ -130,7 +130,7 @@ class IBSNode {
 
     ~IBSNode() { }
 
-    interval_type value() const { return val_; };
+    interval_type value() const { return val_; }
     interval_type operator*() const { return value; }
     friend std::ostream& operator<<(std::ostream& stream, const IBSNode<ITYPE>& node)
     {
@@ -237,7 +237,7 @@ private:
       std::cerr.width(n);
       std::cerr << "";
       return std::cerr;
-    };
+    }
 
     int height(IBSNode<ITYPE> *n);
     int CountMarks(IBSNode<ITYPE> *R) const;
@@ -246,7 +246,7 @@ public:
     friend std::ostream& operator<<(std::ostream& stream, const IBSTree<ITYPE>& tree)
     {
         return stream << *(tree.root);
-    };
+    }
 
   public:
 

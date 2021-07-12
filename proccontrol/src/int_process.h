@@ -347,7 +347,7 @@ class int_process
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
 
-   virtual void plat_adjustSyncType(Event::ptr, bool) {};
+   virtual void plat_adjustSyncType(Event::ptr, bool) {}
    virtual Dyninst::Architecture getTargetArch() = 0;
    virtual unsigned getTargetPageSize() = 0;
    virtual unsigned plat_getRecommendedReadSize();
@@ -370,7 +370,7 @@ class int_process
 
    void initializeProcess(Process::ptr p);
 
-   virtual void instantiateRPCThread() {};
+   virtual void instantiateRPCThread() {}
 
    void setExitCode(int c);
    void setCrashSignal(int s);

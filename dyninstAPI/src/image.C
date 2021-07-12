@@ -214,10 +214,10 @@ namespace {
 
         using ASTVisitor::visit;
 
-        virtual ASTPtr visit(AST * a) {return a->ptr();};
-        virtual ASTPtr visit(DataflowAPI::BottomAST *a) {return a->ptr(); };
-        virtual ASTPtr visit(DataflowAPI::ConstantAST *c) {return c->ptr();};
-        virtual ASTPtr visit(DataflowAPI::VariableAST *v) {return v->ptr();};
+        virtual ASTPtr visit(AST * a) {return a->ptr();}
+        virtual ASTPtr visit(DataflowAPI::BottomAST *a) {return a->ptr(); }
+        virtual ASTPtr visit(DataflowAPI::ConstantAST *c) {return c->ptr();}
+        virtual ASTPtr visit(DataflowAPI::VariableAST *v) {return v->ptr();}
 
         virtual ASTPtr visit(DataflowAPI::RoseAST * r) {
             using namespace DataflowAPI;
@@ -454,7 +454,7 @@ class FindMainVisitor : public ASTVisitor
         }
 
         return c->ptr();
-    };
+    }
 
     virtual ASTPtr visit(DataflowAPI::VariableAST* v)
     {

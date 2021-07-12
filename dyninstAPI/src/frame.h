@@ -69,7 +69,7 @@ class Frame {
       sw_frame_(f.sw_frame_),
       proc_(f.proc_),
       thread_(f.thread_),
-      uppermost_(f.uppermost_) {};
+      uppermost_(f.uppermost_) {}
 
   const Frame &operator=(const Frame &f) {
       sw_frame_ = f.sw_frame_;

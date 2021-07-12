@@ -73,9 +73,9 @@ namespace DataflowAPI {
 // Define the operations used by ROSE
 
 struct Variable {
-  DATAFLOW_EXPORT Variable() : reg(), addr(0) {};
-  DATAFLOW_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {};
-  DATAFLOW_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {};
+  DATAFLOW_EXPORT Variable() : reg(), addr(0) {}
+  DATAFLOW_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {}
+  DATAFLOW_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {}
 
   DATAFLOW_EXPORT bool operator==(const Variable &rhs) const { 
     return ((rhs.addr == addr) && (rhs.reg == reg));
@@ -105,9 +105,9 @@ struct Variable {
 };
 
 struct Constant {
-  DATAFLOW_EXPORT Constant() : val(0), size(0) {};
-  DATAFLOW_EXPORT Constant(uint64_t v) : val(v), size(0) {};
-  DATAFLOW_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {};
+  DATAFLOW_EXPORT Constant() : val(0), size(0) {}
+  DATAFLOW_EXPORT Constant(uint64_t v) : val(v), size(0) {}
+  DATAFLOW_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {}
 
  DATAFLOW_EXPORT  bool operator==(const Constant &rhs) const {
     return ((rhs.val == val) && (rhs.size == size));
@@ -174,8 +174,8 @@ typedef enum {
     extendMSBOp
 } Op;
 
-DATAFLOW_EXPORT ROSEOperation(Op o) : op(o), size(0) {};
-DATAFLOW_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {};
+DATAFLOW_EXPORT ROSEOperation(Op o) : op(o), size(0) {}
+DATAFLOW_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {}
 
 DATAFLOW_EXPORT bool operator==(const ROSEOperation &rhs) const {
     return ((rhs.op == op) && (rhs.size == size));
@@ -287,7 +287,7 @@ DATAFLOW_EXPORT const std::string format() const {
     }
     ret << ">";
     return ret.str();
-};
+}
     friend std::ostream& operator<<(std::ostream& stream, const ROSEOperation& c)
     {
         stream << c.format();

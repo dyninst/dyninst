@@ -105,9 +105,9 @@ class CFWidget : public Widget {
 
   void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
-  unsigned gap() const { return gap_; };
-  void clearIsCall() { isCall_ = false; };
-  void clearIsIndirect() { isIndirect_ = false; };
+  unsigned gap() const { return gap_; }
+  void clearIsCall() { isCall_ = false; }
+  void clearIsIndirect() { isIndirect_ = false; }
   void clearIsConditional() { isConditional_ = false; }
   bool isCall() const { return isCall_; }
   bool isIndirect() const { return isIndirect_; }
@@ -120,7 +120,7 @@ class CFWidget : public Widget {
      isIndirect_(false),
      gap_(0),
      addr_(a), 
-     origTarget_(0) {};
+     origTarget_(0) {}
 
    CFWidget(InstructionAPI::Instruction insn,
           Address addr);
@@ -251,7 +251,7 @@ struct PaddingPatch : public Patch {
    PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b);
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
-   virtual ~PaddingPatch() {};
+   virtual ~PaddingPatch() {}
    
    unsigned size_;
    bool registerDefensive_;

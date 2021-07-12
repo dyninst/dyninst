@@ -52,7 +52,7 @@ class baseTramp;
 class EmitterPOWER : public Emitter {
 
  public:
-    virtual ~EmitterPOWER() {};
+    virtual ~EmitterPOWER() {}
     virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &) { assert(0); return 0; }
     virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
     virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,

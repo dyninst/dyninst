@@ -52,8 +52,8 @@ namespace PatchAPI {
 class PATCHAPI_EXPORT Snippet {
   public:
     typedef boost::shared_ptr<Snippet> Ptr;
-    Snippet() {};
-    virtual ~Snippet() {};
+    Snippet() {}
+    virtual ~Snippet() {}
     static Snippet::Ptr create(Snippet *a) { return Ptr(a); }
 
     // Returns false if code generation failed catastrophically

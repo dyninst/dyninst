@@ -95,7 +95,7 @@ class COMMON_EXPORT Node  {
     
     virtual bool isVirtual() const = 0;
     
-    virtual ~Node() {};
+    virtual ~Node() {}
 
     // DOT output methods...
     virtual std::string DOTshape() const;
@@ -104,7 +104,7 @@ class COMMON_EXPORT Node  {
     virtual bool DOTinclude() const { return true; }
 
  protected:
-    Node() {};
+    Node() {}
 
     EdgeSet ins_;
     EdgeSet outs_;
@@ -127,12 +127,12 @@ public:
     
     virtual bool isVirtual() const { return false; }
     
-    virtual ~PhysicalNode() {};
+    virtual ~PhysicalNode() {}
     
     virtual Node::Ptr copy();
 
  protected:
-    PhysicalNode(Address addr) : addr_(addr) {};
+    PhysicalNode(Address addr) : addr_(addr) {}
     
     Address addr_; 
 };
@@ -152,10 +152,10 @@ class  COMMON_EXPORT VirtualNode : public Node {
     
     virtual bool isVirtual() const { return true; }
     
-    virtual  ~VirtualNode() {};
+    virtual  ~VirtualNode() {}
 
-    VirtualNode(std::string name) : name_(name) {};
-    VirtualNode() : name_(defaultName) {};
+    VirtualNode(std::string name) : name_(name) {}
+    VirtualNode() : name_(defaultName) {}
 
     static std::string defaultName;
 

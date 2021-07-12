@@ -100,9 +100,9 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // this function) we make most methods passthroughs to the original
   // parsed version.
 
-  string symTabName() const { return ifunc()->symTabName(); };
-  string prettyName() const { return ifunc()->prettyName(); };
-  string typedName() const { return ifunc()->typedName(); };
+  string symTabName() const { return ifunc()->symTabName(); }
+  string prettyName() const { return ifunc()->prettyName(); }
+  string typedName() const { return ifunc()->typedName(); }
   string name() const { return symTabName(); }
 
   SymtabAPI::Aggregate::name_iter symtab_names_begin() const 

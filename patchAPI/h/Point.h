@@ -45,17 +45,17 @@ namespace PatchAPI {
 struct EntrySite_t {
    PatchFunction *func;
    PatchBlock *block;
-EntrySite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+EntrySite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {}
 };
 struct CallSite_t {
    PatchFunction *func;
    PatchBlock *block;
-CallSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+CallSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {}
 };
 struct ExitSite_t {
    PatchFunction *func;
    PatchBlock *block;
-ExitSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+ExitSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {}
 };
 
 struct InsnLoc_t {
@@ -63,7 +63,7 @@ struct InsnLoc_t {
    Address addr;
    InstructionAPI::Instruction insn;
 InsnLoc_t(PatchBlock *b, Address a, InstructionAPI::Instruction i) :
-   block(b), addr(a), insn(i) {};
+   block(b), addr(a), insn(i) {}
 };
       
      
@@ -146,7 +146,7 @@ struct Location {
 
 private:
 Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction i, PatchEdge *e, bool u, type_t t) :
-   func(f), block(b), addr(a), insn(i), edge(e), trusted(u), type(t) {};
+   func(f), block(b), addr(a), insn(i), edge(e), trusted(u), type(t) {}
 
 };
 
@@ -387,15 +387,15 @@ struct BlockPoints {
    Point *exit;
    InsnPoints preInsn;
    InsnPoints postInsn;
-BlockPoints() : entry(NULL), during(NULL), exit(NULL) {};
+BlockPoints() : entry(NULL), during(NULL), exit(NULL) {}
    bool consistency(const PatchBlock *block, const PatchFunction *func) const;
    ~BlockPoints();
 };
 
 struct EdgePoints {
    Point *during;
-EdgePoints() : during(NULL) {};
-   ~EdgePoints() { if (during) delete during; };
+EdgePoints() : during(NULL) {}
+   ~EdgePoints() { if (during) delete during; }
    bool consistency(const PatchEdge *edge, const PatchFunction *func) const;
 };
 
@@ -405,7 +405,7 @@ struct FuncPoints {
    std::map<PatchBlock *, Point *> exits;
    std::map<PatchBlock *, Point *> preCalls;
    std::map<PatchBlock *, Point *> postCalls;
-FuncPoints() : entry(NULL), during(NULL) {};
+FuncPoints() : entry(NULL), during(NULL) {}
    ~FuncPoints();
    bool consistency(const PatchFunction *func) const;
 };

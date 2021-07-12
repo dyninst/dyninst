@@ -73,25 +73,25 @@ class SnippetGenerator{
    std::vector<BPatch_register> registers;
   
   public:
-   std::string getError() {return lastError.str();};
-   SGError getErrorInfo() {return lastErrorInfo;};
+   std::string getError() {return lastError.str();}
+   SGError getErrorInfo() {return lastErrorInfo;}
   
   public:
 
-  SnippetGenerator() :  point(NULL), addSpace(NULL), image(NULL) {};
+  SnippetGenerator() :  point(NULL), addSpace(NULL), image(NULL) {}
   SnippetGenerator(BPatch_point &pt) : point(&pt)
    { 
       addSpace = point->getAddressSpace();
       image = addSpace->getImage();
-   };
+   }
    
   SnippetGenerator(BPatch_addressSpace &aSpace) : addSpace(&aSpace)
    { 
       point = NULL;
       image = addSpace->getImage();
-   };
+   }
 
-   ~SnippetGenerator(){};
+   ~SnippetGenerator(){}
 
    BPatch_snippet *findOrCreateVariable(const char * name, const char * type, const void * initialValue = NULL);
    BPatch_snippet *findOrCreateArray(const char * name, const char * elementType, long size);
@@ -104,7 +104,7 @@ class SnippetGenerator{
    BPatch_function *findFunction(const char * name, std::vector<BPatch_snippet *> params);
    BPatch_snippet *getContextInfo(SGContext context);
 
-   BPatch_point *getPoint() {return point;};
+   BPatch_point *getPoint() {return point;}
 };
 
 #endif

@@ -55,7 +55,7 @@ public:
   std::set<std::string> _stacks;
   TrackStacktraces() {
     _out.open("generatorStacks.txt", std::ofstream::out);
-  };
+  }
 
   void Insert(std::string s) {
     if (_stacks.find(s) == _stacks.end())

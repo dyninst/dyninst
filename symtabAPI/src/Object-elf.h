@@ -113,7 +113,7 @@ class stab_entry {
   public:
     stab_entry(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stabptr(_stabptr), stabstr(_stabstr), nsyms(_nsyms) { }
-    virtual ~stab_entry() {};
+    virtual ~stab_entry() {}
 
     virtual const char *name(int i) = 0;
     virtual unsigned long nameIdx(int i) = 0;
@@ -136,7 +136,7 @@ class stab_entry_32 : public stab_entry {
   public:
     stab_entry_32(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
-    virtual ~stab_entry_32() {};
+    virtual ~stab_entry_32() {}
 
     const char *name(int i = 0) { 
        if (!stabptr) {
@@ -180,7 +180,7 @@ class stab_entry_64 : public stab_entry {
   public:
     stab_entry_64(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
-    virtual ~stab_entry_64() {};
+    virtual ~stab_entry_64() {}
 
     const char *name(int i = 0) { 
        if (!stabptr) {
@@ -366,7 +366,7 @@ public:
     
     bool convertDebugOffset(Offset off, Offset &new_off);
 
-    std::vector< std::vector<Offset> > getMoveSecAddrRange() const {return moveSecAddrRange;};
+    std::vector< std::vector<Offset> > getMoveSecAddrRange() const {return moveSecAddrRange;}
     dyn_hash_map<int, Region*> getTagRegionMapping() const { return secTagRegionMapping;}
 
     bool hasReldyn() const {return hasReldyn_;}

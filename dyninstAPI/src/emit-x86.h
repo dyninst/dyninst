@@ -51,7 +51,7 @@ class registerSlot;
 
 class Emitterx86 : public Emitter {
     public:
-        virtual ~Emitterx86() {};
+        virtual ~Emitterx86() {}
 
         virtual bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
 
@@ -69,7 +69,7 @@ class Emitterx86 : public Emitter {
 class EmitterIA32 : public Emitterx86 {
 
 public:
-    virtual ~EmitterIA32() {};
+    virtual ~EmitterIA32() {}
     static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
     void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
@@ -152,7 +152,7 @@ public:
 
 class EmitterIA32Dyn : public EmitterIA32 {
  public:
-    ~EmitterIA32Dyn() {};
+    ~EmitterIA32Dyn() {}
     
  protected:
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
@@ -162,7 +162,7 @@ class EmitterIA32Dyn : public EmitterIA32 {
 class EmitterIA32Stat : public EmitterIA32 {
  public:
 
-    ~EmitterIA32Stat() {};
+    ~EmitterIA32Stat() {}
 
     virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
@@ -192,7 +192,7 @@ void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int i
 class EmitterAMD64 : public Emitterx86 {
 
 public:
-    virtual ~EmitterAMD64() {};
+    virtual ~EmitterAMD64() {}
     static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
@@ -279,7 +279,7 @@ class EmitterAMD64Dyn : public EmitterAMD64 {
 
 class EmitterAMD64Stat : public EmitterAMD64 {
  public:
-    ~EmitterAMD64Stat() {};
+    ~EmitterAMD64Stat() {}
     
     virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);

@@ -50,7 +50,7 @@ class baseTramp;
 class EmitterAARCH64 : public Emitter {
 
 public:
-    virtual ~EmitterAARCH64() {};
+    virtual ~EmitterAARCH64() {}
 
     virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &);
 

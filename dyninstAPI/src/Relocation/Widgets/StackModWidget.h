@@ -50,7 +50,7 @@ class StackModWidget : public Widget {
                      signed long newDisp,
                      Architecture arch);
 
-   virtual ~StackModWidget() {};
+   virtual ~StackModWidget() {}
 
    virtual std::string format() const;
    virtual unsigned size() const { return insn_.size(); }
@@ -64,7 +64,7 @@ class StackModWidget : public Widget {
        insn_(insn), 
        addr_(addr), 
        newDisp_(newDisp),
-       arch_(arch) {};
+       arch_(arch) {}
 
    InstructionAPI::Instruction insn_;
    Address addr_;
@@ -77,11 +77,11 @@ struct StackModPatch : public Patch {
    orig_insn(a), 
     newDisp(d),
     arch(ar), 
-    addr(ad) {};
+    addr(ad) {}
   
   virtual bool apply(codeGen &gen, CodeBuffer *buffer);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~StackModPatch() {};
+  virtual ~StackModPatch() {}
   
   InstructionAPI::Instruction orig_insn;
   signed long newDisp;

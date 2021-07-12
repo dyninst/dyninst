@@ -117,7 +117,7 @@ SpringboardReq()
       checkConflicts(false),
       includeRelocatedCopies(false),
       fromRelocatedCode(false),
-      useTrap(false) {};
+      useTrap(false) {}
    void addReq (const Address from_, const Address to_,
                 const Priority priority_, 
                 func_instance *func_, block_instance *block_,
@@ -184,7 +184,7 @@ class SpringboardBuilder;
                                            true, 
                                            false,
                                            true, false);
-   };
+   }
    
    void addRaw(Address from, Address to, Priority p, 
                func_instance *func, block_instance *bbl,
@@ -195,11 +195,11 @@ class SpringboardBuilder;
                                            fromRelocatedCode, useTrap);
    }
 
-   iterator begin(Priority p) { return sBoardMap_[p].begin(); };
-   iterator end(Priority p) { return sBoardMap_[p].end(); };
+   iterator begin(Priority p) { return sBoardMap_[p].begin(); }
+   iterator end(Priority p) { return sBoardMap_[p].end(); }
 
-   reverse_iterator rbegin(Priority p) { return sBoardMap_[p].rbegin(); };
-   reverse_iterator rend(Priority p) { return sBoardMap_[p].rend(); };
+   reverse_iterator rbegin(Priority p) { return sBoardMap_[p].rbegin(); }
+   reverse_iterator rend(Priority p) { return sBoardMap_[p].rend(); }
 
 
  private:

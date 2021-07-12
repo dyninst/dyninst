@@ -85,7 +85,7 @@ class RelocBlock {
 
    RelocBlock *next() { return next_; }
    RelocBlock *prev() { return prev_; }
-   ~RelocBlock() {};
+   ~RelocBlock() {}
 
    void setNext(RelocBlock *next) { next_ = next; }
    void setPrev(RelocBlock *prev) { prev_ = prev; }
@@ -132,7 +132,7 @@ class RelocBlock {
       origRelocBlock_(true),
       prev_(NULL),
       next_(NULL),
-      type_(Relocated) {};
+      type_(Relocated) {}
    // Constructor for a trace inserted later
   RelocBlock(Address a, block_instance *b, func_instance *f)
       :origAddr_(a),
@@ -144,7 +144,7 @@ class RelocBlock {
       prev_(NULL),
       next_(NULL),
       type_(Instrumentation) { 
-   };
+   }
 
   RelocBlock(Address a, block_instance *b, func_instance *f, bool relocateType)
       :origAddr_(a),
@@ -160,7 +160,7 @@ class RelocBlock {
             type_ = Relocated;
          else 
             type_ = Instrumentation;
-   };
+   }
 
 
    typedef enum {

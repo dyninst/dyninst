@@ -60,29 +60,29 @@ class TargetInt {
     BlockTarget,
     AddrTarget, } type_t;
 
-  TargetInt() : necessary_(true) {};
-  virtual ~TargetInt() {};
+  TargetInt() : necessary_(true) {}
+  virtual ~TargetInt() {}
   virtual std::string format() const { return "<INVALID>"; }
 
   virtual Address origAddr() const = 0;
 
   // It would be nice to eventually move these into the code generator loop, but
   // for now it's okay to keep them here. 
-  virtual bool necessary() const { return necessary_; };
-  virtual void setNecessary(bool a) { necessary_ = a; };
+  virtual bool necessary() const { return necessary_; }
+  virtual void setNecessary(bool a) { necessary_ = a; }
 
-  virtual type_t type() const { return Illegal; };
+  virtual type_t type() const { return Illegal; }
   
   virtual bool matches(RelocBlock *) const { return false; }
   virtual int label(CodeBuffer *) const { return -1; }
 
-  virtual void addTargetEdge(RelocEdge *) {};
-  virtual void addSourceEdge(RelocEdge *) {};
-  virtual void removeTargetEdge(RelocEdge *) {};
-  virtual void removeSourceEdge(RelocEdge *) {};
+  virtual void addTargetEdge(RelocEdge *) {}
+  virtual void addSourceEdge(RelocEdge *) {}
+  virtual void removeTargetEdge(RelocEdge *) {}
+  virtual void removeSourceEdge(RelocEdge *) {}
   virtual block_instance *block() { return NULL; }
 
-  virtual TargetInt *copy() const {return NULL; };
+  virtual TargetInt *copy() const {return NULL; }
 
   protected:
 
@@ -93,8 +93,8 @@ template <typename T>
 class Target : public TargetInt{
  public:
    //Address addr() const;
- Target(const T t) : t_(t) {};
-  ~Target() {};
+ Target(const T t) : t_(t) {}
+  ~Target() {}
 
   const T t() { return t_; }
 
@@ -109,10 +109,10 @@ template <>
 
   Target(RelocBlock * t) : t_(t) { assert(t_); }
    ~Target() {}
-   RelocBlock * t() const { return t_; };
-  Address origAddr() const { return t_->origAddr(); };
+   RelocBlock * t() const { return t_; }
+  Address origAddr() const { return t_->origAddr(); }
   
-  virtual type_t type() const { return RelocBlockTarget; };
+  virtual type_t type() const { return RelocBlockTarget; }
   
   virtual string format() const { 
      stringstream ret;
@@ -122,7 +122,7 @@ template <>
   
   virtual bool matches(RelocBlock *t) const { return (t_ == t); }
 
-  int label(CodeBuffer *) const { return t_->getLabel(); };
+  int label(CodeBuffer *) const { return t_->getLabel(); }
   
   virtual void addTargetEdge(RelocEdge *e);
   virtual void addSourceEdge(RelocEdge *e);
@@ -143,11 +143,11 @@ class Target<block_instance *> : public TargetInt {
   Target(block_instance *t) : t_(t) { assert(t_); }
   ~Target() {}
 
-  block_instance *t() const { return t_; };
+  block_instance *t() const { return t_; }
 
-  virtual type_t type() const { return BlockTarget; };
+  virtual type_t type() const { return BlockTarget; }
 
-  Address origAddr() const { return t_->start(); };
+  Address origAddr() const { return t_->start(); }
   
   virtual string format() const { 
     stringstream ret;
@@ -173,9 +173,9 @@ class Target<Address> : public TargetInt {
   ~Target() {}
   const Address &t() const { return t_; }
 
-  virtual type_t type() const { return AddrTarget; };
+  virtual type_t type() const { return AddrTarget; }
 
-  Address origAddr() const { return t_; };
+  Address origAddr() const { return t_; }
 
   virtual string format() const {
     stringstream ret;
