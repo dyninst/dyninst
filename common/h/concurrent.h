@@ -209,9 +209,9 @@ class dyn_threadlocal {
     T base;
     dyn_rwlock lock;
 public:
-    dyn_threadlocal() : cache(), base() {};
-    dyn_threadlocal(const T& d) : cache(), base(d) {};
-    ~dyn_threadlocal() {};
+    dyn_threadlocal() : cache(), base() {}
+    dyn_threadlocal(const T& d) : cache(), base(d) {}
+    ~dyn_threadlocal() {}
 
     T get() {
         {

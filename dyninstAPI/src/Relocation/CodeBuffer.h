@@ -101,10 +101,10 @@ class CodeBuffer {
       static const unsigned INVALID;
 
       Label() 
-      : type(Invalid), id(0), iteration(0), addr(0) {};
+      : type(Invalid), id(0), iteration(0), addr(0) {}
       Label(Type a, Id b, Address c)
-      : type(a), id(b), iteration(0), addr(c) { assert(id != INVALID); };
-      bool valid() { return type != Invalid; };
+      : type(a), id(b), iteration(0), addr(c) { assert(id != INVALID); }
+      bool valid() { return type != Invalid; }
    };
 
    class BufferElement {
@@ -117,7 +117,7 @@ class CodeBuffer {
       void addPIC(const Buffer &buffer, TrackerElement *tracker);
       void setPatch(Patch *patch, TrackerElement *tracker);
 
-      bool full() { return patch_ != NULL; };
+      bool full() { return patch_ != NULL; }
       bool empty();
       bool generate(CodeBuffer *buf,
                     codeGen &gen,
@@ -165,7 +165,7 @@ class CodeBuffer {
    void disassemble() const;
 
 
-   codeGen &gen() { return gen_; };
+   codeGen &gen() { return gen_; }
   private:
 
    BufferElement &current();

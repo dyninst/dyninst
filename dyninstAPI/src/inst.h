@@ -111,7 +111,7 @@ class instMapping {
             for(unsigned u=0; u < aList.size(); u++) {
                if (aList[u] != AstNodePtr()) args.push_back(aList[u]);
             }
-         };
+         }
 
       // Fork
       instMapping(const instMapping *parMapping, AddressSpace *child);

@@ -53,7 +53,7 @@ class TypedSliceEdge: public Dyninst::Edge {
     TypedSliceEdge(const SliceNode::Ptr source,
               const SliceNode::Ptr target,
 	      ParseAPI::EdgeTypeEnum t) 
-	      : Dyninst::Edge(source, target), type_(t) {};
+	      : Dyninst::Edge(source, target), type_(t) {}
   public:	      
    typedef boost::shared_ptr<TypedSliceEdge> Ptr; 
    static TypedSliceEdge::Ptr create(SliceNode::Ptr source,

@@ -46,7 +46,7 @@ class ASTWidget : public Widget {
 
   static Ptr create(AstNodePtr, instPoint *);
 
-  ASTWidget(AstNodePtr a, instPoint *p) : ast_(a), point_(p) {};
+  ASTWidget(AstNodePtr a, instPoint *p) : ast_(a), point_(p) {}
 
   bool generate(const codeGen &,
                 const RelocBlock *,
@@ -54,7 +54,7 @@ class ASTWidget : public Widget {
   
   TrackerElement *tracker() const;
 
-  virtual ~ASTWidget() {};
+  virtual ~ASTWidget() {}
 
   virtual std::string format() const;
 
@@ -66,7 +66,7 @@ class ASTWidget : public Widget {
 };
 
 struct AstPatch : public Patch {
-  AstPatch(AstNodePtr a, instPoint *b) : ast(a), point(b) {};
+  AstPatch(AstNodePtr a, instPoint *b) : ast(a), point(b) {}
    
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);

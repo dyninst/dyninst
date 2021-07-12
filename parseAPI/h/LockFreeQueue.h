@@ -49,20 +49,20 @@ private:
 public:
   LockFreeQueueItem(T __value) : _next(0), _value(__value) {
     LFQ_DEBUG(validate = this); 
-  };
+  }
   ~LockFreeQueueItem() { 
     LFQ_DEBUG(validate = 0); 
-  };
+  }
 
   void setNext(item_type *__next) { 
     LFQ_DEBUG(assert(validate == this));
     _next.store(__next); 
-  };
+  }
 
   void setNextPending() { 
     LFQ_DEBUG(assert(validate == this));
     _next.store(pending()); 
-  };
+  }
 
   item_type *next() { 
     LFQ_DEBUG(assert(validate == this));
@@ -72,12 +72,12 @@ public:
         succ = _next.load();
     }
     return succ;
-  };
+  }
 
   T value() { 
     LFQ_DEBUG(assert(validate == this));
     return _value; 
-  };
+  }
 
 private:
   item_type *pending() { 
@@ -108,22 +108,22 @@ public:
   typedef std::forward_iterator_tag iterator_category;
 
 public:
-  LockFreeQueueIterator(item_type *_item) : item(_item) {};
+  LockFreeQueueIterator(item_type *_item) : item(_item) {}
 
-  T operator *() { return item->value(); };
+  T operator *() { return item->value(); }
 
-  bool operator != (iterator i) { return item != i.item; };
+  bool operator != (iterator i) { return item != i.item; }
 
   iterator operator ++() { 
     if (item) item = item->next(); 
     return *this; 
-  };
+  }
 
   iterator operator ++(int) { 
     iterator clone(*this);
     ++(*this);
     return clone;
-  };
+  }
 
 private:
   item_type *item;
@@ -137,7 +137,7 @@ public:
   typedef LockFreeQueueItem<T> item_type; 
 
 public:
-  LockFreeQueue(item_type *_head = 0) : head(_head) {};
+  LockFreeQueue(item_type *_head = 0) : head(_head) {}
 
 public: 
   // wait-free member functions designed for concurrent use
@@ -147,7 +147,7 @@ public:
   void insert(T value) {
     item_type *entry = new item_type(value);
     insert_chain(entry, entry);
-  };
+  }
 
   // steal the linked list from q and insert it at the front of this queue
   void splice(LockFreeQueue<T> &q) {
@@ -161,19 +161,19 @@ public:
       }
       insert_chain(first, last);
     }
-  };
+  }
 
   // inspect the head of the queue
   item_type *peek() { 
       item_type* ret = head.load();
       return ret; 
-  };
+  }
 
   // grab the contents of the queue for your own private use
   item_type *steal() { 
       item_type* ret = head.exchange(0);
       return ret; 
-  };
+  }
 
 public:
   // designed for use in a context where where only insert_chain 
@@ -187,23 +187,23 @@ public:
       first->setNext(0);
     }
     return first;
-  };
+  }
 
   iterator begin() { 
       iterator ret(head.load());
       return ret; 
-  };
+  }
 
-  iterator end() { return iterator(0); };
+  iterator end() { return iterator(0); }
 
-  ~LockFreeQueue() { clear(); };
+  ~LockFreeQueue() { clear(); }
 
   void clear() { 
     item_type *first;
     while((first = pop())) { 
       delete first;
     }
-  };
+  }
 
 private:
 
@@ -212,7 +212,7 @@ private:
     last->setNextPending(); // make in-progress splice visible
     item_type *oldhead = head.exchange(first);
     last->setNext(oldhead);
-  };
+  }
 
 private:
   boost::atomic<item_type *> head;

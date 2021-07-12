@@ -49,8 +49,8 @@ namespace Dyninst {
         StringTableBase;
 
         struct StringTable : public StringTableBase {
-            StringTable() : StringTableBase() {};
-            ~StringTable() {};
+            StringTable() : StringTableBase() {}
+            ~StringTable() {}
             dyn_mutex lock;
         };
 

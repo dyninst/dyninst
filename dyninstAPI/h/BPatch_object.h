@@ -94,8 +94,8 @@ class BPATCH_DLL_EXPORT BPatch_object {
 
        std::string format();
        
-    Region() : base(0), size(0), type(UNKNOWN) {};
-    Region(Dyninst::Address b, unsigned long s, type_t t) : base(b), size(s), type(t) {};
+    Region() : base(0), size(0), type(UNKNOWN) {}
+    Region(Dyninst::Address b, unsigned long s, type_t t) : base(b), size(s), type(t) {}
     };       
 
     static const Dyninst::Address E_OUT_OF_BOUNDS;

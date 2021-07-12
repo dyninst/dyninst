@@ -44,9 +44,9 @@ class Instrumenter : public Transformer {
 
   virtual bool process(RelocBlock *cur, RelocGraph *);
   
-     Instrumenter() : skip(NULL) {};
+     Instrumenter() : skip(NULL) {}
   
-  virtual ~Instrumenter() {};
+  virtual ~Instrumenter() {}
   
  private:
   typedef enum {

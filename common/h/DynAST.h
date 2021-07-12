@@ -90,7 +90,7 @@ class name : public AST {						\
  public:								\
  typedef boost::shared_ptr<name> Ptr;			\
  static Ptr create(type t) { return Ptr(new name(t)); }			\
- virtual ~name() {};							\
+ virtual ~name() {}							\
  virtual const std::string format() const {				\
    std::stringstream ret;						\
    ret << "<" << t_ << ">";						\
@@ -103,7 +103,7 @@ class name : public AST {						\
   }									\
   const type &val() const { return t_; }				\
  private:								\
- name(type t) : t_(t) {};						\
+ name(type t) : t_(t) {}						\
  virtual bool isStrictEqual(const AST &rhs) const {			\
    const name &other(dynamic_cast<const name&>(rhs));			\
    return t_ == other.t_;						\
@@ -115,7 +115,7 @@ class name : public AST {						\
 class name : public AST {						\
  public:								\
   typedef boost::shared_ptr<name> Ptr;			\
-  virtual ~name() {};							\
+  virtual ~name() {}							\
   static Ptr create(type t, AST::Ptr a) { return Ptr(new name(t, a)); }	\
   static Ptr create(type t, AST::Ptr a, AST::Ptr b) { return Ptr(new name(t, a, b)); } \
   static Ptr create(type t, AST::Ptr a, AST::Ptr b, AST::Ptr c) { return Ptr(new name(t, a, b, c)); } \
@@ -137,19 +137,19 @@ class name : public AST {						\
     return ((a->getID() == V_##name) ? boost::static_pointer_cast<name>(a) : Ptr()); \
   }									\
   const type &val() const { return t_; }				\
-  void setChild(int i, AST::Ptr a) { kids_[i] = a; };			\
+  void setChild(int i, AST::Ptr a) { kids_[i] = a; }			\
  private:								\
- name(type t, AST::Ptr a) : t_(t) { kids_.push_back(a); };		\
+ name(type t, AST::Ptr a) : t_(t) { kids_.push_back(a); }		\
  name(type t, AST::Ptr a, AST::Ptr b) : t_(t) {				\
     kids_.push_back(a);							\
     kids_.push_back(b);							\
-  };									\
+  }									\
  name(type t, AST::Ptr a, AST::Ptr b, AST::Ptr c) : t_(t) {		\
     kids_.push_back(a);							\
     kids_.push_back(b);							\
     kids_.push_back(c);							\
-  };									\
- name(type t, Children kids) : t_(t), kids_(kids) {};			\
+  }									\
+ name(type t, Children kids) : t_(t), kids_(kids) {}			\
   virtual bool isStrictEqual(const AST &rhs) const {			\
     const name &other(dynamic_cast<const name&>(rhs));                  \
     if (!(t_ == other.t_)) return false;				\
@@ -188,8 +188,8 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
   typedef boost::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
 
-  AST() {};
-  virtual ~AST() {};
+  AST() {}
+  virtual ~AST() {}
   
   bool operator==(const AST &rhs) const {
     // make sure rhs and this have the same type
@@ -218,7 +218,7 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
   // breaks execution if the tree has a cycle. visited should be an empty map.
   static void hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited);
   
-  virtual ID getID() const { return V_AST; };
+  virtual ID getID() const { return V_AST; }
 
   // VISITOR wooo....
   virtual Ptr accept(ASTVisitor *);
@@ -227,7 +227,7 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
 
   virtual void setChild(int, AST::Ptr) {
     assert(0);
-  };
+  }
 
  protected:
   virtual bool isStrictEqual(const AST &rhs) const = 0;
@@ -237,19 +237,19 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
  public:
    typedef boost::shared_ptr<AST> ASTPtr;
 
-   virtual ASTPtr visit(AST *) {return AST::Ptr();};
-   virtual ASTPtr visit(DataflowAPI::BottomAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(DataflowAPI::ConstantAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(DataflowAPI::VariableAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(DataflowAPI::RoseAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(StackAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(AST *) {return AST::Ptr();}
+   virtual ASTPtr visit(DataflowAPI::BottomAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(DataflowAPI::ConstantAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(DataflowAPI::VariableAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(DataflowAPI::RoseAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(StackAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
+   virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
 
-   virtual ~ASTVisitor() {};
+   virtual ~ASTVisitor() {}
  };
 
 }

@@ -103,7 +103,7 @@ struct Idiom {
     std::vector<IdiomTerm> terms;
     double w;
     bool prefix;
-    Idiom() {};
+    Idiom() {}
     Idiom(std::string f, double weight, bool pre);
     bool operator < (const Idiom& i) const;
     std::string human_format() const;
@@ -138,7 +138,7 @@ class IdiomModel {
 
     double bias;
     double prob_threshold;
-    IdiomModel() {};
+    IdiomModel() {}
 
 public:
     IdiomModel(std::string model_spec);

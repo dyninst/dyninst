@@ -54,7 +54,7 @@ class PCWidget : public Widget {
 
    TrackerElement *tracker(const RelocBlock *t) const;
 
-   virtual ~PCWidget() {};
+   virtual ~PCWidget() {}
    virtual std::string format() const;
    virtual unsigned size() const { return insn_.size(); }
    virtual Address addr() const { return addr_; }
@@ -68,7 +68,7 @@ class PCWidget : public Widget {
    insn_(insn), 
      addr_(addr), 
      a_(a),
-     thunkAddr_(thunkAddr) {};
+     thunkAddr_(thunkAddr) {}
 
 
    bool PCtoReturnAddr(const codeGen &templ, const RelocBlock *, CodeBuffer &);
@@ -89,15 +89,15 @@ struct IPPatch : public Patch {
 	 block_instance *d, func_instance *e) : 
   type(a), addr(b), reg((Register)-1), 
     thunk(0), 
-    insn(c), block(d), func(e) {};
+    insn(c), block(d), func(e) {}
  IPPatch(Type a, Address b, Register c, Address d,
 	 InstructionAPI::Instruction e, block_instance *f, func_instance *g) :
   type(a), addr(b), reg(c), thunk(d), 
-    insn(e), block(f), func(g) {};
+    insn(e), block(f), func(g) {}
 
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~IPPatch() {};
+  virtual ~IPPatch() {}
   
   Type type;
   Address addr;

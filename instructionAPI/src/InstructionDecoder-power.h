@@ -189,7 +189,7 @@ namespace Dyninst {
                 void WC();
                 void syscall();
                 void setFPMode();
-                void L() {}; // non-templated version for some zero fields
+                void L() {} // non-templated version for some zero fields
                 void XT();
                 void XS();
                 void XA();

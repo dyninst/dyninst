@@ -61,7 +61,7 @@ class RelocGraph {
       RelocBlock *> Map;
    typedef std::vector<RelocEdge *> Edges;
    
-   RelocGraph() : head(0), tail(0), size(0) {};
+   RelocGraph() : head(0), tail(0), size(0) {}
    ~RelocGraph();
    RelocBlock *begin() { return head; }
    RelocBlock *end() { return NULL; }
@@ -150,12 +150,12 @@ struct Predicates {
    };
 
    struct Edge {
-   Edge(edge_instance *e) : e_(e) {};
+   Edge(edge_instance *e) : e_(e) {}
       bool operator() (RelocEdge *e);
       edge_instance *e_;
    };
    struct Type {
-   Type(ParseAPI::EdgeTypeEnum t) : t_(t) {};
+   Type(ParseAPI::EdgeTypeEnum t) : t_(t) {}
       bool operator() (RelocEdge *e);
       ParseAPI::EdgeTypeEnum t_;
    };

@@ -298,7 +298,7 @@ namespace Dyninst {
                 
             }
 
-            void setSMEM() {isSMEM = true;};
+            void setSMEM() {isSMEM = true;}
             
            
             
@@ -308,9 +308,9 @@ namespace Dyninst {
             template<unsigned int num_elements>
             void setStore() {isStore = true;this->num_elements = num_elements;}
 
-            void setScratch() {isScratch = true;};
+            void setScratch() {isScratch = true;}
 
-            void setBuffer() {isBuffer = true;};
+            void setBuffer() {isBuffer = true;}
             
             typedef struct buffer_resource_desc{
                 unsigned long long base_address;

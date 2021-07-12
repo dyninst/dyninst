@@ -86,7 +86,7 @@ class StackLocation {
     {}
 
 
-        StackAccess::StackAccessType type() const { return _type; };
+        StackAccess::StackAccessType type() const { return _type; }
         void setType(StackAccess::StackAccessType t) { _type = t; }
 
         int size() const { return _size; }

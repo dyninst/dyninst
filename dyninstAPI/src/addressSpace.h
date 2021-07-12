@@ -391,7 +391,7 @@ class AddressSpace : public InstructionSource {
     //Register callbacks from the higher level
     void registerFunctionCallback(BPatch_function *(*f)(AddressSpace *p, 
                                                         Dyninst::PatchAPI::PatchFunction *f))
-        { new_func_cb = f; };
+        { new_func_cb = f; }
     void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, 
                                                       Dyninst::PatchAPI::PatchFunction *f,
                                                       Dyninst::PatchAPI::Point *ip, int type))

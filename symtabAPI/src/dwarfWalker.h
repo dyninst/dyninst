@@ -194,7 +194,7 @@ public:
         return symtab()->getArchitecture();
     }
     virtual Offset convertDebugOffset(Offset from);
-    virtual void setFuncReturnType() {};
+    virtual void setFuncReturnType() {}
     virtual Symbol* findSymbolByName(std::string name, Symbol::SymbolType type)
     {
         std::vector<Symbol *> syms;

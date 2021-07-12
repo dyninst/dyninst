@@ -197,9 +197,9 @@ class COMMON_EXPORT instruction {
       insn_ = *((const instructUnion *)ptr);
     }
 
-    instruction(const instruction &insn) :        insn_(insn.insn_) {};
+    instruction(const instruction &insn) :        insn_(insn.insn_) {}
     instruction(instructUnion &insn) :
-        insn_(insn) {};
+        insn_(insn) {}
 
     instruction *copy() const;
 

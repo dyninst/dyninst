@@ -117,7 +117,7 @@ class PATCHAPI_EXPORT PatchBlock {
     void getInsns(Insns &insns) const;
     InstructionAPI::Instruction getInsn(Address a) const;
     std::string disassemble() const;
-    bool containsCall() const { return 0 < numCallEdges(); };
+    bool containsCall() const { return 0 < numCallEdges(); }
     bool containsDynamicCall();
     std::string format() const;
     std::string long_format() const;
@@ -144,7 +144,7 @@ class PATCHAPI_EXPORT PatchBlock {
 
    bool wasUserAdded() const;
 
-   virtual void markModified()  {};
+   virtual void markModified()  {}
 
   protected:
     typedef enum {
@@ -234,7 +234,7 @@ class PATCHAPI_EXPORT PatchFunction {
 
    bool consistency() const;
 
-   virtual void markModified() {};
+   virtual void markModified() {}
 
     /* Loops */    
     PatchLoopTreeNode* getLoopTree();

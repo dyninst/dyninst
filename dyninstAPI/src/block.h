@@ -69,10 +69,10 @@ class EdgePredicateAdapter
   edge_instance *,
   edge_instance * > {
   public:
-  EdgePredicateAdapter() : int_(NULL) {};
-  EdgePredicateAdapter(ParseAPI::EdgePredicate *intPred) : int_(intPred) {};
-   virtual ~EdgePredicateAdapter() {};
-   virtual bool pred_impl(edge_instance * const e) const { return int_->pred_impl(e->edge()); };
+  EdgePredicateAdapter() : int_(NULL) {}
+  EdgePredicateAdapter(ParseAPI::EdgePredicate *intPred) : int_(intPred) {}
+   virtual ~EdgePredicateAdapter() {}
+   virtual bool pred_impl(edge_instance * const e) const { return int_->pred_impl(e->edge()); }
 
   private:
    ParseAPI::EdgePredicate *int_;

@@ -60,7 +60,7 @@ class addrRange {
       return std::string("UNNAMED");
    }
    virtual ~addrRange() {
-   };
+   }
 };
 
 /** 

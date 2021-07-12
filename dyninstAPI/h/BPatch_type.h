@@ -283,7 +283,7 @@ public:
   BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
   BPatch_type(boost::shared_ptr<Dyninst::SymtabAPI::Type> typ_);
   BPatch_type(Dyninst::SymtabAPI::Type* t)
-    : BPatch_type(t->reshare()) {};
+    : BPatch_type(t->reshare()) {}
   virtual bool operator==(const BPatch_type &) const;
 
   int  getID() const { return ID;}

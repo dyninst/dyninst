@@ -49,7 +49,7 @@ class NodeIteratorImpl {
     virtual bool equals(NodeIteratorImpl *) = 0;
     virtual NodeIteratorImpl *copy() = 0;
 
-    virtual ~NodeIteratorImpl() {};
+    virtual ~NodeIteratorImpl() {}
 };
 
 // Types of node iteration: over a set of nodes
@@ -72,7 +72,7 @@ class NodeIteratorSet : public NodeIteratorImpl {
         // Nothing to do
     }
     
-    NodeIteratorSet(const std::unordered_set<Node::Ptr, Node::NodePtrHasher>::iterator iter) : internal_(iter) {};
+    NodeIteratorSet(const std::unordered_set<Node::Ptr, Node::NodePtrHasher>::iterator iter) : internal_(iter) {}
 
  private:
     std::unordered_set<Node::Ptr, Node::NodePtrHasher>::iterator internal_;
@@ -109,10 +109,10 @@ class NodeFromEdgeSet : public NodeIteratorImpl {
         return tmp;
     }
 
-    virtual ~NodeFromEdgeSet() {};
+    virtual ~NodeFromEdgeSet() {}
 
     NodeFromEdgeSet(const std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator iter,
-                   iterType type) : internal_(iter), type_(type) {};
+                   iterType type) : internal_(iter), type_(type) {}
 
  private:
     std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator internal_;
@@ -198,15 +198,15 @@ class NodeSearchIterator : public NodeIteratorImpl{
         return new NodeSearchIterator(current, direction, type, worklist, visited);
     }
 
-    NodeSearchIterator() : direction(in), type(depth) {};
+    NodeSearchIterator() : direction(in), type(depth) {}
     NodeSearchIterator(Node::Ptr cur, Direction d, Type t) : current(cur), direction(d), type(t) {
         updateVisited(current);
         NodeIterator begin, end;
         getNext(begin,end);
         updateWorklist(begin,end);
-    };
+    }
     NodeSearchIterator(Node::Ptr cur, Direction d, Type t, std::deque<Node::Ptr> wl, std::set<Node::Ptr> v) :
-        current(cur), direction(d), type(t), worklist(wl), visited(v) {};
+        current(cur), direction(d), type(t), worklist(wl), visited(v) {}
 
     NodeSearchIterator(NodeIterator &rangeBegin, NodeIterator &rangeEnd, Direction d, Type t) :
         direction(d), type(t) {
@@ -220,7 +220,7 @@ class NodeSearchIterator : public NodeIteratorImpl{
         updateWorklist(begin, end);
     }
 
-    virtual ~NodeSearchIterator() {};
+    virtual ~NodeSearchIterator() {}
 
  private:
 
@@ -319,7 +319,7 @@ class NodeIteratorPredicateObj : public NodeIteratorImpl {
                     NodeIterator &n,
                     NodeIterator &e) :
         pred(p),
-        cur(c), next(n), end(e) {};
+        cur(c), next(n), end(e) {}
     NodeIteratorPredicateObj(Graph::NodePredicate::Ptr p,
                              NodeIterator &b,
                              NodeIterator &e) :
@@ -381,7 +381,7 @@ class NodeIteratorPredicateFunc : public NodeIteratorImpl {
                               NodeIterator &e) :
         pred(p),
         user_arg(u),
-        cur(c), next(n), end(e) {};
+        cur(c), next(n), end(e) {}
     NodeIteratorPredicateFunc(Graph::NodePredicateFunc p,
                               void *u,
                               NodeIterator &b,

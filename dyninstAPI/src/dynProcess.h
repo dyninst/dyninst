@@ -263,7 +263,7 @@ public:
         block_instance *callBlock;
         block_instance *ftBlock;
         ActiveDefensivePad(Address a, Address b, block_instance *c, block_instance *d)
-            : activePC(a), padStart(b), callBlock(c), ftBlock(d) {};
+            : activePC(a), padStart(b), callBlock(c), ftBlock(d) {}
     };
     typedef std::list<ActiveDefensivePad> ADPList;
 

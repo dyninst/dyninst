@@ -68,7 +68,7 @@ class syscallNotification {
     syscallNotification(PCProcess *p) :
     preForkInst(NULL), postForkInst(NULL),
     preExecInst(NULL), postExecInst(NULL),
-    preExitInst(NULL), preLwpExitInst(NULL), proc(p) {};
+    preExitInst(NULL), preLwpExitInst(NULL), proc(p) {}
 
     // fork constructor
     syscallNotification(syscallNotification *parentSN,

@@ -47,7 +47,7 @@ class CallbackWidget : public Widget {
   // system here...
   static Ptr create(Patch *patch);
   
-     CallbackWidget(Patch *p) : patch_(p) {};
+     CallbackWidget(Patch *p) : patch_(p) {}
 
   bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
   

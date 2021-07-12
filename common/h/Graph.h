@@ -81,7 +81,7 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
 
     public:
         typedef boost::shared_ptr<NodePredicate> Ptr;
-        virtual ~NodePredicate() {};
+        virtual ~NodePredicate() {}
         virtual bool predicate(const NodePtr &node) = 0;
         static Ptr getPtr(NodePredicate *p) { 
             return Ptr(p);
@@ -108,7 +108,7 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
 
     bool printDOT(const std::string& fileName);
 
-    virtual ~Graph() {};
+    virtual ~Graph() {}
     
     // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
@@ -125,7 +125,7 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
 
     void addNode(NodePtr node);
 
-    virtual void removeAnnotation() {};
+    virtual void removeAnnotation() {}
 
     bool isEntryNode(NodePtr node);
     bool isExitNode(NodePtr node);

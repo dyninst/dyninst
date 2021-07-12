@@ -105,7 +105,7 @@ class OneTimeCodeInfo {
  public:
  OneTimeCodeInfo(bool _synchronous, void *_userData, BPatchOneTimeCodeCallback _cb, unsigned _thrID) :
   synchronous(_synchronous), completed(false), userData(_userData), cb(_cb),
-  returnValue(NULL), thrID(_thrID) { };
+  returnValue(NULL), thrID(_thrID) { }
 
   bool isSynchronous() { return synchronous; }
 

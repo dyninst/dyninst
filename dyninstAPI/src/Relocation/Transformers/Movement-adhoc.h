@@ -55,9 +55,9 @@ class adhocMovementTransformer : public Transformer {
  public:
   virtual bool process(RelocBlock *, RelocGraph *);
 
-  adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
+  adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {}
 
-  virtual ~adhocMovementTransformer() {};
+  virtual ~adhocMovementTransformer() {}
 
  private:
   bool isPCDerefCF(WidgetPtr ptr,

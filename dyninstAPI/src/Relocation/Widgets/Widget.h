@@ -61,7 +61,7 @@ class Widget {
   typedef boost::shared_ptr<Widget> Ptr;
   typedef boost::shared_ptr<RelocBlock> RelocBlockPtr;
 
-  Widget() {};
+  Widget() {}
 
   // A default value to make sure things don't go wonky.
   virtual Address addr() const { return 0; }
@@ -79,14 +79,14 @@ class Widget {
 
   virtual std::string format() const = 0;
 
-  virtual ~Widget() {};
+  virtual ~Widget() {}
 };
 
  // A generic code patching mechanism
 struct Patch {
    virtual bool apply(codeGen &gen, CodeBuffer *buf) = 0;
    virtual unsigned estimate(codeGen &templ) = 0;
-   virtual ~Patch() {};
+   virtual ~Patch() {}
 };
 
 

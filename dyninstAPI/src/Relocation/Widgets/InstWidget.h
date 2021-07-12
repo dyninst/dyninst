@@ -46,7 +46,7 @@ class InstWidget : public Widget {
   // system here...
   static Ptr create(instPoint *i);
 
-     InstWidget(instPoint *i) : point_(i) {};
+     InstWidget(instPoint *i) : point_(i) {}
 
   // This sucks. It seriously sucks. But hey...
   // this points to all the baseTramps with instrumentation
@@ -68,7 +68,7 @@ class InstWidget : public Widget {
 };
 
 struct InstWidgetPatch : public Patch {
-  InstWidgetPatch(baseTramp *a) : tramp(a) {};
+  InstWidgetPatch(baseTramp *a) : tramp(a) {}
   
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
@@ -78,10 +78,10 @@ struct InstWidgetPatch : public Patch {
 };
 
 struct RemovedInstWidgetPatch : public Patch {
-  RemovedInstWidgetPatch(baseTramp *a) : tramp(a) {};
+  RemovedInstWidgetPatch(baseTramp *a) : tramp(a) {}
    virtual bool apply(codeGen &gen, CodeBuffer *);
    virtual unsigned estimate(codeGen &templ);
-   virtual ~RemovedInstWidgetPatch() {};
+   virtual ~RemovedInstWidgetPatch() {}
    
    baseTramp *tramp;
 };

@@ -151,7 +151,7 @@ class registerSlot {
         initialState(deadAlways),
         offLimits(true),
         type(invalid)
-        {};
+        {}
 
     registerSlot(Register num,
                  std::string name_,

@@ -111,8 +111,8 @@ public:
 
     const HybridAnalysis::AnalysisStats & getStats();
 
-    HybridAnalysisOW * hybridOW() { return hybridow_; };
-    BPatch_process *proc() { return proc_; };
+    HybridAnalysisOW * hybridOW() { return hybridow_; }
+    BPatch_process *proc() { return proc_; }
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
@@ -240,8 +240,8 @@ public:
         owLoop(HybridAnalysisOW *hybridow, 
                Dyninst::Address writeTarg);
         ~owLoop();
-        static int getNextLoopId() { return ++IDcounter_; };
-        bool isActive() const { return activeStatus_; };
+        static int getNextLoopId() { return ++IDcounter_; }
+        bool isActive() const { return activeStatus_; }
         bool writesOwnPage() const { return writesOwnPage_; }
         bool isRealLoop() const { return realLoop_; }
         int getID() const { return loopID_; }
@@ -302,7 +302,7 @@ public:
 
     HybridAnalysisOW(HybridAnalysis *hybrid);
     ~HybridAnalysisOW();
-    HybridAnalysis *hybrid() { return hybrid_; };
+    HybridAnalysis *hybrid() { return hybrid_; }
     BPatch_process *proc() { return hybrid_->proc(); }
     HybridAnalysisOW::owLoop* findLoop(Dyninst::Address blockStart);
     bool isInLoop(Dyninst::Address blockAddr, bool activeOnly);

@@ -451,7 +451,7 @@ public:
       static const long uninitialized = MAXLONG;
       static const long notUnique = MINLONG;
 
-      SummaryFunc() {};
+      SummaryFunc() {}
 
       void apply(ParseAPI::Block *block, const AbslocState &in,
          AbslocState &out) const;

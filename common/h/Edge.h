@@ -68,7 +68,7 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
     void setSource(NodeSharedPtr source) { source_ = NodePtr(source); }
     void setTarget(NodeSharedPtr target) { target_ = NodePtr(target); }
 
-    virtual ~Edge() {};
+    virtual ~Edge() {}
 
   protected:
     Edge(const NodePtr source, const NodePtr target); 
@@ -101,13 +101,13 @@ class COMMON_EXPORT EdgeIterator {
     Edge::Ptr operator*() const;
 
     // Make sure this is explicitly _not_ allowed (no vectors of iterators)
-    EdgeIterator() : iter_(NULL) {};
+    EdgeIterator() : iter_(NULL) {}
 
     EdgeIterator(const EdgeIterator &rhs);
 
     virtual ~EdgeIterator();   
 
-    EdgeIterator(EdgeIteratorImpl *iter) : iter_(iter) {};
+    EdgeIterator(EdgeIteratorImpl *iter) : iter_(iter) {}
 
  protected:
 
@@ -132,7 +132,7 @@ class EdgeIteratorImpl {
     virtual bool equals(EdgeIteratorImpl *) = 0;
     virtual EdgeIteratorImpl *copy() = 0;
 
-    virtual ~EdgeIteratorImpl() {};
+    virtual ~EdgeIteratorImpl() {}
 };
 
 // Types of edge iteration: over a set of edges
@@ -159,7 +159,7 @@ class EdgeIteratorSet : public EdgeIteratorImpl {
     }
     
     EdgeIteratorSet(const std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator iter) : internal_(iter) {
-    };
+    }
 
  private:
     std::unordered_set<Edge::Ptr, Edge::EdgePtrHasher>::iterator internal_;

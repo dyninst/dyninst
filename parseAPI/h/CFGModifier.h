@@ -103,24 +103,24 @@ class InsertedRegion : public CodeRegion {
    /** InstructionSource implementation **/
    PARSER_EXPORT bool isValidAddress(const Address a) const { 
       return (a >= low() && a < high());
-   };
+   }
    PARSER_EXPORT void* getPtrToInstruction(const Address a) const {
       if (!isValidAddress(a)) return NULL;
       return (void *)((char *)buf_ + (a - base_));
-   };
+   }
    PARSER_EXPORT void* getPtrToData(const Address) const {
       return NULL; 
-   };
-   PARSER_EXPORT bool isCode(const Address a) const { return isValidAddress(a); };
-   PARSER_EXPORT bool isData(const Address) const { return false; };
-   PARSER_EXPORT bool isReadOnly(const Address) const { return false; };
-   PARSER_EXPORT Address offset() const { return base_; };
-   PARSER_EXPORT Address length() const { return size_; };
+   }
+   PARSER_EXPORT bool isCode(const Address a) const { return isValidAddress(a); }
+   PARSER_EXPORT bool isData(const Address) const { return false; }
+   PARSER_EXPORT bool isReadOnly(const Address) const { return false; }
+   PARSER_EXPORT Address offset() const { return base_; }
+   PARSER_EXPORT Address length() const { return size_; }
    PARSER_EXPORT unsigned int getAddressWidth() const {
       if (arch_ == Arch_ppc64 || arch_ == Arch_x86_64 || arch_ == Arch_aarch64) return 8;
       else return 4;
-   };
-   PARSER_EXPORT Architecture getArch() const { return arch_; };
+   }
+   PARSER_EXPORT Architecture getArch() const { return arch_; }
 
    PARSER_EXPORT bool wasUserAdded() const { return true; }
 

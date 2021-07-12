@@ -86,8 +86,8 @@ class DATAFLOW_EXPORT SliceNode : public Node {
     return Ptr(new SliceNode(ptr, block, func));
   }
       
-  ParseAPI::Block *block() const { return b_; };
-  ParseAPI::Function *func() const { return f_; };
+  ParseAPI::Block *block() const { return b_; }
+  ParseAPI::Function *func() const { return f_; }
   Address addr() const;
   AssignmentPtr assign() const { return a_; }
       
@@ -96,14 +96,14 @@ class DATAFLOW_EXPORT SliceNode : public Node {
       
   std::string format() const;
       
-  virtual ~SliceNode() {};
+  virtual ~SliceNode() {}
       
  private:
       
  SliceNode(AssignmentPtr ptr,
 	    ParseAPI::Block *block,
 	    ParseAPI::Function *func) : 
-  a_(ptr), b_(block), f_(func) {};
+  a_(ptr), b_(block), f_(func) {}
       
   AssignmentPtr a_;
   ParseAPI::Block *b_;
@@ -122,13 +122,13 @@ class SliceEdge : public Edge {
       return Ptr(new SliceEdge(source, target, data)); 
    }
 
-   const AbsRegion &data() const { return data_; };
+   const AbsRegion &data() const { return data_; }
 
   private:
    SliceEdge(const SliceNode::Ptr source, 
              const SliceNode::Ptr target,
              AbsRegion const& data) 
-      : Edge(source, target), data_(data) {};
+      : Edge(source, target), data_(data) {}
    AbsRegion data_;
 };
 
@@ -182,9 +182,9 @@ class Slicer {
      int stackDepth;
 
   ContextElement(ParseAPI::Function *f) : 
-    func(f), block(NULL), stackDepth(-1) {};
+    func(f), block(NULL), stackDepth(-1) {}
   ContextElement(ParseAPI::Function *f, long depth) :
-    func(f), block(NULL), stackDepth(depth) {};
+    func(f), block(NULL), stackDepth(depth) {}
   };
 
   // This should be sufficient...
@@ -209,8 +209,8 @@ class Slicer {
     Address addr() const { if(fwd) return (*current).second; else return (*rcurrent).second;}
 
   Location(ParseAPI::Function *f,
-	   ParseAPI::Block *b) : func(f), block(b), fwd(true){};
-  Location() : func(NULL), block(NULL), fwd(true) {};
+	   ParseAPI::Block *b) : func(f), block(b), fwd(true){}
+  Location() : func(NULL), block(NULL), fwd(true) {}
   };
     
   // Describes an abstract region, a minimal context
@@ -311,7 +311,7 @@ class Slicer {
                                                   const AbsRegion & /*out*/) { 
        return false; 
     }
-    DATAFLOW_EXPORT virtual ~Predicates() {};
+    DATAFLOW_EXPORT virtual ~Predicates() {}
 
     // Callback function when adding a new node to the slice.
     // Return true if we want to continue slicing

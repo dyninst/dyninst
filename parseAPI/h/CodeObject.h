@@ -89,7 +89,7 @@ class CodeObject {
 		Address target;
 		EdgeTypeEnum edge_type;
         bool checked; // true if call_ft edges have already had their callees checked
-		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c), checked(false) {};
+		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c), checked(false) {}
         NewEdgeToParse(Block* a, Address b, bool c, EdgeTypeEnum d) : source(a), target(b), edge_type(d), checked(c) { }
 	};
 

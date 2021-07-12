@@ -52,7 +52,7 @@ class InsnWidget : public Widget {
   static Ptr create(InstructionAPI::Instruction insn,
                     Address addr);
 
-  virtual ~InsnWidget() {};
+  virtual ~InsnWidget() {}
 
   virtual std::string format() const;
 

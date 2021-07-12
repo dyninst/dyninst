@@ -51,7 +51,7 @@ class RelDataWidget : public Widget {
                      Address addr,
                      Address target);
 
-   virtual ~RelDataWidget() {};
+   virtual ~RelDataWidget() {}
 
    virtual std::string format() const;
    virtual unsigned size() const { return insn_.size(); }
@@ -60,7 +60,7 @@ class RelDataWidget : public Widget {
  private:
    RelDataWidget(InstructionAPI::Instruction insn,
 				 Address addr,
-				 Address target) : insn_(insn), addr_(addr), target_(target) {};
+				 Address target) : insn_(insn), addr_(addr), target_(target) {}
 
    InstructionAPI::Instruction insn_;
    Address addr_;
@@ -72,11 +72,11 @@ class RelDataWidget : public Widget {
 
 struct RelDataPatch : public Patch {
   RelDataPatch(InstructionAPI::Instruction a, Address b, Address o) :
-   orig_insn(a), target_addr(b), orig(o) {};
+   orig_insn(a), target_addr(b), orig(o) {}
   
   virtual bool apply(codeGen &gen, CodeBuffer *buffer);
   virtual unsigned estimate(codeGen &templ);
-  virtual ~RelDataPatch() {};
+  virtual ~RelDataPatch() {}
 
   void setFunc(func_instance *_func) { func = _func; }
   void setBlock(block_instance *_block) { block = _block; }
