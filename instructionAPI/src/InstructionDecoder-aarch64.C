@@ -37,10 +37,10 @@ namespace Dyninst {
         typedef aarch64_insn_entry aarch64_insn_table[];
         typedef aarch64_mask_entry aarch64_decoder_table[];
 
-        const std::array<std::string, 16> InstructionDecoder_aarch64::condNames = {
+        const std::array<std::string, 16> InstructionDecoder_aarch64::condNames = { {
             "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
             "lt", "gt", "le", "al", "nv",
-        };
+        } };
         
         const char* InstructionDecoder_aarch64::bitfieldInsnAliasMap(entryID e) {
             switch(e) {

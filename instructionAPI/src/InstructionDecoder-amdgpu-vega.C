@@ -38,10 +38,10 @@ namespace Dyninst {
 		typedef amdgpu_insn_entry amdgpu_insn_table[];
 		typedef amdgpu_mask_entry amdgpu_decoder_table[];
 
-		const std::array<std::string, 16> InstructionDecoder_amdgpu_vega::condNames = {
+		const std::array<std::string, 16> InstructionDecoder_amdgpu_vega::condNames = { {
 			"eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
 			"lt", "gt", "le", "al", "nv",
-		};
+		} };
 
 		const char* InstructionDecoder_amdgpu_vega::bitfieldInsnAliasMap(entryID e) {
 			switch(e) {
