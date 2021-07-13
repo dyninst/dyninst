@@ -1250,7 +1250,7 @@ bool emitElfStatic::handleInterModuleSpecialCase(Symtab * /*target*/,
     // A branch or other non-call/noop
     return false;
   }
-  if (!post != 0x60000000) {
+  if (post != 0x60000000) {
     // No noop for us to restore the TOC
     return false;
   }
