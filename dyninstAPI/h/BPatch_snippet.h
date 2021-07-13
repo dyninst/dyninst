@@ -599,6 +599,7 @@ class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
 class BPATCH_DLL_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
 {
 
+  public:
   // BPatch_scrambleRegistersExpr
   // Set all GPR to flag value.
 
