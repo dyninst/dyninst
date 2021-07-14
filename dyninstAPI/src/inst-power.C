@@ -889,7 +889,6 @@ unsigned saveFPRegisters(codeGen &gen,
                          registerSpace *,
                          int save_off)
 {
-  unsigned numRegs = 0;
   insnCodeGen::saveVectors(gen, save_off);
 
   // for(int i = 0; i < theRegSpace->numFPRs(); i++) {
@@ -915,7 +914,6 @@ unsigned restoreFPRegisters(codeGen &gen,
                             int save_off)
 {
   
-  unsigned numRegs = 0;
   insnCodeGen::restoreVectors(gen, save_off);
   // for(int i = 0; i < theRegSpace->numFPRs(); i++) {
   //     registerSlot *reg = theRegSpace->FPRs()[i];
@@ -938,20 +936,18 @@ unsigned saveSPRegisters(codeGen &gen,
 			 int force_save)
 {
     unsigned num_saved = 0;
-    int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
+    int cr_off, ctr_off, xer_off, fpscr_off;
     
     if (gen.width() == 4) {
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
 	fpscr_off = STK_FP_CR_32;
-	spr0_off  = STK_SPR0_32;
     } else /* gen.width() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
 	fpscr_off = STK_FP_CR_64;
-	spr0_off  = STK_SPR0_64;
     }
 
     registerSlot *regCR = (*(gen.rs()))[registerSpace::cr]; 
@@ -992,7 +988,7 @@ unsigned restoreSPRegisters(codeGen &gen,
                             int save_off,
 			    int force_save)
 {
-    int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
+    int cr_off, ctr_off, xer_off, fpscr_off;
     unsigned num_restored = 0;
 
     if (gen.width() == 4) {
@@ -1000,13 +996,11 @@ unsigned restoreSPRegisters(codeGen &gen,
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
 	fpscr_off = STK_FP_CR_32;
-	spr0_off  = STK_SPR0_32;
     } else /* gen.width() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
 	fpscr_off = STK_FP_CR_64;
-	spr0_off  = STK_SPR0_64;
     }
 
     registerSlot *regCR = (*(gen.rs()))[registerSpace::cr]; 
@@ -1518,8 +1512,9 @@ Register EmitterPOWER::emitCall(opCode ocode,
 	// This is not necessarily true; more then 8 arguments could be passed,
 	// the first 8 need to be in registers while the others need to be on
 	// the stack, -- sec 3/1/97
-       bperr("Too many arguments to function call in instrumentation code:"
-	    " only 8 arguments can (currently) be passed on the POWER architecture.\n");
+       std::string msg = "Too many arguments to function call in instrumentation code:"
+	    " only 8 arguments can (currently) be passed on the POWER architecture.\n";
+	bperr("%s", msg.c_str());
 	showErrorCallback(94,msg);
 	exit(-1);
     }
@@ -2484,7 +2479,7 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance * origFunc, Address target_addr) {
    fprintf(stderr, "[PCProcess::bindPLTEntry] Relocation Entry location target: %lx, relocation: %lx - base_addr: %lx, original_function: %lx, original_name: %s, new_target: %lx\n", entry.target_addr(), entry.rel_addr(), base_addr, origFunc->getPtrAddress(), origFunc->name().c_str(), target_addr);
-   Address got_entry = entry.rel_addr() + base_addr;
+   //Address got_entry = entry.rel_addr() + base_addr;
    return true;//writeDataSpace((void *)got_entry, sizeof(Address), &target_addr);
 
    //assert(0 && "TODO!");

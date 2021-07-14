@@ -484,17 +484,12 @@ int image::findMain()
     if (linkedFile->isExec())
     {
         bool foundMain = false;
-        bool foundStart = false;
-        bool foundFini = false;
         // check if 'main' is in allsymbols
         vector <SymtabAPI::Function *> funcs;
         if (linkedFile->findFunctionsByName(funcs, "main") ||
-                linkedFile->findFunctionsByName(funcs, "_main"))
+                linkedFile->findFunctionsByName(funcs, "_main"))  {
             foundMain = true;
-        else if (linkedFile->findFunctionsByName(funcs, "_start"))
-            foundStart = true;
-        else if (linkedFile->findFunctionsByName(funcs, "_fini"))
-            foundFini = true;
+        }
 
         Region *eReg = NULL;
         bool foundText = linkedFile->findRegion(eReg, ".text");
