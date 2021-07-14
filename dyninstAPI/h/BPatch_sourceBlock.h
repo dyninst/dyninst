@@ -48,7 +48,6 @@
 
 class BPATCH_DLL_EXPORT BPatch_sourceBlock {
 	friend class BPatch_flowGraph;
-	friend std::ostream& operator<<(std::ostream&,BPatch_sourceBlock&);
 
 private:
 	const char* sourceFile;

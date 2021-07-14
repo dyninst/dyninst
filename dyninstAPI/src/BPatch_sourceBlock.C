@@ -60,28 +60,3 @@ BPatch_sourceBlock::getSourceLines(BPatch_Vector<unsigned short>& lines){
    std::copy(sourceLines.begin(), sourceLines.end(),
              std::back_inserter(lines));
 }
-
-#ifdef DEBUG 
-//print method 
-ostream& operator<<(ostream& os,BPatch_sourceBlock& sb){
-
-	os << "{";
-
-	if(sb.sourceFile)
-		os << sb.sourceFile << " (";
-	else
-		os << "<NO_FILE_NAME>" << " (";
-
-        if (sb.sourceLines.empty()) {
-           os << "<NO_LINE_NUMBERS>";
-        }
-        else {
-           for (std::set<unsigned short>::iterator iter = sb.sourceLines.begin();
-                iter != sb.sourceLines.end(); ++iter) {
-              os << " " << *iter;
-           }
-        }
-	os << ")}" << endl;
-	return os;
-}
-#endif

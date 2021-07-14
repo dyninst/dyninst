@@ -17,7 +17,6 @@ set (SRC_LIST
     src/procstate.C 
     src/steppergroup.C 
     src/libstate.C 
-    src/sw_c.C 
     src/sw_pcontrol.C  
 )
 

@@ -60,7 +60,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlockLoop :
    public Dyninst::AnnotatableSparse 
 {
 	friend class BPatch_flowGraph;
-	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
 
 private:
         std::set<BPatch_edge*> backEdges;

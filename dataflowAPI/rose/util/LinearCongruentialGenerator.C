@@ -8,11 +8,7 @@
 #include <stdlib.h>
 
 #ifndef _MSC_VER
-
 #include <sys/time.h>
-
-#else
-#include "common/src/timing.h"
 #endif
 
 #ifndef _MSC_VER

@@ -112,9 +112,6 @@ public:
     // int getSignalNumber();
 
     BPatch_point * findPoint();
-
-    friend std::ostream & operator << ( std::ostream & s, BPatch_frame & m );
-
 };
 
 #endif

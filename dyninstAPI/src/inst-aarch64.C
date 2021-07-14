@@ -43,7 +43,6 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/debug.h"
-#include "common/src/debugOstream.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"

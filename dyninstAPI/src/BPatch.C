@@ -44,7 +44,6 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
 #include "BPatch_thread.h"
-#include "common/src/timing.h"
 #include "debug.h"
 #include "mapped_module.h"
 #include "instPoint.h"

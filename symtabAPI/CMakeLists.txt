@@ -23,7 +23,6 @@ set (SRC_LIST
                 src/Symtab.C 
                 src/Symtab-edit.C 
                 src/Symtab-lookup.C 
-                src/Symtab-deprecated.C 
                 src/Module.C 
                 src/Region.C 
                 src/Collections.C 

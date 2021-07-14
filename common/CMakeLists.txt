@@ -16,14 +16,10 @@ endif()
 set (SRC_LIST
     src/pfq-rwlock.C
     src/concurrent.C
-    src/string-regex.C
     src/Timer.C 
     src/Types.C 
     src/lprintf.C
     src/pathName.C 
-    src/Time.C 
-    src/fraction.C
-    src/timing.C 
     src/stats.C 
     src/Annotatable.C 
     src/MappedFile.C 
@@ -50,7 +46,6 @@ set (C_SRC_LIST
 
 if (PLATFORM MATCHES freebsd)
   set (SRC_LIST ${SRC_LIST} 
-    src/timing-freebsd.C
     src/freebsdKludges.C
     src/addrtranslate-sysv.C
     src/addrtranslate-freebsd.C
@@ -64,7 +59,6 @@ endif()
 if (PLATFORM MATCHES linux)
   set (SRC_LIST ${SRC_LIST}
     src/linuxKludges.C
-    src/timing-linux.C
     src/parseauxv.C
     src/addrtranslate-sysv.C
     src/addrtranslate-auxv.C
@@ -79,7 +73,6 @@ endif()
 if (PLATFORM MATCHES cnl)
   set (SRC_LIST ${SRC_LIST}
     src/linuxKludges.C
-    src/timing-linux.C
     src/parseauxv.C
     src/addrtranslate-sysv.C
     src/addrtranslate-auxv.C
@@ -90,7 +83,6 @@ endif()
 if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   set (SRC_LIST ${SRC_LIST}
     src/ntKludges.C
-    src/timing-nt.C
 #    src/dthread-win.C
 #	src/dthread.C
     src/addrtranslate-win.C

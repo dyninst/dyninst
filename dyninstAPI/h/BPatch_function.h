@@ -39,8 +39,6 @@
 #include "BPatch_type.h"
 #include "BPatch_module.h"
 #include "BPatch_memoryAccess_NP.h"
-//#include "BPatch_dependenceGraphNode.h"
-// class BPatch_dependenceGraphNode;
 #include "StackMod.h"
 
 class func_instance;
