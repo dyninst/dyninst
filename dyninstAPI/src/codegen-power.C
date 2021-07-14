@@ -427,7 +427,6 @@ instPoint * GetInstPointPower(codeGen & gen, Address from) {
     AddressSpace * curAddressSpace = gen.addrSpace();
 
     // Find the func instance
-    func_instance * func;
     std::set<func_instance *> funcList;
     curAddressSpace->findFuncsByAddr(from, funcList);
 
@@ -1074,11 +1073,9 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
 }
 
 int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Register>& freeReg, std::vector<Register>& excludeReg){
-              int gpr_off, fpr_off, ctr_off, stack_size;
+              int gpr_off, stack_size;
                 //create new stack frame
                 gpr_off = TRAMP_GPR_OFFSET_32;
-                fpr_off = TRAMP_FPR_OFFSET_32;
-                ctr_off = STK_CTR_32;
                 pushStack(gen);
                 // Save GPRs
                 stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, numRegs);
