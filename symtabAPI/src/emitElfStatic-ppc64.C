@@ -214,7 +214,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
        
         Offset symbolOffset = rel.getDynSym()->getOffset();
 
-        Elf64_Word addend;
+        Elf64_Word addend = 0;
         if( rel.regionType() == Region::RT_REL ) {
             memcpy(&addend, &targetData[dest], sizeof(Elf64_Word));
         }else if( rel.regionType() == Region::RT_RELA ) {
@@ -523,7 +523,7 @@ case R_PPC64_NUM            :/*107 */
        
         Offset symbolOffset = rel.getDynSym()->getOffset();
 
-        Elf32_Word addend;
+        Elf32_Word addend = 0;
         if( rel.regionType() == Region::RT_REL ) {
             memcpy(&addend, &targetData[dest], sizeof(Elf32_Word));
         }else if( rel.regionType() == Region::RT_RELA ) {
