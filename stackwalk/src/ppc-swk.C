@@ -91,9 +91,15 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
      found_reg = true;
   }
 
-  sw_printf("[%s:%d] - Returning value %lx for reg %s\n", 
+  if (found_reg)  {
+     sw_printf("[%s:%d] - Returning value %lx for reg %s\n", 
             FILE__, __LINE__, val, reg.name().c_str());
-  return true;
+  }  else  {
+     sw_printf("[%s:%d] - Register not found\n", 
+            FILE__, __LINE__);
+  }
+
+  return found_reg;
 }
 
 Dyninst::Architecture ProcSelf::getArchitecture()
