@@ -260,21 +260,21 @@ WandererHelper::WandererHelper(ProcessState *proc_) :
 
 bool WandererHelper::isPrevInstrACall(Address, Address&)
 {
-   sw_printf("[%s:%d] - Unimplemented on this platform!\n");
+   sw_printf("[%s:%d] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return false;
 }
 
 WandererHelper::pc_state WandererHelper::isPCInFunc(Address, Address)
 {
-   sw_printf("[%s:%d] - Unimplemented on this platform!\n");
+   sw_printf("[%s:%d] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return unknown_s;
 }
 
 bool WandererHelper::requireExactMatch()
 {
-   sw_printf("[%s:%d] - Unimplemented on this platform!\n");
+   sw_printf("[%s:%d] - Unimplemented on this platform!\n", FILE__, __LINE__);
    assert(0);
    return true;
 }

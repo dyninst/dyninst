@@ -538,7 +538,7 @@ int image::findMain()
                 Function::edgelist::iterator cit = calls.begin();
                 b = (*cit)->src();
             } else {
-                startup_printf("%s[%d] _start has unexpected number (%d) of"
+                startup_printf("%s[%d] _start has unexpected number (%lu) of"
                         " call edges, bailing on findMain()\n",
                         FILE__,__LINE__,calls.size());
                 return -1;
