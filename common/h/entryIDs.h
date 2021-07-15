@@ -278,6 +278,7 @@ enum entryID : unsigned int {
   e_fxrstor,
   e_fxsave,
   e_xsave,
+  e_xsavec,
   e_xrstor,
   e_haddpd,
   e_haddps,
