@@ -722,13 +722,13 @@ bool Symtab::addFunctionRange(FunctionBase *func, Dyninst::Offset next_start)
    for (FuncRangeCollection::iterator i = ranges.begin(); i != ranges.end(); i++) {
       FuncRange &range = *i;
       if (range.low() == sym_low && range.high() == sym_high)
-         found_sym_range = true;
+         found_sym_range = true;      
       func_lookup->insert(&range);
    }
 
    //Add symbol range to func_lookup, if present and not already added
    if (!found_sym_range && sym_low && sym_high) {
-      FuncRange *frange = new FuncRange(sym_low, sym_high - sym_low, func);
+      FuncRange *frange = new FuncRange(sym_low, sym_high - sym_low, func);      
       func_lookup->insert(frange);
    }
 
@@ -825,7 +825,7 @@ bool Symtab::getContainingFunction(Offset offset, Function* &func)
 }
 
 bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
-{
+{   
    if (!func_lookup)
       parseFunctionRanges();
    assert(func_lookup);
@@ -851,7 +851,7 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
    // Therefore, here we heuristicaly prefer the deeper call chain
    // to reflect inlining information.
    int maxDepth = 0;
-   for (auto range : ranges) {
+   for (auto range : ranges) {      
       FunctionBase *cur_func = range->container;
       int depth = 0;
       while (cur_func) {
@@ -862,7 +862,7 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
          maxDepth = depth;
          func = range->container;
       }
-   }
+   }   
    return true;
 }
 

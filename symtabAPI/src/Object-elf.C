@@ -2484,7 +2484,8 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         EEL(false), did_open(false),
         obj_type_(obj_Unknown),
         DbgSectionMapSorted(false),
-        soname_(NULL)
+        soname_(NULL),
+        containingFunc(nullptr)
 {
     li_for_object = NULL; 
 
@@ -3346,71 +3347,6 @@ const char *Object::interpreter_name() const {
     return interpreter_name_;
 }
 
-class open_statement {
-    public:
-        open_statement() { reset(); }
-        Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
-        bool uninitialized() {
-            return start_addr == noAddress();
-        }
-        void reset() {
-            string_table_index = -1;
-            start_addr = noAddress();
-            end_addr = noAddress();
-            line_number = 0;
-            column_number = 0;
-            context = 0;
-            funcname_offset = 0;
-        };
-        bool sameFileLineColumn(const open_statement &rhs) {
-            return ((string_table_index == rhs.string_table_index) &&
-                    (line_number == rhs.line_number) &&
-                    (column_number == rhs.column_number));
-        }
-        void operator=(const open_statement &rhs) {
-            string_table_index = rhs.string_table_index;
-            start_addr = rhs.start_addr;
-            end_addr = rhs.end_addr;
-            line_number = rhs.line_number;
-            column_number = rhs.column_number;
-            context = rhs.context;
-            funcname_offset = rhs.funcname_offset;
-        };
-        friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
-        {
-	    st.dump(os, 0, true);
-            return os;
-	};
-        const char * str(Region *r, unsigned int offset) const {
-	  return ((char *) r->getPtrToRawData()) + offset;
-	};
-        void dump(std::ostream& os, Region *debug_str, bool addrRange) const {
-	    // to facilitate comparison with nvdisasm output, where each function starts at 0,
-	    // set o to an offset that makes a function of interest report addresses that
-	    // match its unrelocated offsets reported by nvdisasm
-	    unsigned int o = 0;
-	    if (addrRange) os << "[" << hex << start_addr - o << ", " << end_addr - o << "]";
-	    else os << "  inlined at";
-	    os << " file:" << string_table_index;
-	    os << " line:" << dec << line_number;
-	    os << " col:" << column_number;
-	    if (context) {
-	        os << " context " << context;
-	        os << " function name " << str(debug_str, funcname_offset);
-	    }
-	    os << std::endl;
-        }
-    public:
-        Dwarf_Word string_table_index;
-        Dwarf_Addr start_addr;
-        Dwarf_Addr end_addr;
-        int line_number;
-        int column_number;
-        unsigned int context;
-        unsigned int funcname_offset;
-};
-
-
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
     /* Acquire this CU's source lines. */
@@ -3608,28 +3544,91 @@ dumpLineWithInlineContext
 
 
 void
-recordLine
+Object::recordLine
 (
  LineInformation *li_for_object,
  Region *debug_str,
  open_statement &saved_statement,
- vector<open_statement> &inline_context
+ vector<open_statement> &inline_context,
+ Symtab* associated_symtab
 )
-{
+{  
   // record line map entry
   li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
 			 (unsigned int)(saved_statement.line_number),
 			 (unsigned int)(saved_statement.column_number),
-			 saved_statement.start_addr, saved_statement.end_addr);
-
+			 saved_statement.start_addr, saved_statement.end_addr);    
   // record inline context, if any
   if (inline_context.size()) {
-    for (unsigned int i = inline_context.size(); i > 0; i--) {
-      // record inline context for inline_context[i -1]
+
+    // We only do a lookup when the current function does not contain the current range    
+    if (containingFunc == nullptr || 
+        containingFunc->getOffset() >= saved_statement.start_addr ||
+        containingFunc->getOffset() + containingFunc->getSize() < saved_statement.start_addr) {
+            
+        associated_symtab->getContainingFunction(saved_statement.start_addr, containingFunc);
+        if (containingFunc == nullptr) {
+            fprintf(stderr, "Cannot find function contains range [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
+            assert(0);
+        }  
     }
+    
+    FunctionBase* cur = static_cast<FunctionBase*>(containingFunc);
+    FunctionBase* outer_most = cur;   
+    StringTablePtr strings(li_for_object->getStrings());
+    const char* func_name_table = static_cast<const char*>(debug_str->getPtrToRawData());
+
+    // Record all inline call sites
+    for (unsigned int i = 0; i < inline_context.size() - 1; ++i) {          
+      cur = recordAnInlinedFunction(
+          inline_context[i],
+          inline_context[i + 1],
+          strings,
+          cur,
+          func_name_table,
+          saved_statement.start_addr,
+          saved_statement.end_addr);
+    }
+    recordAnInlinedFunction(
+        *(inline_context.rbegin()),
+        saved_statement,
+        strings,
+        cur,
+        func_name_table,
+        saved_statement.start_addr,
+        saved_statement.end_addr);
+        
+    associated_symtab->addFunctionRange(outer_most, 0);
   }
 
-  dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
+  //dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
+}
+
+InlinedFunction* Object::recordAnInlinedFunction(
+    open_statement& caller,
+    open_statement& callee,
+    StringTablePtr strings,
+    FunctionBase *parent,
+    const char* func_name_table,
+    Dwarf_Addr start,
+    Dwarf_Addr end
+) {
+    InlinedFunction *ifunc = new InlinedFunction(parent);
+
+    // Use the filename and line number from the caller 
+    const string& src_file = (*strings)[caller.string_table_index].str;                
+    ifunc->callsite_file_number = strings->project<0>(strings->get<1>().insert(StringTableEntry(src_file,"")).first) - strings->begin();      
+    ifunc->callsite_line = caller.line_number;
+    
+    // Use the function name from the callee
+    const char* func_name_ptr = func_name_table + callee.funcname_offset;      
+    ifunc->addMangledName(func_name_ptr, true, true);   
+    
+    ifunc->ranges.emplace_back(FuncRange(start, end - start, ifunc));
+    
+    fprintf(stderr, "%p %p [%lx, %lx)", ifunc, parent, start, end);
+    fprintf(stderr, " func name %s, line number %d, file name %s, func name index %lx\n", func_name_ptr, ifunc->callsite_line, src_file.c_str(), caller.string_table_index);
+    return ifunc;
 }
 
 
@@ -3803,7 +3802,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
         status = dwarf_linefunctionname(line, &current_statement.funcname_offset);
         if(status != 0) {
             cout << "dwarf_linefunctionname failed" << endl;
-            continue;
+            continue;        
 	}
 	
 	if (saved_statement.uninitialized()) {
@@ -3820,7 +3819,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 	    // record saved_statement and its inlining context if any addresses fall
 	    // between saved_statement and current_statement.
 	    if (current_statement.start_addr != saved_statement.start_addr)
-	      recordLine (li_for_object, debug_str, saved_statement, inline_context);
+	      recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
 
 	    // record saved_statement as inlined context for current_statement`
 	    inline_context.push_back(saved_statement);
@@ -3833,7 +3832,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 	    if (!pushed) {
 	    // we didn't add saved_statement to the inlined context of current_statement,
 	    // so a line map entry for saved_statement needs to be recorded
-	      recordLine (li_for_object, debug_str, saved_statement, inline_context);
+	      recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
 	    }
 
 	    if (current_statement.context == 0) {

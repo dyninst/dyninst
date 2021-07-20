@@ -105,6 +105,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class emitWin;
    friend class Aggregate;
    friend class relocationEntry;
+   friend class Object;
 
  public:
 
