@@ -192,6 +192,7 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
 {
    friend class Symtab;
    friend class DwarfWalker;
+   friend class Object;
   protected:
    InlinedFunction(FunctionBase *parent);
    ~InlinedFunction();

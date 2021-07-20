@@ -77,6 +77,73 @@ class pdElfShdr;
 class Symtab;
 class Region;
 class Object;
+class InlinedFunction;
+
+class open_statement {
+    public:
+        open_statement() { reset(); };
+        Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
+        bool uninitialized() {
+            return start_addr == noAddress();
+        };
+        void reset() {
+            string_table_index = -1;
+            start_addr = noAddress();
+            end_addr = noAddress();
+            line_number = 0;
+            column_number = 0;
+            context = 0;
+            funcname_offset = 0;
+        };
+        bool sameFileLineColumn(const open_statement &rhs) {
+            return ((string_table_index == rhs.string_table_index) &&
+                    (line_number == rhs.line_number) &&
+                    (column_number == rhs.column_number));
+        };
+        void operator=(const open_statement &rhs) {
+            string_table_index = rhs.string_table_index;
+            start_addr = rhs.start_addr;
+            end_addr = rhs.end_addr;
+            line_number = rhs.line_number;
+            column_number = rhs.column_number;
+            context = rhs.context;
+            funcname_offset = rhs.funcname_offset;
+        };
+        friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
+        {
+	    st.dump(os, 0, true);
+            return os;
+	};
+        const char * str(Region *r, unsigned int offset) const {
+	  return ((char *) r->getPtrToRawData()) + offset;
+	};
+        void dump(std::ostream& os, Region *debug_str, bool addrRange) const {
+	    // to facilitate comparison with nvdisasm output, where each function starts at 0,
+	    // set o to an offset that makes a function of interest report addresses that
+	    // match its unrelocated offsets reported by nvdisasm
+	    unsigned int o = 0;
+	    if (addrRange) os << "[" << std::hex << start_addr - o << ", " << end_addr - o << "]";
+	    else os << "  inlined at";
+	    os << " file:" << string_table_index;
+	    os << " line:" << std::dec << line_number;
+	    os << " col:" << column_number;
+	    if (context) {
+	        os << " context " << context;
+	        os << " function name " << str(debug_str, funcname_offset);
+           os << " function name offset " << std::hex << funcname_offset << std::dec;
+	    }
+	    os << std::endl;
+        }
+    public:
+        Dwarf_Word string_table_index;
+        Dwarf_Addr start_addr;
+        Dwarf_Addr end_addr;
+        int line_number;
+        int column_number;
+        unsigned int context;
+        unsigned int funcname_offset;
+};
+
 
 class Object : public AObject 
 {
@@ -349,6 +416,22 @@ public:
 
 private:
     void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
+    void recordLine(
+       LineInformation *li_for_object,
+       Region *debug_str,
+       open_statement &saved_statement,
+       std::vector<open_statement> &inline_context,
+       Symtab* associated_symtab
+    );
+    InlinedFunction* recordAnInlinedFunction(
+       open_statement&,
+       open_statement&,
+       StringTablePtr,
+       FunctionBase*,
+       const char*,
+       Dwarf_Addr,
+       Dwarf_Addr
+    );
     
     LineInformation* li_for_object;
     LineInformation* parseLineInfoForObject(StringTablePtr strings);
@@ -422,6 +505,7 @@ private:
   std::vector<std::pair<long, long> > new_dynamic_entries;
  private:
   const char* soname_;
+  Function* containingFunc;
 
         };
 
