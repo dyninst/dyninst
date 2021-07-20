@@ -909,9 +909,7 @@ void yyerrorNonUni(const char *s){
 }
 
 void getErrorBase(char *errbase, int length){
-   char base[512] = "";
-   sprintf(base, "%s:%d.%d:", dynCSnippetName, yylloc.first_line, yylloc.first_column);
-   strncpy(errbase, base, (length > 512 ? 512 : length));
+   snprintf(errbase, length, "%s:%d.%d:", dynCSnippetName, yylloc.first_line, yylloc.first_column);
 }
 
 void yyerrorNoTok(const char *s){
