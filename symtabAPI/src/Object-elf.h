@@ -432,6 +432,8 @@ private:
        Dwarf_Addr,
        Dwarf_Addr
     );
+
+    void lookupInlinedContext( std::vector<open_statement> &, open_statement &);
     
     LineInformation* li_for_object;
     LineInformation* parseLineInfoForObject(StringTablePtr strings);
@@ -506,6 +508,7 @@ private:
  private:
   const char* soname_;
   Function* containingFunc;
+  std::unordered_map<unsigned int, std::vector<open_statement> > contextMap;
 
         };
 

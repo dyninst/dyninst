@@ -3601,7 +3601,7 @@ Object::recordLine
     associated_symtab->addFunctionRange(outer_most, 0);
   }
 
-  //dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
+  dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
 }
 
 InlinedFunction* Object::recordAnInlinedFunction(
@@ -3626,27 +3626,28 @@ InlinedFunction* Object::recordAnInlinedFunction(
     
     ifunc->ranges.emplace_back(FuncRange(start, end - start, ifunc));
     
-    fprintf(stderr, "%p %p [%lx, %lx)", ifunc, parent, start, end);
-    fprintf(stderr, " func name %s, line number %d, file name %s, func name index %lx\n", func_name_ptr, ifunc->callsite_line, src_file.c_str(), caller.string_table_index);
+    //fprintf(stderr, "%p %p [%lx, %lx)", ifunc, parent, start, end);
+    //fprintf(stderr, " func name %s, line number %d, file name %s, func name index %lx\n", func_name_ptr, ifunc->callsite_line, src_file.c_str(), caller.string_table_index);
     return ifunc;
 }
 
 
 void
-deleteAnyMatchingInlinedContext
+Object::lookupInlinedContext
 (
  vector<open_statement> &inline_context,
  open_statement &saved_statement
 )
 {
+  // If we encounter an unseen inline context,
+  // the current inlining call path is stored with the inline context id.
+  // Otherwise, we replace current context with the stored one
   unsigned int c = saved_statement.context;
   if (c) {
-    for (unsigned int i = 0; i < inline_context.size(); i++) {
-      if (inline_context[i].context == c) {
-	// delete the entry matching c and any nexted entries
-	inline_context.erase(inline_context.begin() + i, inline_context.end());
-	return;
-      }
+    if (contextMap.find(c) == contextMap.end()) {
+        contextMap[c] = inline_context;
+    } else {
+        inline_context = contextMap[c];
     }
   }
 }
@@ -3814,7 +3815,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 	    // if saved_statement.context is non-zero, we need to remove any previously
 	    // recorded inlined context that matches saved_statement.context or is
 	    // nexted inside the matching context
-	    deleteAnyMatchingInlinedContext(inline_context, saved_statement);
+	    lookupInlinedContext(inline_context, saved_statement);
 
 	    // record saved_statement and its inlining context if any addresses fall
 	    // between saved_statement and current_statement.
@@ -3846,6 +3847,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 	}
 	if (isEndOfSequence) {
 	  saved_statement.reset();
+      contextMap.clear();
 	}
     }
     }
