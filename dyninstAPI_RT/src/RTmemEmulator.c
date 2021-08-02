@@ -50,7 +50,7 @@ extern void DYNINST_stopThread(void *, void *, void *, void *);
 #if _MSC_VER
 struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0 };
 #else
-struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0, {} };
+struct MemoryMapper RTmemoryMapper = {0, 0, 0, 0, {{0}} };
 #endif
 extern FILE *stOut;
 
