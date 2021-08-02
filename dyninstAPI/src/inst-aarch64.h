@@ -72,7 +72,7 @@
 #define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
 
 //TODO Fix for ARM
-#define GPRSAVE_64  (31*GPRSIZE_64)
+#define GPRSAVE_64  (32*GPRSIZE_64)
 #define FPRSAVE_64  (32*FPRSIZE_64)
 #define SPRSAVE_64  (1*8+3*4)
 // #sasha Are these necessary?
