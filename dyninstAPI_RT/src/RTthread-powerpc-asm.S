@@ -4,10 +4,12 @@
    .abiversion 2
 #endif
 
-#if defined(arch_64bit)
+#ifndef __clang__
+# if defined(arch_64bit)
    .machine "ppc64"       
-#else
+# else
    .machine "ppc"       
+# endif
 #endif
 
    .section ".text"
