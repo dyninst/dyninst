@@ -2027,6 +2027,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     selem = 1;
                     break;
                 default:
+                    rpt = 0;
+                    selem = 0;
                     isValid = false;
                     return;
             }
@@ -2067,6 +2069,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             if (IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn)) {
                 unsigned int rpt, selem;
                 getSIMD_MULT_RptSelem(rpt, selem);
+                if (!isValid)  {
+                    return;
+                }
                 MachRegister reg = _Q == 0x1 ? aarch64::q0 : aarch64::d0;
                 for (int it_rpt = rpt * selem - 1; it_rpt >= 0; it_rpt--) {
                     insn_in_progress->appendOperand(
@@ -2093,6 +2098,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             if (IS_INSN_LDST_SIMD_MULT(insn) || IS_INSN_LDST_SIMD_MULT_POST(insn)) {
                 unsigned int rpt, selem;
                 getSIMD_MULT_RptSelem(rpt, selem);
+                if (!isValid)  {
+                    return;
+                }
 
                 MachRegister reg = _Q == 0x1 ? aarch64::q0 : aarch64::d0;
 
