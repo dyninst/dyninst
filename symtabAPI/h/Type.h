@@ -264,7 +264,7 @@ class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
    Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal = -1, 
 		   visibility_t vis = visUnknown);
    Field(std::string n, Type* t, int ov = -1, visibility_t v = visUnknown)
-      : Field(n, t->reshare(), ov, v) {}
+      : Field(n, t ? t->reshare() : nullptr, ov, v) {}
    
    // Copy constructor
    Field(Field &f);
