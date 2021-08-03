@@ -31,6 +31,6 @@ endif()
 # Disable compiler-specific C language extensions (e.g., gnu99)
 set(CMAKE_C_EXTENSIONS OFF)
 
-# Require C99 support
-set(CMAKE_C_STANDARD 99)
+# Require C11 support
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
