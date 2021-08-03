@@ -2741,7 +2741,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                         //immb
                     else if (startBit == 16 && endBit == 18) {
                         int opcode = field<11, 15>(insn);
-                        int shift, isRightShift = 1, elemWidth = (immlo << immLen) | immVal;
+                        int shift = 0, isRightShift = 1, elemWidth = (immlo << immLen) | immVal;
                         entryID insnID = insn_in_progress->getOperation().operationID;
                         bool isScalar = field<28, 28>(insn) ? true : false;
 
