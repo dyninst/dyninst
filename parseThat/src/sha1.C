@@ -275,9 +275,11 @@ unsigned char finalcount[8];
         finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
          >> ((3-(i & 3)) * 8) ) & 255);  /* Endian independent */
     }
-    SHA1Update(context, (unsigned char *)'\200', 1);
+    unsigned char buf200[] = "\200";
+    SHA1Update(context, buf200, 1);
     while ((context->count[0] & 504) != 448) {
-        SHA1Update(context, (unsigned char *)'\0', 1);
+        unsigned char buf0[] = "\0";
+        SHA1Update(context, buf0, 1);
     }
     SHA1Update(context, finalcount, 8);  /* Should cause a SHA1Transform() */
     for (i = 0; i < 20; i++) {
