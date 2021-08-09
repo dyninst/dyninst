@@ -9,14 +9,14 @@ else()
     set(LTO_FLAGS "")
     set(LTO_LINK_FLAGS "")
 endif()
-set (CMAKE_C_FLAGS_DEBUG "-O0 -g")
-set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+set (CMAKE_C_FLAGS_DEBUG "-Og -g3")
+set (CMAKE_CXX_FLAGS_DEBUG "-Og -g3")
 
 set (CMAKE_C_FLAGS_RELEASE "-O2 ${LTO_FLAGS}")
 set (CMAKE_CXX_FLAGS_RELEASE "-O2 ${LTO_FLAGS}")
 
-set (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g ${LTO_FLAGS}")
-set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g ${LTO_FLAGS}")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g3 ${LTO_FLAGS}")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g3 ${LTO_FLAGS}")
 
 set (FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
 # Ensure each library is fully linked
