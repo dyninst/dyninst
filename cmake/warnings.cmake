@@ -15,18 +15,16 @@ list(APPEND REQUESTED_WARNING_FLAGS
         Wextra
         Wpedantic
 
-        Wctor-dtor-privacy
-        Wenum-conversions
-        Wmissing-braces
-        Wmultichar
         Walloca
         Wcast-align
         Wcast-qual
         Wcomma-subscript
+        Wctor-dtor-privacy
         Wdeprecated-copy-dtor
         Wdouble-promotion
         Wduplicated-branches
         Wduplicated-cond
+        Wenum-conversion
         Wextra-semi
         Wfloat-equal
         Wformat-overflow=2
@@ -36,6 +34,8 @@ list(APPEND REQUESTED_WARNING_FLAGS
         Wjump-misses-init
         Wlogical-op
         Wmismatched-tags
+        Wmissing-braces
+        Wmultichar
         Wnoexcept
         Wnon-virtual-dtor
         Woverloaded-virtual
@@ -43,9 +43,9 @@ list(APPEND REQUESTED_WARNING_FLAGS
         Wrange-loop-construct
         Wrestrict
         Wshadow
+        Wstrict-null-sentinel
         Wsuggest-attribute=format
         Wsuggest-attribute=malloc
-        Wstrict-null-sentinel
         Wuninitialized
         Wvla
         Wvolatile
@@ -71,7 +71,7 @@ if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
   foreach (f IN LISTS REQUESTED_WARNING_FLAGS)
     string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_C_FLAG_${f}")
     set(CMAKE_REQUIRED_FLAGS "-${f}")
-    check_c_source_compiles("int main(){return 0;}" "${v}" FAIL_REGEX "warning: *command[- ]line option")
+    check_c_source_compiles("int main(){return 0;}" "${v}" FAIL_REGEX "warning: *command[- ]line option|-Wunknown-warning-option")
     # Previous two lines are equivalent to below, but also catches
     # a 0 exit status with a warning message output:
     #    check_c_compiler_flag("-${f}" "${v}")
@@ -91,7 +91,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   foreach (f IN LISTS REQUESTED_WARNING_FLAGS)
     string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_CPP_FLAG_${f}")
     set(CMAKE_REQUIRED_FLAGS "-${f}")
-    check_cxx_source_compiles("int main(){return 0;}" "${v}" FAIL_REGEX "warning: *command[- ]line option")
+    check_cxx_source_compiles("int main(){return 0;}" "${v}" FAIL_REGEX "warning: *command[- ]line option|-Wunknown-warning-option")
     if (${v})
         string(APPEND SUPPORTED_CXX_WARNING_FLAGS " -${f}")
         if (f MATCHES "^(.*)=[0-9]+$")

@@ -61,18 +61,21 @@
         #define DYNINST_FALLTHROUGH [[clang::fallthrough]]
     #endif
 #elif !defined(__cpluscplus) && defined(__has_c_attribute)
-    #if __has_cpp_attribute(fallthrough)
+    #if __has_c_attribute(fallthrough)
         #define DYNINST_FALLTHROUGH [[fallthrough]]
-    #elif __has_cpp_attribute(gcc::fallthrough)
-        #define DYNINST_FALLTHROUGH [[gcc::fallthrough]]
-    #elif __has_cpp_attribute(clang::fallthrough)
-        #define DYNINST_FALLTHROUGH [[clang::fallthrough]]
+    #elif __STDC_VERSION__ > 201710
+	// scoped attribute names are only valid in C starting with 2x
+	#if __has_c_attribute(gcc::fallthrough)
+	    #define DYNINST_FALLTHROUGH [[gcc::fallthrough]]
+	#elif __has_c_attribute(clang::fallthrough)
+	    #define DYNINST_FALLTHROUGH [[clang::fallthrough]]
+	#endif
     #endif
 #elif defined(__has_attribute)
     #if __has_attribute(fallthrough)
         #define DYNINST_FALLTHROUGH __attribute__((fallthrough))
     #elif __cplusplus || __STDC_VERSION__ > 201710
-	// scoped attribute names are only valid in C2x and later
+	// scoped attribute names are only valid in C++ or C starting with 2x
 	#if __has_attribute(gcc::fallthrough)
 	    #define DYNINST_FALLTHROUGH __attribute__((gcc::fallthrough))
 	#elif __has_attribute(clang::fallthrough)
