@@ -310,7 +310,7 @@ namespace Dyninst
       type(t), defined(true)
       {
 	assert(t == sp_float || t == dp_float);
-	val.dblval = v;
+	val.dblval = (double)v;
       }
       Result(Result_Type t, double v) :
       type(t), defined(true)
