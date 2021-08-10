@@ -1136,7 +1136,7 @@ bool linux_process::plat_execed()
 
    char proc_exec_name[128];
    snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = std::move(resolve_file_path(proc_exec_name));
+   executable = resolve_file_path(proc_exec_name);
    return true;
 }
 
