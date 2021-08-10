@@ -474,7 +474,13 @@ public:
   }
 
   typeScalar(unsigned int size, std::string name = "", bool isSigned = false)
-      : typeScalar(this->getUniqueTypeId(), size, name, isSigned) {}
+    : typeScalar()
+    {
+        ID_ = this->getUniqueTypeId();
+        size_ = size;
+        name_ = name;
+        props.is_signed = isSigned;
+    }
 
   static typeScalar *create(std::string &name, int size, Symtab *obj = NULL);
   bool isSigned() const { return props.is_signed; }
