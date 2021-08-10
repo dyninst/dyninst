@@ -378,8 +378,8 @@ gcframe_ret_t DyninstInstFrameStepperImpl::getCallerFrame(const Frame &in, Frame
       return gcf_not_me;
     }
 
-    sw_printf("[%s:%d] - %lx reading from memory at location %lx with framePtr %lx\n",
-        FILE__, __LINE__, ret, framePtr + addr_width, framePtr);    
+    sw_printf("[%s:%d] - reading from memory at location %lx with framePtr %lx\n",
+        FILE__, __LINE__, framePtr + addr_width, framePtr);
 
     // Read the location in the stack where the Special Value should be.
     // This value was inserted into the stack at inst frame creation. 
