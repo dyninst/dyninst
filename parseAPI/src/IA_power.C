@@ -437,21 +437,6 @@ bool IA_power::isIATcall(std::string &) const
     return false;
 }
 
-const unsigned int B_UNCOND      = 0x48000000;
-const unsigned int ADDIS_R12_R12 = 0x3d8c0000;
-const unsigned int ADDIS_R12_R2  = 0x3d820000;
-const unsigned int ADDIS_R2_R2   = 0x3c420000;
-const unsigned int ADDI_R12_R12  = 0x398c0000;
-const unsigned int ADDI_R2_R2    = 0x38420000;
-const unsigned int STD_R2_40R1   = 0xf8410028;
-const unsigned int LD_R2_40R1    = 0xe8410028;
-const unsigned int LD_R2_0R2     = 0xe8420000;
-const unsigned int LD_R2_0R12    = 0xe84c0000;
-const unsigned int LD_R11_0R12   = 0xe96c0000;
-const unsigned int LD_R11_0R2    = 0xe9620000;
-const unsigned int MTCTR_R11     = 0x7d6903a6;
-const unsigned int BCTR          = 0x4e800420;
-
 typedef enum {
     STUB_UNKNOWN,
     STUB_LONG_BRANCH,
@@ -462,6 +447,21 @@ typedef enum {
 linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
 {
 #if defined(ppc64_linux)
+    const unsigned int B_UNCOND      = 0x48000000;
+    const unsigned int ADDIS_R12_R12 = 0x3d8c0000;
+    const unsigned int ADDIS_R12_R2  = 0x3d820000;
+    const unsigned int ADDIS_R2_R2   = 0x3c420000;
+    const unsigned int ADDI_R12_R12  = 0x398c0000;
+    const unsigned int ADDI_R2_R2    = 0x38420000;
+    const unsigned int STD_R2_40R1   = 0xf8410028;
+    const unsigned int LD_R2_40R1    = 0xe8410028;
+    const unsigned int LD_R2_0R2     = 0xe8420000;
+    const unsigned int LD_R2_0R12    = 0xe84c0000;
+    const unsigned int LD_R11_0R12   = 0xe96c0000;
+    const unsigned int LD_R11_0R2    = 0xe9620000;
+    const unsigned int MTCTR_R11     = 0x7d6903a6;
+    const unsigned int BCTR          = 0x4e800420;
+
     /*
      * Linker stubs seen from GNU's binutils.
      * (see the following functions in binutils' bfd/elf64-ppc.c:
