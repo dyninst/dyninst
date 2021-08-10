@@ -1618,7 +1618,7 @@ namespace Dyninst
                 {
                     Expression::Ptr edx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::edx : x86_64::edx));
                     Expression::Ptr eax(makeRegisterExpression(m_Arch == Arch_x86 ? x86::eax : x86_64::eax));
-                    Expression::Ptr highAddr = makeMultiplyExpression(edx, Immediate::makeImmediate(Result(u64, 2^32)), u64);
+                    Expression::Ptr highAddr = makeMultiplyExpression(edx, Immediate::makeImmediate(Result(u64, 1LL << 32)), u64);
                     Expression::Ptr addr = makeAddExpression(highAddr, eax, u64);
                     Expression::Ptr op = makeDereferenceExpression(addr, u64);
                     insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
@@ -1627,7 +1627,7 @@ namespace Dyninst
                     Expression::Ptr ecx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ecx : x86_64::ecx));
                     Expression::Ptr ebx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ebx : x86_64::ebx));
                     Expression::Ptr highAddr = makeMultiplyExpression(ecx,
-                            Immediate::makeImmediate(Result(u64, 2^32)), u64);
+                            Immediate::makeImmediate(Result(u64, 1LL << 32)), u64);
                     Expression::Ptr addr = makeAddExpression(highAddr, ebx, u64);
                     Expression::Ptr op = makeDereferenceExpression(addr, u64);
                     insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
