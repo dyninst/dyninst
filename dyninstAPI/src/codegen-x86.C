@@ -194,7 +194,6 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
 // We keep array-lets that represents various fixed insns.
 // They are larger than necessary so static analyzers don't think
 // they'll be read out of bounds.
-static const unsigned char illegalRep[8] = {0x0f, 0x0b};
 static const unsigned char trapRep[8] = {0xCC};
 
 
