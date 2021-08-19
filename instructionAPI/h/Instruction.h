@@ -92,6 +92,7 @@ namespace Dyninst
         friend class InstructionDecoder_power;
         friend class InstructionDecoder_aarch64;
         friend class InstructionDecoder_amdgpu_vega;
+        friend class InstructionDecoder_amdgpu_cdna;
 
         struct CFT
         {

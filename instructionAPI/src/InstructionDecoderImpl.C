@@ -34,6 +34,7 @@
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
 #include "InstructionDecoder-amdgpu-vega.h"
+#include "cdna/InstructionDecoder-amdgpu-cdna.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
@@ -77,6 +78,9 @@ namespace Dyninst
                     return Ptr(new InstructionDecoder_aarch64(a));
                 case Arch_amdgpu_vega:
                     return Ptr(new InstructionDecoder_amdgpu_vega(a));
+                case Arch_amdgpu_cdna:
+                    return Ptr(new InstructionDecoder_amdgpu_cdna(a));
+
                 default:
                     assert(0);
                     return Ptr();

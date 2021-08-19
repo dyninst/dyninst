@@ -60,6 +60,7 @@ namespace Dyninst
         Arch_amdgpu_vega      =  0x84000000,
         Arch_cuda        =  0x88000000,
         Arch_amdgpu_rdna =  0x8c000000, //future support for rdna
+        Arch_amdgpu_cdna =  0x8c000000, //future support for cdna
         Arch_intelGen9 = 0xb6000000	//same as machine no. retrevied from eu-readelf
     } Architecture;
 
@@ -1637,6 +1638,78 @@ namespace Dyninst
 
       #include "amdgpu_vega_sys_regs.h"
     }
+
+	namespace amdgpu_cdna{
+      //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
+      //arch        reg cat:GPR     alias&subrange  reg ID
+      const signed int SGPR           = 0x00010000;
+      const signed int SGPR_VEC2      = 0x00020000;
+      const signed int SGPR_VEC4      = 0x00030000;
+      const signed int SGPR_VEC8      = 0x00040000;
+      const signed int SGPR_VEC16     = 0x00050000;
+
+      const signed int VGPR           = 0x00060000;
+      const signed int VGPR_VEC2      = 0x00070000;
+      const signed int VGPR_VEC4      = 0x00080000;
+      const signed int VGPR_VEC8      = 0x00090000;
+      const signed int VGPR_VEC16     = 0x000A0000;
+      
+      const signed int HWR            = 0x000B0000;
+      const signed int TTMP_SGPR      = 0x000C0000;
+      const signed int FLAGS          = 0x000D0000;
+      const signed int PC             = 0x000E0000;
+      const signed int SYSREG         = 0x00100000;
+
+      // aliasing for flags
+      // if we found out that it is a flag, we no longer need to use the cat  0x00ff0000
+      // so we use thhat part to encode the low offset in the base register
+      //
+
+
+
+      const signed int BITS_1       = 0x00000100;
+      const signed int BITS_2       = 0x00000200;
+      const signed int BITS_3       = 0x00000300;
+      const signed int BITS_4       = 0x00000400;
+      const signed int BITS_6       = 0x00000500;
+      const signed int BITS_7       = 0x00000600;
+      const signed int BITS_8       = 0x00000700;
+      const signed int BITS_9       = 0x00000800;
+      const signed int BITS_15      = 0x00000900;
+      const signed int BITS_16      = 0x00000A00;
+      const signed int BITS_32      = 0x00000B00;
+      const signed int BITS_48      = 0x00000C00;
+      const signed int BITS_64      = 0x00000D00;
+      const signed int BITS_128     = 0x00000E00;
+      const signed int BITS_256     = 0x00000F00;
+      const signed int BITS_512     = 0x00001000;
+
+
+
+
+      /*const signed int BIT     = 0x00001000;
+      const signed int D_BIT   = 0x00002000;
+      const signed int T_BIT   = 0x00003000;
+      const signed int Q_BIT   = 0x00004000;
+      const signed int H_BIT   = 0x00006000;
+      const signed int S_BIT   = 0x00007000;
+      const signed int O_BIT   = 0x00008000;
+      const signed int N_BIT   = 0x00009000;
+      const signed int D_REG_BIT   = 0x0000A000;
+
+      const signed int B_REG   = 0x00000100;      //8bit  byte reg
+      const signed int W_REG   = 0x00000200;      //16bit half-wor reg
+      const signed int D_REG   = 0x00000300;      //32bit single-word reg
+      const signed int FE_REG  = 0x00000400;     //48bit reg
+      const signed int FULL    = 0x00000500;      //64bit double-word reg
+      const signed int Q_REG   = 0x00000600;      //128bit reg
+      const signed int YMMS    = 0x00000700;       //256bit reg
+      const signed int ZMMS    = 0x00000800;       //512bit reg
+      const signed int HQ_REG  = 0x00000900;      //second 64bit in 128bit reg*/
+
+      #include "amdgpu_cdna_sys_regs.h"
+    }
+
 
 
   namespace cuda {

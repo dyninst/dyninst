@@ -2,6 +2,7 @@
 
 include_directories (
     ${PROJECT_SOURCE_DIR}/instructionAPI/src
+    ${PROJECT_SOURCE_DIR}/instructionAPI/src/cdna
   )
 
 
@@ -22,6 +23,7 @@ set (SRC_LIST
      src/InstructionDecoder-power.C 
      src/InstructionDecoder-aarch64.C 
      src/InstructionDecoder-amdgpu-vega.C
+     src/cdna/InstructionDecoder-amdgpu-cdna.C
      src/InstructionDecoderImpl.C
   )
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
