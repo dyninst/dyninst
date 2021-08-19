@@ -43,11 +43,11 @@ namespace Dyninst {
         }while(0)
 #endif
 
-        struct amdgpu_insn_entry;
+        struct amdgpu_vega_insn_entry;
         struct amdgpu_mask_entry;
 
         class InstructionDecoder_amdgpu_vega : public InstructionDecoderImpl {
-            friend struct amdgpu_insn_entry;
+            friend struct amdgpu_vega_insn_entry;
             friend struct amdgpu_mask_entry;
             enum DecodeFamily {sopp};
 
@@ -66,7 +66,7 @@ namespace Dyninst {
 
             virtual bool decodeOperands(const Instruction *insn_to_complete);
             
-            bool decodeOperands(const amdgpu_insn_entry & insn_entry);
+            bool decodeOperands(const amdgpu_vega_insn_entry & insn_entry);
 
             virtual void doDelayedDecode(const Instruction *insn_to_complete);
 
@@ -334,7 +334,7 @@ namespace Dyninst {
             
             void debug_instr();
             
-#include "amdgpu_decoder_impl_vega.h"
+#include "amdgpu_vega_decoder_impl.h"
         };
     }
 }

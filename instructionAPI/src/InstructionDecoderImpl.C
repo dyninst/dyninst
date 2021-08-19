@@ -33,7 +33,7 @@
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
-#include "InstructionDecoder-amdgpu-vega.h"
+#include "vega/InstructionDecoder-amdgpu-vega.h"
 #include "cdna/InstructionDecoder-amdgpu-cdna.h"
 
 #include "BinaryFunction.h"
