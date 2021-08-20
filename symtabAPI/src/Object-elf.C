@@ -3552,7 +3552,8 @@ Object::recordLine
  vector<open_statement> &inline_context,
  Symtab* associated_symtab
 )
-{  
+{
+  lineinfo_printf("Object::recordLine for [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
   // record line map entry
   li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
 			 (unsigned int)(saved_statement.line_number),
@@ -3565,11 +3566,14 @@ Object::recordLine
     if (containingFunc == nullptr || 
         containingFunc->getOffset() >= saved_statement.start_addr ||
         containingFunc->getOffset() + containingFunc->getSize() < saved_statement.start_addr) {
-            
+        if (containingFunc != nullptr) {
+            associated_symtab->addFunctionRange(containingFunc, 0);
+        }
+
         associated_symtab->getContainingFunction(saved_statement.start_addr, containingFunc);
         if (containingFunc == nullptr) {
-            fprintf(stderr, "Cannot find function contains range [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
-            assert(0);
+            lineinfo_printf("Cannot find function contains range [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
+            return;
         }  
     }
     
@@ -3597,11 +3601,11 @@ Object::recordLine
         func_name_table,
         saved_statement.start_addr,
         saved_statement.end_addr);
-        
-    associated_symtab->addFunctionRange(outer_most, 0);
   }
 
-  dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
+  if (common_debug_lineinfo) {
+    dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
+  }
 }
 
 InlinedFunction* Object::recordAnInlinedFunction(
@@ -3625,9 +3629,6 @@ InlinedFunction* Object::recordAnInlinedFunction(
     ifunc->addMangledName(func_name_ptr, true, true);   
     
     ifunc->ranges.emplace_back(FuncRange(start, end - start, ifunc));
-    
-    //fprintf(stderr, "%p %p [%lx, %lx)", ifunc, parent, start, end);
-    //fprintf(stderr, " func name %s, line number %d, file name %s, func name index %lx\n", func_name_ptr, ifunc->callsite_line, src_file.c_str(), caller.string_table_index);
     return ifunc;
 }
 
@@ -3724,6 +3725,11 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     open_statement current_statement;
 
     vector<open_statement> inline_context;
+    // The line map may contain un-relocated entries,
+    // which often corresponds to dead code.
+    // If we find line map entries with zero address,
+    // we ignore them until the end of sequence
+    bool isZeroAddress = false;
     for(size_t i = 0; i < lineCount; i++ )
     {
         auto line = dwarf_onesrcline(lineBuffer, i);
@@ -3743,6 +3749,10 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
         {
             cout << "dwarf_lineaddr failed" << endl;
             continue;
+        }
+        if (current_statement.start_addr == 0) {
+            isZeroAddress = true;
+            containingFunc = nullptr;
         }
 
         current_statement.start_addr += baseAddr;
@@ -3804,51 +3814,53 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
         if(status != 0) {
             cout << "dwarf_linefunctionname failed" << endl;
             continue;        
-	}
+        }
 	
-	if (saved_statement.uninitialized()) {
-	  saved_statement = current_statement;
-	} else {
-	  bool pushed = false;
-	  saved_statement.end_addr = current_statement.start_addr;
-	  if (saved_statement.context || current_statement.context) {
-	    // if saved_statement.context is non-zero, we need to remove any previously
-	    // recorded inlined context that matches saved_statement.context or is
-	    // nexted inside the matching context
-	    lookupInlinedContext(inline_context, saved_statement);
+        if (!isZeroAddress && saved_statement.uninitialized()) {
+            saved_statement = current_statement;
+        } else if (!isZeroAddress) {
+            bool pushed = false;
+            saved_statement.end_addr = current_statement.start_addr;
+            if (saved_statement.context || current_statement.context) {
+                // if saved_statement.context is non-zero, we need to remove any previously
+                // recorded inlined context that matches saved_statement.context or is
+                // nexted inside the matching context
+                lookupInlinedContext(inline_context, saved_statement);
 
-	    // record saved_statement and its inlining context if any addresses fall
-	    // between saved_statement and current_statement.
-	    if (current_statement.start_addr != saved_statement.start_addr)
-	      recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
+                // record saved_statement and its inlining context if any addresses fall
+                // between saved_statement and current_statement.
+                if (current_statement.start_addr != saved_statement.start_addr)
+                    recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
 
-	    // record saved_statement as inlined context for current_statement`
-	    inline_context.push_back(saved_statement);
+                // record saved_statement as inlined context for current_statement`
+                inline_context.push_back(saved_statement);
+                pushed = true;
+            }
+            if ((!saved_statement.sameFileLineColumn(current_statement) || isEndOfSequence)) {
 
-	    pushed = true;
-	  }
-	  if ((!saved_statement.sameFileLineColumn(current_statement) ||
-	       isEndOfSequence)) {
+                if (!pushed) {
+                // we didn't add saved_statement to the inlined context of current_statement,
+                // so a line map entry for saved_statement needs to be recorded
+                    recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
+                }
 
-	    if (!pushed) {
-	    // we didn't add saved_statement to the inlined context of current_statement,
-	    // so a line map entry for saved_statement needs to be recorded
-	      recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
-	    }
+                if (current_statement.context == 0) {
+                    // a line map statement with context 0 clears all inlined context.
+                    // remove all inlined context entries in the vector.
+                    inline_context.resize(0);
+                }
 
-	    if (current_statement.context == 0) {
-	      // a line map statement with context 0 clears all inlined context.
-	      // remove all inlined context entries in the vector.
-	      inline_context.resize(0);
-	    }
-
-	    saved_statement = current_statement;
-	  }
-	}
-	if (isEndOfSequence) {
-	  saved_statement.reset();
-      contextMap.clear();
-	}
+                saved_statement = current_statement;
+            }
+        }
+        if (isEndOfSequence) {
+            isZeroAddress = false;
+            saved_statement.reset();
+            contextMap.clear();
+            if (containingFunc != nullptr) {
+                associated_symtab->addFunctionRange(containingFunc, 0);
+            }
+        }
     }
     }
     return li_for_object;
