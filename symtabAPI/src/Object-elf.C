@@ -3546,11 +3546,9 @@ dumpLineWithInlineContext
 void
 Object::recordLine
 (
- LineInformation *li_for_object,
  Region *debug_str,
  open_statement &saved_statement,
- vector<open_statement> &inline_context,
- Symtab* associated_symtab
+ vector<open_statement> &inline_context
 )
 {
   lineinfo_printf("Object::recordLine for [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
@@ -3560,7 +3558,7 @@ Object::recordLine
 			 (unsigned int)(saved_statement.column_number),
 			 saved_statement.start_addr, saved_statement.end_addr);    
   // record inline context, if any
-  if (inline_context.size()) {
+  if (debug_str != nullptr && inline_context.size()) {
 
     // We only do a lookup when the current function does not contain the current range    
     if (containingFunc == nullptr || 
@@ -3578,7 +3576,6 @@ Object::recordLine
     }
     
     FunctionBase* cur = static_cast<FunctionBase*>(containingFunc);
-    FunctionBase* outer_most = cur;   
     StringTablePtr strings(li_for_object->getStrings());
     const char* func_name_table = static_cast<const char*>(debug_str->getPtrToRawData());
 
@@ -3656,9 +3653,9 @@ Object::lookupInlinedContext
 
 LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 {
-    Region *debug_str;
+    Region *debug_str = nullptr;
     std::string debug_str_secname = ".debug_str";
-    bool has_debug_str = associated_symtab->findRegion(debug_str, debug_str_secname);
+    associated_symtab->findRegion(debug_str, debug_str_secname);
 
     if (li_for_object) {
         // The line information for this object has been parsed.
@@ -3686,7 +3683,6 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 			     &files, &fileCount, &lineBuffer, &lineCount)) == 0)
     {
 
-    StringTablePtr strings(li_for_object->getStrings());
     boost::unique_lock<dyn_mutex> l(strings->lock);
     size_t offset = strings->size();
 
@@ -3804,17 +3800,23 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
             continue;
         }
 
-        status = dwarf_linecontext(line, &current_statement.context);
-        if(status != 0) {
-            cout << "dwarf_linecontext failed" << endl;
-            continue;
-        }
+#if defined (ENABLE_NVIDIA_EXT_LINE_MAP)
+        // Only attempt to parse inlining context and inline function name
+        // when there is a .debug_str section.
+        if (debug_str != nullptr) {
+            status = dwarf_linecontext(line, &current_statement.context);
+            if(status != 0) {
+                cout << "dwarf_linecontext failed" << endl;
+                continue;
+            }
 
-        status = dwarf_linefunctionname(line, &current_statement.funcname_offset);
-        if(status != 0) {
-            cout << "dwarf_linefunctionname failed" << endl;
-            continue;        
+            status = dwarf_linefunctionname(line, &current_statement.funcname_offset);
+            if(status != 0) {
+                cout << "dwarf_linefunctionname failed" << endl;
+                continue;
+            }
         }
+#endif
 	
         if (!isZeroAddress && saved_statement.uninitialized()) {
             saved_statement = current_statement;
@@ -3830,7 +3832,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
                 // record saved_statement and its inlining context if any addresses fall
                 // between saved_statement and current_statement.
                 if (current_statement.start_addr != saved_statement.start_addr)
-                    recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
+                    recordLine (debug_str, saved_statement, inline_context);
 
                 // record saved_statement as inlined context for current_statement`
                 inline_context.push_back(saved_statement);
@@ -3841,7 +3843,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
                 if (!pushed) {
                 // we didn't add saved_statement to the inlined context of current_statement,
                 // so a line map entry for saved_statement needs to be recorded
-                    recordLine (li_for_object, debug_str, saved_statement, inline_context, associated_symtab);
+                    recordLine (debug_str, saved_statement, inline_context);
                 }
 
                 if (current_statement.context == 0) {
