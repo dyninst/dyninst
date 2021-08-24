@@ -81,11 +81,11 @@ class InlinedFunction;
 
 class open_statement {
     public:
-        open_statement() { reset(); };
+        open_statement() { reset(); }
         Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
         bool uninitialized() {
             return start_addr == noAddress();
-        };
+        }
         void reset() {
             string_table_index = -1;
             start_addr = noAddress();
@@ -94,12 +94,12 @@ class open_statement {
             column_number = 0;
             context = 0;
             funcname_offset = 0;
-        };
+        }
         bool sameFileLineColumn(const open_statement &rhs) {
             return ((string_table_index == rhs.string_table_index) &&
                     (line_number == rhs.line_number) &&
                     (column_number == rhs.column_number));
-        };
+        }
         void operator=(const open_statement &rhs) {
             string_table_index = rhs.string_table_index;
             start_addr = rhs.start_addr;
@@ -108,15 +108,15 @@ class open_statement {
             column_number = rhs.column_number;
             context = rhs.context;
             funcname_offset = rhs.funcname_offset;
-        };
+        }
         friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
         {
 	    st.dump(os, 0, true);
             return os;
-	};
+	}
         const char * str(Region *r, unsigned int offset) const {
 	  return ((char *) r->getPtrToRawData()) + offset;
-	};
+	}
         void dump(std::ostream& os, Region *debug_str, bool addrRange) const {
 	    // to facilitate comparison with nvdisasm output, where each function starts at 0,
 	    // set o to an offset that makes a function of interest report addresses that
@@ -417,11 +417,9 @@ public:
 private:
     void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
     void recordLine(
-       LineInformation *li_for_object,
        Region *debug_str,
        open_statement &saved_statement,
-       std::vector<open_statement> &inline_context,
-       Symtab* associated_symtab
+       std::vector<open_statement> &inline_context
     );
     InlinedFunction* recordAnInlinedFunction(
        open_statement&,
