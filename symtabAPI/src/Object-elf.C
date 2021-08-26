@@ -49,6 +49,8 @@
 
 #include "Object-elf.h"
 
+#include "elfutils/version.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::DwarfDyninst;
@@ -3799,8 +3801,13 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
             cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-
+// ENABLE_NVIDIA_EXT_LINE_MAP is defined if the Dyninst
+// user wants to have nvidia ex line map support
 #if defined (ENABLE_NVIDIA_EXT_LINE_MAP)
+
+// NVIDIA_LINEMAP_INLINING_EXTENSIONS is defined if
+// the underlying elfutils supports nvidia ex line map
+#if defined (NVIDIA_LINEMAP_INLINING_EXTENSIONS)
         // Only attempt to parse inlining context and inline function name
         // when there is a .debug_str section.
         if (debug_str != nullptr) {
@@ -3816,7 +3823,11 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
                 continue;
             }
         }
-#endif
+#else
+    #error The specified elfutils is not capable of handling nvidia extended line map. Please reconfigure elfutils with "--enable-nvidia-linemap"
+#endif // NVIDIA_LINEMAP_INLINING_EXTENSIONS
+
+#endif // ENABLE_NVIDIA_EXT_LINE_MAP
 	
         if (!isZeroAddress && saved_statement.uninitialized()) {
             saved_statement = current_statement;
