@@ -1,44 +1,107 @@
 # - Config file for Dyninst and its component libraries
 # It defines the following variables:
 #
-# DYNINST_INCLUDE_DIRS
-# DYNINST_LIBRARIES
-# DYNINST_INTERNAL_DEFINES - used by the test suite
+# Dyninst_INCLUDE_DIRS
+# Dyninst_LIBRARIES
+# Dyninst_INTERNAL_DEFINES - used by the test suite
+
+set(_MODULE_PATH ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/Modules ${CMAKE_MODULE_PATH})
 
 # compute paths
-
 get_filename_component(DYNINST_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set (DYNINST_INCLUDE_DIR @CONF_INCLUDE_DIRS@)
+
+# version
+include(${CMAKE_CURRENT_LIST_DIR}/DyninstVersion.cmake)
+
+@PACKAGE_INIT@
+
+set_and_check(Dyninst_ROOT_DIR ${PACKAGE_PREFIX_DIR})
+set_and_check(Dyninst_INCLUDE_DIR ${PACKAGE_PREFIX_DIR}/@INSTALL_INCLUDE_DIR@)
+set(Dyninst_LIBRARIES)
+
+add_library(Dyninst::Dyninst INTERFACE IMPORTED)
+
+set(Dyninst_BUILD_SHARED_LIBS @BUILD_SHARED_LIBS@)
+set(Dyninst_BUILD_STATIC_LIBS @BUILD_STATIC_LIBS@)
+
+# handle shared or static in the components (i.e. request/require shared or static libraries)
+set(_Dyninst_TARGET_SUFFIX)
+set(_Dyninst_PREFER_STATIC OFF)
+set(_Dyninst_REQUIRE_STATIC OFF)
+set(_Dyninst_REQUIRE_SHARED OFF)
+if("shared" IN_LIST Dyninst_FIND_COMPONENTS)
+    list(REMOVE_ITEM Dyninst_FIND_COMPONENTS "shared")
+    if(Dyninst_FIND_REQUIRED_shared)
+        set(_Dyninst_REQUIRE_SHARED ON)
+    endif()
+elseif("static" IN_LIST Dyninst_FIND_COMPONENTS OR (NOT Dyninst_BUILD_SHARED_LIBS AND Dyninst_BUILD_STATIC_LIBS))
+    list(REMOVE_ITEM Dyninst_FIND_COMPONENTS "static")
+    set(_Dyninst_TARGET_SUFFIX "-static")
+    if(NOT Dyninst_FIND_REQUIRED_static)
+        set(_Dyninst_PREFER_STATIC ON)
+    else()
+        set(_Dyninst_REQUIRE_STATIC ON)
+    endif()
+endif()
+
+# find OpenMP package
+if(@USE_OpenMP@)
+    find_package(OpenMP REQUIRED)
+endif()
 
 # Library dependencies
-#include ("${DYNINST_CMAKE_DIR}/DyninstTargets.cmake")
 foreach(TARG @ALL_DYNINST_TARGETS@)
-  include ("${DYNINST_CMAKE_DIR}/${TARG}Targets.cmake" OPTIONAL)
+    include("${DYNINST_CMAKE_DIR}/${TARG}Targets.cmake" OPTIONAL)
+    if(NOT Dyninst_FIND_COMPONENTS)
+        list(APPEND Dyninst_LIBRARIES Dyninst::${TARG}${_Dyninst_TARGET_SUFFIX})
+        target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::${TARG}${_Dyninst_TARGET_SUFFIX})
+    endif()
+    # provide generic alias in static-only build when shared is not required
+    if(NOT _Dyninst_REQUIRE_SHARED AND NOT TARGET Dyninst::${TARG} AND TARGET Dyninst::${TARG}-static)
+        add_library(Dyninst::${TARG} ALIAS Dyninst::${TARG}-static)
+    endif()
 endforeach()
 
-set (DYNINST_LIBRARIES "dyninstAPI")
-
 # Other variables Dyninst mutators may depend on
-set (DYNINST_PLATFORM "@PLATFORM@")
-set (DYNINST_INTERNAL_DEFINES @UNIFIED_DEFINES@)
+set(Dyninst_PLATFORM "@PLATFORM@")
+set(Dyninst_INTERNAL_DEFINES @UNIFIED_DEFINES@)
+       unset(timemory_FIND_REQUIRED_${_NAME})
 
-if(DYNINST_FIND_COMPONENTS)
-  foreach(COMP DYNINST_FIND_COMPONENTS)
-    if(NOT TARGET ${COMP})
-      set(DYNINST_${COMP}_FOUND 0)
-      if(DYNINST_FIND_REQUIRED_${COMP})
-	MESSAGE(ERROR "${COMP} was not part of the Dyninst build")
-      endif()
-    else()
-      set(DYNINST_${COMP}_FOUND 1)
-      MESSAGE(STATUS "Found ${COMP}")
-    endif()
-  endforeach()
+if(Dyninst_FIND_COMPONENTS)
+    foreach(COMP ${Dyninst_FIND_COMPONENTS})
+        if(TARGET Dyninst::${COMP}${_Dyninst_TARGET_SUFFIX})
+            set(Dyninst_${COMP}_FOUND 1)
+            list(APPEND Dyninst_LIBRARIES Dyninst::${COMP}${_Dyninst_TARGET_SUFFIX})
+            target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::${COMP}${_Dyninst_TARGET_SUFFIX})
+        elseif(_Dyninst_PREFER_STATIC AND NOT _Dyninst_REQUIRE_STATIC AND TARGET Dyninst::${COMP})
+            set(Dyninst_${COMP}_FOUND 1)
+            list(APPEND Dyninst_LIBRARIES Dyninst::${COMP})
+            target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::${COMP})
+        else()
+            set(Dyninst_${COMP}_FOUND 0)
+        endif()
+    endforeach()
 endif()
+# always link to Boost and TBB
+target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::Boost Dyninst::TBB)
 
-if(TARGET dyninstAPI)
-  set(Dyninst_FOUND 1)
-else()
-  set(Dyninst_FOUND 0)
-endif()
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Dyninst
+    FOUND_VAR Dyninst_FOUND
+    REQUIRED_VARS
+        Dyninst_ROOT_DIR
+        Dyninst_INCLUDE_DIR
+        Dyninst_LIBRARIES
+    VERSION_VAR
+        Dyninst_VERSION
+    HANDLE_COMPONENTS)
 
+# unset temporary variables
+unset(_Dyninst_TARGET_SUFFIX)
+unset(_Dyninst_PREFER_STATIC)
+unset(_Dyninst_REQUIRE_STATIC)
+unset(_Dyninst_REQUIRE_SHARED)
+
+# restore original cmake module path
+set(CMAKE_MODULE_PATH ${_MODULE_PATH})

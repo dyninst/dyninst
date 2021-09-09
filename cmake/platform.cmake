@@ -1,5 +1,0 @@
-if (UNIX)
-include (${DYNINST_ROOT}/cmake/platform_unix.cmake)
-else ()
-include (${DYNINST_ROOT}/cmake/platform_windows.cmake)
-endif()

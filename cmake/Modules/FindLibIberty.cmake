@@ -29,14 +29,12 @@
 #
 #========================================================================================
 
-if(LibIberty_FOUND)
-  return()
-endif()
+cmake_minimum_required(VERSION 3.13.0 FATAL_ERROR)
 
 # Keep the semantics of IBERTY_LIBRARIES for backward compatibility
 # NB: If both are specified, LibIberty_LIBRARIES is ignored
 if(NOT "${IBERTY_LIBRARIES}" STREQUAL "")
-  set(LibIberty_LIBRARIES ${IBERTY_LIBRARIES})
+    set(LibIberty_LIBRARIES ${IBERTY_LIBRARIES})
 endif()
 
 include(DyninstSystemPaths)
@@ -62,20 +60,28 @@ find_library(LibIberty_LIBRARIES
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LibIberty
-                                  FOUND_VAR
-                                  LibIberty_FOUND
-                                  REQUIRED_VARS
-                                  LibIberty_LIBRARIES)
+    FOUND_VAR
+        LibIberty_FOUND
+    REQUIRED_VARS
+        LibIberty_INCLUDE_DIRS
+        LibIberty_LIBRARIES)
 
 # For backwards compatibility only
 set(IBERTY_FOUND ${LibIberty_FOUND})
 
 if(LibIberty_FOUND)
-  foreach(l in ${LibIberty_LIBRARIES})
-    get_filename_component(_dir ${l} DIRECTORY)
-    list(APPEND LibIberty_LIBRARY_DIRS ${_dir})
-  endforeach()
-  
-  # For backwards compatibility only
-  set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
+    foreach(l ${LibIberty_LIBRARIES})
+        get_filename_component(_dir ${l} DIRECTORY)
+        if(NOT "${_dir}" IN_LIST LibIberty_LIBRARY_DIRS)
+            list(APPEND LibIberty_LIBRARY_DIRS ${_dir})
+        endif()
+    endforeach()
+
+    add_library(LibIberty::LibIberty INTERFACE IMPORTED)
+    target_include_directories(LibIberty::LibIberty INTERFACE ${LibIberty_INCLUDE_DIRS})
+    target_link_libraries(LibIberty::LibIberty INTERFACE ${LibIberty_LIBRARIES})
+
+    # For backwards compatibility only
+    set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
+    add_library(Iberty::Iberty ALIAS LibIberty::LibIberty)
 endif()

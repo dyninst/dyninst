@@ -5,83 +5,83 @@ include_directories (
   )
 
 set (SRC_LIST
-        src/ParserDetails.C 
-        src/Parser.C 
-        src/CFGFactory.C 
-        src/Function.C 
-        src/Block.C 
-        src/CodeObject.C 
-        src/debug_parse.C 
-        src/CodeSource.C 
-        src/ParseData.C
-        src/InstructionAdapter.C
-        src/Parser-speculative.C
-        src/ParseCallback.C 
-        src/IA_IAPI.C
-	src/IA_x86.C
-	src/IA_power.C
-	src/IA_aarch64.C
+    src/ParserDetails.C
+    src/Parser.C
+    src/CFGFactory.C
+    src/Function.C
+    src/Block.C
+    src/CodeObject.C
+    src/debug_parse.C
+    src/CodeSource.C
+    src/ParseData.C
+    src/InstructionAdapter.C
+    src/Parser-speculative.C
+    src/ParseCallback.C
+    src/IA_IAPI.C
+    src/IA_x86.C
+    src/IA_power.C
+    src/IA_aarch64.C
     src/IA_amdgpu.C
-        src/CFGModifier.C
-        src/StackTamperVisitor.C
-	src/JumpTableFormatPred.C
-	src/JumpTableIndexPred.C
-	src/IndirectAnalyzer.C
-	src/IndirectASTVisitor.C
-	src/SymbolicExpression.C
-	src/BoundFactCalculator.C
-	src/BoundFactData.C
-	src/ThunkData.C
-	../dataflowAPI/src/ABI.C 
-	src/dominator.C
-	src/LoopAnalyzer.C
-	src/Loop.C
-	src/LoopTreeNode.C
-	src/IdiomModelDesc.C
-	src/ProbabilisticParser.C
-    )
+    src/CFGModifier.C
+    src/StackTamperVisitor.C
+    src/JumpTableFormatPred.C
+    src/JumpTableIndexPred.C
+    src/IndirectAnalyzer.C
+    src/IndirectASTVisitor.C
+    src/SymbolicExpression.C
+    src/BoundFactCalculator.C
+    src/BoundFactData.C
+    src/ThunkData.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
+    src/dominator.C
+    src/LoopAnalyzer.C
+    src/Loop.C
+    src/LoopTreeNode.C
+    src/IdiomModelDesc.C
+    src/ProbabilisticParser.C
+)
 
 set(ROSE_SRC
-	../dataflowAPI/src/ABI.C 
-        ../dataflowAPI/src/Absloc.C 
-        ../dataflowAPI/src/AbslocInterface.C 
-        ../dataflowAPI/src/convertOpcodes.C 
-        ../dataflowAPI/src/debug_dataflow.C 
-        ../dataflowAPI/src/ExpressionConversionVisitor.C 
-        ../dataflowAPI/src/InstructionCache.C 
-        ../dataflowAPI/src/liveness.C 
-        ../dataflowAPI/src/RegisterMap.C
-	../dataflowAPI/src/RoseImpl.C
-        ../dataflowAPI/src/RoseInsnFactory.C
-        ../dataflowAPI/src/slicing.C
-        ../dataflowAPI/src/stackanalysis.C
-        ../dataflowAPI/src/SymbolicExpansion.C
-        ../dataflowAPI/src/SymEval.C
-        ../dataflowAPI/src/SymEvalPolicy.C
-        ../dataflowAPI/src/templates.C
-        ../dataflowAPI/src/Visitors.C
-        ../dataflowAPI/rose/ExtentMap.C
-        ../dataflowAPI/rose/rangemap.C
-        ../dataflowAPI/rose/util/Assert.C
-        ../dataflowAPI/rose/util/Message.C
-        ../dataflowAPI/rose/util/Sawyer.C
-        ../dataflowAPI/rose/util/Synchronization.C
-        ../dataflowAPI/rose/util/rose_getline.C
-        ../dataflowAPI/rose/util/SmallObject.C
-        ../dataflowAPI/rose/util/Stopwatch.C
-        ../dataflowAPI/rose/util/StringUtility.C
-        ../dataflowAPI/rose/util/Attribute.C
-        ../dataflowAPI/rose/util/Combinatorics.C
-        ../dataflowAPI/rose/util/LinearCongruentialGenerator.C
-        ../dataflowAPI/rose/semantics/BaseSemantics2.C
-        ../dataflowAPI/rose/semantics/DispatcherARM64.C
-        ../dataflowAPI/rose/semantics/DispatcherAmdgpuVega.C
-	    ../dataflowAPI/rose/semantics/DispatcherPowerpc.C
-        ../dataflowAPI/rose/semantics/RegisterParts.C
-        ../dataflowAPI/rose/semantics/Registers.C
-        ../dataflowAPI/rose/semantics/BinarySymbolicExpr.C
-        ../dataflowAPI/rose/semantics/RegisterStateGeneric.C
-        ../dataflowAPI/rose/semantics/SymEvalSemantics.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/convertOpcodes.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/InstructionCache.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/liveness.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseImpl.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/slicing.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/stackanalysis.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEval.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/templates.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/ExtentMap.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/rangemap.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Assert.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Message.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Sawyer.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Synchronization.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/rose_getline.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/SmallObject.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Stopwatch.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/StringUtility.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Attribute.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Combinatorics.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/LinearCongruentialGenerator.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BaseSemantics2.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAmdgpuVega.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterParts.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BinarySymbolicExpr.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterStateGeneric.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/SymEvalSemantics.C
 )
 
 # FIXME: Rose needs a bunch of warning cleanup
@@ -91,50 +91,45 @@ set (SRC_LIST ${SRC_LIST}
 )
 
 if (LIGHTWEIGHT_SYMTAB)
-set (SRC_LIST ${SRC_LIST}
-    src/SymLiteCodeSource.C
-)
+    list(APPEND SRC_LIST src/SymLiteCodeSource.C)
 else()
-set (SRC_LIST ${SRC_LIST}
-    src/SymtabCodeSource.C
-)
+    list(APPEND SRC_LIST src/SymtabCodeSource.C)
 endif()
 
 if (ENABLE_PARSE_API_GRAPHS)
-set (SRC_LIST ${SRC_LIST}
-     src/GraphAdapter.C
-    )
+    list(APPEND SRC_LIST src/GraphAdapter.C)
 endif()
 
+set(_PRIVATE_LINK_LIBS)
+set(_PRIVATE_COMPILE_DEFS)
 
-ADD_DEFINITIONS(-DPARSER_LIB)
-ADD_DEFINITIONS(-DDATAFLOW_LIB)
 if(WIN32)
-ADD_DEFINITIONS(-DROSE_UTIL_EXPORTS)
-ADD_DEFINITIONS(-DNOMINMAX)
-endif()
-dyninst_library(parseAPI common instructionAPI ${SYMREADER})
-
-target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc)
-
-if (WIN32)
-target_link_private_libraries(parseAPI shlwapi)
-endif()
-message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")
-FILE (GLOB headers "h/*.h")
-FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
-set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
-
-if (USE_OpenMP)
-set_target_properties (parseAPI PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} LINK_FLAGS ${OpenMP_CXX_FLAGS})
+    list(APPEND _PRIVATE_COMPILE_DEFS ROSE_UTIL_EXPORTS NOMINMAX)
+    list(APPEND _PRIVATE_LINK_LIBS    shlwapi)
 endif()
 
-if(${ENABLE_STATIC_LIBS})
-  set_target_properties (parseAPI_static PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
-endif()
+file(GLOB HDR_LIST "${CMAKE_CURRENT_LIST_DIR}/h/*.h" "${PROJECT_SOURCE_DIR}/dataflowAPI/h/*.h")
 
-install (TARGETS parseAPI
-    RUNTIME DESTINATION ${INSTALL_LIB_DIR}
-    LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-    ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
-    PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
+dyninst_library(parseAPI
+    HEADERS
+        ${HDR_LIST}
+    SOURCES
+        ${SRC_LIST} ${ROSE_SRC}
+    COMPILE_DEFINITIONS
+        PRIVATE
+            PARSER_LIB
+            DATAFLOW_LIB
+            ${_PRIVATE_COMPILE_DEFS}
+    INCLUDE_DIRECTORIES
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>
+        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+    LINK_LIBRARIES
+        Dyninst::common
+        Dyninst::instructionAPI
+        Dyninst::${SYMREADER}
+        PRIVATE
+            ${_PRIVATE_LINK_LIBS}
+)
+
+dyninst_message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")

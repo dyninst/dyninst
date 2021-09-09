@@ -59,7 +59,7 @@
 #======================================================================================================
 
 if(TBB_FOUND)
-  return()
+    return()
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -162,7 +162,7 @@ if(TBB_INCLUDE_DIRS)
     endif()
   endforeach()
   unset(_version_files)
- 
+
   file(READ ${_version_file} _tbb_version_file)
   string(REGEX
          REPLACE ".*#define TBB_VERSION_MAJOR ([0-9]+).*"
@@ -203,8 +203,8 @@ set(TBB_LIBRARY_DIRS)
 
 # Find each component
 foreach(_comp ${TBB_SEARCH_COMPOMPONENTS})
-  message(STATUS "Searching for ${_comp}...")
-  message(STATUS "Hints: ${TBB_LIBRARY} ${TBB_SEARCH_DIR}")
+  # message(STATUS "Searching for ${_comp}...")
+  # message(STATUS "Hints: ${TBB_LIBRARY} ${TBB_SEARCH_DIR}")
   if(";${TBB_FIND_COMPONENTS};tbb;" MATCHES ";${_comp};")
 
     # Search for the libraries
@@ -220,11 +220,11 @@ foreach(_comp ${TBB_SEARCH_COMPOMPONENTS})
 
     if(TBB_${_comp}_LIBRARY_DEBUG)
       list(APPEND TBB_LIBRARIES_DEBUG "${TBB_${_comp}_LIBRARY_DEBUG}")
-      message(STATUS "Found ${TBB_${_comp}_LIBRARY_DEBUG}")
+      # message(STATUS "Found ${TBB_${_comp}_LIBRARY_DEBUG}")
     endif()
     if(TBB_${_comp}_LIBRARY_RELEASE)
       list(APPEND TBB_LIBRARIES_RELEASE "${TBB_${_comp}_LIBRARY_RELEASE}")
-      message(STATUS "Found ${TBB_${_comp}_LIBRARY_RELEASE}")
+      # message(STATUS "Found ${TBB_${_comp}_LIBRARY_RELEASE}")
     endif()
     if(TBB_${_comp}_LIBRARY_${TBB_BUILD_TYPE} AND NOT TBB_${_comp}_LIBRARY)
       set(TBB_${_comp}_LIBRARY "${TBB_${_comp}_LIBRARY_${TBB_BUILD_TYPE}}")
@@ -280,31 +280,24 @@ find_package_handle_standard_args(TBB
 # Create targets
 #
 if(NOT CMAKE_VERSION VERSION_LESS 3.0 AND TBB_FOUND)
-  add_library(TBB SHARED IMPORTED)
-  set_target_properties(TBB
-                        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                   ${TBB_INCLUDE_DIRS}
-                                   IMPORTED_LOCATION
-                                   ${TBB_LIBRARIES})
-  if(TBB_LIBRARIES_RELEASE AND TBB_LIBRARIES_DEBUG)
-    set_target_properties(TBB
-                          PROPERTIES INTERFACE_COMPILE_DEFINITIONS
-                                     "$<$<CONFIG:Debug>:TBB_USE_DEBUG=1>"
-                                     IMPORTED_LOCATION_DEBUG
-                                     ${TBB_LIBRARIES_DEBUG}
-                                     IMPORTED_LOCATION_RELWITHDEBINFO
-                                     ${TBB_LIBRARIES_DEBUG}
-                                     IMPORTED_LOCATION_RELEASE
-                                     ${TBB_LIBRARIES_RELEASE}
-                                     IMPORTED_LOCATION_MINSIZEREL
-                                     ${TBB_LIBRARIES_RELEASE})
-  elseif(TBB_LIBRARIES_RELEASE)
-    set_target_properties(TBB
-                          PROPERTIES IMPORTED_LOCATION ${TBB_LIBRARIES_RELEASE})
-  else()
-    set_target_properties(TBB
-                          PROPERTIES IMPORTED_LOCATION ${TBB_LIBRARIES_DEBUG})
-  endif()
+    add_library(TBB::TBB SHARED IMPORTED)
+    set_target_properties(TBB::TBB PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES   ${TBB_INCLUDE_DIRS}
+        IMPORTED_LOCATION               ${TBB_LIBRARIES})
+    if(TBB_LIBRARIES_RELEASE AND TBB_LIBRARIES_DEBUG)
+        set_target_properties(TBB::TBB PROPERTIES
+            INTERFACE_COMPILE_DEFINITIONS    "$<$<CONFIG:Debug>:TBB_USE_DEBUG=1>"
+            IMPORTED_LOCATION_DEBUG          ${TBB_LIBRARIES_DEBUG}
+            IMPORTED_LOCATION_RELWITHDEBINFO ${TBB_LIBRARIES_DEBUG}
+            IMPORTED_LOCATION_RELEASE        ${TBB_LIBRARIES_RELEASE}
+            IMPORTED_LOCATION_MINSIZEREL     ${TBB_LIBRARIES_RELEASE})
+    elseif(TBB_LIBRARIES_RELEASE)
+        set_target_properties(TBB::TBB PROPERTIES
+            IMPORTED_LOCATION ${TBB_LIBRARIES_RELEASE})
+    else()
+        set_target_properties(TBB::TBB PROPERTIES
+            IMPORTED_LOCATION ${TBB_LIBRARIES_DEBUG})
+    endif()
 endif()
 
 mark_as_advanced(TBB_INCLUDE_DIRS TBB_LIBRARIES TBB_LIBRARY_DIRS)
