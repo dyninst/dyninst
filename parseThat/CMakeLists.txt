@@ -11,25 +11,33 @@ add_executable(
     src/sha1.C
     src/dyninstCore.C
     src/dyninstCompat.v5.C)
-add_definitions(-DHAVE_BPATCH_PROCESS_H)
+
+target_compile_definitions(parseThat PRIVATE HAVE_BPATCH_PROCESS_H)
+
+target_link_libraries(
+    parseThat
+    PRIVATE Dyninst::dyninstAPI
+            Dyninst::patchAPI
+            Dyninst::parseAPI
+            Dyninst::instructionAPI
+            Dyninst::stackwalk
+            Dyninst::symtabAPI
+            Dyninst::common
+            Dyninst::pcontrol
+            Dyninst::dynDwarf
+            Dyninst::dynElf
+            Dyninst::Boost
+            Dyninst::ElfUtils)
+
+set_target_properties(
+    parseThat PROPERTIES INSTALL_RPATH_USE_LINK_PATH ON
+                         INSTALL_RPATH "\$ORIGIN/../lib:\$ORIGIN/../lib/dyninst-tpls/lib")
 
 if(USE_OpenMP)
-    set_target_properties(parseThat PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-                                               LINK_FLAGS ${OpenMP_CXX_FLAGS})
+    if(NOT OpenMP_FOUND)
+        find_package(OpenMP REQUIRED)
+    endif()
+    target_link_libraries(parseThat PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
-target_link_private_libraries(
-    parseThat
-    dyninstAPI
-    patchAPI
-    parseAPI
-    instructionAPI
-    stackwalk
-    symtabAPI
-    common
-    pcontrol
-    dynDwarf
-    dynElf
-    ${Boost_LIBRARIES}
-    ${ElfUtils_LIBRARIES})
 install(TARGETS parseThat RUNTIME DESTINATION bin)

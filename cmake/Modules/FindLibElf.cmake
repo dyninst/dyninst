@@ -19,9 +19,8 @@
 # and saves search results persistently in CMake cache entries::
 #
 # LibElf_FOUND                    - True if headers and requested libraries were found
-# LibElf_INCLUDE_DIRS     - libelf include directories LibElf_LIBRARY_DIRS             -
-# Link directories for libelf libraries LibElf_LIBRARIES                - libelf library
-# files
+# LibElf_INCLUDE_DIRS     - libelf include directories LibElf_LIBRARY_DIRS - Link
+# directories for libelf libraries LibElf_LIBRARIES                - libelf library files
 #
 # Based on the version by Bernhard Walle <bernhard.walle@gmx.de> Copyright (c) 2008
 #
@@ -83,4 +82,9 @@ if(LibElf_FOUND)
     # is only one file in LibElf_LIBRARIES
     get_filename_component(_elf_dir ${LibElf_LIBRARIES} DIRECTORY)
     set(LibElf_LIBRARY_DIRS ${_elf_dir} "${_elf_dir}/elfutils")
+
+    add_library(LibElf::LibElf INTERFACE IMPORTED)
+    target_include_directories(LibElf::LibElf INTERFACE ${LibElf_INCLUDE_DIR})
+    target_link_directories(LibElf::LibElf INTERFACE ${LibElf_LIBRARY_DIRS})
+    target_link_libraries(LibElf::LibElf INTERFACE ${LibElf_LIBRARIES})
 endif()

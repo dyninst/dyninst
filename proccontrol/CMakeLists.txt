@@ -1,7 +1,5 @@
 # CMake configuration for proccontrol directory
 
-include_directories(src h)
-
 set(SRC_LIST
     src/event.C
     src/generator.C
@@ -25,6 +23,7 @@ set(SRC_LIST
     src/ppc_process.C
     src/arm_process.C
     src/pcmachsyscall.C)
+
 if(UNIX)
     set(SRC_LIST ${SRC_LIST} src/sysv.C src/int_thread_db.C src/mmapalloc.C)
 elseif(WIN32)
@@ -71,16 +70,15 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
-add_definitions(-DPROCCONTROL_EXPORTS)
+# pcontrol needs to be dlopen'ed so disable building the static library locally and
+# specify the BUILD_SHARED option in dyninst_library
+set(BUILD_STATIC_LIBS OFF)
 
-set(DEPS common ${SYMREADER})
-
-dyninst_library(pcontrol ${DEPS})
-
-target_link_private_libraries(pcontrol ${CMAKE_DL_LIBS})
-target_link_private_libraries(pcontrol ${Boost_LIBRARIES})
-
-if(UNIX)
-    # Boost auto-links on Windows; don't double-link
-    target_link_private_libraries(pcontrol pthread)
-endif()
+dyninst_library(
+    pcontrol BUILD_SHARED
+    SOURCES ${SRC_LIST}
+    COMPILE_DEFINITIONS PRIVATE PROCCONTROL_EXPORTS
+    INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
+                        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    LINK_LIBRARIES Dyninst::headers Dyninst::common Dyninst::${SYMREADER} PRIVATE
+                   Dyninst::dynDL Dyninst::dynPthread)

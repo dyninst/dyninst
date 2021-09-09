@@ -36,12 +36,15 @@ find_library(
           LIBRARY_PATH # PATH and LIB will also work
           ENV
           LD_LIBRARY_PATH)
-include(FindPackageHandleStandardArgs)
 
+include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set THREAD_DB_FOUND to TRUE if all listed
 # variables are TRUE
-find_package_handle_standard_args(Thread_Db DEFAULT_MSG THREAD_DB_LIBRARIES
+find_package_handle_standard_args(Thread_DB DEFAULT_MSG THREAD_DB_LIBRARIES
                                   THREAD_DB_INCLUDE_DIR)
 
-# mark_as_advanced(LIBDW_INCLUDE_DIR DWARF_INCLUDE_DIR)
-# mark_as_advanced(THREAD_DB_INCLUDE_DIRS THREAD_DB_LIBRARIES)
+if(Thread_DB_FOUND)
+    add_library(Thread_DB::Thread_DB INTERFACE IMPORTED)
+    target_include_directories(Thread_DB::Thread_DB INTERFACE ${THREAD_DB_INCLUDE_DIR})
+    target_link_libraries(Thread_DB::Thread_DB INTERFACE ${THREAD_DB_LIBRARIES})
+endif()

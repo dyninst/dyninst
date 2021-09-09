@@ -1,7 +1,5 @@
 # CMake configuration for instructionAPI directory
 
-include_directories(${PROJECT_SOURCE_DIR}/instructionAPI/src)
-
 set(SRC_LIST
     src/Instruction.C
     src/InstructionAST.C
@@ -20,20 +18,20 @@ set(SRC_LIST
     src/InstructionDecoder-aarch64.C
     src/InstructionDecoder-amdgpu-vega.C
     src/InstructionDecoderImpl.C)
+
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 set(instructionDecoderPowerExtraFlags "")
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^([1-9]|1[01])(\.|$)")
-        # Disable var-tracking-assignments for InstructionDecoder-power.C for all known
-        # versions of gcc..  The default max size is too small so it fails, and adjusting
-        # it using
-        #
-        # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=900000000"
-        #
-        # succeeds, but the object file produced is >1GB, so disable it.
-        string(APPEND instructionDecoderPowerExtraFlags "-fno-var-tracking-assignments")
-    endif()
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" AND ${CMAKE_CXX_COMPILER_VERSION} MATCHES
+                                              "^([1-9]|1[01])(\.|$)")
+    # Disable var-tracking-assignments for InstructionDecoder-power.C for all known
+    # versions of gcc..  The default max size is too small so it fails, and adjusting it
+    # using
+    #
+    # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=900000000"
+    #
+    # succeeds, but the object file produced is >1GB, so disable it.
+    string(APPEND instructionDecoderPowerExtraFlags "-fno-var-tracking-assignments")
 endif()
 
 # adjust warning threshold if set in cmake/warnings.cmake
@@ -44,6 +42,7 @@ if(debugMaxFrameSizeOverridePowerOpcodeTable)
         " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverridePowerOpcodeTable}>"
         )
 endif()
+
 if(nonDebugMaxFrameSizeOverridePowerOpcodeTable)
     string(
         APPEND
@@ -58,9 +57,9 @@ if(NOT instructionDecoderPowerExtraFlags STREQUAL "")
                                                   "${instructionDecoderPowerExtraFlags}")
 endif()
 
-add_definitions(-DINSTRUCTION_LIB)
-
-dyninst_library(instructionAPI common)
-
-target_link_private_libraries(instructionAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES}
-                              tbbmalloc)
+dyninst_library(
+    instructionAPI
+    SOURCES ${SRC_LIST}
+    COMPILE_DEFINITIONS PRIVATE INSTRUCTION_LIB ${_PRIVATE_COMPILE_DEFS}
+    INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
+    LINK_LIBRARIES Dyninst::headers Dyninst::common)

@@ -54,7 +54,7 @@ if(PLATFORM MATCHES freebsd
     elseif(PLATFORM MATCHES aarch64)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-aarch64.C
                      src/relocationEntry-elf-aarch64.C)
-    else(TRUE)
+    else()
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-stub.C src/relocationEntry-stub.C)
     endif()
 endif()
@@ -65,25 +65,11 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
-add_definitions(-DSYMTAB_LIB)
-
-set(DEPS common)
-
-if(UNIX)
-    list(APPEND DEPS dynElf dynDwarf ${ElfUtils_LIBRARIES})
-else()
-    list(APPEND DEPS dbghelp)
-endif()
-
-dyninst_library(symtabAPI ${DEPS})
-
-if(TARGET ElfUtils)
-    add_dependencies(symtabAPI ElfUtils)
-endif()
-
-target_link_private_libraries(symtabAPI ${Boost_LIBRARIES})
-
-if(USE_OpenMP)
-    set_target_properties(symtabAPI PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-                                               LINK_FLAGS ${OpenMP_CXX_FLAGS})
-endif()
+dyninst_library(
+    symtabAPI
+    SOURCES ${SRC_LIST}
+    COMPILE_DEFINITIONS PRIVATE SYMTAB_LIB
+    INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
+    DEPENDS ElfUtils-External
+    LINK_LIBRARIES Dyninst::headers Dyninst::common Dyninst::dynElf Dyninst::dynDwarf
+                   PRIVATE Dyninst::dynWinDbgHelp)

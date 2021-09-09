@@ -60,4 +60,12 @@ if(LibDebuginfod_FOUND)
     set(LibDebuginfod_LIBRARIES ${LibDebuginfod_LIBRARIES})
     get_filename_component(_debuginfod_dir ${LibDebuginfod_LIBRARIES} DIRECTORY)
     set(LibDebuginfod_LIBRARY_DIRS ${_debuginfod_dir} "${_debuginfod_dir}/elfutils")
+
+    add_library(LibDebuginfod::LibDebuginfod INTERFACE IMPORTED)
+    target_include_directories(LibDebuginfod::LibDebuginfod
+                               INTERFACE ${LibDebuginfod_INCLUDE_DIR})
+    target_link_directories(LibDebuginfod::LibDebuginfod INTERFACE
+                            ${LibDebuginfod_LIBRARY_DIRS})
+    target_link_libraries(LibDebuginfod::LibDebuginfod
+                          INTERFACE ${LibDebuginfod_LIBRARIES})
 endif()

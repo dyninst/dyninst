@@ -66,11 +66,14 @@ if(CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
     foreach(f IN LISTS REQUESTED_WARNING_FLAGS)
         string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_C_FLAG_${f}")
         set(CMAKE_REQUIRED_FLAGS "-${f}")
+        dyninst_begin_flag_check()
         check_c_source_compiles(
             "int main(){return 0;}" "${v}" FAIL_REGEX
             "warning: *command[- ]line option|-Wunknown-warning-option")
+        dyninst_end_flag_check()
         # Previous two lines are equivalent to below, but also catches a 0 exit status
-        # with a warning message output: check_c_compiler_flag("-${f}" "${v}")
+        # with a warning message output: check_c_compiler_flag("-${f}"
+        # "${v}")
         if(${v})
             string(APPEND SUPPORTED_C_WARNING_FLAGS " -${f}")
             if(f MATCHES "^(.*)=[0-9]+$")
@@ -87,9 +90,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
     foreach(f IN LISTS REQUESTED_WARNING_FLAGS)
         string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_CPP_FLAG_${f}")
         set(CMAKE_REQUIRED_FLAGS "-${f}")
+        dyninst_begin_flag_check()
         check_cxx_source_compiles(
             "int main(){return 0;}" "${v}" FAIL_REGEX
             "warning: *command[- ]line option|-Wunknown-warning-option")
+        dyninst_end_flag_check()
         if(${v})
             string(APPEND SUPPORTED_CXX_WARNING_FLAGS " -${f}")
             if(f MATCHES "^(.*)=[0-9]+$")
@@ -129,15 +134,15 @@ endif()
 unset(CMAKE_REQUIRED_FLAGS)
 
 if(MSVC)
-    message(STATUS "TODO: Set up custom warning flags for MSVC")
+    dyninst_message(STATUS "TODO: Set up custom warning flags for MSVC")
     string(APPEND CMAKE_C_FLAGS "/wd4251 /wd4091 /wd4503")
     string(APPEND CMAKE_CXX_FLAGS "/wd4251 /wd4091 /wd4503")
 endif()
 
-message(STATUS "Using C warning flags: ${SUPPORTED_C_WARNING_FLAGS}")
-message(STATUS "Using CXX warning flags: ${SUPPORTED_CXX_WARNING_FLAGS}")
-message(
+dyninst_message(STATUS "Using C warning flags: ${SUPPORTED_C_WARNING_FLAGS}")
+dyninst_message(STATUS "Using CXX warning flags: ${SUPPORTED_CXX_WARNING_FLAGS}")
+dyninst_message(
     STATUS
-        "Extra CXX DEBUG warning flags: -Wframe-larger-than=${defaultDebugMaxFrameSize}")
+    "Extra CXX DEBUG warning flags: -Wframe-larger-than=${defaultDebugMaxFrameSize}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SUPPORTED_C_WARNING_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SUPPORTED_CXX_WARNING_FLAGS}")

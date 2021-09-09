@@ -41,4 +41,6 @@ find_package_handle_standard_args(
 # Export cache variables
 if(Valgrind_FOUND)
     set(Valgrind_INCLUDE_DIRS ${Valgrind_INCLUDE_DIR})
+    add_library(Valgrind::Valgrind INTERFACE IMPORTED)
+    target_link_libraries(Valgrind::Valgrind INTERFACE ${Valgrind_INCLUDE_DIR})
 endif()

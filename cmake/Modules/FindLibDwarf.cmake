@@ -80,4 +80,9 @@ if(LibDwarf_FOUND)
     # is only one file in LibDwarf_LIBRARIES
     get_filename_component(_dw_dir ${LibDwarf_LIBRARIES} DIRECTORY)
     set(LibDwarf_LIBRARY_DIRS ${_dw_dir})
+
+    add_library(LibDwarf::LibDwarf INTERFACE IMPORTED)
+    target_include_directories(LibDwarf::LibDwarf INTERFACE ${LibDwarf_INCLUDE_DIR})
+    target_link_directories(LibDwarf::LibDwarf INTERFACE ${LibDwarf_LIBRARY_DIRS})
+    target_link_libraries(LibDwarf::LibDwarf INTERFACE ${LibDwarf_LIBRARIES})
 endif()

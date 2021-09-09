@@ -1,79 +1,122 @@
-cmake_minimum_required(VERSION 3.4.0)
-project(Dyninst)
+cmake_minimum_required(VERSION 3.13.0 FATAL_ERROR)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR AND CMAKE_CURRENT_SOURCE_DIR STREQUAL
+                                                  CMAKE_SOURCE_DIR)
+    message(STATUS "Warning! Building from the source directory is not recommended.")
+    message(
+        STATUS
+            "If this is not intentional, please remove 'CMakeCache.txt' and 'CMakeFiles' and build from a separate directory"
+        )
+    message(AUTHOR_WARNING "In-source build")
+endif()
+
+set(DYNINST_MAJOR_VERSION 11)
+set(DYNINST_MINOR_VERSION 0)
+set(DYNINST_PATCH_VERSION 1)
+set(DYNINST_VERSION
+    ${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION})
+
+project(
+    Dyninst
+    VERSION ${DYNINST_VERSION}
+    DESCRIPTION "Tools for binary instrumentation, analysis, and modification"
+    HOMEPAGE_URL "https://github.com/dyninst/dyninst"
+    LANGUAGES C CXX)
 
 set(DYNINST_ROOT ${PROJECT_SOURCE_DIR})
-set(CMAKE_SKIP_BUILD_RPATH FALSE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_SKIP_BUILD_RPATH OFF)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH OFF)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_INSTALL_MESSAGE LAZY) # only report new installations
 
-set(STERILE_BUILD
-    OFF
-    CACHE BOOL "Do not download/build any third-party dependencies from source")
+list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
+     "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
+
+include(DyninstUtilities)
+
+dyninst_add_option(
+    STERILE_BUILD "Do not download/build any third-party dependencies from source" OFF
+    ADVANCED)
 
 list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib"
      isSystemDir)
 if("${isSystemDir}" STREQUAL "-1")
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    if(UNIX AND NOT APPLE)
+        set(CMAKE_INSTALL_RPATH
+            "\$ORIGIN:\$ORIGIN/dyninst-tpls/lib:${CMAKE_INSTALL_PREFIX}/lib")
+    else()
+        set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    endif()
 endif()
-
-set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
-set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
-
-set(CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules"
-                      ${CMAKE_MODULE_PATH})
 
 # Set the C and C++ language standards
-include(LanguageStandards)
+include(DyninstLanguageStandards)
+include(DyninstOptions)
 
 # Find the necessary third-party libraries
-find_package(ThreadDB)
-find_package(Threads)
-include(Boost)
-include(ThreadingBuildingBlocks)
-include(ElfUtils)
+find_package(Thread_DB)
+find_package(Threads REQUIRED)
 
-if(UNIX)
-    include(LibIberty REQUIRED)
+include(DyninstBoost)
+include(DyninstTBB)
+include(DyninstElfUtils)
+include(DyninstLibIberty)
+
+if(BUILD_BOOST
+   OR BUILD_TBB
+   OR BUILD_ELFUTILS
+   OR BUILD_LIBIBERTY)
+    # for packaging
+    install(DIRECTORY ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include/
+            DESTINATION lib/dyninst-tpls/include)
 endif()
 
-include(shared)
+include(DyninstLibrary)
 
 if(USE_OpenMP)
     find_package(OpenMP REQUIRED)
 endif()
 
-configure_file(cmake/version.h.in common/h/dyninstversion.h)
-include_directories(${PROJECT_BINARY_DIR})
-include_directories(${PROJECT_BINARY_DIR}/common/h)
-set(HEADER_DIRS
-    common
-    dataflowAPI
-    dyninstAPI
-    instructionAPI
-    parseAPI
-    patchAPI
-    proccontrol
-    stackwalk
-    symtabAPI)
+configure_file(cmake/version.h.in ${PROJECT_BINARY_DIR}/common/h/dyninstversion.h @ONLY)
+
+# global include interface library
+dyninst_add_interface_library(headers "Interface target providing include paths only")
+target_include_directories(
+    headers
+    INTERFACE $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+              $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+              $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/common/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dyninstAPI/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/instructionAPI/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/parseAPI/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/patchAPI/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/proccontrol/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/stackwalk/h>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>)
 if(NOT ${PLATFORM} MATCHES nt)
-    set(HEADER_DIRS ${HEADER_DIRS} dwarf elf symlite)
+    target_include_directories(
+        headers
+        INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dwarf/h>
+                  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/elf/h>
+                  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symlite/h>)
 endif()
 
-foreach(dir ${HEADER_DIRS})
-    include_directories(${DYNINST_ROOT}/${dir}/h)
-endforeach()
-
-set(ADD_VALGRIND_ANNOTATIONS
-    OFF
-    CACHE BOOL "Enable annotations for Valgrind analysis")
+dyninst_add_option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis"
+                   OFF)
 if(ADD_VALGRIND_ANNOTATIONS)
     find_package(Valgrind REQUIRED)
     include_directories(${Valgrind_INCLUDE_DIRS})
-    add_definitions(-DENABLE_VG_ANNOTATIONS)
+    add_compile_definitions(ENABLE_VG_ANNOTATIONS)
 endif()
 
-include_directories(${DYNINST_ROOT} ${DYNINST_ROOT}/external ${TBB_INCLUDE_DIRS})
+target_include_directories(
+    headers
+    INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+              $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/external>
+              $<BUILD_INTERFACE:${TBB_INCLUDE_DIRS}>)
 
 # Component time
 add_subdirectory(common)
@@ -81,7 +124,6 @@ if(NOT ${PLATFORM} MATCHES nt)
     add_subdirectory(elf)
     add_subdirectory(dwarf)
     add_subdirectory(symlite)
-    add_subdirectory(parseThat)
 endif()
 add_subdirectory(instructionAPI)
 add_subdirectory(symtabAPI)
@@ -95,59 +137,12 @@ if(${SYMREADER} MATCHES symtabAPI)
     add_subdirectory(dynC_API)
 endif()
 
+if(NOT ${PLATFORM} MATCHES nt AND BUILD_PARSE_THAT)
+    add_subdirectory(parseThat)
+endif()
+
 if(BUILD_RTLIB)
-    # Build the RT library as a separate project so we can change compilers
-    message(STATUS "Configuring DyninstAPI_RT in ${RT_BINARY_DIR}")
-    file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles
-         ${RT_BINARY_DIR}/Makefile)
-    file(MAKE_DIRECTORY ${RT_BINARY_DIR})
-    set(RT_C_COMPILER
-        ${CMAKE_C_COMPILER}
-        CACHE STRING "Compiler for runtime library")
-    set(ENABLE_STATIC_LIBS
-        NO
-        CACHE STRING "Build static libraries as well?")
-    message(STATUS "Configuring RT library")
-
-    execute_process(
-        WORKING_DIRECTORY ${RT_BINARY_DIR}
-        COMMAND
-            ${CMAKE_COMMAND} -DCMAKE_C_COMPILER=${RT_C_COMPILER}
-            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-            -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-            -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} -DINSTALL_LIB_DIR=${INSTALL_LIB_DIR}
-            -DINSTALL_INCLUDE_DIR=${INSTALL_INCLUDE_DIR} -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-            -DBUILD_RTLIB_32=${BUILD_RTLIB_32} -DPLATFORM=${PLATFORM} -G
-            ${CMAKE_GENERATOR} -B ${RT_BINARY_DIR} -S ${RT_SOURCE_DIR})
-    find_file(
-        ${RT_MAKEFILE} Makefile
-        PATHS ${RT_BINARY_DIR}
-        NO_DEFAULT_PATH)
-    message(STATUS "RTlib Makefile: ${RT_MAKEFILE}")
-    if(MSVC)
-        include_external_msproject(DyninstAPI_RT dyninstAPI_RT/dyninstAPI_RT.vcxproj)
-        include_external_msproject(DyninstAPI_RT_static
-                                   dyninstAPI_RT/dyninstAPI_RT_static.vcxproj)
-    else()
-        add_custom_target(
-            DyninstRT ALL
-            $(MAKE)
-            WORKING_DIRECTORY ${RT_BINARY_DIR}
-            COMMENT "Building DyninstRT")
-        if(TARGET TBB)
-            add_dependencies(DyninstRT TBB)
-        endif()
-        add_dependencies(dyninstAPI DyninstRT)
-        if(TARGET dyninstAPI-static)
-            add_dependencies(dyninstAPI-static DyninstRT)
-        endif()
-        if(TARGET boost)
-            add_dependencies(DyninstRT boost)
-        endif()
-    endif()
-
-    install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
-
+    add_subdirectory(dyninstAPI_RT)
 else()
     message(
         STATUS
@@ -173,6 +168,7 @@ if(BUILD_TARBALLS)
         endif()
     endif()
 endif()
+
 if(BUILD_DOCS)
     add_custom_target(doc)
     set(LATEX_DOCS
@@ -238,12 +234,14 @@ if(BUILD_DOCS)
     endif()
 endif()
 
-if(TARGET boost)
-    add_dependencies(common boost)
-endif()
-
 # add_subdirectory(testsuite)
 
 # Copy out all of the cmake files so they can be used by the Testsuite
-install(DIRECTORY ${DYNINST_ROOT}/cmake/ DESTINATION ${INSTALL_CMAKE_DIR})
-install(FILES ${PROJECT_BINARY_DIR}/CMakeCache.txt DESTINATION ${INSTALL_CMAKE_DIR})
+install(DIRECTORY ${DYNINST_ROOT}/cmake DESTINATION ${INSTALL_CMAKE_DIR})
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    install(FILES ${PROJECT_BINARY_DIR}/CMakeCache.txt DESTINATION ${INSTALL_CMAKE_DIR})
+endif()
+
+include(DyninstInstall)
+
+dyninst_print_features()

@@ -1,22 +1,20 @@
 # CMake configuration for dynElf (elf) directory
 
 if(NOT UNIX)
+    add_library(Dyninst::dynElf ALIAS dynDummy)
     return()
 endif()
 
-include_directories(src h)
-
 set(SRC_LIST src/Elf_X.C)
 
-dyninst_library(dynElf ${LibElf_LIBRARIES})
-if(TARGET TBB)
-    add_dependencies(dynElf TBB)
-endif()
-add_dependencies(dynElf ElfUtils)
-target_link_private_libraries(dynElf ${ElfUtils_LIBRARIES})
-
 if(ENABLE_DEBUGINFOD AND LibDebuginfod_FOUND)
-    add_definitions(-DDEBUGINFOD_LIB)
+    set(_PRIVATE_COMPILE_DEFS DEBUGINFOD_LIB)
 endif()
 
-add_definitions(-DDYNELF_LIB)
+dyninst_library(
+    dynElf
+    SOURCES ${SRC_LIST}
+    COMPILE_DEFINITIONS PRIVATE DYNELF_LIB ${_PRIVATE_COMPILE_DEFS}
+    INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
+    DEPENDS TBB-External ElfUtils-External
+    LINK_LIBRARIES Dyninst::headers Dyninst::Boost Dyninst::TBB PRIVATE Dyninst::ElfUtils)
