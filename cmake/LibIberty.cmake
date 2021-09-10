@@ -41,62 +41,25 @@ set(LibIberty_LIBRARYDIR "${LibIberty_ROOT_DIR}/lib"
 
 # -------------- PACKAGES -----------------------------------------------------
 
-find_package(LibIberty)
+find_package(LibIberty REQUIRED)
 
-# -------------- SOURCE BUILD -------------------------------------------------
-if(LibIberty_FOUND)
-  set(_li_root ${LibIberty_ROOT_DIR})
-  set(_li_inc_dirs ${LibIberty_INCLUDE_DIRS})
-  set(_li_lib_dirs ${LibIberty_LIBRARY_DIRS})
-  set(_li_libs ${LibIberty_LIBRARIES})
-elseif(STERILE_BUILD)
-  message(FATAL_ERROR "LibIberty not found and cannot be downloaded because build is sterile.")
-else()
-  message(STATUS "${LibIberty_ERROR_REASON}")
-  message(STATUS "Attempting to build LibIberty as external project")
-
-  include(ExternalProject)
-  ExternalProject_Add(
-    LibIberty
-    PREFIX ${CMAKE_BINARY_DIR}/binutils
-    URL http://ftp.gnu.org/gnu/binutils/binutils-2.31.1.tar.gz
-    BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND
-      CFLAGS=-fPIC
-      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
-      <SOURCE_DIR>/configure --prefix=${CMAKE_BINARY_DIR}/binutils
-    BUILD_COMMAND make
-    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib/libiberty
-    INSTALL_COMMAND
-      install <SOURCE_DIR>/libiberty/libiberty.a <INSTALL_DIR>
-  )
-
-  set(_li_root ${CMAKE_INSTALL_PREFIX})
-  set(_li_inc_dirs ${_li_root}/include)
-  set(_li_lib_dirs ${_li_root}/lib)
-  set(_li_libs ${_li_lib_dirs}/libiberty/libiberty.a)
-  
-  # For backward compatibility
-  set(IBERTY_FOUND TRUE)
-  set(IBERTY_BUILD TRUE)
-endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
 
 add_library(LibIberty STATIC IMPORTED GLOBAL)
-set_target_properties(LibIberty PROPERTIES IMPORTED_LOCATION ${_li_libs})
-set_target_properties(LibIberty PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${_li_inc_dirs})
+set_target_properties(LibIberty PROPERTIES IMPORTED_LOCATION ${LibIberty_LIBRARIES})
+set_target_properties(LibIberty PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${LibIberty_INCLUDE_DIRS})
 
-set(LibIberty_ROOT_DIR ${_li_root}
+set(LibIberty_ROOT_DIR ${LibIberty_ROOT_DIR}
     CACHE PATH "Base directory the of LibIberty installation"
     FORCE)
-set(LibIberty_INCLUDE_DIRS ${_li_inc_dirs}
+set(LibIberty_INCLUDE_DIRS ${LibIberty_INCLUDE_DIRS}
     CACHE PATH "LibIberty include directories"
     FORCE)
-set(LibIberty_LIBRARY_DIRS ${_li_lib_dirs}
+set(LibIberty_LIBRARY_DIRS ${LibIberty_LIBRARY_DIRS}
     CACHE PATH "LibIberty library directory"
     FORCE)
-set(LibIberty_LIBRARIES ${_li_libs}
+set(LibIberty_LIBRARIES ${LibIberty_LIBRARIES}
     CACHE FILEPATH "LibIberty library files"
     FORCE)
 
