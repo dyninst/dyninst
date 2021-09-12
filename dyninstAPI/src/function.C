@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -148,11 +148,11 @@ func_instance::func_instance(const func_instance *parFunc,
 #endif
 }
 
-func_instance::~func_instance() { 
+func_instance::~func_instance() {
    // We don't delete blocks, since they're shared between functions
    // We _do_ delete context instPoints, though
    // Except that should get taken care of normally since the
-   // structures are static. 
+   // structures are static.
    for (unsigned i = 0; i < parallelRegions_.size(); i++)
       delete parallelRegions_[i];
    if (wrapperSym_ != NULL) {
@@ -161,7 +161,7 @@ func_instance::~func_instance() {
 }
 
 // the original entry block is gone, we choose a new entry block from the
-// function, whichever non-dead block we can find that has no intraprocedural 
+// function, whichever non-dead block we can find that has no intraprocedural
 // incoming edges.  If there's no obvious block to choose, we stick with the
 // default block
 block_instance * func_instance::setNewEntry(block_instance *def,
@@ -172,16 +172,16 @@ block_instance * func_instance::setNewEntry(block_instance *def,
 
     // choose block with no intraprocedural incoming edges
     PatchFunction::Blockset::iterator bIter;
-    for (bIter = all_blocks_.begin(); 
-         bIter != all_blocks_.end(); 
-         bIter++) 
+    for (bIter = all_blocks_.begin();
+         bIter != all_blocks_.end();
+         bIter++)
     {
         block_instance *block = static_cast<block_instance*>(*bIter);
         if (deadBlocks.find(block) == deadBlocks.end()) {
             ParseAPI::Intraproc epred;
             const Block::edgelist & ib_ins = block->llb()->sources();
-	    
-	    if(std::distance(boost::make_filter_iterator(epred, ib_ins.begin(), ib_ins.end()), 
+
+	    if(std::distance(boost::make_filter_iterator(epred, ib_ins.begin(), ib_ins.end()),
 			     boost::make_filter_iterator(epred, ib_ins.end(), ib_ins.end())) == 0)
             {
                 if (NULL != newEntry) {
@@ -204,7 +204,7 @@ block_instance * func_instance::setNewEntry(block_instance *def,
         newEntry = def;
         mal_printf("Setting new entry block for func at 0x%lx to "
                 "actively executing block [%lx %lx), as none of the function "
-                "blocks lacks intraprocedural edges %s[%d]\n", addr_, 
+                "blocks lacks intraprocedural edges %s[%d]\n", addr_,
                 def->start(), def->end(), FILE__,__LINE__);
     }
 
@@ -311,8 +311,8 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
        // A block has unresolved control flow if it has an indirect
        // out-edge.
        blocks(); // force initialization of all_blocks_
-       for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
-            iter != all_blocks_.end(); ++iter) 
+       for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin();
+            iter != all_blocks_.end(); ++iter)
        {
           block_instance* iblk = SCAST_BI(*iter);
           if (iblk->llb()->unresolvedCF()) {
@@ -326,8 +326,8 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 const func_instance::BlockSet &func_instance::abruptEnds() {
     if (prevBlocksAbruptEnds_ != ifunc()->num_blocks()) {
        prevBlocksAbruptEnds_ = blocks().size();
-        for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
-             iter != all_blocks_.end(); ++iter) 
+        for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin();
+             iter != all_blocks_.end(); ++iter)
         {
             block_instance* iblk = SCAST_BI(*iter);
             if (iblk->llb()->abruptEnd()) {
@@ -358,8 +358,8 @@ block_instance *func_instance::entryBlock() {
 unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   for (PatchFunction::Blockset::const_iterator iter = callBlocks().begin(); 
-        iter != callBlocks().end(); ++iter) 
+   for (PatchFunction::Blockset::const_iterator iter = callBlocks().begin();
+        iter != callBlocks().end(); ++iter)
    {
       block_instance* iblk = SCAST_BI(*iter);
       if (iblk->containsDynamicCall()) {
@@ -370,22 +370,22 @@ unsigned func_instance::getNumDynamicCalls()
 }
 
 
-// warning: doesn't (and can't) force initialization of lazily-built 
+// warning: doesn't (and can't) force initialization of lazily-built
 // data structures because this function is declared to be constant
 void func_instance::debugPrint() const {
     fprintf(stderr, "Function debug dump (%p):\n", (const void*)this);
     fprintf(stderr, "  Symbol table names:\n");
-    for (auto i = symtab_names_begin(); 
+    for (auto i = symtab_names_begin();
 	 i != symtab_names_end(); ++i) {
       fprintf(stderr, "    %s\n", i->c_str());
     }
     fprintf(stderr, "  Demangled names:\n");
-    for (auto j = pretty_names_begin(); 
+    for (auto j = pretty_names_begin();
 	 j != pretty_names_end(); ++j) {
       fprintf(stderr, "    %s\n", j->c_str());
     }
     fprintf(stderr, "  Typed names:\n");
-    for (auto k = typed_names_begin(); 
+    for (auto k = typed_names_begin();
 	 k != typed_names_end(); ++k) {
       fprintf(stderr, "    %s\n", k->c_str());
     }
@@ -546,7 +546,7 @@ bool func_instance::consistency() const {
 }
 
 void func_instance::triggerModified() {
-    // KEVINTODO: is there anything to do here? 
+    // KEVINTODO: is there anything to do here?
 }
 
 Address func_instance::get_address() const { assert(0); return 0; }
@@ -557,10 +557,10 @@ bool func_instance::isInstrumentable() {
 #if defined(os_freebsd)
   // FreeBSD system call wrappers are using an indirect jump to an error
   // handling function; this confuses our parsing and we conclude they
-  // are uninstrumentable. They're not. It's fine. 
-  
+  // are uninstrumentable. They're not. It's fine.
+
   std::string wrapper_prefix = "__sys_";
-  for(auto i = symtab_names_begin(); i != symtab_names_end(); ++i) 
+  for(auto i = symtab_names_begin(); i != symtab_names_end(); ++i)
   {
     if (i->compare(0, 6, wrapper_prefix) == 0) {
       return true;
@@ -586,13 +586,13 @@ block_instance *func_instance::getBlockByEntry(const Address addr) {
 }
 
 
-// get all blocks that have an instruction starting at addr, or if 
+// get all blocks that have an instruction starting at addr, or if
 // there are none, return all blocks containing addr
 bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
    set<block_instance*> objblks;
    obj()->findBlocksByAddr(addr, objblks);
-   blocks(); // ensure that all_blocks_ is filled in 
-   std::vector<std::set<block_instance *>::iterator> to_erase; 
+   blocks(); // ensure that all_blocks_ is filled in
+   std::vector<std::set<block_instance *>::iterator> to_erase;
    for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
       // Make sure it's one of ours
       if (all_blocks_.find(*bit) == all_blocks_.end()) {
@@ -603,7 +603,7 @@ bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
       objblks.erase(to_erase[i]);
    }
 
-   if (objblks.size() > 1) { 
+   if (objblks.size() > 1) {
       // only add blocks that have an instruction at "addr"
       for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
          if ((*bit)->getInsn(addr).isValid()) {
@@ -611,7 +611,7 @@ bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
          }
       }
    }
-   // if there are no blocks containing an instruction that starts at addr, 
+   // if there are no blocks containing an instruction that starts at addr,
    // but there are blocks that contain addr, add those to blks
    if (blks.empty() && !objblks.empty()) {
       std::copy(objblks.begin(), objblks.end(), std::inserter(blks, blks.end()));
@@ -857,8 +857,8 @@ void func_instance::split_block_cb(block_instance *b1, block_instance *b2)
 
 void func_instance::add_block_cb(block_instance * /*block*/)
 {
-#if 0 // KEVINTODO: eliminate this?  as presently constituted, 
-      // these if cases will never execute anyway, at least not 
+#if 0 // KEVINTODO: eliminate this?  as presently constituted,
+      // these if cases will never execute anyway, at least not
       // when we intend them to
     if (block->llb()->unresolvedCF()) {
        size_t prev = ifunc()->getPrevBlocksUnresolvedCF();
@@ -867,7 +867,7 @@ void func_instance::add_block_cb(block_instance * /*block*/)
           ifunc()->setPrevBlocksUnresolvedCF(prev+1);
        }
     }
-    if (block->llb()->abruptEnd() && 
+    if (block->llb()->abruptEnd() &&
         prevBlocksAbruptEnds_ == ifunc()->blocks().size())
     {
         abruptEnds_.insert(block);
@@ -882,8 +882,8 @@ void func_instance::markModified() {
 
 // get caller blocks that aren't in deadBlocks
 bool func_instance::getLiveCallerBlocks
-(const std::set<block_instance*> &deadBlocks, 
- const std::list<func_instance*> &deadFuncs, 
+(const std::set<block_instance*> &deadBlocks,
+ const std::list<func_instance*> &deadFuncs,
  std::map<Address,vector<block_instance*> > & stubs)  // output: block + target addr
 {
    using namespace ParseAPI;
@@ -894,16 +894,16 @@ bool func_instance::getLiveCallerBlocks
       if (CALL == (*eit)->type()) {// includes tail calls
           block_instance *cbbi = static_cast<block_instance*>((*eit)->src());
           if (deadBlocks.end() != deadBlocks.find(cbbi)) {
-             continue; 
+             continue;
           }
 
-          // don't use stub if it only appears in dead functions 
+          // don't use stub if it only appears in dead functions
           std::set<func_instance*> bfuncs;
           cbbi->getFuncs(std::inserter(bfuncs,bfuncs.end()));
           bool allSrcFuncsDead = true;
           for (std::set<func_instance*>::iterator bfit = bfuncs.begin();
-               bfit != bfuncs.end(); 
-               bfit++) 
+               bfit != bfuncs.end();
+               bfit++)
           {
              bool isSrcFuncDead = false;
              for (std::list<func_instance*>::const_iterator dfit = deadFuncs.begin();
@@ -921,7 +921,7 @@ bool func_instance::getLiveCallerBlocks
              }
           }
           if (allSrcFuncsDead) {
-             continue; 
+             continue;
           }
           // add stub
           stubs[addr()].push_back(cbbi);
@@ -1703,6 +1703,8 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
     }
 }
 
+namespace
+{
 AnnotationClass<StackAnalysis::Intervals>
         Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), NULL);
 AnnotationClass<StackAnalysis::BlockEffects>
@@ -1711,6 +1713,7 @@ AnnotationClass<StackAnalysis::InstructionEffects>
         Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), NULL);
 AnnotationClass<StackAnalysis::CallEffects>
         Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), NULL);
+}
 void func_instance::freeStackMod() {
     // Free stack analysis intervals
     StackAnalysis::Intervals *i = NULL;

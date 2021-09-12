@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -86,7 +86,7 @@ bool Object::truncateLineFilenames = false;
 
 string symt_current_func_name;
 string symt_current_mangled_func_name;
-Symbol *symt_current_func = NULL;
+Function *symt_current_func = NULL;
 
 std::vector<Symbol *> opdsymbols_;
 
@@ -2771,7 +2771,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         DbgSectionMapSorted(false),
         soname_(NULL)
 {
-    li_for_object = NULL; 
+    li_for_object = NULL;
 
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -3166,30 +3166,30 @@ int read_except_table_gcc3(
     int res = 0;
     Elf_Data * eh_frame_data = eh_frame->get_data().elf_data();
 
-    //For each CFI entry 
+    //For each CFI entry
     do {
         Dwarf_CFI_Entry entry;
         res = dwarf_next_cfi(e_ident, eh_frame_data, true, offset, &next_offset, &entry);
-        saved_cur_offset = offset; //saved in case needed later 
+        saved_cur_offset = offset; //saved in case needed later
         offset = next_offset;
 
-        // If no more CFI entries left in the section 
+        // If no more CFI entries left in the section
         if(res==1 && next_offset==(Dwarf_Off)-1) break;
-        
+
         // CFI error
         if(res == -1) {
 	  if (offset != saved_cur_offset) {
             continue; // Soft error, skip to the next CFI entry
           }
           // Since offset didn't advance, we can't skip this CFI entry and need to quit
-          return false; 
+          return false;
         }
 
         if(dwarf_cfi_cie_p(&entry))
         {
             continue;
         }
-        
+
         unsigned int j;
         unsigned char lsda_encoding = DW_EH_PE_absptr;
         unsigned char personality_encoding = DW_EH_PE_absptr;
@@ -3283,13 +3283,13 @@ int read_except_table_gcc3(
         // pointer encodings, the FDE contains the actual pointers.
 
         // Calculate size in bytes of PC Begin
-        const unsigned char* pc_begin_start = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
+        const unsigned char* pc_begin_start = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ +
             (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
         unsigned long pc_begin_val;
         mi.pc = fde_addr + (unsigned long) (pc_begin_start - fde_bytes);
         int pc_begin_size = read_val_of_type(range_encoding, &pc_begin_val, pc_begin_start, mi);
 
-        // Calculate size in bytes of PC Range 
+        // Calculate size in bytes of PC Range
         const unsigned char* pc_range_start = pc_begin_start + pc_begin_size;
         unsigned long pc_range_val;
         mi.pc = fde_addr + (unsigned long) (pc_range_start - fde_bytes);
@@ -3302,7 +3302,7 @@ int read_except_table_gcc3(
         auto aug_length_size = read_val_of_type(DW_EH_PE_uleb128, &aug_length_value, aug_length_start, mi);
 
         // Confirm low_pc
-        auto pc_begin = reinterpret_cast<const unsigned char*>(entry.fde.start); 
+        auto pc_begin = reinterpret_cast<const unsigned char*>(entry.fde.start);
         unsigned long low_pc_val;
         mi.pc = fde_addr + (unsigned long) (pc_begin - fde_bytes);
         read_val_of_type(range_encoding, &low_pc_val, pc_begin, mi);
@@ -3310,9 +3310,9 @@ int read_except_table_gcc3(
         low_pc = pc_begin_val;
 
         // Get the augmentation data for the FDE
-        cur_augdata = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
+        cur_augdata = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ +
             (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN) +
-            pc_begin_size + pc_range_size + aug_length_size; 
+            pc_begin_size + pc_range_size + aug_length_size;
 
         for (j=0; j<augmentor_len; j++)
         {
@@ -4203,7 +4203,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
         // The line information for this object has been parsed.
         return li_for_object;
     }
-    li_for_object = new LineInformation(); 
+    li_for_object = new LineInformation();
     li_for_object->setStrings(strings_);
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
@@ -4264,7 +4264,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
     open_statement current_statement;
     for(size_t i = 0; i < lineCount; i++ )
     {
-        auto line = dwarf_onesrcline(lineBuffer, i); 
+        auto line = dwarf_onesrcline(lineBuffer, i);
 
         /* Acquire the line number, address, source, and end of sequence flag. */
         status = dwarf_lineno(line, &current_statement.line_number);
@@ -4291,7 +4291,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
             if (result)
                 current_statement.start_addr = new_lineAddr;
         }
-        
+
         //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char * file_name = dwarf_linesrc(line, NULL, NULL);
         if ( !file_name ) {
@@ -4304,9 +4304,9 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
         int index = -1;
         for(size_t idx = offset; idx < strings->size(); ++idx)
         {
-            if((*strings)[idx].str==file_name_str) 
-            {  
-                index = idx; 
+            if((*strings)[idx].str==file_name_str)
+            {
+                index = idx;
                 break;
             }
         }
@@ -4347,7 +4347,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings_)
 	if (isEndOfSequence) {
 	  current_line.reset();
 	}
-    } 
+    }
     }
     return li_for_object;
 }
@@ -4743,7 +4743,7 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
     int hi = DebugSectionMap.size();
 
     if (hi == 0) {
-      // DebugSectionMap is empty; handle this case separately 
+      // DebugSectionMap is empty; handle this case separately
       DbgSectionMapSorted = true;
       return true;
     }

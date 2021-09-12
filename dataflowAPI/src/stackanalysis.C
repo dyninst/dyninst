@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -60,6 +60,8 @@ const StackAnalysis::Height StackAnalysis::Height::bottom(
 const StackAnalysis::Height StackAnalysis::Height::top(
    StackAnalysis::Height::uninitialized, StackAnalysis::Height::TOP);
 
+namespace
+{
 AnnotationClass<StackAnalysis::Intervals>
         Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), NULL);
 AnnotationClass<StackAnalysis::BlockEffects>
@@ -68,6 +70,7 @@ AnnotationClass<StackAnalysis::InstructionEffects>
         Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), NULL);
 AnnotationClass<StackAnalysis::CallEffects>
         Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), NULL);
+}
 
 template class std::list<Dyninst::StackAnalysis::TransferFunc*>;
 template class std::map<Dyninst::Absloc, Dyninst::StackAnalysis::Height>;
@@ -86,7 +89,7 @@ if(!(X)) { \
 // Concepts:
 //
 // There are three terms we throw around:
-// 
+//
 // Stack height: the size of the stack; (cur_stack_ptr - func_start_stack_ptr)
 // Stack delta: the difference in the size of the stack over the execution of
 //   a region of code (basic block here). (block_end_stack_ptr -
@@ -782,7 +785,7 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
 
 StackAnalysis::StackAnalysis() : func(NULL), blockEffects(NULL),
    insnEffects(NULL), callEffects(NULL), intervals_(NULL), word_size(0) {}
-   
+
 StackAnalysis::StackAnalysis(Function *f) : func(f), blockEffects(NULL),
    insnEffects(NULL), callEffects(NULL), intervals_(NULL) {
    word_size = func->isrc()->getAddressWidth();
@@ -1924,7 +1927,7 @@ void StackAnalysis::handlePowerAddSub(Instruction insn, Block *block,
    if (!insn.isRead(theStackPtr) || !insn.isWritten(theStackPtr)) {
       return handleDefault(insn, block, off, xferFuncs);
    }
-   
+
    Operand arg = insn.getOperand(2);
    Result res = arg.getValue()->eval();
    Absloc sploc(sp());
@@ -1943,7 +1946,7 @@ void StackAnalysis::handlePowerStoreUpdate(Instruction insn, Block *block,
    if (!insn.isWritten(theStackPtr)) {
       return handleDefault(insn, block, off, xferFuncs);
    }
-   
+
    std::set<Expression::Ptr> memWriteAddrs;
    insn.getMemoryWriteOperands(memWriteAddrs);
    Expression::Ptr stackWrite = *(memWriteAddrs.begin());
@@ -1969,7 +1972,7 @@ void StackAnalysis::handleMov(Instruction insn, Block *block,
    //   3. mov mem, reg
    //   4. mov reg, mem
    //   5. mov imm, mem
-   // 
+   //
    // #1 Causes register copying.
    // #2 Causes an absolute value in the register.
    // #3 Depends on whether the memory address we're loading from can be
@@ -2599,15 +2602,15 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
          copyBaseSubReg(sp(), xferFuncs);
          return true;
       }
-      
+
       if (cur_edge->type() != CALL) continue;
-      
+
       Block *target_bbl = cur_edge->trg();
       Function *target_func = target_bbl->obj()->findFuncByEntry(
          target_bbl->region(), target_bbl->start());
-      
+
       if (!target_func) continue;
-      
+
       Height h = getStackCleanAmount(target_func);
       if (h == Height::bottom) {
          xferFuncs.push_back(TransferFunc::bottomFunc(sploc));
@@ -3566,7 +3569,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
 
    if (isCopy()) {
       // We need to record that we want to take the inflow height
-      // of a different register. 
+      // of a different register.
       // Don't do an inputs[from] as that creates
       auto iter = inputs.find(from);
       if (iter == inputs.end()) {
@@ -3724,7 +3727,7 @@ void StackAnalysis::SummaryFunc::addSummary(const TransferSet &summary) {
 }
 
 void StackAnalysis::SummaryFunc::validate() const {
-   for (TransferSet::const_iterator iter = accumFuncs.begin(); 
+   for (TransferSet::const_iterator iter = accumFuncs.begin();
       iter != accumFuncs.end(); ++iter) {
       const TransferFunc &func = iter->second;
       STACKANALYSIS_ASSERT(func.target.isValid());
@@ -3734,11 +3737,11 @@ void StackAnalysis::SummaryFunc::validate() const {
    }
 }
 
-MachRegister StackAnalysis::sp() { 
+MachRegister StackAnalysis::sp() {
    return MachRegister::getStackPointer(func->isrc()->getArch());
 }
 
-MachRegister StackAnalysis::fp() { 
+MachRegister StackAnalysis::fp() {
    return MachRegister::getFramePointer(func->isrc()->getArch());
 }
 
