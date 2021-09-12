@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -142,10 +142,10 @@ BPatch::BPatch()
     if (bpatch == NULL){
        bpatch = this;
     }
-    
+
     BPatch::bpatch->registerErrorCallback(defaultErrorFunc);
     bpinfo("installed default error reporting function");
-    
+
     /*
      * Create the list of processes.
      */
@@ -156,7 +156,7 @@ BPatch::BPatch()
      */
     type_Error   = BPatch_type::createFake("<error>");
     type_Untyped = BPatch_type::createFake("<no type>");
-    
+
     /*
      * Initialize hash table of API types.
      */
@@ -194,7 +194,7 @@ BPatch::BPatch()
 BPatch::~BPatch()
 {
    inDestructor = true;
-    for(auto i = info->procsByPid.begin(); 
+    for(auto i = info->procsByPid.begin();
         i != info->procsByPid.end();
         ++i)
     {
@@ -212,7 +212,7 @@ BPatch::~BPatch()
         BPatch_typeCollection::freeTypeCollection(APITypes);
     if(builtInTypes)
       delete builtInTypes;
-    
+
     if(systemPrelinkCommand){
         delete [] systemPrelinkCommand;
     }
@@ -362,7 +362,7 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
  */
 BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
 {
-#if defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_nt4_0)
   reportError(BPatchWarning, 0,
 	      "postfork callbacks not implemented on this platform\n");
   return NULL;
@@ -397,7 +397,7 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 /*
  * BPatch::registerExecCallback
  *
- * Registers a function that is to be called by the library when a 
+ * Registers a function that is to be called by the library when a
  * process has just completed an exec* call
  *
  * func	The function to be called.
@@ -405,7 +405,7 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 {
 
-#if defined(i386_unknown_nt4_0) 
+#if defined(i386_unknown_nt4_0)
     reportError(BPatchWarning, 0,
 	"exec callbacks not implemented on this platform\n");
     return NULL;
@@ -419,7 +419,7 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 /*
  * BPatch::registerExitCallback
  *
- * Registers a function that is to be called by the library when a 
+ * Registers a function that is to be called by the library when a
  * process has just called the exit system call
  *
  * func	The function to be called.
@@ -434,7 +434,7 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 /*
  * BPatch::registerOneTimeCodeCallback
  *
- * Registers a function that is to be called by the library when a 
+ * Registers a function that is to be called by the library when a
  * oneTimeCode (inferior RPC) is completed.
  *
  * func	The function to be called.
@@ -497,14 +497,14 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
     if ((severity == BPatchFatal) || (severity == BPatchSerious))
         bpatch->lastError = number;
 
-    if( !BPatch::bpatch->errorCallback ) { 
+    if( !BPatch::bpatch->errorCallback ) {
         fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", FILE__, __LINE__, str);
         fflush(stdout);
-        return; 
+        return;
     }
 
     BPatch::bpatch->errorCallback(severity, number, &str);
-    
+
 }
 
 
@@ -640,7 +640,7 @@ BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
    for (auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter) {
       result->push_back(iter->second);
    }
-   
+
    return result;
 }
 
@@ -679,7 +679,7 @@ void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
     proccontrol_printf("BPatch: registering fork, parent %d, child %d\n",
                     parentPid, childPid);
     assert(getProcessByPid(childPid) == NULL);
-    
+
     BPatch_process *parent = getProcessByPid(parentPid);
     assert(parent);
 
@@ -689,7 +689,7 @@ void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
     if( postForkCallback ) {
         postForkCallback(parent->threads[0], child->threads[0]);
     }
-    
+
     proccontrol_printf("BPatch: finished registering fork, parent %d, child %d\n",
                     parentPid, childPid);
 }
@@ -723,7 +723,7 @@ void BPatch::registerForkingProcess(int forkingPid, PCProcess * /*proc*/)
  * Gives us some cleanup time
  */
 
-void BPatch::registerExecCleanup(PCProcess *p, char *) 
+void BPatch::registerExecCleanup(PCProcess *p, char *)
 {
     BPatch_process *execing = getProcessByPid(p->getPid());
     assert(execing);
@@ -731,7 +731,7 @@ void BPatch::registerExecCleanup(PCProcess *p, char *)
     for (unsigned i=0; i<execing->threads.size(); i++)
        registerThreadExit(p, execing->threads[i]->llthread);
 
-}    
+}
 
 /*
  * BPatch::registerExecExit
@@ -753,7 +753,7 @@ void BPatch::registerExecExit(PCProcess *proc) {
 
     // Create a new initial thread or update it
     BPatch_thread *initialThread;
-    if( process->threads.size() == 0 ) { 
+    if( process->threads.size() == 0 ) {
         initialThread = new BPatch_thread(process, thr);
         process->threads.push_back(initialThread);
     }else{
@@ -848,7 +848,7 @@ void BPatch::registerSignalExit(PCProcess *proc, int signalnum)
           exitCallback(bpprocess->threads[0], ExitedViaSignal);
       }
    }
-   
+
    // We now run the process out; set its state to terminated. Really, the user shouldn't
    // try to do anything else with this, but we can get that happening.
    BPatch_process *stillAround = getProcessByPid(pid);
@@ -875,9 +875,9 @@ bool BPatch::registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr)
 void BPatch::registerThreadExit(PCProcess *llproc, PCThread *llthread)
 {
     assert( llproc && llthread );
-    
+
     BPatch_process *bpprocess = getProcessByPid(llproc->getPid());
-    
+
     if (!bpprocess) {
         // Error during startup can cause this -- we have a partially
         // constructed process object, but it was never registered with
@@ -888,7 +888,7 @@ void BPatch::registerThreadExit(PCProcess *llproc, PCThread *llthread)
     BPatch_thread *thrd = bpprocess->getThread(llthread->getTid());
     if (!thrd) {
         //If we don't have an BPatch thread, then it might have been an internal
-        // thread that we decided not to report to the user (happens during 
+        // thread that we decided not to report to the user (happens during
         //  windows attach).  Just trigger the lower level clean up in this case.
         llproc->removeThread(llthread->getTid());
         return;
@@ -962,7 +962,7 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_object *obj) {
 
     BPatch_image *bImage = bProc->getImage();
     assert(bImage); // This we can assert to be true
-    
+
     BPatch_object *bpobj = bImage->findOrCreateObject(obj);
 
     if( dynLibraryCallback ) {
@@ -988,11 +988,11 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *obj) {
     if (!bImage) { // we got an event during process startup
         return;
     }
-    
+
     BPatch_object *bpobj = bImage->findObject(obj);
     if (bpobj == NULL) return;
 
-    
+
     // For now we use the same callback for load and unload of library....
     if( dynLibraryCallback ) {
         dynLibraryCallback(bProc->threads[0], bpobj, false);
@@ -1009,7 +1009,7 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *obj) {
  * is called only by the constructor for BPatch_process).
  *
  * process	A pointer to the process to register.
- */ 
+ */
 void BPatch::registerProcess(BPatch_process *process, int pid)
 {
    if (!pid)
@@ -1135,8 +1135,8 @@ static void buildPath(const char *path, const char **argv,
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_process *BPatch::processCreate(const char *path, const char *argv[], 
-                                         const char **envp, int stdin_fd, 
+BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
+                                         const char **envp, int stdin_fd,
                                          int stdout_fd, int stderr_fd,
                                          BPatch_hybridMode mode)
 {
@@ -1157,7 +1157,7 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
    struct stat statbuf;
    if (-1 == stat(path, &statbuf)) {
       char ebuf[2048];
-      sprintf(ebuf, "createProcess(%s,...):  file does not exist\n", path);
+      snprintf(ebuf, 2048, "createProcess(%s,...):  file does not exist\n", path);
       reportError(BPatchFatal, 68, ebuf);
       return NULL;
    }
@@ -1165,7 +1165,7 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
    //  and ensure its a regular file:
    if (!S_ISREG(statbuf.st_mode)) {
       char ebuf[2048];
-      sprintf(ebuf, "createProcess(%s,...):  not a regular file \n", path);
+      snprintf(ebuf, 2048, "createProcess(%s,...):  not a regular file\n", path);
       reportError(BPatchFatal, 68, ebuf);
       return NULL;
    }
@@ -1175,7 +1175,7 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
             || (statbuf.st_mode & S_IXGRP)
             || (statbuf.st_mode & S_IXOTH) )) {
       char ebuf[2048];
-      sprintf(ebuf, "createProcess(%s,...):  not an executable  \n", path);
+      snprintf(ebuf, 2048, "createProcess(%s,...):  not an executable\n", path);
       reportError(BPatchFatal, 68, ebuf);
       return NULL;
    }
@@ -1188,11 +1188,11 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
 
    buildPath(path, argv, pathToUse, argvToUse);
 
-   BPatch_process *ret = 
-      new BPatch_process((pathToUse ? pathToUse : path), 
-                         (argvToUse ? (const_cast<const char **>(argvToUse)) : argv), 
+   BPatch_process *ret =
+      new BPatch_process((pathToUse ? pathToUse : path),
+                         (argvToUse ? (const_cast<const char **>(argvToUse)) : argv),
                          mode, envp, stdin_fd,stdout_fd,stderr_fd);
-   
+
    if (pathToUse) free(pathToUse);
    if (argvToUse) {
 
@@ -1204,7 +1204,7 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
       free(argvToUse);
    }
 
-   if (!ret->llproc 
+   if (!ret->llproc
          ||  !ret->llproc->isStopped()
          ||  !ret->llproc->isBootstrapped()) {
       delete ret;
@@ -1249,7 +1249,7 @@ BPatch_process *BPatch::processAttach
       char msg[256];
       sprintf(msg, "attachProcess failed.  Dyninst is already attached to %d.",
               pid);
-      reportError(BPatchWarning, 26, msg);      
+      reportError(BPatchWarning, 26, msg);
       return NULL;
    }
 
@@ -1261,7 +1261,7 @@ BPatch_process *BPatch::processAttach
        char msg[256];
        sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
        reportError(BPatchWarning, 26, msg);
-	   
+
 	   delete ret;
        return NULL;
    }
@@ -1304,7 +1304,7 @@ bool BPatch::pollForStatusChange()
     if( result == PCEventMuxer::Error ) {
         proccontrol_printf("[%s:%d] Failed to poll for events\n",
                 FILE__, __LINE__);
-        BPatch_reportError(BPatchWarning, 0, 
+        BPatch_reportError(BPatchWarning, 0,
                 "Failed to handle events and deliver callbacks");
         return false;
     }
@@ -1314,7 +1314,7 @@ bool BPatch::pollForStatusChange()
         proccontrol_printf("[%s:%d] Events received\n", FILE__, __LINE__);
         return true;
     }
-  
+
     proccontrol_printf("[%s:%d] No events available\n", FILE__, __LINE__);
     return false;
 }
@@ -1336,7 +1336,7 @@ bool BPatch::waitForStatusChange() {
     // Sanity check: make sure there are processes running that could
     // cause events to occur, otherwise the user will be waiting indefinitely
     bool processRunning = false;
-    for(auto i = info->procsByPid.begin(); i != info->procsByPid.end(); ++i) 
+    for(auto i = info->procsByPid.begin(); i != info->procsByPid.end(); ++i)
     {
        if( !i->second->isStopped() &&
 	   !i->second->isTerminated()) {
@@ -1388,7 +1388,7 @@ bool BPatch::waitForStatusChange() {
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnum( const char * name, 
+BPatch_type * BPatch::createEnum( const char * name,
 				     BPatch_Vector<char *> &elementNames,
 				     BPatch_Vector<int> &elementIds)
 {
@@ -1397,15 +1397,15 @@ BPatch_type * BPatch::createEnum( const char * name,
     }
     string typeName = name;
     dyn_c_vector<pair<string, int> *>elements;
-    for (unsigned int i=0; i < elementNames.size(); i++) 
+    for (unsigned int i=0; i < elementNames.size(); i++)
         elements.push_back(new pair<string, int>(elementNames[i], elementIds[i]));
-    
+
     boost::shared_ptr<Type> typ(typeEnum::create( typeName, elements));
     if (!typ) return NULL;
-    
+
     BPatch_type *newType = new BPatch_type(typ);
     if (!newType) return NULL;
-    
+
     APITypes->addType(newType);
 
     return(newType);
@@ -1421,20 +1421,20 @@ BPatch_type * BPatch::createEnum( const char * name,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnum( const char * name, 
+BPatch_type * BPatch::createEnum( const char * name,
 				        BPatch_Vector<char *> &elementNames)
 {
     string typeName = name;
     dyn_c_vector<pair<string, int> *>elements;
-    for (unsigned int i=0; i < elementNames.size(); i++) 
+    for (unsigned int i=0; i < elementNames.size(); i++)
         elements.push_back(new pair<string, int>(elementNames[i], i));
-    
+
     boost::shared_ptr<Type> typ(typeEnum::create( typeName, elements));
     if (!typ) return NULL;
-    
+
     BPatch_type *newType = new BPatch_type(typ);
     if (!newType) return NULL;
-    
+
     APITypes->addType(newType);
 
     return(newType);
@@ -1455,11 +1455,11 @@ BPatch_type * BPatch::createStruct( const char * name,
 				       BPatch_Vector<BPatch_type *> &fieldTypes)
 {
    unsigned int i;
-   
+
    if (fieldNames.size() != fieldTypes.size()) {
       return NULL;
    }
-   
+
    string typeName = name;
    dyn_c_vector<pair<string, boost::shared_ptr<Type> > *> fields;
    for(i=0; i<fieldNames.size(); i++)
@@ -1467,16 +1467,16 @@ BPatch_type * BPatch::createStruct( const char * name,
       if(!fieldTypes[i])
          return NULL;
       fields.push_back(new pair<string, boost::shared_ptr<Type>>(fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
-   }	
-   
+   }
+
    boost::shared_ptr<Type> typ(typeStruct::create(typeName, fields));
    if (!typ) return NULL;
-   
+
    BPatch_type *newType = new BPatch_type(typ);
    if (!newType) return NULL;
-   
+
    APITypes->addType(newType);
-   
+
    return(newType);
 }
 
@@ -1490,12 +1490,12 @@ BPatch_type * BPatch::createStruct( const char * name,
  * collection.
  */
 
-BPatch_type * BPatch::createUnion( const char * name, 
+BPatch_type * BPatch::createUnion( const char * name,
 				      BPatch_Vector<char *> &fieldNames,
 				      BPatch_Vector<BPatch_type *> &fieldTypes)
 {
     unsigned int i;
-    
+
     if (fieldNames.size() != fieldTypes.size()) {
       return NULL;
     }
@@ -1507,18 +1507,18 @@ BPatch_type * BPatch::createUnion( const char * name,
         if(!fieldTypes[i])
 	    return NULL;
         fields.push_back(new pair<string, boost::shared_ptr<Type> > (fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
-    }	
-    
+    }
+
     boost::shared_ptr<Type> typ(typeUnion::create(typeName, fields));
     if (!typ) return NULL;
-    
+
     BPatch_type *newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
     APITypes->addType(newType);
 
     return(newType);
-}    
+}
 
 /*
  * createArray for Arrays and SymTypeRanges
@@ -1534,13 +1534,13 @@ BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
 {
 
     BPatch_type * newType;
-    if (!ptr) 
+    if (!ptr)
         return NULL;
-        
+
     string typeName = name;
     boost::shared_ptr<Type> typ(typeArray::create(typeName, ptr->getSymtabType(Type::share), low, hi));
     if (!typ) return NULL;
-    
+
     newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
@@ -1563,11 +1563,11 @@ BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
     BPatch_type * newType;
     if(!ptr)
         return NULL;
-    
+
     string typeName = name;
     boost::shared_ptr<Type> typ(typePointer::create(typeName, ptr->getSymtabType(Type::share)));
     if (!typ) return NULL;
-    
+
     newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
@@ -1588,11 +1588,11 @@ BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
 BPatch_type * BPatch::createScalar( const char * name, int size)
 {
     BPatch_type * newType;
-    
+
     string typeName = name;
     boost::shared_ptr<Type> typ(typeScalar::create(typeName, size));
     if (!typ) return NULL;
-    
+
     newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
@@ -1614,11 +1614,11 @@ BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
     BPatch_type * newType;
     if(!ptr)
         return NULL;
-    
+
     string typeName = name;
     boost::shared_ptr<Type> typ(typeTypedef::create(typeName, ptr->getSymtabType(Type::share)));
     if (!typ) return NULL;
-    
+
     newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
@@ -1647,7 +1647,7 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
  		goto done;
 	}
 #if defined(os_windows)
-	else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) && 
+	else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) &&
 		(appThread->getProcess()->stopSignal() != -1))
 	{
 		cerr << "ERROR : process stopped on signal different"
@@ -1676,9 +1676,9 @@ BPatch_stats &BPatch::getBPatchStatistics()
 }
 //  updateStats() -- an internal function called before returning
 //  statistics buffer to caller of BPatch_getStatistics(),
-//  -- just copies global variable statistics counters into 
+//  -- just copies global variable statistics counters into
 //  the buffer which is returned to the user.
-void BPatch::updateStats() 
+void BPatch::updateStats()
 {
   stats.pointsUsed = pointsUsed.value();
   stats.totalMiniTramps = totalMiniTramps.value();
@@ -1793,7 +1793,7 @@ bool BPatch::removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback)
     return true;
 }
 
-bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB, 
+bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
                                            std::set<long> &signums)
 {
     signalHandlerCallback = HybridAnalysis::getSignalHandlerCB();
@@ -1807,17 +1807,17 @@ bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
     return true;
 }
 
-bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB, 
+bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
                                            BPatch_Set<long> *signums) {
    // This is unfortunate, but our method above takes a std::set<long>,
    // not a std::set<long, comparison<long>>
-   
+
    std::set<long> tmp;
    if (NULL == signums || signums->empty())
 	   tmp = std::set<long>();
    else
        std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
-   
+
    return registerSignalHandlerCallback(bpatchCB, tmp);
 }
 
@@ -1848,7 +1848,7 @@ bool BPatch::registerCodeOverwriteCallbacks
     return true;
 }
 
-void BPatch::continueIfExists(int pid) 
+void BPatch::continueIfExists(int pid)
 {
     BPatch_process *proc = getProcessByPid(pid);
     if (!proc) return;
@@ -1859,7 +1859,7 @@ void BPatch::continueIfExists(int pid)
 
 int BPatch::getNotificationFD() {
 #if !defined(os_windows)
-   return Dyninst::ProcControlAPI::evNotify()->getFD(); 
+   return Dyninst::ProcControlAPI::evNotify()->getFD();
 #else
     return -1;
 #endif
@@ -1871,7 +1871,7 @@ void BPatch::truncateLineInfoFilenames(bool newval) {
    mapped_module::truncateLineFilenames = newval;
 }
 
-void BPatch::getBPatchVersion(int &major, int &minor, int &subminor) 
+void BPatch::getBPatchVersion(int &major, int &minor, int &subminor)
 {
    major = DYNINST_MAJOR;
    minor = DYNINST_MINOR;
