@@ -5291,7 +5291,7 @@ namespace rose {
             DispatcherARM64::getBitfieldMask(int immr, int imms,
                                              int N, bool iswmask, int datasize) {
                 int hsbarg = (N << 6) | (~imms);
-                int len;
+                int len = 0;
                 for (int idx = 0; idx < 7; idx++) {
                     if ((hsbarg & 0x1) == 1)
                         len = idx;
@@ -5684,4 +5684,3 @@ namespace rose {
 } // namespace
 
 //using namespace rose::Diagnostics;
-
