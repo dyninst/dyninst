@@ -120,7 +120,6 @@ dyninst_library(common
     LINK_LIBRARIES
         Dyninst::Boost
         Dyninst::TBB
-        $<BUILD_INTERFACE:Dyninst::cap-arch-def>
         INTERFACE
             $<BUILD_INTERFACE:Dyninst::ElfUtils>
         PRIVATE

@@ -175,6 +175,7 @@ function(dyninst_library TARG_NAME)
             target_link_libraries(${_target} ${_LINK_VISIBILITY} ${_LINK_LIB})
         endforeach()
 
+        target_link_libraries(${_target} PRIVATE Dyninst::dynCapArchDef)
         if(USE_OpenMP)
             target_link_libraries(${_target} PRIVATE OpenMP::OpenMP_C OpenMP::OpenMP_CXX)
         endif()

@@ -1,7 +1,7 @@
 # The test suite needs this as a list rather than a bunch
 # of definitions so that we can append _test to it.
 
-dyninst_add_interface_library(cap-arch-def "Interface target for capability defines")
+dyninst_add_interface_library(dynCapArchDef "Interface target for capability defines")
 
 set(CAP_DEFINES
     cap_dynamic_heap
@@ -128,12 +128,12 @@ endif()
 
 set(UNIFIED_DEFINES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES} ${OS_DEFINES} ${OLD_DEFINES})
 
-target_compile_definitions(cap-arch-def INTERFACE ${UNIFIED_DEFINES})
+target_compile_definitions(dynCapArchDef INTERFACE ${UNIFIED_DEFINES})
 
 # this should probably be removed and instead one should
-# "link" to Dyninst::cap-arch-def target, e.g.:
+# "link" to Dyninst::dynCapArchDef target, e.g.:
 #
-#   target_link_libraries(<target> PRIVATE Dyninst::cap-arch-def)
+#   target_link_libraries(<target> PRIVATE Dyninst::dynCapArchDef)
 #
 foreach(_DEF ${UNIFIED_DEFINES})
     add_compile_definitions(${_DEF})
