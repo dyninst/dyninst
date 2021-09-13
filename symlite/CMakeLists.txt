@@ -18,4 +18,6 @@ dyninst_library(symLite
         $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     LINK_LIBRARIES
         Dyninst::common
-        Dyninst::dynElf)
+        Dyninst::dynElf
+        PRIVATE
+            Dyninst::ElfUtils)
