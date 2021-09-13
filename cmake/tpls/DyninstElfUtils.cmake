@@ -135,20 +135,14 @@ else()
 
     set(_eu_root ${CMAKE_INSTALL_PREFIX})
     set(_eu_inc_dirs
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External/libelf>
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External/libdw>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/elfutils>)
+        ${CMAKE_INSTALL_PREFIX}/include
+        ${CMAKE_INSTALL_PREFIX}/include/elfutils)
     set(_eu_lib_dirs
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External/libelf>
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External/libdw>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/elfutils>)
+        ${CMAKE_INSTALL_PREFIX}/lib
+        ${CMAKE_INSTALL_PREFIX}/lib/elfutils)
     set(_eu_libs
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External/libelf/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External/libdw/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        $<INSTALL_INTERFACE:${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        $<INSTALL_INTERFACE:${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>)
+        ${CMAKE_INSTALL_PREFIX}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}
+        ${CMAKE_INSTALL_PREFIX}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX})
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
