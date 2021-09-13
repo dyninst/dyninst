@@ -43,7 +43,7 @@ endif()
 
 # Minimum acceptable version of elfutils
 # NB: We need >=0.178 because libdw isn't thread-safe before then
-set(_min_version 0.182)
+set(_min_version 0.178)
 
 set(ElfUtils_MIN_VERSION ${_min_version} CACHE STRING "Minimum acceptable elfutils version")
 if(${ElfUtils_MIN_VERSION} VERSION_LESS ${_min_version})
@@ -101,18 +101,15 @@ elseif(NOT BUILD_ELFUTILS)
     dyninst_message(FATAL_ERROR "ElfUtils was not found. Either configure cmake to find ElfUtils properly or set BUILD_ELFUTILS=ON to download and build")
 else()
     # If we didn't find a suitable version on the system, then download one from the web
-    # NB: When building from source, we need at least elfutils-0.176 in order to use
-    #     the --enable-install-elf option
-    set(_elfutils_download_version 0.176)
+    dyninst_add_cache_option(ELFUTILS_DOWNLOAD_VERSION "0.182" CACHE STRING "Version of elfutils to download and install")
 
-    # If the user specified a version newer than _elfutils_download_version, use that version.
-    # NB: We know ElfUtils_MIN_VERSION is >= _min_version from earlier checks
-    if(${ElfUtils_MIN_VERSION} VERSION_GREATER ${_elfutils_download_version})
-        set(_elfutils_download_version ${ElfUtils_MIN_VERSION})
+    # make sure we are not downloading a version less than minimum
+    if(${ELFUTILS_DOWNLOAD_VERSION} VERSION_LESS ${ElfUtils_MIN_VERSION})
+        dyninst_message(FATAL_ERROR "elfutils download version is set to ${ELFUTILS_DOWNLOAD_VERSION} but elfutils minimum version is set to ${ElfUtils_MIN_VERSION}")
     endif()
 
     dyninst_message(STATUS "${ElfUtils_ERROR_REASON}")
-    dyninst_message( STATUS "Attempting to build elfutils(${_elfutils_download_version}) as external project")
+    dyninst_message( STATUS "Attempting to build elfutils(${ELFUTILS_DOWNLOAD_VERSION}) as external project")
 
     if(NOT (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU") OR NOT (${CMAKE_C_COMPILER_ID} STREQUAL "GNU"))
         dyninst_message(FATAL_ERROR "ElfUtils will only build with the GNU compiler")
@@ -122,7 +119,7 @@ else()
     externalproject_add(
         ElfUtils-External
         PREFIX ${CMAKE_BINARY_DIR}/elfutils
-        URL https://sourceware.org/elfutils/ftp/${_elfutils_download_version}/elfutils-${_elfutils_download_version}.tar.bz2
+        URL https://sourceware.org/elfutils/ftp/${ELFUTILS_DOWNLOAD_VERSION}/elfutils-${ELFUTILS_DOWNLOAD_VERSION}.tar.bz2
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
         CFLAGS=-g

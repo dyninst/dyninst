@@ -132,24 +132,25 @@ ENDFUNCTION()
 #          features, plus a docstring describing the feature
 #
 FUNCTION(DYNINST_ADD_FEATURE _var _description)
-  set(EXTRA_DESC "")
-  foreach(currentArg ${ARGN})
-      if(NOT "${currentArg}" STREQUAL "${_var}" AND
-         NOT "${currentArg}" STREQUAL "${_description}" AND
-         NOT "${currentArg}" STREQUAL "CMAKE_DEFINE" AND
-         NOT "${currentArg}" STREQUAL "DOC")
-          set(EXTRA_DESC "${EXTA_DESC}${currentArg}")
-      endif()
-  endforeach()
+    if(DYNINST_OPTION_PREFIX AND NOT "${_var}" MATCHES "^DYNINST_")
+        set(_var DYNINST_${_var})
+    endif()
+    set(EXTRA_DESC "")
+    foreach(currentArg ${ARGN})
+        if(NOT "${currentArg}" STREQUAL "${_var}" AND
+            NOT "${currentArg}" STREQUAL "${_description}")
+            set(EXTRA_DESC "${EXTRA_DESC}${currentArg}")
+        endif()
+    endforeach()
 
-  set_property(GLOBAL APPEND PROPERTY ${PROJECT_NAME}_FEATURES ${_var})
-  set_property(GLOBAL PROPERTY ${_var}_DESCRIPTION "${_description}${EXTRA_DESC}")
+    set_property(GLOBAL APPEND PROPERTY ${PROJECT_NAME}_FEATURES ${_var})
+    set_property(GLOBAL PROPERTY ${_var}_DESCRIPTION "${_description}${EXTRA_DESC}")
 ENDFUNCTION()
 
 
 #----------------------------------------------------------------------------------------#
-# function add_option(<OPTION_NAME> <DOCSRING> <DEFAULT_SETTING> [NO_FEATURE])
-#          Add an option and add as a feature if NO_FEATURE is not provided
+# function add_option(<OPTION_NAME> <DOCSRING> <DEFAULT_SETTING> [ADVANCED])
+#          Add an option and add as a feature if ADVANCED is not provided
 #
 FUNCTION(DYNINST_ADD_OPTION _NAME _MESSAGE _DEFAULT)
     if(DYNINST_OPTION_PREFIX)
@@ -172,6 +173,38 @@ FUNCTION(DYNINST_ADD_OPTION _NAME _MESSAGE _DEFAULT)
 ENDFUNCTION()
 
 
+#----------------------------------------------------------------------------------------#
+# function dyninst_add_cache_option(<same args as setting cache variable>)
+#          Add an option and add as a feature
+#
+FUNCTION(DYNINST_ADD_CACHE_OPTION _NAME _VALUE _PROP _TYPE _HELPSTRING)
+    if(DYNINST_OPTION_PREFIX)
+        set(DYNINST_${_NAME} "${_VALUE}" ${_PROP} ${_TYPE} "${_HELPSTRING}" ${ARGN})
+        # set the option locally for this project
+        set(${_NAME} ${DYNINST_${_NAME}} PARENT_SCOPE)
+        # for after this if/else
+        set(_NAME DYNINST_${_NAME})
+    else()
+        set(${_NAME} "${_VALUE}" ${_PROP} ${_TYPE} "${_HELPSTRING}" ${ARGN})
+        # set the option locally for this project
+        set(DYNINST_${_NAME} ${${_NAME}} PARENT_SCOPE)
+    endif()
+    # mark as advanced or add as feature
+    if("ADVANCED" IN_LIST ARGN)
+        mark_as_advanced(${_NAME})
+    else()
+        dyninst_add_feature(${_NAME} "${_MESSAGE}")
+    endif()
+ENDFUNCTION()
+
+
+#----------------------------------------------------------------------------------------#
+# function dyninst_force_option(<NAME> <VALUE>)
+#       Force a cache variable to be updated to another value
+#       Primary benefit over doing it manually is that it preserves the help-string
+#       and value type and synchronizes the local variables according to the
+#       DYNINST_OPTION_PREFIX
+#
 FUNCTION(DYNINST_FORCE_OPTION _NAME _VALUE)
     # updated non DYNINST_ prefixed version if in cache
     if(NOT "$CACHE{${_NAME}}" STREQUAL "")
