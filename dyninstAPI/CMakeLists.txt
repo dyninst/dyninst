@@ -189,8 +189,6 @@ if (PLATFORM MATCHES i386 AND UNIX)
 endif ()
 
 if (UNIX)
-    # Boost auto-links on Windows; don't double-link
-    set(_PRIVATE_LINK_LIBS pthread)
 	# gcc/clang search directories
 	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 		execute_process(
@@ -201,8 +199,6 @@ if (UNIX)
 		endif()
 	endif()
     set(_PRIVATE_COMPILE_DEFS DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS})
-else()
-    set(_PRIVATE_LINK_LIBS dbghelp WS2_32 imagehlp)
 endif()
 
 dyninst_library(dyninstAPI
@@ -225,4 +221,7 @@ dyninst_library(dyninstAPI
         Dyninst::parseAPI
         Dyninst::symtabAPI
         PRIVATE
-            ${_PRIVATE_LINK_LIBS})
+            Dyninst::dynPthread
+            Dyninst::dynWinDbgHelp
+            Dyninst::dynWinWs2_32
+            Dyninst::dynWinImageHelp)

@@ -1,6 +1,7 @@
 # CMake configuration for dynDwarf (dwarf) directory
 
 if (NOT UNIX)
+    add_library(Dyninst::dynDwarf ALIAS dynDummy)
     return()
 endif()
 

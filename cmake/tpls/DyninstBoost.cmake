@@ -46,6 +46,11 @@
 #
 #========================================================================================================
 
+include_guard(GLOBAL)
+
+# always provide Dyninst::Boost even if it is empty
+dyninst_add_interface_library(Boost "Boost interface library")
+
 if(Boost_FOUND)
     return()
 endif()
@@ -275,8 +280,6 @@ endif()
 
 # Export the complete set of libraries
 set(Boost_LIBRARIES ${Boost_LIBRARIES} CACHE FILEPATH "Boost library files" FORCE)
-
-dyninst_add_interface_library(Boost "Boost interface library")
 
 target_include_directories(Boost SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
 target_compile_definitions(Boost INTERFACE ${Boost_DEFINITIONS})

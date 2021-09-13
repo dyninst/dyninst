@@ -18,6 +18,40 @@ endif()
 include(CMakeParseArguments)
 include(DyninstUtilities)
 
+# create a dummy target so one can do things like:
+#
+#   if(NOT UNIX)
+#       add_library(Dyninst::dynElf ALIAS dynDummy)
+#       return()
+#   endif()
+#
+# and, later, just "link" to Dyninst::dynElf even though it doesn't really exist
+if(NOT TARGET dynDummy)
+    dyninst_add_interface_library(dynDummy "Dummy target for alias libraries")
+endif()
+
+dyninst_add_interface_library(dynDL "CMAKE_DL_LIBS")
+dyninst_add_interface_library(dynPthread "Pthread library")
+
+if(UNIX)
+    target_link_libraries(dynDL INTERFACE ${CMAKE_DL_LIBS})
+    target_link_libraries(dynPthread INTERFACE pthread)
+endif()
+
+dyninst_add_interface_library(dynWinPsapi "Windows psapi")
+dyninst_add_interface_library(dynWinWs2_32 "Windows ws2_32")
+dyninst_add_interface_library(dynWinShlwapi "Windows shlwapi")
+dyninst_add_interface_library(dynWinDbgHelp "Windows dbghelp")
+dyninst_add_interface_library(dynWinImageHelp "Windows imagehlp")
+
+if(WIN32)
+    target_link_libraries(dynWinDbgHelp INTERFACE dbghelp)
+    target_link_libraries(dynWinImageHelp INTERFACE imagehlp)
+    target_link_libraries(dynWinPsapi INTERFACE psapi)
+    target_link_libraries(dynWinShlwapi INTERFACE shlwapi)
+    target_link_libraries(dynWinWs2_32 INTERFACE ws2_32)
+endif()
+
 function(dyninst_library TARG_NAME)
     # boolean options
     set(_boolean_opts
@@ -127,13 +161,16 @@ function(dyninst_library TARG_NAME)
         # link to static targets when a static target exists
         foreach(_LINK_LIB ${TARG_LINK_LIBRARIES})
             # if encounter a visibility entry, store it and more to next iteration
-            if("${_LINK_LIB}" MATCHES "(INTERFACE|PUBLIC|PRIVATE)")
+            if("${_LINK_LIB}" MATCHES "^(INTERFACE|PUBLIC|PRIVATE)$")
                 set(_LINK_VISIBILITY ${_LINK_LIB})
                 continue()
             endif()
             # modify the variable to point to static target if it exists
             if("${_target}" MATCHES "static" AND TARGET ${_LINK_LIB}-static)
                 set(_LINK_LIB ${_LINK_LIB}-static)
+            endif()
+            if(DYNINST_DEBUG_CMAKE)
+                dyninst_message(STATUS "target_link_libraries(${_target} ${_LINK_VISIBILITY} ${_LINK_LIB})")
             endif()
             target_link_libraries(${_target} ${_LINK_VISIBILITY} ${_LINK_LIB})
         endforeach()

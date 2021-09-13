@@ -103,10 +103,6 @@ if (nonDebugMaxFrameSizeOverrideSyscallInformation)
 		$<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideSyscallInformation}>)
 endif()
 
-if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
-    set(_PRIVATE_LINK_LIBS Psapi WS2_32 dbghelp)
-endif()
-
 dyninst_library(common
     SOURCES
         ${SRC_LIST}
@@ -122,9 +118,11 @@ dyninst_library(common
         LibIberty-External
         TBB-External
     LINK_LIBRARIES
-        Dyninst::cap-arch-def
+        $<BUILD_INTERFACE:Dyninst::cap-arch-def>
         Dyninst::Boost
         Dyninst::TBB
         PRIVATE
             Dyninst::LibIberty
-            ${_PRIVATE_LINK_LIBS})
+            Dyninst::dynWinPsapi
+            Dyninst::dynWinWs2_32
+            Dyninst::dynWinDbgHelp)

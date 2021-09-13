@@ -4,13 +4,6 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-set(_PRIVATE_LINK_LIBS)
-if(NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
-    list(APPEND _PRIVATE_LINK_LIBS ${CMAKE_DL_LIBS})
-else() # windows
-    list(APPEND _PRIVATE_LINK_LIBS ws2_32 dbghelp psapi)
-endif()
-
 #------------------------------------------------------------------------------#
 #       target sources
 #------------------------------------------------------------------------------#
@@ -139,7 +132,10 @@ dyninst_library(dyninstAPI_RT
         Dyninst::Boost
         Dyninst::TBB
         PRIVATE
-            ${_PRIVATE_LINK_LIBS})
+            Dyninst::dynDL
+            Dyninst::dynWinWs2_32
+            Dyninst::dynWinDbgHelp
+            Dyninst::dynWinPsapi)
 
 if(TARGET dyninstAPI_RT-static)
     target_sources(dyninstAPI_RT-static PRIVATE ${RT_STATIC_ONLY_SRC_LIST})
@@ -208,8 +204,6 @@ if(SRC_LIST_mabi)
                 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
                 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
                 $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
-            LINK_LIBRARIES
-                PRIVATE ${_PRIVATE_LINK_LIBS}
         )
 
         if(TARGET dyninstAPI_RT_m32-static)

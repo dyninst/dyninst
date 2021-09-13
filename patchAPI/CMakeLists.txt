@@ -32,5 +32,4 @@ dyninst_library(patchAPI
     LINK_LIBRARIES
         Dyninst::common
         Dyninst::instructionAPI
-        Dyninst::parseAPI
-        PRIVATE ${_PRIVATE_LINK_LIBS})
+        Dyninst::parseAPI)

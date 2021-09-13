@@ -91,16 +91,6 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
-if(UNIX)
-    set(_PRIVATE_LINK_LIBS Dyninst::ElfUtils)
-else()
-    set(_PRIVATE_LINK_LIBS dbghelp)
-endif()
-
-if(UNIX)
-    set(_EXTRA_LINK_LIBS Dyninst::dynElf Dyninst::dynDwarf)
-endif()
-
 dyninst_library(symtabAPI
     SOURCES
         ${SRC_LIST}
@@ -114,6 +104,8 @@ dyninst_library(symtabAPI
         ElfUtils-External
     LINK_LIBRARIES
         Dyninst::common
-        ${_EXTRA_LINK_LIBS}
+        Dyninst::dynElf
+        Dyninst::dynDwarf
         PRIVATE
-            ${_PRIVATE_LINK_LIBS})
+            Dyninst::ElfUtils
+            Dyninst::dynWinDbgHelp)

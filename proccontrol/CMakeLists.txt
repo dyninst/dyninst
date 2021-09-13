@@ -75,10 +75,6 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
-if(UNIX)
-    set(_PRIVATE_LINK_LIBS pthread)
-endif()
-
 dyninst_library(pcontrol
     SOURCES
         ${SRC_LIST}
@@ -92,5 +88,5 @@ dyninst_library(pcontrol
         Dyninst::common
         Dyninst::${SYMREADER}
         PRIVATE
-            ${CMAKE_DL_LIBS}
-            ${_PRIVATE_LINK_LIBS})
+            Dyninst::dynDL
+            Dyninst::dynPthread)

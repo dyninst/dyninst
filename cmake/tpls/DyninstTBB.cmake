@@ -37,8 +37,13 @@
 #
 #=====================================================================================
 
+include_guard(GLOBAL)
+
+# always provide Dyninst::TBB even if it is a dummy
+dyninst_add_interface_library(TBB "Threading Building Blocks")
+
 if(TBB_FOUND)
-  return()
+    return()
 endif()
 
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
@@ -198,8 +203,6 @@ foreach(_DIR_TYPE INCLUDE LIBRARY)
         list(REMOVE_DUPLICATES TBB_${_DIR_TYPE}_DIRS)
     endif()
 endforeach()
-
-dyninst_add_interface_library(TBB "Threading Building Blocks")
 
 target_include_directories(TBB SYSTEM INTERFACE ${TBB_INCLUDE_DIRS})
 target_compile_definitions(TBB INTERFACE ${TBB_DEFINITIONS})

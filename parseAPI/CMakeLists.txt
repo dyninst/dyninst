@@ -100,12 +100,10 @@ if (ENABLE_PARSE_API_GRAPHS)
     list(APPEND SRC_LIST src/GraphAdapter.C)
 endif()
 
-set(_PRIVATE_LINK_LIBS)
 set(_PRIVATE_COMPILE_DEFS)
 
 if(WIN32)
     list(APPEND _PRIVATE_COMPILE_DEFS ROSE_UTIL_EXPORTS NOMINMAX)
-    list(APPEND _PRIVATE_LINK_LIBS    shlwapi)
 endif()
 
 file(GLOB HDR_LIST "${CMAKE_CURRENT_LIST_DIR}/h/*.h" "${PROJECT_SOURCE_DIR}/dataflowAPI/h/*.h")
@@ -129,7 +127,8 @@ dyninst_library(parseAPI
         Dyninst::instructionAPI
         Dyninst::${SYMREADER}
         PRIVATE
-            ${_PRIVATE_LINK_LIBS}
+            Dyninst::ElfUtils
+            Dyninst::dynWinShlwapi
 )
 
 dyninst_message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")

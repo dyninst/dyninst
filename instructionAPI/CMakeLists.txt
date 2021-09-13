@@ -61,6 +61,4 @@ dyninst_library(instructionAPI
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
         $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     LINK_LIBRARIES
-        Dyninst::common
-        PRIVATE
-            ${_PRIVATE_LINK_LIBS})
+        Dyninst::common)

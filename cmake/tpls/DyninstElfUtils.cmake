@@ -30,6 +30,9 @@
 
 include_guard(GLOBAL)
 
+# always provide Dyninst::ElfUtils even if it is a dummy
+dyninst_add_interface_library(ElfUtils "ElfUtils interface library")
+
 if(LibElf_FOUND AND LibDwarf_FOUND AND NOT ENABLE_DEBUGINFOD)
     return()
 endif()
@@ -162,8 +165,6 @@ set(ElfUtils_INCLUDE_DIR ${ElfUtils_INCLUDE_DIRS}
 set(ElfUtils_LIBRARIES ${_eu_libs}
     CACHE FILEPATH "elfutils library files"
     FORCE)
-
-dyninst_add_interface_library(ElfUtils "ElfUtils interface library")
 
 target_include_directories(ElfUtils SYSTEM INTERFACE ${ElfUtils_INCLUDE_DIRS})
 target_compile_definitions(ElfUtils INTERFACE ${ElfUtils_DEFINITIONS})

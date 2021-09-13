@@ -1,6 +1,7 @@
 # CMake configuration for dynElf (elf) directory
 
 if(NOT UNIX)
+    add_library(Dyninst::dynElf ALIAS dynDummy)
     return()
 endif()
 
@@ -27,5 +28,4 @@ dyninst_library(dynElf
         Dyninst::Boost
         Dyninst::TBB
         PRIVATE
-            Dyninst::ElfUtils
-            ${_PRIVATE_LINK_LIBS})
+            Dyninst::ElfUtils)

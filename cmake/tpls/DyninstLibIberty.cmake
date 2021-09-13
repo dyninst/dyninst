@@ -21,9 +21,12 @@
 #
 #======================================================================================
 
+include_guard(GLOBAL)
+
+# always provide Dyninst::LibIberty even if it is empty
+dyninst_add_interface_library(LibIberty "LibIberty interface library")
+
 if(NOT UNIX)
-    # add empty LibIberty interface target
-    dyninst_add_interface_library(LibIberty "LibIberty interface library (empty)")
     return()
 endif()
 
@@ -90,8 +93,6 @@ else()
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
-
-dyninst_add_interface_library(LibIberty "LibIberty interface library")
 
 foreach(_DIR_TYPE inc lib)
     if(_li_${_DIR_TYPE}_dirs)
