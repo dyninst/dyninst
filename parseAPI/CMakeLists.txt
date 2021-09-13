@@ -127,7 +127,6 @@ dyninst_library(parseAPI
         Dyninst::instructionAPI
         Dyninst::${SYMREADER}
         PRIVATE
-            Dyninst::ElfUtils
             Dyninst::dynWinShlwapi
 )
 

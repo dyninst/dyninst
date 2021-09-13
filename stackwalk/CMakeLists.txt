@@ -73,11 +73,6 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
-set(_EXTRA_LINK_LIBS)
-if (UNIX)
-    list(APPEND _EXTRA_LINK_LIBS Dyninst::dynDwarf Dyninst::dynElf)
-endif()
-
 if(SW_ANALYSIS_STEPPER)
     list(APPEND _EXTRA_LINK_LIBS Dyninst::parseAPI)
 endif()
@@ -98,4 +93,6 @@ dyninst_library(stackwalk
         Dyninst::instructionAPI
         Dyninst::pcontrol
         Dyninst::${SYMREADER}
+        Dyninst::dynDwarf
+        Dyninst::dynElf
         ${_EXTRA_LINK_LIBS})

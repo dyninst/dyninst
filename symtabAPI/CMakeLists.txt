@@ -107,5 +107,4 @@ dyninst_library(symtabAPI
         Dyninst::dynElf
         Dyninst::dynDwarf
         PRIVATE
-            Dyninst::ElfUtils
             Dyninst::dynWinDbgHelp)

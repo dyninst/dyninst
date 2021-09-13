@@ -25,6 +25,4 @@ dyninst_library(dynDwarf
         ElfUtils-External
     LINK_LIBRARIES
         Dyninst::common
-        Dyninst::dynElf
-        PRIVATE
-            Dyninst::ElfUtils)
+        Dyninst::dynElf)

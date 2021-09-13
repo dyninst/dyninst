@@ -118,9 +118,11 @@ dyninst_library(common
         LibIberty-External
         TBB-External
     LINK_LIBRARIES
-        $<BUILD_INTERFACE:Dyninst::cap-arch-def>
         Dyninst::Boost
         Dyninst::TBB
+        $<BUILD_INTERFACE:Dyninst::cap-arch-def>
+        INTERFACE
+            $<BUILD_INTERFACE:Dyninst::ElfUtils>
         PRIVATE
             Dyninst::LibIberty
             Dyninst::dynWinPsapi
