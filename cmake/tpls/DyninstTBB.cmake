@@ -187,8 +187,8 @@ else()
         POST_BUILD
         COMMAND
         ${CMAKE_COMMAND}
-            -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib
-            -DINCDIR=${CMAKE_INSTALL_PREFIX}/include
+            -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib
+            -DINCDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include
             -DPREFIX=${_tbb_prefix_dir}
             -P ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake)
 endif()

@@ -126,23 +126,23 @@ else()
         CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
         <SOURCE_DIR>/configure
         --enable-install-elfh
-        --prefix=${CMAKE_INSTALL_PREFIX}
+        --prefix=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls
         --disable-libdebuginfod
         --disable-debuginfod
         BUILD_COMMAND make install
         INSTALL_COMMAND ""
     )
 
-    set(_eu_root ${CMAKE_INSTALL_PREFIX})
+    set(_eu_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
     set(_eu_inc_dirs
-        ${CMAKE_INSTALL_PREFIX}/include
-        ${CMAKE_INSTALL_PREFIX}/include/elfutils)
+        ${_eu_root}/include
+        ${_eu_root}/include/elfutils)
     set(_eu_lib_dirs
-        ${CMAKE_INSTALL_PREFIX}/lib
-        ${CMAKE_INSTALL_PREFIX}/lib/elfutils)
+        ${_eu_root}/lib
+        ${_eu_root}/lib/elfutils)
     set(_eu_libs
-        ${CMAKE_INSTALL_PREFIX}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}
-        ${CMAKE_INSTALL_PREFIX}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX})
+        ${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}
+        ${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX})
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------

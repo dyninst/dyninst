@@ -183,7 +183,7 @@ else()
     endif()
 
     # Change the base directory
-    set(Boost_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation" FORCE)
+    set(Boost_ROOT_DIR ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls CACHE PATH "Base directory the of Boost installation" FORCE)
 
     # Update the exported variables
     set(Boost_INCLUDE_DIRS ${Boost_ROOT_DIR}/include CACHE PATH "Boost include directory" FORCE)

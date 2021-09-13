@@ -68,12 +68,12 @@ else()
         CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
         <SOURCE_DIR>/configure --prefix=${CMAKE_BINARY_DIR}/binutils
         BUILD_COMMAND make
-        INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib/libiberty
+        INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libiberty
         INSTALL_COMMAND
         install <SOURCE_DIR>/libiberty/libiberty.a <INSTALL_DIR>
     )
 
-    set(_li_root ${CMAKE_INSTALL_PREFIX})
+    set(_li_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
     set(_li_inc_dirs
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/include>
         $<INSTALL_INTERFACE:${_li_root}/include>)

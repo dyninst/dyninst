@@ -92,11 +92,11 @@ function(dyninst_library TARG_NAME)
     endif()
 
     # Handle internal third-party library builds
-    if(NOT TARGET external-libraries)
-        add_custom_target(external-libraries)
+    if(NOT TARGET dyninst-external-libraries)
+        add_custom_target(dyninst-external-libraries)
         foreach(_EXTERNAL_DEP Boost TBB ElfUtils LibIberty)
             if(TARGET ${_EXTERNAL_DEP}-External)
-                add_dependencies(external-libraries ${_EXTERNAL_DEP}-External)
+                add_dependencies(dyninst-external-libraries ${_EXTERNAL_DEP}-External)
             endif()
         endforeach()
     endif()
@@ -110,7 +110,7 @@ function(dyninst_library TARG_NAME)
         endforeach()
 
         # this has no effect if there are no TPLs to build
-        add_dependencies(${_target} external-libraries)
+        add_dependencies(${_target} dyninst-external-libraries)
 
         target_sources(${_target} PRIVATE ${TARG_SOURCES} ${TARG_HEADERS})
         target_include_directories(${_target} ${TARG_DEFAULT_VISIBILITY} ${TARG_INCLUDE_DIRECTORIES})
