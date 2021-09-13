@@ -66,7 +66,6 @@ endforeach()
 # Other variables Dyninst mutators may depend on
 set(Dyninst_PLATFORM "@PLATFORM@")
 set(Dyninst_INTERNAL_DEFINES @UNIFIED_DEFINES@)
-       unset(timemory_FIND_REQUIRED_${_NAME})
 
 if(Dyninst_FIND_COMPONENTS)
     foreach(COMP ${Dyninst_FIND_COMPONENTS})
