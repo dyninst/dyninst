@@ -63,7 +63,6 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(PROJECT_CONTACT "bart@cs.wisc.edu")
     set(PROJECT_LICENSE_FILE "${PROJECT_SOURCE_DIR}/COPYRIGHT")
     set(PROJECT_PACKAGE_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Packaging install prefix")
-    set(CPACK_GENERATOR "STGZ")
     configure_file(${PROJECT_SOURCE_DIR}/cmake/DyninstCPack.cmake.in
         ${PROJECT_BINARY_DIR}/install-tree/DyninstCPack.cmake @ONLY)
 
