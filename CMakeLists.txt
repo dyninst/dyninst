@@ -33,7 +33,7 @@ dyninst_add_option(STERILE_BUILD "Do not download/build any third-party dependen
 list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
 if("${isSystemDir}" STREQUAL "-1")
     if(UNIX AND NOT APPLE)
-        set(CMAKE_INSTALL_RPATH "\$ORIGIN:${CMAKE_INSTALL_PREFIX}/lib")
+        set(CMAKE_INSTALL_RPATH "\$ORIGIN:\$ORIGIN/dyninst-tpls/lib:${CMAKE_INSTALL_PREFIX}/lib")
     else()
         set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
@@ -52,37 +52,44 @@ include(DyninstTBB)
 include(DyninstElfUtils)
 include(DyninstLibIberty)
 
+if(BUILD_BOOST OR BUILD_TBB OR BUILD_ELFUTILS OR BUILD_LIBIBERTY)
+    # for packaging
+    install(
+        DIRECTORY   ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include/
+        DESTINATION lib/dyninst-tpls/include)
+endif()
+
 include(DyninstLibrary)
 
 if(USE_OpenMP)
     find_package(OpenMP REQUIRED)
 endif()
 
-configure_file(cmake/version.h.in common/h/dyninstversion.h)
-include_directories(${PROJECT_BINARY_DIR})
-include_directories(${PROJECT_BINARY_DIR}/common/h)
-set(HEADER_DIRS
-    common
-    dataflowAPI
-    dyninstAPI
-    instructionAPI
-    parseAPI
-    patchAPI
-    proccontrol
-    stackwalk
-    symtabAPI
-    )
-if(NOT ${PLATFORM} MATCHES nt)
-    set(HEADER_DIRS ${HEADER_DIRS}
-        dwarf
-        elf
-        symlite
-        )
-endif()
+configure_file(cmake/version.h.in ${PROJECT_BINARY_DIR}/common/h/dyninstversion.h @ONLY)
 
-foreach (dir ${HEADER_DIRS})
-  include_directories ( ${DYNINST_ROOT}/${dir}/h )
-endforeach()
+# global include interface library
+dyninst_add_interface_library(headers "Interface target providing include paths only")
+target_include_directories(headers INTERFACE
+    $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/common/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dyninstAPI/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/instructionAPI/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/parseAPI/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/patchAPI/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/proccontrol/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/stackwalk/h>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>
+)
+if(NOT ${PLATFORM} MATCHES nt)
+    target_include_directories(headers INTERFACE
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dwarf/h>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/elf/h>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symlite/h>
+    )
+endif()
 
 dyninst_add_option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis" OFF)
 if(ADD_VALGRIND_ANNOTATIONS)
@@ -91,10 +98,11 @@ if(ADD_VALGRIND_ANNOTATIONS)
     add_compile_definitions(ENABLE_VG_ANNOTATIONS)
 endif()
 
-include_directories(
-    ${DYNINST_ROOT}
-    ${DYNINST_ROOT}/external
-    ${TBB_INCLUDE_DIRS})
+target_include_directories(headers INTERFACE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/external>
+    $<BUILD_INTERFACE:${TBB_INCLUDE_DIRS}>
+)
 
 # Component time
 add_subdirectory(common)

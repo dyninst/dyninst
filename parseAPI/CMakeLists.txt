@@ -119,10 +119,9 @@ dyninst_library(parseAPI
             DATAFLOW_LIB
             ${_PRIVATE_COMPILE_DEFS}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
         Dyninst::instructionAPI
         Dyninst::${SYMREADER}

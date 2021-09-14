@@ -57,8 +57,8 @@ dyninst_library(instructionAPI
     COMPILE_DEFINITIONS
         PRIVATE INSTRUCTION_LIB ${_PRIVATE_COMPILE_DEFS}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     LINK_LIBRARIES
-        Dyninst::common)
+        Dyninst::headers
+        Dyninst::common
+)

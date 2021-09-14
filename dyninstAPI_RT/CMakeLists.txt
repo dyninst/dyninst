@@ -125,10 +125,9 @@ dyninst_library(dyninstAPI_RT
     SOURCES
         ${SRC_LIST}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::Boost
         Dyninst::TBB
         PRIVATE
@@ -200,10 +199,11 @@ if(SRC_LIST_mabi)
                 -m32
             LINK_OPTIONS
                 -m32
+            LINK_LIBRARIES
+                Dyninst::headers
             INCLUDE_DIRECTORIES
-                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
                 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-                $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         )
 
         if(TARGET dyninstAPI_RT_m32-static)

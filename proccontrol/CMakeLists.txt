@@ -81,12 +81,13 @@ dyninst_library(pcontrol
     COMPILE_DEFINITIONS
         PRIVATE PROCCONTROL_EXPORTS
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
         Dyninst::${SYMREADER}
         PRIVATE
             Dyninst::dynDL
-            Dyninst::dynPthread)
+            Dyninst::dynPthread
+)

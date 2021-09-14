@@ -68,7 +68,7 @@ function(dyninst_library TARG_NAME)
         HEADERS
         SOURCES
         DEPENDS
-        INCLUDE_DIRECTORIES     # affected by DEFAULT_VISIBILITY
+        INCLUDE_DIRECTORIES     # NOT affected by DEFAULT_VISIBILITY
         COMPILE_DEFINITIONS     # affected by DEFAULT_VISIBILITY
         COMPILE_FEATURES        # affected by DEFAULT_VISIBILITY
         COMPILE_OPTIONS         # affected by DEFAULT_VISIBILITY
@@ -79,7 +79,7 @@ function(dyninst_library TARG_NAME)
     )
 
     macro(_dyninst_library_set_default _VAR)
-        if(NOT ${_VAR})
+        if(NOT DEFINED ${_VAR} OR "${${_VAR}}" STREQUAL "")
             set(${_VAR} ${ARGN})
         endif()
     endmacro()
@@ -147,7 +147,13 @@ function(dyninst_library TARG_NAME)
         add_dependencies(${_target} dyninst-external-libraries)
 
         target_sources(${_target} PRIVATE ${TARG_SOURCES} ${TARG_HEADERS})
-        target_include_directories(${_target} ${TARG_DEFAULT_VISIBILITY} ${TARG_INCLUDE_DIRECTORIES})
+        target_include_directories(${_target} BEFORE PRIVATE ${TARG_INCLUDE_DIRECTORIES})
+        # target_include_directories above is written this way to combat subfolders which
+        # have headers with same name, e.g. common/h/util.h and parseAPI/src/util.h. With
+        # BEFORE + PRIVATE, there is a way to prioritize include paths in the build tree
+        # and not have that BEFORE propagate because of the PRIVATE. See example in
+        # parseAPI/CMakeLists.txt. Furthermore, PRIVATE forces it be explicit when a subfolder
+        # depends on a header in another subfolder's src folder, e.g. dynC_API/CMakeLists.txt
         target_compile_definitions(${_target} ${TARG_DEFAULT_VISIBILITY} ${TARG_COMPILE_DEFINITIONS})
         target_compile_features(${_target} ${TARG_DEFAULT_VISIBILITY} ${TARG_COMPILE_FEATURES})
         target_compile_options(${_target} ${TARG_DEFAULT_VISIBILITY} ${TARG_COMPILE_OPTIONS})

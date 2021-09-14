@@ -37,17 +37,6 @@ install(
 
 export(PACKAGE ${PROJECT_NAME})
 
-# top-level project
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-    set(PROJECT_VENDOR "Paradyn")
-    set(PROJECT_CONTACT "bart@cs.wisc.edu")
-    set(PROJECT_LICENSE_FILE "${PROJECT_SOURCE_DIR}/COPYRIGHT")
-    configure_file(${PROJECT_SOURCE_DIR}/cmake/DyninstCPack.cmake.in
-        ${PROJECT_BINARY_DIR}/install-tree/DyninstCPack.cmake @ONLY)
-
-    include(${PROJECT_BINARY_DIR}/install-tree/DyninstCPack.cmake)
-endif()
-
 #------------------------------------------------------------------------------#
 # build tree
 #
@@ -65,3 +54,18 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion)
 
 set(Dyninst_DIR ${PROJECT_BINARY_DIR}/build-tree CACHE PATH "Dyninst build-tree cmake directory" FORCE)
+
+#------------------------------------------------------------------------------#
+# packaging (when top-level project)
+#
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(PROJECT_VENDOR "Paradyn")
+    set(PROJECT_CONTACT "bart@cs.wisc.edu")
+    set(PROJECT_LICENSE_FILE "${PROJECT_SOURCE_DIR}/COPYRIGHT")
+    set(PROJECT_PACKAGE_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Packaging install prefix")
+    set(CPACK_GENERATOR "STGZ")
+    configure_file(${PROJECT_SOURCE_DIR}/cmake/DyninstCPack.cmake.in
+        ${PROJECT_BINARY_DIR}/install-tree/DyninstCPack.cmake @ONLY)
+
+    include(${PROJECT_BINARY_DIR}/install-tree/DyninstCPack.cmake)
+endif()

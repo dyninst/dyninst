@@ -110,14 +110,13 @@ dyninst_library(common
     COMPILE_DEFINITIONS
         PRIVATE COMMON_LIB ${_PRIVATE_COMPILE_DEFS}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     DEPENDS
         LibIberty-External
         TBB-External
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::Boost
         Dyninst::TBB
         INTERFACE

@@ -13,9 +13,8 @@ dyninst_library(symLite
         ${SRC_LIST}
     COMPILE_DEFINITIONS
         PRIVATE SYMLITE_LIB
-    INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
-        Dyninst::dynElf)
+        Dyninst::dynElf
+)

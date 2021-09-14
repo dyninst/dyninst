@@ -103,6 +103,8 @@ else()
     # If we didn't find a suitable version on the system, then download one from the web
     dyninst_add_cache_option(ELFUTILS_DOWNLOAD_VERSION "0.182" CACHE STRING "Version of elfutils to download and install")
 
+    dyninst_add_option(ELFUTILS_BUILD_STATIC "Build static libraries" ON)
+
     # make sure we are not downloading a version less than minimum
     if(${ELFUTILS_DOWNLOAD_VERSION} VERSION_LESS ${ElfUtils_MIN_VERSION})
         dyninst_message(FATAL_ERROR "elfutils download version is set to ${ELFUTILS_DOWNLOAD_VERSION} but elfutils minimum version is set to ${ElfUtils_MIN_VERSION}")
@@ -122,8 +124,7 @@ else()
         URL https://sourceware.org/elfutils/ftp/${ELFUTILS_DOWNLOAD_VERSION}/elfutils-${ELFUTILS_DOWNLOAD_VERSION}.tar.bz2
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
-        CFLAGS=-g
-        CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+        CFLAGS=-fPIC CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
         <SOURCE_DIR>/configure
         --enable-install-elfh
         --prefix=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls
@@ -133,6 +134,18 @@ else()
         INSTALL_COMMAND ""
     )
 
+    # target for re-executing the installation
+    add_custom_target(install-elfutils-external
+        COMMAND make install
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External
+        COMMENT "Installing ElfUtils...")
+
+    set(_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+    if(ELFUTILS_BUILD_STATIC)
+        set(_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set(_extra_eu_libs z zstd lzma pthread)
+    endif()
+
     set(_eu_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
     set(_eu_inc_dirs
         ${_eu_root}/include
@@ -141,8 +154,11 @@ else()
         ${_eu_root}/lib
         ${_eu_root}/lib/elfutils)
     set(_eu_libs
-        ${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}
-        ${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX})
+        $<BUILD_INTERFACE:${_eu_root}/lib/libdw${_LIB_SUFFIX}>
+        $<BUILD_INTERFACE:${_eu_root}/lib/libelf${_LIB_SUFFIX}>
+        $<BUILD_INTERFACE:${_extra_eu_libs}>
+        $<INSTALL_INTERFACE:${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>)
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------

@@ -85,14 +85,14 @@ dyninst_library(stackwalk
     COMPILE_OPTIONS
         PRIVATE ${FORCE_FRAME_POINTER}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
         Dyninst::instructionAPI
         Dyninst::pcontrol
         Dyninst::${SYMREADER}
         Dyninst::dynDwarf
         Dyninst::dynElf
-        ${_EXTRA_LINK_LIBS})
+        ${_EXTRA_LINK_LIBS}
+)

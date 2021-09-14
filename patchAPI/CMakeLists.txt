@@ -26,10 +26,9 @@ dyninst_library(patchAPI
         ${SRC_LIST}
     COMPILE_DEFINITIONS
         PRIVATE PATCHAPI_LIB
-    INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
         Dyninst::instructionAPI
-        Dyninst::parseAPI)
+        Dyninst::parseAPI
+)

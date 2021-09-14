@@ -193,7 +193,7 @@ FUNCTION(DYNINST_ADD_CACHE_OPTION _NAME _VALUE _PROP _TYPE _HELPSTRING)
     if("ADVANCED" IN_LIST ARGN)
         mark_as_advanced(${_NAME})
     else()
-        dyninst_add_feature(${_NAME} "${_MESSAGE}")
+        dyninst_add_feature(${_NAME} "${_HELPSTRING}")
     endif()
 ENDFUNCTION()
 

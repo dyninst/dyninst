@@ -18,14 +18,14 @@ dyninst_library(dynElf
     COMPILE_DEFINITIONS
         PRIVATE DYNELF_LIB ${_PRIVATE_COMPILE_DEFS}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     DEPENDS
         TBB-External
         ElfUtils-External
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::Boost
         Dyninst::TBB
         PRIVATE
-            Dyninst::ElfUtils)
+            Dyninst::ElfUtils
+)

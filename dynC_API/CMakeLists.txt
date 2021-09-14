@@ -15,10 +15,11 @@ dyninst_library(dynC_API
             DYNC_EXPORTS
             ${_PRIVATE_COMPILE_DEFS}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dyninstAPI/src>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::dyninstAPI
         Dyninst::pcontrol
-        Dyninst::Boost)
+        Dyninst::Boost
+)

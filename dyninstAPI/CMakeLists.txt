@@ -207,12 +207,10 @@ dyninst_library(dyninstAPI
     COMPILE_DEFINITIONS
         PRIVATE BPATCH_DLL_BUILD ${_PRIVATE_COMPILE_DEFS}
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common>
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/proccontrol/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
         Dyninst::instructionAPI
         Dyninst::stackwalk

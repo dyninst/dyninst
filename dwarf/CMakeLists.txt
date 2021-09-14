@@ -18,11 +18,12 @@ dyninst_library(dynDwarf
     COMPILE_DEFINITIONS
         PRIVATE DYNDWARF_LIB
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/src>
     DEPENDS
         ElfUtils-External
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
-        Dyninst::dynElf)
+        Dyninst::dynElf
+)

@@ -29,6 +29,10 @@ target_link_libraries(parseThat PRIVATE
     Dyninst::Boost
     Dyninst::ElfUtils)
 
+set_target_properties(parseThat PROPERTIES
+    INSTALL_RPATH_USE_LINK_PATH ON
+    INSTALL_RPATH               "\$ORIGIN/../lib:\$ORIGIN/../lib/dyninst-tpls/lib")
+
 if (USE_OpenMP)
     if(NOT OpenMP_FOUND)
         find_package(OpenMP REQUIRED)

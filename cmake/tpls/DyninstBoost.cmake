@@ -233,6 +233,12 @@ else()
         INSTALL_COMMAND ""
     )
 
+    # target for re-executing the installation
+    add_custom_target(install-boost-external
+        COMMAND ${BOOST_BUILD} ${BOOST_ARGS} -d0 install
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/boost/src/Boost-External
+        COMMENT "Installing Boost...")
+
     set(_LIB_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
     if(BOOST_LINK_STATIC)
         set(_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")

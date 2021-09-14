@@ -185,17 +185,33 @@ else()
             tbb_build_dir=${_tbb_prefix_dir}/src
             tbb_build_prefix=tbb
             ${_tbb_compiler}
-            INSTALL_COMMAND ""
+        INSTALL_COMMAND
+            ${CMAKE_COMMAND}
+                -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib
+                -DINCDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include
+                -DPREFIX=${_tbb_prefix_dir}
+                -P ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake
     )
-    # always run unlike INSTALL_COMMAND
-    add_custom_command(TARGET TBB-External
-        POST_BUILD
+
+    # target for re-executing the installation
+    add_custom_target(install-tbb-external
         COMMAND
-        ${CMAKE_COMMAND}
-            -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib
-            -DINCDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include
-            -DPREFIX=${_tbb_prefix_dir}
-            -P ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake)
+            ${CMAKE_COMMAND}
+                -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib
+                -DINCDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include
+                -DPREFIX=${_tbb_prefix_dir}
+                -P ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake
+        COMMENT "Installing TBB...")
+
+    foreach(c ${_tbb_components})
+        install(
+            PROGRAMS
+                ${_tbb_prefix_dir}/src/tbb_release/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}
+                ${_tbb_prefix_dir}/src/tbb_release/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}.2
+            DESTINATION
+                lib/dyninst-tpls/lib
+            OPTIONAL)
+    endforeach()
 endif()
 
 foreach(_DIR_TYPE INCLUDE LIBRARY)

@@ -76,6 +76,12 @@ else()
         install <SOURCE_DIR>/libiberty/libiberty.a <INSTALL_DIR>
     )
 
+    # target for re-executing the installation
+    add_custom_target(install-libiberty-external
+        COMMAND install ${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/libiberty/libiberty.a ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libiberty
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External
+        COMMENT "Installing LibIberty...")
+
     set(_li_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
     set(_li_inc_dirs
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/include>

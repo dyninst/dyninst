@@ -97,12 +97,11 @@ dyninst_library(symtabAPI
     COMPILE_DEFINITIONS
         PRIVATE SYMTAB_LIB
     INCLUDE_DIRECTORIES
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-        $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     DEPENDS
         ElfUtils-External
     LINK_LIBRARIES
+        Dyninst::headers
         Dyninst::common
         Dyninst::dynElf
         Dyninst::dynDwarf
