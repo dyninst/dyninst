@@ -75,7 +75,12 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
+# pcontrol needs to be dlopen'ed so disable building the static library
+# locally and specify the BUILD_SHARED option in dyninst_library
+set(BUILD_STATIC_LIBS OFF)
+
 dyninst_library(pcontrol
+    BUILD_SHARED
     SOURCES
         ${SRC_LIST}
     COMPILE_DEFINITIONS

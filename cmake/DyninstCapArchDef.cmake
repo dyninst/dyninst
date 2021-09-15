@@ -121,7 +121,7 @@ else(PLATFORM STREQUAL i386-unknown-linux2.4)
     dyninst_message(FATAL_ERROR "Unknown platform: ${PLATFORM}")
 endif()
 
-if(THREAD_DB_FOUND)
+if(Thread_DB_FOUND)
     dyninst_message(STATUS "-- Enabling ThreadDB support")
     list(APPEND CAP_DEFINES cap_thread_db)
 endif()
