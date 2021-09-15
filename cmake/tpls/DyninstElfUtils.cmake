@@ -140,14 +140,20 @@ else()
 
     set(_eu_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
     set(_eu_inc_dirs
-        ${_eu_root}/include
-        ${_eu_root}/include/elfutils)
+        $<BUILD_INTERFACE:${_eu_root}/include>
+        $<BUILD_INTERFACE:${_eu_root}/include/elfutils>
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/include>
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/include/elfutils>)
     set(_eu_lib_dirs
-        ${_eu_root}/lib
-        ${_eu_root}/lib/elfutils)
+        $<BUILD_INTERFACE:${_eu_root}/lib>
+        $<BUILD_INTERFACE:${_eu_root}/lib/elfutils>
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/lib>
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/lib/elfutils>)
     set(_eu_libs
-        ${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}
-        ${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX})
+        $<BUILD_INTERFACE:${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        $<BUILD_INTERFACE:${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:dw>
+        $<INSTALL_INTERFACE:elf>)
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------

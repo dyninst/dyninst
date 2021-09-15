@@ -114,10 +114,10 @@ else()
     set(_tbb_components_cfg)
     set(_tbb_library_dirs
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/tbb/src/tbb_release>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib>)
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/lib>)
     set(_tbb_include_dirs
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/tbb/src/TBB-External/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/include>)
 
     # Forcibly update the cache variables
     set(TBB_INCLUDE_DIRS "${_tbb_include_dirs}" CACHE PATH "TBB include directory" FORCE)
@@ -135,7 +135,7 @@ else()
 
         set(_tbb_${c}_lib
             $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/tbb/src/tbb_release/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}>)
+            $<INSTALL_INTERFACE:${c}>)
 
         # Generate library filenames
         list(APPEND _tbb_libraries ${_tbb_${c}_lib})

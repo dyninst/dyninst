@@ -183,8 +183,8 @@ else()
     set(Boost_ROOT_DIR ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls CACHE PATH "Base directory the of Boost installation" FORCE)
 
     # Update the exported variables
-    set(Boost_INCLUDE_DIRS ${Boost_ROOT_DIR}/include CACHE PATH "Boost include directory" FORCE)
-    set(Boost_LIBRARY_DIRS ${Boost_ROOT_DIR}/lib CACHE PATH "Boost library directory" FORCE)
+    set(Boost_INCLUDE_DIRS "$<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include>;$<INSTALL_INTERFACE:lib/dyninst-tpls/include>" CACHE PATH "Boost include directory" FORCE)
+    set(Boost_LIBRARY_DIRS "$<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib>;$<INSTALL_INTERFACE:lib/dyninst-tpls/lib>" CACHE PATH "Boost library directory" FORCE)
     set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIRS} CACHE PATH "Boost include directory" FORCE)
 
     set(BOOST_ARGS
@@ -249,24 +249,32 @@ else()
         set(Boost_LIBRARIES "")
         foreach(c ${_boost_components})
             list(APPEND Boost_LIBRARIES "optimized libboost_${c} debug libboost_${c}-gd ")
+            set(Boost_${c}_LIBRARY
+                $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:libboost_${c}>)
+            set(Boost_${c}_LIBRARY_DEBUG
+                $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:libboost_${c}-gd>)
 
             # Also export cache variables for the file location of each library
             string(TOUPPER ${c} _basename)
-            set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_LIBRARY_DIRS}/libboost_${c}${_LIB_SUFFIX}" CACHE FILEPATH "" FORCE)
-            set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_LIBRARY_DIRS}/libboost_${c}-gd${_LIB_SUFFIX}" CACHE FILEPATH "" FORCE)
+            set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_${c}_LIBRARY}" CACHE FILEPATH "" FORCE)
+            set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_${c}_LIBRARY_DEBUG}" CACHE FILEPATH "" FORCE)
         endforeach()
     else()
         # Transform the component names into the library filenames
         # e.g., system -> boost_system
         set(Boost_LIBRARIES "")
-
         foreach(c ${_boost_components})
-            list(APPEND Boost_LIBRARIES "${Boost_LIBRARY_DIRS}/libboost_${c}${_LIB_SUFFIX}")
+            set(Boost_${c}_LIBRARY
+                $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:boost_${c}>)
+            list(APPEND Boost_LIBRARIES "${Boost_${c}_LIBRARY}")
 
             # Also export cache variables for the file location of each library
             string(TOUPPER ${c} _basename)
-            set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_LIBRARY_DIRS}/libboost_${c}${_LIB_SUFFIX}" CACHE FILEPATH "" FORCE)
-            set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_LIBRARY_DIRS}/libboost_${c}${_LIB_SUFFIX}" CACHE FILEPATH "" FORCE)
+            set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_${c}_LIBRARY}" CACHE FILEPATH "" FORCE)
+            set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_${c}_LIBRARY}" CACHE FILEPATH "" FORCE)
         endforeach()
     endif()
 endif()

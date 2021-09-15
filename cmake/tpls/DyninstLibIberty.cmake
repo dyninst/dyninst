@@ -85,13 +85,13 @@ else()
     set(_li_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
     set(_li_inc_dirs
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/include>
-        $<INSTALL_INTERFACE:${_li_root}/include>)
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/include>)
     set(_li_lib_dirs
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/libiberty>
-        $<INSTALL_INTERFACE:${_li_root}/lib>)
+        $<INSTALL_INTERFACE:lib/dyninst-tpls/lib>)
     set(_li_libs
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/libiberty/libiberty.a>
-        $<INSTALL_INTERFACE:${_li_root}/lib/libiberty/libiberty.a>)
+        $<INSTALL_INTERFACE:iberty>)
 
     # For backward compatibility
     set(IBERTY_FOUND TRUE)
