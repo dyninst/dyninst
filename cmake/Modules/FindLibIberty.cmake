@@ -83,5 +83,4 @@ if(LibIberty_FOUND)
 
     # For backwards compatibility only
     set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
-    add_library(Iberty::Iberty ALIAS LibIberty::LibIberty)
 endif()
