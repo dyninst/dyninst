@@ -50,27 +50,25 @@ using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InsnAdapter;
 
-IA_amdgpu::IA_amdgpu(Dyninst::InstructionAPI::InstructionDecoder dec_,
-               Address start_, 
-	       Dyninst::ParseAPI::CodeObject* o,
-	       Dyninst::ParseAPI::CodeRegion* r,
-	       Dyninst::InstructionSource *isrc,
-	       Dyninst::ParseAPI::Block * curBlk_):
-	           IA_IAPI(dec_, start_, o, r, isrc, curBlk_) {
-}		   
-IA_amdgpu::IA_amdgpu(const IA_amdgpu& rhs): IA_IAPI(rhs) {}
+IA_amdgpu::IA_amdgpu(Dyninst::InstructionAPI::InstructionDecoder dec_, Address start_,
+                     Dyninst::ParseAPI::CodeObject* o, Dyninst::ParseAPI::CodeRegion* r,
+                     Dyninst::InstructionSource* isrc, Dyninst::ParseAPI::Block* curBlk_)
+: IA_IAPI(dec_, start_, o, r, isrc, curBlk_)
+{}
+IA_amdgpu::IA_amdgpu(const IA_amdgpu& rhs)
+: IA_IAPI(rhs)
+{}
 
-IA_amdgpu* IA_amdgpu::clone() const {
+IA_amdgpu*
+IA_amdgpu::clone() const
+{
     return new IA_amdgpu(*this);
 }
 
-bool IA_amdgpu::isFrameSetupInsn(Instruction ) const
-{
-    return false;
-}
+bool IA_amdgpu::isFrameSetupInsn(Instruction) const { return false; }
 
-
-bool IA_amdgpu::isNop() const
+bool
+IA_amdgpu::isNop() const
 {
     Instruction ci = curInsn();
     if(ci.getOperation().getID() == amdgpu_op_s_nop)
@@ -78,65 +76,77 @@ bool IA_amdgpu::isNop() const
     return false;
 }
 
-bool IA_amdgpu::isThunk() const 
+bool
+IA_amdgpu::isThunk() const
 {
     return false;
 }
 
-bool IA_amdgpu::isTailCall(const Function*, EdgeTypeEnum , unsigned int,
-        const std::set<Address>&  ) const
-{
-   return false;
-}
-
-bool IA_amdgpu::savesFP() const
+bool
+IA_amdgpu::isTailCall(const Function*, EdgeTypeEnum, unsigned int,
+                      const std::set<Address>&) const
 {
     return false;
 }
 
-bool IA_amdgpu::isStackFramePreamble() const
+bool
+IA_amdgpu::savesFP() const
 {
     return false;
 }
 
-bool IA_amdgpu::cleansStack() const
+bool
+IA_amdgpu::isStackFramePreamble() const
 {
-   return false;
+    return false;
 }
 
-bool IA_amdgpu::sliceReturn(ParseAPI::Block* , Address , ParseAPI::Function * ) const
+bool
+IA_amdgpu::cleansStack() const
+{
+    return false;
+}
+
+bool
+IA_amdgpu::sliceReturn(ParseAPI::Block*, Address, ParseAPI::Function*) const
 {
     return true;
 }
 
-bool IA_amdgpu::isReturnAddrSave(Address& ) const
+bool
+IA_amdgpu::isReturnAddrSave(Address&) const
 {
-  return false;
+    return false;
 }
 
-bool IA_amdgpu::isReturn(Dyninst::ParseAPI::Function * , Dyninst::ParseAPI::Block*) const
+bool
+IA_amdgpu::isReturn(Dyninst::ParseAPI::Function*, Dyninst::ParseAPI::Block*) const
 {
     return curInsn().getCategory() == c_ReturnInsn;
 }
 
-bool IA_amdgpu::isFakeCall() const
+bool
+IA_amdgpu::isFakeCall() const
 {
     return false;
 }
 
-bool IA_amdgpu::isIATcall(std::string &) const
+bool
+IA_amdgpu::isIATcall(std::string&) const
 {
     return false;
 }
 
-bool IA_amdgpu::isLinkerStub() const
+bool
+IA_amdgpu::isLinkerStub() const
 {
-  // Disabling this code because it ends with an
+    // Disabling this code because it ends with an
     // incorrect CFG.
     return false;
 }
 
-bool IA_amdgpu::isNopJump() const
+bool
+IA_amdgpu::isNopJump() const
 {
     return false;
 }
