@@ -343,4 +343,60 @@ function(DYNINST_PRINT_FEATURES)
     dyninst_print_disabled_features()
 endfunction()
 
+# ----------------------------------------------------------------------------------------#
+# function dyninst_print_disabled_features() Print disabled features plus their
+# docstrings.
+#
+function(DYNINST_ADD_SOURCE_FORMAT_TARGET _NAME)
+    dyninst_add_option(FORMAT_TARGET "Enable a clang-format target" ON ADVANCED)
+
+    if(NOT FORMAT_TARGET)
+        return()
+    endif()
+
+    find_program(DYNINST_CLANG_FORMATTER NAMES clang-format-9 clang-format-9.0
+                                               clang-format-mp-9.0 clang-format)
+
+    if(DYNINST_CLANG_FORMATTER)
+        # name of the format target
+        set(_format_name_prefix)
+        if(NOT CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+            set(_format_name_prefix dyninst-)
+        endif()
+        set(_format_name ${_format_name_prefix}format-${_NAME})
+        set(_sources)
+        foreach(_SRC ${ARGN})
+            if(NOT "${_SRC}" MATCHES "\\.(h|c|C)$")
+                dyninst_message(
+                    STATUS
+                    "${_SRC} not added to ${_format_name_prefix}format-${_NAME} target (unknown extension)"
+                    )
+            else()
+                if(NOT EXISTS ${_SRC} OR NOT IS_ABSOLUTE ${_SRC})
+                    set(_SRC ${CMAKE_CURRENT_LIST_DIR}/${_SRC})
+                endif()
+                if(EXISTS ${_SRC})
+                    list(APPEND _sources ${_SRC})
+                endif()
+            endif()
+        endforeach()
+
+        if("${_sources}" STREQUAL "")
+            return()
+        endif()
+
+        add_custom_target(
+            ${_format_name}
+            COMMAND ${DYNINST_CLANG_FORMATTER} -i ${_sources}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            COMMENT "[${PROJECT_NAME}] Running ${DYNINST_CLANG_FORMATTER} on ${_NAME}..."
+            SOURCES ${_sources})
+
+        if(NOT TARGET ${_format_name_prefix}format)
+            add_custom_target(${_format_name_prefix}format)
+        endif()
+        add_dependencies(${_format_name_prefix}format ${_format_name})
+    endif()
+endfunction()
+
 cmake_policy(POP)
