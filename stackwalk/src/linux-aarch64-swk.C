@@ -48,143 +48,165 @@
 #include <string.h>
 #include <sys/ucontext.h>
 
-
-
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-bool Walker::createDefaultSteppers()
+bool
+Walker::createDefaultSteppers()
 {
-    FrameStepper *stepper;
-    bool result;
+    FrameStepper* stepper;
+    bool          result;
 
     stepper = new FrameFuncStepper(this);
-    result = addStepper(stepper);
-    if (!result) {
+    result  = addStepper(stepper);
+    if(!result)
+    {
         sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
-                  (void*)stepper);
+                  (void*) stepper);
         return false;
-    } else {
-        sw_printf("[%s:%d] - Stepper %p is FrameFuncStepper\n",
-                  FILE__, __LINE__, (void*)stepper);
+    }
+    else
+    {
+        sw_printf("[%s:%d] - Stepper %p is FrameFuncStepper\n", FILE__, __LINE__,
+                  (void*) stepper);
     }
 
     stepper = new DebugStepper(this);
-    result = addStepper(stepper);
-    if (!result){
+    result  = addStepper(stepper);
+    if(!result)
+    {
         sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
-                  (void*)stepper);
+                  (void*) stepper);
         return false;
-    } else{
-        sw_printf("[%s:%d] - Stepper %p is DebugStepper\n",
-                  FILE__, __LINE__, (void*)stepper);
+    }
+    else
+    {
+        sw_printf("[%s:%d] - Stepper %p is DebugStepper\n", FILE__, __LINE__,
+                  (void*) stepper);
     }
 
     stepper = new SigHandlerStepper(this);
-    result = addStepper(stepper);
-    if (!result) {
+    result  = addStepper(stepper);
+    if(!result)
+    {
         sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
-                  (void*)stepper);
+                  (void*) stepper);
         return false;
-    }else {
-        sw_printf("[%s:%d] - Stepper %p is SigHandlerStepper\n",
-                  FILE__, __LINE__, (void*)stepper);
+    }
+    else
+    {
+        sw_printf("[%s:%d] - Stepper %p is SigHandlerStepper\n", FILE__, __LINE__,
+                  (void*) stepper);
     }
 
     stepper = new BottomOfStackStepper(this);
-    result = addStepper(stepper);
-    if (!result){
+    result  = addStepper(stepper);
+    if(!result)
+    {
         sw_printf("[%s:%d] - Error adding stepper %p\n", FILE__, __LINE__,
-                  (void*)stepper);
+                  (void*) stepper);
         return false;
-    }else{
-        sw_printf("[%s:%d] - Stepper %p is BottomOfStackStepper\n",
-                  FILE__, __LINE__, (void*)stepper);
+    }
+    else
+    {
+        sw_printf("[%s:%d] - Stepper %p is BottomOfStackStepper\n", FILE__, __LINE__,
+                  (void*) stepper);
     }
 
     return true;
 }
 
-bool DebugStepperImpl::isFrameRegister(MachRegister reg)
+bool
+DebugStepperImpl::isFrameRegister(MachRegister reg)
 {
-   if (getProcessState()->getAddressWidth() == 4){
-       assert(0);
-      return (reg == aarch64::x29);
-   }
-   else
-      return (reg == aarch64::x29);
+    if(getProcessState()->getAddressWidth() == 4)
+    {
+        assert(0);
+        return (reg == aarch64::x29);
+    }
+    else
+        return (reg == aarch64::x29);
 }
 
-bool DebugStepperImpl::isStackRegister(MachRegister reg)
+bool
+DebugStepperImpl::isStackRegister(MachRegister reg)
 {
-   if (getProcessState()->getAddressWidth() == 4){
-       assert(0);
-      return (reg == aarch64::sp);
-   }
-   else
-      return (reg == aarch64::sp);
+    if(getProcessState()->getAddressWidth() == 4)
+    {
+        assert(0);
+        return (reg == aarch64::sp);
+    }
+    else
+        return (reg == aarch64::sp);
 }
 
-static     ucontext_t dummy_context;
-static int sp_offset = (char*)&(dummy_context.uc_mcontext.sp)       - (char*)&dummy_context;
-static int fp_offset = (char*)&(dummy_context.uc_mcontext.regs[29]) - (char*)&dummy_context;
-static int pc_offset = (char*)&(dummy_context.uc_mcontext.pc)       - (char*)&dummy_context;
+static ucontext_t dummy_context;
+static int sp_offset = (char*) &(dummy_context.uc_mcontext.sp) - (char*) &dummy_context;
+static int fp_offset =
+    (char*) &(dummy_context.uc_mcontext.regs[29]) - (char*) &dummy_context;
+static int pc_offset = (char*) &(dummy_context.uc_mcontext.pc) - (char*) &dummy_context;
 
-gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
-                                                    Frame & out)
+gcframe_ret_t
+SigHandlerStepperImpl::getCallerFrame(const Frame& in, Frame& out)
 {
     // This function assumes there is FP in "Frame in"
     // And assumes that ucontext is the first object on the stack frame
     bool result;
 
-    Address last_read_sp_addr = 0;
-    Address last_read_sp_val = 0;
-    int addr_size = 8;
+    Address    last_read_sp_addr = 0;
+    Address    last_read_sp_val  = 0;
+    int        addr_size         = 8;
     location_t sp_loc;
     sp_loc.location = loc_address;
     sp_loc.val.addr = in.getFP() + sp_offset - sizeof(dummy_context);
 
     Address sp = 0;
     sw_printf("In frame sp %lx, fp %lx, pc %lx\n", in.getSP(), in.getFP(), in.getRA());
-    if (last_read_sp_addr != sp_loc.val.addr)
+    if(last_read_sp_addr != sp_loc.val.addr)
     {
         result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
-        if (!result) {
-            sw_printf("[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+        if(!result)
+        {
+            sw_printf("[%s:%d] Unexpected error reading from stack memory 0x%lx for "
+                      "signal frame\n",
                       FILE__, __LINE__, sp_loc.val.addr);
             return gcf_error;
         }
         last_read_sp_addr = sp_loc.val.addr;
-        last_read_sp_val = sp;
+        last_read_sp_val  = sp;
     }
-    else {
+    else
+    {
         sp = last_read_sp_val;
     }
 
-
     location_t fp_loc;
-    Address fp = 0x0;
+    Address    fp   = 0x0;
     fp_loc.location = loc_address;
     fp_loc.val.addr = in.getFP() + fp_offset - sizeof(dummy_context);
-    sw_printf("[%s:%d] - SigHandler Reading FP from %lx\n",
-              FILE__, __LINE__, fp_loc.val.addr);
+    sw_printf("[%s:%d] - SigHandler Reading FP from %lx\n", FILE__, __LINE__,
+              fp_loc.val.addr);
     result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
-    if (!result) {
-        sw_printf("[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                  FILE__, __LINE__, fp_loc.val.addr);
+    if(!result)
+    {
+        sw_printf(
+            "[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+            FILE__, __LINE__, fp_loc.val.addr);
         return gcf_error;
     }
 
     location_t pc_loc;
-    Address pc = 0x0;
+    Address    pc   = 0x0;
     pc_loc.location = loc_address;
     pc_loc.val.addr = in.getFP() + pc_offset - sizeof(dummy_context);
-    sw_printf("[%s:%d] - SigHandler Reading PC from %lx\n",
-              FILE__, __LINE__, pc_loc.val.addr);
+    sw_printf("[%s:%d] - SigHandler Reading PC from %lx\n", FILE__, __LINE__,
+              pc_loc.val.addr);
     result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
-    if (!result) {
-        sw_printf("[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                  FILE__, __LINE__, pc_loc.val.addr);
+    if(!result)
+    {
+        sw_printf(
+            "[%s:%d] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+            FILE__, __LINE__, pc_loc.val.addr);
         return gcf_error;
     }
 
@@ -196,5 +218,4 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     out.setSPLocation(sp_loc);
     out.setNonCall();
     return gcf_success;
-
 }

@@ -36,68 +36,82 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-static err_t last_err;
-static const char *last_msg;
+static err_t       last_err;
+static const char* last_msg;
 
-int Dyninst::Stackwalker::dyn_debug_stackwalk = 0;
-static FILE *debug_out = NULL;
+int          Dyninst::Stackwalker::dyn_debug_stackwalk = 0;
+static FILE* debug_out                                 = NULL;
 
-err_t Dyninst::Stackwalker::getLastError() {
-  return last_err;
-}
-
-const char *Dyninst::Stackwalker::getLastErrorMsg() {
-   return last_msg;
-}
-
-void Dyninst::Stackwalker::setDebugChannel(FILE *f)
+err_t
+Dyninst::Stackwalker::getLastError()
 {
-  debug_out = f;
+    return last_err;
 }
 
-void Dyninst::Stackwalker::setDebug(bool enable)
+const char*
+Dyninst::Stackwalker::getLastErrorMsg()
 {
-  dyn_debug_stackwalk = enable;
+    return last_msg;
 }
 
-void Dyninst::Stackwalker::setLastError(err_t err, const char *msg) {
-  last_err = err;
-  last_msg = msg;
-}
-
-void Dyninst::Stackwalker::clearLastError()
+void
+Dyninst::Stackwalker::setDebugChannel(FILE* f)
 {
-   last_err = 0;
-   last_msg = "";
+    debug_out = f;
 }
 
-FILE *Dyninst::Stackwalker::getDebugChannel() {
-  return debug_out;
+void
+Dyninst::Stackwalker::setDebug(bool enable)
+{
+    dyn_debug_stackwalk = enable;
+}
+
+void
+Dyninst::Stackwalker::setLastError(err_t err, const char* msg)
+{
+    last_err = err;
+    last_msg = msg;
+}
+
+void
+Dyninst::Stackwalker::clearLastError()
+{
+    last_err = 0;
+    last_msg = "";
+}
+
+FILE*
+Dyninst::Stackwalker::getDebugChannel()
+{
+    return debug_out;
 }
 
 #if !defined(cap_omit_sw_debug)
-int Dyninst::Stackwalker::sw_printf(const char *format, ...)
+int
+Dyninst::Stackwalker::sw_printf(const char* format, ...)
 {
-  static int initialized = 0;
-  if (!initialized)
-  {
-    if (getenv("DYNINST_DEBUG_STACKWALK"))
-      dyn_debug_stackwalk = 1;
-    if (!debug_out)
-      debug_out = stderr;
-    initialized = 1;
-  }
+    static int initialized = 0;
+    if(!initialized)
+    {
+        if(getenv("DYNINST_DEBUG_STACKWALK"))
+            dyn_debug_stackwalk = 1;
+        if(!debug_out)
+            debug_out = stderr;
+        initialized = 1;
+    }
 
-  if (!dyn_debug_stackwalk) return 0;
-  if (NULL == format) return -1;
+    if(!dyn_debug_stackwalk)
+        return 0;
+    if(NULL == format)
+        return -1;
 
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(debug_out, format, va);
-  va_end(va);
+    va_list va;
+    va_start(va, format);
+    int ret = vfprintf(debug_out, format, va);
+    va_end(va);
 
-  fflush(debug_out);
+    fflush(debug_out);
 
-  return ret;
+    return ret;
 }
 #endif

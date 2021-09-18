@@ -37,42 +37,50 @@
 #include <sstream>
 #include <iostream>
 
-namespace Dyninst {
-namespace Stackwalker {
-
-typedef enum { loc_address, loc_register, loc_unknown } storage_t;
-struct location_t {
-  bool operator==(const location_t &L) const
-  {
-    return ((val.addr == L.val.addr) &&
-            (val.reg == L.val.reg) &&
-            (location == L.location));
-  }
-  struct {
-    Dyninst::Address addr;
-    Dyninst::MachRegister reg;
-  } val;
-  storage_t location;
-
-  std::string format() const {
-      std::stringstream ret;
-    switch (location) {
-    case loc_unknown:
-      ret << "<loc: unknown>";
-      break;
-    case loc_register:
-      ret << "<loc: reg " << val.reg.name() << ">";
-      break;
-    case loc_address:
-      ret << "<loc: addr " << std::hex << val.addr << ">" << std::dec;
-      break;
+namespace Dyninst
+{
+namespace Stackwalker
+{
+typedef enum
+{
+    loc_address,
+    loc_register,
+    loc_unknown
+} storage_t;
+struct location_t
+{
+    bool operator==(const location_t& L) const
+    {
+        return ((val.addr == L.val.addr) && (val.reg == L.val.reg) &&
+                (location == L.location));
     }
-    return ret.str();
-  }
+    struct
+    {
+        Dyninst::Address      addr;
+        Dyninst::MachRegister reg;
+    } val;
+    storage_t location;
 
+    std::string format() const
+    {
+        std::stringstream ret;
+        switch(location)
+        {
+            case loc_unknown:
+                ret << "<loc: unknown>";
+                break;
+            case loc_register:
+                ret << "<loc: reg " << val.reg.name() << ">";
+                break;
+            case loc_address:
+                ret << "<loc: addr " << std::hex << val.addr << ">" << std::dec;
+                break;
+        }
+        return ret.str();
+    }
 };
 
-}
-}
+}  // namespace Stackwalker
+}  // namespace Dyninst
 
 #endif
