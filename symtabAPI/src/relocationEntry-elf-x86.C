@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -34,14 +34,18 @@
 #include <elf.h>
 
 #if defined(os_freebsd)
-#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#    define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
 #endif
 
 static const unsigned X86_64_WIDTH = 8;
 
-const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth) {
-    if( X86_64_WIDTH == addressWidth ) {
-        switch(r) {
+const char*
+relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
+{
+    if(X86_64_WIDTH == addressWidth)
+    {
+        switch(r)
+        {
             CASE_RETURN_STR(R_X86_64_NONE);
             CASE_RETURN_STR(R_X86_64_64);
             CASE_RETURN_STR(R_X86_64_PC32);
@@ -72,8 +76,11 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
             default:
                 return "?";
         }
-    }else{
-        switch(r) {
+    }
+    else
+    {
+        switch(r)
+        {
             CASE_RETURN_STR(R_386_NONE);
             CASE_RETURN_STR(R_386_32);
             CASE_RETURN_STR(R_386_PC32);
@@ -118,42 +125,46 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
     }
 }
 
-SYMTAB_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned addressWidth, Symbol *) {
-    if( X86_64_WIDTH == addressWidth ) {
+SYMTAB_EXPORT unsigned long
+relocationEntry::getGlobalRelType(unsigned addressWidth, Symbol*)
+{
+    if(X86_64_WIDTH == addressWidth)
+    {
         return R_X86_64_GLOB_DAT;
-    }else{
+    }
+    else
+    {
         return R_386_GLOB_DAT;
     }
 }
 
-
 relocationEntry::category
-relocationEntry::getCategory( unsigned addressWidth )
+relocationEntry::getCategory(unsigned addressWidth)
 {
-    if( addressWidth == 8 ) {
-       switch( getRelType() )
-       {
-           case R_X86_64_RELATIVE:
-           case R_X86_64_IRELATIVE:
-               return category::relative; 
-           case R_X86_64_JUMP_SLOT:
-               return category::jump_slot; 
-           default:
-               return category::absolute;
-       }
-    }else{
-       switch( getRelType() )
-       {
-           case R_386_RELATIVE:
-           case R_386_IRELATIVE:
-               return category::relative; 
-           case R_386_JMP_SLOT:
-               return category::jump_slot; 
-           default:
-               return category::absolute;
-       }
+    if(addressWidth == 8)
+    {
+        switch(getRelType())
+        {
+            case R_X86_64_RELATIVE:
+            case R_X86_64_IRELATIVE:
+                return category::relative;
+            case R_X86_64_JUMP_SLOT:
+                return category::jump_slot;
+            default:
+                return category::absolute;
+        }
+    }
+    else
+    {
+        switch(getRelType())
+        {
+            case R_386_RELATIVE:
+            case R_386_IRELATIVE:
+                return category::relative;
+            case R_386_JMP_SLOT:
+                return category::jump_slot;
+            default:
+                return category::absolute;
+        }
     }
 }
-
-
-

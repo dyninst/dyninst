@@ -37,10 +37,10 @@
 #include <boost/core/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
 
-namespace Dyninst {
-
-namespace SymtabAPI {
-
+namespace Dyninst
+{
+namespace SymtabAPI
+{
 class Module;
 class Symtab;
 class localVar;
@@ -53,22 +53,20 @@ class DwarfWalker;
  * Note: This class is unaware of scope.
  */
 
+class SYMTAB_EXPORT localVarCollection
+{
+    dyn_c_vector<localVar*> localVars;
 
-class SYMTAB_EXPORT localVarCollection {
+    bool addItem_impl(localVar*);
 
-  dyn_c_vector<localVar* > localVars;
-
-  bool addItem_impl(localVar *);
 public:
-  localVarCollection(){}
-  ~localVarCollection();
+    localVarCollection() {}
+    ~localVarCollection();
 
-  void addLocalVar(localVar * var);
-  localVar * findLocalVar(std::string &name);
-  const dyn_c_vector<localVar *> &getAllVars() const;
+    void                           addLocalVar(localVar* var);
+    localVar*                      findLocalVar(std::string& name);
+    const dyn_c_vector<localVar*>& getAllVars() const;
 };
-
-
 
 /*
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
@@ -84,26 +82,26 @@ class SYMTAB_EXPORT typeCollection
 
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>> typesByName;
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>> globalVarsByName;
-    dyn_c_hash_map<int, boost::shared_ptr<Type>> typesByID;
-
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>         typesByID;
 
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
-    static dyn_c_hash_map< void *, typeCollection * > fileToTypesMap;
-    static bool doDeferredLookups(typeCollection *);
+    static dyn_c_hash_map<void*, typeCollection*> fileToTypesMap;
+    static bool                                   doDeferredLookups(typeCollection*);
 
     // DWARF...
     bool dwarfParsed_;
 
-	public:
+public:
     typeCollection();
     ~typeCollection();
+
 public:
-	static void addDeferredLookup(int, dataClass, boost::shared_ptr<Type> *);
+    static void         addDeferredLookup(int, dataClass, boost::shared_ptr<Type>*);
     static boost::mutex create_lock;
 
-    static typeCollection *getModTypeCollection(Module *mod);
+    static typeCollection* getModTypeCollection(Module* mod);
 
     // DWARF...
     bool dwarfParsed() { return dwarfParsed_; }
@@ -117,52 +115,58 @@ public:
     Type* findTypeLocal(std::string n) { return findTypeLocal(n, Type::share).get(); }
     boost::shared_ptr<Type> findTypeLocal(const int ID, Type::do_share_t);
     Type* findTypeLocal(const int i) { return findTypeLocal(i, Type::share).get(); }
-    void addType(boost::shared_ptr<Type> type);
-    void addType(Type* t) { addType(t->reshare()); }
-    void addType(boost::shared_ptr<Type> type, dyn_mutex::unique_lock&);
-    void addType(Type* t, dyn_mutex::unique_lock& g) {
-      addType(t->reshare(), g);
-    }
-    void addGlobalVariable(boost::shared_ptr<Type> type);
-    void addGlobalVariable(Type* t) {
-      addGlobalVariable(t->reshare());
-    }
+    void  addType(boost::shared_ptr<Type> type);
+    void  addType(Type* t) { addType(t->reshare()); }
+    void  addType(boost::shared_ptr<Type> type, dyn_mutex::unique_lock&);
+    void  addType(Type* t, dyn_mutex::unique_lock& g) { addType(t->reshare(), g); }
+    void  addGlobalVariable(boost::shared_ptr<Type> type);
+    void  addGlobalVariable(Type* t) { addGlobalVariable(t->reshare()); }
 
     /* Some debug formats allow forward references.  Rather than
        fill in forward in a second pass, generate placeholder
        types, and fill them in as we go.  Because we require
        One True Pointer for each type (in parseStab.C), when
        updating a type, return that One True Pointer. */
-    boost::shared_ptr<Type> findOrCreateType( const int ID, Type::do_share_t );
+    boost::shared_ptr<Type> findOrCreateType(const int ID, Type::do_share_t);
     Type* findOrCreateType(const int i) { return findOrCreateType(i, Type::share).get(); }
-    template<class T>
+    template <class T>
     typename boost::enable_if<
         boost::integral_constant<bool, !bool(boost::is_same<Type, T>::value)>,
-    boost::shared_ptr<Type>>::type addOrUpdateType(boost::shared_ptr<T> type);
-    template<class T>
-    T* addOrUpdateType(T* t) {
-      return &dynamic_cast<T&>(*addOrUpdateType(boost::dynamic_pointer_cast<T>(t->reshare())));
+        boost::shared_ptr<Type>>::type
+    addOrUpdateType(boost::shared_ptr<T> type);
+    template <class T>
+    T* addOrUpdateType(T* t)
+    {
+        return &dynamic_cast<T&>(
+            *addOrUpdateType(boost::dynamic_pointer_cast<T>(t->reshare())));
     }
 
-    boost::shared_ptr<Type> findVariableType(std::string &name, Type::do_share_t);
-    Type* findVariableType(std::string& n) { return findVariableType(n, Type::share).get(); }
-
-    void getAllTypes(std::vector<boost::shared_ptr<Type>>&);
-    std::vector<Type*>* getAllTypes() {
-      std::vector<boost::shared_ptr<Type>> v;
-      getAllTypes(v);
-      auto r = new std::vector<Type*>(v.size());
-      for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
-      return r;
+    boost::shared_ptr<Type> findVariableType(std::string& name, Type::do_share_t);
+    Type*                   findVariableType(std::string& n)
+    {
+        return findVariableType(n, Type::share).get();
     }
-    void getAllGlobalVariables(std::vector<std::pair<std::string, boost::shared_ptr<Type>>>&);
-    std::vector<std::pair<std::string, Type*>>* getAllGlobalVariables() {
-      std::vector<std::pair<std::string, boost::shared_ptr<Type>>> v;
-      getAllGlobalVariables(v);
-      auto r = new std::vector<std::pair<std::string, Type*>>(v.size());
-      for(std::size_t i = 0; i < v.size(); i++)
-        (*r)[i] = {v[i].first, v[i].second.get()};
-      return r;
+
+    void                getAllTypes(std::vector<boost::shared_ptr<Type>>&);
+    std::vector<Type*>* getAllTypes()
+    {
+        std::vector<boost::shared_ptr<Type>> v;
+        getAllTypes(v);
+        auto r = new std::vector<Type*>(v.size());
+        for(std::size_t i = 0; i < v.size(); i++)
+            (*r)[i] = v[i].get();
+        return r;
+    }
+    void getAllGlobalVariables(
+        std::vector<std::pair<std::string, boost::shared_ptr<Type>>>&);
+    std::vector<std::pair<std::string, Type*>>* getAllGlobalVariables()
+    {
+        std::vector<std::pair<std::string, boost::shared_ptr<Type>>> v;
+        getAllGlobalVariables(v);
+        auto r = new std::vector<std::pair<std::string, Type*>>(v.size());
+        for(std::size_t i = 0; i < v.size(); i++)
+            (*r)[i] = { v[i].first, v[i].second.get() };
+        return r;
     }
     void clearNumberedTypes();
 };
@@ -177,36 +181,37 @@ public:
  *
  */
 
-class SYMTAB_EXPORT builtInTypeCollection {
-
-    dyn_c_hash_map<int, boost::shared_ptr<Type>> builtInTypesByID;
+class SYMTAB_EXPORT builtInTypeCollection
+{
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>         builtInTypesByID;
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>> builtInTypesByName;
-public:
 
+public:
     builtInTypeCollection();
     ~builtInTypeCollection();
 
-    boost::shared_ptr<Type> findBuiltInType(std::string &name, Type::do_share_t);
-    Type* findBuiltInType(std::string& n) { return findBuiltInType(n, Type::share).get(); }
+    boost::shared_ptr<Type> findBuiltInType(std::string& name, Type::do_share_t);
+    Type*                   findBuiltInType(std::string& n)
+    {
+        return findBuiltInType(n, Type::share).get();
+    }
     boost::shared_ptr<Type> findBuiltInType(const int ID, Type::do_share_t);
     Type* findBuiltInType(const int i) { return findBuiltInType(i, Type::share).get(); }
-    void addBuiltInType(boost::shared_ptr<Type>);
-    void addBuiltInType(Type* t) { addBuiltInType(t->reshare()); }
-    void getAllBuiltInTypes(std::vector<boost::shared_ptr<Type>>&);
-    std::vector<Type*>* getAllBuiltInTypes() {
-      std::vector<boost::shared_ptr<Type>> v;
-      getAllBuiltInTypes(v);
-      auto r = new std::vector<Type*>(v.size());
-      for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
-      return r;
+    void  addBuiltInType(boost::shared_ptr<Type>);
+    void  addBuiltInType(Type* t) { addBuiltInType(t->reshare()); }
+    void  getAllBuiltInTypes(std::vector<boost::shared_ptr<Type>>&);
+    std::vector<Type*>* getAllBuiltInTypes()
+    {
+        std::vector<boost::shared_ptr<Type>> v;
+        getAllBuiltInTypes(v);
+        auto r = new std::vector<Type*>(v.size());
+        for(std::size_t i = 0; i < v.size(); i++)
+            (*r)[i] = v[i].get();
+        return r;
     }
-
 };
 
-}// namespace SymtabAPI
-}// namespace Dyninst
+}  // namespace SymtabAPI
+}  // namespace Dyninst
 
 #endif /* _Collections_h_ */
-
-
-
