@@ -5,10 +5,11 @@
 #include "Symbol.h"
 #include "PCProcess.h"
 
-
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
-bool Codegen::generateInt() {
-	return false;
+bool
+Codegen::generateInt()
+{
+    return false;
 }
