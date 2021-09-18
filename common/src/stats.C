@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -39,7 +39,7 @@
 #include <sstream>
 #include <string>
 #if 0
-#include "dyninstAPI/src/stats.h"
+#    include "dyninstAPI/src/stats.h"
 
 CntStatistic trampBytes;
 CntStatistic pointsUsed;
@@ -71,13 +71,11 @@ void printDyninstStats()
 }
 #endif
 
-StatContainer::StatContainer() 
-   //stats_(::Dyninst::hash)
-{
-}
+StatContainer::StatContainer()
+// stats_(::Dyninst::hash)
+{}
 
-Statistic*
-StatContainer::operator[](const std::string &name) 
+Statistic* StatContainer::operator[](const std::string& name)
 {
     auto const& it = stats_.find(name);
     return (it != stats_.end()) ? it->second : NULL;
@@ -86,74 +84,87 @@ StatContainer::operator[](const std::string &name)
 void
 StatContainer::add(const std::string& name, StatType type)
 {
-    Statistic *s = NULL;
+    Statistic* s = NULL;
 
-    switch(type) {
+    switch(type)
+    {
         case CountStat:
-            s = (Statistic *)(new CntStatistic(this));
-            break;            
+            s = (Statistic*) (new CntStatistic(this));
+            break;
         case TimerStat:
-            s = (Statistic *)(new TimeStatistic(this));
+            s = (Statistic*) (new TimeStatistic(this));
             break;
         default:
-          fprintf(stderr,"Error adding statistic %s: type %d not recognized\n",
-                name.c_str(), type);
-          return;
+            fprintf(stderr, "Error adding statistic %s: type %d not recognized\n",
+                    name.c_str(), type);
+            return;
     }
 
     stats_[name] = s;
 }
 
-void StatContainer::startTimer(const std::string& name) 
+void
+StatContainer::startTimer(const std::string& name)
 {
-    TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
-    if (!timer) return;
+    TimeStatistic* timer = dynamic_cast<TimeStatistic*>(stats_[name]);
+    if(!timer)
+        return;
     timer->start();
 }
 
-void StatContainer::stopTimer(const std::string& name) {
-    TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
-    if (!timer) return;
+void
+StatContainer::stopTimer(const std::string& name)
+{
+    TimeStatistic* timer = dynamic_cast<TimeStatistic*>(stats_[name]);
+    if(!timer)
+        return;
     timer->stop();
 }
 
-void StatContainer::incrementCounter(const std::string& name) {
-    CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
-    if (!counter) return;
+void
+StatContainer::incrementCounter(const std::string& name)
+{
+    CntStatistic* counter = dynamic_cast<CntStatistic*>(stats_[name]);
+    if(!counter)
+        return;
     (*counter)++;
 }
 
-void StatContainer::decrementCounter(const std::string& name) {
-    CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
-    if (!counter) return;
+void
+StatContainer::decrementCounter(const std::string& name)
+{
+    CntStatistic* counter = dynamic_cast<CntStatistic*>(stats_[name]);
+    if(!counter)
+        return;
     (*counter)--;
 }
 
-void StatContainer::addCounter(const std::string& name, int val) {
-    CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
-    if (!counter) return;
+void
+StatContainer::addCounter(const std::string& name, int val)
+{
+    CntStatistic* counter = dynamic_cast<CntStatistic*>(stats_[name]);
+    if(!counter)
+        return;
     (*counter) += val;
 }
 
-                                  
-CntStatistic 
-CntStatistic::operator++( int )
+CntStatistic
+CntStatistic::operator++(int)
 {
     CntStatistic ret = *this;
     ++(*this);
     return ret;
 }
 
-
-CntStatistic& 
+CntStatistic&
 CntStatistic::operator++()
 {
     cnt_++;
     return *this;
 }
-                               
-CntStatistic 
-CntStatistic::operator--( int )
+
+CntStatistic
+CntStatistic::operator--(int)
 {
     CntStatistic ret = *this;
     --(*this);
@@ -166,88 +177,83 @@ CntStatistic::operator--()
     cnt_--;
     return *this;
 }
-                                 
-CntStatistic& 
-CntStatistic::operator=( long int v )
+
+CntStatistic&
+CntStatistic::operator=(long int v)
 {
     cnt_ = v;
     return *this;
 }
 
-CntStatistic& 
-CntStatistic::operator+=( long int v )
+CntStatistic&
+CntStatistic::operator+=(long int v)
 {
     cnt_ += v;
     return *this;
 }
 
 CntStatistic&
-CntStatistic::operator+=( const CntStatistic & v )
+CntStatistic::operator+=(const CntStatistic& v)
 {
     cnt_ += v.cnt_;
     return *this;
 }
 
-    
-CntStatistic& 
-CntStatistic::operator-=( long int v )
+CntStatistic&
+CntStatistic::operator-=(long int v)
 {
     cnt_ -= v;
     return *this;
 }
 
-CntStatistic& 
-CntStatistic::operator-=( const CntStatistic & v)
+CntStatistic&
+CntStatistic::operator-=(const CntStatistic& v)
 {
     cnt_ -= v.cnt_;
     return *this;
 }
 
-inline long int 
-CntStatistic::operator*()
-{
-    return cnt_;
-}
+inline long int CntStatistic::operator*() { return cnt_; }
 
-long int 
+long int
 CntStatistic::value()
 {
     return cnt_;
 }
 
-
-TimeStatistic& 
-TimeStatistic::operator=(TimeStatistic & t)
+TimeStatistic&
+TimeStatistic::operator=(TimeStatistic& t)
 {
-    if( this != &t ) {
+    if(this != &t)
+    {
         t_ = t.t_;
     }
     return *this;
 }
 
-TimeStatistic& 
-TimeStatistic::operator+=(TimeStatistic & t)
+TimeStatistic&
+TimeStatistic::operator+=(TimeStatistic& t)
 {
     t_ += t.t_;
     return *this;
 }
 
-TimeStatistic& 
-TimeStatistic::operator+(TimeStatistic & t) 
+TimeStatistic&
+TimeStatistic::operator+(TimeStatistic& t)
 {
-    TimeStatistic * ret = new TimeStatistic;
-    *ret = *this;
+    TimeStatistic* ret = new TimeStatistic;
+    *ret               = *this;
     *ret += t;
     return *ret;
 }
 
-void 
+void
 TimeStatistic::clear()
 {
     t_.clear();
 }
 
-void 
+void
 TimeStatistic::start()
 {
     t_.start();
@@ -259,27 +265,26 @@ TimeStatistic::stop()
     t_.stop();
 }
 
-double 
-TimeStatistic::usecs() 
+double
+TimeStatistic::usecs()
 {
     return t_.usecs();
 }
 
-double 
-TimeStatistic::ssecs() 
+double
+TimeStatistic::ssecs()
 {
     return t_.ssecs();
 }
 
-double 
-TimeStatistic::wsecs() 
+double
+TimeStatistic::wsecs()
 {
     return t_.wsecs();
 }
 
-bool 
-TimeStatistic::is_running() 
+bool
+TimeStatistic::is_running()
 {
     return t_.is_running();
 }
-

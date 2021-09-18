@@ -6,12 +6,12 @@
 #define _VGANNOTATIONS_H_
 
 #ifdef ENABLE_VG_ANNOTATIONS
-#include <helgrind.h>
-#include <drd.h>
+#    include <helgrind.h>
+#    include <drd.h>
 
 // Annotations for libc's inlined synchronization (for locales, mostly)
-#define _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(addr) ANNOTATE_HAPPENS_BEFORE(addr)
-#define _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(addr)  ANNOTATE_HAPPENS_AFTER(addr)
+#    define _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(addr) ANNOTATE_HAPPENS_BEFORE(addr)
+#    define _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(addr) ANNOTATE_HAPPENS_AFTER(addr)
 
 // One or two places use function-scoped static variables for lazy singleton
 // initialization. Unfortunately its a pain to mark up properly, so the following
@@ -27,18 +27,21 @@
 // - Currently the function cannot take any arguments. Someone with more C++
 //   background can fix that later if they like.
 
-#include <mutex>
-#include <functional>
+#    include <mutex>
+#    include <functional>
 
-template<typename T> class LazySingleton {
-    T value;
+template <typename T>
+class LazySingleton
+{
+    T              value;
     std::once_flag flag;
 
 public:
     typedef T type;
 
-    T& get(std::function<T()> f) {
-        std::call_once(flag, [&]{
+    T& get(std::function<T()> f)
+    {
+        std::call_once(flag, [&] {
             value = f();
             ANNOTATE_HAPPENS_BEFORE(&flag);
         });
@@ -49,26 +52,29 @@ public:
 
 #else
 
-#define ANNOTATE_HAPPENS_BEFORE(X)
-#define ANNOTATE_HAPPENS_AFTER(X)
-#define ANNOTATE_RWLOCK_CREATE(X)
-#define ANNOTATE_RWLOCK_DESTROY(X)
-#define ANNOTATE_RWLOCK_ACQUIRED(X, M)
-#define ANNOTATE_RWLOCK_RELEASED(X, M)
+#    define ANNOTATE_HAPPENS_BEFORE(X)
+#    define ANNOTATE_HAPPENS_AFTER(X)
+#    define ANNOTATE_RWLOCK_CREATE(X)
+#    define ANNOTATE_RWLOCK_DESTROY(X)
+#    define ANNOTATE_RWLOCK_ACQUIRED(X, M)
+#    define ANNOTATE_RWLOCK_RELEASED(X, M)
 
 // Simplified form for when Valgrind isn't looking.
-#include <mutex>
-#include <functional>
+#    include <mutex>
+#    include <functional>
 
-template<typename T> class LazySingleton {
-    T value;
+template <typename T>
+class LazySingleton
+{
+    T              value;
     std::once_flag flag;
 
 public:
     typedef T type;
 
-    T& get(std::function<T()> f) {
-        std::call_once(flag, [&]{
+    T& get(std::function<T()> f)
+    {
+        std::call_once(flag, [&] {
             value = f();
             ANNOTATE_HAPPENS_BEFORE(&flag);
         });

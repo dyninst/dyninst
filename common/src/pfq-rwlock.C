@@ -75,30 +75,36 @@
 #include "vgannotations.h"
 #include "concurrent.h"
 
-static const unsigned int PHASE = 0x1;
+static const unsigned int PHASE  = 0x1;
 static const unsigned int WRITER = 0x2;
 static const unsigned int TICKET = 0x4;
 
 using namespace Dyninst;
 
 dyn_rwlock::dyn_rwlock()
-    : rin(0), rout(0), last(0), rwakeup{false,false}, wwakeup(false) {
+: rin(0)
+, rout(0)
+, last(0)
+, rwakeup{ false, false }
+, wwakeup(false)
+{
     ANNOTATE_RWLOCK_CREATE(this);
 }
 
-dyn_rwlock::~dyn_rwlock() {
-    ANNOTATE_RWLOCK_DESTROY(this);
-}
+dyn_rwlock::~dyn_rwlock() { ANNOTATE_RWLOCK_DESTROY(this); }
 
-void dyn_rwlock::lock_shared() {
+void
+dyn_rwlock::lock_shared()
+{
     // Register a ticket, and check for writers.
     unsigned int ticket = rin.fetch_add(TICKET, boost::memory_order_acquire);
-    unsigned int phase = ticket & PHASE;
+    unsigned int phase  = ticket & PHASE;
 
-    if (ticket & WRITER) {
+    if(ticket & WRITER)
+    {
         // There is a writer present, try to wait.
         boost::unique_lock<boost::mutex> l(inlock);
-        rcond.wait(l, [this,&phase](){ return rwakeup[phase]; });
+        rcond.wait(l, [this, &phase]() { return rwakeup[phase]; });
     }
 
     // Tell Valgrind all about it
@@ -106,7 +112,9 @@ void dyn_rwlock::lock_shared() {
     ANNOTATE_HAPPENS_AFTER(&wwakeup);
 }
 
-void dyn_rwlock::unlock_shared() {
+void
+dyn_rwlock::unlock_shared()
+{
     // Tell Valgrind what we're up to
     ANNOTATE_HAPPENS_BEFORE(&rwakeup);
     ANNOTATE_RWLOCK_RELEASED(this, 0 /* reader mode */);
@@ -114,7 +122,8 @@ void dyn_rwlock::unlock_shared() {
     // Pull off an outgoing ticket and see if we're the last reader.
     unsigned int ticket = rout.fetch_add(TICKET, boost::memory_order_acq_rel);
 
-    if (ticket & WRITER && ticket == last) {
+    if(ticket & WRITER && ticket == last)
+    {
         // Wake up the writer, its our job.
         boost::unique_lock<dyn_mutex> l(outlock);
         wwakeup = true;
@@ -122,22 +131,25 @@ void dyn_rwlock::unlock_shared() {
     }
 }
 
-void dyn_rwlock::lock() {
+void
+dyn_rwlock::lock()
+{
     // Synchronize with other writers via the normal mutex.
     wlock.lock();
 
     // Choose the final reader, and make sure no others come in.
-    unsigned int lr = rin.fetch_xor(PHASE|WRITER, boost::memory_order_acquire);
-    last = (lr - TICKET) ^ (PHASE | WRITER);
+    unsigned int lr = rin.fetch_xor(PHASE | WRITER, boost::memory_order_acquire);
+    last            = (lr - TICKET) ^ (PHASE | WRITER);
 
     // Let the last reader know that they should wake me up.
     // Rel to "release" the previous write to last.
-    unsigned int cr = rout.fetch_xor(PHASE|WRITER, boost::memory_order_acq_rel);
+    unsigned int cr = rout.fetch_xor(PHASE | WRITER, boost::memory_order_acq_rel);
 
-    if (cr != lr) {
+    if(cr != lr)
+    {
         // There actually was a reader inside. Wait for him to leave.
         boost::unique_lock<boost::mutex> l(outlock);
-        wcond.wait(l, [this](){ return wwakeup; });
+        wcond.wait(l, [this]() { return wwakeup; });
         wwakeup = false;
     }
 
@@ -149,7 +161,9 @@ void dyn_rwlock::lock() {
     ANNOTATE_HAPPENS_AFTER(&rwakeup);
 }
 
-void dyn_rwlock::unlock() {
+void
+dyn_rwlock::unlock()
+{
     // Let Valgrind know what we are up to.
     ANNOTATE_HAPPENS_BEFORE(&wwakeup);
     ANNOTATE_RWLOCK_RELEASED(this, 1 /* writer mode */);

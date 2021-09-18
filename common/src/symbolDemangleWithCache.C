@@ -28,37 +28,37 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
 #include <string>
 #include <stdlib.h>
 #include "symbolDemangle.h"
 #include "symbolDemangleWithCache.h"
 
 static thread_local std::string lastSymName;
-static thread_local bool lastIncludeParams = false;
+static thread_local bool        lastIncludeParams = false;
 static thread_local std::string lastDemangled;
-
-
 
 // Returns a demangled symbol using symbol_demangle with a per thread,
 // single-entry cache of the previous demangling.
 //
-std::string const& symbol_demangle_with_cache(const std::string &symName, bool includeParams)
+std::string const&
+symbol_demangle_with_cache(const std::string& symName, bool includeParams)
 {
-    if (includeParams != lastIncludeParams || symName != lastSymName)  {
-	// cache miss
-	char *demangled = symbol_demangle(symName.c_str(), includeParams);
+    if(includeParams != lastIncludeParams || symName != lastSymName)
+    {
+        // cache miss
+        char* demangled = symbol_demangle(symName.c_str(), includeParams);
 
-	if (!demangled)  {
-	    throw std::bad_alloc();  // malloc failed
-	}
+        if(!demangled)
+        {
+            throw std::bad_alloc();  // malloc failed
+        }
 
-	// update cache
-	lastSymName = symName;
-	lastIncludeParams = includeParams;
-	lastDemangled = demangled;
+        // update cache
+        lastSymName       = symName;
+        lastIncludeParams = includeParams;
+        lastDemangled     = demangled;
 
-	free(demangled);
+        free(demangled);
     }
 
     return lastDemangled;

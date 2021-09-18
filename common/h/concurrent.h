@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -41,143 +41,190 @@
 #include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_queue.h>
 
-namespace Dyninst {
+namespace Dyninst
+{
+namespace dyn_c_annotations
+{
+void COMMON_EXPORT
+rwinit(void*);
+void COMMON_EXPORT
+rwdeinit(void*);
+void COMMON_EXPORT
+wlock(void*);
+void COMMON_EXPORT
+wunlock(void*);
+void COMMON_EXPORT
+rlock(void*);
+void COMMON_EXPORT
+runlock(void*);
+}  // namespace dyn_c_annotations
 
-namespace dyn_c_annotations {
-    void COMMON_EXPORT rwinit(void*);
-    void COMMON_EXPORT rwdeinit(void*);
-    void COMMON_EXPORT wlock(void*);
-    void COMMON_EXPORT wunlock(void*);
-    void COMMON_EXPORT rlock(void*);
-    void COMMON_EXPORT runlock(void*);
-}
+template <typename K, typename V>
+class dyn_c_hash_map
+: protected tbb::concurrent_hash_map<K, V, tbb::tbb_hash_compare<K>,
+                                     std::allocator<std::pair<K, V>>>
+{
+    typedef tbb::concurrent_hash_map<K, V, tbb::tbb_hash_compare<K>,
+                                     std::allocator<std::pair<K, V>>>
+        base;
 
-template<typename K, typename V>
-class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
-    tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> {
-
-    typedef tbb::concurrent_hash_map<K, V,
-        tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> base;
 public:
-    using typename base::value_type;
-    using typename base::mapped_type;
     using typename base::key_type;
+    using typename base::mapped_type;
+    using typename base::value_type;
 
-    class const_accessor : public base::const_accessor {
-        friend class dyn_c_hash_map<K,V>;
+    class const_accessor : public base::const_accessor
+    {
+        friend class dyn_c_hash_map<K, V>;
+
     public:
         ~const_accessor() { release_ann(); }
         void acquire() { dyn_c_annotations::rlock(this->my_node); }
-        void release() { release_ann(); base::const_accessor::release(); }
+        void release()
+        {
+            release_ann();
+            base::const_accessor::release();
+        }
+
     private:
-        void release_ann() {
-            if(this->my_node) dyn_c_annotations::runlock(this->my_node);
+        void release_ann()
+        {
+            if(this->my_node)
+                dyn_c_annotations::runlock(this->my_node);
         }
     };
-    class accessor : public base::accessor {
-        friend class dyn_c_hash_map<K,V>;
+    class accessor : public base::accessor
+    {
+        friend class dyn_c_hash_map<K, V>;
+
     public:
         ~accessor() { release_ann(); }
         void acquire() { dyn_c_annotations::wlock(this->my_node); }
-        void release() { release_ann(); base::accessor::release(); }
+        void release()
+        {
+            release_ann();
+            base::accessor::release();
+        }
+
     private:
-        void release_ann() {
-            if(this->my_node) dyn_c_annotations::wunlock(this->my_node);
+        void release_ann()
+        {
+            if(this->my_node)
+                dyn_c_annotations::wunlock(this->my_node);
         }
     };
 
-    bool find(const_accessor& ca, const K& k) const {
+    bool find(const_accessor& ca, const K& k) const
+    {
         bool r = base::find(ca, k);
-        if(r) ca.acquire();
+        if(r)
+            ca.acquire();
         return r;
     }
-    bool find(accessor& a, const K& k) {
+    bool find(accessor& a, const K& k)
+    {
         bool r = base::find(a, k);
-        if(r) a.acquire();
+        if(r)
+            a.acquire();
         return r;
     }
 
     int contains(const K& k) { return base::count(k) == 1; }
 
-    bool insert(const_accessor& ca, const K& k) {
+    bool insert(const_accessor& ca, const K& k)
+    {
         bool r = base::insert(ca, k);
-        if(r) dyn_c_annotations::rwinit(ca.my_node);
+        if(r)
+            dyn_c_annotations::rwinit(ca.my_node);
         ca.acquire();
         return r;
     }
-    bool insert(accessor& a, const K& k) {
+    bool insert(accessor& a, const K& k)
+    {
         bool r = base::insert(a, k);
-        if(r) dyn_c_annotations::rwinit(a.my_node);
+        if(r)
+            dyn_c_annotations::rwinit(a.my_node);
         a.acquire();
         return r;
     }
-    bool insert(const_accessor& ca, const value_type& e) {
+    bool insert(const_accessor& ca, const value_type& e)
+    {
         bool r = base::insert(ca, e);
-        if(r) dyn_c_annotations::rwinit(ca.my_node);
+        if(r)
+            dyn_c_annotations::rwinit(ca.my_node);
         ca.acquire();
         return r;
     }
-    bool insert(accessor& a, const value_type& e) {
+    bool insert(accessor& a, const value_type& e)
+    {
         bool r = base::insert(a, e);
-        if(r) dyn_c_annotations::rwinit(a.my_node);
+        if(r)
+            dyn_c_annotations::rwinit(a.my_node);
         a.acquire();
         return r;
     }
     bool insert(const value_type& e) { return base::insert(e); }
 
-    bool erase(const_accessor& ca) {
+    bool erase(const_accessor& ca)
+    {
         void* n = ca.my_node;
         ca.release_ann();
         bool r = base::erase(ca);
-        if(r) dyn_c_annotations::rwdeinit(n);
+        if(r)
+            dyn_c_annotations::rwdeinit(n);
         return r;
     }
-    bool erase(accessor& a) {
+    bool erase(accessor& a)
+    {
         void* n = a.my_node;
         a.release_ann();
         bool r = base::erase(a);
-        if(r) dyn_c_annotations::rwdeinit(n);
+        if(r)
+            dyn_c_annotations::rwdeinit(n);
         return r;
     }
     bool erase(const K& k) { return base::erase(k); }
 
     int size() const { return base::size(); }
 
-    void rehash( int n = 0 ) { base::rehash(n); }
+    void rehash(int n = 0) { base::rehash(n); }
 
     using base::clear;
 
-    using typename base::iterator;
-    using typename base::const_iterator;
     using base::begin;
     using base::end;
+    using typename base::const_iterator;
+    using typename base::iterator;
 };
 
-template<typename T>
+template <typename T>
 using dyn_c_vector = tbb::concurrent_vector<T, std::allocator<T>>;
 
-template<typename T>
+template <typename T>
 using dyn_c_queue = tbb::concurrent_queue<T, std::allocator<T>>;
 
-class dyn_mutex : public boost::mutex {
+class dyn_mutex : public boost::mutex
+{
 public:
     using unique_lock = boost::unique_lock<dyn_mutex>;
 };
 
-class COMMON_EXPORT dyn_rwlock {
+class COMMON_EXPORT dyn_rwlock
+{
     // Reader management members
     boost::atomic<unsigned int> rin;
     boost::atomic<unsigned int> rout;
-    unsigned int last;
-    dyn_mutex inlock;
-    boost::condition_variable rcond;
-    bool rwakeup[2];
+    unsigned int                last;
+    dyn_mutex                   inlock;
+    boost::condition_variable   rcond;
+    bool                        rwakeup[2];
 
     // Writer management members
-    dyn_mutex wlock;
-    dyn_mutex outlock;
+    dyn_mutex                 wlock;
+    dyn_mutex                 outlock;
     boost::condition_variable wcond;
-    bool wwakeup;
+    bool                      wwakeup;
+
 public:
     dyn_rwlock();
     ~dyn_rwlock();
@@ -191,11 +238,13 @@ public:
     using shared_lock = boost::shared_lock<dyn_rwlock>;
 };
 
-class COMMON_EXPORT dyn_thread {
+class COMMON_EXPORT dyn_thread
+{
     int myid;
+
 public:
     dyn_thread();
-    unsigned int getId();
+    unsigned int        getId();
     static unsigned int threads();
 
     operator unsigned int() { return getId(); }
@@ -203,17 +252,26 @@ public:
     static thread_local dyn_thread me;
 };
 
-template<typename T>
-class dyn_threadlocal {
+template <typename T>
+class dyn_threadlocal
+{
     std::vector<T> cache;
-    T base;
-    dyn_rwlock lock;
+    T              base;
+    dyn_rwlock     lock;
+
 public:
-    dyn_threadlocal() : cache(), base() {}
-    dyn_threadlocal(const T& d) : cache(), base(d) {}
+    dyn_threadlocal()
+    : cache()
+    , base()
+    {}
+    dyn_threadlocal(const T& d)
+    : cache()
+    , base(d)
+    {}
     ~dyn_threadlocal() {}
 
-    T get() {
+    T get()
+    {
         {
             dyn_rwlock::shared_lock l(lock);
             if(cache.size() > dyn_thread::me)
@@ -227,10 +285,12 @@ public:
         return base;
     }
 
-    void set(const T& val) {
+    void set(const T& val)
+    {
         {
             dyn_rwlock::shared_lock l(lock);
-            if(cache.size() > dyn_thread::me) {
+            if(cache.size() > dyn_thread::me)
+            {
                 cache[dyn_thread::me] = val;
                 return;
             }
@@ -244,6 +304,6 @@ public:
     }
 };
 
-} // namespace Dyninst
+}  // namespace Dyninst
 
 #endif

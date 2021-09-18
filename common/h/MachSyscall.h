@@ -1,77 +1,88 @@
 #if !defined(MACH_SYSCALL_H_)
-#define MACH_SYSCALL_H_
+#    define MACH_SYSCALL_H_
 
-#include <string>
-#include "boost/shared_ptr.hpp"
+#    include <string>
+#    include "boost/shared_ptr.hpp"
 
-#include "dyn_regs.h"
-#include "dyntypes.h"
+#    include "dyn_regs.h"
+#    include "dyntypes.h"
 
-namespace Dyninst {
+namespace Dyninst
+{
 class Platform
 {
-    public: 
-        Platform(Architecture a, OSType o): _arch(a), _os(o) {}
+public:
+    Platform(Architecture a, OSType o)
+    : _arch(a)
+    , _os(o)
+    {}
 
-        Architecture arch() const { return _arch; }
-        OSType os() const { return _os; }
-        
-        bool operator==(const Platform &) const;
+    Architecture arch() const { return _arch; }
+    OSType       os() const { return _os; }
 
-    private:
-        Architecture _arch; 
-        OSType _os;
-        //std::string _version;
+    bool operator==(const Platform&) const;
+
+private:
+    Architecture _arch;
+    OSType       _os;
+    // std::string _version;
 };
-}
+}  // namespace Dyninst
 
-namespace Dyninst  {
-
+namespace Dyninst
+{
 class MachSyscall;
 namespace ProcControlAPI
 {
-    class EventSyscall;
-    class Process;
+class EventSyscall;
+class Process;
 
-    MachSyscall makeFromEvent(const EventSyscall * ev);
-    MachSyscall makeFromID(boost::shared_ptr<Process> proc, unsigned long id);
-}
+MachSyscall
+makeFromEvent(const EventSyscall* ev);
+MachSyscall
+makeFromID(boost::shared_ptr<Process> proc, unsigned long id);
+}  // namespace ProcControlAPI
 
-class COMMON_EXPORT MachSyscall 
+class COMMON_EXPORT MachSyscall
 {
-    public: 
-        typedef unsigned long SyscallIDPlatform;
-        typedef unsigned long SyscallIDIndependent; // e.g., Dyninst::Syscall::dyn_getpid
-        typedef const char * SyscallName;
+public:
+    typedef unsigned long SyscallIDPlatform;
+    typedef unsigned long SyscallIDIndependent;  // e.g., Dyninst::Syscall::dyn_getpid
+    typedef const char*   SyscallName;
 
-        // Factory methods
-        // Allows ProcControlAPI to construct a MachSyscall for an event
-        friend MachSyscall ProcControlAPI::makeFromEvent(const ProcControlAPI::EventSyscall *);
+    // Factory methods
+    // Allows ProcControlAPI to construct a MachSyscall for an event
+    friend MachSyscall ProcControlAPI::makeFromEvent(const ProcControlAPI::EventSyscall*);
 
-        // Allows users to construct a MachSyscall
-        friend MachSyscall ProcControlAPI::makeFromID(boost::shared_ptr<ProcControlAPI::Process>, SyscallIDIndependent);
-        
-        static MachSyscall makeFromPlatform(Platform, SyscallIDIndependent);     
+    // Allows users to construct a MachSyscall
+    friend MachSyscall ProcControlAPI::makeFromID(
+        boost::shared_ptr<ProcControlAPI::Process>, SyscallIDIndependent);
 
-        // Accessors
-        // Returns the platform-specific number for this system call
-        SyscallIDPlatform num() const;
+    static MachSyscall makeFromPlatform(Platform, SyscallIDIndependent);
 
-        // Returns the name for this system call (e.g., "getpid")
-        SyscallName name() const;
+    // Accessors
+    // Returns the platform-specific number for this system call
+    SyscallIDPlatform num() const;
 
-        // Strict equality-based matching on Platforms and IDs
-        bool operator==(const MachSyscall &) const;
+    // Returns the name for this system call (e.g., "getpid")
+    SyscallName name() const;
 
-    private:
-        MachSyscall(Platform p, SyscallIDPlatform i, SyscallName n) : _plat(p), _id(i), _name(n) {}
-        static SyscallName nameLookup(Platform plat, SyscallIDPlatform id);
+    // Strict equality-based matching on Platforms and IDs
+    bool operator==(const MachSyscall&) const;
 
-        Platform _plat;
-        SyscallIDPlatform _id;
-        SyscallName _name;
+private:
+    MachSyscall(Platform p, SyscallIDPlatform i, SyscallName n)
+    : _plat(p)
+    , _id(i)
+    , _name(n)
+    {}
+    static SyscallName nameLookup(Platform plat, SyscallIDPlatform id);
+
+    Platform          _plat;
+    SyscallIDPlatform _id;
+    SyscallName       _name;
 };
 
-}
+}  // namespace Dyninst
 
 #endif
