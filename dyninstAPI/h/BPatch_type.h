@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -33,26 +33,41 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include <string.h>	
+#include <string.h>
 
 #include "Type.h"
 #include "Variable.h"
 
 class BPatch_type;
-namespace Dyninst { 
-   namespace SymtabAPI {
-      class Type;
-      BPATCH_DLL_EXPORT boost::shared_ptr<Type> convert(const BPatch_type *, Type::do_share_t);
-      inline Type* convert(const BPatch_type* t) {
-        return convert(t, Type::share).get();
-      }
-   }
+namespace Dyninst
+{
+namespace SymtabAPI
+{
+class Type;
+BPATCH_DLL_EXPORT boost::shared_ptr<Type>
+                  convert(const BPatch_type*, Type::do_share_t);
+inline Type*
+convert(const BPatch_type* t)
+{
+    return convert(t, Type::share).get();
 }
+}  // namespace SymtabAPI
+}  // namespace Dyninst
 
-typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
-	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
-	      BPatchSymLocalFunc, BPatchSymGlobalFunc, BPatchSymFuncParam,
-	      BPatchSymTypeName, BPatchSymAggType, BPatchSymTypeTag}symDescr_t;
+typedef enum
+{
+    BPatchSymLocalVar,
+    BPatchSymGlobalVar,
+    BPatchSymRegisterVar,
+    BPatchSymStaticLocalVar,
+    BPatchSymStaticGlobal,
+    BPatchSymLocalFunc,
+    BPatchSymGlobalFunc,
+    BPatchSymFuncParam,
+    BPatchSymTypeName,
+    BPatchSymAggType,
+    BPatchSymTypeTag
+} symDescr_t;
 
 /*
  * Symbol Descriptors:
@@ -69,39 +84,40 @@ typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
  * BPatchSymTypeTag        - C++ type name and tag combination
  */
 
-typedef enum {BPatch_dataScalar, 
-	      BPatch_dataEnumerated,
-	      BPatch_dataTypeClass,
-	      BPatch_dataStructure, 
-	      BPatch_dataUnion, 
-	      BPatch_dataArray, 
-	      BPatch_dataPointer, 
-	      BPatch_dataReferance, 
-	      BPatch_dataFunction,
-	      BPatch_dataTypeAttrib,
-	      BPatch_dataReference,
-	      BPatch_dataUnknownType,
-	      BPatchSymTypeRange,
-	      BPatch_dataMethod,
-	      BPatch_dataCommon,
-	      BPatch_dataPrimitive,
-	      BPatch_dataTypeNumber,
-	      BPatch_dataTypeDefine,
-              BPatch_dataNullType
+typedef enum
+{
+    BPatch_dataScalar,
+    BPatch_dataEnumerated,
+    BPatch_dataTypeClass,
+    BPatch_dataStructure,
+    BPatch_dataUnion,
+    BPatch_dataArray,
+    BPatch_dataPointer,
+    BPatch_dataReferance,
+    BPatch_dataFunction,
+    BPatch_dataTypeAttrib,
+    BPatch_dataReference,
+    BPatch_dataUnknownType,
+    BPatchSymTypeRange,
+    BPatch_dataMethod,
+    BPatch_dataCommon,
+    BPatch_dataPrimitive,
+    BPatch_dataTypeNumber,
+    BPatch_dataTypeDefine,
+    BPatch_dataNullType
 } BPatch_dataClass;
 
-
-#define BPatch_scalar	BPatch_dataScalar
-#define BPatch_enumerated	BPatch_dataEnumerated
-#define BPatch_typeClass	BPatch_dataTypeClass
-#define BPatch_structure	BPatch_dataStructure 
-#define BPatch_union	BPatch_dataUnion 
-#define BPatch_array	BPatch_dataArray 
-#define BPatch_pointer	BPatch_dataPointer 
-#define BPatch_reference	BPatch_dataReferance 
-#define BPatch_typeAttrib	BPatch_dataTypeAttrib
-#define BPatch_unknownType	BPatch_dataUnknownType
-#define BPatch_typeDefine	BPatch_dataTypeDefine
+#define BPatch_scalar BPatch_dataScalar
+#define BPatch_enumerated BPatch_dataEnumerated
+#define BPatch_typeClass BPatch_dataTypeClass
+#define BPatch_structure BPatch_dataStructure
+#define BPatch_union BPatch_dataUnion
+#define BPatch_array BPatch_dataArray
+#define BPatch_pointer BPatch_dataPointer
+#define BPatch_reference BPatch_dataReferance
+#define BPatch_typeAttrib BPatch_dataTypeAttrib
+#define BPatch_unknownType BPatch_dataUnknownType
+#define BPatch_typeDefine BPatch_dataTypeDefine
 
 /*
  * Type Descriptors:
@@ -120,8 +136,14 @@ typedef enum {BPatch_dataScalar,
  * BPatch_dataMethod - C++ class method
  */
 
-typedef enum {BPatch_private, BPatch_protected, BPatch_public,
-	      BPatch_optimized=9,BPatch_visUnknown}BPatch_visibility;
+typedef enum
+{
+    BPatch_private,
+    BPatch_protected,
+    BPatch_public,
+    BPatch_optimized = 9,
+    BPatch_visUnknown
+} BPatch_visibility;
 /*
  * BPatch_visibility: Accessibility of member data and functions
  * These values follow the 'field_name:' after the '/' identifier.
@@ -133,7 +155,8 @@ typedef enum {BPatch_private, BPatch_protected, BPatch_public,
  *
  */
 
-typedef enum {
+typedef enum
+{
     BPatch_storageAddr,
     BPatch_storageAddrRef,
     BPatch_storageReg,
@@ -144,7 +167,7 @@ typedef enum {
 
 /*
  * BPatch_storageClass: Encodes how a variable is stored.
- * 
+ *
  * BPatch_storageAddr		- Absolute address of variable.
  * BPatch_storageAddrRef	- Address of pointer to variable.
  * BPatch_storageReg		- Register which holds variable value.
@@ -163,81 +186,82 @@ class BPatch_module;
  * union or struct.
  */
 
+class BPATCH_DLL_EXPORT BPatch_field
+{
+    friend class BPatch_variableExpr;
+    friend class BPatch_cblock;
 
-class BPATCH_DLL_EXPORT BPatch_field {
-  friend class BPatch_variableExpr;
-  friend class BPatch_cblock;
-  
-  BPatch_dataClass   typeDes;
-  /* For Enums */
-  int          value;
+    BPatch_dataClass typeDes;
+    /* For Enums */
+    int value;
 
-  /* For structs and unions */
-  int         size;
-  
-  //Symtab field
-  Dyninst::SymtabAPI::Field *fld;
+    /* For structs and unions */
+    int size;
 
-  protected:
-  void copy(BPatch_field &);
-  void fixupUnknown(BPatch_module *);
+    // Symtab field
+    Dyninst::SymtabAPI::Field* fld;
 
-  public:
+protected:
+    void copy(BPatch_field&);
+    void fixupUnknown(BPatch_module*);
 
-  // Copy constructor
-  BPatch_field(BPatch_field &f);
-  BPatch_field(Dyninst::SymtabAPI::Field *fld_ = NULL, 
-	       BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, 
-	       int value_ = 0, 
-	       int size_ = 0);
+public:
+    // Copy constructor
+    BPatch_field(BPatch_field& f);
+    BPatch_field(Dyninst::SymtabAPI::Field* fld_ = NULL,
+                 BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, int value_ = 0,
+                 int size_ = 0);
 
-  ~BPatch_field();
-  
-  BPatch_field & operator=(BPatch_field &src);
+    ~BPatch_field();
 
-  const char * getName(); 
+    BPatch_field& operator=(BPatch_field& src);
 
-  BPatch_type * getType();
+    const char* getName();
 
-  int getValue();
+    BPatch_type* getType();
 
-  BPatch_visibility getVisibility();
+    int getValue();
 
-  BPatch_dataClass getTypeDesc();
+    BPatch_visibility getVisibility();
 
-  int getSize();
+    BPatch_dataClass getTypeDesc();
 
-  int getOffset();
-}; 
+    int getSize();
+
+    int getOffset();
+};
 
 //
 // Define an instance of a Common block.  Each subroutine can have its own
 //   version of the common block.
 //
 #ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
+#    undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_cblock
-class BPATCH_DLL_EXPORT BPatch_cblock {
+class BPATCH_DLL_EXPORT BPatch_cblock
+{
 private:
-  // the list of fields
-  BPatch_Vector<BPatch_field *> fieldList;
+    // the list of fields
+    BPatch_Vector<BPatch_field*> fieldList;
 
-  // which functions use this list
-  BPatch_Vector<BPatch_function *> functions;
+    // which functions use this list
+    BPatch_Vector<BPatch_function*> functions;
 
-  Dyninst::SymtabAPI::CBlock *cBlk;
+    Dyninst::SymtabAPI::CBlock* cBlk;
 
-  void fixupUnknowns(BPatch_module *);
+    void fixupUnknowns(BPatch_module*);
+
 public:
-  BPatch_cblock(Dyninst::SymtabAPI::CBlock *cBlk_);
-  BPatch_cblock() {}
-  
-  BPatch_Vector<BPatch_field *> * getComponents();
-  BPatch_Vector<BPatch_function *> * getFunctions();
+    BPatch_cblock(Dyninst::SymtabAPI::CBlock* cBlk_);
+    BPatch_cblock() {}
+
+    BPatch_Vector<BPatch_field*>*    getComponents();
+    BPatch_Vector<BPatch_function*>* getFunctions();
 };
 
-class BPATCH_DLL_EXPORT BPatch_type{
+class BPATCH_DLL_EXPORT BPatch_type
+{
     friend class BPatch;
     friend class BPatch_module;
     friend class BPatch_function;
@@ -245,73 +269,86 @@ class BPATCH_DLL_EXPORT BPatch_type{
     friend class BPatch_localVar;
     friend class BPatch_field;
     friend class BPatch_addressSpace;
-    
+
 protected:
-  int           ID;                /* unique ID of type */
-  static std::map<Dyninst::SymtabAPI::Type*,  BPatch_type *> type_map;
-  BPatch_dataClass   type_;
+    int                                                      ID; /* unique ID of type */
+    static std::map<Dyninst::SymtabAPI::Type*, BPatch_type*> type_map;
+    BPatch_dataClass                                         type_;
 
-  //Symtab type
-  boost::shared_ptr<Dyninst::SymtabAPI::Type> typ;
+    // Symtab type
+    boost::shared_ptr<Dyninst::SymtabAPI::Type> typ;
 
-  /* For common blocks */
+    /* For common blocks */
 
-  static int USER_BPATCH_TYPE_ID;
+    static int USER_BPATCH_TYPE_ID;
 
-  // INTERNAL DATA MEMBERS
+    // INTERNAL DATA MEMBERS
 
-  unsigned int refCount;
+    unsigned int refCount;
 
- protected:
-  // Simple Destructor
-  virtual ~BPatch_type();
-  static BPatch_type *findOrCreateType(boost::shared_ptr<Dyninst::SymtabAPI::Type> type);
-  static BPatch_type *findOrCreateType(Dyninst::SymtabAPI::Type* ty) {
-    return findOrCreateType(ty->reshare());
-  }
-  
-  // A few convenience functions
-  BPatch_dataClass convertToBPatchdataClass(Dyninst::SymtabAPI::dataClass type);
-  Dyninst::SymtabAPI::dataClass convertToSymtabType(BPatch_dataClass type);
+protected:
+    // Simple Destructor
+    virtual ~BPatch_type();
+    static BPatch_type* findOrCreateType(
+        boost::shared_ptr<Dyninst::SymtabAPI::Type> type);
+    static BPatch_type* findOrCreateType(Dyninst::SymtabAPI::Type* ty)
+    {
+        return findOrCreateType(ty->reshare());
+    }
 
-  static BPatch_type *createFake(const char *_name);
-  /* Placeholder for real type, to be filled in later */
-  static BPatch_type *createPlaceholder(int _ID, const char *_name = NULL) 
-         { return new BPatch_type(_name, _ID, BPatch_dataUnknownType); }
+    // A few convenience functions
+    BPatch_dataClass convertToBPatchdataClass(Dyninst::SymtabAPI::dataClass type);
+    Dyninst::SymtabAPI::dataClass convertToSymtabType(BPatch_dataClass type);
+
+    static BPatch_type* createFake(const char* _name);
+    /* Placeholder for real type, to be filled in later */
+    static BPatch_type* createPlaceholder(int _ID, const char* _name = NULL)
+    {
+        return new BPatch_type(_name, _ID, BPatch_dataUnknownType);
+    }
 
 public:
-  BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
-  BPatch_type(boost::shared_ptr<Dyninst::SymtabAPI::Type> typ_);
-  BPatch_type(Dyninst::SymtabAPI::Type* t)
-    : BPatch_type(t->reshare()) {}
-  virtual bool operator==(const BPatch_type &) const;
+    BPatch_type(const char* name = NULL, int _ID = 0,
+                BPatch_dataClass = BPatch_dataNullType);
+    BPatch_type(boost::shared_ptr<Dyninst::SymtabAPI::Type> typ_);
+    BPatch_type(Dyninst::SymtabAPI::Type* t)
+    : BPatch_type(t->reshare())
+    {}
+    virtual bool operator==(const BPatch_type&) const;
 
-  int  getID() const { return ID;}
+    int getID() const { return ID; }
 
-  unsigned int getSize();
+    unsigned int getSize();
 
-  boost::shared_ptr<Dyninst::SymtabAPI::Type> getSymtabType(Dyninst::SymtabAPI::Type::do_share_t) const;
-  Dyninst::SymtabAPI::Type* getSymtabType() const {
-    return getSymtabType(Dyninst::SymtabAPI::Type::share).get();
-  }
+    boost::shared_ptr<Dyninst::SymtabAPI::Type> getSymtabType(
+        Dyninst::SymtabAPI::Type::do_share_t) const;
+    Dyninst::SymtabAPI::Type* getSymtabType() const
+    {
+        return getSymtabType(Dyninst::SymtabAPI::Type::share).get();
+    }
 
-//Define all of these in .C 
-  const char *getName() const;
+    // Define all of these in .C
+    const char* getName() const;
 
-  BPatch_dataClass getDataClass() const { return type_; }
+    BPatch_dataClass getDataClass() const { return type_; }
 
-  unsigned long getLow() const;
-  unsigned long getHigh() const;
-  BPatch_Vector<BPatch_field *> * getComponents() const;
-  bool isCompatible(BPatch_type * otype);
-  BPatch_type *getConstituentType() const;
-  BPatch_Vector<BPatch_cblock *> *getCblocks() const;
+    unsigned long                  getLow() const;
+    unsigned long                  getHigh() const;
+    BPatch_Vector<BPatch_field*>*  getComponents() const;
+    bool                           isCompatible(BPatch_type* otype);
+    BPatch_type*                   getConstituentType() const;
+    BPatch_Vector<BPatch_cblock*>* getCblocks() const;
 
-  // INTERNAL METHODS
+    // INTERNAL METHODS
 
-  void incrRefCount() { ++refCount; }
-  void decrRefCount() { assert(refCount > 0); if (!--refCount) delete this; }
-  void fixupUnknowns(BPatch_module *) { }
+    void incrRefCount() { ++refCount; }
+    void decrRefCount()
+    {
+        assert(refCount > 0);
+        if(!--refCount)
+            delete this;
+    }
+    void fixupUnknowns(BPatch_module*) {}
 };
 
 //
@@ -319,35 +356,35 @@ public:
 // It is desgined store information about a variable in a function.
 // Scope needs to be addressed in this class.
 
-class BPATCH_DLL_EXPORT BPatch_localVar{
+class BPATCH_DLL_EXPORT BPatch_localVar
+{
     friend class BPatch;
     friend class BPatch_function;
 
-    BPatch_type *type;
+    BPatch_type*        type;
     BPatch_storageClass storageClass;
     // scope_t scope;
 
-    Dyninst::SymtabAPI::localVar *lVar;
+    Dyninst::SymtabAPI::localVar* lVar;
 
 public:
     //  Internal use only
-    BPatch_localVar(Dyninst::SymtabAPI::localVar *lVar_);
+    BPatch_localVar(Dyninst::SymtabAPI::localVar* lVar_);
     ~BPatch_localVar();
     BPatch_localVar() {}
 
-    void fixupUnknown(BPatch_module *);
-    Dyninst::SymtabAPI::localVar *getSymtabVar();
-    BPatch_storageClass convertToBPatchStorage(Dyninst::VariableLocation *loc);
+    void                          fixupUnknown(BPatch_module*);
+    Dyninst::SymtabAPI::localVar* getSymtabVar();
+    BPatch_storageClass           convertToBPatchStorage(Dyninst::VariableLocation* loc);
 
 public:
     //  end of functions for internal use only
-    const char *	getName();
-    BPatch_type *	getType();
-    int			getLineNum();
-    long		getFrameOffset();
-    int			getRegister();
-    BPatch_storageClass	getStorageClass();
-
+    const char*         getName();
+    BPatch_type*        getType();
+    int                 getLineNum();
+    long                getFrameOffset();
+    int                 getRegister();
+    BPatch_storageClass getStorageClass();
 };
 
 #endif /* _BPatch_type_h_ */

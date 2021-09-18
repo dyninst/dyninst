@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -42,438 +42,196 @@ using namespace std;
 using namespace boost::assign;
 using namespace NS_x86;
 
-multimap<Register, MachRegister> regToMachReg32 = map_list_of
-(REGNUM_EAX, x86::eax)
-(REGNUM_ECX, x86::ecx)
-(REGNUM_EDX, x86::edx)
-(REGNUM_EBX, x86::ebx)
-(REGNUM_ESP, x86::esp)
-(REGNUM_EBP, x86::ebp)
-(REGNUM_ESI, x86::esi)
-(REGNUM_EDI, x86::edi)
-(REGNUM_IGNORED,x86::cs)
-(REGNUM_IGNORED,x86::ds)
-(REGNUM_IGNORED,x86::es)
-(REGNUM_IGNORED,x86::fs)
-(REGNUM_GS,x86::gs)
-(REGNUM_IGNORED,x86::ss)
-(REGNUM_IGNORED,x86::eip)
-(REGNUM_CF,x86::cf)
-(REGNUM_PF,x86::pf)
-(REGNUM_AF,x86::af)
-(REGNUM_ZF,x86::zf)
-(REGNUM_SF,x86::sf)
-(REGNUM_TF,x86::tf)
-(REGNUM_DF,x86::df)
-(REGNUM_OF,x86::of)
-(REGNUM_NT,x86::nt_)
-(REGNUM_IF,x86::if_)
-(REGNUM_RF,x86::rf)
-(REGNUM_EFLAGS,x86::cf)
-(REGNUM_EFLAGS,x86::pf)
-(REGNUM_EFLAGS,x86::af)
-(REGNUM_EFLAGS,x86::zf)
-(REGNUM_EFLAGS,x86::sf)
-(REGNUM_EFLAGS,x86::tf)
-(REGNUM_EFLAGS,x86::df)
-(REGNUM_EFLAGS,x86::of)
-(REGNUM_EFLAGS,x86::nt_)
-(REGNUM_EFLAGS,x86::if_)
-(REGNUM_EFLAGS,x86::rf)
+multimap<Register, MachRegister> regToMachReg32 = map_list_of(REGNUM_EAX, x86::eax)(
+    REGNUM_ECX, x86::ecx)(REGNUM_EDX, x86::edx)(REGNUM_EBX, x86::ebx)(
+    REGNUM_ESP, x86::esp)(REGNUM_EBP, x86::ebp)(REGNUM_ESI, x86::esi)(
+    REGNUM_EDI, x86::edi)(REGNUM_IGNORED, x86::cs)(REGNUM_IGNORED, x86::ds)(
+    REGNUM_IGNORED, x86::es)(REGNUM_IGNORED, x86::fs)(REGNUM_GS, x86::gs)(
+    REGNUM_IGNORED, x86::ss)(REGNUM_IGNORED, x86::eip)(REGNUM_CF, x86::cf)(
+    REGNUM_PF, x86::pf)(REGNUM_AF, x86::af)(REGNUM_ZF, x86::zf)(REGNUM_SF, x86::sf)(
+    REGNUM_TF, x86::tf)(REGNUM_DF, x86::df)(REGNUM_OF, x86::of)(REGNUM_NT, x86::nt_)(
+    REGNUM_IF, x86::if_)(REGNUM_RF, x86::rf)(REGNUM_EFLAGS, x86::cf)(
+    REGNUM_EFLAGS, x86::pf)(REGNUM_EFLAGS, x86::af)(REGNUM_EFLAGS, x86::zf)(
+    REGNUM_EFLAGS, x86::sf)(REGNUM_EFLAGS, x86::tf)(REGNUM_EFLAGS, x86::df)(
+    REGNUM_EFLAGS, x86::of)(REGNUM_EFLAGS, x86::nt_)(REGNUM_EFLAGS,
+                                                     x86::if_)(REGNUM_EFLAGS, x86::rf)
 
-(REGNUM_XMM0,x86::xmm0)
-(REGNUM_XMM1,x86::xmm1)
-(REGNUM_XMM2,x86::xmm2)
-(REGNUM_XMM3,x86::xmm3)
-(REGNUM_XMM4,x86::xmm4)
-(REGNUM_XMM5,x86::xmm5)
-(REGNUM_XMM6,x86::xmm6)
-(REGNUM_XMM7,x86::xmm7)
-(REGNUM_DUMMYFPR,x86::mm0)
-(REGNUM_MM0,x86::mm0)
-(REGNUM_MM1,x86::mm0)
-(REGNUM_MM2,x86::mm0)
-(REGNUM_MM3,x86::mm0)
-(REGNUM_MM4,x86::mm0)
-(REGNUM_MM5,x86::mm0)
-(REGNUM_MM6,x86::mm0)
-(REGNUM_MM7,x86::mm0)
+    (REGNUM_XMM0, x86::xmm0)(REGNUM_XMM1, x86::xmm1)(REGNUM_XMM2, x86::xmm2)(
+        REGNUM_XMM3, x86::xmm3)(REGNUM_XMM4, x86::xmm4)(REGNUM_XMM5, x86::xmm5)(
+        REGNUM_XMM6, x86::xmm6)(REGNUM_XMM7, x86::xmm7)(REGNUM_DUMMYFPR, x86::mm0)(
+        REGNUM_MM0, x86::mm0)(REGNUM_MM1, x86::mm0)(REGNUM_MM2, x86::mm0)(
+        REGNUM_MM3, x86::mm0)(REGNUM_MM4, x86::mm0)(REGNUM_MM5, x86::mm0)(
+        REGNUM_MM6, x86::mm0)(REGNUM_MM7, x86::mm0)
 
-(REGNUM_IGNORED,x86::cr0)
-(REGNUM_IGNORED,x86::cr1)
-(REGNUM_IGNORED,x86::cr2)
-(REGNUM_IGNORED,x86::cr3)
-(REGNUM_IGNORED,x86::cr4)
-(REGNUM_IGNORED,x86::cr5)
-(REGNUM_IGNORED,x86::cr6)
-(REGNUM_IGNORED,x86::cr7)
-(REGNUM_IGNORED,x86::dr0)
-(REGNUM_IGNORED,x86::dr1)
-(REGNUM_IGNORED,x86::dr2)
-(REGNUM_IGNORED,x86::dr3)
-(REGNUM_IGNORED,x86::dr4)
-(REGNUM_IGNORED,x86::dr5)
-(REGNUM_IGNORED,x86::dr6)
-(REGNUM_IGNORED,x86::dr7)
-;
+        (REGNUM_IGNORED, x86::cr0)(REGNUM_IGNORED, x86::cr1)(REGNUM_IGNORED, x86::cr2)(
+            REGNUM_IGNORED, x86::cr3)(REGNUM_IGNORED, x86::cr4)(REGNUM_IGNORED, x86::cr5)(
+            REGNUM_IGNORED, x86::cr6)(REGNUM_IGNORED, x86::cr7)(REGNUM_IGNORED, x86::dr0)(
+            REGNUM_IGNORED, x86::dr1)(REGNUM_IGNORED, x86::dr2)(REGNUM_IGNORED, x86::dr3)(
+            REGNUM_IGNORED, x86::dr4)(REGNUM_IGNORED, x86::dr5)(REGNUM_IGNORED, x86::dr6)(
+            REGNUM_IGNORED, x86::dr7);
 
-multimap<Register, MachRegister> regToMachReg64 = map_list_of
-(REGNUM_R8,x86_64::r8)
-(REGNUM_R9,x86_64::r9)
-(REGNUM_R10,x86_64::r10)
-(REGNUM_R11,x86_64::r11)
-(REGNUM_R12,x86_64::r12)
-(REGNUM_R13,x86_64::r13)
-(REGNUM_R14,x86_64::r14)
-(REGNUM_R15,x86_64::r15)
-(REGNUM_IGNORED,x86_64::cs)
-(REGNUM_IGNORED,x86_64::ds)
-(REGNUM_IGNORED,x86_64::es)
-(REGNUM_FS,x86_64::fs)
-(REGNUM_IGNORED,x86_64::gs)
-(REGNUM_IGNORED,x86_64::ss)
-(REGNUM_RAX,x86_64::rax)
-(REGNUM_RCX,x86_64::rcx)
-(REGNUM_RDX,x86_64::rdx)
-(REGNUM_RBX,x86_64::rbx)
-(REGNUM_RSP,x86_64::rsp)
-(REGNUM_RBP,x86_64::rbp)
-(REGNUM_RSI,x86_64::rsi)
-(REGNUM_RDI,x86_64::rdi)
-(REGNUM_IGNORED,x86_64::rip)
-(REGNUM_CF,x86_64::cf)
-(REGNUM_PF,x86_64::pf)
-(REGNUM_AF,x86_64::af)
-(REGNUM_ZF,x86_64::zf)
-(REGNUM_SF,x86_64::sf)
-(REGNUM_TF,x86_64::tf)
-(REGNUM_DF,x86_64::df)
-(REGNUM_OF,x86_64::of)
-(REGNUM_NT,x86_64::nt_)
-(REGNUM_IF,x86_64::if_)
-(REGNUM_RF,x86_64::rf)
-(REGNUM_EFLAGS,x86_64::cf)
-(REGNUM_EFLAGS,x86_64::pf)
-(REGNUM_EFLAGS,x86_64::af)
-(REGNUM_EFLAGS,x86_64::zf)
-(REGNUM_EFLAGS,x86_64::sf)
-(REGNUM_EFLAGS,x86_64::tf)
-(REGNUM_EFLAGS,x86_64::df)
-(REGNUM_EFLAGS,x86_64::of)
-(REGNUM_EFLAGS,x86_64::nt_)
-(REGNUM_EFLAGS,x86_64::if_)
-(REGNUM_EFLAGS,x86_64::rf)
-(REGNUM_K0,x86_64::k0)
-(REGNUM_K1,x86_64::k1)
-(REGNUM_K2,x86_64::k2)
-(REGNUM_K3,x86_64::k3)
-(REGNUM_K4,x86_64::k4)
-(REGNUM_K5,x86_64::k5)
-(REGNUM_K6,x86_64::k6)
-(REGNUM_K7,x86_64::k7)
-(REGNUM_ZMM0,x86_64::zmm0)
-(REGNUM_ZMM1,x86_64::zmm1)
-(REGNUM_ZMM2,x86_64::zmm2)
-(REGNUM_ZMM3,x86_64::zmm3)
-(REGNUM_ZMM4,x86_64::zmm4)
-(REGNUM_ZMM5,x86_64::zmm5)
-(REGNUM_ZMM6,x86_64::zmm6)
-(REGNUM_ZMM7,x86_64::zmm7)
-(REGNUM_ZMM8,x86_64::zmm8)
-(REGNUM_ZMM9,x86_64::zmm9)
-(REGNUM_ZMM10,x86_64::zmm10)
-(REGNUM_ZMM11,x86_64::zmm11)
-(REGNUM_ZMM12,x86_64::zmm12)
-(REGNUM_ZMM13,x86_64::zmm13)
-(REGNUM_ZMM14,x86_64::zmm14)
-(REGNUM_ZMM15,x86_64::zmm15)
-(REGNUM_ZMM16,x86_64::zmm16)
-(REGNUM_ZMM17,x86_64::zmm17)
-(REGNUM_ZMM18,x86_64::zmm18)
-(REGNUM_ZMM19,x86_64::zmm19)
-(REGNUM_ZMM20,x86_64::zmm20)
-(REGNUM_ZMM21,x86_64::zmm21)
-(REGNUM_ZMM22,x86_64::zmm22)
-(REGNUM_ZMM23,x86_64::zmm23)
-(REGNUM_ZMM24,x86_64::zmm24)
-(REGNUM_ZMM25,x86_64::zmm25)
-(REGNUM_ZMM26,x86_64::zmm26)
-(REGNUM_ZMM27,x86_64::zmm27)
-(REGNUM_ZMM28,x86_64::zmm28)
-(REGNUM_ZMM29,x86_64::zmm29)
-(REGNUM_ZMM30,x86_64::zmm30)
-(REGNUM_ZMM31,x86_64::zmm31)
-(REGNUM_YMM0,x86_64::ymm0)
-(REGNUM_YMM1,x86_64::ymm1)
-(REGNUM_YMM2,x86_64::ymm2)
-(REGNUM_YMM3,x86_64::ymm3)
-(REGNUM_YMM4,x86_64::ymm4)
-(REGNUM_YMM5,x86_64::ymm5)
-(REGNUM_YMM6,x86_64::ymm6)
-(REGNUM_YMM7,x86_64::ymm7)
-(REGNUM_YMM8,x86_64::ymm8)
-(REGNUM_YMM9,x86_64::ymm9)
-(REGNUM_YMM10,x86_64::ymm10)
-(REGNUM_YMM11,x86_64::ymm11)
-(REGNUM_YMM12,x86_64::ymm12)
-(REGNUM_YMM13,x86_64::ymm13)
-(REGNUM_YMM14,x86_64::ymm14)
-(REGNUM_YMM15,x86_64::ymm15)
-(REGNUM_YMM16,x86_64::ymm16)
-(REGNUM_YMM17,x86_64::ymm17)
-(REGNUM_YMM18,x86_64::ymm18)
-(REGNUM_YMM19,x86_64::ymm19)
-(REGNUM_YMM20,x86_64::ymm20)
-(REGNUM_YMM21,x86_64::ymm21)
-(REGNUM_YMM22,x86_64::ymm22)
-(REGNUM_YMM23,x86_64::ymm23)
-(REGNUM_YMM24,x86_64::ymm24)
-(REGNUM_YMM25,x86_64::ymm25)
-(REGNUM_YMM26,x86_64::ymm26)
-(REGNUM_YMM27,x86_64::ymm27)
-(REGNUM_YMM28,x86_64::ymm28)
-(REGNUM_YMM29,x86_64::ymm29)
-(REGNUM_YMM30,x86_64::ymm30)
-(REGNUM_YMM31,x86_64::ymm31)
-(REGNUM_XMM0,x86_64::xmm0)
-(REGNUM_XMM1,x86_64::xmm1)
-(REGNUM_XMM2,x86_64::xmm2)
-(REGNUM_XMM3,x86_64::xmm3)
-(REGNUM_XMM4,x86_64::xmm4)
-(REGNUM_XMM5,x86_64::xmm5)
-(REGNUM_XMM6,x86_64::xmm6)
-(REGNUM_XMM7,x86_64::xmm7)
-(REGNUM_XMM8,x86_64::xmm8)
-(REGNUM_XMM9,x86_64::xmm9)
-(REGNUM_XMM10,x86_64::xmm10)
-(REGNUM_XMM11,x86_64::xmm11)
-(REGNUM_XMM12,x86_64::xmm12)
-(REGNUM_XMM13,x86_64::xmm13)
-(REGNUM_XMM14,x86_64::xmm14)
-(REGNUM_XMM15,x86_64::xmm15)
-(REGNUM_XMM16,x86_64::xmm16)
-(REGNUM_XMM17,x86_64::xmm17)
-(REGNUM_XMM18,x86_64::xmm18)
-(REGNUM_XMM19,x86_64::xmm19)
-(REGNUM_XMM20,x86_64::xmm20)
-(REGNUM_XMM21,x86_64::xmm21)
-(REGNUM_XMM22,x86_64::xmm22)
-(REGNUM_XMM23,x86_64::xmm23)
-(REGNUM_XMM24,x86_64::xmm24)
-(REGNUM_XMM25,x86_64::xmm25)
-(REGNUM_XMM26,x86_64::xmm26)
-(REGNUM_XMM27,x86_64::xmm27)
-(REGNUM_XMM28,x86_64::xmm28)
-(REGNUM_XMM29,x86_64::xmm29)
-(REGNUM_XMM30,x86_64::xmm30)
-(REGNUM_XMM31,x86_64::xmm31)
-(REGNUM_DUMMYFPR,x86_64::mm0)
-(REGNUM_MM0, x86_64::mm0)
-(REGNUM_MM1, x86_64::mm0)
-(REGNUM_MM2, x86_64::mm0)
-(REGNUM_MM3, x86_64::mm0)
-(REGNUM_MM4, x86_64::mm0)
-(REGNUM_MM5, x86_64::mm0)
-(REGNUM_MM6, x86_64::mm0)
-(REGNUM_MM7, x86_64::mm0)
-(REGNUM_IGNORED,x86_64::cr0)
-(REGNUM_IGNORED,x86_64::cr1)
-(REGNUM_IGNORED,x86_64::cr2)
-(REGNUM_IGNORED,x86_64::cr3)
-(REGNUM_IGNORED,x86_64::cr4)
-(REGNUM_IGNORED,x86_64::cr5)
-(REGNUM_IGNORED,x86_64::cr6)
-(REGNUM_IGNORED,x86_64::cr7)
-(REGNUM_IGNORED,x86_64::dr0)
-(REGNUM_IGNORED,x86_64::dr1)
-(REGNUM_IGNORED,x86_64::dr2)
-(REGNUM_IGNORED,x86_64::dr3)
-(REGNUM_IGNORED,x86_64::dr4)
-(REGNUM_IGNORED,x86_64::dr5)
-(REGNUM_IGNORED,x86_64::dr6)
-(REGNUM_IGNORED,x86_64::dr7)
-;
+multimap<Register, MachRegister> regToMachReg64 = map_list_of(REGNUM_R8, x86_64::r8)(
+    REGNUM_R9, x86_64::r9)(REGNUM_R10, x86_64::r10)(REGNUM_R11, x86_64::r11)(
+    REGNUM_R12, x86_64::r12)(REGNUM_R13, x86_64::r13)(REGNUM_R14, x86_64::r14)(
+    REGNUM_R15, x86_64::r15)(REGNUM_IGNORED, x86_64::cs)(REGNUM_IGNORED, x86_64::ds)(
+    REGNUM_IGNORED, x86_64::es)(REGNUM_FS, x86_64::fs)(REGNUM_IGNORED, x86_64::gs)(
+    REGNUM_IGNORED, x86_64::ss)(REGNUM_RAX, x86_64::rax)(REGNUM_RCX, x86_64::rcx)(
+    REGNUM_RDX, x86_64::rdx)(REGNUM_RBX, x86_64::rbx)(REGNUM_RSP, x86_64::rsp)(
+    REGNUM_RBP, x86_64::rbp)(REGNUM_RSI, x86_64::rsi)(REGNUM_RDI, x86_64::rdi)(
+    REGNUM_IGNORED, x86_64::rip)(REGNUM_CF, x86_64::cf)(REGNUM_PF, x86_64::pf)(
+    REGNUM_AF, x86_64::af)(REGNUM_ZF, x86_64::zf)(REGNUM_SF, x86_64::sf)(
+    REGNUM_TF, x86_64::tf)(REGNUM_DF, x86_64::df)(REGNUM_OF, x86_64::of)(
+    REGNUM_NT, x86_64::nt_)(REGNUM_IF, x86_64::if_)(REGNUM_RF, x86_64::rf)(
+    REGNUM_EFLAGS, x86_64::cf)(REGNUM_EFLAGS, x86_64::pf)(REGNUM_EFLAGS, x86_64::af)(
+    REGNUM_EFLAGS, x86_64::zf)(REGNUM_EFLAGS, x86_64::sf)(REGNUM_EFLAGS, x86_64::tf)(
+    REGNUM_EFLAGS, x86_64::df)(REGNUM_EFLAGS, x86_64::of)(REGNUM_EFLAGS, x86_64::nt_)(
+    REGNUM_EFLAGS, x86_64::if_)(REGNUM_EFLAGS, x86_64::rf)(REGNUM_K0, x86_64::k0)(
+    REGNUM_K1, x86_64::k1)(REGNUM_K2, x86_64::k2)(REGNUM_K3, x86_64::k3)(
+    REGNUM_K4, x86_64::k4)(REGNUM_K5, x86_64::k5)(REGNUM_K6, x86_64::k6)(
+    REGNUM_K7, x86_64::k7)(REGNUM_ZMM0, x86_64::zmm0)(REGNUM_ZMM1, x86_64::zmm1)(
+    REGNUM_ZMM2, x86_64::zmm2)(REGNUM_ZMM3, x86_64::zmm3)(REGNUM_ZMM4, x86_64::zmm4)(
+    REGNUM_ZMM5, x86_64::zmm5)(REGNUM_ZMM6, x86_64::zmm6)(REGNUM_ZMM7, x86_64::zmm7)(
+    REGNUM_ZMM8, x86_64::zmm8)(REGNUM_ZMM9, x86_64::zmm9)(REGNUM_ZMM10, x86_64::zmm10)(
+    REGNUM_ZMM11, x86_64::zmm11)(REGNUM_ZMM12, x86_64::zmm12)(
+    REGNUM_ZMM13, x86_64::zmm13)(REGNUM_ZMM14, x86_64::zmm14)(
+    REGNUM_ZMM15, x86_64::zmm15)(REGNUM_ZMM16, x86_64::zmm16)(
+    REGNUM_ZMM17, x86_64::zmm17)(REGNUM_ZMM18, x86_64::zmm18)(
+    REGNUM_ZMM19, x86_64::zmm19)(REGNUM_ZMM20, x86_64::zmm20)(
+    REGNUM_ZMM21, x86_64::zmm21)(REGNUM_ZMM22, x86_64::zmm22)(
+    REGNUM_ZMM23, x86_64::zmm23)(REGNUM_ZMM24, x86_64::zmm24)(
+    REGNUM_ZMM25, x86_64::zmm25)(REGNUM_ZMM26, x86_64::zmm26)(
+    REGNUM_ZMM27, x86_64::zmm27)(REGNUM_ZMM28, x86_64::zmm28)(
+    REGNUM_ZMM29, x86_64::zmm29)(REGNUM_ZMM30, x86_64::zmm30)(
+    REGNUM_ZMM31, x86_64::zmm31)(REGNUM_YMM0, x86_64::ymm0)(REGNUM_YMM1, x86_64::ymm1)(
+    REGNUM_YMM2, x86_64::ymm2)(REGNUM_YMM3, x86_64::ymm3)(REGNUM_YMM4, x86_64::ymm4)(
+    REGNUM_YMM5, x86_64::ymm5)(REGNUM_YMM6, x86_64::ymm6)(REGNUM_YMM7, x86_64::ymm7)(
+    REGNUM_YMM8, x86_64::ymm8)(REGNUM_YMM9, x86_64::ymm9)(REGNUM_YMM10, x86_64::ymm10)(
+    REGNUM_YMM11, x86_64::ymm11)(REGNUM_YMM12, x86_64::ymm12)(
+    REGNUM_YMM13, x86_64::ymm13)(REGNUM_YMM14, x86_64::ymm14)(
+    REGNUM_YMM15, x86_64::ymm15)(REGNUM_YMM16, x86_64::ymm16)(
+    REGNUM_YMM17, x86_64::ymm17)(REGNUM_YMM18, x86_64::ymm18)(
+    REGNUM_YMM19, x86_64::ymm19)(REGNUM_YMM20, x86_64::ymm20)(
+    REGNUM_YMM21, x86_64::ymm21)(REGNUM_YMM22, x86_64::ymm22)(
+    REGNUM_YMM23, x86_64::ymm23)(REGNUM_YMM24, x86_64::ymm24)(
+    REGNUM_YMM25, x86_64::ymm25)(REGNUM_YMM26, x86_64::ymm26)(
+    REGNUM_YMM27, x86_64::ymm27)(REGNUM_YMM28, x86_64::ymm28)(
+    REGNUM_YMM29, x86_64::ymm29)(REGNUM_YMM30, x86_64::ymm30)(
+    REGNUM_YMM31, x86_64::ymm31)(REGNUM_XMM0, x86_64::xmm0)(REGNUM_XMM1, x86_64::xmm1)(
+    REGNUM_XMM2, x86_64::xmm2)(REGNUM_XMM3, x86_64::xmm3)(REGNUM_XMM4, x86_64::xmm4)(
+    REGNUM_XMM5, x86_64::xmm5)(REGNUM_XMM6, x86_64::xmm6)(REGNUM_XMM7, x86_64::xmm7)(
+    REGNUM_XMM8, x86_64::xmm8)(REGNUM_XMM9, x86_64::xmm9)(REGNUM_XMM10, x86_64::xmm10)(
+    REGNUM_XMM11, x86_64::xmm11)(REGNUM_XMM12, x86_64::xmm12)(
+    REGNUM_XMM13, x86_64::xmm13)(REGNUM_XMM14, x86_64::xmm14)(
+    REGNUM_XMM15, x86_64::xmm15)(REGNUM_XMM16, x86_64::xmm16)(
+    REGNUM_XMM17, x86_64::xmm17)(REGNUM_XMM18, x86_64::xmm18)(
+    REGNUM_XMM19, x86_64::xmm19)(REGNUM_XMM20, x86_64::xmm20)(
+    REGNUM_XMM21, x86_64::xmm21)(REGNUM_XMM22, x86_64::xmm22)(
+    REGNUM_XMM23, x86_64::xmm23)(REGNUM_XMM24, x86_64::xmm24)(
+    REGNUM_XMM25, x86_64::xmm25)(REGNUM_XMM26, x86_64::xmm26)(
+    REGNUM_XMM27, x86_64::xmm27)(REGNUM_XMM28, x86_64::xmm28)(
+    REGNUM_XMM29, x86_64::xmm29)(REGNUM_XMM30, x86_64::xmm30)(
+    REGNUM_XMM31, x86_64::xmm31)(REGNUM_DUMMYFPR, x86_64::mm0)(REGNUM_MM0, x86_64::mm0)(
+    REGNUM_MM1, x86_64::mm0)(REGNUM_MM2, x86_64::mm0)(REGNUM_MM3, x86_64::mm0)(
+    REGNUM_MM4, x86_64::mm0)(REGNUM_MM5, x86_64::mm0)(REGNUM_MM6, x86_64::mm0)(
+    REGNUM_MM7, x86_64::mm0)(REGNUM_IGNORED, x86_64::cr0)(REGNUM_IGNORED, x86_64::cr1)(
+    REGNUM_IGNORED, x86_64::cr2)(REGNUM_IGNORED, x86_64::cr3)(
+    REGNUM_IGNORED, x86_64::cr4)(REGNUM_IGNORED, x86_64::cr5)(
+    REGNUM_IGNORED, x86_64::cr6)(REGNUM_IGNORED, x86_64::cr7)(
+    REGNUM_IGNORED, x86_64::dr0)(REGNUM_IGNORED, x86_64::dr1)(
+    REGNUM_IGNORED, x86_64::dr2)(REGNUM_IGNORED, x86_64::dr3)(
+    REGNUM_IGNORED, x86_64::dr4)(REGNUM_IGNORED, x86_64::dr5)(
+    REGNUM_IGNORED, x86_64::dr6)(REGNUM_IGNORED, x86_64::dr7);
 
+map<MachRegister, Register> reverseRegisterMap = map_list_of(x86_64::r8, REGNUM_R8)(
+    x86_64::r9, REGNUM_R9)(x86_64::r10, REGNUM_R10)(x86_64::r11, REGNUM_R11)(
+    x86_64::r12, REGNUM_R12)(x86_64::r13, REGNUM_R13)(x86_64::r14, REGNUM_R14)(
+    x86_64::r15, REGNUM_R15)(x86_64::cs, REGNUM_IGNORED)(x86_64::ds, REGNUM_IGNORED)(
+    x86_64::es, REGNUM_IGNORED)(x86_64::fs, REGNUM_FS)(x86_64::gs, REGNUM_IGNORED)(
+    x86_64::ss, REGNUM_IGNORED)(x86_64::rax, REGNUM_RAX)(x86_64::rcx, REGNUM_RCX)(
+    x86_64::rdx, REGNUM_RDX)(x86_64::rbx, REGNUM_RBX)(x86_64::rsp, REGNUM_RSP)(
+    x86_64::rbp, REGNUM_RBP)(x86_64::rsi, REGNUM_RSI)(x86_64::rdi, REGNUM_RDI)(
+    x86_64::rip, REGNUM_IGNORED)(x86_64::cf, REGNUM_CF)(x86_64::pf, REGNUM_PF)(
+    x86_64::af, REGNUM_AF)(x86_64::zf, REGNUM_ZF)(x86_64::sf, REGNUM_SF)(
+    x86_64::tf, REGNUM_TF)(x86_64::df, REGNUM_DF)(x86_64::of, REGNUM_OF)(
+    x86_64::nt_, REGNUM_NT)(x86_64::if_, REGNUM_IF)(x86_64::flags, REGNUM_EFLAGS)(
+    x86_64::zmm0, REGNUM_ZMM0)(x86_64::zmm1, REGNUM_ZMM1)(x86_64::zmm2, REGNUM_ZMM2)(
+    x86_64::zmm3, REGNUM_ZMM3)(x86_64::zmm4, REGNUM_ZMM4)(x86_64::zmm5, REGNUM_ZMM5)(
+    x86_64::zmm6, REGNUM_ZMM6)(x86_64::zmm7, REGNUM_ZMM7)(x86_64::zmm8, REGNUM_ZMM8)(
+    x86_64::zmm9, REGNUM_ZMM9)(x86_64::zmm10, REGNUM_ZMM10)(x86_64::zmm11, REGNUM_ZMM11)(
+    x86_64::zmm12, REGNUM_ZMM12)(x86_64::zmm13, REGNUM_ZMM13)(
+    x86_64::zmm14, REGNUM_ZMM14)(x86_64::zmm15, REGNUM_ZMM15)(
+    x86_64::zmm16, REGNUM_ZMM16)(x86_64::zmm17, REGNUM_ZMM17)(
+    x86_64::zmm18, REGNUM_ZMM18)(x86_64::zmm19, REGNUM_ZMM19)(
+    x86_64::zmm20, REGNUM_ZMM20)(x86_64::zmm21, REGNUM_ZMM21)(
+    x86_64::zmm22, REGNUM_ZMM22)(x86_64::zmm23, REGNUM_ZMM23)(
+    x86_64::zmm24, REGNUM_ZMM24)(x86_64::zmm25, REGNUM_ZMM25)(
+    x86_64::zmm26, REGNUM_ZMM26)(x86_64::zmm27, REGNUM_ZMM27)(
+    x86_64::zmm28, REGNUM_ZMM28)(x86_64::zmm29, REGNUM_ZMM29)(
+    x86_64::zmm30, REGNUM_ZMM30)(x86_64::zmm31, REGNUM_ZMM31)(x86_64::ymm0, REGNUM_YMM0)(
+    x86_64::ymm1, REGNUM_YMM1)(x86_64::ymm2, REGNUM_YMM2)(x86_64::ymm3, REGNUM_YMM3)(
+    x86_64::ymm4, REGNUM_YMM4)(x86_64::ymm5, REGNUM_YMM5)(x86_64::ymm6, REGNUM_YMM6)(
+    x86_64::ymm7, REGNUM_YMM7)(x86_64::ymm8, REGNUM_YMM8)(x86_64::ymm9, REGNUM_YMM9)(
+    x86_64::ymm10, REGNUM_YMM10)(x86_64::ymm11, REGNUM_YMM11)(
+    x86_64::ymm12, REGNUM_YMM12)(x86_64::ymm13, REGNUM_YMM13)(
+    x86_64::ymm14, REGNUM_YMM14)(x86_64::ymm15, REGNUM_YMM15)(
+    x86_64::ymm16, REGNUM_YMM16)(x86_64::ymm17, REGNUM_YMM17)(
+    x86_64::ymm18, REGNUM_YMM18)(x86_64::ymm19, REGNUM_YMM19)(
+    x86_64::ymm20, REGNUM_YMM20)(x86_64::ymm21, REGNUM_YMM21)(
+    x86_64::ymm22, REGNUM_YMM22)(x86_64::ymm23, REGNUM_YMM23)(
+    x86_64::ymm24, REGNUM_YMM24)(x86_64::ymm25, REGNUM_YMM25)(
+    x86_64::ymm26, REGNUM_YMM26)(x86_64::ymm27, REGNUM_YMM27)(
+    x86_64::ymm28, REGNUM_YMM28)(x86_64::ymm29, REGNUM_YMM29)(
+    x86_64::ymm30, REGNUM_YMM30)(x86_64::ymm31, REGNUM_YMM31)(x86_64::xmm0, REGNUM_XMM0)(
+    x86_64::xmm1, REGNUM_XMM1)(x86_64::xmm2, REGNUM_XMM2)(x86_64::xmm3, REGNUM_XMM3)(
+    x86_64::xmm4, REGNUM_XMM4)(x86_64::xmm5, REGNUM_XMM5)(x86_64::xmm6, REGNUM_XMM6)(
+    x86_64::xmm7, REGNUM_XMM7)(x86_64::xmm8, REGNUM_XMM8)(x86_64::xmm9, REGNUM_XMM9)(
+    x86_64::xmm10, REGNUM_XMM10)(x86_64::xmm11, REGNUM_XMM11)(
+    x86_64::xmm12, REGNUM_XMM12)(x86_64::xmm13, REGNUM_XMM13)(
+    x86_64::xmm14, REGNUM_XMM14)(x86_64::xmm15, REGNUM_XMM15)(
+    x86_64::xmm16, REGNUM_XMM16)(x86_64::xmm17, REGNUM_XMM17)(
+    x86_64::xmm18, REGNUM_XMM18)(x86_64::xmm19, REGNUM_XMM19)(
+    x86_64::xmm20, REGNUM_XMM20)(x86_64::xmm21, REGNUM_XMM21)(
+    x86_64::xmm22, REGNUM_XMM22)(x86_64::xmm23, REGNUM_XMM23)(
+    x86_64::xmm24, REGNUM_XMM24)(x86_64::xmm25, REGNUM_XMM25)(
+    x86_64::xmm26, REGNUM_XMM26)(x86_64::xmm27, REGNUM_XMM27)(
+    x86_64::xmm28, REGNUM_XMM28)(x86_64::xmm29, REGNUM_XMM29)(
+    x86_64::xmm30, REGNUM_XMM30)(x86_64::xmm31, REGNUM_XMM31)(
+    x86_64::mm0, REGNUM_DUMMYFPR)(x86_64::mm1, REGNUM_DUMMYFPR)(
+    x86_64::mm2, REGNUM_DUMMYFPR)(x86_64::mm3, REGNUM_DUMMYFPR)(
+    x86_64::mm4, REGNUM_DUMMYFPR)(x86_64::mm5, REGNUM_DUMMYFPR)(
+    x86_64::mm6, REGNUM_DUMMYFPR)(x86_64::mm7, REGNUM_DUMMYFPR)(
+    x86_64::cr0, REGNUM_IGNORED)(x86_64::cr1, REGNUM_IGNORED)(
+    x86_64::cr2, REGNUM_IGNORED)(x86_64::cr3, REGNUM_IGNORED)(
+    x86_64::cr4, REGNUM_IGNORED)(x86_64::cr5, REGNUM_IGNORED)(
+    x86_64::cr6, REGNUM_IGNORED)(x86_64::cr7, REGNUM_IGNORED)(
+    x86_64::dr0, REGNUM_IGNORED)(x86_64::dr1, REGNUM_IGNORED)(
+    x86_64::dr2, REGNUM_IGNORED)(x86_64::dr3, REGNUM_IGNORED)(
+    x86_64::dr4, REGNUM_IGNORED)(x86_64::dr5, REGNUM_IGNORED)(
+    x86_64::dr6, REGNUM_IGNORED)(x86_64::dr7, REGNUM_IGNORED)(
+    x86_64::st0, REGNUM_DUMMYFPR)(x86_64::st1, REGNUM_DUMMYFPR)(
+    x86_64::st2, REGNUM_DUMMYFPR)(x86_64::st3, REGNUM_DUMMYFPR)(
+    x86_64::st4, REGNUM_DUMMYFPR)(x86_64::st5, REGNUM_DUMMYFPR)(
+    x86_64::st6, REGNUM_DUMMYFPR)(x86_64::st7, REGNUM_DUMMYFPR);
 
-map<MachRegister, Register> reverseRegisterMap = map_list_of
-        (x86_64::r8, REGNUM_R8)
-        (x86_64::r9, REGNUM_R9)
-        (x86_64::r10, REGNUM_R10)
-        (x86_64::r11, REGNUM_R11)
-        (x86_64::r12, REGNUM_R12)
-        (x86_64::r13, REGNUM_R13)
-        (x86_64::r14, REGNUM_R14)
-        (x86_64::r15, REGNUM_R15)
-        (x86_64::cs, REGNUM_IGNORED)
-        (x86_64::ds, REGNUM_IGNORED)
-        (x86_64::es, REGNUM_IGNORED)
-        (x86_64::fs, REGNUM_FS)
-        (x86_64::gs, REGNUM_IGNORED)
-        (x86_64::ss, REGNUM_IGNORED)
-        (x86_64::rax, REGNUM_RAX)
-        (x86_64::rcx, REGNUM_RCX)
-        (x86_64::rdx, REGNUM_RDX)
-        (x86_64::rbx, REGNUM_RBX)
-        (x86_64::rsp, REGNUM_RSP)
-        (x86_64::rbp, REGNUM_RBP)
-        (x86_64::rsi, REGNUM_RSI)
-        (x86_64::rdi, REGNUM_RDI)
-        (x86_64::rip, REGNUM_IGNORED)
-        (x86_64::cf, REGNUM_CF)
-        (x86_64::pf, REGNUM_PF)
-        (x86_64::af, REGNUM_AF)
-        (x86_64::zf, REGNUM_ZF)  
-        (x86_64::sf, REGNUM_SF)
-        (x86_64::tf, REGNUM_TF)
-        (x86_64::df, REGNUM_DF)
-        (x86_64::of, REGNUM_OF)
-        (x86_64::nt_, REGNUM_NT)
-        (x86_64::if_, REGNUM_IF)
-        (x86_64::flags, REGNUM_EFLAGS)
-        (x86_64::zmm0, REGNUM_ZMM0)
-        (x86_64::zmm1, REGNUM_ZMM1)
-        (x86_64::zmm2, REGNUM_ZMM2)
-        (x86_64::zmm3, REGNUM_ZMM3)
-        (x86_64::zmm4, REGNUM_ZMM4)
-        (x86_64::zmm5, REGNUM_ZMM5)
-        (x86_64::zmm6, REGNUM_ZMM6)
-        (x86_64::zmm7, REGNUM_ZMM7)
-        (x86_64::zmm8, REGNUM_ZMM8)
-        (x86_64::zmm9, REGNUM_ZMM9)
-        (x86_64::zmm10, REGNUM_ZMM10)
-        (x86_64::zmm11, REGNUM_ZMM11)
-        (x86_64::zmm12, REGNUM_ZMM12)
-        (x86_64::zmm13, REGNUM_ZMM13)
-        (x86_64::zmm14, REGNUM_ZMM14)
-        (x86_64::zmm15, REGNUM_ZMM15)
-        (x86_64::zmm16, REGNUM_ZMM16)
-        (x86_64::zmm17, REGNUM_ZMM17)
-        (x86_64::zmm18, REGNUM_ZMM18)
-        (x86_64::zmm19, REGNUM_ZMM19)
-        (x86_64::zmm20, REGNUM_ZMM20)
-        (x86_64::zmm21, REGNUM_ZMM21)
-        (x86_64::zmm22, REGNUM_ZMM22)
-        (x86_64::zmm23, REGNUM_ZMM23)
-        (x86_64::zmm24, REGNUM_ZMM24)
-        (x86_64::zmm25, REGNUM_ZMM25)
-        (x86_64::zmm26, REGNUM_ZMM26)
-        (x86_64::zmm27, REGNUM_ZMM27)
-        (x86_64::zmm28, REGNUM_ZMM28)
-        (x86_64::zmm29, REGNUM_ZMM29)
-        (x86_64::zmm30, REGNUM_ZMM30)
-        (x86_64::zmm31, REGNUM_ZMM31)
-        (x86_64::ymm0, REGNUM_YMM0)
-        (x86_64::ymm1, REGNUM_YMM1)
-        (x86_64::ymm2, REGNUM_YMM2)
-        (x86_64::ymm3, REGNUM_YMM3)
-        (x86_64::ymm4, REGNUM_YMM4)
-        (x86_64::ymm5, REGNUM_YMM5)
-        (x86_64::ymm6, REGNUM_YMM6)
-        (x86_64::ymm7, REGNUM_YMM7)
-        (x86_64::ymm8, REGNUM_YMM8)
-        (x86_64::ymm9, REGNUM_YMM9)
-        (x86_64::ymm10, REGNUM_YMM10)
-        (x86_64::ymm11, REGNUM_YMM11)
-        (x86_64::ymm12, REGNUM_YMM12)
-        (x86_64::ymm13, REGNUM_YMM13)
-        (x86_64::ymm14, REGNUM_YMM14)
-        (x86_64::ymm15, REGNUM_YMM15)
-        (x86_64::ymm16, REGNUM_YMM16)
-        (x86_64::ymm17, REGNUM_YMM17)
-        (x86_64::ymm18, REGNUM_YMM18)
-        (x86_64::ymm19, REGNUM_YMM19)
-        (x86_64::ymm20, REGNUM_YMM20)
-        (x86_64::ymm21, REGNUM_YMM21)
-        (x86_64::ymm22, REGNUM_YMM22)
-        (x86_64::ymm23, REGNUM_YMM23)
-        (x86_64::ymm24, REGNUM_YMM24)
-        (x86_64::ymm25, REGNUM_YMM25)
-        (x86_64::ymm26, REGNUM_YMM26)
-        (x86_64::ymm27, REGNUM_YMM27)
-        (x86_64::ymm28, REGNUM_YMM28)
-        (x86_64::ymm29, REGNUM_YMM29)
-        (x86_64::ymm30, REGNUM_YMM30)
-        (x86_64::ymm31, REGNUM_YMM31)
-        (x86_64::xmm0, REGNUM_XMM0)
-        (x86_64::xmm1, REGNUM_XMM1)
-        (x86_64::xmm2, REGNUM_XMM2)
-        (x86_64::xmm3, REGNUM_XMM3)
-        (x86_64::xmm4, REGNUM_XMM4)
-        (x86_64::xmm5, REGNUM_XMM5)
-        (x86_64::xmm6, REGNUM_XMM6)
-        (x86_64::xmm7, REGNUM_XMM7)
-        (x86_64::xmm8, REGNUM_XMM8)
-        (x86_64::xmm9, REGNUM_XMM9)
-        (x86_64::xmm10, REGNUM_XMM10)
-        (x86_64::xmm11, REGNUM_XMM11)
-        (x86_64::xmm12, REGNUM_XMM12)
-        (x86_64::xmm13, REGNUM_XMM13)
-        (x86_64::xmm14, REGNUM_XMM14)
-        (x86_64::xmm15, REGNUM_XMM15)
-        (x86_64::xmm16, REGNUM_XMM16)
-        (x86_64::xmm17, REGNUM_XMM17)
-        (x86_64::xmm18, REGNUM_XMM18)
-        (x86_64::xmm19, REGNUM_XMM19)
-        (x86_64::xmm20, REGNUM_XMM20)
-        (x86_64::xmm21, REGNUM_XMM21)
-        (x86_64::xmm22, REGNUM_XMM22)
-        (x86_64::xmm23, REGNUM_XMM23)
-        (x86_64::xmm24, REGNUM_XMM24)
-        (x86_64::xmm25, REGNUM_XMM25)
-        (x86_64::xmm26, REGNUM_XMM26)
-        (x86_64::xmm27, REGNUM_XMM27)
-        (x86_64::xmm28, REGNUM_XMM28)
-        (x86_64::xmm29, REGNUM_XMM29)
-        (x86_64::xmm30, REGNUM_XMM30)
-        (x86_64::xmm31, REGNUM_XMM31)
-        (x86_64::mm0, REGNUM_DUMMYFPR)
-        (x86_64::mm1, REGNUM_DUMMYFPR)
-        (x86_64::mm2, REGNUM_DUMMYFPR)
-        (x86_64::mm3, REGNUM_DUMMYFPR)
-        (x86_64::mm4, REGNUM_DUMMYFPR)
-        (x86_64::mm5, REGNUM_DUMMYFPR)
-        (x86_64::mm6, REGNUM_DUMMYFPR)
-        (x86_64::mm7, REGNUM_DUMMYFPR)
-        (x86_64::cr0, REGNUM_IGNORED)
-        (x86_64::cr1, REGNUM_IGNORED)
-        (x86_64::cr2, REGNUM_IGNORED)
-        (x86_64::cr3, REGNUM_IGNORED)
-        (x86_64::cr4, REGNUM_IGNORED)
-        (x86_64::cr5, REGNUM_IGNORED)
-        (x86_64::cr6, REGNUM_IGNORED)
-        (x86_64::cr7, REGNUM_IGNORED)
-        (x86_64::dr0, REGNUM_IGNORED)
-        (x86_64::dr1, REGNUM_IGNORED)
-        (x86_64::dr2, REGNUM_IGNORED)
-        (x86_64::dr3, REGNUM_IGNORED)
-        (x86_64::dr4, REGNUM_IGNORED)
-        (x86_64::dr5, REGNUM_IGNORED)
-        (x86_64::dr6, REGNUM_IGNORED)
-        (x86_64::dr7, REGNUM_IGNORED)
-        (x86_64::st0, REGNUM_DUMMYFPR)
-        (x86_64::st1, REGNUM_DUMMYFPR)
-        (x86_64::st2, REGNUM_DUMMYFPR)
-        (x86_64::st3, REGNUM_DUMMYFPR)
-        (x86_64::st4, REGNUM_DUMMYFPR)
-        (x86_64::st5, REGNUM_DUMMYFPR)
-        (x86_64::st6, REGNUM_DUMMYFPR)
-        (x86_64::st7, REGNUM_DUMMYFPR)
-        ;
-
-Register convertRegID(MachRegister reg, bool &wasUpcast) {
+Register
+convertRegID(MachRegister reg, bool& wasUpcast)
+{
     wasUpcast = false;
-    if(reg.getBaseRegister().val() != reg.val()) wasUpcast = true;
-    MachRegister baseReg = MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_x86_64);
-//    RegisterAST::Ptr debug(new RegisterAST(baseReg));
-//    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
-//    fprintf(stderr, " to %s\n", debug->format().c_str());
-    map<MachRegister, Register>::const_iterator found =
-            reverseRegisterMap.find(baseReg);
-    if(found == reverseRegisterMap.end()) {
-      // Yeah, this happens when we analyze trash code. Oops...
-		return REGNUM_IGNORED;
+    if(reg.getBaseRegister().val() != reg.val())
+        wasUpcast = true;
+    MachRegister baseReg = MachRegister(
+        (reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_x86_64);
+    //    RegisterAST::Ptr debug(new RegisterAST(baseReg));
+    //    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
+    //    fprintf(stderr, " to %s\n", debug->format().c_str());
+    map<MachRegister, Register>::const_iterator found = reverseRegisterMap.find(baseReg);
+    if(found == reverseRegisterMap.end())
+    {
+        // Yeah, this happens when we analyze trash code. Oops...
+        return REGNUM_IGNORED;
     }
-    if(found->second == REGNUM_DUMMYFPR) {
+    if(found->second == REGNUM_DUMMYFPR)
+    {
         wasUpcast = true;
         if(reg.getArchitecture() == Arch_x86)
         {
@@ -483,104 +241,63 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
     return found->second;
 }
 
-
-Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
+Register
+convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
 {
     return convertRegID(toBeConverted.get(), wasUpcast);
 }
-        
-Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
+
+Register
+convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
 {
-    if(!toBeConverted) {
-        //assert(0);
+    if(!toBeConverted)
+    {
+        // assert(0);
         return REGNUM_IGNORED;
     }
     return convertRegID(toBeConverted->getID(), wasUpcast);
 }
 
-map<Register, MachRegister> machRegisterMapx86_64 = map_list_of
-        (REGNUM_R8, x86_64::r8)
-        (REGNUM_R9, x86_64::r9)
-        (REGNUM_R10, x86_64::r10)
-        (REGNUM_R11, x86_64::r11)
-        (REGNUM_R12, x86_64::r12)
-        (REGNUM_R13, x86_64::r13)
-        (REGNUM_R14, x86_64::r14)
-        (REGNUM_R15, x86_64::r15)
-        (REGNUM_RAX, x86_64::rax)
-        (REGNUM_RCX, x86_64::rcx)
-        (REGNUM_RDX, x86_64::rdx)
-        (REGNUM_RBX, x86_64::rbx)
-        (REGNUM_RSP, x86_64::rsp)
-        (REGNUM_RBP, x86_64::rbp)
-        (REGNUM_RSI, x86_64::rsi)
-        (REGNUM_RDI, x86_64::rdi)
-        (REGNUM_CF, x86_64::cf)
-        (REGNUM_PF, x86_64::pf)
-        (REGNUM_AF, x86_64::af)
-        (REGNUM_ZF, x86_64::zf)  
-        (REGNUM_SF, x86_64::sf)
-        (REGNUM_TF, x86_64::tf)
-        (REGNUM_DF, x86_64::df)
-        (REGNUM_OF, x86_64::of)
-        (REGNUM_NT, x86_64::nt_)
-        (REGNUM_IF, x86_64::if_)
-        (REGNUM_EFLAGS, x86_64::flags)
-        (REGNUM_XMM0, x86_64::xmm0)
-        (REGNUM_XMM1, x86_64::xmm1)
-        (REGNUM_XMM2, x86_64::xmm2)
-        (REGNUM_XMM3, x86_64::xmm3)
-        (REGNUM_XMM4, x86_64::xmm4)
-        (REGNUM_XMM5, x86_64::xmm5)
-        (REGNUM_XMM6, x86_64::xmm6)
-        (REGNUM_XMM7, x86_64::xmm7)
-        (REGNUM_FS, x86_64::fs)
-        ;
+map<Register, MachRegister> machRegisterMapx86_64 =
+    map_list_of(REGNUM_R8, x86_64::r8)(REGNUM_R9, x86_64::r9)(REGNUM_R10, x86_64::r10)(
+        REGNUM_R11, x86_64::r11)(REGNUM_R12, x86_64::r12)(REGNUM_R13, x86_64::r13)(
+        REGNUM_R14, x86_64::r14)(REGNUM_R15, x86_64::r15)(REGNUM_RAX, x86_64::rax)(
+        REGNUM_RCX, x86_64::rcx)(REGNUM_RDX, x86_64::rdx)(REGNUM_RBX, x86_64::rbx)(
+        REGNUM_RSP, x86_64::rsp)(REGNUM_RBP, x86_64::rbp)(REGNUM_RSI, x86_64::rsi)(
+        REGNUM_RDI, x86_64::rdi)(REGNUM_CF, x86_64::cf)(REGNUM_PF, x86_64::pf)(
+        REGNUM_AF, x86_64::af)(REGNUM_ZF, x86_64::zf)(REGNUM_SF, x86_64::sf)(
+        REGNUM_TF, x86_64::tf)(REGNUM_DF, x86_64::df)(REGNUM_OF, x86_64::of)(
+        REGNUM_NT, x86_64::nt_)(REGNUM_IF, x86_64::if_)(REGNUM_EFLAGS, x86_64::flags)(
+        REGNUM_XMM0, x86_64::xmm0)(REGNUM_XMM1, x86_64::xmm1)(REGNUM_XMM2, x86_64::xmm2)(
+        REGNUM_XMM3, x86_64::xmm3)(REGNUM_XMM4, x86_64::xmm4)(REGNUM_XMM5, x86_64::xmm5)(
+        REGNUM_XMM6, x86_64::xmm6)(REGNUM_XMM7, x86_64::xmm7)(REGNUM_FS, x86_64::fs);
 
-map<Register, MachRegister> machRegisterMapx86 = map_list_of
-        (REGNUM_EAX, x86::eax)
-        (REGNUM_ECX, x86::ecx)
-        (REGNUM_EDX, x86::edx)
-        (REGNUM_EBX, x86::ebx)
-        (REGNUM_ESP, x86::esp)
-        (REGNUM_EBP, x86::ebp)
-        (REGNUM_ESI, x86::esi)
-        (REGNUM_EDI, x86::edi)
-        (REGNUM_CF, x86::cf)
-        (REGNUM_PF, x86::pf)
-        (REGNUM_AF, x86::af)
-        (REGNUM_ZF, x86::zf)  
-        (REGNUM_SF, x86::sf)
-        (REGNUM_TF, x86::tf)
-        (REGNUM_DF, x86::df)
-        (REGNUM_OF, x86::of)
-        (REGNUM_NT, x86::nt_)
-        (REGNUM_IF, x86::if_)
-        (REGNUM_EFLAGS, x86::flags)
-        (REGNUM_XMM0, x86::xmm0)
-        (REGNUM_XMM1, x86::xmm1)
-        (REGNUM_XMM2, x86::xmm2)
-        (REGNUM_XMM3, x86::xmm3)
-        (REGNUM_XMM4, x86::xmm4)
-        (REGNUM_XMM5, x86::xmm5)
-        (REGNUM_XMM6, x86::xmm6)
-        (REGNUM_XMM7, x86::xmm7)
-        (REGNUM_GS, x86::gs)
-        ;
+map<Register, MachRegister> machRegisterMapx86 =
+    map_list_of(REGNUM_EAX, x86::eax)(REGNUM_ECX, x86::ecx)(REGNUM_EDX, x86::edx)(
+        REGNUM_EBX, x86::ebx)(REGNUM_ESP, x86::esp)(REGNUM_EBP, x86::ebp)(
+        REGNUM_ESI, x86::esi)(REGNUM_EDI, x86::edi)(REGNUM_CF, x86::cf)(
+        REGNUM_PF, x86::pf)(REGNUM_AF, x86::af)(REGNUM_ZF, x86::zf)(REGNUM_SF, x86::sf)(
+        REGNUM_TF, x86::tf)(REGNUM_DF, x86::df)(REGNUM_OF, x86::of)(REGNUM_NT, x86::nt_)(
+        REGNUM_IF, x86::if_)(REGNUM_EFLAGS, x86::flags)(REGNUM_XMM0, x86::xmm0)(
+        REGNUM_XMM1, x86::xmm1)(REGNUM_XMM2, x86::xmm2)(REGNUM_XMM3, x86::xmm3)(
+        REGNUM_XMM4, x86::xmm4)(REGNUM_XMM5, x86::xmm5)(REGNUM_XMM6, x86::xmm6)(
+        REGNUM_XMM7, x86::xmm7)(REGNUM_GS, x86::gs);
 
-
-MachRegister convertRegID(Register reg, Dyninst::Architecture arch) {
+MachRegister
+convertRegID(Register reg, Dyninst::Architecture arch)
+{
     map<Register, MachRegister>::const_iterator found;
-    switch(arch) {
+    switch(arch)
+    {
         case Arch_x86_64:
             found = machRegisterMapx86_64.find(reg);
-            assert(    found != machRegisterMapx86_64.end() 
-                    && "No Register->MachRegister mapping found" );
+            assert(found != machRegisterMapx86_64.end() &&
+                   "No Register->MachRegister mapping found");
             break;
         case Arch_x86:
             found = machRegisterMapx86.find(reg);
-            assert(    found != machRegisterMapx86.end() 
-                    && "No Register->MachRegister mapping found" );
+            assert(found != machRegisterMapx86.end() &&
+                   "No Register->MachRegister mapping found");
             break;
         default:
             assert(!"Invalid architecture");

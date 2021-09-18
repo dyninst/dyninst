@@ -1,37 +1,35 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 #if !defined(_CODE_BUFFER_H_)
-#define _CODE_BUFFER_H_
-
-
+#    define _CODE_BUFFER_H_
 
 // Infrastructure for the code generating Widgets; try to automate
 // as much of the handling as we can.
@@ -41,156 +39,171 @@
 //  as a sequence of bytes that can be freely copied around, whereas non-PIC code must
 //  be tweaked whenever its address changes as part of code generation. Note, it is safe
 //  treat PIC code as non-PIC (though less than optimal); the reverse is not true. For
-//  efficiency we want to bundle PIC code together and avoid re-generating it in every pass,
-//  while keeping callbacks for non-PIC code. 
+//  efficiency we want to bundle PIC code together and avoid re-generating it in every
+//  pass, while keeping callbacks for non-PIC code.
 //
-//  Another requirement of this system is to build a tracking data structure that maps from
-//  address in the generated code to who generated that code, so we can maintain a mapping 
-//  between original addresses and moved (relocated) code. We also wish to do this automatically.
+//  Another requirement of this system is to build a tracking data structure that maps
+//  from address in the generated code to who generated that code, so we can maintain a
+//  mapping between original addresses and moved (relocated) code. We also wish to do this
+//  automatically.
 //
-//  Thus, we provide an interface that automates these two functions as much as possible. We provide
-//  two ways of specifying code: copy and patch. Copy handles PIC code, and pulls in a buffer of bytes
-//  (e.g., memcpy). Patch registers a callback for later that will provide some code. 
+//  Thus, we provide an interface that automates these two functions as much as possible.
+//  We provide two ways of specifying code: copy and patch. Copy handles PIC code, and
+//  pulls in a buffer of bytes (e.g., memcpy). Patch registers a callback for later that
+//  will provide some code.
 //
-//  With these two methods the user can specify a tracking data structure that specifies what kind
-//  of code they have provided.
+//  With these two methods the user can specify a tracking data structure that specifies
+//  what kind of code they have provided.
 
-#include "common/h/dyntypes.h"
-#include <list>
-#include "dyninstAPI/src/codegen.h"
+#    include "common/h/dyntypes.h"
+#    include <list>
+#    include "dyninstAPI/src/codegen.h"
 
 class codeGen;
 
-namespace Dyninst {
-namespace Relocation {
-        
+namespace Dyninst
+{
+namespace Relocation
+{
 // The input grammar to the CodeBuffer is [PIC|nonPIC]*. However, it is safe to accumulate
-// between adjacent PICs, so we can simplify this to ((PIC*)nonPIC)*. This drives our internal
-// storage, which is a list of (buffer, patch) pairs; the buffer contains (PIC*) and the
-// patch represents a nonPIC entry. For each pair, we also associate a list of code trackers, 
-// since there is a 1:1 relationship between each element (PIC, nonPIC) and a tracker. 
-        
+// between adjacent PICs, so we can simplify this to ((PIC*)nonPIC)*. This drives our
+// internal storage, which is a list of (buffer, patch) pairs; the buffer contains (PIC*)
+// and the patch represents a nonPIC entry. For each pair, we also associate a list of
+// code trackers, since there is a 1:1 relationship between each element (PIC, nonPIC) and
+// a tracker.
+
 class TrackerElement;
 struct Patch;
 class CodeTracker;
 class CodeMover;
 
-class CodeBuffer {
-  public: 
-   typedef std::vector<unsigned char> Buffer;
-  private:
-   
-   struct Label {
-      typedef enum {
-         Invalid,
-         Absolute,
-         Relative,
-         Estimate } Type;
-      typedef unsigned Id;
+class CodeBuffer
+{
+public:
+    typedef std::vector<unsigned char> Buffer;
 
-      Type type;
-      Id id;
-      int iteration;
-      // This is a bit of a complication. We want to estimate
-      // where a label will go pre-generation to try and
-      // reduce how many iterations we need to go through. Thus,
-      // addr may either be an absolute address,
-      // an offset, or an estimated address.
-      Address addr;
+private:
+    struct Label
+    {
+        typedef enum
+        {
+            Invalid,
+            Absolute,
+            Relative,
+            Estimate
+        } Type;
+        typedef unsigned Id;
 
-      static const unsigned INVALID;
+        Type type;
+        Id   id;
+        int  iteration;
+        // This is a bit of a complication. We want to estimate
+        // where a label will go pre-generation to try and
+        // reduce how many iterations we need to go through. Thus,
+        // addr may either be an absolute address,
+        // an offset, or an estimated address.
+        Address addr;
 
-      Label() 
-      : type(Invalid), id(0), iteration(0), addr(0) {}
-      Label(Type a, Id b, Address c)
-      : type(a), id(b), iteration(0), addr(c) { assert(id != INVALID); }
-      bool valid() { return type != Invalid; }
-   };
+        static const unsigned INVALID;
 
-   class BufferElement {
-      friend class CodeBuffer;
-     public:
-      BufferElement();
-      ~BufferElement();
-      void setLabelID(unsigned id);
-      void addPIC(const unsigned char *input, unsigned size, TrackerElement *tracker);
-      void addPIC(const Buffer &buffer, TrackerElement *tracker);
-      void setPatch(Patch *patch, TrackerElement *tracker);
+        Label()
+        : type(Invalid)
+        , id(0)
+        , iteration(0)
+        , addr(0)
+        {}
+        Label(Type a, Id b, Address c)
+        : type(a)
+        , id(b)
+        , iteration(0)
+        , addr(c)
+        {
+            assert(id != INVALID);
+        }
+        bool valid() { return type != Invalid; }
+    };
 
-      bool full() { return patch_ != NULL; }
-      bool empty();
-      bool generate(CodeBuffer *buf,
-                    codeGen &gen,
-                    int &shift,
-                    bool &regenerate);
-      bool extractTrackers(CodeTracker *t);
+    class BufferElement
+    {
+        friend class CodeBuffer;
 
-     private:
-      void addTracker(TrackerElement *tracker);
+    public:
+        BufferElement();
+        ~BufferElement();
+        void setLabelID(unsigned id);
+        void addPIC(const unsigned char* input, unsigned size, TrackerElement* tracker);
+        void addPIC(const Buffer& buffer, TrackerElement* tracker);
+        void setPatch(Patch* patch, TrackerElement* tracker);
 
-      Address addr_;
-      unsigned size_;
-      Buffer buffer_;
-      Patch *patch_;
-      unsigned labelID_;
-      // Here the Offset is an offset within the buffer, starting at 0.
-      typedef std::map<Offset, TrackerElement *> Trackers;
-      Trackers trackers_;
-   };
-   
-  public:
-   CodeBuffer();
-   ~CodeBuffer();
-   
-   void initialize(const codeGen &templ, unsigned numBlocks);
-   
-   unsigned getLabel();
-   unsigned defineLabel(Address addr);
-   void addPIC(const unsigned char *input, unsigned size, TrackerElement *tracker);
-   void addPIC(const void *input, unsigned size, TrackerElement *tracker);
-   void addPIC(const codeGen &gen, TrackerElement *tracker);
-   void addPIC(const Buffer buf, TrackerElement *tracker);
-   void addPatch(Patch *patch, TrackerElement *tracker);
-   bool extractTrackers(CodeTracker *t);
+        bool full() { return patch_ != NULL; }
+        bool empty();
+        bool generate(CodeBuffer* buf, codeGen& gen, int& shift, bool& regenerate);
+        bool extractTrackers(CodeTracker* t);
 
-   unsigned size() const;
-   void *ptr() const;
+    private:
+        void addTracker(TrackerElement* tracker);
 
-   bool generate(Address baseAddr);
-   void updateLabel(unsigned id, Address addr, bool &regenerate);
-   
-   Address predictedAddr(unsigned labelID);
-   Address getLabelAddr(unsigned labelID);
+        Address  addr_;
+        unsigned size_;
+        Buffer   buffer_;
+        Patch*   patch_;
+        unsigned labelID_;
+        // Here the Offset is an offset within the buffer, starting at 0.
+        typedef std::map<Offset, TrackerElement*> Trackers;
+        Trackers                                  trackers_;
+    };
 
-   void disassemble() const;
+public:
+    CodeBuffer();
+    ~CodeBuffer();
 
+    void initialize(const codeGen& templ, unsigned numBlocks);
 
-   codeGen &gen() { return gen_; }
-  private:
+    unsigned getLabel();
+    unsigned defineLabel(Address addr);
+    void     addPIC(const unsigned char* input, unsigned size, TrackerElement* tracker);
+    void     addPIC(const void* input, unsigned size, TrackerElement* tracker);
+    void     addPIC(const codeGen& gen, TrackerElement* tracker);
+    void     addPIC(const Buffer buf, TrackerElement* tracker);
+    void     addPatch(Patch* patch, TrackerElement* tracker);
+    bool     extractTrackers(CodeTracker* t);
 
-   BufferElement &current();
+    unsigned size() const;
+    void*    ptr() const;
 
-   typedef std::list<BufferElement> Buffers;
-   Buffers buffers_;
+    bool generate(Address baseAddr);
+    void updateLabel(unsigned id, Address addr, bool& regenerate);
 
-   unsigned size_;
+    Address predictedAddr(unsigned labelID);
+    Address getLabelAddr(unsigned labelID);
 
-   codeGen gen_;
+    void disassemble() const;
 
-   int curIteration_;
+    codeGen& gen() { return gen_; }
 
-   //typedef std::map<int, Label> Labels;
-   typedef std::vector<Label> Labels;
+private:
+    BufferElement& current();
 
-   Labels labels_;
-   int curLabelID_;
+    typedef std::list<BufferElement> Buffers;
+    Buffers                          buffers_;
 
-   int shift_;
+    unsigned size_;
 
-   bool generated_;
+    codeGen gen_;
+
+    int curIteration_;
+
+    // typedef std::map<int, Label> Labels;
+    typedef std::vector<Label> Labels;
+
+    Labels labels_;
+    int    curLabelID_;
+
+    int shift_;
+
+    bool generated_;
 };
-}
-}
-
+}  // namespace Relocation
+}  // namespace Dyninst
 
 #endif

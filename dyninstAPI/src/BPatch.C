@@ -34,7 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #if !defined(os_windows)
-#include <unistd.h>
+#    include <unistd.h>
 #endif
 
 #define BPATCH_FILE
@@ -57,7 +57,7 @@
 #include "pcEventMuxer.h"
 
 #if defined(i386_unknown_nt4_0)
-#include "nt_signal_emul.h"
+#    include "nt_signal_emul.h"
 #endif
 
 #include <fstream>
@@ -65,26 +65,33 @@
 using namespace std;
 using namespace SymtabAPI;
 
-extern void loadNativeDemangler();
+extern void
+loadNativeDemangler();
 
-BPatch *BPatch::bpatch = NULL;
+BPatch* BPatch::bpatch = NULL;
 
-void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *params);
+void
+defaultErrorFunc(BPatchErrorLevel level, int num, const char* const* params);
 
 #ifndef CASE_RETURN_STR
-#define CASE_RETURN_STR(x) case x: return #x
+#    define CASE_RETURN_STR(x)                                                           \
+        case x:                                                                          \
+            return #x
 #endif
 
-const char *asyncEventType2Str(BPatch_asyncEventType ev) {
-    switch(ev) {
+const char*
+asyncEventType2Str(BPatch_asyncEventType ev)
+{
+    switch(ev)
+    {
         CASE_RETURN_STR(BPatch_nullEvent);
         CASE_RETURN_STR(BPatch_newConnectionEvent);
         CASE_RETURN_STR(BPatch_internalShutDownEvent);
         CASE_RETURN_STR(BPatch_threadCreateEvent);
         CASE_RETURN_STR(BPatch_threadDestroyEvent);
         CASE_RETURN_STR(BPatch_dynamicCallEvent);
-    default:
-        return "BadEventType";
+        default:
+            return "BadEventType";
     }
 }
 
@@ -95,42 +102,42 @@ const char *asyncEventType2Str(BPatch_asyncEventType ev) {
  * library.
  */
 BPatch::BPatch()
-  : info(NULL),
-    typeCheckOn(true),
-    lastError(0),
-    debugParseOn(true),
-    baseTrampDeletionOn(false),
-    trampRecursiveOn(false),
-    forceRelocation_NP(false),
-    autoRelocation_NP(true),
-    saveFloatingPointsOn(true),
-    forceSaveFloatingPointsOn(false),
-    livenessAnalysisOn_(true),
-    livenessAnalysisDepth_(3),
-    asyncActive(false),
-    delayedParsing_(false),
-    instrFrames(false),
-    systemPrelinkCommand(NULL),
-    notificationFDOutput_(-1),
-    notificationFDInput_(-1),
-    FDneedsPolling_(false),
-    errorCallback(NULL),
-    preForkCallback(NULL),
-    postForkCallback(NULL),
-    execCallback(NULL),
-    exitCallback(NULL),
-    oneTimeCodeCallback(NULL),
-    dynLibraryCallback(NULL),
-    threadCreateCallback(NULL),
-    threadDestroyCallback(NULL),
-    dynamicCallSiteCallback(NULL),
-    signalHandlerCallback(NULL),
-    codeOverwriteCallback(NULL),
-    inDestructor(false),
-    builtInTypes(NULL),
-    stdTypes(NULL),
-    type_Error(NULL),
-    type_Untyped(NULL)
+: info(NULL)
+, typeCheckOn(true)
+, lastError(0)
+, debugParseOn(true)
+, baseTrampDeletionOn(false)
+, trampRecursiveOn(false)
+, forceRelocation_NP(false)
+, autoRelocation_NP(true)
+, saveFloatingPointsOn(true)
+, forceSaveFloatingPointsOn(false)
+, livenessAnalysisOn_(true)
+, livenessAnalysisDepth_(3)
+, asyncActive(false)
+, delayedParsing_(false)
+, instrFrames(false)
+, systemPrelinkCommand(NULL)
+, notificationFDOutput_(-1)
+, notificationFDInput_(-1)
+, FDneedsPolling_(false)
+, errorCallback(NULL)
+, preForkCallback(NULL)
+, postForkCallback(NULL)
+, execCallback(NULL)
+, exitCallback(NULL)
+, oneTimeCodeCallback(NULL)
+, dynLibraryCallback(NULL)
+, threadCreateCallback(NULL)
+, threadDestroyCallback(NULL)
+, dynamicCallSiteCallback(NULL)
+, signalHandlerCallback(NULL)
+, codeOverwriteCallback(NULL)
+, inDestructor(false)
+, builtInTypes(NULL)
+, stdTypes(NULL)
+, type_Error(NULL)
+, type_Untyped(NULL)
 {
     init_debug();
     init_stats();
@@ -139,8 +146,9 @@ BPatch::BPatch()
     extern bool init();
 
     // Save a pointer to the one-and-only bpatch object.
-    if (bpatch == NULL){
-       bpatch = this;
+    if(bpatch == NULL)
+    {
+        bpatch = this;
     }
 
     BPatch::bpatch->registerErrorCallback(defaultErrorFunc);
@@ -166,7 +174,8 @@ BPatch::BPatch()
     vector<boost::shared_ptr<Type>> sTypes;
     Symtab::getAllstdTypes(sTypes);
     BPatch_type* type = NULL;
-    for(const auto& t: sTypes) {
+    for(const auto& t : sTypes)
+    {
         stdTypes->addType(type = new BPatch_type(t));
         type->decrRefCount();
     }
@@ -174,17 +183,17 @@ BPatch::BPatch()
 
     builtInTypes = new BPatch_builtInTypeCollection;
     Symtab::getAllbuiltInTypes(sTypes);
-    for(const auto& t: sTypes) {
+    for(const auto& t : sTypes)
+    {
         builtInTypes->addBuiltInType(type = new BPatch_type(t));
         type->decrRefCount();
     }
 
-    //loadNativeDemangler();
+    // loadNativeDemangler();
 
-	// Start up the event handler thread
-	PCEventMuxer::start();
+    // Start up the event handler thread
+    PCEventMuxer::start();
 }
-
 
 /*
  * BPatch::~BPatch
@@ -193,12 +202,10 @@ BPatch::BPatch()
  */
 BPatch::~BPatch()
 {
-   inDestructor = true;
-    for(auto i = info->procsByPid.begin();
-        i != info->procsByPid.end();
-        ++i)
+    inDestructor = true;
+    for(auto i = info->procsByPid.begin(); i != info->procsByPid.end(); ++i)
     {
-       delete i->second;
+        delete i->second;
     }
 
     delete info;
@@ -206,132 +213,164 @@ BPatch::~BPatch()
     type_Error->decrRefCount();
     type_Untyped->decrRefCount();
 
-    if (stdTypes)
+    if(stdTypes)
         BPatch_typeCollection::freeTypeCollection(stdTypes);
-    if (APITypes)
+    if(APITypes)
         BPatch_typeCollection::freeTypeCollection(APITypes);
     if(builtInTypes)
-      delete builtInTypes;
+        delete builtInTypes;
 
-    if(systemPrelinkCommand){
-        delete [] systemPrelinkCommand;
+    if(systemPrelinkCommand)
+    {
+        delete[] systemPrelinkCommand;
     }
     bpatch = NULL;
 }
 
-BPatch *BPatch::getBPatch() {
-	return bpatch;
+BPatch*
+BPatch::getBPatch()
+{
+    return bpatch;
 }
 
-char * BPatch::getPrelinkCommand(){
-	return systemPrelinkCommand;
+char*
+BPatch::getPrelinkCommand()
+{
+    return systemPrelinkCommand;
 }
 
-void BPatch::setPrelinkCommand(char *command){
+void
+BPatch::setPrelinkCommand(char* command)
+{
+    if(systemPrelinkCommand)
+    {
+        delete[] systemPrelinkCommand;
+    }
+    systemPrelinkCommand = new char[strlen(command) + 1];
+    memcpy(systemPrelinkCommand, command, strlen(command) + 1);
+}
 
-	if(systemPrelinkCommand){
-		delete [] systemPrelinkCommand;
-	}
-	systemPrelinkCommand = new char[strlen(command)+1];
-	memcpy(systemPrelinkCommand, command, strlen(command)+1);
-}
-
-bool BPatch::isTypeChecked()
+bool
+BPatch::isTypeChecked()
 {
-  return typeCheckOn;
+    return typeCheckOn;
 }
-void BPatch::setTypeChecking(bool x)
+void
+BPatch::setTypeChecking(bool x)
 {
-  typeCheckOn = x;
+    typeCheckOn = x;
 }
-bool BPatch::parseDebugInfo()
+bool
+BPatch::parseDebugInfo()
 {
-  return debugParseOn;
+    return debugParseOn;
 }
-bool BPatch::delayedParsingOn()
+bool
+BPatch::delayedParsingOn()
 {
-  return delayedParsing_;
+    return delayedParsing_;
 }
-void BPatch::setDebugParsing(bool x)
+void
+BPatch::setDebugParsing(bool x)
 {
-  debugParseOn = x;
+    debugParseOn = x;
 }
-bool BPatch::baseTrampDeletion()
+bool
+BPatch::baseTrampDeletion()
 {
-  return baseTrampDeletionOn;
+    return baseTrampDeletionOn;
 }
-void BPatch::setBaseTrampDeletion(bool x)
+void
+BPatch::setBaseTrampDeletion(bool x)
 {
-  baseTrampDeletionOn = x;
+    baseTrampDeletionOn = x;
 }
-bool BPatch::isTrampRecursive()
+bool
+BPatch::isTrampRecursive()
 {
-  return trampRecursiveOn;
+    return trampRecursiveOn;
 }
-void BPatch::setTrampRecursive(bool x)
+void
+BPatch::setTrampRecursive(bool x)
 {
-  trampRecursiveOn = x;
+    trampRecursiveOn = x;
 }
-void BPatch::setLivenessAnalysis(bool x)
+void
+BPatch::setLivenessAnalysis(bool x)
 {
     livenessAnalysisOn_ = x;
 }
-bool BPatch::livenessAnalysisOn() {
+bool
+BPatch::livenessAnalysisOn()
+{
     return livenessAnalysisOn_;
 }
 
-void BPatch::setLivenessAnalysisDepth(int x)
+void
+BPatch::setLivenessAnalysisDepth(int x)
 {
     livenessAnalysisDepth_ = x;
 }
-int BPatch::livenessAnalysisDepth() {
+int
+BPatch::livenessAnalysisDepth()
+{
     return livenessAnalysisDepth_;
 }
 
-bool BPatch::hasForcedRelocation_NP()
+bool
+BPatch::hasForcedRelocation_NP()
 {
-  return forceRelocation_NP;
+    return forceRelocation_NP;
 }
-void BPatch::setForcedRelocation_NP(bool x)
+void
+BPatch::setForcedRelocation_NP(bool x)
 {
-  forceRelocation_NP = x;
+    forceRelocation_NP = x;
 }
-bool BPatch::autoRelocationOn()
+bool
+BPatch::autoRelocationOn()
 {
-  return autoRelocation_NP;
+    return autoRelocation_NP;
 }
-void BPatch::setAutoRelocation_NP(bool x)
+void
+BPatch::setAutoRelocation_NP(bool x)
 {
-  autoRelocation_NP = x;
+    autoRelocation_NP = x;
 }
-void BPatch::setDelayedParsing(bool x)
+void
+BPatch::setDelayedParsing(bool x)
 {
-  delayedParsing_ = x;
+    delayedParsing_ = x;
 }
-bool BPatch::isMergeTramp()
+bool
+BPatch::isMergeTramp()
 {
-  return true;
+    return true;
 }
-void BPatch::setMergeTramp(bool)
+void
+BPatch::setMergeTramp(bool)
+{}
+
+bool
+BPatch::isSaveFPROn()
 {
+    return saveFloatingPointsOn;
+}
+void
+BPatch::setSaveFPR(bool x)
+{
+    saveFloatingPointsOn = x;
 }
 
-bool BPatch::isSaveFPROn()
+bool
+BPatch::isForceSaveFPROn()
 {
-  return saveFloatingPointsOn;
+    return forceSaveFloatingPointsOn;
 }
-void BPatch::setSaveFPR(bool x)
+void
+BPatch::forceSaveFPR(bool x)
 {
-  saveFloatingPointsOn = x;
-}
-
-bool BPatch::isForceSaveFPROn()
-{
-  return forceSaveFloatingPointsOn;
-}
-void BPatch::forceSaveFPR(bool x)
-{
-  forceSaveFloatingPointsOn = x;
+    forceSaveFloatingPointsOn = x;
 }
 
 /*
@@ -344,11 +383,11 @@ void BPatch::forceSaveFPR(bool x)
  * function	The function to be called.
  */
 
-
-BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
+BPatchErrorCallback
+BPatch::registerErrorCallback(BPatchErrorCallback function)
 {
     BPatchErrorCallback previous = errorCallback;
-    errorCallback = function;
+    errorCallback                = function;
     return previous;
 }
 
@@ -360,15 +399,16 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
  *
  * function	The function to be called.
  */
-BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
+BPatchForkCallback
+BPatch::registerPostForkCallback(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0)
-  reportError(BPatchWarning, 0,
-	      "postfork callbacks not implemented on this platform\n");
-  return NULL;
+    reportError(BPatchWarning, 0,
+                "postfork callbacks not implemented on this platform\n");
+    return NULL;
 #else
     BPatchForkCallback previous = postForkCallback;
-    postForkCallback = func;
+    postForkCallback            = func;
     return previous;
 #endif
 }
@@ -381,15 +421,15 @@ BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
  *
  * function	The function to be called.
  */
-BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
+BPatchForkCallback
+BPatch::registerPreForkCallback(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0)
-    reportError(BPatchWarning, 0,
-	"prefork callbacks not implemented on this platform\n");
+    reportError(BPatchWarning, 0, "prefork callbacks not implemented on this platform\n");
     return NULL;
 #else
     BPatchForkCallback previous = preForkCallback;
-    preForkCallback = func;
+    preForkCallback             = func;
     return previous;
 #endif
 }
@@ -402,16 +442,15 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
  *
  * func	The function to be called.
  */
-BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
+BPatchExecCallback
+BPatch::registerExecCallback(BPatchExecCallback func)
 {
-
 #if defined(i386_unknown_nt4_0)
-    reportError(BPatchWarning, 0,
-	"exec callbacks not implemented on this platform\n");
+    reportError(BPatchWarning, 0, "exec callbacks not implemented on this platform\n");
     return NULL;
 #else
     BPatchExecCallback previous = execCallback;
-    execCallback = func;
+    execCallback                = func;
     return previous;
 #endif
 }
@@ -424,10 +463,11 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
  *
  * func	The function to be called.
  */
-BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
+BPatchExitCallback
+BPatch::registerExitCallback(BPatchExitCallback func)
 {
     BPatchExitCallback previous = exitCallback;
-    exitCallback = func;
+    exitCallback                = func;
     return previous;
 }
 
@@ -439,10 +479,11 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
  *
  * func	The function to be called.
  */
-BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
+BPatchOneTimeCodeCallback
+BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
 {
     BPatchOneTimeCodeCallback previous = oneTimeCodeCallback;
-    oneTimeCodeCallback = func;
+    oneTimeCodeCallback                = func;
     return previous;
 }
 
@@ -459,7 +500,7 @@ BPatchDynLibraryCallback
 BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
 {
     BPatchDynLibraryCallback previous = dynLibraryCallback;
-    dynLibraryCallback = function;
+    dynLibraryCallback                = function;
     return previous;
 }
 
@@ -470,11 +511,11 @@ BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
  *
  * number	The number that identifies the error.
  */
-const char *BPatch::getEnglishErrorString(int /* number */)
+const char*
+BPatch::getEnglishErrorString(int /* number */)
 {
     return "%s";
 }
-
 
 /*
  * BPatch::reportError
@@ -486,27 +527,27 @@ const char *BPatch::getEnglishErrorString(int /* number */)
  * str		A string to pass as the first element of the list of strings
  *		given to the callback function.
  */
-void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
+void
+BPatch::reportError(BPatchErrorLevel severity, int number, const char* str)
 {
-   if (bpatch == NULL) {
-      return; //Probably decontructing objects.
-   }
-
+    if(bpatch == NULL)
+    {
+        return;  // Probably decontructing objects.
+    }
 
     // don't log BPatchWarning or BPatchInfo messages as "errors"
-    if ((severity == BPatchFatal) || (severity == BPatchSerious))
+    if((severity == BPatchFatal) || (severity == BPatchSerious))
         bpatch->lastError = number;
 
-    if( !BPatch::bpatch->errorCallback ) {
+    if(!BPatch::bpatch->errorCallback)
+    {
         fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", FILE__, __LINE__, str);
         fflush(stdout);
         return;
     }
 
     BPatch::bpatch->errorCallback(severity, number, &str);
-
 }
-
 
 /*
  * BPatch::formatErrorString
@@ -525,68 +566,88 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
  * params	The array of parameters that were passed to an error callback
  *		function.
  */
-void BPatch::formatErrorString(char *dst, int size,
-			       const char *fmt, const char * const *params)
+void
+BPatch::formatErrorString(char* dst, int size, const char* fmt, const char* const* params)
 {
     int cur_param = 0;
 
-    while (size > 1 && *fmt) {
-	if (*fmt == '%') {
-	    if (fmt[1] == '\0') {
-		break;
-	    } else if (fmt[1] == '%') {
-		*dst++ = '%';
-		size--;
-	    } else if (fmt[1] == 's') {
-		char *p = const_cast<char *>(params[cur_param++]);
-		while (size > 1 && *p) {
-		    *dst++ = *p++;
-		    size--;
-		}
-	    } else {
-		// Illegal specifier
-		*dst++ = fmt[0];
-		*dst++ = fmt[1];
-		size -= 2;
-	    }
-    	    fmt += 2;
-	} else {
-	    *dst++ = *fmt++;
-	    size--;
-	}
+    while(size > 1 && *fmt)
+    {
+        if(*fmt == '%')
+        {
+            if(fmt[1] == '\0')
+            {
+                break;
+            }
+            else if(fmt[1] == '%')
+            {
+                *dst++ = '%';
+                size--;
+            }
+            else if(fmt[1] == 's')
+            {
+                char* p = const_cast<char*>(params[cur_param++]);
+                while(size > 1 && *p)
+                {
+                    *dst++ = *p++;
+                    size--;
+                }
+            }
+            else
+            {
+                // Illegal specifier
+                *dst++ = fmt[0];
+                *dst++ = fmt[1];
+                size -= 2;
+            }
+            fmt += 2;
+        }
+        else
+        {
+            *dst++ = *fmt++;
+            size--;
+        }
     }
-    if (size > 0)
-	*dst = '\0';
+    if(size > 0)
+        *dst = '\0';
 }
 
-static const char *lvl_str(BPatchErrorLevel lvl)
+static const char*
+lvl_str(BPatchErrorLevel lvl)
 {
-  switch(lvl) {
-    case BPatchFatal: return "--FATAL--";
-    case BPatchSerious: return "--SERIOUS--";
-    case BPatchWarning: return "--WARN--";
-    case BPatchInfo: return "--INFO--";
-  };
-  return "BAD ERR CODE";
+    switch(lvl)
+    {
+        case BPatchFatal:
+            return "--FATAL--";
+        case BPatchSerious:
+            return "--SERIOUS--";
+        case BPatchWarning:
+            return "--WARN--";
+        case BPatchInfo:
+            return "--INFO--";
+    };
+    return "BAD ERR CODE";
 }
 
-void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *params)
+void
+defaultErrorFunc(BPatchErrorLevel level, int num, const char* const* params)
 {
     char line[256];
 
-    if ((level == BPatchWarning) || (level == BPatchInfo)) {
-         // ignore low level errors/warnings in the default reporter
-         return;
+    if((level == BPatchWarning) || (level == BPatchInfo))
+    {
+        // ignore low level errors/warnings in the default reporter
+        return;
     }
 
-    const char *msg = BPatch::bpatch->getEnglishErrorString(num);
+    const char* msg = BPatch::bpatch->getEnglishErrorString(num);
     BPatch::bpatch->formatErrorString(line, sizeof(line), msg, params);
 
-    if (num != -1) {
-       fprintf(stderr,"%s #%d: %s\n", lvl_str(level),num, line);
+    if(num != -1)
+    {
+        fprintf(stderr, "%s #%d: %s\n", lvl_str(level), num, line);
     }
 }
-
 
 /*
  * BPatch::getThreadByPid
@@ -602,29 +663,34 @@ void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *param
  *		in the table and false if it does not.  NULL may be passed in
  *		if this information is not required.
  */
-BPatch_process *BPatch::getProcessByPid(int pid, bool *exists)
+BPatch_process*
+BPatch::getProcessByPid(int pid, bool* exists)
 {
-   auto iter = info->procsByPid.find(pid);
-   if (iter != info->procsByPid.end()) {
-      if (exists) *exists = true;
-      BPatch_process *proc = iter->second;
-      return proc;
-    } else {
-      if (exists) *exists = false;
-      return NULL;
-   }
+    auto iter = info->procsByPid.find(pid);
+    if(iter != info->procsByPid.end())
+    {
+        if(exists)
+            *exists = true;
+        BPatch_process* proc = iter->second;
+        return proc;
+    }
+    else
+    {
+        if(exists)
+            *exists = false;
+        return NULL;
+    }
 }
 
-BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
+BPatch_thread*
+BPatch::getThreadByPid(int pid, bool* exists)
 {
-   BPatch_process *p = getProcessByPid(pid, exists);
-   if (!exists)
-      return NULL;
-   assert(p->threads.size() > 0);
-   return p->threads[0];
+    BPatch_process* p = getProcessByPid(pid, exists);
+    if(!exists)
+        return NULL;
+    assert(p->threads.size() > 0);
+    return p->threads[0];
 }
-
-
 
 /*
  * BPatch::getProcs
@@ -634,16 +700,17 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
  * or Windows NT spawn system calls.  The caller is responsible for deleting
  * the vector when it is no longer needed.
  */
-BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
+BPatch_Vector<BPatch_process*>*
+BPatch::getProcesses()
 {
-   BPatch_Vector<BPatch_process *> *result = new BPatch_Vector<BPatch_process *>;
-   for (auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter) {
-      result->push_back(iter->second);
-   }
+    BPatch_Vector<BPatch_process*>* result = new BPatch_Vector<BPatch_process*>;
+    for(auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter)
+    {
+        result->push_back(iter->second);
+    }
 
-   return result;
+    return result;
 }
-
 
 /*
  * BPatch::registerProvisionalThread
@@ -653,12 +720,12 @@ BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
  *
  * pid		The pid of the process to register.
  */
-void BPatch::registerProvisionalThread(int pid)
+void
+BPatch::registerProvisionalThread(int pid)
 {
-   assert(info->procsByPid.find(pid) == info->procsByPid.end());
-   info->procsByPid[pid] = NULL;
+    assert(info->procsByPid.find(pid) == info->procsByPid.end());
+    info->procsByPid[pid] = NULL;
 }
-
 
 /*
  * BPatch::registerForkedProcess
@@ -671,27 +738,29 @@ void BPatch::registerProvisionalThread(int pid)
  * proc			lower lever handle to process specific stuff
  *
  */
-void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
+void
+BPatch::registerForkedProcess(PCProcess* parentProc, PCProcess* childProc)
 {
     int parentPid = parentProc->getPid();
-    int childPid = childProc->getPid();
+    int childPid  = childProc->getPid();
 
-    proccontrol_printf("BPatch: registering fork, parent %d, child %d\n",
-                    parentPid, childPid);
+    proccontrol_printf("BPatch: registering fork, parent %d, child %d\n", parentPid,
+                       childPid);
     assert(getProcessByPid(childPid) == NULL);
 
-    BPatch_process *parent = getProcessByPid(parentPid);
+    BPatch_process* parent = getProcessByPid(parentPid);
     assert(parent);
 
-    BPatch_process *child = new BPatch_process(childProc);
+    BPatch_process* child = new BPatch_process(childProc);
     child->triggerInitialThreadEvents();
 
-    if( postForkCallback ) {
+    if(postForkCallback)
+    {
         postForkCallback(parent->threads[0], child->threads[0]);
     }
 
     proccontrol_printf("BPatch: finished registering fork, parent %d, child %d\n",
-                    parentPid, childPid);
+                       parentPid, childPid);
 }
 
 /*
@@ -704,16 +773,17 @@ void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
  * proc			lower lever handle to process specific stuff
  *
  */
-void BPatch::registerForkingProcess(int forkingPid, PCProcess * /*proc*/)
+void
+BPatch::registerForkingProcess(int forkingPid, PCProcess* /*proc*/)
 {
-    BPatch_process *forking = getProcessByPid(forkingPid);
+    BPatch_process* forking = getProcessByPid(forkingPid);
     assert(forking);
 
-    if( preForkCallback ) {
+    if(preForkCallback)
+    {
         preForkCallback(forking->threads[0], NULL);
     }
 }
-
 
 /*
  * BPatch::registerExecCleanup
@@ -723,14 +793,14 @@ void BPatch::registerForkingProcess(int forkingPid, PCProcess * /*proc*/)
  * Gives us some cleanup time
  */
 
-void BPatch::registerExecCleanup(PCProcess *p, char *)
+void
+BPatch::registerExecCleanup(PCProcess* p, char*)
 {
-    BPatch_process *execing = getProcessByPid(p->getPid());
+    BPatch_process* execing = getProcessByPid(p->getPid());
     assert(execing);
 
-    for (unsigned i=0; i<execing->threads.size(); i++)
-       registerThreadExit(p, execing->threads[i]->llthread);
-
+    for(unsigned i = 0; i < execing->threads.size(); i++)
+        registerThreadExit(p, execing->threads[i]->llthread);
 }
 
 /*
@@ -740,208 +810,237 @@ void BPatch::registerExecCleanup(PCProcess *p, char *)
  *
  * proc - the representation of the process after the exec
  */
-void BPatch::registerExecExit(PCProcess *proc) {
-    int execPid = proc->getPid();
-    BPatch_process *process = getProcessByPid(execPid);
+void
+BPatch::registerExecExit(PCProcess* proc)
+{
+    int             execPid = proc->getPid();
+    BPatch_process* process = getProcessByPid(execPid);
     assert(process);
 
-    assert( process->threads.size() <= 1 );
+    assert(process->threads.size() <= 1);
 
     // There is a new underlying process representation
     process->llproc = proc;
-    PCThread *thr = proc->getInitialThread();
+    PCThread* thr   = proc->getInitialThread();
 
     // Create a new initial thread or update it
-    BPatch_thread *initialThread;
-    if( process->threads.size() == 0 ) {
+    BPatch_thread* initialThread;
+    if(process->threads.size() == 0)
+    {
         initialThread = new BPatch_thread(process, thr);
         process->threads.push_back(initialThread);
-    }else{
+    }
+    else
+    {
         initialThread = process->getThreadByIndex(0);
         initialThread->updateThread(thr);
     }
 
     // build a new BPatch_image for this one
-    if (process->image)
+    if(process->image)
         process->image->removeAllModules();
 
-    BPatch_image *oldImage = process->image;
-    process->image = new BPatch_image(process);
-    if( oldImage ) delete oldImage;
+    BPatch_image* oldImage = process->image;
+    process->image         = new BPatch_image(process);
+    if(oldImage)
+        delete oldImage;
 
-    assert( proc->isBootstrapped() );
+    assert(proc->isBootstrapped());
 
     // ProcControlAPI doesn't deliver callbacks for the initial thread,
     // even if the mutatee is multithread capable
-    if( proc->multithread_capable() ) {
+    if(proc->multithread_capable())
+    {
         registerThreadCreate(process, initialThread);
     }
 
-    if( execCallback ) {
+    if(execCallback)
+    {
         execCallback(process->threads[0]);
     }
 }
 
-void BPatch::registerNormalExit(PCProcess *proc, int exitcode)
+void
+BPatch::registerNormalExit(PCProcess* proc, int exitcode)
 {
-   if (!proc)
-      return;
+    if(!proc)
+        return;
 
+    int pid = proc->getPid();
 
-   int pid = proc->getPid();
+    BPatch_process* process = getProcessByPid(pid);
 
-   BPatch_process *process = getProcessByPid(pid);
+    if(!process)
+        return;
 
-   if (!process) return;
+    process->terminated = true;
 
-   process->terminated = true;
+    BPatch_thread* thrd = process->getThreadByIndex(0);
 
+    process->setExitCode(exitcode);
+    process->setExitedNormally();
 
-   BPatch_thread *thrd = process->getThreadByIndex(0);
+    if(thrd)
+    {
+        if(threadDestroyCallback && !thrd->madeExitCallback())
+        {
+            threadDestroyCallback(process, thrd);
+        }
+    }
 
-   process->setExitCode(exitcode);
-   process->setExitedNormally();
+    if(exitCallback)
+    {
+        exitCallback(process->threads[0], ExitedNormally);
+    }
 
-   if (thrd) {
-	   if( threadDestroyCallback && !thrd->madeExitCallback() ) {
-          threadDestroyCallback(process, thrd);
-      }
-   }
-
-   if( exitCallback ) {
-       exitCallback(process->threads[0], ExitedNormally);
-   }
-
-   // We now run the process out; set its state to terminated. Really, the user shouldn't
-   // try to do anything else with this, but we can get that happening.
-   BPatch_process *stillAround = getProcessByPid(pid);
-   if (stillAround) {
-      stillAround->reportedExit = true;
-      stillAround->terminated = true;
-   }
+    // We now run the process out; set its state to terminated. Really, the user shouldn't
+    // try to do anything else with this, but we can get that happening.
+    BPatch_process* stillAround = getProcessByPid(pid);
+    if(stillAround)
+    {
+        stillAround->reportedExit = true;
+        stillAround->terminated   = true;
+    }
 }
 
-void BPatch::registerSignalExit(PCProcess *proc, int signalnum)
+void
+BPatch::registerSignalExit(PCProcess* proc, int signalnum)
 {
-   if (!proc)
-      return;
+    if(!proc)
+        return;
 
-   int pid = proc->getPid();
+    int pid = proc->getPid();
 
-   BPatch_process *bpprocess = getProcessByPid(pid);
-   if (!bpprocess) {
-       // Error during startup can cause this -- we have a partially
-       // constructed process object, but it was never registered with
-       // bpatch
-       return;
-   }
-   BPatch_thread *thrd = bpprocess->getThreadByIndex(0);
+    BPatch_process* bpprocess = getProcessByPid(pid);
+    if(!bpprocess)
+    {
+        // Error during startup can cause this -- we have a partially
+        // constructed process object, but it was never registered with
+        // bpatch
+        return;
+    }
+    BPatch_thread* thrd = bpprocess->getThreadByIndex(0);
 
-   bpprocess->setExitedViaSignal(signalnum);
-   bpprocess->terminated = true;
+    bpprocess->setExitedViaSignal(signalnum);
+    bpprocess->terminated = true;
 
-   if (thrd) {
-	   if( threadDestroyCallback && !thrd->madeExitCallback() ) {
-          threadDestroyCallback(bpprocess, thrd);
-      }
-      if( exitCallback ) {
-          exitCallback(bpprocess->threads[0], ExitedViaSignal);
-      }
-   }
+    if(thrd)
+    {
+        if(threadDestroyCallback && !thrd->madeExitCallback())
+        {
+            threadDestroyCallback(bpprocess, thrd);
+        }
+        if(exitCallback)
+        {
+            exitCallback(bpprocess->threads[0], ExitedViaSignal);
+        }
+    }
 
-   // We now run the process out; set its state to terminated. Really, the user shouldn't
-   // try to do anything else with this, but we can get that happening.
-   BPatch_process *stillAround = getProcessByPid(pid);
-   if (stillAround) {
-      stillAround->reportedExit = true;
-      stillAround->terminated = true;
-   }
+    // We now run the process out; set its state to terminated. Really, the user shouldn't
+    // try to do anything else with this, but we can get that happening.
+    BPatch_process* stillAround = getProcessByPid(pid);
+    if(stillAround)
+    {
+        stillAround->reportedExit = true;
+        stillAround->terminated   = true;
+    }
 
-   // We need to clean this up... but the user still has pointers
-   // into this code. Ugh.
-   // Do not continue at this point; process is already gone.
-
+    // We need to clean this up... but the user still has pointers
+    // into this code. Ugh.
+    // Do not continue at this point; process is already gone.
 }
 
-bool BPatch::registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr)
+bool
+BPatch::registerThreadCreate(BPatch_process* proc, BPatch_thread* newthr)
 {
-   if( threadCreateCallback ) {
-       threadCreateCallback(proc, newthr);
-   }
+    if(threadCreateCallback)
+    {
+        threadCreateCallback(proc, newthr);
+    }
 
-   return true;
+    return true;
 }
 
-void BPatch::registerThreadExit(PCProcess *llproc, PCThread *llthread)
+void
+BPatch::registerThreadExit(PCProcess* llproc, PCThread* llthread)
 {
-    assert( llproc && llthread );
+    assert(llproc && llthread);
 
-    BPatch_process *bpprocess = getProcessByPid(llproc->getPid());
+    BPatch_process* bpprocess = getProcessByPid(llproc->getPid());
 
-    if (!bpprocess) {
+    if(!bpprocess)
+    {
         // Error during startup can cause this -- we have a partially
         // constructed process object, but it was never registered with
         // bpatch
         return;
     }
 
-    BPatch_thread *thrd = bpprocess->getThread(llthread->getTid());
-    if (!thrd) {
-        //If we don't have an BPatch thread, then it might have been an internal
+    BPatch_thread* thrd = bpprocess->getThread(llthread->getTid());
+    if(!thrd)
+    {
+        // If we don't have an BPatch thread, then it might have been an internal
         // thread that we decided not to report to the user (happens during
         //  windows attach).  Just trigger the lower level clean up in this case.
         llproc->removeThread(llthread->getTid());
         return;
     }
 
-	if (thrd->madeExitCallback()) return;
+    if(thrd->madeExitCallback())
+        return;
 
-    if( threadDestroyCallback ) {
+    if(threadDestroyCallback)
+    {
         threadDestroyCallback(bpprocess, thrd);
     }
 
-	thrd->setMadeExitCallback();
+    thrd->setMadeExitCallback();
     bpprocess->deleteBPThread(thrd);
 }
 
-
-void BPatch::registerUserEvent(BPatch_process *process, void *buffer,
-                       unsigned int bufsize)
+void
+BPatch::registerUserEvent(BPatch_process* process, void* buffer, unsigned int bufsize)
 {
-    for(unsigned i = 0; i < userEventCallbacks.size(); ++i) {
+    for(unsigned i = 0; i < userEventCallbacks.size(); ++i)
+    {
         (userEventCallbacks[i])(process, buffer, bufsize);
     }
 }
 
-void BPatch::registerDynamicCallsiteEvent(BPatch_process *process, Address callTarget,
-                       Address callAddr)
+void
+BPatch::registerDynamicCallsiteEvent(BPatch_process* process, Address callTarget,
+                                     Address callAddr)
 {
     // find the point that triggered the event
 
-    proccontrol_printf("%s[%d]: dynamic call event from 0x%lx to 0x%lx\n",
-            FILE__, __LINE__, callAddr, callTarget);
-    BPatch_point *point = info->getMonitoredPoint(callAddr);
-    if ( point == NULL ) {
+    proccontrol_printf("%s[%d]: dynamic call event from 0x%lx to 0x%lx\n", FILE__,
+                       __LINE__, callAddr, callTarget);
+    BPatch_point* point = info->getMonitoredPoint(callAddr);
+    if(point == NULL)
+    {
         proccontrol_printf("%s[%d]: failed to find point for dynamic callsite event\n",
-                FILE__, __LINE__);
+                           FILE__, __LINE__);
         return;
     }
 
-    func_instance *targetFunc = process->llproc->findOneFuncByAddr(callTarget);
-    if( targetFunc == NULL ) {
+    func_instance* targetFunc = process->llproc->findOneFuncByAddr(callTarget);
+    if(targetFunc == NULL)
+    {
         proccontrol_printf("%s[%d]: failed to find dynamic call target function\n",
-                FILE__, __LINE__);
+                           FILE__, __LINE__);
         return;
     }
 
-    BPatch_function *bpatchTargetFunc = process->findOrCreateBPFunc(targetFunc, NULL);
-    if( bpatchTargetFunc == NULL ) {
-        proccontrol_printf("%s[%d]: failed to find BPatch target function\n",
-                FILE__, __LINE__);
+    BPatch_function* bpatchTargetFunc = process->findOrCreateBPFunc(targetFunc, NULL);
+    if(bpatchTargetFunc == NULL)
+    {
+        proccontrol_printf("%s[%d]: failed to find BPatch target function\n", FILE__,
+                           __LINE__);
         return;
     }
 
-    if( dynamicCallSiteCallback ) {
+    if(dynamicCallSiteCallback)
+    {
         dynamicCallSiteCallback(point, bpatchTargetFunc);
     }
 }
@@ -952,20 +1051,24 @@ void BPatch::registerDynamicCallsiteEvent(BPatch_process *process, Address callT
  * Register a new module loaded by a process (e.g., dlopen)
  */
 
-void BPatch::registerLoadedModule(PCProcess *process, mapped_object *obj) {
-
-    BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
-    if (!bProc) return; // Done
+void
+BPatch::registerLoadedModule(PCProcess* process, mapped_object* obj)
+{
+    BPatch_process* bProc = BPatch::bpatch->getProcessByPid(process->getPid());
+    if(!bProc)
+        return;  // Done
 
     // Squash this notification if the PCProcess has changed (e.g. during exec)
-    if (bProc->llproc != process) return;
+    if(bProc->llproc != process)
+        return;
 
-    BPatch_image *bImage = bProc->getImage();
-    assert(bImage); // This we can assert to be true
+    BPatch_image* bImage = bProc->getImage();
+    assert(bImage);  // This we can assert to be true
 
-    BPatch_object *bpobj = bImage->findOrCreateObject(obj);
+    BPatch_object* bpobj = bImage->findOrCreateObject(obj);
 
-    if( dynLibraryCallback ) {
+    if(dynLibraryCallback)
+    {
         dynLibraryCallback(bProc->threads[0], bpobj, true);
     }
 }
@@ -976,31 +1079,35 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_object *obj) {
  * Register a new module loaded by a process (e.g., dlopen)
  */
 
-void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *obj) {
-
-    BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
-    if (!bProc) return; // Done
+void
+BPatch::registerUnloadedModule(PCProcess* process, mapped_object* obj)
+{
+    BPatch_process* bProc = BPatch::bpatch->getProcessByPid(process->getPid());
+    if(!bProc)
+        return;  // Done
 
     // Squash this notification if the PCProcess has changed (e.g. during exec)
-    if (bProc->llproc != process) return;
+    if(bProc->llproc != process)
+        return;
 
-    BPatch_image *bImage = bProc->getImage();
-    if (!bImage) { // we got an event during process startup
+    BPatch_image* bImage = bProc->getImage();
+    if(!bImage)
+    {  // we got an event during process startup
         return;
     }
 
-    BPatch_object *bpobj = bImage->findObject(obj);
-    if (bpobj == NULL) return;
-
+    BPatch_object* bpobj = bImage->findObject(obj);
+    if(bpobj == NULL)
+        return;
 
     // For now we use the same callback for load and unload of library....
-    if( dynLibraryCallback ) {
+    if(dynLibraryCallback)
+    {
         dynLibraryCallback(bProc->threads[0], bpobj, false);
     }
 
     bImage->removeObject(bpobj);
 }
-
 
 /*
  * BPatch::registerProcess
@@ -1010,15 +1117,15 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *obj) {
  *
  * process	A pointer to the process to register.
  */
-void BPatch::registerProcess(BPatch_process *process, int pid)
+void
+BPatch::registerProcess(BPatch_process* process, int pid)
 {
-   if (!pid)
-      pid = process->getPid();
+    if(!pid)
+        pid = process->getPid();
 
-   assert(info->procsByPid.find(pid) == info->procsByPid.end());
-   info->procsByPid[pid] = process;
+    assert(info->procsByPid.find(pid) == info->procsByPid.end());
+    info->procsByPid[pid] = process;
 }
-
 
 /*
  * BPatch::unRegisterProcess
@@ -1028,94 +1135,109 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
  *
  * pid		The pid of the thread to be removed.
  */
-void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
+void
+BPatch::unRegisterProcess(int pid, BPatch_process* proc)
 {
-   // DO NOT CHANGE THE MAP!
-   if (inDestructor) return;
+    // DO NOT CHANGE THE MAP!
+    if(inDestructor)
+        return;
 
-   if (pid == -1 || (info->procsByPid.find(pid) == info->procsByPid.end())) {
-      // Deleting an exited process; search and nuke
-      for (auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter) {
-         if (iter->second == proc) {
-            info->procsByPid.erase(iter);
+    if(pid == -1 || (info->procsByPid.find(pid) == info->procsByPid.end()))
+    {
+        // Deleting an exited process; search and nuke
+        for(auto iter = info->procsByPid.begin(); iter != info->procsByPid.end(); ++iter)
+        {
+            if(iter->second == proc)
+            {
+                info->procsByPid.erase(iter);
+                return;
+            }
+        }
+        if(pid != -1)
+        {
+            char ebuf[256];
+            sprintf(ebuf, "%s[%d]: no process %d defined in procsByPid\n", FILE__,
+                    __LINE__, pid);
+            reportError(BPatchFatal, 68, ebuf);
             return;
-         }
-      }
-      if (pid != -1) {
-         char ebuf[256];
-         sprintf(ebuf, "%s[%d]: no process %d defined in procsByPid\n", FILE__, __LINE__, pid);
-         reportError(BPatchFatal, 68, ebuf);
-         return;
-      }
-   }
-   info->procsByPid.erase(pid);
+        }
+    }
+    info->procsByPid.erase(pid);
 }
 
-static void buildPath(const char *path, const char **argv,
-                      char * &pathToUse,
-                      char ** &argvToUse) {
-   ifstream file;
-   file.open(path);
-   if (!file.is_open()) return;
-   std::string line;
-   getline(file, line);
-   if (line.compare(0, 2, "#!") != 0) {
-      file.close();
-      return;
-   }
+static void
+buildPath(const char* path, const char** argv, char*& pathToUse, char**& argvToUse)
+{
+    ifstream file;
+    file.open(path);
+    if(!file.is_open())
+        return;
+    std::string line;
+    getline(file, line);
+    if(line.compare(0, 2, "#!") != 0)
+    {
+        file.close();
+        return;
+    }
 
-   // A shell script, so reinterpret path/argv
+    // A shell script, so reinterpret path/argv
 
-   // Modeled after Linux's fs/binfmt_script.c
-   // #! lines have the interpreter and optionally a single argument,
-   // all separated by spaces and/or tabs.
+    // Modeled after Linux's fs/binfmt_script.c
+    // #! lines have the interpreter and optionally a single argument,
+    // all separated by spaces and/or tabs.
 
-   size_t pos_start = line.find_first_not_of(" \t", 2);
-   if (pos_start == std::string::npos) {
-      file.close();
-      return;
-   }
-   size_t pos_end = line.find_first_of(" \t", pos_start);
-   std::string interp = line.substr(pos_start, pos_end - pos_start);
-   pathToUse = strdup(interp.c_str());
+    size_t pos_start = line.find_first_not_of(" \t", 2);
+    if(pos_start == std::string::npos)
+    {
+        file.close();
+        return;
+    }
+    size_t      pos_end = line.find_first_of(" \t", pos_start);
+    std::string interp  = line.substr(pos_start, pos_end - pos_start);
+    pathToUse           = strdup(interp.c_str());
 
-   std::string interp_arg;
-   pos_start = line.find_first_not_of(" \t", pos_end);
-   if (pos_start != std::string::npos) {
-      // The argument goes all the way to the last non-space/tab,
-      // even if there are spaces/tabs in the middle somewhere.
-      pos_end = line.find_last_not_of(" \t") + 1;
-      interp_arg = line.substr(pos_start, pos_end - pos_start);
-   }
+    std::string interp_arg;
+    pos_start = line.find_first_not_of(" \t", pos_end);
+    if(pos_start != std::string::npos)
+    {
+        // The argument goes all the way to the last non-space/tab,
+        // even if there are spaces/tabs in the middle somewhere.
+        pos_end    = line.find_last_not_of(" \t") + 1;
+        interp_arg = line.substr(pos_start, pos_end - pos_start);
+    }
 
-   // Count the old and new argc values
-   int argc = 0;
-   while(argv[argc] != NULL) {
-      argc++;
-   }
-   int argcToUse = argc + 1;
-   if (!interp_arg.empty()) {
-      argcToUse++;
-   }
-   argvToUse = (char **) malloc((argcToUse+1) * sizeof(char *));
+    // Count the old and new argc values
+    int argc = 0;
+    while(argv[argc] != NULL)
+    {
+        argc++;
+    }
+    int argcToUse = argc + 1;
+    if(!interp_arg.empty())
+    {
+        argcToUse++;
+    }
+    argvToUse = (char**) malloc((argcToUse + 1) * sizeof(char*));
 
-   // The interpreter takes the new argv[0]
-   int argi = 0;
-   argvToUse[argi++] = strdup(pathToUse);
+    // The interpreter takes the new argv[0]
+    int argi          = 0;
+    argvToUse[argi++] = strdup(pathToUse);
 
-   // If there's an interpreter argument, that's the new argv[1]
-   if (!interp_arg.empty()) {
-      argvToUse[argi++] = strdup(interp_arg.c_str());
-   }
+    // If there's an interpreter argument, that's the new argv[1]
+    if(!interp_arg.empty())
+    {
+        argvToUse[argi++] = strdup(interp_arg.c_str());
+    }
 
-   // Then comes path, *replacing* the old argv[0],
-   // and the old argv[1..] are filled in for the rest
-   argvToUse[argi++] = strdup(path);
-   for (int tmp = 1; tmp < argc; ++tmp) {
-      argvToUse[argi++] = strdup(argv[tmp]);
-   }
-   argvToUse[argcToUse] = NULL;
-   file.close();
+    // Then comes path, *replacing* the old argv[0],
+    // and the old argv[1..] are filled in for the rest
+    argvToUse[argi++] = strdup(path);
+    for(int tmp = 1; tmp < argc; ++tmp)
+    {
+        argvToUse[argi++] = strdup(argv[tmp]);
+    }
+    argvToUse[argcToUse] = NULL;
+    file.close();
 }
 
 /*
@@ -1135,96 +1257,105 @@ static void buildPath(const char *path, const char **argv,
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
-                                         const char **envp, int stdin_fd,
-                                         int stdout_fd, int stderr_fd,
-                                         BPatch_hybridMode mode)
+BPatch_process*
+BPatch::processCreate(const char* path, const char* argv[], const char** envp,
+                      int stdin_fd, int stdout_fd, int stderr_fd, BPatch_hybridMode mode)
 {
-   clearError();
+    clearError();
 
-    if (!OS_isConnected()) {
-        reportError(BPatchFatal, 68, "Attempted to create process before connected to target server\n");
+    if(!OS_isConnected())
+    {
+        reportError(BPatchFatal, 68,
+                    "Attempted to create process before connected to target server\n");
         return NULL;
     }
 
-   if ( path == NULL ) { return NULL; }
+    if(path == NULL)
+    {
+        return NULL;
+    }
 
-#if !defined (os_windows)
-   //  This might be ok on windows...  not 100% sure and it takes
-   //  to long to build for the moment.
+#if !defined(os_windows)
+    //  This might be ok on windows...  not 100% sure and it takes
+    //  to long to build for the moment.
 
-   //  just a sanity check for the exitence of <path>
-   struct stat statbuf;
-   if (-1 == stat(path, &statbuf)) {
-      char ebuf[2048];
-      snprintf(ebuf, 2048, "createProcess(%s,...):  file does not exist\n", path);
-      reportError(BPatchFatal, 68, ebuf);
-      return NULL;
-   }
+    //  just a sanity check for the exitence of <path>
+    struct stat statbuf;
+    if(-1 == stat(path, &statbuf))
+    {
+        char ebuf[2048];
+        snprintf(ebuf, 2048, "createProcess(%s,...):  file does not exist\n", path);
+        reportError(BPatchFatal, 68, ebuf);
+        return NULL;
+    }
 
-   //  and ensure its a regular file:
-   if (!S_ISREG(statbuf.st_mode)) {
-      char ebuf[2048];
-      snprintf(ebuf, 2048, "createProcess(%s,...):  not a regular file\n", path);
-      reportError(BPatchFatal, 68, ebuf);
-      return NULL;
-   }
+    //  and ensure its a regular file:
+    if(!S_ISREG(statbuf.st_mode))
+    {
+        char ebuf[2048];
+        snprintf(ebuf, 2048, "createProcess(%s,...):  not a regular file\n", path);
+        reportError(BPatchFatal, 68, ebuf);
+        return NULL;
+    }
 
-   //  and ensure its executable (does not check permissions):
-   if (! ( (statbuf.st_mode & S_IXUSR)
-            || (statbuf.st_mode & S_IXGRP)
-            || (statbuf.st_mode & S_IXOTH) )) {
-      char ebuf[2048];
-      snprintf(ebuf, 2048, "createProcess(%s,...):  not an executable\n", path);
-      reportError(BPatchFatal, 68, ebuf);
-      return NULL;
-   }
+    //  and ensure its executable (does not check permissions):
+    if(!((statbuf.st_mode & S_IXUSR) || (statbuf.st_mode & S_IXGRP) ||
+         (statbuf.st_mode & S_IXOTH)))
+    {
+        char ebuf[2048];
+        snprintf(ebuf, 2048, "createProcess(%s,...):  not an executable\n", path);
+        reportError(BPatchFatal, 68, ebuf);
+        return NULL;
+    }
 
-#endif // !Windows
+#endif  // !Windows
 
-   // User request: work on scripts by creating the interpreter instead
-   char *pathToUse = NULL;
-   char **argvToUse = NULL;
+    // User request: work on scripts by creating the interpreter instead
+    char*  pathToUse = NULL;
+    char** argvToUse = NULL;
 
-   buildPath(path, argv, pathToUse, argvToUse);
+    buildPath(path, argv, pathToUse, argvToUse);
 
-   BPatch_process *ret =
-      new BPatch_process((pathToUse ? pathToUse : path),
-                         (argvToUse ? (const_cast<const char **>(argvToUse)) : argv),
-                         mode, envp, stdin_fd,stdout_fd,stderr_fd);
+    BPatch_process* ret =
+        new BPatch_process((pathToUse ? pathToUse : path),
+                           (argvToUse ? (const_cast<const char**>(argvToUse)) : argv),
+                           mode, envp, stdin_fd, stdout_fd, stderr_fd);
 
-   if (pathToUse) free(pathToUse);
-   if (argvToUse) {
+    if(pathToUse)
+        free(pathToUse);
+    if(argvToUse)
+    {
+        int tmp = 0;
+        while(argvToUse[tmp] != NULL)
+        {
+            free(argvToUse[tmp]);
+            tmp++;
+        }
+        free(argvToUse);
+    }
 
-      int tmp = 0;
-      while(argvToUse[tmp] != NULL) {
-         free(argvToUse[tmp]);
-         tmp++;
-      }
-      free(argvToUse);
-   }
+    if(!ret->llproc || !ret->llproc->isStopped() || !ret->llproc->isBootstrapped())
+    {
+        delete ret;
+        reportError(BPatchFatal, 68, "create process failed bootstrap");
+        return NULL;
+    }
 
-   if (!ret->llproc
-         ||  !ret->llproc->isStopped()
-         ||  !ret->llproc->isBootstrapped()) {
-      delete ret;
-      reportError(BPatchFatal, 68, "create process failed bootstrap");
-      return NULL;
-   }
+    ret->triggerInitialThreadEvents();
 
-   ret->triggerInitialThreadEvents();
+    if(ret->lowlevel_process()->isExploratoryModeOn())
+    {
+        if(!ret->getHybridAnalysis()->init())
+        {
+            delete ret;
+            reportError(BPatchFatal, 68,
+                        "create process failed defensive instrumentation");
+            return NULL;
+        }
+    }
 
-   if (ret->lowlevel_process()->isExploratoryModeOn()) {
-       if (!ret->getHybridAnalysis()->init()) {
-           delete ret;
-           reportError(BPatchFatal, 68, "create process failed defensive instrumentation");
-           return NULL;
-       }
-   }
-
-   return ret;
+    return ret;
 }
-
 
 /*
  * BPatch::processAttach
@@ -1235,44 +1366,47 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
  * path		The pathname of the executable for the process.
  * pid		The id of the process to attach to.
  */
-BPatch_process *BPatch::processAttach
-(const char *path, int pid, BPatch_hybridMode mode)
+BPatch_process*
+BPatch::processAttach(const char* path, int pid, BPatch_hybridMode mode)
 {
-   clearError();
+    clearError();
 
-    if (!OS_isConnected()) {
-        reportError(BPatchFatal, 68, "Error: Attempted to attach to process before connected to target server.");
+    if(!OS_isConnected())
+    {
+        reportError(
+            BPatchFatal, 68,
+            "Error: Attempted to attach to process before connected to target server.");
         return NULL;
     }
 
-    if (info->procsByPid.find(pid) != info->procsByPid.end()) {
-      char msg[256];
-      sprintf(msg, "attachProcess failed.  Dyninst is already attached to %d.",
-              pid);
-      reportError(BPatchWarning, 26, msg);
-      return NULL;
-   }
+    if(info->procsByPid.find(pid) != info->procsByPid.end())
+    {
+        char msg[256];
+        sprintf(msg, "attachProcess failed.  Dyninst is already attached to %d.", pid);
+        reportError(BPatchWarning, 26, msg);
+        return NULL;
+    }
 
-   BPatch_process *ret = new BPatch_process(path, pid, mode);
+    BPatch_process* ret = new BPatch_process(path, pid, mode);
 
-   if (!ret->llproc ||
-       !ret->llproc->isStopped() ||
-       !ret->llproc->isBootstrapped()) {
-       char msg[256];
-       sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
-       reportError(BPatchWarning, 26, msg);
+    if(!ret->llproc || !ret->llproc->isStopped() || !ret->llproc->isBootstrapped())
+    {
+        char msg[256];
+        sprintf(msg, "attachProcess failed: process %d may now be killed!", pid);
+        reportError(BPatchWarning, 26, msg);
 
-	   delete ret;
-       return NULL;
-   }
+        delete ret;
+        return NULL;
+    }
 
-   ret->triggerInitialThreadEvents();
+    ret->triggerInitialThreadEvents();
 
-   if (ret->lowlevel_process()->isExploratoryModeOn()) {
-       ret->getHybridAnalysis()->init();
-   }
+    if(ret->lowlevel_process()->isExploratoryModeOn())
+    {
+        ret->getHybridAnalysis()->init();
+    }
 
-   return ret;
+    return ret;
 }
 
 static bool recursiveEventHandling = false;
@@ -1286,31 +1420,32 @@ static bool recursiveEventHandling = false;
  * This function is declared as a friend of BPatch_thread so that it can use
  * the BPatch_thread::getThreadEvent call to check for status changes.
  */
-bool BPatch::pollForStatusChange()
+bool
+BPatch::pollForStatusChange()
 {
     // Sanity check: don't allow waiting for events in the callbacks
-    if( recursiveEventHandling ) {
-        BPatch_reportError(BPatchWarning, 0,
-                "Cannot wait for events in a callback");
+    if(recursiveEventHandling)
+    {
+        BPatch_reportError(BPatchWarning, 0, "Cannot wait for events in a callback");
         return false;
     }
 
     proccontrol_printf("[%s:%d] Polling for events\n", FILE__, __LINE__);
 
-    recursiveEventHandling = true;
+    recursiveEventHandling          = true;
     PCEventMuxer::WaitResult result = PCEventMuxer::wait(false);
-    recursiveEventHandling = false;
+    recursiveEventHandling          = false;
 
-    if( result == PCEventMuxer::Error ) {
-        proccontrol_printf("[%s:%d] Failed to poll for events\n",
-                FILE__, __LINE__);
+    if(result == PCEventMuxer::Error)
+    {
+        proccontrol_printf("[%s:%d] Failed to poll for events\n", FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0,
-                "Failed to handle events and deliver callbacks");
+                           "Failed to handle events and deliver callbacks");
         return false;
     }
 
-
-    if( result == PCEventMuxer::EventsReceived ) {
+    if(result == PCEventMuxer::EventsReceived)
+    {
         proccontrol_printf("[%s:%d] Events received\n", FILE__, __LINE__);
         return true;
     }
@@ -1325,11 +1460,13 @@ bool BPatch::pollForStatusChange()
  * Blocks waiting for a change to occur in the running status of a child
  * process.  Returns true upon success, false upon failure.
  */
-bool BPatch::waitForStatusChange() {
+bool
+BPatch::waitForStatusChange()
+{
     // Sanity check: don't allow waiting for events in the callbacks
-    if( recursiveEventHandling ) {
-        BPatch_reportError(BPatchWarning, 0,
-                "Cannot wait for events in a callback");
+    if(recursiveEventHandling)
+    {
+        BPatch_reportError(BPatchWarning, 0, "Cannot wait for events in a callback");
         return false;
     }
 
@@ -1338,45 +1475,49 @@ bool BPatch::waitForStatusChange() {
     bool processRunning = false;
     for(auto i = info->procsByPid.begin(); i != info->procsByPid.end(); ++i)
     {
-       if( !i->second->isStopped() &&
-	   !i->second->isTerminated()) {
-          processRunning = true;
-          break;
-       }
+        if(!i->second->isStopped() && !i->second->isTerminated())
+        {
+            processRunning = true;
+            break;
+        }
     }
 
-    if( !processRunning ) {
+    if(!processRunning)
+    {
         BPatch_reportError(BPatchWarning, 0,
-                "No processes running, not waiting for events");
-		return false;
+                           "No processes running, not waiting for events");
+        return false;
     }
 
     proccontrol_printf("%s:[%d] Waiting for events\n", FILE__, __LINE__);
 
-    recursiveEventHandling = true;
+    recursiveEventHandling          = true;
     PCEventMuxer::WaitResult result = PCEventMuxer::wait(true);
-    recursiveEventHandling = false;
+    recursiveEventHandling          = false;
 
-    if( result == PCEventMuxer::Error ) {
-        proccontrol_printf("%s:[%d] Failed to wait for events\n",
-                      FILE__, __LINE__);
+    if(result == PCEventMuxer::Error)
+    {
+        proccontrol_printf("%s:[%d] Failed to wait for events\n", FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0,
-							"Failed to handle events and deliver callbacks");
-		return false;
+                           "Failed to handle events and deliver callbacks");
+        return false;
     }
 
-
-    if( result == PCEventMuxer::EventsReceived ) {
-        proccontrol_printf("%s:[%d] Events received in waitForStatusChange\n", FILE__, __LINE__);
+    if(result == PCEventMuxer::EventsReceived)
+    {
+        proccontrol_printf("%s:[%d] Events received in waitForStatusChange\n", FILE__,
+                           __LINE__);
         return true;
     }
-    else {
-        proccontrol_printf("%s:[%d] No events received in waitForStatusChange\n", FILE__, __LINE__);
+    else
+    {
+        proccontrol_printf("%s:[%d] No events received in waitForStatusChange\n", FILE__,
+                           __LINE__);
         return true;
     }
     //  we waited for a change, but didn't get it
     proccontrol_printf("%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
-	return false;
+    return false;
 }
 
 /*
@@ -1388,29 +1529,31 @@ bool BPatch::waitForStatusChange() {
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnum( const char * name,
-				     BPatch_Vector<char *> &elementNames,
-				     BPatch_Vector<int> &elementIds)
+BPatch_type*
+BPatch::createEnum(const char* name, BPatch_Vector<char*>& elementNames,
+                   BPatch_Vector<int>& elementIds)
 {
-    if (elementNames.size() != elementIds.size()) {
-      return NULL;
+    if(elementNames.size() != elementIds.size())
+    {
+        return NULL;
     }
-    string typeName = name;
-    dyn_c_vector<pair<string, int> *>elements;
-    for (unsigned int i=0; i < elementNames.size(); i++)
+    string                           typeName = name;
+    dyn_c_vector<pair<string, int>*> elements;
+    for(unsigned int i = 0; i < elementNames.size(); i++)
         elements.push_back(new pair<string, int>(elementNames[i], elementIds[i]));
 
-    boost::shared_ptr<Type> typ(typeEnum::create( typeName, elements));
-    if (!typ) return NULL;
+    boost::shared_ptr<Type> typ(typeEnum::create(typeName, elements));
+    if(!typ)
+        return NULL;
 
-    BPatch_type *newType = new BPatch_type(typ);
-    if (!newType) return NULL;
+    BPatch_type* newType = new BPatch_type(typ);
+    if(!newType)
+        return NULL;
 
     APITypes->addType(newType);
 
-    return(newType);
+    return (newType);
 }
-
 
 /*
  * createEnum
@@ -1421,23 +1564,25 @@ BPatch_type * BPatch::createEnum( const char * name,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createEnum( const char * name,
-				        BPatch_Vector<char *> &elementNames)
+BPatch_type*
+BPatch::createEnum(const char* name, BPatch_Vector<char*>& elementNames)
 {
-    string typeName = name;
-    dyn_c_vector<pair<string, int> *>elements;
-    for (unsigned int i=0; i < elementNames.size(); i++)
+    string                           typeName = name;
+    dyn_c_vector<pair<string, int>*> elements;
+    for(unsigned int i = 0; i < elementNames.size(); i++)
         elements.push_back(new pair<string, int>(elementNames[i], i));
 
-    boost::shared_ptr<Type> typ(typeEnum::create( typeName, elements));
-    if (!typ) return NULL;
+    boost::shared_ptr<Type> typ(typeEnum::create(typeName, elements));
+    if(!typ)
+        return NULL;
 
-    BPatch_type *newType = new BPatch_type(typ);
-    if (!newType) return NULL;
+    BPatch_type* newType = new BPatch_type(typ);
+    if(!newType)
+        return NULL;
 
     APITypes->addType(newType);
 
-    return(newType);
+    return (newType);
 }
 
 /*
@@ -1450,34 +1595,38 @@ BPatch_type * BPatch::createEnum( const char * name,
  * collection.
  */
 
-BPatch_type * BPatch::createStruct( const char * name,
-				       BPatch_Vector<char *> &fieldNames,
-				       BPatch_Vector<BPatch_type *> &fieldTypes)
+BPatch_type*
+BPatch::createStruct(const char* name, BPatch_Vector<char*>& fieldNames,
+                     BPatch_Vector<BPatch_type*>& fieldTypes)
 {
-   unsigned int i;
+    unsigned int i;
 
-   if (fieldNames.size() != fieldTypes.size()) {
-      return NULL;
-   }
+    if(fieldNames.size() != fieldTypes.size())
+    {
+        return NULL;
+    }
 
-   string typeName = name;
-   dyn_c_vector<pair<string, boost::shared_ptr<Type> > *> fields;
-   for(i=0; i<fieldNames.size(); i++)
-   {
-      if(!fieldTypes[i])
-         return NULL;
-      fields.push_back(new pair<string, boost::shared_ptr<Type>>(fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
-   }
+    string                                               typeName = name;
+    dyn_c_vector<pair<string, boost::shared_ptr<Type>>*> fields;
+    for(i = 0; i < fieldNames.size(); i++)
+    {
+        if(!fieldTypes[i])
+            return NULL;
+        fields.push_back(new pair<string, boost::shared_ptr<Type>>(
+            fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
+    }
 
-   boost::shared_ptr<Type> typ(typeStruct::create(typeName, fields));
-   if (!typ) return NULL;
+    boost::shared_ptr<Type> typ(typeStruct::create(typeName, fields));
+    if(!typ)
+        return NULL;
 
-   BPatch_type *newType = new BPatch_type(typ);
-   if (!newType) return NULL;
+    BPatch_type* newType = new BPatch_type(typ);
+    if(!newType)
+        return NULL;
 
-   APITypes->addType(newType);
+    APITypes->addType(newType);
 
-   return(newType);
+    return (newType);
 }
 
 /*
@@ -1490,34 +1639,38 @@ BPatch_type * BPatch::createStruct( const char * name,
  * collection.
  */
 
-BPatch_type * BPatch::createUnion( const char * name,
-				      BPatch_Vector<char *> &fieldNames,
-				      BPatch_Vector<BPatch_type *> &fieldTypes)
+BPatch_type*
+BPatch::createUnion(const char* name, BPatch_Vector<char*>& fieldNames,
+                    BPatch_Vector<BPatch_type*>& fieldTypes)
 {
     unsigned int i;
 
-    if (fieldNames.size() != fieldTypes.size()) {
-      return NULL;
+    if(fieldNames.size() != fieldTypes.size())
+    {
+        return NULL;
     }
 
-    string typeName = name;
-    dyn_c_vector<pair<string, boost::shared_ptr<Type> > *> fields;
-    for(i=0; i<fieldNames.size(); i++)
+    string                                               typeName = name;
+    dyn_c_vector<pair<string, boost::shared_ptr<Type>>*> fields;
+    for(i = 0; i < fieldNames.size(); i++)
     {
         if(!fieldTypes[i])
-	    return NULL;
-        fields.push_back(new pair<string, boost::shared_ptr<Type> > (fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
+            return NULL;
+        fields.push_back(new pair<string, boost::shared_ptr<Type>>(
+            fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
     }
 
     boost::shared_ptr<Type> typ(typeUnion::create(typeName, fields));
-    if (!typ) return NULL;
+    if(!typ)
+        return NULL;
 
-    BPatch_type *newType = new BPatch_type(typ);
-    if (!newType) return NULL;
+    BPatch_type* newType = new BPatch_type(typ);
+    if(!newType)
+        return NULL;
 
     APITypes->addType(newType);
 
-    return(newType);
+    return (newType);
 }
 
 /*
@@ -1529,20 +1682,22 @@ BPatch_type * BPatch::createUnion( const char * name,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
-				      unsigned int low, unsigned int hi)
+BPatch_type*
+BPatch::createArray(const char* name, BPatch_type* ptr, unsigned int low, unsigned int hi)
 {
-
-    BPatch_type * newType;
-    if (!ptr)
+    BPatch_type* newType;
+    if(!ptr)
         return NULL;
 
-    string typeName = name;
-    boost::shared_ptr<Type> typ(typeArray::create(typeName, ptr->getSymtabType(Type::share), low, hi));
-    if (!typ) return NULL;
+    string                  typeName = name;
+    boost::shared_ptr<Type> typ(
+        typeArray::create(typeName, ptr->getSymtabType(Type::share), low, hi));
+    if(!typ)
+        return NULL;
 
     newType = new BPatch_type(typ);
-    if (!newType) return NULL;
+    if(!newType)
+        return NULL;
 
     APITypes->addType(newType);
     return newType;
@@ -1557,19 +1712,22 @@ BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
-                                       int /*size*/)
+BPatch_type*
+BPatch::createPointer(const char* name, BPatch_type* ptr, int /*size*/)
 {
-    BPatch_type * newType;
+    BPatch_type* newType;
     if(!ptr)
         return NULL;
 
-    string typeName = name;
-    boost::shared_ptr<Type> typ(typePointer::create(typeName, ptr->getSymtabType(Type::share)));
-    if (!typ) return NULL;
+    string                  typeName = name;
+    boost::shared_ptr<Type> typ(
+        typePointer::create(typeName, ptr->getSymtabType(Type::share)));
+    if(!typ)
+        return NULL;
 
     newType = new BPatch_type(typ);
-    if (!newType) return NULL;
+    if(!newType)
+        return NULL;
 
     APITypes->addType(newType);
     return newType;
@@ -1585,16 +1743,19 @@ BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
  * collection.
  */
 
-BPatch_type * BPatch::createScalar( const char * name, int size)
+BPatch_type*
+BPatch::createScalar(const char* name, int size)
 {
-    BPatch_type * newType;
+    BPatch_type* newType;
 
-    string typeName = name;
+    string                  typeName = name;
     boost::shared_ptr<Type> typ(typeScalar::create(typeName, size));
-    if (!typ) return NULL;
+    if(!typ)
+        return NULL;
 
     newType = new BPatch_type(typ);
-    if (!newType) return NULL;
+    if(!newType)
+        return NULL;
 
     APITypes->addType(newType);
     return newType;
@@ -1609,90 +1770,103 @@ BPatch_type * BPatch::createScalar( const char * name, int size)
  * It returns a pointer to a BPatch_type that was added to the APITypes
  * collection.
  */
-BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
+BPatch_type*
+BPatch::createTypedef(const char* name, BPatch_type* ptr)
 {
-    BPatch_type * newType;
+    BPatch_type* newType;
     if(!ptr)
         return NULL;
 
-    string typeName = name;
-    boost::shared_ptr<Type> typ(typeTypedef::create(typeName, ptr->getSymtabType(Type::share)));
-    if (!typ) return NULL;
+    string                  typeName = name;
+    boost::shared_ptr<Type> typ(
+        typeTypedef::create(typeName, ptr->getSymtabType(Type::share)));
+    if(!typ)
+        return NULL;
 
     newType = new BPatch_type(typ);
-    if (!newType) return NULL;
+    if(!newType)
+        return NULL;
 
     APITypes->addType(newType);
     return newType;
 }
 
-bool BPatch::waitUntilStopped(BPatch_thread *appThread){
+bool
+BPatch::waitUntilStopped(BPatch_thread* appThread)
+{
+    bool ret = false;
 
-   bool ret = false;
+    while(1)
+    {
+        if(!appThread->getProcess()->isStopped() &&
+           !appThread->getProcess()->isTerminated())
+        {
+            this->waitForStatusChange();
+        }
+        else
+        {
+            break;
+        }
+    }
 
-   while (1) {
-     if (!appThread->getProcess()->isStopped() && !appThread->getProcess()->isTerminated()) {
-       this->waitForStatusChange();
-     }
-     else {
-       break;
-     }
-   }
-
-   if (!appThread->getProcess()->isStopped())
-	{
-		cerr << "ERROR : process did not signal mutator via stop"
-		     << endl;
-		ret = false;
- 		goto done;
-	}
+    if(!appThread->getProcess()->isStopped())
+    {
+        cerr << "ERROR : process did not signal mutator via stop" << endl;
+        ret = false;
+        goto done;
+    }
 #if defined(os_windows)
-	else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) &&
-		(appThread->getProcess()->stopSignal() != -1))
-	{
-		cerr << "ERROR : process stopped on signal different"
-		     << " than SIGTRAP" << endl;
-		ret =  false;
- 		goto done;
-	}
+    else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) &&
+            (appThread->getProcess()->stopSignal() != -1))
+    {
+        cerr << "ERROR : process stopped on signal different"
+             << " than SIGTRAP" << endl;
+        ret = false;
+        goto done;
+    }
 #else
-	else if ((appThread->getProcess()->stopSignal() != SIGSTOP) &&
-		 (appThread->getProcess()->stopSignal() != SIGHUP)) {
-		cerr << "ERROR :  process stopped on signal "
-		     << "different than SIGSTOP" << endl;
-		ret =  false;
- 		goto done;
-	}
+    else if((appThread->getProcess()->stopSignal() != SIGSTOP) &&
+            (appThread->getProcess()->stopSignal() != SIGHUP))
+    {
+        cerr << "ERROR :  process stopped on signal "
+             << "different than SIGSTOP" << endl;
+        ret = false;
+        goto done;
+    }
 #endif
 
-  done:
-  return ret;
+done:
+    return ret;
 }
 
-BPatch_stats &BPatch::getBPatchStatistics()
+BPatch_stats&
+BPatch::getBPatchStatistics()
 {
-  updateStats();
-  return stats;
+    updateStats();
+    return stats;
 }
 //  updateStats() -- an internal function called before returning
 //  statistics buffer to caller of BPatch_getStatistics(),
 //  -- just copies global variable statistics counters into
 //  the buffer which is returned to the user.
-void BPatch::updateStats()
+void
+BPatch::updateStats()
 {
-  stats.pointsUsed = pointsUsed.value();
-  stats.totalMiniTramps = totalMiniTramps.value();
-  stats.trampBytes = trampBytes.value();
-  stats.ptraceOtherOps = ptraceOtherOps.value();
-  stats.ptraceOps = ptraceOps.value();
-  stats.ptraceBytes = ptraceBytes.value();
-  stats.insnGenerated = insnGenerated.value();
+    stats.pointsUsed      = pointsUsed.value();
+    stats.totalMiniTramps = totalMiniTramps.value();
+    stats.trampBytes      = trampBytes.value();
+    stats.ptraceOtherOps  = ptraceOtherOps.value();
+    stats.ptraceOps       = ptraceOps.value();
+    stats.ptraceBytes     = ptraceBytes.value();
+    stats.insnGenerated   = insnGenerated.value();
 }
 
-bool BPatch::registerThreadEventCallback(BPatch_asyncEventType type,
-                                            BPatchAsyncThreadEventCallback func)
+bool
+BPatch::registerThreadEventCallback(BPatch_asyncEventType          type,
+                                    BPatchAsyncThreadEventCallback func)
 {
-    switch(type) {
+    switch(type)
+    {
         case BPatch_threadCreateEvent:
             threadCreateCallback = func;
             break;
@@ -1701,48 +1875,55 @@ bool BPatch::registerThreadEventCallback(BPatch_asyncEventType type,
             break;
         default:
             bpwarn("Cannot register callback for non-thread event type %s",
-                    asyncEventType2Str(type));
+                   asyncEventType2Str(type));
             return false;
     }
 
     return true;
 }
 
-bool BPatch::removeThreadEventCallback(BPatch_asyncEventType type,
-                                          BPatchAsyncThreadEventCallback cb)
+bool
+BPatch::removeThreadEventCallback(BPatch_asyncEventType          type,
+                                  BPatchAsyncThreadEventCallback cb)
 {
     bool result = false;
-    switch(type) {
+    switch(type)
+    {
         case BPatch_threadCreateEvent:
-            if( cb == threadCreateCallback ) {
+            if(cb == threadCreateCallback)
+            {
                 threadCreateCallback = NULL;
-                result = true;
+                result               = true;
             }
             break;
         case BPatch_threadDestroyEvent:
-            if( cb == threadDestroyCallback ) {
+            if(cb == threadDestroyCallback)
+            {
                 threadDestroyCallback = NULL;
-                result = true;
+                result                = true;
             }
             break;
         default:
             bpwarn("Cannot remove callback for non-thread event type %s",
-                    asyncEventType2Str(type));
+                   asyncEventType2Str(type));
             return false;
     }
 
     return result;
 }
 
-bool BPatch::registerDynamicCallCallback(BPatchDynamicCallSiteCallback func)
+bool
+BPatch::registerDynamicCallCallback(BPatchDynamicCallSiteCallback func)
 {
     dynamicCallSiteCallback = func;
     return true;
 }
 
-bool BPatch::removeDynamicCallCallback(BPatchDynamicCallSiteCallback func)
+bool
+BPatch::removeDynamicCallCallback(BPatchDynamicCallSiteCallback func)
 {
-    if( dynamicCallSiteCallback == func ) {
+    if(dynamicCallSiteCallback == func)
+    {
         dynamicCallSiteCallback = func;
         return true;
     }
@@ -1750,20 +1931,26 @@ bool BPatch::removeDynamicCallCallback(BPatchDynamicCallSiteCallback func)
     return false;
 }
 
-bool BPatch::registerUserEventCallback(BPatchUserEventCallback func)
+bool
+BPatch::registerUserEventCallback(BPatchUserEventCallback func)
 {
     userEventCallbacks.push_back(func);
     return true;
 }
 
-bool BPatch::removeUserEventCallback(BPatchUserEventCallback cb)
+bool
+BPatch::removeUserEventCallback(BPatchUserEventCallback cb)
 {
-    bool result = false;
+    bool                                   result = false;
     BPatch_Vector<BPatchUserEventCallback> userCallbacks;
-    for(unsigned int i = 0; i < userEventCallbacks.size(); ++i) {
-        if( cb != userEventCallbacks[i] ) {
+    for(unsigned int i = 0; i < userEventCallbacks.size(); ++i)
+    {
+        if(cb != userEventCallbacks[i])
+        {
             userCallbacks.push_back(userEventCallbacks[i]);
-        }else{
+        }
+        else
+        {
             result = true;
         }
     }
@@ -1773,11 +1960,13 @@ bool BPatch::removeUserEventCallback(BPatchUserEventCallback cb)
     return result;
 }
 
-bool BPatch::registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
+bool
+BPatch::registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
 {
-    std::vector<BPatch_process*> *procs = getProcesses();
-    for(unsigned i =0; i < procs->size(); i++) {
-        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+    std::vector<BPatch_process*>* procs = getProcesses();
+    for(unsigned i = 0; i < procs->size(); i++)
+    {
+        HybridAnalysis* hybrid = (*procs)[i]->getHybridAnalysis();
         hybrid->registerCodeDiscoveryCallback(cb);
     }
     return true;
@@ -1785,40 +1974,45 @@ bool BPatch::registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
 
 bool BPatch::removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback)
 {
-    std::vector<BPatch_process*> *procs = getProcesses();
-    for(unsigned i =0; i < procs->size(); i++) {
-        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+    std::vector<BPatch_process*>* procs = getProcesses();
+    for(unsigned i = 0; i < procs->size(); i++)
+    {
+        HybridAnalysis* hybrid = (*procs)[i]->getHybridAnalysis();
         hybrid->removeCodeDiscoveryCallback();
     }
     return true;
 }
 
-bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
-                                           std::set<long> &signums)
+bool
+BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
+                                      std::set<long>&             signums)
 {
     signalHandlerCallback = HybridAnalysis::getSignalHandlerCB();
-    callbackSignals = signums;
+    callbackSignals       = signums;
 
-    std::vector<BPatch_process*> *procs = getProcesses();
-    for(unsigned i=0; i < procs->size(); i++) {
-        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+    std::vector<BPatch_process*>* procs = getProcesses();
+    for(unsigned i = 0; i < procs->size(); i++)
+    {
+        HybridAnalysis* hybrid = (*procs)[i]->getHybridAnalysis();
         hybrid->registerSignalHandlerCallback(bpatchCB);
     }
     return true;
 }
 
-bool BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
-                                           BPatch_Set<long> *signums) {
-   // This is unfortunate, but our method above takes a std::set<long>,
-   // not a std::set<long, comparison<long>>
+bool
+BPatch::registerSignalHandlerCallback(BPatchSignalHandlerCallback bpatchCB,
+                                      BPatch_Set<long>*           signums)
+{
+    // This is unfortunate, but our method above takes a std::set<long>,
+    // not a std::set<long, comparison<long>>
 
-   std::set<long> tmp;
-   if (NULL == signums || signums->empty())
-	   tmp = std::set<long>();
-   else
-       std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
+    std::set<long> tmp;
+    if(NULL == signums || signums->empty())
+        tmp = std::set<long>();
+    else
+        std::copy(signums->begin(), signums->end(), std::inserter(tmp, tmp.end()));
 
-   return registerSignalHandlerCallback(bpatchCB, tmp);
+    return registerSignalHandlerCallback(bpatchCB, tmp);
 }
 
 bool BPatch::removeSignalHandlerCallback(BPatchSignalHandlerCallback)
@@ -1826,40 +2020,45 @@ bool BPatch::removeSignalHandlerCallback(BPatchSignalHandlerCallback)
     signalHandlerCallback = NULL;
     callbackSignals.clear();
 
-    std::vector<BPatch_process*> *procs = getProcesses();
-    for(unsigned i=0; i < procs->size(); i++) {
-        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+    std::vector<BPatch_process*>* procs = getProcesses();
+    for(unsigned i = 0; i < procs->size(); i++)
+    {
+        HybridAnalysis* hybrid = (*procs)[i]->getHybridAnalysis();
         hybrid->removeSignalHandlerCallback();
     }
     return true;
 }
 
-bool BPatch::registerCodeOverwriteCallbacks
-    (BPatchCodeOverwriteBeginCallback cbBegin,
-     BPatchCodeOverwriteEndCallback cbEnd)
+bool
+BPatch::registerCodeOverwriteCallbacks(BPatchCodeOverwriteBeginCallback cbBegin,
+                                       BPatchCodeOverwriteEndCallback   cbEnd)
 {
     codeOverwriteCallback = HybridAnalysisOW::getCodeOverwriteCB();
 
-    std::vector<BPatch_process*> *procs = getProcesses();
-    for(unsigned i=0; i < procs->size(); i++) {
-        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
-        hybrid->hybridOW()->registerCodeOverwriteCallbacks(cbBegin,cbEnd);
+    std::vector<BPatch_process*>* procs = getProcesses();
+    for(unsigned i = 0; i < procs->size(); i++)
+    {
+        HybridAnalysis* hybrid = (*procs)[i]->getHybridAnalysis();
+        hybrid->hybridOW()->registerCodeOverwriteCallbacks(cbBegin, cbEnd);
     }
     return true;
 }
 
-void BPatch::continueIfExists(int pid)
+void
+BPatch::continueIfExists(int pid)
 {
-    BPatch_process *proc = getProcessByPid(pid);
-    if (!proc) return;
+    BPatch_process* proc = getProcessByPid(pid);
+    if(!proc)
+        return;
 
     proc->continueExecution();
 }
 
-
-int BPatch::getNotificationFD() {
+int
+BPatch::getNotificationFD()
+{
 #if !defined(os_windows)
-   return Dyninst::ProcControlAPI::evNotify()->getFD();
+    return Dyninst::ProcControlAPI::evNotify()->getFD();
 #else
     return -1;
 #endif
@@ -1867,39 +2066,48 @@ int BPatch::getNotificationFD() {
 
 /* If true, we return just filenames when the user asks for line info
    otherwise, we return filename plus path information. */
-void BPatch::truncateLineInfoFilenames(bool newval) {
-   mapped_module::truncateLineFilenames = newval;
-}
-
-void BPatch::getBPatchVersion(int &major, int &minor, int &subminor)
+void
+BPatch::truncateLineInfoFilenames(bool newval)
 {
-   major = DYNINST_MAJOR;
-   minor = DYNINST_MINOR;
-   subminor = DYNINST_SUBMINOR;
+    mapped_module::truncateLineFilenames = newval;
 }
 
-BPatch_binaryEdit *BPatch::openBinary(const char *path, bool openDependencies /* = false */) {
-   BPatch_binaryEdit *editor = new BPatch_binaryEdit(path, openDependencies);
-   if (!editor)
-      return NULL;
-   if (editor->creation_error) {
-      delete editor;
-      return NULL;
-   }
-   return editor;
-}
-
-void BPatch::setInstrStackFrames(bool r)
+void
+BPatch::getBPatchVersion(int& major, int& minor, int& subminor)
 {
-   instrFrames = r;
+    major    = DYNINST_MAJOR;
+    minor    = DYNINST_MINOR;
+    subminor = DYNINST_SUBMINOR;
 }
 
-bool BPatch::getInstrStackFrames()
+BPatch_binaryEdit*
+BPatch::openBinary(const char* path, bool openDependencies /* = false */)
 {
-   return instrFrames;
+    BPatch_binaryEdit* editor = new BPatch_binaryEdit(path, openDependencies);
+    if(!editor)
+        return NULL;
+    if(editor->creation_error)
+    {
+        delete editor;
+        return NULL;
+    }
+    return editor;
 }
 
-bool BPatch::isConnected()
+void
+BPatch::setInstrStackFrames(bool r)
+{
+    instrFrames = r;
+}
+
+bool
+BPatch::getInstrStackFrames()
+{
+    return instrFrames;
+}
+
+bool
+BPatch::isConnected()
 {
     return OS_isConnected();
 }
@@ -1907,9 +2115,11 @@ bool BPatch::isConnected()
 // -----------------------------------------------------------
 // Undocumented public remote debugging interface.
 // See comments in BPatch.h about the future of these methods.
-bool BPatch::remoteConnect(BPatch_remoteHost &remote)
+bool
+BPatch::remoteConnect(BPatch_remoteHost& remote)
 {
-    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+    if(remote.type >= BPATCH_REMOTE_DEBUG_END)
+    {
         fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
         return false;
     }
@@ -1917,9 +2127,11 @@ bool BPatch::remoteConnect(BPatch_remoteHost &remote)
     return OS_connect(remote);
 }
 
-bool BPatch::getPidList(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &pidlist)
+bool
+BPatch::getPidList(BPatch_remoteHost& remote, BPatch_Vector<unsigned int>& pidlist)
 {
-    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+    if(remote.type >= BPATCH_REMOTE_DEBUG_END)
+    {
         fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
         return false;
     }
@@ -1927,10 +2139,11 @@ bool BPatch::getPidList(BPatch_remoteHost &remote, BPatch_Vector<unsigned int> &
     return OS_getPidList(remote, pidlist);
 }
 
-bool BPatch::getPidInfo(BPatch_remoteHost &remote, unsigned int pid,
-                           std::string &pidInfo)
+bool
+BPatch::getPidInfo(BPatch_remoteHost& remote, unsigned int pid, std::string& pidInfo)
 {
-    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+    if(remote.type >= BPATCH_REMOTE_DEBUG_END)
+    {
         fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
         return false;
     }
@@ -1938,9 +2151,11 @@ bool BPatch::getPidInfo(BPatch_remoteHost &remote, unsigned int pid,
     return OS_getPidInfo(remote, pid, pidInfo);
 }
 
-bool BPatch::remoteDisconnect(BPatch_remoteHost &remote)
+bool
+BPatch::remoteDisconnect(BPatch_remoteHost& remote)
 {
-    if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
+    if(remote.type >= BPATCH_REMOTE_DEBUG_END)
+    {
         fprintf(stderr, "Unknown remote debugging protocol %d\n", remote.type);
         return false;
     }
@@ -1949,45 +2164,58 @@ bool BPatch::remoteDisconnect(BPatch_remoteHost &remote)
 }
 // -----------------------------------------------------------
 
-void BPatch::addNonReturningFunc(std::string name)
+void
+BPatch::addNonReturningFunc(std::string name)
 {
-  Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
+    Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
 }
 
-int BPatch_libInfo::getStopThreadCallbackID(Address cb) {
-   auto iter = stopThreadCallbacks_.find(cb);
-   if (iter != stopThreadCallbacks_.end()) {
-      return iter->second;
-   }
+int
+BPatch_libInfo::getStopThreadCallbackID(Address cb)
+{
+    auto iter = stopThreadCallbacks_.find(cb);
+    if(iter != stopThreadCallbacks_.end())
+    {
+        return iter->second;
+    }
 
-    int cb_id = ++stopThreadIDCounter_;
+    int cb_id                = ++stopThreadIDCounter_;
     stopThreadCallbacks_[cb] = cb_id;
     return cb_id;
 }
 
-bool BPatch_libInfo::registerMonitoredPoint(BPatch_point *point) {
-   if (monitoredPoints_.find((Address) point->getAddress()) != monitoredPoints_.end())
-      return false;
+bool
+BPatch_libInfo::registerMonitoredPoint(BPatch_point* point)
+{
+    if(monitoredPoints_.find((Address) point->getAddress()) != monitoredPoints_.end())
+        return false;
 
-    monitoredPoints_[(Address)point->getAddress()] = point;
+    monitoredPoints_[(Address) point->getAddress()] = point;
 
-    proccontrol_printf("%s[%d]: monitoring address 0x%lx for dynamic calls\n",
-            FILE__, __LINE__, (unsigned long)point->getAddress());
+    proccontrol_printf("%s[%d]: monitoring address 0x%lx for dynamic calls\n", FILE__,
+                       __LINE__, (unsigned long) point->getAddress());
 
     return true;
 }
 
-BPatch_point *BPatch_libInfo::getMonitoredPoint(Address addr) {
-   auto iter = monitoredPoints_.find(addr);
-   if (iter == monitoredPoints_.end()) return NULL;
-   return iter->second;
+BPatch_point*
+BPatch_libInfo::getMonitoredPoint(Address addr)
+{
+    auto iter = monitoredPoints_.find(addr);
+    if(iter == monitoredPoints_.end())
+        return NULL;
+    return iter->second;
 }
 
 // Functions for accessing stop thread callback state
-void BPatch::registerStopThreadCallback(BPatchStopThreadCallback stopCB) {
+void
+BPatch::registerStopThreadCallback(BPatchStopThreadCallback stopCB)
+{
     stopThreadCallbacks.push_back(stopCB);
 }
 
-int BPatch::getStopThreadCallbackID(BPatchStopThreadCallback stopCB) {
-    return info->getStopThreadCallbackID((Address)stopCB);
+int
+BPatch::getStopThreadCallbackID(BPatchStopThreadCallback stopCB)
+{
+    return info->getStopThreadCallbackID((Address) stopCB);
 }
