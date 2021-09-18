@@ -31,10 +31,10 @@
    version 2.2 of Bison.  */
 
 #ifndef YY_DYNC_DYNC_TAB_H_INCLUDED
-# define YY_DYNC_DYNC_TAB_H_INCLUDED
+#define YY_DYNC_DYNC_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 0
+#    define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int dynCdebug;
@@ -42,156 +42,157 @@ extern int dynCdebug;
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
-    KNOWN_ERROR_TOK = 258,
-    IDENTIFIER = 259,
-    CONSTANT = 260,
-    STRING = 261,
-    TYPE = 262,
-    NUMBER = 263,
-    D_ERROR = 264,
-    EOL = 265,
-    SIZEOF = 266,
-    D_TRUE = 267,
-    D_FALSE = 268,
-    PTR_OP = 269,
-    INC_OP = 270,
-    DEC_OP = 271,
-    LEFT_OP = 272,
-    RIGHT_OP = 273,
-    LEFT_ASSIGN = 274,
-    RIGHT_ASSIGN = 275,
-    AND_ASSIGN = 276,
-    XOR_ASSIGN = 277,
-    OR_ASSIGN = 278,
-    TYPE_NAME = 279,
-    TYPEDEF = 280,
-    EXTERN = 281,
-    STATIC = 282,
-    D_CHAR = 283,
-    D_SHORT = 284,
-    D_INT = 285,
-    D_LONG = 286,
-    SIGNED = 287,
-    UNSIGNED = 288,
-    D_FLOAT = 289,
-    DOUBLE = 290,
-    D_CONST = 291,
-    D_VOID = 292,
-    STRUCT = 293,
-    UNION = 294,
-    ENUM = 295,
-    ELLIPSIS = 296,
-    IF = 297,
-    LOCAL = 298,
-    PARAM = 299,
-    GLOBAL = 300,
-    FUNC = 301,
-    DYNINST = 302,
-    INST = 303,
-    REGISTER = 304,
-    NEWLINE = 305,
-    CASE = 306,
-    DEFAULT = 307,
-    SWITCH = 308,
-    RETURN = 309,
-    NILL = 310,
-    EOF_TOK = 311,
-    DOT = 312,
-    ASTERISK = 313,
-    AMPERSAND = 314,
-    COMMA = 315,
-    NOT = 316,
-    OR = 317,
-    AND = 318,
-    LESS_EQ = 319,
-    GREATER_EQ = 320,
-    EQ = 321,
-    NOT_EQ = 322,
-    COLON = 323,
-    SEMI = 324,
-    START_BLOCK = 325,
-    END_BLOCK = 326,
-    DOLLAR = 327,
-    BACKTICK = 328,
-    AND_OP = 329,
-    OR_OP = 330,
-    MUL_ASSIGN = 331,
-    DIV_ASSIGN = 332,
-    MOD_ASSIGN = 333,
-    ADD_ASSIGN = 334,
-    SUB_ASSIGN = 335,
-    ASSIGN = 336,
-    NOPEN = 337,
-    NCLOSE = 338,
-    LOWER_THAN_ELSE = 339,
-    ELSE = 340,
+#    define YYTOKENTYPE
+enum yytokentype
+{
+    KNOWN_ERROR_TOK  = 258,
+    IDENTIFIER       = 259,
+    CONSTANT         = 260,
+    STRING           = 261,
+    TYPE             = 262,
+    NUMBER           = 263,
+    D_ERROR          = 264,
+    EOL              = 265,
+    SIZEOF           = 266,
+    D_TRUE           = 267,
+    D_FALSE          = 268,
+    PTR_OP           = 269,
+    INC_OP           = 270,
+    DEC_OP           = 271,
+    LEFT_OP          = 272,
+    RIGHT_OP         = 273,
+    LEFT_ASSIGN      = 274,
+    RIGHT_ASSIGN     = 275,
+    AND_ASSIGN       = 276,
+    XOR_ASSIGN       = 277,
+    OR_ASSIGN        = 278,
+    TYPE_NAME        = 279,
+    TYPEDEF          = 280,
+    EXTERN           = 281,
+    STATIC           = 282,
+    D_CHAR           = 283,
+    D_SHORT          = 284,
+    D_INT            = 285,
+    D_LONG           = 286,
+    SIGNED           = 287,
+    UNSIGNED         = 288,
+    D_FLOAT          = 289,
+    DOUBLE           = 290,
+    D_CONST          = 291,
+    D_VOID           = 292,
+    STRUCT           = 293,
+    UNION            = 294,
+    ENUM             = 295,
+    ELLIPSIS         = 296,
+    IF               = 297,
+    LOCAL            = 298,
+    PARAM            = 299,
+    GLOBAL           = 300,
+    FUNC             = 301,
+    DYNINST          = 302,
+    INST             = 303,
+    REGISTER         = 304,
+    NEWLINE          = 305,
+    CASE             = 306,
+    DEFAULT          = 307,
+    SWITCH           = 308,
+    RETURN           = 309,
+    NILL             = 310,
+    EOF_TOK          = 311,
+    DOT              = 312,
+    ASTERISK         = 313,
+    AMPERSAND        = 314,
+    COMMA            = 315,
+    NOT              = 316,
+    OR               = 317,
+    AND              = 318,
+    LESS_EQ          = 319,
+    GREATER_EQ       = 320,
+    EQ               = 321,
+    NOT_EQ           = 322,
+    COLON            = 323,
+    SEMI             = 324,
+    START_BLOCK      = 325,
+    END_BLOCK        = 326,
+    DOLLAR           = 327,
+    BACKTICK         = 328,
+    AND_OP           = 329,
+    OR_OP            = 330,
+    MUL_ASSIGN       = 331,
+    DIV_ASSIGN       = 332,
+    MOD_ASSIGN       = 333,
+    ADD_ASSIGN       = 334,
+    SUB_ASSIGN       = 335,
+    ASSIGN           = 336,
+    NOPEN            = 337,
+    NCLOSE           = 338,
+    LOWER_THAN_ELSE  = 339,
+    ELSE             = 340,
     LOWER_THAN_DEREF = 341
-  };
+};
 #endif
 
 /* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
 
 union YYSTYPE
 {
-#line 68 "C.y" /* yacc.c:1909  */
+#    line 68 "C.y" /* yacc.c:1909  */
 
-   int   ival;
-   long  lval;
-   double dval;
-   char  *sval;
+    int    ival;
+    long   lval;
+    double dval;
+    char*  sval;
 
-   const char *context;
+    const char* context;
 
-   struct VariableSpec {
-      bool isConstant;
-      bool isStatic;
-      bool isGlobal;
-      bool isLocal;
-      bool isParam;
-      bool isThread;
-      bool isMachineState;
-      bool isMutateeScope;
+    struct VariableSpec
+    {
+        bool isConstant;
+        bool isStatic;
+        bool isGlobal;
+        bool isLocal;
+        bool isParam;
+        bool isThread;
+        bool isMachineState;
+        bool isMutateeScope;
 
-      const char * type;
-   } varSpec;
+        const char* type;
+    } varSpec;
 
-   BPatch_snippet *snippet;
-   BPatch_boolExpr *boolExpr;
-   BPatch_funcCallExpr *funcCall;
-   BPatch_variableExpr *varExpr;
-   std::vector<BPatch_snippet *> *snippetList;
-   std::vector<std::pair<BPatch_snippet *, const char *> > *snippetStringListPair;
-   std::pair<BPatch_snippet *, const char *> *snippetStringPair;
+    BPatch_snippet*                                       snippet;
+    BPatch_boolExpr*                                      boolExpr;
+    BPatch_funcCallExpr*                                  funcCall;
+    BPatch_variableExpr*                                  varExpr;
+    std::vector<BPatch_snippet*>*                         snippetList;
+    std::vector<std::pair<BPatch_snippet*, const char*>>* snippetStringListPair;
+    std::pair<BPatch_snippet*, const char*>*              snippetStringPair;
 
-#line 171 "dynC.tab.h" /* yacc.c:1909  */
+#    line 171 "dynC.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
+#    define YYSTYPE_IS_TRIVIAL 1
+#    define YYSTYPE_IS_DECLARED 1
 #endif
 
 /* Location type.  */
-#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
-typedef struct YYLTYPE YYLTYPE;
+#if !defined YYLTYPE && !defined YYLTYPE_IS_DECLARED
+typedef struct YYLTYPE           YYLTYPE;
 struct YYLTYPE
 {
-  int first_line;
-  int first_column;
-  int last_line;
-  int last_column;
+    int first_line;
+    int first_column;
+    int last_line;
+    int last_column;
 };
-# define YYLTYPE_IS_DECLARED 1
-# define YYLTYPE_IS_TRIVIAL 1
+#    define YYLTYPE_IS_DECLARED 1
+#    define YYLTYPE_IS_TRIVIAL 1
 #endif
-
 
 extern YYSTYPE dynClval;
 extern YYLTYPE dynClloc;
-int dynCparse (void);
+int
+dynCparse(void);
 
 #endif /* !YY_DYNC_DYNC_TAB_H_INCLUDED  */
