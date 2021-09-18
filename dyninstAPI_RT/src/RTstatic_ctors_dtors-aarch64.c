@@ -32,16 +32,16 @@
 
 #if defined(DYNINST_RT_STATIC_LIB)
 
-#include <assert.h>
+#    include <assert.h>
 
 void (*DYNINSTctors_addr)(void);
 void (*DYNINSTdtors_addr)(void);
 
 //#if defined(MUTATEE64)
-//static const unsigned long long CTOR_LIST_TERM = 0x0000000000000000ULL;
-//static const unsigned long long CTOR_LIST_START = 0xffffffffffffffffULL;
-//static const unsigned long long DTOR_LIST_TERM = 0x0000000000000000ULL;
-//static const unsigned long long DTOR_LIST_START = 0xffffffffffffffffULL;
+// static const unsigned long long CTOR_LIST_TERM = 0x0000000000000000ULL;
+// static const unsigned long long CTOR_LIST_START = 0xffffffffffffffffULL;
+// static const unsigned long long DTOR_LIST_TERM = 0x0000000000000000ULL;
+// static const unsigned long long DTOR_LIST_START = 0xffffffffffffffffULL;
 //#else
 /*
 static const unsigned CTOR_LIST_TERM = 0x00000000;
@@ -51,7 +51,8 @@ static const unsigned DTOR_LIST_START = 0xffffffff;
 */
 //#endif
 
-extern void DYNINSTBaseInit();
+extern void
+DYNINSTBaseInit();
 
 /*
  * When rewritting a static binary, .ctors and .dtors sections of
@@ -64,14 +65,18 @@ extern void DYNINSTBaseInit();
  * new .ctors and .dtors sections.
  */
 
-void DYNINSTglobal_ctors_handler() {
-//#warning "This function is not implemented yet!"
-	assert(0);
+void
+DYNINSTglobal_ctors_handler()
+{
+    //#warning "This function is not implemented yet!"
+    assert(0);
 }
 
-void DYNINSTglobal_dtors_handler() {
-//#warning "This function is not implemented yet!"
-	assert(0);
+void
+DYNINSTglobal_dtors_handler()
+{
+    //#warning "This function is not implemented yet!"
+    assert(0);
 }
 
 #endif
