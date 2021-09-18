@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -36,7 +36,8 @@ using namespace std;
 #include "config.h"
 #include "log.h"
 
-enum statusID {
+enum statusID
+{
     ID_INFO,
     ID_TEST,
     ID_WARN,
@@ -44,7 +45,8 @@ enum statusID {
     ID_PASS
 };
 
-enum messageID {
+enum messageID
+{
     ID_INVALID,
 
     ID_INIT_CREATE_BPATCH,
@@ -120,28 +122,38 @@ enum messageID {
     ID_MAX
 };
 
-#define encodeID(msgID, pri, statID)	( ((msgID) << 8) | ((pri) << 4) | (statID) )
-#define getMsgID(x)			((messageID)((x) >> 8))
-#define getStatID(x)			((statusID)((x) & 0xF))
-#define getPriID(x)			((logLevel)(((x) >> 4) & 0xF))
+#define encodeID(msgID, pri, statID) (((msgID) << 8) | ((pri) << 4) | (statID))
+#define getMsgID(x) ((messageID)((x) >> 8))
+#define getStatID(x) ((statusID)((x) &0xF))
+#define getPriID(x) ((logLevel)(((x) >> 4) & 0xF))
 
-struct message {
+struct message
+{
     unsigned id_data;
-    char *str_data;
-    int int_data;
+    char*    str_data;
+    int      int_data;
 };
 
-void setSigHandlers();
-void resetSigHandlers();
-const char *msgStr(messageID);
-message *readMsg(FILE *, message *);
-void printMsg(FILE *, messageID, int = 0);
-void sendMsg(FILE *, messageID, logLevel, statusID = ID_TEST, const char * = NULL);
-void sendMsg(FILE *, messageID, logLevel, statusID, int);
+void
+setSigHandlers();
+void
+            resetSigHandlers();
+const char* msgStr(messageID);
+message*
+readMsg(FILE*, message*);
+void
+printMsg(FILE*, messageID, int = 0);
+void
+sendMsg(FILE*, messageID, logLevel, statusID = ID_TEST, const char* = NULL);
+void
+     sendMsg(FILE*, messageID, logLevel, statusID, int);
 void killProcess(pid_t);
-void cleanupProcess();
-void cleanupFinal();
+void
+cleanupProcess();
+void
+cleanupFinal();
 
-int readStr(FILE *, char *, int);
+int
+readStr(FILE*, char*, int);
 
 #endif
