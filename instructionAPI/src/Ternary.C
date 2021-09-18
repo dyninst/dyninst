@@ -41,82 +41,92 @@
 
 using namespace std;
 
-extern bool ia32_is_mode_64();
-
+extern bool
+ia32_is_mode_64();
 
 namespace Dyninst
 {
-  namespace InstructionAPI
-  {
-    TernaryAST::TernaryAST(Expression::Ptr c, Expression::Ptr f, Expression::Ptr s , Result_Type result_type_):
-        Expression(result_type_) , cond(c) , first(f) , second(s)
-    {
-    }
+namespace InstructionAPI
+{
+TernaryAST::TernaryAST(Expression::Ptr c, Expression::Ptr f, Expression::Ptr s,
+                       Result_Type result_type_)
+: Expression(result_type_)
+, cond(c)
+, first(f)
+, second(s)
+{}
 
-
-    TernaryAST::~TernaryAST()
-    {
-    }
-    void TernaryAST::getChildren(vector<InstructionAST::Ptr>& /*children*/) const
-    {
-      return;
-    }
-    void TernaryAST::getChildren(vector<Expression::Ptr>& /*children*/) const
-    {
-        return;
-    }
-    void TernaryAST::getUses(set<InstructionAST::Ptr>& uses)
-    {
-        uses.insert(shared_from_this());
-        return;
-    }
-    bool TernaryAST::isUsed(InstructionAST::Ptr) const
-    {
-        return false; //TODO
-        //return findMe->checkRegID(m_Reg, m_Low, m_High);
-    }
-
-    std::string TernaryAST::format(Architecture, formatStyle f) const
-    {
-        return TernaryAST::format(f); // TODO
-        //return ArchSpecificFormatter::getFormatter(arch).formatTernary(m_Reg.name());
-    }
-
-    std::string TernaryAST::format(formatStyle) const
-    {
-        std::string name = "("+cond->format() +"?" + first->format() + ":" + second->format()+ ")";
-        for (auto &c: name) c = ::toupper(c);
-        return name;
-    }
-    
-    bool TernaryAST::operator<(const TernaryAST&) const
-    {
-        return false;
-    }
-    bool TernaryAST::isStrictEqual(const InstructionAST&) const
-    {
-          return false;
-    }
-
-    void TernaryAST::apply(Visitor*)
-    {
-        //v->visit(this); // TODO need to support this in visitor
-    }
-    bool TernaryAST::bind(Expression*, const Result&)
-    {
-        return false; // TODO
-
-        /*if(Expression::bind(e, val)) {
-            return true;
-        }*/
-	    //fprintf(stderr, "checking %s against %s with checkRegID in TernaryAST::bind... %p", e->format().c_str(),
-	    //format().c_str(), this);
-        /*if(e->checkRegID(m_Reg, m_Low, m_High))
-        {
-            setValue(val);
-            return true;
-        }*/
-        //fprintf(stderr, "no\n");
-    }
-  }
+TernaryAST::~TernaryAST() {}
+void
+TernaryAST::getChildren(vector<InstructionAST::Ptr>& /*children*/) const
+{
+    return;
 }
+void
+TernaryAST::getChildren(vector<Expression::Ptr>& /*children*/) const
+{
+    return;
+}
+void
+TernaryAST::getUses(set<InstructionAST::Ptr>& uses)
+{
+    uses.insert(shared_from_this());
+    return;
+}
+bool TernaryAST::isUsed(InstructionAST::Ptr) const
+{
+    return false;  // TODO
+    // return findMe->checkRegID(m_Reg, m_Low, m_High);
+}
+
+std::string
+TernaryAST::format(Architecture, formatStyle f) const
+{
+    return TernaryAST::format(f);  // TODO
+    // return ArchSpecificFormatter::getFormatter(arch).formatTernary(m_Reg.name());
+}
+
+std::string TernaryAST::format(formatStyle) const
+{
+    std::string name =
+        "(" + cond->format() + "?" + first->format() + ":" + second->format() + ")";
+    for(auto& c : name)
+        c = ::toupper(c);
+    return name;
+}
+
+bool
+TernaryAST::operator<(const TernaryAST&) const
+{
+    return false;
+}
+bool
+TernaryAST::isStrictEqual(const InstructionAST&) const
+{
+    return false;
+}
+
+void
+TernaryAST::apply(Visitor*)
+{
+    // v->visit(this); // TODO need to support this in visitor
+}
+bool
+TernaryAST::bind(Expression*, const Result&)
+{
+    return false;  // TODO
+
+    /*if(Expression::bind(e, val)) {
+        return true;
+    }*/
+    // fprintf(stderr, "checking %s against %s with checkRegID in TernaryAST::bind... %p",
+    // e->format().c_str(), format().c_str(), this);
+    /*if(e->checkRegID(m_Reg, m_Low, m_High))
+    {
+        setValue(val);
+        return true;
+    }*/
+    // fprintf(stderr, "no\n");
+}
+}  // namespace InstructionAPI
+}  // namespace Dyninst
