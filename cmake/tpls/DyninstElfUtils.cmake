@@ -149,10 +149,10 @@ else()
         URL https://sourceware.org/elfutils/ftp/${ELFUTILS_DOWNLOAD_VERSION}/elfutils-${ELFUTILS_DOWNLOAD_VERSION}.tar.bz2
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
-            CFLAGS=-fPIC CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
-            <SOURCE_DIR>/configure --enable-install-elfh
-            --prefix=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls --disable-libdebuginfod
-            --disable-debuginfod
+            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
+            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g <SOURCE_DIR>/configure
+            --enable-install-elfh --prefix=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls
+            --disable-libdebuginfod --disable-debuginfod --enable-thread-safety
         BUILD_COMMAND make install
         INSTALL_COMMAND "")
 

@@ -213,9 +213,9 @@ else()
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
-            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ${MAKE_EXECUTABLE} -C src
-            ${_tbb_components_cfg} tbb_build_dir=${_tbb_prefix_dir}/src
-            tbb_build_prefix=tbb ${_tbb_compiler}
+            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+            ${MAKE_EXECUTABLE} -C src ${_tbb_components_cfg}
+            tbb_build_dir=${_tbb_prefix_dir}/src tbb_build_prefix=tbb ${_tbb_compiler}
         INSTALL_COMMAND
             ${CMAKE_COMMAND} -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib
             -DINCDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include

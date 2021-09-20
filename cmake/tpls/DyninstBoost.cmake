@@ -266,7 +266,8 @@ else()
         URL http://downloads.sourceforge.net/project/boost/boost/${BOOST_DOWNLOAD_VERSION}/boost_${_boost_download_filename}.zip
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
-            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ${BOOST_BOOTSTRAP}
+            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
+            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g ${BOOST_BOOTSTRAP}
             --prefix=${Boost_ROOT_DIR} --with-libraries=${_boost_lib_names}
         BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
         INSTALL_COMMAND "")

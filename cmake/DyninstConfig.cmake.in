@@ -1,9 +1,7 @@
-# - Config file for Dyninst and its component libraries
-# It defines the following variables:
+# * Config file for Dyninst and its component libraries It defines the following
+#   variables:
 #
-# Dyninst_INCLUDE_DIRS
-# Dyninst_LIBRARIES
-# Dyninst_INTERNAL_DEFINES - used by the test suite
+# Dyninst_INCLUDE_DIRS Dyninst_LIBRARIES Dyninst_INTERNAL_DEFINES - used by the test suite
 
 set(_MODULE_PATH ${CMAKE_MODULE_PATH})
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/Modules ${CMAKE_MODULE_PATH})
@@ -25,7 +23,8 @@ add_library(Dyninst::Dyninst INTERFACE IMPORTED)
 set(Dyninst_BUILD_SHARED_LIBS @BUILD_SHARED_LIBS@)
 set(Dyninst_BUILD_STATIC_LIBS @BUILD_STATIC_LIBS@)
 
-# handle shared or static in the components (i.e. request/require shared or static libraries)
+# handle shared or static in the components (i.e. request/require shared or static
+# libraries)
 set(_Dyninst_TARGET_SUFFIX)
 set(_Dyninst_PREFER_STATIC OFF)
 set(_Dyninst_REQUIRE_STATIC OFF)
@@ -35,7 +34,8 @@ if("shared" IN_LIST Dyninst_FIND_COMPONENTS)
     if(Dyninst_FIND_REQUIRED_shared)
         set(_Dyninst_REQUIRE_SHARED ON)
     endif()
-elseif("static" IN_LIST Dyninst_FIND_COMPONENTS OR (NOT Dyninst_BUILD_SHARED_LIBS AND Dyninst_BUILD_STATIC_LIBS))
+elseif("static" IN_LIST Dyninst_FIND_COMPONENTS OR (NOT Dyninst_BUILD_SHARED_LIBS
+                                                    AND Dyninst_BUILD_STATIC_LIBS))
     list(REMOVE_ITEM Dyninst_FIND_COMPONENTS "static")
     set(_Dyninst_TARGET_SUFFIX "-static")
     if(NOT Dyninst_FIND_REQUIRED_static)
@@ -55,10 +55,13 @@ foreach(TARG @ALL_DYNINST_TARGETS@)
     include("${DYNINST_CMAKE_DIR}/${TARG}Targets.cmake" OPTIONAL)
     if(NOT Dyninst_FIND_COMPONENTS)
         list(APPEND Dyninst_LIBRARIES Dyninst::${TARG}${_Dyninst_TARGET_SUFFIX})
-        target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::${TARG}${_Dyninst_TARGET_SUFFIX})
+        target_link_libraries(Dyninst::Dyninst
+                              INTERFACE Dyninst::${TARG}${_Dyninst_TARGET_SUFFIX})
     endif()
     # provide generic alias in static-only build when shared is not required
-    if(NOT _Dyninst_REQUIRE_SHARED AND NOT TARGET Dyninst::${TARG} AND TARGET Dyninst::${TARG}-static)
+    if(NOT _Dyninst_REQUIRE_SHARED
+       AND NOT TARGET Dyninst::${TARG}
+       AND TARGET Dyninst::${TARG}-static)
         add_library(Dyninst::${TARG} ALIAS Dyninst::${TARG}-static)
     endif()
 endforeach()
@@ -72,8 +75,12 @@ if(Dyninst_FIND_COMPONENTS)
         if(TARGET Dyninst::${COMP}${_Dyninst_TARGET_SUFFIX})
             set(Dyninst_${COMP}_FOUND 1)
             list(APPEND Dyninst_LIBRARIES Dyninst::${COMP}${_Dyninst_TARGET_SUFFIX})
-            target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::${COMP}${_Dyninst_TARGET_SUFFIX})
-        elseif(_Dyninst_PREFER_STATIC AND NOT _Dyninst_REQUIRE_STATIC AND TARGET Dyninst::${COMP})
+            target_link_libraries(Dyninst::Dyninst
+                                  INTERFACE Dyninst::${COMP}${_Dyninst_TARGET_SUFFIX})
+        elseif(
+            _Dyninst_PREFER_STATIC
+            AND NOT _Dyninst_REQUIRE_STATIC
+            AND TARGET Dyninst::${COMP})
             set(Dyninst_${COMP}_FOUND 1)
             list(APPEND Dyninst_LIBRARIES Dyninst::${COMP})
             target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::${COMP})
@@ -86,14 +93,11 @@ endif()
 target_link_libraries(Dyninst::Dyninst INTERFACE Dyninst::Boost Dyninst::TBB)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Dyninst
+find_package_handle_standard_args(
+    Dyninst
     FOUND_VAR Dyninst_FOUND
-    REQUIRED_VARS
-        Dyninst_ROOT_DIR
-        Dyninst_INCLUDE_DIR
-        Dyninst_LIBRARIES
-    VERSION_VAR
-        Dyninst_VERSION
+    REQUIRED_VARS Dyninst_ROOT_DIR Dyninst_INCLUDE_DIR Dyninst_LIBRARIES
+    VERSION_VAR Dyninst_VERSION
     HANDLE_COMPONENTS)
 
 # unset temporary variables

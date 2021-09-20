@@ -125,11 +125,9 @@ function(dyninst_library TARG_NAME)
     endif()
 
     # Handle formatting
-    file(GLOB_RECURSE _format_sources
-        "${CMAKE_CURRENT_LIST_DIR}/h/*.h"
-        "${CMAKE_CURRENT_LIST_DIR}/src/*.h"
-        "${CMAKE_CURRENT_LIST_DIR}/src/*.c"
-        "${CMAKE_CURRENT_LIST_DIR}/src/*.C")
+    file(GLOB_RECURSE _format_sources "${CMAKE_CURRENT_LIST_DIR}/h/*.h"
+         "${CMAKE_CURRENT_LIST_DIR}/src/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/*.c"
+         "${CMAKE_CURRENT_LIST_DIR}/src/*.C")
     foreach(_SRC ${TARG_SOURCES} ${TARG_HEADERS})
         if(NOT EXISTS ${_SRC} OR NOT IS_ABSOLUTE ${_SRC})
             set(_SRC ${CMAKE_CURRENT_LIST_DIR}/${_SRC})

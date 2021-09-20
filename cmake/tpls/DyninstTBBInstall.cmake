@@ -18,7 +18,8 @@ file(
 file(COPY ${PREFIX}/src/TBB-External/include/tbb DESTINATION ${INCDIR})
 file(GLOB _tbb_libs ${LIBDIR}/libtbb*.so.*)
 
-foreach(l ${_tbb_libs})
-    string(REGEX REPLACE "\\.2$" "" _l_short ${l})
-    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${l} ${_l_short})
+foreach(_lib ${_tbb_libs})
+    string(REGEX REPLACE "\\.2$" "" _lib_short ${_lib})
+    get_filename_component(_lib "${_lib}" NAME)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${_lib} ${_lib_short})
 endforeach()

@@ -71,8 +71,10 @@ else()
         PREFIX ${CMAKE_BINARY_DIR}/binutils
         URL http://ftp.gnu.org/gnu/binutils/binutils-2.31.1.tar.gz
         BUILD_IN_SOURCE 1
-        CONFIGURE_COMMAND CFLAGS=-fPIC CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
-                          <SOURCE_DIR>/configure --prefix=${CMAKE_BINARY_DIR}/binutils
+        CONFIGURE_COMMAND
+            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
+            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g <SOURCE_DIR>/configure
+            --prefix=${CMAKE_BINARY_DIR}/binutils
         BUILD_COMMAND make
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libiberty
         INSTALL_COMMAND install <SOURCE_DIR>/libiberty/libiberty.a <INSTALL_DIR>)
