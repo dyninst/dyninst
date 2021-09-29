@@ -87,7 +87,7 @@ set(TBB_LIBRARY ${TBB_LIBRARYDIR})
 set(TBB_INCLUDE_DIR ${TBB_INCLUDEDIR})
 
 # The specific TBB libraries we need NB: This should _NOT_ be a cache variable
-set(_tbb_components tbb tbbmalloc tbbmalloc_proxy)
+set(_tbb_components tbb tbbmalloc_proxy tbbmalloc)
 
 if(NOT BUILD_TBB)
     find_package(TBB ${TBB_MIN_VERSION} COMPONENTS ${_tbb_components})
@@ -214,6 +214,7 @@ else()
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
             ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+            [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=]
             ${MAKE_EXECUTABLE} -C src ${_tbb_components_cfg}
             tbb_build_dir=${_tbb_prefix_dir}/src tbb_build_prefix=tbb ${_tbb_compiler}
         INSTALL_COMMAND

@@ -54,7 +54,7 @@ endif()
 
 function(dyninst_library TARG_NAME)
     # boolean options
-    set(_boolean_opts BUILD_SHARED BUILD_STATIC)
+    set(_boolean_opts BUILD_SHARED BUILD_STATIC OPENMP)
     # options taking single value
     set(_single_val_opts DESTINATION DEFAULT_VISIBILITY)
     # options taking multiple values
@@ -191,7 +191,7 @@ function(dyninst_library TARG_NAME)
         endforeach()
 
         target_link_libraries(${_target} PRIVATE Dyninst::dynCapArchDef)
-        if(USE_OpenMP)
+        if(USE_OpenMP AND TARG_OPENMP)
             target_link_libraries(${_target} PRIVATE OpenMP::OpenMP_C OpenMP::OpenMP_CXX)
         endif()
 
