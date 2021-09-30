@@ -4,8 +4,10 @@
 
 #include <Register.h>
 #include "SymEvalSemantics.h"
+#include "BaseSemantics2.h"
 
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
+using RoseException = BaseSemantics::Exception;
 
 ///////////////////////////////////////////////////////
 //                                           StateAST
@@ -194,7 +196,8 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTARM64::convert(const RegisterD
                     break;
                 case 128: base = Dyninst::aarch64::q0;
                     break;
-                default:assert(!"invalid size of RegisterDescriptor!");
+                default:
+                    throw RoseException("invalid size of RegisterDescriptor!", nullptr);
                     break;
             }
             mreg = Dyninst::MachRegister(base.val() + (minor - armv8_simdfpr_v0));
@@ -267,13 +270,13 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 	        Dyninst::MachRegister base = Dyninst::ppc32::cr0l;
 		mreg = Dyninst::MachRegister(base.val() + offset);
 	    } else {
-	        assert(!"bad cr register size");
+	        throw RoseException("bad cr register size", nullptr);
 	    }
 	}
 	    break;
 	
 	case powerpc_regclass_fpscr:
-	    assert(!"not implemented register class fpscr");
+	    throw RoseException("not implemented register class fpscr", nullptr);
 	    break;
 
 	case powerpc_regclass_spr: {
@@ -298,12 +301,12 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 		    mreg = Dyninst::ppc32::dec;
 		    break;
 		default:
-		    assert(!"not implemented special register");
+		    throw RoseException("not implemented special register", nullptr);
 	    }
 	}
 	    break;
 	case powerpc_regclass_tbr:
-	    assert(!"not implemented regclass tbr");
+	    throw RoseException("not implemented regclass tbr", nullptr);
 	    break;
 	
 	case powerpc_regclass_msr:
@@ -311,7 +314,7 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 	    break;
 	    
 	case powerpc_regclass_sr:
-	    assert(!"not implemented regclass sr");
+	    throw RoseException("not implemented regclass sr", nullptr);
 	    break;
 
         case powerpc_regclass_iar:
@@ -361,13 +364,13 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC64::convert(const RegisterD
 	        Dyninst::MachRegister base = Dyninst::ppc64::cr0l;
 		mreg = Dyninst::MachRegister(base.val() + offset);
 	    } else {
-	        assert(!"bad cr register size");
+	        throw RoseException("bad cr register size", nullptr);
 	    }
 	}
 	    break;
 	
 	case powerpc_regclass_fpscr:
-	    assert(!"not implemented register class fpscr");
+	    throw RoseException("not implemented register class fpscr", nullptr);
 	    break;
 
 	case powerpc_regclass_spr: {
@@ -392,12 +395,12 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC64::convert(const RegisterD
 		    mreg = Dyninst::ppc64::dec;
 		    break;
 		default:
-		    assert(!"not implemented special register");
+		    throw RoseException("not implemented special register", nullptr);
 	    }
 	}
 	    break;
 	case powerpc_regclass_tbr:
-	    assert(!"not implemented regclass tbr");
+	    throw RoseException("not implemented regclass tbr", nullptr);
 	    break;
 	
 	case powerpc_regclass_msr:
@@ -405,7 +408,7 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC64::convert(const RegisterD
 	    break;
 	    
 	case powerpc_regclass_sr:
-	    assert(!"not implemented regclass sr");
+	    throw RoseException("not implemented regclass sr", nullptr);
 	    break;
 
         case powerpc_regclass_iar:
