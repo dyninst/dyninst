@@ -3009,6 +3009,7 @@ power_op_dxex,
   amdgpu_op_sop1_nop,
 #include "amdgpu_op_table.h"
 #include "amdgpu_cdna_op_table.h"
+#include "amdgpu_cdna2_op_table.h"
   cuda_op_general,
   cuda_op_call,
   intel_gpu_op_general,

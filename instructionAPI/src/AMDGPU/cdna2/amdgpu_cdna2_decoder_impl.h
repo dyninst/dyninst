@@ -1,22 +1,21 @@
-static bool IS_ENC_SOP1(uint64_t I){ return  ((I & 0xFF800000) == 0xBE800000);}
-static bool IS_ENC_SOPC(uint64_t I){ return  ((I & 0xFF800000) == 0xBF000000);}
-static bool IS_ENC_SOPP(uint64_t I){ return  ((I & 0xFF800000) == 0xBF800000);}
-static bool IS_ENC_SOPK(uint64_t I){ return  ((I & 0xF0000000) == 0xB0000000);}
-static bool IS_ENC_SOP2(uint64_t I){ return  ((I & 0xC0000000) == 0x80000000);}
-static bool IS_ENC_SMEM(uint64_t I){ return  ((I & 0xFC000000) == 0xC0000000);}
-static bool IS_ENC_VOP1(uint64_t I){ return  ((I & 0xFE000000) == 0x7E000000);}
-static bool IS_ENC_VOPC(uint64_t I){ return  ((I & 0xFE000000) == 0x7C000000);}
-static bool IS_ENC_VOP2(uint64_t I){ return  ((I & 0x80000000) == 0x0);}
-static bool IS_ENC_VINTRP(uint64_t I){ return  ((I & 0xFC000000) == 0xD4000000);}
-static bool IS_ENC_VOP3P(uint64_t I){ return  ((I & 0xFF800000) == 0xD3800000);}
-static bool IS_ENC_VOP3(uint64_t I){ return  ((I & 0xFC000000) == 0xD0000000);}
-static bool IS_ENC_DS(uint64_t I){ return  ((I & 0xFC000000) == 0xD8000000);}
-static bool IS_ENC_MUBUF(uint64_t I){ return  ((I & 0xFC000000) == 0xE0000000);}
-static bool IS_ENC_MTBUF(uint64_t I){ return  ((I & 0xFC000000) == 0xE8000000);}
-static bool IS_ENC_MIMG(uint64_t I){ return  ((I & 0xFC000000) == 0xF0000000);}
-static bool IS_ENC_EXP(uint64_t I){ return  ((I & 0xFC000000) == 0xC4000000);}
-static bool IS_ENC_FLAT(uint64_t I){ return  ((I & 0xFC000000) == 0xDC000000);}
-static bool IS_VOP3_0_SDST_ENC_VOP3_1_(uint64_t I){ return  ((I & 0x0) == 0x0);}
+static bool IS_ENC_SOP1(uint64_t I);
+static bool IS_ENC_SOPC(uint64_t I);
+static bool IS_ENC_SOPP(uint64_t I);
+static bool IS_ENC_SOPK(uint64_t I);
+static bool IS_ENC_SOP2(uint64_t I);
+static bool IS_ENC_SMEM(uint64_t I);
+static bool IS_ENC_VOP1(uint64_t I);
+static bool IS_ENC_VOPC(uint64_t I);
+static bool IS_ENC_VOP2(uint64_t I);
+static bool IS_ENC_VINTRP(uint64_t I);
+static bool IS_ENC_VOP3P(uint64_t I);
+static bool IS_ENC_VOP3(uint64_t I);
+static bool IS_ENC_DS(uint64_t I);
+static bool IS_ENC_MUBUF(uint64_t I);
+static bool IS_ENC_MTBUF(uint64_t I);
+static bool IS_ENC_MIMG(uint64_t I);
+static bool IS_ENC_FLAT(uint64_t I);
+static bool IS_ENC_VOP3B(uint64_t I);
 enum InstructionFamily{
 	ENC_SOP1 = 0,
 	ENC_SOPC = 1,
@@ -34,32 +33,30 @@ enum InstructionFamily{
 	ENC_MUBUF = 13,
 	ENC_MTBUF = 14,
 	ENC_MIMG = 15,
-	ENC_EXP = 16,
 	ENC_FLAT = 17,
-	VOP3_0_SDST_ENC_VOP3_1_ = 18,
+	ENC_VOP3B = 18,
 };
 InstructionFamily instr_family;
-typedef void (InstructionDecoder_amdgpu_cdna::*func_ptr)(void);
-func_ptr decode_lookup_table [19] = {
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_SOP1),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_SOPC),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_SOPP),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_SOPK),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_SOP2),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_SMEM),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_VOP1),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_VOPC),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_VOP2),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_VINTRP),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_VOP3P),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_VOP3),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_DS),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_MUBUF),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_MTBUF),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_MIMG),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_EXP),
-	(&InstructionDecoder_amdgpu_cdna::decodeENC_FLAT),
-	(&InstructionDecoder_amdgpu_cdna::decodeVOP3_0_SDST_ENC_VOP3_1_),
+typedef void (InstructionDecoder_amdgpu_cdna2::*func_ptr)(void);
+func_ptr decode_lookup_table [18] = {
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOP1),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOPC),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOPP),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOPK),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOP2),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SMEM),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP1),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOPC),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VINTRP),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3P),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_DS),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_MUBUF),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_MTBUF),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_MIMG),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT),
+	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3B),
 };
 typedef struct layout_ENC_SOP1{
 	uint16_t  ENCODING : 9 ;
@@ -221,18 +218,6 @@ typedef struct layout_ENC_MIMG{
 	uint8_t  VADDR : 8 ;
 	uint8_t  VDATA : 8 ;
 }layout_ENC_MIMG;
-typedef struct layout_ENC_EXP{
-	uint8_t  COMPR : 1 ;
-	uint8_t  DONE : 1 ;
-	uint8_t  EN : 4 ;
-	uint8_t  ENCODING : 6 ;
-	uint8_t  TGT : 6 ;
-	uint8_t  VM : 1 ;
-	uint8_t  VSRC0 : 8 ;
-	uint8_t  VSRC1 : 8 ;
-	uint8_t  VSRC2 : 8 ;
-	uint8_t  VSRC3 : 8 ;
-}layout_ENC_EXP;
 typedef struct layout_ENC_FLAT{
 	uint8_t  ENCODING : 6 ;
 	uint8_t  NT : 1 ;
@@ -248,7 +233,7 @@ typedef struct layout_ENC_FLAT{
 	uint8_t  SADDR : 7 ;
 	uint8_t  VDST : 8 ;
 }layout_ENC_FLAT;
-typedef struct layout_VOP3_0_SDST_ENC_VOP3_1_{
+typedef struct layout_ENC_VOP3B{
 	uint8_t  CLAMP : 1 ;
 	uint8_t  ENCODING : 6 ;
 	uint16_t  OP : 10 ;
@@ -259,7 +244,7 @@ typedef struct layout_VOP3_0_SDST_ENC_VOP3_1_{
 	uint16_t  SRC0 : 9 ;
 	uint16_t  SRC1 : 9 ;
 	uint16_t  SRC2 : 9 ;
-}layout_VOP3_0_SDST_ENC_VOP3_1_;
+}layout_ENC_VOP3B;
 union insn_layout{
 	layout_ENC_SOP1 ENC_SOP1;
 	layout_ENC_SOPC ENC_SOPC;
@@ -277,26 +262,42 @@ union insn_layout{
 	layout_ENC_MUBUF ENC_MUBUF;
 	layout_ENC_MTBUF ENC_MTBUF;
 	layout_ENC_MIMG ENC_MIMG;
-	layout_ENC_EXP ENC_EXP;
 	layout_ENC_FLAT ENC_FLAT;
-	layout_VOP3_0_SDST_ENC_VOP3_1_ VOP3_0_SDST_ENC_VOP3_1_;
+	layout_ENC_VOP3B ENC_VOP3B;
 }insn_layout;
 void decodeENC_SOP1();
+void finalizeENC_SOP1Operands();
 void decodeENC_SOPC();
+void finalizeENC_SOPCOperands();
 void decodeENC_SOPP();
+void finalizeENC_SOPPOperands();
 void decodeENC_SOPK();
+void finalizeENC_SOPKOperands();
 void decodeENC_SOP2();
+void finalizeENC_SOP2Operands();
 void decodeENC_SMEM();
+void finalizeENC_SMEMOperands();
 void decodeENC_VOP1();
+void finalizeENC_VOP1Operands();
 void decodeENC_VOPC();
+void finalizeENC_VOPCOperands();
 void decodeENC_VOP2();
+void finalizeENC_VOP2Operands();
 void decodeENC_VINTRP();
+void finalizeENC_VINTRPOperands();
 void decodeENC_VOP3P();
+void finalizeENC_VOP3POperands();
 void decodeENC_VOP3();
+void finalizeENC_VOP3Operands();
 void decodeENC_DS();
+void finalizeENC_DSOperands();
 void decodeENC_MUBUF();
+void finalizeENC_MUBUFOperands();
 void decodeENC_MTBUF();
+void finalizeENC_MTBUFOperands();
 void decodeENC_MIMG();
-void decodeENC_EXP();
+void finalizeENC_MIMGOperands();
 void decodeENC_FLAT();
-void decodeVOP3_0_SDST_ENC_VOP3_1_();
+void finalizeENC_FLATOperands();
+void decodeENC_VOP3B();
+void finalizeENC_VOP3BOperands();

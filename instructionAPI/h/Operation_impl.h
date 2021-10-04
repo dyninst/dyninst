@@ -103,6 +103,7 @@ namespace Dyninst
       friend class InstructionDecoder_aarch64;
       friend class InstructionDecoder_amdgpu_vega;
       friend class InstructionDecoder_amdgpu_cdna;
+      friend class InstructionDecoder_amdgpu_cdna2;
       
     public:
       INSTRUCTION_EXPORT Operation_impl(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,

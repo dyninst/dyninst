@@ -1829,6 +1829,8 @@ Dyninst::Architecture Elf_X::getArch() const
                 unsigned int ef_amdgpu_mach = 0x000000ff & e_flags();
                 //cerr << " dealing with amd gpu , mach = "  << std::hex << ef_amdgpu_mach << endl;
                 switch(ef_amdgpu_mach){
+                    case 0x3f:
+                        return Dyninst::Arch_amdgpu_cdna2;
                     case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38:
                         return Dyninst::Arch_amdgpu_rdna;
                         assert( 0 && "rdna not supported yet " );
@@ -1840,6 +1842,7 @@ Dyninst::Architecture Elf_X::getArch() const
                     case 0x27: case 0x32 : case 0x39:
                         assert(0 && "reserved");
                     default:
+                        //cerr  << "unsupported amdgpu architecture , value = " << ef_amdgpu_mach << endl;
                         assert(0 && "probabily won't be supported");
 
                 }

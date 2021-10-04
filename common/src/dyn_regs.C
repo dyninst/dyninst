@@ -109,6 +109,27 @@ MachRegister MachRegister::getBaseRegister() const {
                 default:
                     return *this;
             }
+        case Arch_amdgpu_cdna2:
+            switch (category){
+                case amdgpu_cdna2::SGPR:
+                case amdgpu_cdna2::SGPR_VEC2:
+                case amdgpu_cdna2::SGPR_VEC4:
+                case amdgpu_cdna2::SGPR_VEC8:
+                case amdgpu_cdna2::SGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::sgpr0); 
+                case amdgpu_cdna2::VGPR:
+                case amdgpu_cdna2::VGPR_VEC2:
+                case amdgpu_cdna2::VGPR_VEC4:
+                case amdgpu_cdna2::VGPR_VEC8:
+                case amdgpu_cdna2::VGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::vgpr0); 
+                case amdgpu_cdna2::HWR:
+                    return MachRegister(reg);
+
+                default:
+                    return *this;
+            }
+ 
         case Arch_aarch32:
         case Arch_aarch64:
         case Arch_intelGen9:
@@ -195,6 +216,48 @@ std::string MachRegister::name() const {
                     break;
             }
             return ret;
+        }else if(getArchitecture() == Arch_amdgpu_cdna2){
+            signed int category = reg & 0x00ff0000;
+            signed int base_val = reg & 0x000000ff;
+            switch(category){
+                case amdgpu_cdna2::SGPR_VEC2:
+                    base_val -=  (amdgpu_cdna2::sgpr_vec2_0&0xff);
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
+                    break;
+                case amdgpu_cdna2::VGPR_VEC2:
+                    base_val -=  (amdgpu_cdna2::vgpr_vec2_0&0xff);
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
+                    break;
+                case amdgpu_cdna2::SGPR_VEC4:
+                    base_val -=  (amdgpu_cdna2::sgpr_vec4_0&0xff);
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
+                    break;
+                case amdgpu_cdna2::VGPR_VEC4:
+                    base_val -=  (amdgpu_cdna2::vgpr_vec4_0&0xff);
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
+                    break;
+                case amdgpu_cdna2::SGPR_VEC8:
+                    base_val -=  (amdgpu_cdna2::sgpr_vec8_0&0xff);
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
+                    break;
+                case amdgpu_cdna2::VGPR_VEC8:
+                    base_val -=  (amdgpu_cdna2::vgpr_vec8_0&0xff);
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
+                    break;
+                case amdgpu_cdna2::SGPR_VEC16:
+                    base_val -=  (amdgpu_cdna2::sgpr_vec16_0&0xff);
+                    ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
+                    break;
+                case amdgpu_cdna2::VGPR_VEC16:
+                    base_val -=  (amdgpu_cdna2::vgpr_vec16_0&0xff);
+                    ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
+                    break;
+                default:
+                    ret = iter->second;
+                    break;
+            }
+            return ret;
+ 
         }else{
             return iter->second;
         }
@@ -318,6 +381,49 @@ unsigned int MachRegister::size() const {
                  assert(0);
              }
          }
+        case Arch_amdgpu_cdna2:{
+            int reg_class = (reg&0x00ff0000 ) ;
+             if ( reg_class == amdgpu_cdna2::SGPR || reg_class == amdgpu_cdna2::VGPR){
+                 return 4;
+             }else if (reg_class == amdgpu_cdna2::SGPR_VEC2 || reg_class == amdgpu_cdna2::VGPR_VEC2){
+                 return 8;
+             }else if (reg_class == amdgpu_cdna2::SGPR_VEC4 || reg_class == amdgpu_cdna2::VGPR_VEC4){
+                 return 16;
+             }else if (reg_class == amdgpu_cdna2::SGPR_VEC8 || reg_class == amdgpu_cdna2::VGPR_VEC8){
+                 return 32;
+             }else if (reg_class == amdgpu_cdna2::SGPR_VEC16 || reg_class == amdgpu_cdna2::VGPR_VEC16){
+                 return 64;
+             }else{
+                 switch(reg & 0x00007f00){
+                     case amdgpu_cdna2::BITS_1:
+                     case amdgpu_cdna2::BITS_2:
+                     case amdgpu_cdna2::BITS_3:
+                     case amdgpu_cdna2::BITS_4:
+                     case amdgpu_cdna2::BITS_6:
+                     case amdgpu_cdna2::BITS_7:
+                     case amdgpu_cdna2::BITS_8:
+                         return 1;
+                     case amdgpu_cdna2::BITS_9:
+                     case amdgpu_cdna2::BITS_15:
+                     case amdgpu_cdna2::BITS_16:
+                         return 2;
+                     case amdgpu_cdna2::BITS_32:
+                         return 4;
+                     case amdgpu_cdna2::BITS_48:
+                     case amdgpu_cdna2::BITS_64:
+                         return 8; 
+                     case amdgpu_cdna2::BITS_128:
+                         return 16;
+                     case amdgpu_cdna2::BITS_256:
+                         return 32;
+                     case amdgpu_cdna2::BITS_512:
+                         return 64;
+                 }
+                 common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+                 assert(0);
+             }
+         }
+
         case Arch_aarch64:{
                          if((reg & 0x00ff0000) == aarch64::FPR)
                          {
@@ -399,6 +505,9 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return InvalidReg;
         case Arch_amdgpu_vega:
             return amdgpu_vega::pc;
+        case Arch_amdgpu_cdna2:
+            return amdgpu_cdna2::pc;
+ 
         case Arch_amdgpu_rdna:
         case Arch_none:
             return InvalidReg;
@@ -425,6 +534,8 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
         case Arch_cuda:
         case Arch_amdgpu_vega: // TODO:Since amdgpu functions are all inlined, the return address is highly likely in sgpr[30:31]
         case Arch_amdgpu_rdna:
+        case Arch_amdgpu_cdna:
+        case Arch_amdgpu_cdna2:
         case Arch_intelGen9:
             assert(0);
         case Arch_none:
@@ -449,6 +560,7 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
             return aarch64::x29; //aarch64: frame pointer is X29 by convention
 
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_cdna2:
         case Arch_none:
             return InvalidReg;
 
@@ -478,6 +590,8 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
             assert(0);
         case Arch_none:
         case Arch_amdgpu_vega:
+
+        case Arch_amdgpu_cdna2:
             return InvalidReg;
         default:
             assert(0);
@@ -503,6 +617,7 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
         case Arch_aarch32:
         case Arch_cuda:
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_cdna2:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -598,6 +713,7 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
             return ppc64::cr0e;
         case Arch_cuda:
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_cdna2:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -667,9 +783,11 @@ bool MachRegister::isFlag() const
                             int baseID = reg & 0x0000FFFF;
                             return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
                         }
-        case Arch_amdgpu_vega:{
-                             return (reg & 0x0000F000);
-                         }
+        case Arch_amdgpu_vega:
+        case Arch_amdgpu_cdna2:
+        {
+            return (reg & 0x0000F000);
+        }
         case Arch_cuda:
             return false;
 
@@ -762,7 +880,8 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 {
     // Rose: class, number, position
     // Dyninst: category, base id, subrange
-    if (getArchitecture()==Arch_amdgpu_vega){
+    Architecture maybe_amdgpu = getArchitecture();
+    if (maybe_amdgpu==Arch_amdgpu_vega || maybe_amdgpu == Arch_amdgpu_cdna2){
         getAMDGPUROSERegister(c,n,p);
         return;
     }
@@ -1757,6 +1876,7 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             return Dyninst::InvalidReg;
             break;
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_cdna2:
             // ignore CUDA register encodings for now
             return Dyninst::InvalidReg;
             break;
@@ -2210,6 +2330,8 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
         case Arch_cuda:
         case Arch_intelGen9:
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_cdna:
+        case Arch_amdgpu_cdna2:
             return 8;
         default:
             assert(0);
