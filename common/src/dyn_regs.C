@@ -454,6 +454,7 @@ unsigned int MachRegister::size() const {
             break;
         }
         case Arch_amdgpu_rdna:
+        case Arch_amdgpu_cdna:
         case Arch_intelGen9:
         {
           assert(0);
@@ -507,8 +508,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return amdgpu_vega::pc;
         case Arch_amdgpu_cdna2:
             return amdgpu_cdna2::pc;
- 
         case Arch_amdgpu_rdna:
+        case Arch_amdgpu_cdna:
         case Arch_none:
             return InvalidReg;
     }

@@ -256,7 +256,7 @@ void InstructionDecoder_amdgpu_cdna::decodeENC_MIMG(){
 }
 void InstructionDecoder_amdgpu_cdna::decodeENC_EXP(){
 	insn_size = 8;
-	layout_ENC_EXP & layout = insn_layout.ENC_EXP;
+	//layout_ENC_EXP & layout = insn_layout.ENC_EXP;
 }
 void InstructionDecoder_amdgpu_cdna::decodeENC_FLAT(){
 	insn_size = 8;
