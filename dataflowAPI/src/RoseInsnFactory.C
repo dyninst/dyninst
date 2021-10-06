@@ -316,7 +316,7 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
 
     // It looks like the ROSE semantics code will infer the target from 
     // the bo field. So, what is passed in as the third operands does not matter
-    if(branch_target) {
+    if(power_op_b == iapi_opcode || power_op_bc == iapi_opcode) {
       rose_operands->append_operand(new SgAsmDoubleWordValueExpression(branch_target));
     } else if(power_op_bcctr == iapi_opcode) {
       rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_ctr));
