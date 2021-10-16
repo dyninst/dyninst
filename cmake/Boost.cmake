@@ -132,7 +132,7 @@ set(Boost_NO_BOOST_CMAKE ON)
 # The required Boost library components
 # NB: These are just the ones that require compilation/linking
 #     This should _not_ be a cache variable
-set(_boost_components atomic chrono date_time filesystem system thread timer)
+set(_boost_components atomic chrono date_time filesystem thread timer)
 
 find_package(Boost ${Boost_MIN_VERSION} COMPONENTS ${_boost_components})
 
