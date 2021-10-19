@@ -103,7 +103,7 @@ public:
     /* Some debug formats allow forward references.  Rather than
        fill in forward in a second pass, generate placeholder
        types, and fill them in as we go.  Because we require
-       One True Pointer for each type (in parseStab.C), when
+       One True Pointer for each type, when
        updating a type, return that One True Pointer. */
     BPatch_type * findOrCreateType( const int & ID );
     BPatch_type * addOrUpdateType( BPatch_type * type );

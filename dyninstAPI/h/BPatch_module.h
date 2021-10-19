@@ -112,7 +112,6 @@ public:
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *>&);
     BPatch_sourceObj *getObjParent();
     void parseTypes();
-    char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
     void setDefaultNamespacePrefix(char *name);    
     void handleUnload();
     bool isExploratoryModeOn();// true if exploratory or defensive mode is on
@@ -263,9 +262,7 @@ private:
     bool parseTypesIfNecessary();
     BPatch_typeCollection *moduleTypes;
 
-    // In particular, we understand the type information
-    // in both DWARF and STABS format.
-    void parseStabTypes();
+    // We understand the type information in DWARF format.
     void parseDwarfTypes();
 
    BPatch_funcMap func_map;

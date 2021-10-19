@@ -156,7 +156,6 @@ BPatch_module::BPatch_module(BPatch_addressSpace *_addSpace,
          break;
 
       case lang_Fortran_with_pretty_debug:
-         setLanguage( BPatch_f90_demangled_stabstr );
          break;
 
       case lang_Fortran:
