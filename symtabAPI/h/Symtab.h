@@ -625,10 +625,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    int nlines_;
    unsigned long fdptr_;
    char *lines_;
-   char *stabstr_;
-   int nstabs_;
-   void *stabs_;
-   char *stringpool_;
 
    //Relocation sections
    bool hasRel_;

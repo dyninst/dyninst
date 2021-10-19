@@ -175,7 +175,6 @@ boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
 
    // NOTE: integral type  mean twos-complement
    // -1  int, 32 bit signed integral type
-   // in stab document, size specified in bits, system size is in bytes
    builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-1, 4, "int", true));
    // -2  char, 8 bit type holding a character. GDB treats as signed
    builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-2, 1, "char", true));
@@ -323,8 +322,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    sorted_everyFunction(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
-   stabstr_(NULL), nstabs_(0), stabs_(NULL),
-   stringpool_(NULL),
    hasRel_(false), hasRela_(false), hasReldyn_(false),
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
@@ -356,8 +353,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    sorted_everyFunction(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
-   stabstr_(NULL), nstabs_(0), stabs_(NULL),
-   stringpool_(NULL),
    hasRel_(false), hasRela_(false), hasReldyn_(false),
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
@@ -932,7 +927,7 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
 {
    if (!mod_langs->size())
       return;  // cannot do anything here
-   //  this case will arise on non-stabs platforms until language parsing can be introduced at this level
+   //  this case will arise until language parsing can be introduced at this level
    Module *currmod = NULL;
    //int dump = 0;
 
@@ -1085,8 +1080,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    sorted_everyFunction(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
-   stabstr_(NULL), nstabs_(0), stabs_(NULL),
-   stringpool_(NULL),
    hasRel_(false), hasRela_(false), hasReldyn_(false),
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(defensive_bin),
@@ -1158,8 +1151,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    sorted_everyFunction(false),
    isTypeInfoValid_(false),
    nlines_(0), fdptr_(0), lines_(NULL),
-   stabstr_(NULL), nstabs_(0), stabs_(NULL),
-   stringpool_(NULL),
    hasRel_(false), hasRela_(false), hasReldyn_(false),
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false),
@@ -1442,8 +1433,6 @@ Symtab::Symtab(const Symtab& obj) :
    sorted_everyFunction(false),
    isTypeInfoValid_(obj.isTypeInfoValid_),
    nlines_(0), fdptr_(0), lines_(NULL),
-   stabstr_(NULL), nstabs_(0), stabs_(NULL),
-   stringpool_(NULL),
    hasRel_(false), hasRela_(false), hasReldyn_(false),
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(obj.isDefensiveBinary_),
