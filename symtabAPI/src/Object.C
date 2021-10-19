@@ -153,7 +153,6 @@ const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)
       CASE_RETURN_STR(lang_CPlusPlus);
       CASE_RETURN_STR(lang_GnuCPlusPlus);
       CASE_RETURN_STR(lang_Fortran);
-      CASE_RETURN_STR(lang_Fortran_with_pretty_debug);
       CASE_RETURN_STR(lang_CMFortran);
    };
    return "bad_language";
@@ -399,7 +398,7 @@ supportedLanguages AObject::pickLanguage(string &working_module, char *working_o
       supportedLanguages working_lang)
 {
    supportedLanguages lang = lang_Unknown;
-   static int sticky_fortran_modifier_flag = 0;
+
    // (2) -- check suffixes -- try to keep most common suffixes near the top of the checklist
    string::size_type len = working_module.length();
    if((len>2) && (working_module.substr(len-2,2) == string(".c"))) lang = lang_C;
@@ -429,12 +428,7 @@ supportedLanguages AObject::pickLanguage(string &working_module, char *working_o
    //  have the "pretty" names, we need to detect this in order to properly read the debug.
    if (working_lang == lang_Fortran)
    {
-      if (sticky_fortran_modifier_flag)
-      {
-         //cerr << FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
-         working_lang = lang_Fortran_with_pretty_debug;
-      }
-      else if (working_options)
+      if (working_options)
       {
          char *dbg_gen = NULL;
          //cerr << FILE__ << __LINE__ << ":  OPT: " << working_options << endl;			
@@ -448,14 +442,6 @@ supportedLanguages AObject::pickLanguage(string &working_module, char *working_o
             if (NULL != next_dot)
             {
                *next_dot = '\0';  //terminate major version number string
-               int ver_maj = atoi(dbg_gen_ver_maj);
-               //cerr <<"Major Debug Ver. "<<ver_maj<< endl;
-               if (ver_maj < 3)
-               {
-                  working_lang = lang_Fortran_with_pretty_debug;
-                  sticky_fortran_modifier_flag = 1;
-                  //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << "Major Debug Ver. "<<ver_maj<<endl;
-               }
             }
          }
       }

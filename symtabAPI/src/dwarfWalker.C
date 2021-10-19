@@ -2214,8 +2214,7 @@ void DwarfWalker::removeFortranUnderscore(std::string &name) {
 
    supportedLanguages lang = mod()->language();
    if ((lang != lang_Fortran) &&
-       (lang != lang_CMFortran) &&
-       (lang != lang_Fortran_with_pretty_debug)) return;
+       (lang != lang_CMFortran)) return;
 
    if (name[name.length()-1] == '_') {
       name = name.substr(0, name.length()-1);
@@ -2232,7 +2231,6 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     /* Set the default lower bound, if we know it. */
     switch ( mod()->language() ) {
         case lang_Fortran:
-        case lang_Fortran_with_pretty_debug:
         case lang_CMFortran:
             loBound = "1";
             break;

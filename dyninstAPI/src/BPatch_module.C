@@ -155,9 +155,6 @@ BPatch_module::BPatch_module(BPatch_addressSpace *_addSpace,
          setLanguage( BPatch_cPlusPlus );
          break;
 
-      case lang_Fortran_with_pretty_debug:
-         break;
-
       case lang_Fortran:
       case lang_CMFortran:
          setLanguage( BPatch_fortran );
