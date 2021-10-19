@@ -72,189 +72,6 @@ namespace DwarfDyninst {
 }
 
 namespace SymtabAPI{
-/*
- * The standard symbol table in an elf file is the .symtab section. This section does
- * not have information to find the module to which a global symbol belongs, so we must
- * also read the .stab section to get this info.
- */
-
-// Declarations for the .stab section.
-// These are not declared in any system header files, so we must provide our own
-// declarations. The declarations below were taken from:
-//       SPARCWorks 3.0.x Debugger Interface, July 1994
-// 
-struct stab32 {
-    unsigned int name;  // stabstr table index for this symbol
-    unsigned char type; // type of this symbol
-    unsigned char other;
-    unsigned short desc;
-    unsigned int val;   // value of this symbol -- usually zero. The real value must
-			// be obtained from the symtab section
-};
-struct stab64 {
-    // XXX ELF stabs are currently not implementing actual 64-bit support
-    //     on AMD-64, for which this separation was introduced. Until we
-    //     start seeing stab records with fields of the appropriate length,
-    //     we should assume the smaller records.
-    //unsigned long name; // stabstr table index for this symbol
-    unsigned int name; // stabstr table index for this symbol
-    unsigned char type; // type of this symbol
-    unsigned char other;
-    unsigned short desc;
-    //unsigned long val;
-    unsigned int val;  // value of this symbol -- usually zero. The real value must
-			// be obtained from the symtab section
-};
-
-// 
-// Extended to a class for 32/64-bit stab entries at runtime. - Ray
-// 
-class stab_entry {
-  public:
-    stab_entry(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
-	: stabptr(_stabptr), stabstr(_stabstr), nsyms(_nsyms) { }
-    virtual ~stab_entry() {}
-
-    virtual const char *name(int i) = 0;
-    virtual unsigned long nameIdx(int i) = 0;
-    virtual unsigned char type(int i) = 0;
-    virtual unsigned char other(int i) = 0;
-    virtual unsigned short desc(int i) = 0;
-    virtual unsigned long val(int i) = 0;
-
-    unsigned long count() { return nsyms; }
-    void setStringBase(const char *ptr) { stabstr = const_cast<char *>(ptr); }
-    const char *getStringBase() { return stabstr; }
-
-  protected:
-    void *stabptr;
-    const char *stabstr;
-    long nsyms;
-};
-
-class stab_entry_32 : public stab_entry {
-  public:
-    stab_entry_32(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
-	: stab_entry(_stabptr, _stabstr, _nsyms) { }
-    virtual ~stab_entry_32() {}
-
-    const char *name(int i = 0) { 
-       if (!stabptr) {
-          return "bad_name";
-       }
-       return stabstr + ((stab32 *)stabptr)[i].name; 
-    }
-    unsigned long nameIdx(int i = 0) {
-       if (!stabptr) {
-          return 0L;
-       }
-       return ((stab32 *)stabptr)[i].name; 
-    }
-    unsigned char type(int i = 0) {
-       if (!stabptr) {
-          return 0;
-       }
-       return ((stab32 *)stabptr)[i].type; 
-    }
-    unsigned char other(int i = 0) {
-       if (!stabptr) {
-          return 0;
-       }
-       return ((stab32 *)stabptr)[i].other; 
-    }
-    unsigned short desc(int i = 0) { 
-       if (!stabptr) {
-          return 0;
-       }
-       return ((stab32 *)stabptr)[i].desc; 
-    }
-    unsigned long val(int i = 0) { 
-       if (!stabptr) {
-          return 0L;
-       }
-       return ((stab32 *)stabptr)[i].val; 
-    }
-};
-
-class stab_entry_64 : public stab_entry {
-  public:
-    stab_entry_64(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
-	: stab_entry(_stabptr, _stabstr, _nsyms) { }
-    virtual ~stab_entry_64() {}
-
-    const char *name(int i = 0) { 
-       if (!stabptr) {
-          return "bad_name";
-       }
-       return stabstr + ((stab64 *)stabptr)[i].name; 
-    }
-    unsigned long nameIdx(int i = 0) {
-       if (!stabptr) {
-          return 0L;
-       }
-       return ((stab64 *)stabptr)[i].name; 
-    }
-    unsigned char type(int i = 0) {
-       if (!stabptr) {
-          return 0;
-       }
-       return ((stab64 *)stabptr)[i].type; 
-    }
-    unsigned char other(int i = 0) { 
-       if (!stabptr) {
-          return 0;
-       }
-       return ((stab64 *)stabptr)[i].other; 
-    }
-    unsigned short desc(int i = 0) { 
-       if (!stabptr) {
-          return 0;
-       }
-       return ((stab64 *)stabptr)[i].desc; 
-    }
-    unsigned long val(int i = 0) { 
-       if (!stabptr) {
-          return 0L;
-       }
-       return ((stab64 *)stabptr)[i].val; 
-    }
-};
-
-// Types 
-#define N_UNDF  0x00 /* start of object file */
-#define N_GSYM  0x20 /* global symbol */
-#define N_FUN   0x24 /* function or procedure */
-#define N_STSYM 0x26 /* initialized static symbol */
-#define N_LCSYM 0x28 /* unitialized static symbol */
-#define N_ROSYM 0x2c /* read-only static symbol */
-#define N_OPT   0x3c /* compiler options */
-#define N_ENDM  0x62 /* end module */
-#define N_SO    0x64 /* source directory and file */
-#define N_ENTRY 0xa4 /* fortran alternate subroutine entry point */
-#define N_BCOMM 0xe2 /* start fortran named common block */
-#define N_ECOMM 0xe4 /* start fortran named common block */
-
-// Language code -- the desc field in a N_SO entry is a language code
-#define N_SO_AS      1 /* assembler source */
-#define N_SO_C       2 /* K & R C source */
-#define N_SO_ANSI_C  3 /* ANSI C source */
-#define N_SO_CC      4 /* C++ source */
-#define N_SO_FORTRAN 5 /* fortran source */
-#define N_SO_PASCAL  6 /* Pascal source */
-#define N_SO_F90     7 /* Fortran90 source */
-
-//line information data
-#define N_SLINE  0x44 /* line number in text segment */
-#define N_SOL    0x84 /* name of the include file*/
-
-// Symbol descriptors
-// The format of a name is "<name>:<symbol descriptor><rest of name>
-// The following are the descriptors of interest
-#define SD_GLOBAL_FUN 'F' /* global function or procedure */
-#define SD_PROTOTYPE  'P'  /* function prototypes */
-#define SD_GLOBAL_VAR 'G' /* global variable */
-
-// end of stab declarations
 
 class pdElfShdr;
 class Symtab;
@@ -277,9 +94,7 @@ public:
   bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
-  bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
-  stab_entry * get_stab_info() const;
   std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo();
@@ -467,14 +282,6 @@ public:
   Offset   opd_addr_;
   unsigned opd_size_;
 
-  Offset   stab_off_;           // .stab section
-  unsigned stab_size_;          // .stab section
-  Offset   stabstr_off_;        // .stabstr section
-
-  Offset   stab_indx_off_;	 // .stab.index section
-  unsigned  stab_indx_size_;	 // .stab.index section
-  Offset   stabstr_indx_off_;	 // .stabstr.index section
-
   bool      dwarvenDebugInfo;    // is DWARF debug info present?
   Offset   loadAddress_;      // The object may specify a load address
                                //   Set to 0 if it may load anywhere
@@ -524,8 +331,6 @@ public:
   bool loaded_elf( Offset &, Offset &,
   		    Elf_X_Shdr* &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
-		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
-		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
 		    Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
@@ -536,7 +341,6 @@ public:
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
   void handle_opd_relocations();
   void parse_opd(Elf_X_Shdr *);
-  void parseStabFileLineInfo();
  public:
   void parseDwarfFileLineInfo();
   void parseLineInfoForAddr(Offset addr_to_find);
@@ -551,7 +355,6 @@ private:
     bool dwarf_parse_aranges(::Dwarf *dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
-  void parseStabTypes();
 
   void load_object(bool);
   void load_shared_object(bool);
@@ -586,8 +389,7 @@ private:
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
-  bool fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp,
-					     Elf_X_Shdr *stabstrscnp);
+
   bool fix_global_symbol_modules_static_dwarf();
 
   void get_valid_memory_areas(Elf_X &elf);

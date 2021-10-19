@@ -111,8 +111,6 @@ SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 class SYMTAB_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
 {
    friend class typeCollection;
-   friend std::string parseStabString(Module *, int linenum, char *, int, 
-				      typeCommon*);
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
    
    boost::weak_ptr<Type> self_;  // For carrying the reference count across

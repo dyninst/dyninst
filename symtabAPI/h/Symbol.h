@@ -77,9 +77,6 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
    friend class Aggregate;
    friend class relocationEntry;
 
-   friend std::string parseStabString(Module *, int linenum, char *, int, 
-         typeCommon *);
-
    public:
    struct Ptr
    {
