@@ -38,13 +38,13 @@
 // Returns a malloc'd string that is the demangled symbol name.  THe caller is
 // responsible for the freeing this memory.  Returns NULL on malloc failure.
 // The symbol name symName is demangled using the cplus_demangle function after
-// first removing any versioning suffixes (first '@') or stabs suffixes (first
-// ':') to create the mangled name.  If cplus_demangle fails, the mangled name
+// first removing any versioning suffixes (first '@')
+// to create the mangled name.  If cplus_demangle fails, the mangled name
 // is returned unmodified.  If cplus_demangle succeeds and includeParams is
 // false, then any clone suffixes (the first '.' to the end of the mangled
 // name) are appended to the value from cplus_demangle.
 //
-// Other than the removal of versioning and stabs suffixes, and appending any
+// Other than the removal of versioning suffixes, and appending any
 // clone suffixes if includeParams is false to the result, the result should be
 // equivalent to using c++filt.  Below are the c++filt and cplus_demangle
 // options
@@ -57,34 +57,34 @@
 char *symbol_demangle(const char *symName, int includeParams)
 {
     int cloneOffset = -1;		// offset to clone suffix
-    int versionOrStabsOffset = -1;	// offset to version or stabs suffix
-    int lastOffset;			// offset to version or stabs suffix
+    int versionOffset = -1;	// offset to version suffix
+    int lastOffset;			// offset to version suffix
 					//   if present, else null of symName
 
-    // find both clone, and then version or stabs suffixes if any
+    // find both clone, and then version suffixes if any
     for (lastOffset = 0; symName[lastOffset]; ++lastOffset)  {
 	char c = symName[lastOffset];
 	if (c == '.' && cloneOffset == -1)  {
 	    // clone suffix start with first '.'
 	    cloneOffset = lastOffset;
-	}  else if (c == '@' || c == ':')  {
-	    // version ('@') or stabs (':') suffix found
-	    versionOrStabsOffset = lastOffset;
+	}  else if (c == '@')  {
+	    // version ('@') suffix found
+	    versionOffset = lastOffset;
 	    // stop searching
 	    break;
 	}
     }
 
-    const char *mangledName = symName;	// symName without version/stabs suffix
+    const char *mangledName = symName;	// symName without version suffix
     char *allocatedMangledName = 0;
-    if (versionOrStabsOffset != -1)  {
-	// make a copy of the symName without version or stabs suffix
-	allocatedMangledName = malloc(versionOrStabsOffset + 1);
+    if (versionOffset != -1)  {
+	// make a copy of the symName without version suffix
+	allocatedMangledName = malloc(versionOffset + 1);
 	if (allocatedMangledName == 0)  {
 	    return NULL;
 	}
-	memcpy(allocatedMangledName, symName, versionOrStabsOffset);
-	allocatedMangledName[versionOrStabsOffset] = '\0';
+	memcpy(allocatedMangledName, symName, versionOffset);
+	allocatedMangledName[versionOffset] = '\0';
 	mangledName = allocatedMangledName;
     }
 
