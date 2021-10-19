@@ -61,7 +61,6 @@ typedef enum {
    lang_CPlusPlus,
    lang_GnuCPlusPlus,
    lang_Fortran,
-   lang_Fortran_with_pretty_debug,
    lang_CMFortran
 } supportedLanguages;
 
