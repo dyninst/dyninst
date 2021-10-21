@@ -51,7 +51,7 @@ if(Boost_FOUND)
 endif()
 
 # Need at least Boost-1.67 because of deprecated headers
-set(_boost_min_version 1.67.0)
+set(_boost_min_version 1.70.0)
 
 # Provide a default, if the user didn't specify
 set(Boost_MIN_VERSION ${_boost_min_version} CACHE STRING "Minimum Boost version")
