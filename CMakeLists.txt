@@ -7,7 +7,7 @@ set (CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(STERILE_BUILD OFF CACHE BOOL "Do not download/build any third-party dependencies from source")
+set(STERILE_BUILD ON CACHE BOOL "Do not download/build any third-party dependencies from source")
 
 LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES 
 	  "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
