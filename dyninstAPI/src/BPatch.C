@@ -1156,17 +1156,15 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
    //  just a sanity check for the exitence of <path>
    struct stat statbuf;
    if (-1 == stat(path, &statbuf)) {
-      char ebuf[2048];
-      sprintf(ebuf, "createProcess(%s,...):  file does not exist\n", path);
-      reportError(BPatchFatal, 68, ebuf);
+      auto msg = std::string("createProcess(") + path + ",...):  file does not exist\n";
+      reportError(BPatchFatal, 68, msg.c_str());
       return NULL;
    }
 
    //  and ensure its a regular file:
    if (!S_ISREG(statbuf.st_mode)) {
-      char ebuf[2048];
-      sprintf(ebuf, "createProcess(%s,...):  not a regular file \n", path);
-      reportError(BPatchFatal, 68, ebuf);
+      auto msg = std::string("createProcess(") + path + ",...):  not a regular file\n";
+      reportError(BPatchFatal, 68, msg.c_str());
       return NULL;
    }
 
@@ -1174,9 +1172,8 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
    if (! ( (statbuf.st_mode & S_IXUSR)
             || (statbuf.st_mode & S_IXGRP)
             || (statbuf.st_mode & S_IXOTH) )) {
-      char ebuf[2048];
-      sprintf(ebuf, "createProcess(%s,...):  not an executable  \n", path);
-      reportError(BPatchFatal, 68, ebuf);
+      auto msg = std::string("createProcess(") + path + "%s,...):  not an executable\n";
+      reportError(BPatchFatal, 68, msg.c_str());
       return NULL;
    }
 
