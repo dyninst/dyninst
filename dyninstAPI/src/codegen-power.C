@@ -941,41 +941,6 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size)
     }
 }
 
-void insnCodeGen::generateSimple(codeGen &gen, int op, 
-                                 Register src1, Register src2, 
-                                 Register dest)
-{
-  instruction insn;
-
-  int xop=-1;
-  insn.clear();
-  XFORM_OP_SET(insn, op);
-  XFORM_RT_SET(insn, src1);
-  XFORM_RA_SET(insn, dest);
-  XFORM_RB_SET(insn, src2);
-  if (op==ANDop) {
-      xop=ANDxop;
-  /*
-  *  FIXME: The "else if" condition and code below are commented out to remove
-  *  a duplicate branch condition as both ANDop and ORop have the same value.
-  *  This implies that the assignment in this branch is never executed.
-  *  Further tests to distinguish between the AND and OR op are needed or this
-  *  code should be eliminated
-  *
-
-  } else if (op==ORop) {
-      xop=ORxop;
-  
-  *
-  */
-  } else {
-      // only AND and OR are currently designed to use genSimpleInsn
-      assert(0);
-  }
-  XFORM_XO_SET(insn, xop);
-  insnCodeGen::generate(gen,insn);
-}
-
 void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
                                 Register rs2, Register rd, bool s)
 {
