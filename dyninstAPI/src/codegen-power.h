@@ -93,9 +93,6 @@ class insnCodeGen {
                                  int shift, Register ra, bool s);
     static void generateNOOP(codeGen &gen, unsigned size = 4);
     
-    static void generateSimple(codeGen &gen,
-                               int op, Register src1,
-                               Register src2, Register dest);
     static void generateRelOp(codeGen &gen, int cond,
                               int mode, Register rs1,
                               Register rs2, Register rd, bool s);

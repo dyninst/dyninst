@@ -624,14 +624,6 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     }
 }
 
-void insnCodeGen::generateSimple(codeGen &, int,
-                                 Register, Register,
-                                 Register)
-{
-assert(0);
-//#warning "This function is not implemented yet!"
-}
-
 void insnCodeGen::generateRelOp(codeGen &, int, int, Register,
                                 Register, Register)
 {
