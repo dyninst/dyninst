@@ -622,10 +622,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    //type info valid flag
    bool isTypeInfoValid_;
 
-   int nlines_;
-   unsigned long fdptr_;
-   char *lines_;
-
    //Relocation sections
    bool hasRel_;
    bool hasRela_;
