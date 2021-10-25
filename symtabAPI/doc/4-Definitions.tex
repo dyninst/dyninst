@@ -20,18 +20,18 @@ The following definitions deal with members of the Symbol class.
 \item[Mangled Name] A mangled name for a symbol provides a way of encoding additional information about a function, structure, class or another data type in a symbol name.
 It is a technique used to produce unique names for programming entities in many modern programming languages.
 For example, the method \emph{foo} of class C with signature \emph{int C::foo(int, int)} has a mangled name \emph{\_ZN1C3fooEii} when compiled with gcc.
-Mangled names may include a sequence of clone suffixes (begins with `.' that indicate a compiler synthesized function), and this may be followed by a version suffix (begins with `@') or stabs type information (begins with `:').
+Mangled names may include a sequence of clone suffixes (begins with `.' that indicate a compiler synthesized function), and this may be followed by a version suffix (begins with `@').
 \item[Pretty Name] A pretty name for a symbol is the demangled user-level symbolic name without type information for the function parameters and return types.
 For non-mangled names, the pretty name is the symbol name.
 Any function clone suffixes of the symbol are appended to the result of the demangler.
 For example, a symbol with a mangled name \emph{\_ZN1C3fooEii} for the method \emph{int C::foo(int, int)} has a pretty name \emph{C::foo}.
-Version and stabs suffixes are removed from the mangled name before conversion to the pretty name.
+Version suffixes are removed from the mangled name before conversion to the pretty name.
 The pretty name can be obtained by running the command line tool \code{c++filt} as \code{c++filt -i -p \emph{name}}, or using the libiberty library function \code{cplus\_demangle} with options of \code{DMGL\_AUTO | DMGL\_ANSI}.
 \item[Typed Name] A typed name for a symbol is the demangled user-level symbolic name including type information for the function parameters.
 Typically, but not always, function return type information is not included. Any function clone information is also included.
 For non-mangled names, the typed name is the symbol name.
 For example, a symbol with a mangled name \emph{\_ZN1C3fooEii} for the method \emph{int C::foo(int, int)} has a typed name \emph{C::foo(int, int)}.
-Version and stabs suffixes are removed from the mangled name before conversion to the typed name.
+Version suffixes are removed from the mangled name before conversion to the typed name.
 The typed name can be obtained by running the command line tool \code{c++filt} as \code{c++filt -i \emph{name}}, or using the libiberty library function \code{cplus\_demangle} with options of \code{DMGL\_AUTO | DMGL\_ANSI | DMGL\_PARAMS}.
 \item[Symbol Linkage] The symbol linkage for a symbol gives information on the visibility (binding) of this symbol, whether it is visible only in the object file where it is defined (local), if it is visible to all the object files that are being linked (global), or if its a weak alias to a global symbol.
 \item[Symbol Type] Symbol type for a symbol represents the category of symbols to which it belongs. It can be a function symbol or a variable symbol or a module symbol.
