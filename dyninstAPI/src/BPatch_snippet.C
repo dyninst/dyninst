@@ -1450,8 +1450,6 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which, int size)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
-#elif defined (__XLC__) || defined(__xlC__)
-  assert(_which >= 0 && _which <= 1);
 #else
   assert(_which >= 0 && _which <= (int) BPatch_instruction::nmaxacc_NP);
 #endif
@@ -1468,8 +1466,6 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
-#elif defined (__XLC__) || defined(__xlC__)
-  assert(_which >= 0 && _which <= 1);
 #else
   assert(_which >= 0 && _which <= (int)BPatch_instruction::nmaxacc_NP);
 #endif
