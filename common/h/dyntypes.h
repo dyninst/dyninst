@@ -47,10 +47,6 @@
 #endif
 #endif
 
-#if defined(_POWER) && !defined(__GNUC__)
-#define XLC
-#endif
-
 #include <unordered_set>
 #include <unordered_map>
 
