@@ -455,7 +455,6 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
     const unsigned int ADDI_R2_R2    = 0x38420000;
     const unsigned int STD_R2_40R1   = 0xf8410028;
     const unsigned int LD_R2_40R1    = 0xe8410028;
-    const unsigned int LD_R2_0R2     = 0xe8420000;
     const unsigned int LD_R2_0R12    = 0xe84c0000;
     const unsigned int LD_R11_0R12   = 0xe96c0000;
     const unsigned int LD_R11_0R2    = 0xe9620000;
