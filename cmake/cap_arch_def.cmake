@@ -115,9 +115,6 @@ elseif (PLATFORM STREQUAL ppc64_linux)
 set (OLD_DEFINES -Dppc64_linux)
 set (BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
 
-elseif (PLATFORM STREQUAL x86_64_cnl)
-set (OLD_DEFINES -Dx86_64_cnl -Dx86_64_unknown_linux2_4)
-
 elseif (PLATFORM STREQUAL i386-unknown-freebsd7.2)
 set (OLD_DEFINES -Di386_unknown_freebsd7_0)
 
