@@ -1140,7 +1140,6 @@ bool mapping_sort(const trampTrapMappings::tramp_mapping_t *lhs,
    return lhs->from_addr < rhs->from_addr;
 }
 
-#if defined(cap_32_64)
 void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
                                       unsigned addr_width)
 {
@@ -1149,19 +1148,15 @@ void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
       //Currently only support 64-bit mutators with 32-bit mutatees
       assert(addr_width == 4);
       assert(sizeof(Address) == 8);
+#if defined(cap_32_64)
       *((uint32_t *) buffer) = (uint32_t) val;
       return;
+#elif
+      static_assert("This platform does not support modifying 32-bit binaries");
+#endif
    }
    *((unsigned long *) buffer) = val;
 }
-#else
-void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
-                                      unsigned)
-{
-   *((unsigned long *)(void*) buffer) = val;
-}
-#endif
-
 
 void trampTrapMappings::writeTrampVariable(const int_variable *var, 
                                            unsigned long val)

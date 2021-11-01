@@ -53,7 +53,7 @@ elseif (PLATFORM MATCHES ppc64)
 elseif (PLATFORM MATCHES aarch64)
   #set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
   set (ARCH_DEFINES -Darch_aarch64 -Darch_64bit)
-  set (CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers)
+  set (CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 endif (PLATFORM MATCHES i386)
 
 if (PLATFORM MATCHES linux)

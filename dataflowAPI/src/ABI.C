@@ -91,8 +91,12 @@ ABI* ABI::getABI(int addr_width){
 	globalABI64_->index = &machRegIndex_aarch64();
 #endif
 
+// We _only_ support instrumenting 32-bit binaries on 64-bit systems
+#if !defined arch_64bit || defined cap_32_64
 	initialize32();
-#if defined(cap_32_64)
+#endif
+
+#ifdef arch_64bit
 	initialize64();
 #endif
     }
@@ -553,10 +557,6 @@ void ABI::initialize64(){
 
 //#warning "This is not verified!"
 #if defined(arch_aarch64)
-void ABI::initialize32(){
-	return;
-}
-
 void ABI::initialize64(){
     RegisterMap aarch64Map = machRegIndex_aarch64();
 	int sz = aarch64Map.size();
