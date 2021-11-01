@@ -1151,8 +1151,6 @@ void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
 #if defined(cap_32_64)
       *((uint32_t *) buffer) = (uint32_t) val;
       return;
-#elif
-      static_assert("This platform does not support modifying 32-bit binaries");
 #endif
    }
    *((unsigned long *) buffer) = val;
