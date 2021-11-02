@@ -1,5 +1,8 @@
-# The test suite needs this as a list rather than a bunch
-# of definitions so that we can append _test to it. 
+#
+# -- Define the capabilities for each supported architecture/platform
+#
+#  cap_32_64 - This host 64-bit platform supports modifying 32-bit binaries
+#
 
 set (CAP_DEFINES
      -Dcap_dynamic_heap 
@@ -53,7 +56,7 @@ elseif (PLATFORM MATCHES ppc64)
 elseif (PLATFORM MATCHES aarch64)
   #set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
   set (ARCH_DEFINES -Darch_aarch64 -Darch_64bit)
-  set (CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers)
+  set (CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 endif (PLATFORM MATCHES i386)
 
 if (PLATFORM MATCHES linux)

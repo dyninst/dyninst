@@ -197,7 +197,7 @@ void registerSpace::initialize32() {
 
 }
 
-#if defined(cap_32_64)
+#if defined arch_x86_64
 void registerSpace::initialize64() {
     static bool done = false;
     if (done) return;
@@ -538,7 +538,7 @@ void registerSpace::initialize()
     
 
     initialize32();
-#if defined(cap_32_64)
+#if defined arch_x86_64
     initialize64();
 #endif
 }
