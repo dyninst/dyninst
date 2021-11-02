@@ -78,10 +78,15 @@ ABI* ABI::getABI(int addr_width){
 #endif
 
 #if defined(arch_power)
+#  if defined arch_64bit
+	globalABI64_->addr_width = 8;
+	globalABI_->index = &machRegIndex_ppc();
+	globalABI64_->index = &machRegIndex_ppc_64();
+#  else
 	globalABI64_->addr_width = 4;
 	globalABI_->index = &machRegIndex_ppc();
 	globalABI64_->index = &machRegIndex_ppc();
-
+#  endif
 #endif
 
 //#warning "This is not verified yet!"
