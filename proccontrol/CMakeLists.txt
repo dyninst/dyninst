@@ -66,15 +66,6 @@ set (SRC_LIST ${SRC_LIST}
 	 ../common/src/dthread.C
      src/loadLibrary/codegen-linux.C
   )
-elseif (PLATFORM MATCHES cnl)
-set (SRC_LIST ${SRC_LIST}
-     src/linux.C
-     src/unix.C
-     src/notify_pipe.C
-     ../common/src/dthread-unix.C
-	 ../common/src/dthread.C
-     src/loadLibrary/codegen-stub.C
-  )
 endif()
 
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
