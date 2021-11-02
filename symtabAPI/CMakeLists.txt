@@ -34,8 +34,7 @@ set (SRC_LIST
   )
 
 if (PLATFORM MATCHES freebsd OR 
-    PLATFORM MATCHES linux OR 
-    PLATFORM MATCHES cnl)
+    PLATFORM MATCHES linux)
 
 set (SRC_LIST ${SRC_LIST}
     src/Object-elf.C 

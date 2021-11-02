@@ -70,16 +70,6 @@ if (PLATFORM MATCHES linux)
   )
 endif()
 
-if (PLATFORM MATCHES cnl)
-  set (SRC_LIST ${SRC_LIST}
-    src/linuxKludges.C
-    src/parseauxv.C
-    src/addrtranslate-sysv.C
-    src/addrtranslate-auxv.C
-    src/addrtranslate-linux.C
-  )
-endif()  
-
 if (PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   set (SRC_LIST ${SRC_LIST}
     src/ntKludges.C
