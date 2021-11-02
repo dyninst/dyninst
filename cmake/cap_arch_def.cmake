@@ -1,5 +1,8 @@
-# The test suite needs this as a list rather than a bunch
-# of definitions so that we can append _test to it. 
+#
+# -- Define the capabilities for each supported architecture/platform
+#
+#  cap_32_64 - This host 64-bit platform supports modifying 32-bit binaries
+#
 
 set (CAP_DEFINES
      -Dcap_dynamic_heap 
