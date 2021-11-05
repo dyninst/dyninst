@@ -1069,47 +1069,75 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
             }
             break;
         case Arch_ppc32:
-        case Arch_ppc64: // 64-bit not supported in ROSE
+        {
+            baseID = reg & 0x0000FFFF;
+            n = baseID;
+            switch(category)
             {
-                baseID = reg & 0x0000FFFF;
-                n = baseID;
-                switch(category)
-                {
-                    case ppc32::GPR:
-                        c = powerpc_regclass_gpr;
-                        break;
-                    case ppc32::FPR:
-                    case ppc32::FSR:
-                        c = powerpc_regclass_fpr;
-                        break;
-                    case ppc32::SPR:
-                        {
-                            if(baseID < 613) {
-                                c = powerpc_regclass_spr;
-                            } else if(baseID < 621 ) {
-                                c = powerpc_regclass_sr;
-                            } else {
-                                c = powerpc_regclass_cr;
-                                n = 0;
-                                p = baseID - 621;
-                                /*                       n = baseID - 621;
-                                                         if(n > 7) {
-                                                         n = 0;
-                                                         p = powerpc_condreggranularity_whole;
-                                                         } else {
-                                                         p = powerpc_condreggranularity_field;
-                                                         }
-                                                         */
-                            }
+                case ppc32::GPR:
+                    c = powerpc_regclass_gpr;
+                    break;
+                case ppc32::FPR:
+                case ppc32::FSR:
+                    c = powerpc_regclass_fpr;
+                    break;
+                case ppc32::SPR:
+                    {
+                        if(baseID < 613) {
+                            c = powerpc_regclass_spr;
+                        } else if(baseID < 621 ) {
+                            c = powerpc_regclass_sr;
+                        } else {
+                            c = powerpc_regclass_cr;
+                            n = 0;
+                            p = baseID - 621;
+                            /*                       n = baseID - 621;
+                                                     if(n > 7) {
+                                                     n = 0;
+                                                     p = powerpc_condreggranularity_whole;
+                                                     } else {
+                                                     p = powerpc_condreggranularity_field;
+                                                     }
+                                                     */
                         }
-                        break;
-                    default:
-                        c = -1;
-                        return;
-                }
-                return;
+                    }
+                    break;
+                default:
+                    c = -1;
+                    return;
             }
-            break;
+            return;
+        }
+        break;
+        case Arch_ppc64: {
+            baseID = reg & 0x0000FFFF;
+            n = baseID;
+            switch (category) {
+                case ppc64::GPR:
+                    c = powerpc_regclass_gpr;
+                    break;
+                case ppc64::FPR:
+                case ppc64::FSR:
+                    c = powerpc_regclass_fpr;
+                    break;
+                case ppc64::SPR: {
+                    if (baseID < 613) {
+                        c = powerpc_regclass_spr;
+                    } else if (baseID < 621) {
+                        c = powerpc_regclass_sr;
+                    } else {
+                        c = powerpc_regclass_cr;
+                        n = 0;
+                        p = baseID - 621;
+                    }
+                } break;
+                default:
+                    c = -1;
+                    return;
+            }
+            return;
+        }
+        break;
         case Arch_aarch64: {
                                p = 0;
                                switch (category) {
