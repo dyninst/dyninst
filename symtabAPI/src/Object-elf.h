@@ -92,8 +92,8 @@ class open_statement {
             end_addr = noAddress();
             line_number = 0;
             column_number = 0;
-            context = 0;
-            funcname_offset = 0;
+            context = nullptr;
+            funcname = nullptr;
         }
         bool sameFileLineColumn(const open_statement &rhs) {
             return ((string_table_index == rhs.string_table_index) &&
@@ -107,17 +107,15 @@ class open_statement {
             line_number = rhs.line_number;
             column_number = rhs.column_number;
             context = rhs.context;
-            funcname_offset = rhs.funcname_offset;
+            funcname = rhs.funcname;
         }
         friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
         {
-	    st.dump(os, 0, true);
+	    st.dump(os, true);
             return os;
 	}
-        const char * str(Region *r, unsigned int offset) const {
-	  return ((char *) r->getPtrToRawData()) + offset;
-	}
-        void dump(std::ostream& os, Region *debug_str, bool addrRange) const {
+
+        void dump(std::ostream& os, bool addrRange) const {
 	    // to facilitate comparison with nvdisasm output, where each function starts at 0,
 	    // set o to an offset that makes a function of interest report addresses that
 	    // match its unrelocated offsets reported by nvdisasm
@@ -127,10 +125,9 @@ class open_statement {
 	    os << " file:" << string_table_index;
 	    os << " line:" << std::dec << line_number;
 	    os << " col:" << column_number;
-	    if (context) {
+	    if (context != nullptr) {
 	        os << " context " << context;
-	        os << " function name " << str(debug_str, funcname_offset);
-           os << " function name offset " << std::hex << funcname_offset << std::dec;
+           os << " function name " << funcname;
 	    }
 	    os << std::endl;
         }
@@ -140,8 +137,8 @@ class open_statement {
         Dwarf_Addr end_addr;
         int line_number;
         int column_number;
-        unsigned int context;
-        unsigned int funcname_offset;
+        Dwarf_Line* context;
+        const char* funcname;
 };
 
 
@@ -426,7 +423,6 @@ private:
        open_statement&,
        StringTablePtr,
        FunctionBase*,
-       const char*,
        Dwarf_Addr,
        Dwarf_Addr
     );
@@ -506,7 +502,7 @@ private:
  private:
   const char* soname_;
   Function* containingFunc;
-  std::unordered_map<unsigned int, std::vector<open_statement> > contextMap;
+  std::unordered_map<void*, std::vector<open_statement> > contextMap;
 
         };
 

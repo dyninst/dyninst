@@ -3531,15 +3531,14 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 void
 dumpLineWithInlineContext
 (
- Region *debug_str,
  open_statement &saved_statement,
  vector<open_statement> &inline_context
 )
 {
-  saved_statement.dump(cout, debug_str, true);
+  saved_statement.dump(cout, true);
   if (inline_context.size()) {
     for (unsigned int i = inline_context.size(); i > 0; i--) {
-      inline_context[i -1].dump(cout, debug_str, false);
+      inline_context[i -1].dump(cout, false);
     }
   }
 }
@@ -3579,7 +3578,6 @@ Object::recordLine
     
     FunctionBase* cur = static_cast<FunctionBase*>(containingFunc);
     StringTablePtr strings(li_for_object->getStrings());
-    const char* func_name_table = static_cast<const char*>(debug_str->getPtrToRawData());
 
     // Record all inline call sites
     for (unsigned int i = 0; i < inline_context.size() - 1; ++i) {          
@@ -3588,7 +3586,6 @@ Object::recordLine
           inline_context[i + 1],
           strings,
           cur,
-          func_name_table,
           saved_statement.start_addr,
           saved_statement.end_addr);
     }
@@ -3597,13 +3594,12 @@ Object::recordLine
         saved_statement,
         strings,
         cur,
-        func_name_table,
         saved_statement.start_addr,
         saved_statement.end_addr);
   }
 
   if (common_debug_lineinfo) {
-    dumpLineWithInlineContext(debug_str, saved_statement, inline_context);
+    dumpLineWithInlineContext(saved_statement, inline_context);
   }
 }
 
@@ -3612,7 +3608,6 @@ InlinedFunction* Object::recordAnInlinedFunction(
     open_statement& callee,
     StringTablePtr strings,
     FunctionBase *parent,
-    const char* func_name_table,
     Dwarf_Addr start,
     Dwarf_Addr end
 ) {
@@ -3624,9 +3619,9 @@ InlinedFunction* Object::recordAnInlinedFunction(
     ifunc->callsite_line = caller.line_number;
     
     // Use the function name from the callee
-    const char* func_name_ptr = func_name_table + callee.funcname_offset;      
-    ifunc->addMangledName(func_name_ptr, true, true);   
-    
+    if (callee.funcname != nullptr) {
+        ifunc->addMangledName(callee.funcname, true, true);
+    }
     ifunc->ranges.emplace_back(FuncRange(start, end - start, ifunc));
     return ifunc;
 }
@@ -3642,8 +3637,8 @@ Object::lookupInlinedContext
   // If we encounter an unseen inline context,
   // the current inlining call path is stored with the inline context id.
   // Otherwise, we replace current context with the stored one
-  unsigned int c = saved_statement.context;
-  if (c) {
+  void* c = (void*)saved_statement.context;
+  if (c != nullptr) {
     if (contextMap.find(c) == contextMap.end()) {
         contextMap[c] = inline_context;
     } else {
@@ -3811,17 +3806,8 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
         // Only attempt to parse inlining context and inline function name
         // when there is a .debug_str section.
         if (debug_str != nullptr) {
-            status = dwarf_linecontext(line, &current_statement.context);
-            if(status != 0) {
-                cout << "dwarf_linecontext failed" << endl;
-                continue;
-            }
-
-            status = dwarf_linefunctionname(line, &current_statement.funcname_offset);
-            if(status != 0) {
-                cout << "dwarf_linefunctionname failed" << endl;
-                continue;
-            }
+            current_statement.context = dwarf_linecontext(lineBuffer, line);
+            current_statement.funcname = dwarf_linefunctionname(dbg, line);
         }
 #else
     #error The specified elfutils is not capable of handling nvidia extended line map. Please reconfigure elfutils with "--enable-nvidia-linemap"
