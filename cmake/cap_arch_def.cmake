@@ -42,11 +42,6 @@ elseif (PLATFORM MATCHES ppc64)
                 -Dcap_registers
                 -Dcap_toc_64
        )
-   if (SYSPLATFORM MATCHES ppc64le)
-      set (CAP_DEFINES ${CAP_DEFINES} 
-              -Darch_ppc_little_endian
-          )
-   endif (SYSPLATFORM MATCHES ppc64le)
 elseif (PLATFORM MATCHES aarch64)
   #set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
   set (ARCH_DEFINES -Darch_aarch64 -Darch_64bit)
