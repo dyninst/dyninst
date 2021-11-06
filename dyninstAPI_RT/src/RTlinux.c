@@ -331,8 +331,6 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 #elif defined(arch_power)
   #if defined(arch_64bit)
     #define UC_PC(x) x->uc_mcontext.regs->nip
-  #else // 32-bit
-    #define UC_PC(x) x->uc_mcontext.uc_regs->gregs[32]
   #endif // power
 #elif defined(arch_aarch64)
 	//#warning "UC_PC: in aarch64, pc is not directly accessable."

@@ -208,8 +208,6 @@ const char *platform_string()
 #if defined (os_linux)
 #if defined (arch_64bit)
 	return "ppc64_linux";
-#else
-	return "ppc32_linux";
 #endif
 #endif
 #endif
