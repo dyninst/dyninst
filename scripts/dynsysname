@@ -25,12 +25,6 @@ fi
 if [ ${P/powerpc64/} != ${P} ]; then
 PLATFORM=ppc64_linux
 fi
-if [ ${P/powerpc-/} != ${P} ]; then
-PLATFORM=ppc32_linux
-fi
-if [ ${P/ppc-/} != ${P} ]; then
-PLATFORM=ppc32_linux
-fi
 if [ ${P/aarch64-/} != ${P} ]; then
 PLATFORM=aarch64-unknown-linux
 fi
@@ -66,9 +60,6 @@ PLATFORM=i386-unknown-vxworks6.x
 fi
 if [ ${P/i386/} != ${P} ]; then
 PLATFORM=i386-unknown-vxworks6.x
-fi
-if [ ${P/powerpc-/} != ${P} ]; then
-PLATFORM=ppc32-unknown-vxworks6.x
 fi
 fi
 

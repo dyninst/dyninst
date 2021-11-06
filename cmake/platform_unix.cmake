@@ -4,7 +4,6 @@ set (VALID_PLATFORMS
     amd64-unknown-freebsd7.2 
     i386-unknown-freebsd7.2 
     i386-unknown-linux2.4 
-    ppc32_linux 
     ppc64_linux 
     x86_64-unknown-linux2.4
     aarch64-unknown-linux

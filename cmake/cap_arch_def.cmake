@@ -33,12 +33,6 @@ set (CAP_DEFINES ${CAP_DEFINES}
              -Dcap_stack_mods
     )
 
-elseif (PLATFORM MATCHES ppc32)
-set (ARCH_DEFINES -Darch_power)
-set (CAP_DEFINES ${CAP_DEFINES} 
-             -Dcap_registers
-    )
-
 elseif (PLATFORM MATCHES ppc64)
    set (ARCH_DEFINES -Darch_power -Darch_64bit)
    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
@@ -98,10 +92,6 @@ set (OLD_DEFINES -Di386_unknown_linux2_0)
 
 elseif (PLATFORM STREQUAL x86_64-unknown-linux2.4)
 set (OLD_DEFINES -Dx86_64_unknown_linux2_4)
-
-elseif (PLATFORM STREQUAL ppc32_linux)
-set (OLD_DEFINES -Dppc32_linux)
-set (BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
 
 elseif (PLATFORM STREQUAL ppc64_linux)
 set (OLD_DEFINES -Dppc64_linux)
