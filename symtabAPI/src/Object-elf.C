@@ -386,13 +386,8 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
     plt_size_ = 0;
     symtab_addr_ = 0;
     strtab_addr_ = 0;
-#if defined (ppc32_linux)
-    plt_entry_size_ = 8;
-  rel_plt_entry_size_ = 8;
-#else
     plt_entry_size_ = 0;
     rel_plt_entry_size_ = 0;
-#endif
     rel_plt_addr_ = 0;
     rel_plt_size_ = 0;
     rel_addr_ = 0;

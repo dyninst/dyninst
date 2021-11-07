@@ -172,7 +172,7 @@ extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
 
-#if defined(ppc32_linux) || defined(ppc64_linux)
+#if defined(ppc64_linux)
 
 #include <dataflowAPI/h/slicing.h>
 #include <dataflowAPI/h/SymEval.h>
@@ -475,7 +475,7 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
-#if defined(ppc32_linux) || defined(ppc64_linux)
+#if defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
 
     // Only look for main in executables, but do allow position-independent

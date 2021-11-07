@@ -1,5 +1,1 @@
 System header files (unistd*.h) should be placed in Platform-specific files.
-
-NOTE: unistd.h from Linux/ppc contains both 32- and 64-bit syscall numbers.
-This file has been copied to the Arch_ppc32 and Arch_ppc64 directories and
-manually edited to reflect architecture-specific system call information.
