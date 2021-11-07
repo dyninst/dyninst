@@ -37,7 +37,6 @@
 #include "instPoint.h"
 #include "function.h"
 #include "dynProcess.h"
-#include "MemoryEmulator/memEmulator.h"
 #include "PatchModifier.h"
 #include "BPatch_image.h"
 #include "mapped_object.h"
@@ -55,11 +54,6 @@ void HybridAnalysis::synchShadowOrigCB(BPatch_point *point, bool toOrig)
 {
     mal_printf("in synch callback for point 0x%lx toOrig=%d\n",
                (Address)point->getAddress(), (int) (long) toOrig);
-
-
-    proc()->lowlevel_process()->getMemEm()->synchShadowOrig
-        ((bool) toOrig);
-
 
     std::vector<BPatch_module *> *mods = proc()->getImage()->getModules();
 
@@ -369,8 +363,6 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 		if (!bpfunc) continue;
         PatchAPI::PatchModifier::remove(bpfunc->lowlevel_func());
 	}
-
-	proc()->lowlevel_process()->getMemEm()->removeRegion(virtualFreeAddr_, virtualFreeSize_);
 	// And nuke the RT cache
 
 	proc()->lowlevel_process()->proc()->flushAddressCache_RT(virtualFreeAddr_, virtualFreeSize_);

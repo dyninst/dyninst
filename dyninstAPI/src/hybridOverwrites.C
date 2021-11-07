@@ -46,7 +46,6 @@
 #include "instPoint.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
-#include "MemoryEmulator/memEmulator.h"
 
 using namespace Dyninst;
 
@@ -1321,9 +1320,6 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     proc()->finalizeInsertionSet(false);
     proc()->protectAnalyzedCode();
     malware_cerr << "overWriteAnalysis returns" << endl;
-
-    proc()->lowlevel_process()->getMemEm()->debug();
-
 }
 #endif
 

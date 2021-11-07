@@ -50,7 +50,6 @@
 #include "Relocation/Transformers/Include.h"
 #include "Relocation/CodeTracker.h"
 
-#include "MemoryEmulator/memEmulator.h"
 #include "parseAPI/h/CodeObject.h"
 #include <boost/tuple/tuple.hpp>
 
@@ -89,20 +88,8 @@ AddressSpace::AddressSpace () :
     up_ptr_(NULL),
     costAddr_(0),
     installedSpringboards_(new Relocation::InstalledSpringboards()),
-    memEmulator_(NULL),
-    emulateMem_(false),
-    emulatePC_(false),
     delayRelocation_(false)
 {
-#if 0
-   // Disabled for now; used by defensive mode
-   if ( getenv("DYNINST_EMULATE_MEMORY") ) {
-       printf("emulating memory & pc\n");
-       memEmulator_ = new MemoryEmulator(this);
-       emulateMem_ = true;
-       emulatePC_ = true;
-   }
-#endif
    // Historically, we only use SIGTRAP as the signal for tramopline.
    // However, SIGTRAP is always intercepted by GDB, causing it is 
    // almost impossible to debug through signal trampolines.
@@ -116,8 +103,6 @@ AddressSpace::AddressSpace () :
 }
 
 AddressSpace::~AddressSpace() {
-    if (memEmulator_)
-      delete memEmulator_;
     if (mgr_)
        static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
 
@@ -235,10 +220,6 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
       func_instance *to = findFunction(SCAST_FI(iter->second.first)->ifunc());
       fwm[from] = std::make_pair(to, iter->second.second);
     }
-
-    if (memEmulator_) assert(0 && "FIXME!");
-    emulateMem_ = parent->emulateMem_;
-    emulatePC_ = parent->emulatePC_;
 }
 
 void AddressSpace::deleteAddressSpace() {
@@ -271,9 +252,6 @@ void AddressSpace::deleteAddressSpace() {
 
    // up_ptr_ is untouched
    costAddr_ = 0;
-
-   if (memEmulator_) delete memEmulator_;
-   memEmulator_ = NULL;
 }
 
 
@@ -396,10 +374,6 @@ void AddressSpace::addHeap(heapItem *h) {
    std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
 
    heap_.totalFreeMemAvailable += h2->length;
-
-   if (h->dynamic) {
-      addAllocatedRegion(h->addr, h->length);
-   }
 }
 
 void AddressSpace::initializeHeap() {
@@ -1711,8 +1685,6 @@ bool AddressSpace::relocate() {
          modFuncs = actualModFuncs;
      }
 
-     addModifiedRegion(iter->first);
-     
      Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
      
      if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
@@ -1724,7 +1696,6 @@ bool AddressSpace::relocate() {
      
   
 
-  updateMemEmulator();
 
   modifiedFunctions_.clear();
 
@@ -1876,13 +1847,6 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
         cm->transform(pc);
    }
 
-#if defined(cap_mem_emulation)
-   if (emulateMem_) {
-      MemEmulatorTransformer m;
-      cm->transform(m);
-  }
-#endif
-
   // Add instrumentation
   relocation_cerr << "Inst transformer" << endl;
   Instrumenter i;
@@ -1996,17 +1960,6 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
          // HACK: code modification will make this happen...
          return false;
       }
-
-    mapped_object *obj = findObject(iter->startAddr());
-    if (obj && runtime_lib.end() == runtime_lib.find(obj)) {
-        Address objBase = obj->codeBase();
-        SymtabAPI::Region * reg = obj->parse_img()->getObject()->
-            findEnclosingRegion(iter->startAddr() - objBase);
-        if (memEmulator_)
-           memEmulator_->addSpringboard(reg, 
-                                        iter->startAddr() - objBase - reg->getMemOffset(),
-                                        iter->used());
-    }
   }
 
   return true;
@@ -2154,23 +2107,6 @@ void AddressSpace::getPreviousInstrumentationInstances(baseTramp *bt,
 void AddressSpace::addInstrumentationInstance(baseTramp *bt,
 					      Address a) {
   instrumentationInstances_[bt].insert(a);
-}
-
-void AddressSpace::addAllocatedRegion(Address start, unsigned size) {
-   if (memEmulator_) memEmulator_->addAllocatedRegion(start, size);
-}
-
-void AddressSpace::addModifiedRegion(mapped_object *obj) {
-   if (memEmulator_) memEmulator_->addRegion(obj);
-   return;
-}
-
-void AddressSpace::updateMemEmulator() {
-   if (memEmulator_) memEmulator_->update();
-}
-
-MemoryEmulator * AddressSpace::getMemEm() {
-    return memEmulator_;
 }
 
 void updateSrcListAndVisited(ParseAPI::Edge* e,

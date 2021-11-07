@@ -283,18 +283,3 @@ bool CFPatch::handleTOCUpdate(codeGen &gen) {
     return false;
   }
 }
-
-bool CFWidget::generateAddressTranslator(CodeBuffer & /*buffer*/,
-                                         const codeGen & /*templ*/,
-                                         Register & /*reg*/,
-                                         const RelocBlock * /*trace*/) 
-{
-#if !defined(cap_mem_emulation)
-   return true;
-#else
-   assert(0);
-   return false;
-#endif
-
-}
-    

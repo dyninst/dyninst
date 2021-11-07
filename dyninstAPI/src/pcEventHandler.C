@@ -36,7 +36,6 @@
 #include "registerSpace.h"
 #include "RegisterConversion.h"
 #include "function.h"
-#include "MemoryEmulator/memEmulator.h"
 #include "dynThread.h"
 
 #include "Mailbox.h"
@@ -459,16 +458,6 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
                 << ev->getAddress() << std::dec << std::endl;
             Address addr = ev->getAddress();
             mapped_object* obj = evProc->findObject(addr);
-
-            // retry finding object by its original address.
-            if (obj == NULL && evProc->isMemoryEmulated()) {
-                std::pair<bool, Address> trans = 
-                    evProc->getMemEm()->translateBackwards(addr);
-                if (trans.first) { 
-                    addr = trans.second;
-                    obj = evProc->findObject(addr);
-                }
-            }
 
             // change permissions if we can find this originally writable region
             if (obj != NULL) {

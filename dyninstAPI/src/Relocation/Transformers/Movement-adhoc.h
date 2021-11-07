@@ -35,7 +35,7 @@ class AddressSpace;
 
 #include "Transformer.h"
 
-#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
+#include "dataflowAPI/h/Absloc.h"
 
 #include "dyninstAPI/src/function.h"
 

@@ -38,14 +38,6 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
 
-#if defined(cap_mem_emulation)
-#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
-#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
-#include "dyninstAPI/src/registerSpace.h"
-#endif
-
 #include "../dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
@@ -133,7 +125,7 @@ CFWidget::CFWidget(InstructionAPI::Instruction insn, Address addr)  :
 }
 
 
-bool CFWidget::generate(const codeGen &templ,
+bool CFWidget::generate(const codeGen &,
                       const RelocBlock *trace,
                       CodeBuffer &buffer)
 {
@@ -269,10 +261,7 @@ bool CFWidget::generate(const codeGen &templ,
       }
       case Indirect: {
          Register reg = Null_Register; /* = originalRegister... */
-         // Originally for use in helping with jump tables, I'm taking
-         // this for the memory emulation effort. Huzzah!
-         if (!generateAddressTranslator(buffer, templ, reg, trace))
-            return false;
+
 	 // If this is an indirect tail call, we still treat it
 	 // as an indirect call
          if (isCall_ || trace->block()->llb()->isIndirectTailCallBlock()) {

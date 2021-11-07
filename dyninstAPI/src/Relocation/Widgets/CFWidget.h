@@ -187,12 +187,6 @@ class CFWidget : public Widget {
 							InstructionAPI::Instruction insn,
 							const RelocBlock *trace,
 							Address origAddr);
-  
-  bool generateAddressTranslator(CodeBuffer &buffer,
-                                 const codeGen &templ,
-                                 Register &reg, 
-                                 const RelocBlock *trace);
-
 };
 
 struct CFPatch : public Patch {

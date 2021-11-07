@@ -244,7 +244,5 @@ struct MemoryMapper64 {
 
 DLLEXPORT extern struct MemoryMapper RTmemoryMapper;
 
-extern int RTuntranslatedEntryCounter;
-
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */

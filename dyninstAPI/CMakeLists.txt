@@ -177,9 +177,6 @@ elseif(PLATFORM MATCHES windows OR PLATFORM MATCHES nt)
         src/inst-winnt.C
         src/pdwinnt.C
         src/syscall-nt.C
-		src/MemoryEmulator/memEmulator.C
-		src/MemoryEmulator/memEmulatorTransformer.C
-		src/MemoryEmulator/memEmulatorWidget.C
 		src/Relocation/DynAddrSpace.C
 		src/Relocation/DynCFGMaker.C
 		src/Relocation/DynInstrumenter.C
