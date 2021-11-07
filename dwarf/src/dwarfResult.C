@@ -43,7 +43,7 @@ using namespace Dyninst;
 using namespace DwarfDyninst;
 using namespace std;
 
-#define CHECK_OPER(n) if (operands.size() < n) { error = true; break; }
+#define CHECK_OPER(n) do { if (operands.size() < (n)) { error = true; return; } } while (0)
 
 void SymbolicDwarfResult::pushReg(MachRegister reg) {
   dwarf_printf("\t\tPush %s\n", reg.name().c_str());

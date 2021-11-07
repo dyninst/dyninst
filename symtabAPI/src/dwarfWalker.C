@@ -51,33 +51,33 @@ using namespace SymtabAPI;
 using namespace DwarfDyninst;
 using namespace std;
 
-#define DWARF_FAIL_RET_VAL(x, v) {                                      \
+#define DWARF_FAIL_RET_VAL(x, v) do  {                                  \
       int dwarf_fail_ret_val_status = (x);                              \
       if (dwarf_fail_ret_val_status != 0) {                             \
          types_printf("[%s:%d]: libdwarf returned %d, ret false\n",     \
                  FILE__, __LINE__, dwarf_fail_ret_val_status);          \
          return (v);                                                    \
       }                                                                 \
-   }
+   } while (0)
 #define DWARF_FAIL_RET(x) DWARF_FAIL_RET_VAL(x, false)
 
-#define DWARF_ERROR_RET_VAL(x, v) {                                     \
+#define DWARF_ERROR_RET_VAL(x, v) do  {                                 \
       int dwarf_error_ret_val_status = (x);                             \
       if (dwarf_error_ret_val_status == 1 /*DW_DLV_ERROR*/) {           \
          types_printf("[%s:%d]: parsing failure, ret false\n",          \
                  FILE__, __LINE__);                                     \
          return (v);                                                    \
       }                                                                 \
-   }
+   } while (0)
 #define DWARF_ERROR_RET(x) DWARF_ERROR_RET_VAL(x, false)
 
-#define DWARF_CHECK_RET_VAL(x, v) {                                     \
+#define DWARF_CHECK_RET_VAL(x, v) do  {                                 \
       if (x) {                                                          \
          types_printf("[%s:%d]: parsing failure, ret false\n",          \
                  FILE__, __LINE__);                                     \
          return (v);                                                    \
       }                                                                 \
-   }
+   } while (0)
 #define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
 DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
