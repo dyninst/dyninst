@@ -34,7 +34,7 @@
 #include "Transformer.h"
 #include "dyninstAPI/src/LinearVariable.h"
 
-#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
+#include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 
 #include "common/h/Graph.h" // PC-sensitive transformer

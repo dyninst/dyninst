@@ -46,7 +46,6 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "image.h"
-#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
 #include "dyninstAPI/src/ast.h"
@@ -174,29 +173,6 @@ void PCProcess::changeMemoryProtections(Address addr, size_t size,
                                             rights, oldRights)) {
 			mal_printf("ERROR: failed to set access rights "
                        "for page %lx, %s[%d]\n", addr, FILE__, __LINE__);
-		} else if (isMemoryEmulated() && setShadow) {
-			Address shadowAddr = 0;
-			PCMemPerm shadowRights;
-			bool valid = false;
-			boost::tie(valid, shadowAddr) = getMemEm()->translate(idx);
-			if (!valid) {
-				mal_printf("WARNING: set access rights on page %lx that has "
-				           "no shadow %s[%d]\n",addr,FILE__,__LINE__);
-			} else {
-                if(!pcProc_->setMemoryAccessRights(shadowAddr, pageSize,
-                                                   rights, shadowRights)) {
-                    mal_printf("ERROR: failed to set access rights "
-                               "for page %lx, %s[%d]\n",
-                                shadowAddr, FILE__, __LINE__);
-                }
-
-				if (shadowRights != oldRights) {
-					mal_printf("WARNING: shadow page[%lx] rights %s did not "
-                               "match orig-page [%lx] rights %s\n",
-                               shadowAddr, shadowRights.getPermName().c_str(),
-                               addr, oldRights.getPermName().c_str());
-				}
-			}
 		}
 	}
 }

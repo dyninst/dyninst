@@ -46,7 +46,6 @@
 #include "InstructionDecoder.h"
 #include "Parsing.h"
 #include "instPoint.h"
-#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 #include "BPatch_image.h"
 #include "PatchCFG.h"
@@ -1327,11 +1326,6 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 
     // 1. copy memory into regBuf
     Address readAddr = regStart + codeBase();
-    if (proc()->isMemoryEmulated()) {
-        bool valid = false;
-        boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-        assert(valid);
-    }
     if (!proc()->readDataSpace((void*)readAddr,
                                copySize,
                                regBuf,
@@ -1343,8 +1337,6 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     }
     mal_printf("EXTEND_CB: copied to [%lx %lx)\n", codeBase()+regStart, codeBase()+regStart+copySize);
 
-
-    if ( ! proc()->isMemoryEmulated() ) {
 
     // 2. copy code bytes back into the regBuf to wipe out instrumentation
     //    and set regBuf to be the data for the region
@@ -1378,7 +1370,6 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
         }
         mal_printf("Expand region: %lx blocks copied back into mapped file\n",
                    analyzedBlocks.size());
-    }
 
     if (reg->isDirty()) {
         // if isDirty is true, the pointer was created via malloc
@@ -1410,7 +1401,6 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 // 2. copy overwritten regions into the mapped objects
 void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges)
 {
-    bool memEmulation = proc()->isMemoryEmulated();
 // 1. use other update functions to update non-code areas of mapped files,
 //    expanding them if we wrote in un-initialized memory
     using namespace SymtabAPI;
@@ -1447,11 +1437,6 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
     for(rIter = owRanges.begin(); rIter != owRanges.end(); rIter++)
     {
         Address readAddr = rIter->first;
-        if (memEmulation) {
-            bool valid = false;
-            boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-            assert(valid);
-        }
 
         Region *reg = parse_img()->getObject()->findEnclosingRegion
             ( (*rIter).first - baseAddress );
@@ -1518,11 +1503,6 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
         if (prevEndAddr < curB->start()) {
             // update the mapped file
             Address readAddr = prevEndAddr + base;
-            if (proc()->isMemoryEmulated()) {
-                bool valid = false;
-                boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-                assert(valid);
-            }
             if (!proc()->readDataSpace(
                     (void*)readAddr,
                     curB->start() - prevEndAddr,
@@ -1550,11 +1530,6 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
 	// (will read in whole region if there are no ranges in the region)
     if (prevEndAddr < regStart + symReg->getDiskSize()) {
         Address readAddr = prevEndAddr + base;
-        if (proc()->isMemoryEmulated()) {
-            bool valid = false;
-            boost::tie(valid, readAddr) = proc()->getMemEm()->translate(readAddr);
-            assert(valid);
-        }
         if (!proc()->readDataSpace(
                 (void*)readAddr,
                 regStart + symReg->getDiskSize() - prevEndAddr,
@@ -1632,12 +1607,6 @@ bool mapped_object::isUpdateNeeded(Address entry)
                       ? comparison_size : page_size;
     regBuf = malloc(comparison_size);
     Address readAddr = entry;
-    if (proc()->isMemoryEmulated()) {
-        bool valid = false;
-		Address translated = 0;
-		boost::tie(valid, translated) = proc()->getMemEm()->translate(readAddr);
-		if (valid) readAddr = translated;
-	}
 
    // mal_printf("%s[%d] Comparing %lx bytes starting at %lx\n",
       //      FILE__,__LINE__,comparison_size,entry);
@@ -1682,11 +1651,6 @@ bool mapped_object::isExpansionNeeded(Address entry)
     // see if the first few bytes have been updated
     Address compareStart =
         base + reg->getMemOffset() + reg->getDiskSize();
-    if (proc()->isMemoryEmulated()) {
-        bool valid = false;
-        boost::tie(valid, compareStart) = proc()->getMemEm()->translate(compareStart);
-        assert(valid);
-    }
     unsigned compareSize = InstructionAPI::InstructionDecoder::maxInstructionLength;
 
     Address uninitSize = reg->getMemSize() - reg->getDiskSize();
@@ -1772,10 +1736,6 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 }
 
 void mapped_object::remove(func_instance *func) {
-
-    if (as()->isMemoryEmulated()) {
-        as()->getMemEm()->removeSpringboards(func);
-    }
     
     // clear out module- and BPatch-level data structures 
     BPatch_addressSpace* bpAS = (BPatch_addressSpace*)proc()->up_ptr();
@@ -1842,9 +1802,6 @@ void mapped_object::remove(instPoint *point)
 // does not delete
 void mapped_object::destroy(PatchAPI::PatchBlock *b) {
    calleeNames_.erase(SCAST_BI(b));
-   if (as()->isMemoryEmulated()) {
-      as()->getMemEm()->removeSpringboards(SCAST_BI(b));
-   }
 }
 
 // does not delete

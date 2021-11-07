@@ -14,7 +14,6 @@ include_directories (
 
 set (SRC_LIST
     src/RTcommon.c 
-    src/RTmemEmulator.c
 )
 
 if (PLATFORM MATCHES freebsd)

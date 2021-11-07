@@ -171,8 +171,6 @@ void DYNINSTBaseInit()
 #endif
    DYNINST_unlock_tramp_guard();
    DYNINSThasInitialized = 1;
-
-   RTuntranslatedEntryCounter = 0;
 }
 
 /**

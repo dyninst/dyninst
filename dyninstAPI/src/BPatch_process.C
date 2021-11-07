@@ -57,7 +57,6 @@
 #include "parseAPI/h/CFG.h"
 #include "ast.h"
 #include "debug.h"
-#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
 #include "PatchMgr.h"
@@ -1453,11 +1452,6 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
     pageAddr = (pageAddr / pagesize) * pagesize;
 
     Address shadowAddr = pageAddr;
-    if (llproc->isMemoryEmulated()) {
-        bool valid = false;
-        boost::tie(valid, shadowAddr) = llproc->getMemEm()->translate(pageAddr);
-        assert(valid);
-    }
 
     unsigned char* buf = (unsigned char*) ::malloc(pagesize);
     llproc->readDataSpace((void*)shadowAddr, pagesize, buf, true);

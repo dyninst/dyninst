@@ -35,7 +35,7 @@
 
 #include <map>
 #include <stack>
-#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
+#include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 #include "dataflowAPI/h/SymEval.h" // Variable class
 #include "common/h/DynAST.h"

@@ -46,7 +46,6 @@
 #include "common/src/pathName.h"
 
 #include "PCErrors.h"
-#include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
 #include "symtabAPI/h/SymtabReader.h"
@@ -2203,12 +2202,6 @@ bool PCProcess::getOverwrittenBlocks
 
         // 1. Read the modified page in from memory
         Address readAddr = curPageAddr;
-        if (isMemoryEmulated()) {
-            bool valid = false;
-            boost::tie(valid,readAddr) = getMemEm()->translate(curPageAddr);
-                        cerr << "\t\t Reading from shadow page " << hex << readAddr << " instead of original " << curPageAddr << endl;
-            assert(valid);
-        }
         readTextSpace((void*)readAddr, MEM_PAGE_SIZE, memVersion);
 
         // 2. build overwritten region list by comparing shadow, memory
