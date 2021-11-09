@@ -92,6 +92,15 @@ void parseGaps(CodeRegion *cr,
 \end{apient}
 \apidesc{Speculatively parse the indicated region of the binary using the specified technique to find likely function entry points, enabled on the x86 and x86-64 platforms.}
 
+\fbox{\begin{minipage}[t]{1\columnwidth}%
+\begin{center}{\textbf{A note on using the lookup functions}}\end{center}\\
+When parsing binary objects such as .o files and static libraries which may have multiple
+\texttt{CodeRegion} objects that overlap in the address space, the \texttt{CodeRegion} argument
+\textit{must} be passed. For executable binaries and shared libraries that are fully linked, there
+is no ambiguity, and {\scshape null} can be passed. The only exception is \texttt{findFuncsByBlock}
+which always requires a valid \texttt{CodeRegion}.%
+\end{minipage}}
+
 \begin{apient}
 Function * findFuncByEntry(CodeRegion * cr,
                            Address entry)
