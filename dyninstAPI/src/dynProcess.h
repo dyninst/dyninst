@@ -282,7 +282,6 @@ public:
     virtual bool multithread_capable(bool ignoreIfMtNotSet = false); // platform-specific
     virtual bool multithread_ready(bool ignoreIfMtNotSet = false);
     virtual bool needsPIC();
-    //virtual bool unregisterTrapMapping(Address from);
     virtual void addTrap(Address from, Address to, codeGen &gen);
     virtual void removeTrap(Address from);
 
