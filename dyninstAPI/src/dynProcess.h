@@ -232,13 +232,6 @@ public:
         std::list<std::pair<Address,Address> >& overwrittenRegions,//output
         std::list<block_instance *> &writtenBBIs);//output
 
-    bool getDeadCode
-    ( const std::list<block_instance*> &owBlocks, // input
-      std::set<block_instance*> &delBlocks, //output: Del(for all f)
-      std::map<func_instance*,set<block_instance*> > &elimMap, //output: elimF
-      std::list<func_instance*> &deadFuncs, //output: DeadF
-      std::map<func_instance*,block_instance*> &newFuncEntries); //output: newF
-
     // synch modified mapped objects with current memory contents
     mapped_object *createObjectNoFile(Address addr);
     void updateCodeBytes( const std::list<std::pair<Address, Address> > &owRegions);
