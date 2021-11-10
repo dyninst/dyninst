@@ -1501,12 +1501,10 @@ void BPatch_process::overwriteAnalysisUpdate
 
     /*2. remove dead code from the analysis */
 
-    // identify the dead code (see getDeadCode for its parameter definitions)
     std::set<block_instance*> delBlocks; 
     std::map<func_instance*,set<block_instance*> > elimMap; 
     std::list<func_instance*> deadFuncs; 
     std::map<func_instance*,block_instance*> newFuncEntries; 
-    llproc->getDeadCode(owBBIs,delBlocks,elimMap,deadFuncs,newFuncEntries);
 
     // remove instrumentation from affected funcs
     beginInsertionSet();
