@@ -16,7 +16,7 @@ option(BUILD_DOCS "Build manuals from LaTeX sources" ON)
 option (ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
 option(ENABLE_DEBUGINFOD "Enable debuginfod support" OFF)
-option(ENABLE_NVIDIA_EXT_LINE_MAP "Enable debuginfod support" OFF)
+option(ENABLE_NVIDIA_EXT_LINE_MAP "Enable support for NVIDIA extended line map" OFF)
 
 # Some global on/off switches
 if (LIGHTWEIGHT_SYMTAB)
