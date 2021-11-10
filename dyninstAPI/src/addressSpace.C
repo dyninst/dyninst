@@ -1965,9 +1965,6 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   return true;
 }
 
-void AddressSpace::causeTemplateInstantiations() {
-}
-
 void AddressSpace::getRelocAddrs(Address orig, 
                                  block_instance *block,
                                  func_instance *func,
