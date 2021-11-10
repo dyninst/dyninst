@@ -463,8 +463,6 @@ class AddressSpace : public InstructionSource {
                       RelocInfo &relocInfo);
     // defensive mode code // 
 
-    void causeTemplateInstantiations();
-
     // Debugging method
     bool inEmulatedCode(Address addr);
 
