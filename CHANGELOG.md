@@ -1,5 +1,162 @@
 # Change Log
 
+## [12.0.0](https://github.com/dyninst/dyninst/tree/v12.0.0) (2021-11-11)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v11.0.1...v12.0.0)
+
+**GPU Support**
+
+- Add CMake test to check if libdw supports NVIDIA extended line map
+- Adjust interface changes in elfutils regarding NVIDIA extended line map
+- Add compile-time checking to see if elfutils support nvidia extended line map when the user have specified ENABLE_NVIDIA_EXT_LINE_MAP
+- Fix compilation warning and add cmake option ENABLE_NVIDIA_EXT_LINE_MAP
+- 1. Handle unrelocated line map entries for CUBIN 2. Remove redundant addFunctionRange call to improve performance 3. Add some debug logging
+- Inline context from nvidia extended line map identifies an inlined call path
+- Start to construct inlining call chains using Nvidia's extended line map
+- cleaning up code for ingesting nvidia extended linemaps
+- first draft of support for nvidia enhanced line maps
+
+**Enhancements**
+
+- Load callee's address when the callee and caller are in the same module ([1056](https://github.com/dyninst/dyninst/issues/1056))
+- Give global annotation objects internal linkage and file scope
+- Summit fixes ([1108](https://github.com/dyninst/dyninst/issues/1108))
+- Add x86 xsavec instruction ([1074](https://github.com/dyninst/dyninst/issues/1074))
+- Convert TRAMP_\*_OFFSET macros to functions ([1073](https://github.com/dyninst/dyninst/issues/1073))
+- Add x86_64 xrstor instruction ([1070](https://github.com/dyninst/dyninst/issues/1070))
+- Fix insertion operators in BPatch and Symtab ([1069](https://github.com/dyninst/dyninst/issues/1069))
+- Add DWARF4 base type entry encodings to symtabAPI::typeScalar ([1059](https://github.com/dyninst/dyninst/issues/1059))
+- Add xsave instruction ([1055](https://github.com/dyninst/dyninst/issues/1055))
+- Cleanup orphaned code ([1064](https://github.com/dyninst/dyninst/issues/1064))
+
+**ABI Breakages**
+- Remove AddressSpace::causeTemplateInstantiations ([1149](https://github.com/dyninst/dyninst/issues/1149))
+- Remove unregisterTrapMapping from PCProcess
+- Remove thread registration functions from PCProcess
+- Remove PCProcess::getDeadCode
+- Remove memory emulation ([1146](https://github.com/dyninst/dyninst/issues/1146))
+- Remove unused generateSimple ([1122](https://github.com/dyninst/dyninst/issues/1122))
+- Remove unused variables from Symtab
+- Remove special Fortran debug handling
+- Remove stabs from symbol demangling
+- Remove stabs from BPatch
+- Remove stabs from SymtabAPI
+- Remove Module::getAllVariables ([1066](https://github.com/dyninst/dyninst/issues/1066))
+
+**Documentation**
+
+- Improve docs for lookup functions in CodeObject ([1147](https://github.com/dyninst/dyninst/issues/1147))
+- Update copyright to 2022 ([1141](https://github.com/dyninst/dyninst/issues/1141))
+- Remove stabs from documentation ([1120](https://github.com/dyninst/dyninst/issues/1120))
+
+**Build Changes**
+- Remove ppc32 from builds ([1145](https://github.com/dyninst/dyninst/issues/1145))
+- Unify meaning of 'cap_32_64' macro ([1136](https://github.com/dyninst/dyninst/issues/1136))
+- Remove support for Cray CNL ([1137](https://github.com/dyninst/dyninst/issues/1137))
+- Remove xlc macros ([1132](https://github.com/dyninst/dyninst/issues/1132))
+- Remove common/src/language.h ([1131](https://github.com/dyninst/dyninst/issues/1131))
+- Remove usage of arch_ppc and arch_ppc64 ([1129](https://github.com/dyninst/dyninst/issues/1129))
+- Remove usage of x86_64_cnl ([1130](https://github.com/dyninst/dyninst/issues/1130))
+- Remove DynC tests ([1126](https://github.com/dyninst/dyninst/issues/1126))
+- Remove NO_INITIALIZER_LIST_SUPPORT ([1125](https://github.com/dyninst/dyninst/issues/1125))
+- Turn on STERILE_BUILD by default ([1118](https://github.com/dyninst/dyninst/issues/1118))
+- update minimum boost version to 1.70.0 ([1117](https://github.com/dyninst/dyninst/issues/1117))
+- Remove boost_system linking ([1112](https://github.com/dyninst/dyninst/issues/1112))
+- Enforce detection of libiberty ([1099](https://github.com/dyninst/dyninst/issues/1099))
+- fix compiler warnings to work with clang ([1092](https://github.com/dyninst/dyninst/issues/1092))
+- update optimization (-Og) and debug flags (-g3) ([1084](https://github.com/dyninst/dyninst/issues/1084))
+- use the C11 standard for C code in Dyninst ([1086](https://github.com/dyninst/dyninst/issues/1086))
+- Make Dyninst buildable with Clang ([1021](https://github.com/dyninst/dyninst/issues/1021))
+- Remove valueAdded subdirectory completely ([1065](https://github.com/dyninst/dyninst/issues/1065))
+- Remove valueAdded subdirectory ([1063](https://github.com/dyninst/dyninst/issues/1063))
+
+**Bug Fixes**
+- fix statement-like macros ([1143](https://github.com/dyninst/dyninst/issues/1143))
+- Don't overflow aarch64 float register vector when setting used regs. ([1127](https://github.com/dyninst/dyninst/issues/1127))
+- fix unused const variable warnings
+- fix pessimizing std::move warnings
+- fix xor operator used as power operator
+- fix misleading indentation warning
+- fix uninitialized this and variable warnings
+- fix float to double promotion warning
+- fix unused const variable warnings
+- Fix possible buffer overflow in BPatch::processCreate
+- Fix uninitialized variable use in DispatcherARM64::iproc_init
+- remove executable flag from .dyninst_heap section ([1096](https://github.com/dyninst/dyninst/issues/1096))
+- fix broken cast of a char literal to pointer ([1090](https://github.com/dyninst/dyninst/issues/1090))
+- fix possibly uninitialized variables ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix possible null 'this' pointer dereference ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- prevent maybe uninitialized warning ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- adjust large frame threshold for specific sources ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix deprecated implicit assignment operator ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix buffer overflow ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix duplicate branch condition by removing branch ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix out of bounds array access ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix potentially uninitialized variable warning ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- use unused variable to correct code ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove unused variables ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make printf format and argument types match ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix broken bool expression that was always true ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- add missing initializer braces ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make constructor public so class is usable ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove ';' after in-class method definitions ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- eliminate logical op warning ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make implicit double promotions explicit ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- annotate malloc-like functions ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make method noexcept, so noexcept expr can be true ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- add missing default to switch statement ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix int to void\* cast if sizeof(int)<sizeof(void\*) ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- eliminate conversion of NULL to non-pointer type ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix variable signedness ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- replace if stmt with identical branches with then stmt ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fgetc returns an int not a char ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- do not discard volatile type qualifier in cast ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- add missing #include <assert.h> ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix unused vars/params/funcs on aarch64 ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix ambiguous type name warning ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove always true || sub-expression ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix possible sprintf buffer overflow ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- delete unnecessary ambiguous forward class decl ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make destructor virtual if a virtual method exist ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make printf format and argument signedness match ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make printf format and argument types match ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- add compiler annotation to printf-like functions ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix var-tracking-assignments warnings ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove assert(this) as 'this' should never be null ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove obvious null pointer dereference ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix for C++20 removal of std::allocator methods ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make cmp function object operator() a const func ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make Boost and TBB include dirs be system includes ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix shadow variable warning, has other brokenness ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix duplicate branch warnings ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- eliminate switch case fall through warnings ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- explicit base class initialization in constructor ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove default argument from lambda ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove non-C++ compound literal ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- do not compile empty compilation units ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix deprecated implicit copy constructor if dtor ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- add missing copy assignment ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix illegal in C empty brace initialization ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- disable flexible array member warning in C++ ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix discard qualifiers: make char\* -> const char\* ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix non-standard use of \_\_VA_ARGS\_\_ ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove excess semicolons as reported by -pedantic ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix overflow warning for 0x90 assigned to a char ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix illegal function pointer to void\* compare ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove use of GNU binary operator ?: ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove non-C++ variable length arrays ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- make printf format and argument types match ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- fix shadow identifier warnings ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- enable more warnings and test compiler support ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- miscellaneous compiler warning cleanups ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- eliminate switch case fall through warnings ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- add header with compiler annotation macros ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- add missing break statements ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- compute num array elements instead of fixed values ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove dynamic_ and dynamic() from fileDescriptor ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- remove emptyString static members ([1082](https://github.com/dyninst/dyninst/issues/1082))
+- delete unnecessary .DS_Store file ([1082](https://github.com/dyninst/dyninst/issues/1082))
+
+
 ## [11.0.1](https://github.com/dyninst/dyninst/tree/v11.0.1) (2021-06-14)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v11.0.0...v11.0.1)
 
