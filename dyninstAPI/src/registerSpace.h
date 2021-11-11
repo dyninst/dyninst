@@ -435,9 +435,6 @@ class registerSpace {
     std::vector<registerSlot *> realRegisters_;
 
     static void initialize();
-    static void initialize32();
-    static void initialize64();
-
 
     registerSpace &operator=(const registerSpace &src);
 

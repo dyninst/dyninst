@@ -78,11 +78,7 @@ void initDefaultPointFrequencyTable() {
 
 /************************************* Register Space **************************************/
 
-void registerSpace::initialize32() {
-    assert(!"No 32-bit implementation for the ARM architecture!");
-}
-
-void registerSpace::initialize64() {
+static void initialize64() {
     static bool done = false;
     if (done)
         return;

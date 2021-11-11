@@ -91,7 +91,7 @@ extern "C" int cpuidCall();
  * an instruction -- used for allocating the new area
  */
 
-void registerSpace::initialize32() {
+static void initialize32() {
     static bool done = false;
     if (done) return;
     done = true;
@@ -198,7 +198,7 @@ void registerSpace::initialize32() {
 }
 
 #if defined arch_x86_64
-void registerSpace::initialize64() {
+static void initialize64() {
     static bool done = false;
     if (done) return;
     done = true;

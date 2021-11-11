@@ -114,7 +114,7 @@ unsigned int floatingLiveRegListSize = 14;
 // of saves that we execute. 
 
 
-void registerSpace::initialize32() {
+static void initialize32() {
     static bool done = false;
     if (done) return;
     done = true;
@@ -251,7 +251,7 @@ void registerSpace::initialize32() {
 
 }
 
-void registerSpace::initialize64() {
+static void initialize64() {
     static bool done = false;
     if (done) return;
     done = true;
