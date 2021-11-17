@@ -232,8 +232,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
         return false;
 
     /* Extract the name of this module. */
-    std::string moduleName;
-    if (!findDieName(moduleDIE, moduleName)) return false;
+    std::string moduleName = die_name(moduleDIE);
 
     // DIEs without name or named <artificial> will be associated to
     // the default module (whose name is ELF filename)
@@ -819,8 +818,7 @@ bool DwarfWalker::parseLexicalBlock() {
 bool DwarfWalker::parseCommonBlock() {
    dwarf_printf("(0x%lx) Parsing common block\n", id());
 
-   std::string commonBlockName;
-   if (!findDieName(entry(), commonBlockName)) return false;
+   std::string commonBlockName = die_name(entry());
    Symbol* commonBlockVar = findSymbolForCommonBlock(commonBlockName);
    if(!commonBlockVar)
    {
@@ -878,9 +876,7 @@ bool DwarfWalker::parseVariable() {
    if (!handleSpecification(hasSpecification))
        return false;
 
-   if (!findName(curName()))
-       return false;
-
+   curName() = std::move(die_name());
    removeFortranUnderscore(curName());
 
    /* We'll start with the location, since that's most likely to
@@ -1040,7 +1036,7 @@ bool DwarfWalker::parseFormalParam() {
        return false;
    }
 
-   if (!findName(curName())) return false;
+   curName() = std::move(die_name());
    /* We can't do anything with anonymous parameters. */
    if (!nameDefined()) {
      dwarf_printf("(0x%lx) No name associated with formal, returning\n", id());
@@ -1085,7 +1081,7 @@ bool DwarfWalker::parseBaseType() {
    if(!tc()) return false;
    dwarf_printf("(0x%lx) parseBaseType entry\n", id());
 
-   if (!findName(curName())) return false;
+   curName() = std::move(die_name());
    if (!nameDefined()) {
       dwarf_printf("(0x%lx) No name for type, returning early\n", id());
       return true;
@@ -1169,7 +1165,7 @@ bool DwarfWalker::parseTypedef() {
     boost::shared_ptr<Type> referencedType;
     if (!findType(referencedType, true)) return false;
 
-    if (!findName(curName())) return false;
+    curName() = std::move(die_name());
     if (!nameDefined()) {
         if (!fixName(curName(), referencedType)) return false;
     }
@@ -1201,7 +1197,7 @@ bool DwarfWalker::parseArray() {
     if (!findType(elementType, false)) return false;
     if (!elementType) return false;
 
-    if (!findName(curName())) return false;
+    curName() = std::move(die_name());
 
    // curName may get overridden by the subrange parsing code.
    // TODO: make this part of the context stack.
@@ -1262,7 +1258,7 @@ bool DwarfWalker::parseSubrange() {
 bool DwarfWalker::parseEnum() {
    if(!tc()) return false;
    dwarf_printf("(0x%lx) parseEnum entry\n", id());
-   if (!findName(curName())) return false;
+   curName() = std::move(die_name());
    //setEnum(tc()->addOrUpdateType( Type::make_shared<typeEnum>( type_id(), "enum " + curName())));
    setEnum(tc()->addOrUpdateType( Type::make_shared<typeEnum>( type_id(), curName())));
    return true;
@@ -1301,7 +1297,7 @@ bool DwarfWalker::parseStructUnionClass() {
         return false;
     }
 
-    if (!findName(curName())) return false;
+    curName() = std::move(die_name());
     dwarf_printf("(0x%lx) Struct/Union/Class name from dwarf: %s\n", id(), curName().c_str());
 
     if (!nameDefined()) {
@@ -1372,8 +1368,7 @@ bool DwarfWalker::parseStructUnionClass() {
 bool DwarfWalker::parseEnumEntry() {
    dwarf_printf("(0x%lx) parseEnumEntry entry\n", id());
 
-   std::string name;
-   if (!findName(name)) return false;
+   std::string name = die_name();
 
    long value = 0;
    bool valid;
@@ -1391,7 +1386,7 @@ bool DwarfWalker::parseMember() {
    if (!findType(memberType, false)) return false;
    if (!memberType) return false;
 
-   if (!findName(curName())) return false;
+   curName() = std::move(die_name());
 
    long value;
    bool hasValue;
@@ -1447,7 +1442,7 @@ bool DwarfWalker::parseConstPackedVolatile() {
    boost::shared_ptr<Type> type = NULL;
    if (!findType(type, true)) return false;
 
-   if (!findName(curName())) return false;
+   curName() = std::move(die_name());
    if (!nameDefined()) {
        dwarf_printf("(0x%lx) parseConstPackedVolatile fixName\n", id());
        if (!fixName(curName(), type)) return false;
@@ -1467,11 +1462,7 @@ bool DwarfWalker::parseTypeReferences() {
        return false;
    }
 
-   if (!findName(curName()))
-   {
-       dwarf_printf("(0x%lx) name not found\n", id());
-       return false;
-   }
+   curName() = std::move(die_name());
 
    Dwarf_Die e = entry();
    boost::shared_ptr<Type> indirectType;
@@ -1576,22 +1567,21 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
     return true;
 }
 
-bool DwarfWalker::findDieName(Dwarf_Die die, std::string &name)
+std::string DwarfWalker::die_name(Dwarf_Die die)
 {
-    auto cname = dwarf_diename(&die);
-    if (cname == 0) {
-        name = std::string();
-        return true;
-    }
+    auto name = dwarf_diename(&die);
 
-    name = cname;
-    return true;
+    // You cannot construct a std::string from a null pointer
+    if (name) {
+        return name;
+    }
+    return {};
 }
 
-bool DwarfWalker::findName(std::string &name) {
-    if (!findDieName(specEntry(), name)) return false;
+std::string DwarfWalker::die_name() {
+    auto name = die_name(specEntry());
     dwarf_printf("(0x%lx) Found name %s.\n", id(), name.c_str());
-    return true;
+    return name;
 }
 
 
@@ -1617,7 +1607,8 @@ bool DwarfWalker::findFuncName() {
     dwarf_printf("(0x%lx) DW_AT_linkage_name name not found\n", id());
 
     setMangledName(false);
-    return findDieName(entry(), curName());
+    curName() = std::move(die_name(entry()));
+    return true;
 }
 
 std::vector<VariableLocation>& DwarfParseActions::getFramePtrRefForInit()
@@ -2265,10 +2256,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     } /* end if we found an upper bound or count. */
 
     /* Construct the range type. */
-    if (!findName(curName())) {
-        dwarf_printf("cannot find subrange name %s\n", curName().c_str());
-        return false;
-    }
+    curName() = std::move(die_name());
     if (!nameDefined()) {
         curName() = "{anonymousRange}";
     }
@@ -2403,8 +2391,8 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool /*is_info*/
                 if(!ret_p) return false;
 
                 /* Does it have a name? */
-                if (findDieName(boundEntry, boundString)
-                        && !boundString.empty())
+                boundString = std::move(die_name(boundEntry));
+                if (!boundString.empty())
                     return true;
 
                 /* Does it describe a nameless constant? */

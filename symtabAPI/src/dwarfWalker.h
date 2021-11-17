@@ -344,9 +344,9 @@ private:
             bool &hasLineNumber,
             std::string &filename);
 public:
-    static bool findDieName(Dwarf_Die die, std::string &);
+    static std::string die_name(Dwarf_Die die);
 private:
-    bool findName(std::string &);
+    std::string die_name();
     void removeFortranUnderscore(std::string &);
     bool findSize(unsigned &size);
     bool findVisibility(visibility_t &visibility);

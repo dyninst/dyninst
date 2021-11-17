@@ -2243,10 +2243,7 @@ bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &/*dies_seen*/)
         auto off_die = dwarf_dieoffset(&cu_die);
         //if (dies_seen.find(off_die) != dies_seen.end()) continue;
 
-        std::string modname;
-        if (!DwarfWalker::findDieName(cu_die, modname)) {
-            modname = associated_symtab->file(); // default module
-        }
+        std::string modname = DwarfWalker::die_name(cu_die);
 
         Offset actual_start, actual_end;
         convertDebugOffset(start, actual_start);
@@ -2301,10 +2298,8 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
     for (size_t i = 0; i < dies.size(); i++) {
         Dwarf_Die cu_die = dies[i];
 
-        std::string modname;
-        if (!DwarfWalker::findDieName(cu_die, modname)) {
-            modname = associated_symtab->file(); // default module
-        }
+        std::string modname = DwarfWalker::die_name(cu_die);
+
         if(modname=="<artificial>")
         {
             auto off_die = dwarf_dieoffset(&cu_die);
