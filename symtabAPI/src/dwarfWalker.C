@@ -1480,6 +1480,9 @@ bool DwarfWalker::parseTypeReferences() {
                  offset(), indirectType->getSize(), (void*)tc(), mod()->fullName().c_str());
          break;
       case DW_TAG_reference_type:
+    	 if(!nameDefined()){
+    		 curName() = "&";
+    	 }
          indirectType = tc()->addOrUpdateType(Type::make_shared<typeRef>(
                             type_id(), typePointedTo, curName()));
          dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p\n", id(),
