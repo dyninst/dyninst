@@ -638,11 +638,16 @@ class SYMTAB_EXPORT typeTypedef: public derivedType {
 };
 
 class SYMTAB_EXPORT typeRef : public derivedType {
+ private:
+	bool is_rvalue_{false};
  protected:
    void fixupUnknowns(Module *);
  public:
+   struct rvalue_t final{};
    typeRef();
    typeRef(typeId_t ID, boost::shared_ptr<Type> refType, std::string name);
+   typeRef(typeId_t ID, boost::shared_ptr<Type> refType, std::string name, rvalue_t) :
+	   typeRef(ID, refType, name) { is_rvalue_ = true; }
    typeRef(typeId_t i, Type* r, std::string n)
      : typeRef(i, r->reshare(), n) {}
    typeRef(boost::shared_ptr<Type> refType, std::string name);
@@ -655,6 +660,7 @@ class SYMTAB_EXPORT typeRef : public derivedType {
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
+   bool is_rvalue() const noexcept { return is_rvalue_; }
 };
 
 class SYMTAB_EXPORT typeSubrange : public rangedType {
