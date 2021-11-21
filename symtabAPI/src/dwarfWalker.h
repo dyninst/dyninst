@@ -18,6 +18,7 @@
 #include "Object.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/functional/hash.hpp>
+#include <boost/optional.hpp>
 #include <Collections.h>
 
 //Concurrent Hash Map
@@ -350,7 +351,7 @@ private:
     void removeFortranUnderscore(std::string &);
     bool findSize(unsigned &size);
     bool findVisibility(visibility_t &visibility);
-    bool findValue(long &value, bool &valid);
+    boost::optional<long> findConstValue();
     bool fixName(std::string &name, boost::shared_ptr<Type> type);
     bool fixBitFields(std::vector<VariableLocation> &locs, long &size);
 
