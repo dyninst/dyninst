@@ -1370,11 +1370,10 @@ bool DwarfWalker::parseEnumEntry() {
 
    std::string name = die_name();
 
-   long value = 0;
-   bool valid;
-   if (!findValue(value, valid)) return false;
+   auto value = findConstValue();
+   if(!value) { return false; }
 
-   curEnum()->asEnumType().addConstant(name, value);
+   curEnum()->asEnumType().addConstant(name, *value);
    return true;
 }
 
@@ -1388,10 +1387,7 @@ bool DwarfWalker::parseMember() {
 
    curName() = std::move(die_name());
 
-   long value;
-   bool hasValue;
-   if (!findValue(value, hasValue)) return false;
-   if (hasValue) {
+   if (findConstValue()) {
       if(!nameDefined()) return false;
       dwarf_printf("(0x%lx) member is a named constant, forwarding to parseConstant\n", id());
       return parseConstant();
@@ -1695,15 +1691,8 @@ bool DwarfWalker::isStaticStructMember(std::vector<VariableLocation> &locs, bool
 
    // if parsing a struct-member which is not a regular member (i.e. not with an offset)
    if (curEnclosure()->getDataClass() == dataStructure && locs.size() == 0) {
-	long value;
-	bool hasValue;
-	if (!findValue(value, hasValue)) return false;
-
-	// and, if it is not a constant, then it must be a static field member
-	if (!hasValue) {
-		isStatic = true;
-		return true;
-	}
+     // and it is not a constant, then it must be a static field member
+     isStatic = !findConstValue();
    }
 
    return true;
@@ -2133,24 +2122,29 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
     return true;
 }
 
-bool DwarfWalker::findValue(long &value, bool &valid) {
-    Dwarf_Attribute valueAttr;
-    Dwarf_Die e = entry();
-    auto status = dwarf_attr(&e, DW_AT_const_value, & valueAttr);
+boost::optional<long> DwarfWalker::findConstValue() {
+	dwarf_printf("(0x%lx) findConstValue entry\n", id());
 
-    if (status == 0) {
-        valid = false;
-        return true;
+    Dwarf_Attribute valueAttr{};
+    Dwarf_Die e = entry();
+
+    // This also applies to constexpr objects (i.e., DW_AT_const_expr)
+    if(!dwarf_attr(&e, DW_AT_const_value, & valueAttr)) {
+    	dwarf_printf("No const value found\n");
+    	return {};
     }
 
     Dwarf_Sword enumValue;
+    if(dwarf_formsdata(&valueAttr, &enumValue) != 0) {
+    	dwarf_printf("ERROR: dwarf_formsdata error for entry %p\n", static_cast<void*>(&e));
+    	return {};
+    }
 
-    DWARF_FAIL_RET(dwarf_formsdata(&valueAttr, &enumValue));
+    dwarf_printf("Found value '%ld'\n", static_cast<long>(enumValue));
 
-    value = enumValue;
-    valid = true;
+    dwarf_printf("(0x%lx) end findConstValue\n", id());
 
-    return true;
+    return enumValue;
 }
 
 bool DwarfWalker::fixBitFields(std::vector<VariableLocation> &locs,
