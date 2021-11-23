@@ -1,5 +1,20 @@
 # Change Log
 
+## [12.0.1](https://github.com/dyninst/dyninst/tree/v12.0.0) (2021-11-23)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v12.0.0...v12.0.1)
+
+**Build Changes**
+
+- Remove NVIDIA external line map configure check ([1162](https://github.com/dyninst/dyninst/issues/1162))
+- Increase minimum elfutils version to 0.186 ([1161](https://github.com/dyninst/dyninst/issues/1161))
+- Add conflict with CMake 3.19.0 ([1153](https://github.com/dyninst/dyninst/issues/1153))
+
+**Enhancements**
+
+- Refactor dwarfWalker::findConst ([1160](https://github.com/dyninst/dyninst/issues/1160))
+- Add readable name for Symtab::typeRef ([1157](https://github.com/dyninst/dyninst/issues/1157))
+- DwarfWalker: clean up interfaces for findDieName and findName ([1154](https://github.com/dyninst/dyninst/issues/1154))
+
 ## [12.0.0](https://github.com/dyninst/dyninst/tree/v12.0.0) (2021-11-11)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v11.0.1...v12.0.0)
 
