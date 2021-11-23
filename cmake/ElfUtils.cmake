@@ -37,8 +37,8 @@ if(NOT UNIX)
 endif()
 
 # Minimum acceptable version of elfutils
-# NB: We need >=0.178 because libdw isn't thread-safe before then
-set(_min_version 0.178)
+# NB: We need >=0.186 because of NVIDIA line map extensions
+set(_min_version 0.186)
 
 set(ElfUtils_MIN_VERSION ${_min_version}
     CACHE STRING "Minimum acceptable elfutils version")
