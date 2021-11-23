@@ -3789,9 +3789,6 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
             cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-// ENABLE_NVIDIA_EXT_LINE_MAP is defined if the Dyninst
-// user wants to have nvidia ex line map support
-#if defined (ENABLE_NVIDIA_EXT_LINE_MAP)
 
         // Only attempt to parse inlining context and inline function name
         // when there is a .debug_str section.
@@ -3800,8 +3797,6 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
             current_statement.funcname = dwarf_linefunctionname(dbg, line);
         }
 
-#endif // ENABLE_NVIDIA_EXT_LINE_MAP
-	
         if (!isZeroAddress && saved_statement.uninitialized()) {
             saved_statement = current_statement;
         } else if (!isZeroAddress) {

@@ -102,8 +102,6 @@ endif()
 
 dyninst_library(symtabAPI ${DEPS})
 
-target_compile_definitions(symtabAPI PRIVATE $<$<BOOL:${ENABLE_NVIDIA_EXT_LINE_MAP}>:ENABLE_NVIDIA_EXT_LINE_MAP>)
-
 if(TARGET ElfUtils)
   add_dependencies(symtabAPI ElfUtils)
 endif()
