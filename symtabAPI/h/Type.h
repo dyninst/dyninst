@@ -386,6 +386,7 @@ class SYMTAB_EXPORT typeEnum : public derivedType {
    typeEnum();
    typeEnum(typeId_t ID, std::string name = "");
    typeEnum(std::string name);
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID);
    static typeEnum *create(std::string &name, dyn_c_vector<std::pair<std::string, int> *>&elements,
    								Symtab *obj = NULL);
    static typeEnum *create(std::string &name, dyn_c_vector<std::string> &constNames, Symtab *obj);

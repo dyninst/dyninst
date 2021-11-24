@@ -1258,9 +1258,15 @@ bool DwarfWalker::parseSubrange() {
 bool DwarfWalker::parseEnum() {
    if(!tc()) return false;
    dwarf_printf("(0x%lx) parseEnum entry\n", id());
+
+   boost::shared_ptr<Type> underlying_type{};
+   if (!findType(underlying_type, false)) {
+       dwarf_printf("(0x%lx) type not found\n", id());
+       return false;
+   }
+
    curName() = std::move(die_name());
-   //setEnum(tc()->addOrUpdateType( Type::make_shared<typeEnum>( type_id(), "enum " + curName())));
-   setEnum(tc()->addOrUpdateType( Type::make_shared<typeEnum>( type_id(), curName())));
+   setEnum(tc()->addOrUpdateType(Type::make_shared<typeEnum>(underlying_type, curName(), type_id())));
    return true;
 }
 
