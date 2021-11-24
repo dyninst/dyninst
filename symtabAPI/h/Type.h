@@ -379,7 +379,7 @@ bool Type::isDerivedType() { return dynamic_cast<derivedType*>(this) != NULL; }
 
 // Derived classes from Type
 
-class SYMTAB_EXPORT typeEnum : public Type {
+class SYMTAB_EXPORT typeEnum : public derivedType {
  private:  
    dyn_c_vector<std::pair<std::string, int> > consts;
  public:

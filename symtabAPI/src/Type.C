@@ -297,16 +297,10 @@ bool Type::isCompatible(Type * /*oType*/)
  * ENUM
  */
 typeEnum::typeEnum(int ID, std::string name)
-    : Type(name, ID, dataEnum)
-{
-	size_ = sizeof(int);
-}
+    : derivedType(name, ID, sizeof(int), dataEnum){}
 
 typeEnum::typeEnum(std::string name)
-   : Type(name, ::getUniqueTypeId(), dataEnum)
-{
-   size_ = sizeof(int);
-}
+   : derivedType(name, ::getUniqueTypeId(), sizeof(int), dataEnum) {}
 
 typeEnum *typeEnum::create(std::string &name, dyn_c_vector< std::pair<std::string, int> *> &constants, Symtab *obj)
 {
