@@ -1694,7 +1694,6 @@ Type::Type() : ID_(0), name_(std::string("unnamedType")), size_(0),
 fieldListType::fieldListType() : derivedFieldList(NULL) {}
 rangedType::rangedType() : low_(0), hi_(0) {}
 derivedType::derivedType() : baseType_(NULL) {}
-typeEnum::typeEnum() {}
 typeFunction::typeFunction() : retType_(NULL) {}
 typeCommon::typeCommon() {}
 typeStruct::typeStruct() {}

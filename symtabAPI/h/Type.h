@@ -385,7 +385,7 @@ class SYMTAB_EXPORT typeEnum : public derivedType {
    bool is_scoped_{false}; // C++11 scoped enum (i.e., 'enum class')?
  public:
    struct scoped_t final {};
-   typeEnum();
+   typeEnum() = default;
    typeEnum(typeId_t ID, std::string name = "");
    typeEnum(std::string name);
    typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID);
