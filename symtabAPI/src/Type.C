@@ -306,6 +306,8 @@ typeEnum::typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, ty
 		derivedType(name, ID, underlying_type->getSize(), dataEnum) {
 	baseType_ = underlying_type;
 }
+typeEnum::typeEnum(boost::shared_ptr<Type> underlying_type, std::string name) :
+		typeEnum(underlying_type, std::move(name), ::getUniqueTypeId()) {}
 
 typeEnum *typeEnum::create(std::string &name, dyn_c_vector< std::pair<std::string, int> *> &constants, Symtab *obj)
 {

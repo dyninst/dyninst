@@ -388,6 +388,7 @@ class SYMTAB_EXPORT typeEnum : public derivedType {
    typeEnum() = default;
    typeEnum(typeId_t ID, std::string name = "");
    typeEnum(std::string name);
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name);
    typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID);
    typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID, scoped_t) :
 	   typeEnum(underlying_type, std::move(name), ID) { is_scoped_=true; }
