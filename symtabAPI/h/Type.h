@@ -396,7 +396,6 @@ class SYMTAB_EXPORT typeEnum : public derivedType {
    static typeEnum *create(std::string &name, dyn_c_vector<std::string> &constNames, Symtab *obj);
    bool addConstant(const std::string &fieldname,int value);
    dyn_c_vector<std::pair<std::string, int> > &getConstants();
-   bool setName(const char *name);
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
    bool is_scoped() const noexcept { return is_scoped_; }
