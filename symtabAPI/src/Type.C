@@ -309,31 +309,6 @@ typeEnum::typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, ty
 typeEnum::typeEnum(boost::shared_ptr<Type> underlying_type, std::string name) :
 		typeEnum(underlying_type, std::move(name), ::getUniqueTypeId()) {}
 
-typeEnum *typeEnum::create(std::string &name, dyn_c_vector< std::pair<std::string, int> *> &constants, Symtab *obj)
-{
-   typeEnum *typ = new typeEnum(name);
-   for(unsigned i=0; i<constants.size();i++)
-   	typ->addConstant(constants[i]->first, constants[i]->second);
-    
-    if(obj)
-       obj->addType(typ);
-    //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-    //Symtab::noObjTypes->push_back(typ); ??
-    return typ;	
-}
-
-typeEnum *typeEnum::create(std::string &name, dyn_c_vector<std::string> &constNames, Symtab *obj)
-{
-   typeEnum *typ = new typeEnum(name);
-   for(unsigned i=0; i<constNames.size();i++)
-   	typ->addConstant(constNames[i], i);
-    if(obj)
-       obj->addType(typ);
-    //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-    //Symtab::noObjTypes->push_back(typ); ??
-    return typ;	
-}	
-
 dyn_c_vector<std::pair<std::string, int> > &typeEnum::getConstants()
 {
    return consts;
