@@ -296,12 +296,6 @@ bool Type::isCompatible(Type * /*oType*/)
 /*
  * ENUM
  */
-typeEnum::typeEnum(int ID, std::string name)
-    : derivedType(name, ID, sizeof(int), dataEnum){}
-
-typeEnum::typeEnum(std::string name)
-   : derivedType(name, ::getUniqueTypeId(), sizeof(int), dataEnum) {}
-
 typeEnum::typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID) :
 		derivedType(name, ID, underlying_type->getSize(), dataEnum) {
 	baseType_ = underlying_type;
