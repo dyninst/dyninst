@@ -1266,8 +1266,19 @@ bool DwarfWalker::parseEnum() {
    }
 
    curName() = std::move(die_name());
-   setEnum(tc()->addOrUpdateType(Type::make_shared<typeEnum>(underlying_type, curName(), type_id())));
-   
+
+   // Handle C++ scoped enums (i.e., 'enum class')
+   auto type = [this, &underlying_type]() {
+	   Dwarf_Attribute valueAttr{};
+	   Dwarf_Die e = entry();
+	   if(dwarf_attr(&e, DW_AT_enum_class, & valueAttr)) {
+		   return Type::make_shared<typeEnum>(underlying_type, curName(), type_id(), typeEnum::scoped_t{});
+	   }
+	   return Type::make_shared<typeEnum>(underlying_type, curName(), type_id());
+   }();
+
+   setEnum(tc()->addOrUpdateType(type));
+
    dwarf_printf("(0x%lx) end parseEnum\n", id());
    return true;
 }
