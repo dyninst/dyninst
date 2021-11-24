@@ -1267,6 +1267,8 @@ bool DwarfWalker::parseEnum() {
 
    curName() = std::move(die_name());
    setEnum(tc()->addOrUpdateType(Type::make_shared<typeEnum>(underlying_type, curName(), type_id())));
+   
+   dwarf_printf("(0x%lx) end parseEnum\n", id());
    return true;
 }
 
@@ -1380,6 +1382,8 @@ bool DwarfWalker::parseEnumEntry() {
    if(!value) { return false; }
 
    curEnum()->asEnumType().addConstant(name, *value);
+
+   dwarf_printf("(0x%lx) end parseEnumEntry\n", id());
    return true;
 }
 
