@@ -1645,23 +1645,25 @@ std::string DwarfWalker::die_name() {
 
 
 bool DwarfWalker::findFuncName() {
-    dwarf_printf("(0x%lx) Checking for linkage name\n", id());
+    dwarf_printf("(0x%lx) Checking for function name\n", id());
     /* Prefer linkage names. */
 
     Dwarf_Attribute linkageNameAttr;
     Dwarf_Die e = entry();
 
     auto status = dwarf_attr_integrate(&e, DW_AT_linkage_name, &linkageNameAttr);
-    if ( status != 0 )  { // previously ==1
+    if (status != 0)  {
         const char *dwarfName = dwarf_formstring(&linkageNameAttr);
-        //DWARF_FAIL_RET(dwarfName);
-        if(dwarfName==NULL) return false;
+        if(!dwarfName) {
+        	dwarf_printf("(0x%lx) Found 'DW_AT_linkage_name', but formstring is empty\n", id());
+        	return false;
+        }
         curName() = dwarfName;
         setMangledName(true);
-        dwarf_printf("(0x%lx) Found DW_AT_linkage_name of %s, using\n", id(), curName().c_str());
+        dwarf_printf("(0x%lx) Found DW_AT_linkage_name of %s\n", id(), curName().c_str());
         return true;
     }
-    dwarf_printf("(0x%lx) DW_AT_linkage_name name not found\n", id());
+    dwarf_printf("(0x%lx) No function name found\n", id());
 
     setMangledName(false);
     curName() = std::move(die_name(entry()));
