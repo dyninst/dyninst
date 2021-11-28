@@ -285,6 +285,12 @@ BinaryEdit::~BinaryEdit()
     for(auto *rel : dependentRelocations) {
         delete rel;
     }
+
+    std::vector<codeRange*> x;
+    memoryTracker_.elements(x);
+    for(auto const *c : x) {
+    	delete c;
+    }
 }
 
 BinaryEdit *BinaryEdit::openFile(const std::string &file, 
