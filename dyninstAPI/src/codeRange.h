@@ -102,6 +102,8 @@ class codeRange : public patchTarget {
     void print_range(Address addr = 0);
 
     friend ostream &operator<<(ostream &s, const codeRange &c);
+
+    virtual ~codeRange() = default;
 };
 
 class codeRangeTree {
