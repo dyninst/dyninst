@@ -209,16 +209,10 @@ void BinaryEdit::inferiorFree(Address item)
 {
   inferiorFreeInternal(item);
 
-  codeRange *obj;
-  if(!memoryTracker_.find(item, obj))
-  {
-    // Warn the user?
-    return;
-  }
-  
-  
-  delete obj;
-  
+  codeRange *obj{};
+  if(memoryTracker_.find(item, obj)) delete obj;
+
+  // Remove it from the tree
   memoryTracker_.remove(item);
 }
 
