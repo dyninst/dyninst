@@ -36,12 +36,10 @@
 namespace Dyninst {
     namespace InstructionAPI {
 
-#if defined(__GNUC__)
 #define insn_printf(format, ...) \
         do{ \
             printf("[%s:%u]insn_debug " format, FILE__, __LINE__, ## __VA_ARGS__); \
         }while(0)
-#endif
 
         struct amdgpu_cdna2_insn_entry;
         struct amdgpu_mask_entry;
