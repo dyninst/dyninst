@@ -116,13 +116,13 @@ MachRegister MachRegister::getBaseRegister() const {
                 case amdgpu_cdna2::SGPR_VEC4:
                 case amdgpu_cdna2::SGPR_VEC8:
                 case amdgpu_cdna2::SGPR_VEC16:
-                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::sgpr0); 
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::s0); 
                 case amdgpu_cdna2::VGPR:
                 case amdgpu_cdna2::VGPR_VEC2:
                 case amdgpu_cdna2::VGPR_VEC4:
                 case amdgpu_cdna2::VGPR_VEC8:
                 case amdgpu_cdna2::VGPR_VEC16:
-                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::vgpr0); 
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::v0); 
                 case amdgpu_cdna2::HWR:
                     return MachRegister(reg);
 
@@ -220,7 +220,7 @@ std::string MachRegister::name() const {
             signed int category = reg & 0x00ff0000;
             signed int base_val = reg & 0x000000ff;
             switch(category){
-                case amdgpu_cdna2::SGPR_VEC2:
+                /*case amdgpu_cdna2::SGPR_VEC2:
                     base_val -=  (amdgpu_cdna2::sgpr_vec2_0&0xff);
                     ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
                     break;
@@ -251,7 +251,7 @@ std::string MachRegister::name() const {
                 case amdgpu_cdna2::VGPR_VEC16:
                     base_val -=  (amdgpu_cdna2::vgpr_vec16_0&0xff);
                     ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
-                    break;
+                    break;*/
                 default:
                     ret = iter->second;
                     break;
@@ -454,7 +454,6 @@ unsigned int MachRegister::size() const {
             break;
         }
         case Arch_amdgpu_rdna:
-        case Arch_amdgpu_cdna:
         case Arch_intelGen9:
         {
           assert(0);
@@ -507,9 +506,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
         case Arch_amdgpu_vega:
             return amdgpu_vega::pc;
         case Arch_amdgpu_cdna2:
-            return amdgpu_cdna2::pc;
+            return amdgpu_cdna2::pc_all;
         case Arch_amdgpu_rdna:
-        case Arch_amdgpu_cdna:
         case Arch_none:
             return InvalidReg;
     }

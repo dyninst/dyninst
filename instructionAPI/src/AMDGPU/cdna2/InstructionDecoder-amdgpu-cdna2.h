@@ -201,33 +201,14 @@ namespace Dyninst {
 
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
-
-            /*void finalizeVOP3_0_SDST_ENC_VOP3_1_Operands();
-
-            void finalizeENC_VOP3Operands();
-            void finalizeENC_MIMGOperands();
-            void finalizeENC_FLATOperands();
-            void finalizeENC_SMEMOperands();
-
-            void finalizeENC_SOPKOperands();
-            void finalizeENC_SOPPOperands();
-            void finalizeENC_SOP2Operands();
-            void finalizeENC_SOP1Operands();
-            void finalizeENC_SOPCOperands();
-
-            void finalizeENC_VOP1Operands();
-            void finalizeENC_VOP2Operands();
-            void finalizeENC_VOPCOperands();
-            void finalizeENC_VINTRPOperands();
-            void finalizeENC_DSOperands();
-            void finalizeENC_MTBUFOperands();
-            void finalizeENC_MUBUFOperands();
-            void finalizeENC_VOP3ABOperands();
-            void finalizeENC_VOP3POperands();*/
-
+            
             bool useImm;
-            unsigned int immLen;
-            unsigned int immLiteral;
+            uint32_t immLen;
+            uint32_t immLiteral;
+            uint32_t imm_at_32;
+            uint32_t imm_at_64;
+            uint32_t imm_at_96;
+
             bool setSCC;
 
 #define IS_LD_ST() (isLoad || isStore )
@@ -271,10 +252,7 @@ namespace Dyninst {
                 isCall =  true;
             }
 
-            inline unsigned int get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
-                assert(offset %4 ==0 );
-                return b.start[offset+3] << 24 | b.start[offset + 2] << 16 | b.start[offset +1 ] << 8 | b.start [offset];
-            }
+            inline unsigned int get32bit(InstructionDecoder::buffer &b,unsigned int offset );
 
             template<unsigned int start,unsigned int end, unsigned int candidate>
                 void setUseImm(InstructionDecoder::buffer & b, unsigned int offset){
@@ -321,7 +299,18 @@ namespace Dyninst {
             }buffer_resource_desc;
 
             void debug_instr();
+            
+            uint32_t decodeOPR_LITERAL();
+            Expression::Ptr decodeOPR_LABEL(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM4(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM8(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM16(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM32(uint64_t input);
+            Expression::Ptr decodeOPR_WAITCNT(uint64_t input);
+            using InstructionDecoderImpl::makeRegisterExpression;
+            Expression::Ptr makeRegisterExpression(MachRegister registerID);
             #include "amdgpu_cdna2_decoder_impl.h"    
+            #include "decodeOperands.h"    
         };
     }
 }

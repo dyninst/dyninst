@@ -104,6 +104,7 @@ namespace Dyninst
       friend class InstructionDecoder_amdgpu_vega;
       friend class InstructionDecoder_amdgpu_cdna;
       friend class InstructionDecoder_amdgpu_cdna2;
+      friend class Instruction; // to make use of the update size function
       
     public:
       INSTRUCTION_EXPORT Operation_impl(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
