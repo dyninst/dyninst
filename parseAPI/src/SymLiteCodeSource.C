@@ -148,7 +148,7 @@ bool
 SymReaderCodeRegion::isCode(const Address addr) const
 {
     if(!contains(addr)) return false;
-    return true;
+    return _region->perms & PF_X;
     
     /*
     // XXX this is the predicate from SymReader::isCode(a) +
@@ -163,7 +163,7 @@ bool
 SymReaderCodeRegion::isData(const Address addr) const
 {
     if(!contains(addr)) return false;
-    return true;
+    return !(_region->perms & PF_X);
     
 
     /*
@@ -172,6 +172,16 @@ SymReaderCodeRegion::isData(const Address addr) const
     return _region->isData() || 
            _region->type==SymSegment::RT_TEXTDATA;
     */
+}
+
+bool
+SymReaderCodeRegion::isReadOnly(const Address addr) const
+{
+    if (!contains(addr))  {
+        return false;
+    }
+
+    return !(_region->perms & PF_W);
 }
 
 Address
@@ -400,7 +410,7 @@ inline void
 SymReaderCodeSource::overlapping_warn(const char * file, unsigned line) const
 {
     if(regionsOverlap()) {
-        fprintf(stderr,"Invocation of routine at %s:%d is ambiguous for "
+        fprintf(stderr,"Invocation of routine at %s:%u is ambiguous for "
                        "binaries with overlapping code regions\n",
             file,line);
     }
@@ -480,6 +490,18 @@ SymReaderCodeSource::isData(const Address addr) const
     CodeRegion * cr = lookup_region(addr);
     if(cr)
         return cr->isData(addr);
+    else
+        return false;
+}
+
+bool
+SymReaderCodeSource::isReadOnly(const Address addr) const
+{
+    overlapping_warn(FILE__,__LINE__);
+
+    CodeRegion * cr = lookup_region(addr);
+    if(cr)
+        return cr->isReadOnly(addr);
     else
         return false;
 }
