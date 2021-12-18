@@ -326,6 +326,7 @@ public:
 private:
 
     bool parseCallsite();
+    bool parseVTables(Type *containing_function);    
     bool hasDeclaration(bool &decl);
     bool findTag();
     bool handleAbstractOrigin(bool &isAbstractOrigin);
@@ -367,6 +368,7 @@ private:
             bool &expr,
             Dwarf_Half &form);
     bool findString(Dwarf_Half attr, std::string &str);
+
 public:
     static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf *dbg);
     static bool findConstantWithForm(Dwarf_Attribute &attr, Dwarf_Half form,

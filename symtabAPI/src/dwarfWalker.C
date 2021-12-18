@@ -508,6 +508,53 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
     return true;
 }
 
+bool DwarfWalker::parseVTables(Type *containing_function)
+{
+   Dwarf_Die e = entry();
+   int has_vtable_offset = dwarf_hasattr_integrate(&e, DW_AT_vtable_elem_location);
+   if (!has_vtable_offset)
+      return true;
+
+   boost::shared_ptr<Type> enclosure = curEnclosure();
+   if (!enclosure) {
+      #warning TODO remove debug print
+      cerr << "Unexpected NULL enclosure\n";
+      return false;
+   }
+   typeStruct *containing_class = enclosure->getStructType();
+   if (!containing_class) {
+      #warning TODO remove debug print
+      cerr << "Unexpected type of enclosure, is named " << containing_class->getName() << "\n";
+      return false;
+   }
+
+   Dwarf_Attribute vtable_attr;
+   dwarf_attr(&e, DW_AT_vtable_elem_location, &vtable_attr);
+
+   Dwarf_Op *expr = NULL;
+   size_t exprlen;
+   int result = dwarf_getlocation(&vtable_attr, &expr, &exprlen);
+   if (result == -1) {
+#warning TODO Remove debug print
+      cerr << "Could not dwarf_getlocation\n";
+      return false;
+   }
+   Dyninst::VariableLocation val;
+   bool resultb = decodeDwarfExpression(expr, exprlen, NULL, val, symtab()->getArchitecture());
+   if (!resultb) {
+#warning TODO remove debug print
+      cerr << "Could not decode expression\n";
+      return false;
+   }
+   size_t offset = val.frameOffset;
+
+   containing_class->vtable_.resize(offset+1, NULL);
+   containing_class->vtable_[offset] = containing_function;
+#warning TODO remove debug print
+   cerr << "Added vtable function " << containing_function->getName() << " to class " << containing_class->getName() << " at vtable offset " << offset << "\n";
+   return true;   
+}
+
 bool DwarfWalker::parseCallsite()
 {
     int has_line = 0, has_file = 0;
@@ -690,7 +737,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    // Get the frame base if it exists
    if (!getFrameBase())
        return false;
-
+   
    // Parse parent nodes and their children but not their sibling
    bool hasAbstractOrigin = false;
    if (!handleAbstractOrigin(hasAbstractOrigin))
@@ -712,6 +759,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    }
 
    parsedFuncs.insert(func);
+
     if (func_type == InlinedFunc) {
         dwarf_printf("End parseSubprogram for inlined func at 0x%p\n", (void*)func->getOffset());
     }
@@ -1679,9 +1727,9 @@ bool DwarfWalker::addFuncToContainer(boost::shared_ptr<Type> returnType) {
    if (offset != demangledName.npos) {
       demangledName.erase(0, offset+1);
    }
-
-   curEnclosure()->asFieldListType().addField( demangledName, Type::make_shared<typeFunction>(
-      type_id(), returnType, demangledName));
+   boost::shared_ptr<typeFunction> func = Type::make_shared<typeFunction>(type_id(), returnType, demangledName);
+   curEnclosure()->asFieldListType().addField( demangledName, func);
+   parseVTables(func.get());
 
    return true;
 }
