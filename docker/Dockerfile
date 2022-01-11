@@ -20,6 +20,10 @@ ARG PERL_VERSION=5.32.1
 ARG CMAKE_VERSION=3.21.2
 ENV CMAKE_VERSION=${CMAKE_VERSION}
 
+# Set the branch name for spack to use
+ARG DYNINST_BRANCH=master
+ENV DYNINST_BRANCH=${DYNINST_BRANCH}
+
 # Note that perl 5.30.0 is provided by ubuntu
 
 # Args need to be passed into envars to be used in RUN

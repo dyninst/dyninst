@@ -43,20 +43,27 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
 
-      - name: Set Organization Name for Packages Registry
+      - name: Set Organization and Branch Name
         if: (github.event_name != 'schedule')
         env:
           org: ${{ github.event.repository.owner.login }}
-        run: echo "org=${org}" >> ${GITHUB_ENV}
+        run: |
+            branch=$(echo ${GITHUB_REF##*/})
+            echo "branch=${branch}" >> ${GITHUB_ENV}
+            echo "org=${org}" >> ${GITHUB_ENV}
 
-      - name: Set Organization Name for Packages Registry
+      - name: Set Organization and Branch Name
         if: (github.event_name == 'schedule')
-        run: echo "org=dyninst" >> ${GITHUB_ENV}
+        run: |
+            echo "org=dyninst" >> ${GITHUB_ENV}
+            echo "branch=master" >> ${GITHUB_ENV}
 
       - name: Pull Layers for "Cache"
         run: docker pull ghcr.io/${org}/dyninst-ubuntu-${{ matrix.ubuntu }}:latest || echo "No cache available"
 
       - name: Build Dyninst Base Container
+        env:
+          branch: ${{ env.branch }}
         run: |
            cd docker/
            docker build --build-arg ubuntu_version=${{ matrix.ubuntu }} \
@@ -64,6 +71,7 @@ jobs:
                         --build-arg ELFUTILS_VERSION=${{ matrix.elfutils }} \
                         --build-arg LIBIBERTY_VERSION=${{ matrix.libiberty }} \
                         --build-arg INTELTBB_VERSION=${{ matrix.inteltbb }} \
+                        --build-arg DYNINST_BRANCH=${branch} \
                         -f Dockerfile \
                         -t ghcr.io/${org}/dyninst-ubuntu-${{ matrix.ubuntu }}:latest ../
 
