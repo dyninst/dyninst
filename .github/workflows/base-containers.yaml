@@ -58,6 +58,7 @@ jobs:
 
       - name: Build Dyninst Base Container
         run: |
+           cd docker/
            docker build --build-arg ubuntu_version=${{ matrix.ubuntu }} \
                         --build-arg BOOST_VERSION=${{ matrix.boost }} \
                         --build-arg ELFUTILS_VERSION=${{ matrix.elfutils }} \
