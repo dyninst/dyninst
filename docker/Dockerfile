@@ -108,7 +108,7 @@ RUN . /opt/spack/share/spack/setup-env.sh && \
     spack env activate . && \
     
     # This adds metadata for dyninst to spack.yaml
-    spack develop --path /code dyninst@master && \
+    spack develop --path /code dyninst@${DYNINST_BRANCH} && \
 
     # ...but we need spack add to add to the install list!
     spack add dyninst@${DYNINST_BRANCH} && \
