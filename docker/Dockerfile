@@ -20,7 +20,7 @@ ARG PERL_VERSION=5.32.1
 ARG CMAKE_VERSION=3.21.2
 ENV CMAKE_VERSION=${CMAKE_VERSION}
 
-# Set the branch name for spack to use
+# Set the branch name for spack to use (should be master even for PR)
 ARG DYNINST_BRANCH=master
 ENV DYNINST_BRANCH=${DYNINST_BRANCH}
 
