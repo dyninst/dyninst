@@ -3388,12 +3388,9 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         return s_name;
     };
 
-    // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
-    // so we ensure that we're adding a block of unknown, 1...n to the string table
-    // and that offset + dwarf_line_srcfileno points to the correct string
     using namespace boost::filesystem;
     strings->emplace_back("<Unknown file>","");
-    for(size_t i = 1; i < filecount; i++)
+    for(size_t i = 0; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
         if(!filename) continue;
@@ -3676,12 +3673,9 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     boost::unique_lock<dyn_mutex> l(strings->lock);
     size_t offset = strings->size();
 
-    // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
-    // so we ensure that we're adding a block of unknown, 1...n to the string table
-    // and that offset + dwarf_line_srcfileno points to the correct string
     using namespace boost::filesystem;
     strings->emplace_back("<Unknown file>","");
-    for(size_t i = 1; i < fileCount; i++)
+    for(size_t i = 0; i < fileCount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
         if(!filename) continue;
