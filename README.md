@@ -15,6 +15,14 @@
 
 ## Build DyninstAPI and its subcomponents
 
+### Docker Containers
+
+Containers are provided that can be used for Dyninst development (e.g., make changes to Dyninst and quickly rebuild it)
+or for development of your own tools (e.g., have a container ready to go with Dyninst). Links will be added
+here when the containers are pushed to the Dyninst associated package registries. Instructions for usage
+and building locally are provided in the [docker](docker) directory.
+
+
 ### Install with Spack
 
 ```spack install dyninst```

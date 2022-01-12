@@ -14,6 +14,7 @@
 - Refactor dwarfWalker::findConst ([1160](https://github.com/dyninst/dyninst/issues/1160))
 - Add readable name for Symtab::typeRef ([1157](https://github.com/dyninst/dyninst/issues/1157))
 - DwarfWalker: clean up interfaces for findDieName and findName ([1154](https://github.com/dyninst/dyninst/issues/1154))
+- Added automated docker build for development and testing
 
 ## [12.0.0](https://github.com/dyninst/dyninst/tree/v12.0.0) (2021-11-11)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v11.0.1...v12.0.0)
