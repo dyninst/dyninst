@@ -5,7 +5,11 @@ on:
   # Always have a base image ready to go - this is a nightly build
   schedule:
     - cron: 0 3 * * *
- 
+
+  # Publish packages on release
+  release:
+    types: [published] 
+    
   # On push to main we build and deploy images
   push: 
     branches:
@@ -71,6 +75,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and Push Release Image
+        if: (github.event_name == 'release')
+        run: |
+            tag=${GITHUB_REF#refs/tags/}
+            echo "Tagging and releasing ghcr.io/${org}/dyninst-ubuntu-${{ matrix.ubuntu }}:${tag}"
+            docker tag ghcr.io/${org}/dyninst-ubuntu-${{ matrix.ubuntu }}:latest ghcr.io/${org}/dyninst-ubuntu-${{ matrix.ubuntu }}:${tag}
+            docker push ghcr.io/${org}/dyninst-ubuntu-${{ matrix.ubuntu }}:${tag}
 
       - name: Deploy
         if: (github.event_name != 'pull_request')
