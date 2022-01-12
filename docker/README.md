@@ -30,11 +30,11 @@ strategy so the transition is easier.
 
 ### Test Container
 
-This will be added via a second PR here! This second Dockerfile starts with a base container (ready to go with
-dependencies) and then adds Dyninst to it, updates with the changes, and then run tests. It should
-be fairly speedy given that the base containers are pre-built.
-
-**to be added**
+The [test-dyninst.yaml](../.github/workflows/test-dyninst.yaml) workflow
+has it's own Dockerfile, [Dockerfile.test](docker/Dockerfile.test) that starts with a base container (ready to go with
+dependencies, Dyninst compiler, and the testsuite compiler) and then adds Dyninst 
+and an updated testsuite to it, compiles changes, and then runs tests. Given that the base
+containers are pre-built, the entire workflow takes only a few minutes.
 
 ## Usage
 
@@ -166,10 +166,15 @@ libsymLite.so           libsymLite.so.11.0      libsymLite.so.11.0.1    libsymta
 
 ## Test
 
-**Note will be added in followup PR**
+To build the test container, you'll want to use [Dockerfile.test](docker/Dockerfile.test). If you want to use
+the base dyninst container from GitHub packages, leave out build args (it will default to this). 
 
-To build the test container, you'll want to use [Dockerfile.test](Dockerfile.test). If you want to use
-the base dyninst container from GitHub packages, leave out build args (it will default to this). Otherwise, if you want to use a container you just built, specify that as the build arg `dyninst_base`:
+```bash
+$ cd docker/
+$ docker build -f Dockerfile.test -t dyninst-test ../
+```
+
+Otherwise, if you want to use a container you just built, specify that as the build arg `dyninst_base`:
 
 ```bash
 $ docker build -f Dockerfile.test --build-arg dyninst_base=dyninst -t dyninst-test ../

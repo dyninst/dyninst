@@ -1,0 +1,39 @@
+name: Test Dyninst
+
+on:
+  pull_request: [] 
+  push: 
+    branches:
+      - master
+ 
+jobs:
+  build:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+
+        # Testing containers named by ubuntu version for now
+        ubuntu: ["20.04"]
+
+    runs-on: ubuntu-latest
+    name: Build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Make Space For Build
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+
+      - name: Set Organization Name for Packages Registry
+        env:
+          org: ${{ github.event.repository.owner.login }}
+        run: echo "org=${org}" >> $GITHUB_ENV
+
+      - name: Build Test Container
+        run: |
+          cd docker/
+          docker build -f Dockerfile.test --build-arg dyninst_base=ghcr.io/${org}/dyninst-ubuntu-${{ matrix.ubuntu }}:latest -t dyninst-test ../
