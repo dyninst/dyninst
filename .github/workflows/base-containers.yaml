@@ -5,14 +5,11 @@ on:
   # Always have a base image ready to go - this is a nightly build
   schedule:
     - cron: 0 3 * * *
-
-  # On pull request we test updates to images
-  pull_request: []
  
   # On push to main we build and deploy images
   push: 
     branches:
-      - main
+      - master
  
 jobs:
   build:
