@@ -404,7 +404,6 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 #if defined(cap_binary_rewriter)
 
 extern struct r_debug _r_debug;
-DLLEXPORT struct r_debug _r_debug __attribute__ ((weak));
 
 /* Verify that the r_debug variable is visible */
 void r_debugCheck() { assert(_r_debug.r_map); }
