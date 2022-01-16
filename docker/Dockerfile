@@ -70,18 +70,15 @@ RUN apt-get install -y software-properties-common && \
 
 # Install spack
 WORKDIR /opt
-RUN wget https://github.com/spack/spack/releases/download/v0.17.0/spack-0.17.0.tar.gz && \
-    tar -xzvf spack-0.17.0.tar.gz && \
-    mv spack-0.17.0 /opt/spack && \
-    rm spack-0.17.0.tar.gz
+RUN wget https://github.com/spack/spack/releases/download/v0.17.0/spack-0.17.1.tar.gz && \
+    tar -xzvf spack-0.17.1.tar.gz && \
+    mv spack-0.17.1 /opt/spack && \
+    rm spack-0.17.1.tar.gz
 ENV PATH=/opt/spack/bin:$PATH
 
 # Use the autamus build cache for faster install
 # Note that autamus currently uses 18.04
-RUN python3 -m pip install botocore boto3 && \
-    spack mirror add autamus s3://autamus-cache && \
-    curl http://s3.amazonaws.com/autamus-cache/build_cache/_pgp/FFEB24B0A9D81F6D5597F9900B59588C86C41BE7.pub > key.pub && \
-    spack gpg trust key.pub
+RUN python3 -m pip install botocore boto3
 
 # Find packages already installed on system, e.g. autoconf
 RUN spack external find && \
