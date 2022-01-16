@@ -70,10 +70,10 @@ RUN apt-get install -y software-properties-common && \
 
 # Install spack
 WORKDIR /opt
-RUN wget https://github.com/spack/spack/releases/download/v0.17.1/spack-0.17.1.tar.gz && \
-    tar -xzvf spack-0.17.1.tar.gz && \
-    mv spack-0.17.1 /opt/spack && \
-    rm spack-0.17.1.tar.gz
+RUN wget https://github.com/spack/spack/releases/download/v0.17.0/spack-0.17.0.tar.gz && \
+    tar -xzvf spack-0.17.0.tar.gz && \
+    mv spack-0.17.0 /opt/spack && \
+    rm spack-0.17.0.tar.gz
 ENV PATH=/opt/spack/bin:$PATH
 
 # Use the autamus build cache for faster install
