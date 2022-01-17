@@ -30,7 +30,7 @@ jobs:
         # 2. Generate matrix programatically and pipe in (recommended)
         # perl is 5.30.0 provided by 20.04 container base
         ubuntu: ["20.04"]
-        boost: ["1.73.0"]
+        boost: ["1.72.0"]
         elfutils: ["0.186"]
         libiberty: ["2.33.1"] 
         inteltbb: ["2020.2"]
