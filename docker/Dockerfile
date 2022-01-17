@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Los_Angeles
 
 # We can use build args to populate the specific versions of dependencies (with defaults here)
-ARG BOOST_VERSION=1.73.0
+ARG BOOST_VERSION=1.72.0
 ARG ELFUTILS_VERSION=0.186
 ARG LIBIBERTY_VERSION=2.33.1
 ARG INTELTBB_VERSION=2020.2
