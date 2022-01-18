@@ -307,6 +307,8 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_WAITCNT(uint64_t input);
             using InstructionDecoderImpl::makeRegisterExpression;
             Expression::Ptr makeRegisterExpression(MachRegister registerID);
+            Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
+            void specialHandle();
             #include "amdgpu_cdna2_decoder_impl.h"    
             #include "decodeOperands.h"    
         };

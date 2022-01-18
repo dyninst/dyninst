@@ -131,7 +131,6 @@ namespace Dyninst {
 
 		Expression::Ptr InstructionDecoder_amdgpu_cdna2::makePCExpr() {
 			MachRegister baseReg = amdgpu_cdna2::pc_all;
-
 			return makeRegisterExpression(baseReg);
 		}
 
@@ -213,6 +212,15 @@ namespace Dyninst {
             }
             return InstructionDecoderImpl::makeRegisterExpression(registerID);
         }
+        Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeRegisterExpression(MachRegister registerID, uint32_t low, uint32_t high ){
+            if(registerID == amdgpu_cdna2::src_literal){
+                return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
+            }
+            return InstructionDecoderImpl::makeRegisterExpression(registerID, low, high );
+        }
+
+
+
         void Dyninst::InstructionAPI::InstructionDecoder_amdgpu_cdna2::finalizeENC_VINTRPOperands(){
         
         }
@@ -226,7 +234,6 @@ namespace Dyninst {
 			assert(offset %4 ==0 );
             if(b.start + offset + 4 < b.end)
 			    return b.start[offset+3] << 24 | b.start[offset + 2] << 16 | b.start[offset +1 ] << 8 | b.start [offset];
-            printf("Warning ! not enuogh space \n");
             return 0;
 		}
 
@@ -275,7 +282,6 @@ namespace Dyninst {
 				<< "  length = " <<  insn_in_progress->size()<< endl << endl;
 
 		}
-
 
 		Instruction InstructionDecoder_amdgpu_cdna2::decode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
