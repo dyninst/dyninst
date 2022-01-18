@@ -90,6 +90,8 @@ namespace Dyninst
         explicit MachRegister(signed int r, std::string n);
 
         MachRegister getBaseRegister() const;
+
+        MachRegister getTypeBaseRegister() const;
         Architecture getArchitecture() const;
         bool isValid() const;
         MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const;
@@ -1715,42 +1717,42 @@ namespace Dyninst
 
         DEF_REGISTER(tid,                      Arch_amdgpu_cdna2| SYSREG  | BITS_32 | 0 , "amdgpu_cdna2");
 
-        DEF_REGISTER(invalid,                      Arch_amdgpu_cdna2| SYSREG  | BITS_32 | 1 , "amdgpu_cdna2");
+        DEF_REGISTER(invalid,                  Arch_amdgpu_cdna2| SYSREG  | BITS_32 | 1 , "amdgpu_cdna2");
         DEF_REGISTER(pc_all,                   Arch_amdgpu_cdna2| PC  | BITS_48 | 0 , "amdgpu_cdna2");
 
 
         DEF_REGISTER(src_scc,                  Arch_amdgpu_cdna2| HWR | BITS_32 | 0 , "amdgpu_cdna2");
 
 
-        DEF_REGISTER(src_vccz,                     Arch_amdgpu_cdna2| HWR | BITS_1  | 1 , "amdgpu_cdna2");
-        DEF_REGISTER(vcc_lo,                   Arch_amdgpu_cdna2| HWR | BITS_32 | 1 , "amdgpu_cdna2");
-        DEF_REGISTER(vcc_hi,                   Arch_amdgpu_cdna2| HWR | BITS_32 | 1 , "amdgpu_cdna2");
-        DEF_REGISTER(vcc,                      Arch_amdgpu_cdna2| HWR | BITS_32 | 1 , "amdgpu_cdna2");
+        DEF_REGISTER(src_vccz,                 Arch_amdgpu_cdna2| HWR | BITS_1  | 1 , "amdgpu_cdna2");
+        DEF_REGISTER(vcc_lo,                   Arch_amdgpu_cdna2| HWR | BITS_32 | 2 , "amdgpu_cdna2");
+        DEF_REGISTER(vcc_hi,                   Arch_amdgpu_cdna2| HWR | BITS_32 | 3 , "amdgpu_cdna2");
+        DEF_REGISTER(vcc,                      Arch_amdgpu_cdna2| HWR | BITS_64 | 2 , "amdgpu_cdna2");
 
 
 
-        DEF_REGISTER(src_execz,                Arch_amdgpu_cdna2| HWR | BITS_1  | 2 , "amdgpu_cdna2");
-        DEF_REGISTER(exec_lo,                  Arch_amdgpu_cdna2| HWR | BITS_32 | 2 , "amdgpu_cdna2");
-        DEF_REGISTER(exec_hi,                  Arch_amdgpu_cdna2| HWR | BITS_32 | 2 , "amdgpu_cdna2");
-        DEF_REGISTER(exec,                     Arch_amdgpu_cdna2| HWR | BITS_64 | 2 , "amdgpu_cdna2");
+        DEF_REGISTER(src_execz,                Arch_amdgpu_cdna2| HWR | BITS_1  | 4 , "amdgpu_cdna2");
+        DEF_REGISTER(exec_lo,                  Arch_amdgpu_cdna2| HWR | BITS_32 | 5 , "amdgpu_cdna2");
+        DEF_REGISTER(exec_hi,                  Arch_amdgpu_cdna2| HWR | BITS_32 | 6 , "amdgpu_cdna2");
+        DEF_REGISTER(exec,                     Arch_amdgpu_cdna2| HWR | BITS_64 | 5 , "amdgpu_cdna2");
 
 
-        DEF_REGISTER(flat_scratch_lo,          Arch_amdgpu_cdna2| HWR | BITS_64 | 3 , "amdgpu_cdna2");
-        DEF_REGISTER(flat_scratch_hi,          Arch_amdgpu_cdna2| HWR | BITS_32 | 3 , "amdgpu_cdna2");
-        DEF_REGISTER(flat_scratch_all,         Arch_amdgpu_cdna2| HWR | BITS_32 | 3 , "amdgpu_cdna2");
+        DEF_REGISTER(flat_scratch_lo,          Arch_amdgpu_cdna2| HWR | BITS_64 | 7 , "amdgpu_cdna2");
+        DEF_REGISTER(flat_scratch_hi,          Arch_amdgpu_cdna2| HWR | BITS_32 | 8 , "amdgpu_cdna2");
+        DEF_REGISTER(flat_scratch_all,         Arch_amdgpu_cdna2| HWR | BITS_32 | 7 , "amdgpu_cdna2");
 
-        DEF_REGISTER(m0,                       Arch_amdgpu_cdna2| HWR | BITS_32 | 4 , "amdgpu_cdna2");
+        DEF_REGISTER(m0,                       Arch_amdgpu_cdna2| HWR | BITS_32 | 10 , "amdgpu_cdna2");
 
-        DEF_REGISTER(src_literal,              Arch_amdgpu_cdna2| HWR | BITS_32 | 5 , "amdgpu_cdna2");// TODO
-        DEF_REGISTER(src_pops_exiting_wave_id, Arch_amdgpu_cdna2| HWR | BITS_32 | 6 , "amdgpu_cdna2");// TODO
+        DEF_REGISTER(src_literal,              Arch_amdgpu_cdna2| HWR | BITS_32 | 11 , "amdgpu_cdna2");// TODO
+        DEF_REGISTER(src_pops_exiting_wave_id, Arch_amdgpu_cdna2| HWR | BITS_32 | 12 , "amdgpu_cdna2");// TODO
 
-        DEF_REGISTER(src_private_base,         Arch_amdgpu_cdna2| HWR | BITS_32 | 7 , "amdgpu_cdna2");
-        DEF_REGISTER(src_private_limit,        Arch_amdgpu_cdna2| HWR | BITS_32 | 8 , "amdgpu_cdna2");
-        DEF_REGISTER(src_shared_base,          Arch_amdgpu_cdna2| HWR | BITS_32 | 9 , "amdgpu_cdna2");
-        DEF_REGISTER(src_shared_limit,         Arch_amdgpu_cdna2| HWR | BITS_32 | 10, "amdgpu_cdna2");
+        DEF_REGISTER(src_private_base,         Arch_amdgpu_cdna2| HWR | BITS_32 | 13 , "amdgpu_cdna2");
+        DEF_REGISTER(src_private_limit,        Arch_amdgpu_cdna2| HWR | BITS_32 | 14 , "amdgpu_cdna2");
+        DEF_REGISTER(src_shared_base,          Arch_amdgpu_cdna2| HWR | BITS_32 | 15 , "amdgpu_cdna2");
+        DEF_REGISTER(src_shared_limit,         Arch_amdgpu_cdna2| HWR | BITS_32 | 16, "amdgpu_cdna2");
 
-        DEF_REGISTER(xnack_mask_hi,            Arch_amdgpu_cdna2| HWR | BITS_32 | 11, "amdgpu_cdna2");
-        DEF_REGISTER(xnack_mask_lo,            Arch_amdgpu_cdna2| HWR | BITS_32 | 12, "amdgpu_cdna2");
+        DEF_REGISTER(xnack_mask_lo,            Arch_amdgpu_cdna2| HWR | BITS_32 | 17, "amdgpu_cdna2");
+        DEF_REGISTER(xnack_mask_hi,            Arch_amdgpu_cdna2| HWR | BITS_32 | 18, "amdgpu_cdna2");
 
 
         DEF_REGISTER(ttmp0,                    Arch_amdgpu_cdna2| TTMP_SGPR | BITS_32 | 0 , "amdgpu_cdna2");
