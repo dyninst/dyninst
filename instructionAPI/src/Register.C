@@ -107,34 +107,27 @@ namespace Dyninst
         }
         // Size of base register * 8 != m_High - mLow ( in bits) when we it is a register vector
         if ( m_High -m_Low > 32 && m_Reg.size()*8 != m_High - m_Low){
-            MachRegister baseReg = m_Reg.getTypeBaseRegister();
-            uint32_t id = m_Reg - baseReg ;
+            uint32_t id = m_Reg & 0xff ;
+            uint32_t regClass = m_Reg.regClass();
             uint32_t size = (m_High - m_Low ) / 32;
-            if(baseReg == amdgpu_cdna2::s0 || baseReg == amdgpu_vega::sgpr0){
+            if( regClass == amdgpu_cdna2::SGPR || regClass == amdgpu_vega::SGPR){
                 return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
-            if(baseReg == amdgpu_cdna2::v0 || baseReg == amdgpu_vega::vgpr0 ){
+
+            if(regClass == amdgpu_cdna2::VGPR || regClass == amdgpu_vega::VGPR){
                 return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
-            if(baseReg == amdgpu_cdna2::acc0){
+
+            if(regClass == amdgpu_cdna2::ACC_VGPR){
                 return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
-            if(baseReg == amdgpu_cdna2::vcc_lo || baseReg == amdgpu_vega::vcc_lo)
+            if(m_Reg == amdgpu_cdna2::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
                 return "VCC";
-            if(baseReg == amdgpu_cdna2::exec_lo || baseReg == amdgpu_vega::exec_lo)
+            if(m_Reg == amdgpu_cdna2::exec_lo || m_Reg == amdgpu_vega::exec_lo)
                 return "EXEC";
 
             name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";
-        }else{
-            
-            /*if(m_High -m_Low > 32){
-                if( m_Reg != amdgpu_cdna2::pc_all &&  m_Reg != amdgpu_vega::pc && m_Reg != amdgpu_cdna2::vcc ){ 
-                    std::cout << "something wrong with name ?? " <<  std::hex << m_Reg <<std::endl;    
-                    std::cout  << std::dec <<" mREG SIZE = " << m_Reg.size() << " high - low = " << m_High - m_Low << std::endl;
-                }
-            }*/
-        }
-
+        } 
         /* we have moved to AT&T syntax (lowercase registers) */
         for(char &c : name) c = std::toupper(c);
 
