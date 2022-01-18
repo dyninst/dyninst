@@ -100,10 +100,11 @@ namespace Dyninst
     std::string RegisterAST::format(formatStyle) const
     {
         std::string name = m_Reg.name();
-        std::string::size_type substr = name.rfind(':');
-        if(substr != std::string::npos)
+        std::string::size_type substr = name.rfind("::");
+        Architecture arch = m_Reg.getArchitecture();
+        if(/*arch != Arch_amdgpu_vega && arch != Arch_amdgpu_cdna2 && */substr != std::string::npos)
         {
-            name = name.substr(substr + 1, name.length());
+            name = name.substr(substr + 2, name.length());
         }
         // Size of base register * 8 != m_High - mLow ( in bits) when we it is a register vector
         if ( m_High -m_Low > 32 && m_Reg.size()*8 != m_High - m_Low){
