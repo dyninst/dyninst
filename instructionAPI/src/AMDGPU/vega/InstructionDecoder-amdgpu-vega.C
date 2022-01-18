@@ -576,7 +576,7 @@ namespace Dyninst {
 
 
 		Expression::Ptr InstructionDecoder_amdgpu_vega::decodeVDST(unsigned int index){
-			index += 255;
+			index += 256;
             return decodeSSRC(index);
 		} 
 
@@ -672,7 +672,7 @@ namespace Dyninst {
 				//std::cerr << "\nusing imm " << imm << std::endl;
 				return Immediate::makeImmediate(Result(u32, unsign_extend32(32,immLiteral )));
 			}else if( 256 <= index  && index <= 511){
-				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::vgpr0,index >>8);
+				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::vgpr0,index &0xff);
 				return makeRegisterExpression(mr);
 			} 
 
