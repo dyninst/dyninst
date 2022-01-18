@@ -181,14 +181,14 @@ typedef struct layout_ENC_DS{
 typedef struct layout_ENC_MUBUF{
 	uint8_t  ACC : 1 ;
 	uint8_t  ENCODING : 6 ;
+	uint8_t  GLC : 1 ;
 	uint8_t  IDXEN : 1 ;
 	uint8_t  LDS : 1 ;
-	uint8_t  NT : 1 ;
 	uint8_t  OFFEN : 1 ;
 	uint16_t  OFFSET : 12 ;
 	uint8_t  OP : 7 ;
-	uint8_t  SC0 : 1 ;
-	uint8_t  SC1 : 1 ;
+	uint8_t  SCC : 1 ;
+	uint8_t  SLC : 1 ;
 	uint8_t  SOFFSET : 8 ;
 	uint8_t  SRSRC : 5 ;
 	uint8_t  VADDR : 8 ;
@@ -198,14 +198,14 @@ typedef struct layout_ENC_MTBUF{
 	uint8_t  ACC : 1 ;
 	uint8_t  DFMT : 4 ;
 	uint8_t  ENCODING : 6 ;
+	uint8_t  GLC : 1 ;
 	uint8_t  IDXEN : 1 ;
 	uint8_t  NFMT : 3 ;
-	uint8_t  NT : 1 ;
 	uint8_t  OFFEN : 1 ;
 	uint16_t  OFFSET : 12 ;
 	uint8_t  OP : 4 ;
-	uint8_t  SC0 : 1 ;
-	uint8_t  SC1 : 1 ;
+	uint8_t  SCC : 1 ;
+	uint8_t  SLC : 1 ;
 	uint8_t  SOFFSET : 8 ;
 	uint8_t  SRSRC : 5 ;
 	uint8_t  VADDR : 8 ;
@@ -218,12 +218,12 @@ typedef struct layout_ENC_MIMG{
 	uint8_t  DA : 1 ;
 	uint8_t  DMASK : 4 ;
 	uint8_t  ENCODING : 6 ;
+	uint8_t  GLC : 1 ;
 	uint8_t  LWE : 1 ;
-	uint8_t  NT : 1 ;
 	uint8_t  OP : 7 ;
 	uint8_t  OPM : 1 ;
-	uint8_t  SC0 : 1 ;
-	uint8_t  SC1 : 1 ;
+	uint8_t  SCC : 1 ;
+	uint8_t  SLC : 1 ;
 	uint8_t  SRSRC : 5 ;
 	uint8_t  SSAMP : 5 ;
 	uint8_t  UNORM : 1 ;
@@ -235,14 +235,14 @@ typedef struct layout_ENC_FLAT{
 	uint8_t  ADDR : 8 ;
 	uint8_t  DATA : 8 ;
 	uint8_t  ENCODING : 6 ;
-	uint8_t  NT : 1 ;
+	uint8_t  GLC : 1 ;
+	uint8_t  LDS : 1 ;
 	uint16_t  OFFSET : 12 ;
 	uint8_t  OP : 7 ;
 	uint8_t  SADDR : 7 ;
-	uint8_t  SC0 : 1 ;
-	uint8_t  SC1 : 1 ;
+	uint8_t  SCC : 1 ;
 	uint8_t  SEG : 2 ;
-	uint8_t  SVE : 1 ;
+	uint8_t  SLC : 1 ;
 	uint8_t  VDST : 8 ;
 }layout_ENC_FLAT;
 typedef struct layout_ENC_FLAT_GLBL{
@@ -250,14 +250,14 @@ typedef struct layout_ENC_FLAT_GLBL{
 	uint8_t  ADDR : 8 ;
 	uint8_t  DATA : 8 ;
 	uint8_t  ENCODING : 6 ;
-	uint8_t  NT : 1 ;
+	uint8_t  GLC : 1 ;
+	uint8_t  LDS : 1 ;
 	uint16_t  OFFSET : 13 ;
 	uint8_t  OP : 7 ;
 	uint8_t  SADDR : 7 ;
-	uint8_t  SC0 : 1 ;
-	uint8_t  SC1 : 1 ;
+	uint8_t  SCC : 1 ;
 	uint8_t  SEG : 2 ;
-	uint8_t  SVE : 1 ;
+	uint8_t  SLC : 1 ;
 	uint8_t  VDST : 8 ;
 }layout_ENC_FLAT_GLBL;
 typedef struct layout_ENC_FLAT_SCRATCH{
@@ -265,14 +265,14 @@ typedef struct layout_ENC_FLAT_SCRATCH{
 	uint8_t  ADDR : 8 ;
 	uint8_t  DATA : 8 ;
 	uint8_t  ENCODING : 6 ;
-	uint8_t  NT : 1 ;
+	uint8_t  GLC : 1 ;
+	uint8_t  LDS : 1 ;
 	uint16_t  OFFSET : 13 ;
 	uint8_t  OP : 7 ;
 	uint8_t  SADDR : 7 ;
-	uint8_t  SC0 : 1 ;
-	uint8_t  SC1 : 1 ;
+	uint8_t  SCC : 1 ;
 	uint8_t  SEG : 2 ;
-	uint8_t  SVE : 1 ;
+	uint8_t  SLC : 1 ;
 	uint8_t  VDST : 8 ;
 }layout_ENC_FLAT_SCRATCH;
 typedef struct layout_ENC_VOP2_LITERAL{

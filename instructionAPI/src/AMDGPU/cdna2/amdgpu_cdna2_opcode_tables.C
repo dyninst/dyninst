@@ -26,8 +26,8 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_DS_insn_table = {
 {amdgpu_cdna2_op_DS_NOP,"DS_NOP",0,&operandTable[0]} ,//20
 {amdgpu_cdna2_op_DS_ADD_F32,"DS_ADD_F32",0,&operandTable[0]} ,//21
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//22
-{amdgpu_cdna2_op_DS_PK_ADD_F16,"DS_PK_ADD_F16",0,&operandTable[0]} ,//23
-{amdgpu_cdna2_op_DS_PK_ADD_BF16,"DS_PK_ADD_BF16",0,&operandTable[0]} ,//24
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//23
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//24
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//25
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//26
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//27
@@ -186,8 +186,8 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_DS_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//180
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//181
 {amdgpu_cdna2_op_DS_READ_ADDTID_B32,"DS_READ_ADDTID_B32",0,&operandTable[0]} ,//182
-{amdgpu_cdna2_op_DS_PK_ADD_RTN_F16,"DS_PK_ADD_RTN_F16",0,&operandTable[0]} ,//183
-{amdgpu_cdna2_op_DS_PK_ADD_RTN_BF16,"DS_PK_ADD_RTN_BF16",0,&operandTable[0]} ,//184
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//183
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//184
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//185
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//186
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//187
@@ -338,12 +338,12 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table = {
 {amdgpu_cdna2_op_FLAT_ATOMIC_XOR,"FLAT_ATOMIC_XOR",0,&operandTable[0]} ,//74
 {amdgpu_cdna2_op_FLAT_ATOMIC_INC,"FLAT_ATOMIC_INC",0,&operandTable[0]} ,//75
 {amdgpu_cdna2_op_FLAT_ATOMIC_DEC,"FLAT_ATOMIC_DEC",0,&operandTable[0]} ,//76
-{amdgpu_cdna2_op_FLAT_ATOMIC_ADD_F32,"FLAT_ATOMIC_ADD_F32",0,&operandTable[0]} ,//77
-{amdgpu_cdna2_op_FLAT_ATOMIC_PK_ADD_F16,"FLAT_ATOMIC_PK_ADD_F16",0,&operandTable[0]} ,//78
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//77
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//78
 {amdgpu_cdna2_op_FLAT_ATOMIC_ADD_F64,"FLAT_ATOMIC_ADD_F64",0,&operandTable[0]} ,//79
 {amdgpu_cdna2_op_FLAT_ATOMIC_MIN_F64,"FLAT_ATOMIC_MIN_F64",0,&operandTable[0]} ,//80
 {amdgpu_cdna2_op_FLAT_ATOMIC_MAX_F64,"FLAT_ATOMIC_MAX_F64",0,&operandTable[0]} ,//81
-{amdgpu_cdna2_op_FLAT_ATOMIC_PK_ADD_BF16,"FLAT_ATOMIC_PK_ADD_BF16",0,&operandTable[0]} ,//82
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//82
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//83
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//84
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//85
@@ -410,11 +410,11 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table 
 {amdgpu_cdna2_op_GLOBAL_LOAD_SBYTE_D16_HI,"GLOBAL_LOAD_SBYTE_D16_HI",0,&operandTable[0]} ,//35
 {amdgpu_cdna2_op_GLOBAL_LOAD_SHORT_D16,"GLOBAL_LOAD_SHORT_D16",0,&operandTable[0]} ,//36
 {amdgpu_cdna2_op_GLOBAL_LOAD_SHORT_D16_HI,"GLOBAL_LOAD_SHORT_D16_HI",0,&operandTable[0]} ,//37
-{amdgpu_cdna2_op_GLOBAL_LOAD_LDS_UBYTE,"GLOBAL_LOAD_LDS_UBYTE",0,&operandTable[0]} ,//38
-{amdgpu_cdna2_op_GLOBAL_LOAD_LDS_SBYTE,"GLOBAL_LOAD_LDS_SBYTE",0,&operandTable[0]} ,//39
-{amdgpu_cdna2_op_GLOBAL_LOAD_LDS_USHORT,"GLOBAL_LOAD_LDS_USHORT",0,&operandTable[0]} ,//40
-{amdgpu_cdna2_op_GLOBAL_LOAD_LDS_SSHORT,"GLOBAL_LOAD_LDS_SSHORT",0,&operandTable[0]} ,//41
-{amdgpu_cdna2_op_GLOBAL_LOAD_LDS_DWORD,"GLOBAL_LOAD_LDS_DWORD",0,&operandTable[0]} ,//42
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//38
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//39
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//40
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//41
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//42
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//43
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//44
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//45
@@ -454,7 +454,7 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table 
 {amdgpu_cdna2_op_GLOBAL_ATOMIC_ADD_F64,"GLOBAL_ATOMIC_ADD_F64",0,&operandTable[0]} ,//79
 {amdgpu_cdna2_op_GLOBAL_ATOMIC_MIN_F64,"GLOBAL_ATOMIC_MIN_F64",0,&operandTable[0]} ,//80
 {amdgpu_cdna2_op_GLOBAL_ATOMIC_MAX_F64,"GLOBAL_ATOMIC_MAX_F64",0,&operandTable[0]} ,//81
-{amdgpu_cdna2_op_GLOBAL_ATOMIC_PK_ADD_BF16,"GLOBAL_ATOMIC_PK_ADD_BF16",0,&operandTable[0]} ,//82
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//82
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//83
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//84
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//85
@@ -521,12 +521,42 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_tab
 {amdgpu_cdna2_op_SCRATCH_LOAD_SBYTE_D16_HI,"SCRATCH_LOAD_SBYTE_D16_HI",0,&operandTable[0]} ,//35
 {amdgpu_cdna2_op_SCRATCH_LOAD_SHORT_D16,"SCRATCH_LOAD_SHORT_D16",0,&operandTable[0]} ,//36
 {amdgpu_cdna2_op_SCRATCH_LOAD_SHORT_D16_HI,"SCRATCH_LOAD_SHORT_D16_HI",0,&operandTable[0]} ,//37
-{amdgpu_cdna2_op_SCRATCH_LOAD_LDS_UBYTE,"SCRATCH_LOAD_LDS_UBYTE",0,&operandTable[0]} ,//38
-{amdgpu_cdna2_op_SCRATCH_LOAD_LDS_SBYTE,"SCRATCH_LOAD_LDS_SBYTE",0,&operandTable[0]} ,//39
-{amdgpu_cdna2_op_SCRATCH_LOAD_LDS_USHORT,"SCRATCH_LOAD_LDS_USHORT",0,&operandTable[0]} ,//40
-{amdgpu_cdna2_op_SCRATCH_LOAD_LDS_SSHORT,"SCRATCH_LOAD_LDS_SSHORT",0,&operandTable[0]} ,//41
-{amdgpu_cdna2_op_SCRATCH_LOAD_LDS_DWORD,"SCRATCH_LOAD_LDS_DWORD",0,&operandTable[0]} ,//42
 }; // end ENC_FLAT_SCRATCH_insn_table
+const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table = {
+{amdgpu_cdna2_op_IMAGE_LOAD,"IMAGE_LOAD",0,&operandTable[0]} ,//0
+{amdgpu_cdna2_op_IMAGE_LOAD_MIP,"IMAGE_LOAD_MIP",0,&operandTable[0]} ,//1
+{amdgpu_cdna2_op_IMAGE_LOAD_PCK,"IMAGE_LOAD_PCK",0,&operandTable[0]} ,//2
+{amdgpu_cdna2_op_IMAGE_LOAD_PCK_SGN,"IMAGE_LOAD_PCK_SGN",0,&operandTable[0]} ,//3
+{amdgpu_cdna2_op_IMAGE_LOAD_MIP_PCK,"IMAGE_LOAD_MIP_PCK",0,&operandTable[0]} ,//4
+{amdgpu_cdna2_op_IMAGE_LOAD_MIP_PCK_SGN,"IMAGE_LOAD_MIP_PCK_SGN",0,&operandTable[0]} ,//5
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//6
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//7
+{amdgpu_cdna2_op_IMAGE_STORE,"IMAGE_STORE",0,&operandTable[0]} ,//8
+{amdgpu_cdna2_op_IMAGE_STORE_MIP,"IMAGE_STORE_MIP",0,&operandTable[0]} ,//9
+{amdgpu_cdna2_op_IMAGE_STORE_PCK,"IMAGE_STORE_PCK",0,&operandTable[0]} ,//10
+{amdgpu_cdna2_op_IMAGE_STORE_MIP_PCK,"IMAGE_STORE_MIP_PCK",0,&operandTable[0]} ,//11
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//12
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//13
+{amdgpu_cdna2_op_IMAGE_GET_RESINFO,"IMAGE_GET_RESINFO",0,&operandTable[0]} ,//14
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//15
+{amdgpu_cdna2_op_IMAGE_ATOMIC_SWAP,"IMAGE_ATOMIC_SWAP",0,&operandTable[0]} ,//16
+{amdgpu_cdna2_op_IMAGE_ATOMIC_CMPSWAP,"IMAGE_ATOMIC_CMPSWAP",0,&operandTable[0]} ,//17
+{amdgpu_cdna2_op_IMAGE_ATOMIC_ADD,"IMAGE_ATOMIC_ADD",0,&operandTable[0]} ,//18
+{amdgpu_cdna2_op_IMAGE_ATOMIC_SUB,"IMAGE_ATOMIC_SUB",0,&operandTable[0]} ,//19
+{amdgpu_cdna2_op_IMAGE_ATOMIC_SMIN,"IMAGE_ATOMIC_SMIN",0,&operandTable[0]} ,//20
+{amdgpu_cdna2_op_IMAGE_ATOMIC_UMIN,"IMAGE_ATOMIC_UMIN",0,&operandTable[0]} ,//21
+{amdgpu_cdna2_op_IMAGE_ATOMIC_SMAX,"IMAGE_ATOMIC_SMAX",0,&operandTable[0]} ,//22
+{amdgpu_cdna2_op_IMAGE_ATOMIC_UMAX,"IMAGE_ATOMIC_UMAX",0,&operandTable[0]} ,//23
+{amdgpu_cdna2_op_IMAGE_ATOMIC_AND,"IMAGE_ATOMIC_AND",0,&operandTable[0]} ,//24
+{amdgpu_cdna2_op_IMAGE_ATOMIC_OR,"IMAGE_ATOMIC_OR",0,&operandTable[0]} ,//25
+{amdgpu_cdna2_op_IMAGE_ATOMIC_XOR,"IMAGE_ATOMIC_XOR",0,&operandTable[0]} ,//26
+{amdgpu_cdna2_op_IMAGE_ATOMIC_INC,"IMAGE_ATOMIC_INC",0,&operandTable[0]} ,//27
+{amdgpu_cdna2_op_IMAGE_ATOMIC_DEC,"IMAGE_ATOMIC_DEC",0,&operandTable[0]} ,//28
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//29
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//30
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//31
+{amdgpu_cdna2_op_IMAGE_SAMPLE,"IMAGE_SAMPLE",0,&operandTable[0]} ,//32
+}; // end ENC_MIMG_insn_table
 const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table = {
 {amdgpu_cdna2_op_TBUFFER_LOAD_FORMAT_X,"TBUFFER_LOAD_FORMAT_X",0,&operandTable[0]} ,//0
 {amdgpu_cdna2_op_TBUFFER_LOAD_FORMAT_XY,"TBUFFER_LOAD_FORMAT_XY",0,&operandTable[0]} ,//1
@@ -587,7 +617,7 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table = {
 {amdgpu_cdna2_op_BUFFER_LOAD_FORMAT_D16_HI_X,"BUFFER_LOAD_FORMAT_D16_HI_X",0,&operandTable[0]} ,//38
 {amdgpu_cdna2_op_BUFFER_STORE_FORMAT_D16_HI_X,"BUFFER_STORE_FORMAT_D16_HI_X",0,&operandTable[0]} ,//39
 {amdgpu_cdna2_op_BUFFER_WBL2,"BUFFER_WBL2",0,&operandTable[0]} ,//40
-{amdgpu_cdna2_op_BUFFER_INV,"BUFFER_INV",0,&operandTable[0]} ,//41
+{amdgpu_cdna2_op_BUFFER_INVL2,"BUFFER_INVL2",0,&operandTable[0]} ,//41
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//42
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//43
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//44
@@ -607,9 +637,9 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//58
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//59
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//60
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//61
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//62
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//63
+{amdgpu_cdna2_op_BUFFER_STORE_LDS_DWORD,"BUFFER_STORE_LDS_DWORD",0,&operandTable[0]} ,//61
+{amdgpu_cdna2_op_BUFFER_WBINVL1,"BUFFER_WBINVL1",0,&operandTable[0]} ,//62
+{amdgpu_cdna2_op_BUFFER_WBINVL1_VOL,"BUFFER_WBINVL1_VOL",0,&operandTable[0]} ,//63
 {amdgpu_cdna2_op_BUFFER_ATOMIC_SWAP,"BUFFER_ATOMIC_SWAP",0,&operandTable[0]} ,//64
 {amdgpu_cdna2_op_BUFFER_ATOMIC_CMPSWAP,"BUFFER_ATOMIC_CMPSWAP",0,&operandTable[0]} ,//65
 {amdgpu_cdna2_op_BUFFER_ATOMIC_ADD,"BUFFER_ATOMIC_ADD",0,&operandTable[0]} ,//66
@@ -1022,7 +1052,6 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table = {
 {amdgpu_cdna2_op_S_SET_GPR_IDX_OFF,"S_SET_GPR_IDX_OFF",0,&operandTable[0]} ,//28
 {amdgpu_cdna2_op_S_SET_GPR_IDX_MODE,"S_SET_GPR_IDX_MODE",0,&operandTable[0]} ,//29
 {amdgpu_cdna2_op_S_ENDPGM_ORDERED_PS_DONE,"S_ENDPGM_ORDERED_PS_DONE",0,&operandTable[0]} ,//30
-{amdgpu_cdna2_op_S_SET_VALU_COEXEC_MODE,"S_SET_VALU_COEXEC_MODE",0,&operandTable[0]} ,//31
 }; // end ENC_SOPP_insn_table
 const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table = {
 {amdgpu_cdna2_op_V_NOP,"V_NOP",0,&operandTable[0]} ,//0
@@ -1081,7 +1110,7 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table = {
 {amdgpu_cdna2_op_V_CLREXCP,"V_CLREXCP",0,&operandTable[0]} ,//53
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//54
 {amdgpu_cdna2_op_V_SCREEN_PARTITION_4SE_B32,"V_SCREEN_PARTITION_4SE_B32",0,&operandTable[0]} ,//55
-{amdgpu_cdna2_op_V_MOV_B64,"V_MOV_B64",0,&operandTable[0]} ,//56
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//56
 {amdgpu_cdna2_op_V_CVT_F16_U16,"V_CVT_F16_U16",0,&operandTable[0]} ,//57
 {amdgpu_cdna2_op_V_CVT_F16_I16,"V_CVT_F16_I16",0,&operandTable[0]} ,//58
 {amdgpu_cdna2_op_V_CVT_U16_F16,"V_CVT_U16_F16",0,&operandTable[0]} ,//59
@@ -1108,11 +1137,6 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//80
 {amdgpu_cdna2_op_V_SWAP_B32,"V_SWAP_B32",0,&operandTable[0]} ,//81
 {amdgpu_cdna2_op_V_ACCVGPR_MOV_B32,"V_ACCVGPR_MOV_B32",0,&operandTable[0]} ,//82
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//83
-{amdgpu_cdna2_op_V_CVT_F32_FP8,"V_CVT_F32_FP8",0,&operandTable[0]} ,//84
-{amdgpu_cdna2_op_V_CVT_F32_BF8,"V_CVT_F32_BF8",0,&operandTable[0]} ,//85
-{amdgpu_cdna2_op_V_CVT_PK_F32_FP8,"V_CVT_PK_F32_FP8",0,&operandTable[0]} ,//86
-{amdgpu_cdna2_op_V_CVT_PK_F32_BF8,"V_CVT_PK_F32_BF8",0,&operandTable[0]} ,//87
 }; // end ENC_VOP1_insn_table
 const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//0
@@ -1393,7 +1417,7 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table = {
 {amdgpu_cdna2_op_V_AND_B32,"V_AND_B32",0,&operandTable[0]} ,//275
 {amdgpu_cdna2_op_V_OR_B32,"V_OR_B32",0,&operandTable[0]} ,//276
 {amdgpu_cdna2_op_V_XOR_B32,"V_XOR_B32",0,&operandTable[0]} ,//277
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//278
+{amdgpu_cdna2_op_V_MAC_F32,"V_MAC_F32",0,&operandTable[0]} ,//278
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//279
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//280
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//281
@@ -1491,7 +1515,7 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table = {
 {amdgpu_cdna2_op_V_CLREXCP,"V_CLREXCP",0,&operandTable[0]} ,//373
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//374
 {amdgpu_cdna2_op_V_SCREEN_PARTITION_4SE_B32,"V_SCREEN_PARTITION_4SE_B32",0,&operandTable[0]} ,//375
-{amdgpu_cdna2_op_V_MOV_B64,"V_MOV_B64",0,&operandTable[0]} ,//376
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//376
 {amdgpu_cdna2_op_V_CVT_F16_U16,"V_CVT_F16_U16",0,&operandTable[0]} ,//377
 {amdgpu_cdna2_op_V_CVT_F16_I16,"V_CVT_F16_I16",0,&operandTable[0]} ,//378
 {amdgpu_cdna2_op_V_CVT_U16_F16,"V_CVT_U16_F16",0,&operandTable[0]} ,//379
@@ -1519,10 +1543,10 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table = {
 {amdgpu_cdna2_op_V_SWAP_B32,"V_SWAP_B32",0,&operandTable[0]} ,//401
 {amdgpu_cdna2_op_V_ACCVGPR_MOV_B32,"V_ACCVGPR_MOV_B32",0,&operandTable[0]} ,//402
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//403
-{amdgpu_cdna2_op_V_CVT_F32_FP8,"V_CVT_F32_FP8",0,&operandTable[0]} ,//404
-{amdgpu_cdna2_op_V_CVT_F32_BF8,"V_CVT_F32_BF8",0,&operandTable[0]} ,//405
-{amdgpu_cdna2_op_V_CVT_PK_F32_FP8,"V_CVT_PK_F32_FP8",0,&operandTable[0]} ,//406
-{amdgpu_cdna2_op_V_CVT_PK_F32_BF8,"V_CVT_PK_F32_BF8",0,&operandTable[0]} ,//407
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//404
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//405
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//406
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//407
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//408
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//409
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//410
@@ -1563,8 +1587,8 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//445
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//446
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//447
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//448
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//449
+{amdgpu_cdna2_op_V_MAD_LEGACY_F32,"V_MAD_LEGACY_F32",0,&operandTable[0]} ,//448
+{amdgpu_cdna2_op_V_MAD_F32,"V_MAD_F32",0,&operandTable[0]} ,//449
 {amdgpu_cdna2_op_V_MAD_I32_I24,"V_MAD_I32_I24",0,&operandTable[0]} ,//450
 {amdgpu_cdna2_op_V_MAD_U32_U24,"V_MAD_U32_U24",0,&operandTable[0]} ,//451
 {amdgpu_cdna2_op_V_CUBEID_F32,"V_CUBEID_F32",0,&operandTable[0]} ,//452
@@ -1635,7 +1659,7 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table = {
 {amdgpu_cdna2_op_V_MAD_I16,"V_MAD_I16",0,&operandTable[0]} ,//517
 {amdgpu_cdna2_op_V_FMA_F16,"V_FMA_F16",0,&operandTable[0]} ,//518
 {amdgpu_cdna2_op_V_DIV_FIXUP_F16,"V_DIV_FIXUP_F16",0,&operandTable[0]} ,//519
-{amdgpu_cdna2_op_V_LSHL_ADD_U64,"V_LSHL_ADD_U64",0,&operandTable[0]} ,//520
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//520
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//521
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//522
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//523
@@ -1789,10 +1813,6 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table = {
 {amdgpu_cdna2_op_V_SUB_I16,"V_SUB_I16",0,&operandTable[0]} ,//671
 {amdgpu_cdna2_op_V_PACK_B32_F16,"V_PACK_B32_F16",0,&operandTable[0]} ,//672
 {amdgpu_cdna2_op_V_MUL_LEGACY_F32,"V_MUL_LEGACY_F32",0,&operandTable[0]} ,//673
-{amdgpu_cdna2_op_V_CVT_PK_FP8_F32,"V_CVT_PK_FP8_F32",0,&operandTable[0]} ,//674
-{amdgpu_cdna2_op_V_CVT_PK_BF8_F32,"V_CVT_PK_BF8_F32",0,&operandTable[0]} ,//675
-{amdgpu_cdna2_op_V_CVT_SR_FP8_F32,"V_CVT_SR_FP8_F32",0,&operandTable[0]} ,//676
-{amdgpu_cdna2_op_V_CVT_SR_BF8_F32,"V_CVT_SR_BF8_F32",0,&operandTable[0]} ,//677
 }; // end ENC_VOP3_insn_table
 const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table = {
 {amdgpu_cdna2_op_V_CNDMASK_B32,"V_CNDMASK_B32",0,&operandTable[0]} ,//0
@@ -1817,7 +1837,7 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table = {
 {amdgpu_cdna2_op_V_AND_B32,"V_AND_B32",0,&operandTable[0]} ,//19
 {amdgpu_cdna2_op_V_OR_B32,"V_OR_B32",0,&operandTable[0]} ,//20
 {amdgpu_cdna2_op_V_XOR_B32,"V_XOR_B32",0,&operandTable[0]} ,//21
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//22
+{amdgpu_cdna2_op_V_MAC_F32,"V_MAC_F32",0,&operandTable[0]} ,//22
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//23
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//24
 {amdgpu_cdna2_op_V_ADD_CO_U32,"V_ADD_CO_U32",0,&operandTable[0]} ,//25
@@ -1882,8 +1902,8 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP2_LITERAL_insn_tab
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//20
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//21
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//22
-{amdgpu_cdna2_op_V_FMAMK_F32,"V_FMAMK_F32",0,&operandTable[0]} ,//23
-{amdgpu_cdna2_op_V_FMAAK_F32,"V_FMAAK_F32",0,&operandTable[0]} ,//24
+{amdgpu_cdna2_op_V_MADMK_F32,"V_MADMK_F32",0,&operandTable[0]} ,//23
+{amdgpu_cdna2_op_V_MADAK_F32,"V_MADAK_F32",0,&operandTable[0]} ,//24
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//25
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//26
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//27
@@ -2545,72 +2565,56 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOP3P_MFMA_insn_table
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//59
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//60
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//61
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X8_XF32,"V_MFMA_F32_16X16X8_XF32",0,&operandTable[0]} ,//62
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X4_XF32,"V_MFMA_F32_32X32X4_XF32",0,&operandTable[0]} ,//63
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X1_2B_F32,"V_MFMA_F32_32X32X1_2B_F32",0,&operandTable[0]} ,//64
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X1_4B_F32,"V_MFMA_F32_16X16X1_4B_F32",0,&operandTable[0]} ,//65
-{amdgpu_cdna2_op_V_MFMA_F32_4X4X1_16B_F32,"V_MFMA_F32_4X4X1_16B_F32",0,&operandTable[0]} ,//66
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//62
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//63
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X1F32,"V_MFMA_F32_32X32X1F32",0,&operandTable[0]} ,//64
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X1F32,"V_MFMA_F32_16X16X1F32",0,&operandTable[0]} ,//65
+{amdgpu_cdna2_op_V_MFMA_F32_4X4X1F32,"V_MFMA_F32_4X4X1F32",0,&operandTable[0]} ,//66
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//67
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X2_F32,"V_MFMA_F32_32X32X2_F32",0,&operandTable[0]} ,//68
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X4_F32,"V_MFMA_F32_16X16X4_F32",0,&operandTable[0]} ,//69
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X2F32,"V_MFMA_F32_32X32X2F32",0,&operandTable[0]} ,//68
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X4F32,"V_MFMA_F32_16X16X4F32",0,&operandTable[0]} ,//69
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//70
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//71
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X4_2B_F16,"V_MFMA_F32_32X32X4_2B_F16",0,&operandTable[0]} ,//72
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X4_4B_F16,"V_MFMA_F32_16X16X4_4B_F16",0,&operandTable[0]} ,//73
-{amdgpu_cdna2_op_V_MFMA_F32_4X4X4_16B_F16,"V_MFMA_F32_4X4X4_16B_F16",0,&operandTable[0]} ,//74
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X4F16,"V_MFMA_F32_32X32X4F16",0,&operandTable[0]} ,//72
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X4F16,"V_MFMA_F32_16X16X4F16",0,&operandTable[0]} ,//73
+{amdgpu_cdna2_op_V_MFMA_F32_4X4X4F16,"V_MFMA_F32_4X4X4F16",0,&operandTable[0]} ,//74
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//75
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X8_F16,"V_MFMA_F32_32X32X8_F16",0,&operandTable[0]} ,//76
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X16_F16,"V_MFMA_F32_16X16X16_F16",0,&operandTable[0]} ,//77
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X8F16,"V_MFMA_F32_32X32X8F16",0,&operandTable[0]} ,//76
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X16F16,"V_MFMA_F32_16X16X16F16",0,&operandTable[0]} ,//77
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//78
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//79
-{amdgpu_cdna2_op_V_MFMA_I32_32X32X4_2B_I8,"V_MFMA_I32_32X32X4_2B_I8",0,&operandTable[0]} ,//80
-{amdgpu_cdna2_op_V_MFMA_I32_16X16X4_4B_I8,"V_MFMA_I32_16X16X4_4B_I8",0,&operandTable[0]} ,//81
-{amdgpu_cdna2_op_V_MFMA_I32_4X4X4_16B_I8,"V_MFMA_I32_4X4X4_16B_I8",0,&operandTable[0]} ,//82
+{amdgpu_cdna2_op_V_MFMA_I32_32X32X4I8,"V_MFMA_I32_32X32X4I8",0,&operandTable[0]} ,//80
+{amdgpu_cdna2_op_V_MFMA_I32_16X16X4I8,"V_MFMA_I32_16X16X4I8",0,&operandTable[0]} ,//81
+{amdgpu_cdna2_op_V_MFMA_I32_4X4X4I8,"V_MFMA_I32_4X4X4I8",0,&operandTable[0]} ,//82
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//83
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//84
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//85
-{amdgpu_cdna2_op_V_MFMA_I32_32X32X16_I8,"V_MFMA_I32_32X32X16_I8",0,&operandTable[0]} ,//86
-{amdgpu_cdna2_op_V_MFMA_I32_16X16X32_I8,"V_MFMA_I32_16X16X32_I8",0,&operandTable[0]} ,//87
+{amdgpu_cdna2_op_V_MFMA_I32_32X32X8I8,"V_MFMA_I32_32X32X8I8",0,&operandTable[0]} ,//84
+{amdgpu_cdna2_op_V_MFMA_I32_16X16X16I8,"V_MFMA_I32_16X16X16I8",0,&operandTable[0]} ,//85
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//86
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//87
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//88
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//89
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//90
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//91
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//92
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X4_2B_BF16,"V_MFMA_F32_32X32X4_2B_BF16",0,&operandTable[0]} ,//93
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X4_4B_BF16,"V_MFMA_F32_16X16X4_4B_BF16",0,&operandTable[0]} ,//94
-{amdgpu_cdna2_op_V_MFMA_F32_4X4X4_16B_BF16,"V_MFMA_F32_4X4X4_16B_BF16",0,&operandTable[0]} ,//95
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X8_BF16,"V_MFMA_F32_32X32X8_BF16",0,&operandTable[0]} ,//96
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X16_BF16,"V_MFMA_F32_16X16X16_BF16",0,&operandTable[0]} ,//97
-{amdgpu_cdna2_op_V_SMFMAC_F32_16X16X32_F16,"V_SMFMAC_F32_16X16X32_F16",0,&operandTable[0]} ,//98
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//99
-{amdgpu_cdna2_op_V_SMFMAC_F32_32X32X16_F16,"V_SMFMAC_F32_32X32X16_F16",0,&operandTable[0]} ,//100
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//101
-{amdgpu_cdna2_op_V_SMFMAC_F32_16X16X32_BF16,"V_SMFMAC_F32_16X16X32_BF16",0,&operandTable[0]} ,//102
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//103
-{amdgpu_cdna2_op_V_SMFMAC_F32_32X32X16_BF16,"V_SMFMAC_F32_32X32X16_BF16",0,&operandTable[0]} ,//104
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//105
-{amdgpu_cdna2_op_V_SMFMAC_I32_16X16X64_I8,"V_SMFMAC_I32_16X16X64_I8",0,&operandTable[0]} ,//106
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//107
-{amdgpu_cdna2_op_V_SMFMAC_I32_32X32X32_I8,"V_SMFMAC_I32_32X32X32_I8",0,&operandTable[0]} ,//108
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//109
-{amdgpu_cdna2_op_V_MFMA_F64_16X16X4_F64,"V_MFMA_F64_16X16X4_F64",0,&operandTable[0]} ,//110
-{amdgpu_cdna2_op_V_MFMA_F64_4X4X4_4B_F64,"V_MFMA_F64_4X4X4_4B_F64",0,&operandTable[0]} ,//111
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X32_BF8_BF8,"V_MFMA_F32_16X16X32_BF8_BF8",0,&operandTable[0]} ,//112
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X32_BF8_FP8,"V_MFMA_F32_16X16X32_BF8_FP8",0,&operandTable[0]} ,//113
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X32_FP8_BF8,"V_MFMA_F32_16X16X32_FP8_BF8",0,&operandTable[0]} ,//114
-{amdgpu_cdna2_op_V_MFMA_F32_16X16X32_FP8_FP8,"V_MFMA_F32_16X16X32_FP8_FP8",0,&operandTable[0]} ,//115
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X16_BF8_BF8,"V_MFMA_F32_32X32X16_BF8_BF8",0,&operandTable[0]} ,//116
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X16_BF8_FP8,"V_MFMA_F32_32X32X16_BF8_FP8",0,&operandTable[0]} ,//117
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X16_FP8_BF8,"V_MFMA_F32_32X32X16_FP8_BF8",0,&operandTable[0]} ,//118
-{amdgpu_cdna2_op_V_MFMA_F32_32X32X16_FP8_FP8,"V_MFMA_F32_32X32X16_FP8_FP8",0,&operandTable[0]} ,//119
-{amdgpu_cdna2_op_V_SMFMAC_F32_16X16X64_BF8_BF8,"V_SMFMAC_F32_16X16X64_BF8_BF8",0,&operandTable[0]} ,//120
-{amdgpu_cdna2_op_V_SMFMAC_F32_16X16X64_BF8_FP8,"V_SMFMAC_F32_16X16X64_BF8_FP8",0,&operandTable[0]} ,//121
-{amdgpu_cdna2_op_V_SMFMAC_F32_16X16X64_FP8_BF8,"V_SMFMAC_F32_16X16X64_FP8_BF8",0,&operandTable[0]} ,//122
-{amdgpu_cdna2_op_V_SMFMAC_F32_16X16X64_FP8_FP8,"V_SMFMAC_F32_16X16X64_FP8_FP8",0,&operandTable[0]} ,//123
-{amdgpu_cdna2_op_V_SMFMAC_F32_32X32X32_BF8_BF8,"V_SMFMAC_F32_32X32X32_BF8_BF8",0,&operandTable[0]} ,//124
-{amdgpu_cdna2_op_V_SMFMAC_F32_32X32X32_BF8_FP8,"V_SMFMAC_F32_32X32X32_BF8_FP8",0,&operandTable[0]} ,//125
-{amdgpu_cdna2_op_V_SMFMAC_F32_32X32X32_FP8_BF8,"V_SMFMAC_F32_32X32X32_FP8_BF8",0,&operandTable[0]} ,//126
-{amdgpu_cdna2_op_V_SMFMAC_F32_32X32X32_FP8_FP8,"V_SMFMAC_F32_32X32X32_FP8_FP8",0,&operandTable[0]} ,//127
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//93
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//94
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//95
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//96
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//97
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//98
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X4BF16_1K,"V_MFMA_F32_32X32X4BF16_1K",0,&operandTable[0]} ,//99
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X4BF16_1K,"V_MFMA_F32_16X16X4BF16_1K",0,&operandTable[0]} ,//100
+{amdgpu_cdna2_op_V_MFMA_F32_4X4X4BF16_1K,"V_MFMA_F32_4X4X4BF16_1K",0,&operandTable[0]} ,//101
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X8BF16_1K,"V_MFMA_F32_32X32X8BF16_1K",0,&operandTable[0]} ,//102
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X16BF16_1K,"V_MFMA_F32_16X16X16BF16_1K",0,&operandTable[0]} ,//103
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X2BF16,"V_MFMA_F32_32X32X2BF16",0,&operandTable[0]} ,//104
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X2BF16,"V_MFMA_F32_16X16X2BF16",0,&operandTable[0]} ,//105
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//106
+{amdgpu_cdna2_op_V_MFMA_F32_4X4X2BF16,"V_MFMA_F32_4X4X2BF16",0,&operandTable[0]} ,//107
+{amdgpu_cdna2_op_V_MFMA_F32_32X32X4BF16,"V_MFMA_F32_32X32X4BF16",0,&operandTable[0]} ,//108
+{amdgpu_cdna2_op_V_MFMA_F32_16X16X8BF16,"V_MFMA_F32_16X16X8BF16",0,&operandTable[0]} ,//109
+{amdgpu_cdna2_op_V_MFMA_F64_16X16X4F64,"V_MFMA_F64_16X16X4F64",0,&operandTable[0]} ,//110
+{amdgpu_cdna2_op_V_MFMA_F64_4X4X4F64,"V_MFMA_F64_4X4X4F64",0,&operandTable[0]} ,//111
 }; // end ENC_VOP3P_MFMA_insn_table
 const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//0
@@ -2873,6 +2877,3 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table = {
 const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_VINTRP_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//0
 }; // end ENC_VINTRP_insn_table
-const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table = {
-{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//0
-}; // end ENC_MIMG_insn_table

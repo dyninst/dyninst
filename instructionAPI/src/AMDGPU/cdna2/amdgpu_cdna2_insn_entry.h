@@ -9,6 +9,7 @@ struct amdgpu_cdna2_insn_entry {
 	static const amdgpu_cdna2_insn_table ENC_FLAT_insn_table ; 
 	static const amdgpu_cdna2_insn_table ENC_FLAT_GLBL_insn_table ; 
 	static const amdgpu_cdna2_insn_table ENC_FLAT_SCRATCH_insn_table ; 
+	static const amdgpu_cdna2_insn_table ENC_MIMG_insn_table ; 
 	static const amdgpu_cdna2_insn_table ENC_MTBUF_insn_table ; 
 	static const amdgpu_cdna2_insn_table ENC_MUBUF_insn_table ; 
 	static const amdgpu_cdna2_insn_table ENC_SMEM_insn_table ; 
@@ -26,5 +27,4 @@ struct amdgpu_cdna2_insn_entry {
 	static const amdgpu_cdna2_insn_table ENC_VOP3P_MFMA_insn_table ; 
 	static const amdgpu_cdna2_insn_table ENC_VOPC_insn_table ; 
 	static const amdgpu_cdna2_insn_table ENC_VINTRP_insn_table ; 
-	static const amdgpu_cdna2_insn_table ENC_MIMG_insn_table ; 
 };

@@ -106,7 +106,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPP(uint64_t I){
 	case 3213885440:
 	case 3214606336:
 	case 3214737408:
-	case 3214868480:
 	case 3213557760:
 	case 3213688832:
 	case 3213819904:
@@ -333,10 +332,10 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP1(uint64_t I){
 	case 2113946624:
 	case 2113950720:
 	case 2113954816:
-	case 2113957888:
 	case 2113958912:
 	case 2113961984:
 	case 2113963008:
+	case 2113967104:
 	case 2113966080:
 	case 2113934848:
 	case 2113938944:
@@ -356,8 +355,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP1(uint64_t I){
 	case 2113959936:
 	case 2113964032:
 	case 2113968128:
-	case 2113972224:
-	case 2113967104:
 	case 2113971200:
 	case 2113935872:
 	case 2113939968:
@@ -368,7 +365,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP1(uint64_t I){
 	case 2113960448:
 	case 2113964544:
 	case 2113968640:
-	case 2113972736:
 	case 2113936384:
 	case 2113940480:
 	case 2113944576:
@@ -377,8 +373,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP1(uint64_t I){
 	case 2113960960:
 	case 2113965056:
 	case 2113969152:
-	case 2113973248:
-	case 2113973760:
 	case 2113936896:
 	case 2113940992:
 	case 2113945088:
@@ -622,22 +616,23 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP2(uint64_t I){
 	case 1577058304:
 	case 1308622848:
 	case 1442840576:
+	case 939524096:
 	case 1073741824:
 	case 1342177280:
-	case 1476395008:
 	case 603979776:
 	case 637534208:
 	case 671088640:
 	case 570425344:
 	case 536870912:
 	case 704643072:
+	case 738197504:
 	case 838860800:
 	case 872415232:
 	case 905969664:
-	case 939524096:
 	case 1711276032:
 	case 1845493760:
 	case 1979711488:
+	case 1476395008:
 	case 973078528:
 	case 1107296256:
 	case 1375731712:
@@ -739,17 +734,17 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3506503680:
 	case 3531669504:
 	case 3533766656:
+	case 3500212224:
+	case 3519086592:
 	case 3523280896:
 	case 3508600832:
-	case 3491823616:
-	case 3493920768:
 	case 3500933120:
 	case 3505520640:
 	case 3519152128:
 	case 3521249280:
 	case 3514957824:
-	case 3512860672:
 	case 3506569216:
+	case 3512860672:
 	case 3523346432:
 	case 3508666368:
 	case 3491889152:
@@ -766,20 +761,18 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3515023360:
 	case 3506634752:
 	case 3531800576:
-	case 3533897728:
+	case 3500343296:
 	case 3519217664:
-	case 3501785088:
 	case 3506372608:
 	case 3495952384:
-	case 3500539904:
 	case 3505127424:
 	case 3531866112:
-	case 3533963264:
+	case 3500408832:
 	case 3519283200:
 	case 3521380352:
 	case 3515088896:
-	case 3512991744:
 	case 3506700288:
+	case 3512991744:
 	case 3523477504:
 	case 3492020224:
 	case 3494117376:
@@ -787,15 +780,15 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3502637056:
 	case 3501391872:
 	case 3521445888:
-	case 3506765824:
 	case 3523543040:
 	case 3492085760:
 	case 3494182912:
 	case 3496280064:
 	case 3513057280:
 	case 3515154432:
+	case 3506765824:
 	case 3531931648:
-	case 3534028800:
+	case 3500474368:
 	case 3505979392:
 	case 3500146688:
 	case 3504734208:
@@ -803,20 +796,21 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3494248448:
 	case 3496345600:
 	case 3531997184:
+	case 3500539904:
 	case 3519414272:
 	case 3521511424:
 	case 3515219968:
 	case 3513122816:
 	case 3506831360:
 	case 3523608576:
-	case 3508928512:
 	case 3502243840:
+	case 3491823616:
 	case 3532259328:
 	case 3500998656:
 	case 3505586176:
+	case 3500605440:
 	case 3519479808:
 	case 3521576960:
-	case 3506896896:
 	case 3523674112:
 	case 3508994048:
 	case 3492216832:
@@ -826,11 +820,12 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3515285504:
 	case 3495165952:
 	case 3504340992:
+	case 3493920768:
 	case 3519348736:
+	case 3508928512:
 	case 3503095808:
 	case 3515351040:
 	case 3506962432:
-	case 3523739648:
 	case 3509059584:
 	case 3492282368:
 	case 3494379520:
@@ -838,7 +833,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3496476672:
 	case 3532128256:
 	case 3519545344:
-	case 3500605440:
+	case 3500670976:
 	case 3505192960:
 	case 3496542208:
 	case 3513319424:
@@ -864,7 +859,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3491037184:
 	case 3501457408:
 	case 3506044928:
-	case 3500212224:
 	case 3504799744:
 	case 3509256192:
 	case 3492478976:
@@ -872,13 +866,14 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3496673280:
 	case 3513450496:
 	case 3515547648:
+	case 3507159040:
 	case 3532324864:
 	case 3519741952:
 	case 3521839104:
-	case 3507159040:
 	case 3503554560:
 	case 3512729600:
 	case 3502309376:
+	case 3506896896:
 	case 3501064192:
 	case 3532390400:
 	case 3519807488:
@@ -903,7 +898,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3511484416:
 	case 3515678720:
 	case 3532455936:
-	case 3500670976:
 	case 3505258496:
 	case 3494772736:
 	case 3496869888:
@@ -913,8 +907,9 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3511549952:
 	case 3515744256:
 	case 3513647104:
-	case 3509846016:
 	case 3507355648:
+	case 3509452800:
+	case 3519021056:
 	case 3502768128:
 	case 3532783616:
 	case 3522363392:
@@ -933,7 +928,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3500277760:
 	case 3504865280:
 	case 3519873024:
-	case 3509452800:
 	case 3511681024:
 	case 3507486720:
 	case 3490709504:
@@ -988,15 +982,14 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3520331776:
 	case 3511943168:
 	case 3514040320:
-	case 3516137472:
 	case 3522428928:
 	case 3497263104:
 	case 3507748864:
 	case 3490971648:
+	case 3509846016:
 	case 3506176000:
 	case 3501326336:
 	case 3531603968:
-	case 3500343296:
 	case 3504930816:
 	case 3520397312:
 	case 3495231488:
@@ -1004,10 +997,10 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3507814400:
 	case 3509911552:
 	case 3493134336:
-	case 3516203008:
 	case 3512008704:
 	case 3514105856:
 	case 3497328640:
+	case 3532980224:
 	case 3503685632:
 	case 3533701120:
 	case 3502440448:
@@ -1018,9 +1011,9 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3533045760:
 	case 3520462848:
 	case 3512074240:
-	case 3516268544:
 	case 3522560000:
 	case 3497394176:
+	case 3507879936:
 	case 3501588480:
 	case 3505782784:
 	case 3504537600:
@@ -1032,24 +1025,24 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3510042624:
 	case 3493265408:
 	case 3495362560:
-	case 3516334080:
 	case 3512139776:
 	case 3514236928:
 	case 3497459712:
+	case 3501654016:
 	case 3496214528:
 	case 3532062720:
 	case 3500802048:
 	case 3505389568:
-	case 3514302464:
+	case 3512205312:
 	case 3522691072:
 	case 3510108160:
 	case 3493330944:
-	case 3512205312:
 	case 3495428096:
 	case 3497525248:
 	case 3533176832:
 	case 3520593920:
 	case 3501719552:
+	case 3503816704:
 	case 3504144384:
 	case 3502899200:
 	case 3495493632:
@@ -1061,9 +1054,8 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3522756608:
 	case 3510173696:
 	case 3493396480:
-	case 3501654016:
+	case 3501785088:
 	case 3506241536:
-	case 3500408832:
 	case 3504996352:
 	case 3520724992:
 	case 3514433536:
@@ -1113,7 +1105,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3497852928:
 	case 3533504512:
 	case 3502047232:
-	case 3504209920:
 	case 3502964736:
 	case 3497132032:
 	case 3493724160:
@@ -1123,13 +1114,12 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3520987136:
 	case 3514695680:
 	case 3512598528:
-	case 3532980224:
 	case 3523084288:
 	case 3502112768:
+	case 3504209920:
 	case 3506307072:
 	case 3531735040:
 	case 3521314816:
-	case 3500474368:
 	case 3505061888:
 	case 3509649408:
 	case 3533635584:
@@ -1142,8 +1132,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 	case 3514761216:
 	case 3497984000:
 	case 3502178304:
-	case 3503816704:
-	case 3533832192:
 	case 3523411968:
 	case 3502571520:
 	case 3492151296:
@@ -1179,6 +1167,8 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 	case 3636592640:
 	case 3637116928:
 	case 3637641216:
+	case 3633577984:
+	case 3629514752:
 	case 3638165504:
 	case 3634102272:
 	case 3630039040:
@@ -1189,8 +1179,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 	case 3626500096:
 	case 3635150848:
 	case 3631087616:
-	case 3647864832:
-	case 3627024384:
 	case 3643801600:
 	case 3625582592:
 	case 3627679744:
@@ -1202,7 +1190,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 	case 3628728320:
 	case 3632922624:
 	case 3629252608:
-	case 3635675136:
 	case 3644325888:
 	case 3652976640:
 	case 3636723712:
@@ -1223,7 +1210,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 	case 3639345152:
 	case 3635281920:
 	case 3631218688:
-	case 3647995904:
 	case 3643932672:
 	case 3625713664:
 	case 3631480832:
@@ -1231,11 +1217,10 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 	case 3632005120:
 	case 3628335104:
 	case 3632529408:
+	case 3635675136:
 	case 3628859392:
 	case 3633053696:
 	case 3629383680:
-	case 3633577984:
-	case 3635806208:
 	case 3644456960:
 	case 3640393728:
 	case 3657170944:
@@ -1266,7 +1251,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 	case 3632660480:
 	case 3628990464:
 	case 3633184768:
-	case 3629514752:
+	case 3635806208:
 	case 3635937280:
 	case 3648651264:
 	case 3657302016:
@@ -1283,7 +1268,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 	case 3626369024:
 	case 3635019776:
 	case 3630956544:
-	case 3626893312:
 	case 3639607296:
 		return true;
 	default:
@@ -1310,9 +1294,11 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MUBUF(uint64_t I){
 	case 3762028544:
 	case 3765698560:
 	case 3765960704:
+	case 3774349312:
 	case 3778019328:
 	case 3778543616:
 	case 3766222848:
+	case 3774611456:
 	case 3778805760:
 	case 3786407936:
 	case 3762290688:
@@ -1329,6 +1315,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MUBUF(uint64_t I){
 	case 3767009280:
 	case 3775397888:
 	case 3783786496:
+	case 3774087168:
 	case 3763077120:
 	case 3767271424:
 	case 3775660032:
@@ -1394,7 +1381,33 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MTBUF(uint64_t I){
 	}
 }
 bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MIMG(uint64_t I){
-	switch( I & 4227858432 ){
+	switch( I & 4261150720 ){
+	case 4026531840:
+	case 4026793984:
+	case 4027580416:
+	case 4027056128:
+	case 4027318272:
+	case 4027842560:
+	case 4028628992:
+	case 4028891136:
+	case 4029153280:
+	case 4029415424:
+	case 4030201856:
+	case 4030726144:
+	case 4030988288:
+	case 4031250432:
+	case 4031512576:
+	case 4031774720:
+	case 4034920448:
+	case 4032036864:
+	case 4032299008:
+	case 4032561152:
+	case 4032823296:
+	case 4033085440:
+	case 4033347584:
+	case 4033609728:
+	case 4033871872:
+		return true;
 	default:
 		return false;
 	}
@@ -1417,8 +1430,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT(uint64_t I){
 	case 3698589696:
 	case 3698851840:
 	case 3699113984:
-	case 3711172608:
-	case 3711434752:
 	case 3711696896:
 	case 3699376128:
 	case 3707764736:
@@ -1431,7 +1442,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT(uint64_t I){
 	case 3719036928:
 	case 3699900416:
 	case 3708289024:
-	case 3712483328:
 	case 3716677632:
 	case 3700162560:
 	case 3708551168:
@@ -1473,10 +1483,8 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_GLBL(uint64_t I){
 	case 3697311744:
 	case 3697573888:
 	case 3697836032:
-	case 3701768192:
 	case 3710156800:
 	case 3718545408:
-	case 3702030336:
 	case 3710418944:
 	case 3718807552:
 	case 3710681088:
@@ -1493,7 +1501,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_GLBL(uint64_t I){
 	case 3699933184:
 	case 3700457472:
 	case 3700195328:
-	case 3709632512:
 	case 3711205376:
 	case 3711467520:
 	case 3718021120:
@@ -1504,9 +1511,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_GLBL(uint64_t I){
 	case 3708059648:
 	case 3712253952:
 	case 3716448256:
-	case 3701506048:
 	case 3708321792:
-	case 3712516096:
 	case 3716710400:
 	case 3709894656:
 	case 3708583936:
@@ -1517,10 +1522,9 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_GLBL(uint64_t I){
 	case 3700719616:
 	case 3709108224:
 	case 3717496832:
-	case 3700981760:
 	case 3709370368:
 	case 3717758976:
-	case 3701243904:
+	case 3709632512:
 		return true;
 	default:
 		return false;
@@ -1550,11 +1554,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_SCRATCH(uint64_t I){
 	case 3700178944:
 	case 3700441088:
 	case 3700703232:
-	case 3700965376:
-	case 3701227520:
-	case 3701489664:
-	case 3701751808:
-	case 3702013952:
 		return true;
 	default:
 		return false;
@@ -1590,52 +1589,33 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3B(uint64_t I){
 }
 bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3P_MFMA(uint64_t I){
 	switch( I & 4294901760 ){
-	case 3552444416:
-	case 3552509952:
-	case 3552641024:
-	case 3552706560:
 	case 3552575488:
-	case 3552837632:
+	case 3552641024:
 	case 3552903168:
+	case 3552706560:
+	case 3552837632:
 	case 3553099776:
 	case 3553165312:
 	case 3553230848:
 	case 3553361920:
+	case 3553427456:
 	case 3553624064:
 	case 3553755136:
-	case 3554017280:
-	case 3554541568:
-	case 3554672640:
-	case 3555983360:
-	case 3556114432:
-	case 3556245504:
-	case 3556376576:
-	case 3556507648:
-	case 3556638720:
-	case 3553427456:
-	case 3553689600:
-	case 3554082816:
-	case 3554476032:
-	case 3554607104:
-	case 3554738176:
-	case 3555655680:
-	case 3555786752:
-	case 3555917824:
-	case 3555852288:
-	case 3556048896:
-	case 3556179968:
-	case 3556311040:
-	case 3556442112:
-	case 3556573184:
-	case 3556704256:
-	case 3554803712:
+	case 3553886208:
 	case 3554934784:
 	case 3555065856:
 	case 3555196928:
-	case 3555328000:
+	case 3553689600:
+	case 3553951744:
+	case 3554869248:
+	case 3555000320:
+	case 3555131392:
+	case 3555262464:
+	case 3555393536:
+	case 3555524608:
+	case 3555655680:
 	case 3555459072:
 	case 3555590144:
-	case 3555721216:
 		return true;
 	default:
 		return false;
@@ -1710,7 +1690,7 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_SMEM(){
 	layout.NV = longfield<15,15>(insn_long);
 	layout.OFFSET = longfield<32,52>(insn_long);
 	layout.OP = longfield<18,25>(insn_long);
-	layout.SBASE = longfield<0,5>(insn_long);
+	layout.SBASE = (longfield<0,5>(insn_long) << 1 ) | 0 ;
 	layout.SDATA = longfield<6,12>(insn_long);
 	layout.SOFFSET = longfield<57,63>(insn_long);
 	layout.SOFFSET_EN = longfield<14,14>(insn_long);
@@ -1832,16 +1812,16 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_MUBUF(){
 	layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
 	layout.ACC = longfield<55,55>(insn_long);
 	layout.ENCODING = longfield<26,31>(insn_long);
+	layout.GLC = longfield<14,14>(insn_long);
 	layout.IDXEN = longfield<13,13>(insn_long);
 	layout.LDS = longfield<16,16>(insn_long);
-	layout.NT = longfield<17,17>(insn_long);
 	layout.OFFEN = longfield<12,12>(insn_long);
 	layout.OFFSET = longfield<0,11>(insn_long);
 	layout.OP = longfield<18,24>(insn_long);
-	layout.SC0 = longfield<14,14>(insn_long);
-	layout.SC1 = longfield<15,15>(insn_long);
+	layout.SCC = longfield<15,15>(insn_long);
+	layout.SLC = longfield<17,17>(insn_long);
 	layout.SOFFSET = longfield<56,63>(insn_long);
-	layout.SRSRC = longfield<48,52>(insn_long);
+	layout.SRSRC = (longfield<48,52>(insn_long) << 2 ) | 0 ;
 	layout.VADDR = longfield<32,39>(insn_long);
 	layout.VDATA = longfield<40,47>(insn_long);
 	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table[layout.OP];
@@ -1855,16 +1835,16 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_MTBUF(){
 	layout.ACC = longfield<55,55>(insn_long);
 	layout.DFMT = longfield<19,22>(insn_long);
 	layout.ENCODING = longfield<26,31>(insn_long);
+	layout.GLC = longfield<14,14>(insn_long);
 	layout.IDXEN = longfield<13,13>(insn_long);
 	layout.NFMT = longfield<23,25>(insn_long);
-	layout.NT = longfield<54,54>(insn_long);
 	layout.OFFEN = longfield<12,12>(insn_long);
 	layout.OFFSET = longfield<0,11>(insn_long);
 	layout.OP = longfield<15,18>(insn_long);
-	layout.SC0 = longfield<14,14>(insn_long);
-	layout.SC1 = longfield<53,53>(insn_long);
+	layout.SCC = longfield<53,53>(insn_long);
+	layout.SLC = longfield<54,54>(insn_long);
 	layout.SOFFSET = longfield<56,63>(insn_long);
-	layout.SRSRC = longfield<48,52>(insn_long);
+	layout.SRSRC = (longfield<48,52>(insn_long) << 2 ) | 0 ;
 	layout.VADDR = longfield<32,39>(insn_long);
 	layout.VDATA = longfield<40,47>(insn_long);
 	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table[layout.OP];
@@ -1881,14 +1861,14 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_MIMG(){
 	layout.DA = longfield<14,14>(insn_long);
 	layout.DMASK = longfield<8,11>(insn_long);
 	layout.ENCODING = longfield<26,31>(insn_long);
+	layout.GLC = longfield<13,13>(insn_long);
 	layout.LWE = longfield<17,17>(insn_long);
-	layout.NT = longfield<25,25>(insn_long);
 	layout.OP = longfield<18,24>(insn_long);
 	layout.OPM = longfield<0,0>(insn_long);
-	layout.SC0 = longfield<13,13>(insn_long);
-	layout.SC1 = longfield<7,7>(insn_long);
-	layout.SRSRC = longfield<48,52>(insn_long);
-	layout.SSAMP = longfield<53,57>(insn_long);
+	layout.SCC = longfield<7,7>(insn_long);
+	layout.SLC = longfield<25,25>(insn_long);
+	layout.SRSRC = (longfield<48,52>(insn_long) << 2 ) | 0 ;
+	layout.SSAMP = (longfield<53,57>(insn_long) << 2 ) | 0 ;
 	layout.UNORM = longfield<12,12>(insn_long);
 	layout.VADDR = longfield<32,39>(insn_long);
 	layout.VDATA = longfield<40,47>(insn_long);
@@ -1904,14 +1884,14 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT(){
 	layout.ADDR = longfield<32,39>(insn_long);
 	layout.DATA = longfield<40,47>(insn_long);
 	layout.ENCODING = longfield<26,31>(insn_long);
-	layout.NT = longfield<17,17>(insn_long);
+	layout.GLC = longfield<16,16>(insn_long);
+	layout.LDS = longfield<13,13>(insn_long);
 	layout.OFFSET = longfield<0,11>(insn_long);
 	layout.OP = longfield<18,24>(insn_long);
 	layout.SADDR = longfield<48,54>(insn_long);
-	layout.SC0 = longfield<16,16>(insn_long);
-	layout.SC1 = longfield<25,25>(insn_long);
+	layout.SCC = longfield<25,25>(insn_long);
 	layout.SEG = longfield<14,15>(insn_long);
-	layout.SVE = longfield<13,13>(insn_long);
+	layout.SLC = longfield<17,17>(insn_long);
 	layout.VDST = longfield<56,63>(insn_long);
 	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
@@ -1925,14 +1905,14 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_GLBL(){
 	layout.ADDR = longfield<32,39>(insn_long);
 	layout.DATA = longfield<40,47>(insn_long);
 	layout.ENCODING = longfield<26,31>(insn_long);
-	layout.NT = longfield<17,17>(insn_long);
+	layout.GLC = longfield<16,16>(insn_long);
+	layout.LDS = longfield<13,13>(insn_long);
 	layout.OFFSET = longfield<0,12>(insn_long);
 	layout.OP = longfield<18,24>(insn_long);
 	layout.SADDR = longfield<48,54>(insn_long);
-	layout.SC0 = longfield<16,16>(insn_long);
-	layout.SC1 = longfield<25,25>(insn_long);
+	layout.SCC = longfield<25,25>(insn_long);
 	layout.SEG = longfield<14,15>(insn_long);
-	layout.SVE = longfield<13,13>(insn_long);
+	layout.SLC = longfield<17,17>(insn_long);
 	layout.VDST = longfield<56,63>(insn_long);
 	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
@@ -1946,14 +1926,14 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_SCRATCH(){
 	layout.ADDR = longfield<32,39>(insn_long);
 	layout.DATA = longfield<40,47>(insn_long);
 	layout.ENCODING = longfield<26,31>(insn_long);
-	layout.NT = longfield<17,17>(insn_long);
+	layout.GLC = longfield<16,16>(insn_long);
+	layout.LDS = longfield<13,13>(insn_long);
 	layout.OFFSET = longfield<0,12>(insn_long);
 	layout.OP = longfield<18,24>(insn_long);
 	layout.SADDR = longfield<48,54>(insn_long);
-	layout.SC0 = longfield<16,16>(insn_long);
-	layout.SC1 = longfield<25,25>(insn_long);
+	layout.SCC = longfield<25,25>(insn_long);
 	layout.SEG = longfield<14,15>(insn_long);
-	layout.SVE = longfield<13,13>(insn_long);
+	layout.SLC = longfield<17,17>(insn_long);
 	layout.VDST = longfield<56,63>(insn_long);
 	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
