@@ -106,7 +106,7 @@ namespace Dyninst
             name = name.substr(substr + 1, name.length());
         }
         // Size of base register * 8 != m_High - mLow ( in bits) when we it is a register vector
-        if ( m_Reg.size()*8 != m_High - m_Low){
+        if ( m_High -m_Low > 32 && m_Reg.size()*8 != m_High - m_Low){
             MachRegister baseReg = m_Reg.getTypeBaseRegister();
             uint32_t id = m_Reg - baseReg ;
             uint32_t size = (m_High - m_Low ) / 32;
@@ -126,13 +126,13 @@ namespace Dyninst
 
             name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";
         }else{
-        
-            if(m_High -m_Low > 32){
+            
+            /*if(m_High -m_Low > 32){
                 if( m_Reg != amdgpu_cdna2::pc_all &&  m_Reg != amdgpu_vega::pc && m_Reg != amdgpu_cdna2::vcc ){ 
                     std::cout << "something wrong with name ?? " <<  std::hex << m_Reg <<std::endl;    
                     std::cout  << std::dec <<" mREG SIZE = " << m_Reg.size() << " high - low = " << m_High - m_Low << std::endl;
                 }
-            }
+            }*/
         }
 
         /* we have moved to AT&T syntax (lowercase registers) */
