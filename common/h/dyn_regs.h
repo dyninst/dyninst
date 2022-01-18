@@ -90,8 +90,6 @@ namespace Dyninst
         explicit MachRegister(signed int r, std::string n);
 
         MachRegister getBaseRegister() const;
-
-        MachRegister getTypeBaseRegister() const;
         Architecture getArchitecture() const;
         bool isValid() const;
         MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const;
@@ -102,6 +100,8 @@ namespace Dyninst
         bool operator==(const MachRegister &a) const;
         operator signed int() const;
         signed int val() const;
+
+        // Return the category of the MachRegister
         unsigned int regClass() const;
 
         static MachRegister getPC(Dyninst::Architecture arch);
