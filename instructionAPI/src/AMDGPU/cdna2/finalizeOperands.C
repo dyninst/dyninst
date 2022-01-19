@@ -92,14 +92,6 @@ case 21:// DS_ADD_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
 break;
-case 23:// DS_PK_ADD_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
-break;
-case 24:// DS_PK_ADD_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
-break;
 case 29:// DS_WRITE_ADDTID_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
@@ -184,13 +176,15 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
 break;
 case 46:// DS_WRXCHG2_RTN_B32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,32),true,false);
 break;
 case 47:// DS_WRXCHG2ST64_RTN_B32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,32),true,false);
@@ -233,11 +227,13 @@ insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 55:// DS_READ2_B32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 56:// DS_READ2ST64_B32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 57:// DS_READ_I8
@@ -272,88 +268,113 @@ insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,
 break;
 case 64:// DS_ADD_U64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 65:// DS_SUB_U64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 66:// DS_RSUB_U64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 67:// DS_INC_U64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 68:// DS_DEC_U64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 69:// DS_MIN_I64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 70:// DS_MAX_I64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 71:// DS_MIN_U64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 72:// DS_MAX_U64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 73:// DS_AND_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 74:// DS_OR_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 75:// DS_XOR_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 76:// DS_MSKOR_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 77:// DS_WRITE_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 78:// DS_WRITE2_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 79:// DS_WRITE2ST64_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 80:// DS_CMPST_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 81:// DS_CMPST_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 82:// DS_MIN_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 83:// DS_MAX_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 84:// DS_WRITE_B8_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -389,134 +410,195 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 92:// DS_ADD_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 96:// DS_ADD_RTN_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 97:// DS_SUB_RTN_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 98:// DS_RSUB_RTN_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 99:// DS_INC_RTN_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 100:// DS_DEC_RTN_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 101:// DS_MIN_RTN_I64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 102:// DS_MAX_RTN_I64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 103:// DS_MIN_RTN_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 104:// DS_MAX_RTN_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 105:// DS_AND_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 106:// DS_OR_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 107:// DS_XOR_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 108:// DS_MSKOR_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 109:// DS_WRXCHG_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 110:// DS_WRXCHG2_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 111:// DS_WRXCHG2ST64_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 112:// DS_CMPST_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 113:// DS_CMPST_RTN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA1+1,32),true,false);
 break;
 case 114:// DS_MIN_RTN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 115:// DS_MAX_RTN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 118:// DS_READ_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 119:// DS_READ2_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 120:// DS_READ2ST64_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 124:// DS_ADD_RTN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 126:// DS_CONDXCHG32_RTN_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
 break;
 case 152:// DS_GWS_SEMA_RELEASE_ALL
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
@@ -543,16 +625,6 @@ case 182:// DS_READ_ADDTID_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
-case 183:// DS_PK_ADD_RTN_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
-break;
-case 184:// DS_PK_ADD_RTN_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,32),true,false);
-break;
 case 189:// DS_CONSUME
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
@@ -563,18 +635,28 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 222:// DS_WRITE_B96
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,96),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+2,32),true,false);
 break;
 case 223:// DS_WRITE_B128
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA0+3,32),true,false);
 break;
 case 254:// DS_READ_B96
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,96),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 case 255:// DS_READ_B128
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 }
@@ -584,357 +666,437 @@ layout_ENC_FLAT & layout = insn_layout.ENC_FLAT;
 switch(layout.OP){
 case 16:// FLAT_LOAD_UBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 17:// FLAT_LOAD_SBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 18:// FLAT_LOAD_USHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 19:// FLAT_LOAD_SSHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 20:// FLAT_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 21:// FLAT_LOAD_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 22:// FLAT_LOAD_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,96),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 23:// FLAT_LOAD_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 24:// FLAT_STORE_BYTE
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 25:// FLAT_STORE_BYTE_D16_HI
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 26:// FLAT_STORE_SHORT
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 27:// FLAT_STORE_SHORT_D16_HI
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 28:// FLAT_STORE_DWORD
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 29:// FLAT_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 30:// FLAT_STORE_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,96),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 31:// FLAT_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 32:// FLAT_LOAD_UBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 33:// FLAT_LOAD_UBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 34:// FLAT_LOAD_SBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 35:// FLAT_LOAD_SBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 36:// FLAT_LOAD_SHORT_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 37:// FLAT_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 64:// FLAT_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 65:// FLAT_ATOMIC_CMPSWAP
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 66:// FLAT_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 67:// FLAT_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 68:// FLAT_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 69:// FLAT_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 70:// FLAT_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 71:// FLAT_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 72:// FLAT_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 73:// FLAT_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 74:// FLAT_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 75:// FLAT_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 76:// FLAT_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 77:// FLAT_ATOMIC_ADD_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 78:// FLAT_ATOMIC_PK_ADD_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 79:// FLAT_ATOMIC_ADD_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 80:// FLAT_ATOMIC_MIN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 81:// FLAT_ATOMIC_MAX_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 82:// FLAT_ATOMIC_PK_ADD_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 96:// FLAT_ATOMIC_SWAP_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 97:// FLAT_ATOMIC_CMPSWAP_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 98:// FLAT_ATOMIC_ADD_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 99:// FLAT_ATOMIC_SUB_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 100:// FLAT_ATOMIC_SMIN_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 101:// FLAT_ATOMIC_UMIN_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 102:// FLAT_ATOMIC_SMAX_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 103:// FLAT_ATOMIC_UMAX_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 104:// FLAT_ATOMIC_AND_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 105:// FLAT_ATOMIC_OR_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 106:// FLAT_ATOMIC_XOR_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 107:// FLAT_ATOMIC_INC_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 108:// FLAT_ATOMIC_DEC_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
@@ -945,388 +1107,507 @@ layout_ENC_FLAT_GLBL & layout = insn_layout.ENC_FLAT_GLBL;
 switch(layout.OP){
 case 16:// GLOBAL_LOAD_UBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 17:// GLOBAL_LOAD_SBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 18:// GLOBAL_LOAD_USHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 19:// GLOBAL_LOAD_SSHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 20:// GLOBAL_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 21:// GLOBAL_LOAD_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 22:// GLOBAL_LOAD_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,96),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 23:// GLOBAL_LOAD_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 24:// GLOBAL_STORE_BYTE
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 25:// GLOBAL_STORE_BYTE_D16_HI
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 26:// GLOBAL_STORE_SHORT
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 27:// GLOBAL_STORE_SHORT_D16_HI
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 28:// GLOBAL_STORE_DWORD
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 29:// GLOBAL_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 30:// GLOBAL_STORE_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,96),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 31:// GLOBAL_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 32:// GLOBAL_LOAD_UBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 33:// GLOBAL_LOAD_UBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 34:// GLOBAL_LOAD_SBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 35:// GLOBAL_LOAD_SBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 36:// GLOBAL_LOAD_SHORT_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 37:// GLOBAL_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 38:// GLOBAL_LOAD_LDS_UBYTE
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 39:// GLOBAL_LOAD_LDS_SBYTE
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 40:// GLOBAL_LOAD_LDS_USHORT
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 41:// GLOBAL_LOAD_LDS_SSHORT
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 42:// GLOBAL_LOAD_LDS_DWORD
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 64:// GLOBAL_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 65:// GLOBAL_ATOMIC_CMPSWAP
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 66:// GLOBAL_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 67:// GLOBAL_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 68:// GLOBAL_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 69:// GLOBAL_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 70:// GLOBAL_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 71:// GLOBAL_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 72:// GLOBAL_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 73:// GLOBAL_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 74:// GLOBAL_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 75:// GLOBAL_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 76:// GLOBAL_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 77:// GLOBAL_ATOMIC_ADD_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 78:// GLOBAL_ATOMIC_PK_ADD_F16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 79:// GLOBAL_ATOMIC_ADD_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 80:// GLOBAL_ATOMIC_MIN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 81:// GLOBAL_ATOMIC_MAX_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
-break;
-case 82:// GLOBAL_ATOMIC_PK_ADD_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 96:// GLOBAL_ATOMIC_SWAP_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 97:// GLOBAL_ATOMIC_CMPSWAP_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 98:// GLOBAL_ATOMIC_ADD_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 99:// GLOBAL_ATOMIC_SUB_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 100:// GLOBAL_ATOMIC_SMIN_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 101:// GLOBAL_ATOMIC_UMIN_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 102:// GLOBAL_ATOMIC_SMAX_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 103:// GLOBAL_ATOMIC_UMAX_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 104:// GLOBAL_ATOMIC_AND_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 105:// GLOBAL_ATOMIC_OR_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 106:// GLOBAL_ATOMIC_XOR_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 107:// GLOBAL_ATOMIC_INC_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 108:// GLOBAL_ATOMIC_DEC_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 }
@@ -1370,21 +1651,27 @@ insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 21:// SCRATCH_LOAD_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 22:// SCRATCH_LOAD_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,96),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 23:// SCRATCH_LOAD_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
@@ -1427,21 +1714,27 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 29:// SCRATCH_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 30:// SCRATCH_STORE_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,96),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 31:// SCRATCH_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
@@ -1488,40 +1781,460 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
-case 38:// SCRATCH_LOAD_LDS_UBYTE
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+}
+}
+void InstructionDecoder_amdgpu_cdna2::finalizeENC_MIMGOperands(){
+layout_ENC_MIMG & layout = insn_layout.ENC_MIMG;
+switch(layout.OP){
+case 0:// IMAGE_LOAD
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
 break;
-case 39:// SCRATCH_LOAD_LDS_SBYTE
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+case 1:// IMAGE_LOAD_MIP
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
 break;
-case 40:// SCRATCH_LOAD_LDS_USHORT
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+case 2:// IMAGE_LOAD_PCK
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
 break;
-case 41:// SCRATCH_LOAD_LDS_SSHORT
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+case 3:// IMAGE_LOAD_PCK_SGN
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
 break;
-case 42:// SCRATCH_LOAD_LDS_DWORD
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+case 4:// IMAGE_LOAD_MIP_PCK
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 5:// IMAGE_LOAD_MIP_PCK_SGN
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 8:// IMAGE_STORE
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 9:// IMAGE_STORE_MIP
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 10:// IMAGE_STORE_PCK
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 11:// IMAGE_STORE_MIP_PCK
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 14:// IMAGE_GET_RESINFO
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 16:// IMAGE_ATOMIC_SWAP
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 17:// IMAGE_ATOMIC_CMPSWAP
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 18:// IMAGE_ATOMIC_ADD
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 19:// IMAGE_ATOMIC_SUB
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 20:// IMAGE_ATOMIC_SMIN
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 21:// IMAGE_ATOMIC_UMIN
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 22:// IMAGE_ATOMIC_SMAX
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 23:// IMAGE_ATOMIC_UMAX
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 24:// IMAGE_ATOMIC_AND
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 25:// IMAGE_ATOMIC_OR
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 26:// IMAGE_ATOMIC_XOR
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 27:// IMAGE_ATOMIC_INC
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 28:// IMAGE_ATOMIC_DEC
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+break;
+case 32:// IMAGE_SAMPLE
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
 break;
 }
 }
@@ -1530,98 +2243,178 @@ layout_ENC_MTBUF & layout = insn_layout.ENC_MTBUF;
 switch(layout.OP){
 case 0:// TBUFFER_LOAD_FORMAT_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 1:// TBUFFER_LOAD_FORMAT_XY
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 2:// TBUFFER_LOAD_FORMAT_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,96),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 3:// TBUFFER_LOAD_FORMAT_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 4:// TBUFFER_STORE_FORMAT_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 5:// TBUFFER_STORE_FORMAT_XY
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 6:// TBUFFER_STORE_FORMAT_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,96),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 7:// TBUFFER_STORE_FORMAT_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 8:// TBUFFER_LOAD_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 9:// TBUFFER_LOAD_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 10:// TBUFFER_LOAD_FORMAT_D16_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 11:// TBUFFER_LOAD_FORMAT_D16_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 12:// TBUFFER_STORE_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 13:// TBUFFER_STORE_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 14:// TBUFFER_STORE_FORMAT_D16_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 15:// TBUFFER_STORE_FORMAT_D16_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 }
@@ -1631,432 +2424,774 @@ layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
 switch(layout.OP){
 case 0:// BUFFER_LOAD_FORMAT_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 1:// BUFFER_LOAD_FORMAT_XY
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 2:// BUFFER_LOAD_FORMAT_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,96),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 3:// BUFFER_LOAD_FORMAT_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 4:// BUFFER_STORE_FORMAT_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 5:// BUFFER_STORE_FORMAT_XY
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 6:// BUFFER_STORE_FORMAT_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,96),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 7:// BUFFER_STORE_FORMAT_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 8:// BUFFER_LOAD_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 9:// BUFFER_LOAD_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 10:// BUFFER_LOAD_FORMAT_D16_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 11:// BUFFER_LOAD_FORMAT_D16_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 12:// BUFFER_STORE_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 13:// BUFFER_STORE_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 14:// BUFFER_STORE_FORMAT_D16_XYZ
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 15:// BUFFER_STORE_FORMAT_D16_XYZW
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 16:// BUFFER_LOAD_UBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 17:// BUFFER_LOAD_SBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 18:// BUFFER_LOAD_USHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 19:// BUFFER_LOAD_SSHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 20:// BUFFER_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 21:// BUFFER_LOAD_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 22:// BUFFER_LOAD_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,96),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 23:// BUFFER_LOAD_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 24:// BUFFER_STORE_BYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 25:// BUFFER_STORE_BYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 26:// BUFFER_STORE_SHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 27:// BUFFER_STORE_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 28:// BUFFER_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 29:// BUFFER_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 30:// BUFFER_STORE_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,96),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 31:// BUFFER_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 32:// BUFFER_LOAD_UBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 33:// BUFFER_LOAD_UBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 34:// BUFFER_LOAD_SBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 35:// BUFFER_LOAD_SBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 36:// BUFFER_LOAD_SHORT_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 37:// BUFFER_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 38:// BUFFER_LOAD_FORMAT_D16_HI_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 39:// BUFFER_STORE_FORMAT_D16_HI_X
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 40:// BUFFER_WBL2
 break;
-case 41:// BUFFER_INV
+case 41:// BUFFER_INVL2
+break;
+case 61:// BUFFER_STORE_LDS_DWORD
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+break;
+case 62:// BUFFER_WBINVL1
+break;
+case 63:// BUFFER_WBINVL1_VOL
 break;
 case 64:// BUFFER_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 65:// BUFFER_ATOMIC_CMPSWAP
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 66:// BUFFER_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 67:// BUFFER_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 68:// BUFFER_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 69:// BUFFER_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 70:// BUFFER_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 71:// BUFFER_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 72:// BUFFER_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 73:// BUFFER_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 74:// BUFFER_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 75:// BUFFER_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 76:// BUFFER_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 77:// BUFFER_ATOMIC_ADD_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 78:// BUFFER_ATOMIC_PK_ADD_F16
 insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 79:// BUFFER_ATOMIC_ADD_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 80:// BUFFER_ATOMIC_MIN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 81:// BUFFER_ATOMIC_MAX_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 96:// BUFFER_ATOMIC_SWAP_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 97:// BUFFER_ATOMIC_CMPSWAP_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,128),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 98:// BUFFER_ATOMIC_ADD_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 99:// BUFFER_ATOMIC_SUB_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 100:// BUFFER_ATOMIC_SMIN_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 101:// BUFFER_ATOMIC_UMIN_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 102:// BUFFER_ATOMIC_SMAX_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 103:// BUFFER_ATOMIC_UMAX_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 104:// BUFFER_ATOMIC_AND_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 105:// BUFFER_ATOMIC_OR_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 106:// BUFFER_ATOMIC_XOR_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 107:// BUFFER_ATOMIC_INC_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 case 108:// BUFFER_ATOMIC_DEC_X2
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VADDR+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
 break;
 }
@@ -2066,112 +3201,218 @@ layout_ENC_SMEM & layout = insn_layout.ENC_SMEM;
 switch(layout.OP){
 case 0:// S_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 1:// S_LOAD_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 2:// S_LOAD_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 3:// S_LOAD_DWORDX8
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,256),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+4,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+5,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+6,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+7,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 4:// S_LOAD_DWORDX16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+4,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+5,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+6,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+7,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+8,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+9,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+10,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+11,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+12,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+13,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+14,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+15,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 5:// S_SCRATCH_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 6:// S_SCRATCH_LOAD_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 7:// S_SCRATCH_LOAD_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 8:// S_BUFFER_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 9:// S_BUFFER_LOAD_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 10:// S_BUFFER_LOAD_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 11:// S_BUFFER_LOAD_DWORDX8
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,256),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+4,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+5,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+6,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+7,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 12:// S_BUFFER_LOAD_DWORDX16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+4,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+5,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+6,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+7,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+8,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+9,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+10,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+11,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+12,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+13,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+14,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+15,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 16:// S_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 17:// S_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 18:// S_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 21:// S_SCRATCH_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 22:// S_SCRATCH_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 23:// S_SCRATCH_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 24:// S_BUFFER_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 25:// S_BUFFER_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 26:// S_BUFFER_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 32:// S_DCACHE_INV
@@ -2183,287 +3424,431 @@ break;
 case 35:// S_DCACHE_WB_VOL
 break;
 case 36:// S_MEMTIME
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
 break;
 case 37:// S_MEMREALTIME
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
 break;
 case 38:// S_ATC_PROBE
 insn_in_progress->appendOperand(decodeOPR_SIMM8(layout.SDATA),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 39:// S_ATC_PROBE_BUFFER
 insn_in_progress->appendOperand(decodeOPR_SIMM8(layout.SDATA),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 40:// S_DCACHE_DISCARD
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 41:// S_DCACHE_DISCARD_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 64:// S_BUFFER_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 65:// S_BUFFER_ATOMIC_CMPSWAP
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 66:// S_BUFFER_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 67:// S_BUFFER_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 68:// S_BUFFER_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 69:// S_BUFFER_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 70:// S_BUFFER_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 71:// S_BUFFER_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 72:// S_BUFFER_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 73:// S_BUFFER_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 74:// S_BUFFER_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 75:// S_BUFFER_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 76:// S_BUFFER_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 96:// S_BUFFER_ATOMIC_SWAP_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 97:// S_BUFFER_ATOMIC_CMPSWAP_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 98:// S_BUFFER_ATOMIC_ADD_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 99:// S_BUFFER_ATOMIC_SUB_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 100:// S_BUFFER_ATOMIC_SMIN_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 101:// S_BUFFER_ATOMIC_UMIN_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 102:// S_BUFFER_ATOMIC_SMAX_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 103:// S_BUFFER_ATOMIC_UMAX_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 104:// S_BUFFER_ATOMIC_AND_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 105:// S_BUFFER_ATOMIC_OR_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 106:// S_BUFFER_ATOMIC_XOR_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 107:// S_BUFFER_ATOMIC_INC_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 108:// S_BUFFER_ATOMIC_DEC_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 128:// S_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 129:// S_ATOMIC_CMPSWAP
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 130:// S_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 131:// S_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 132:// S_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 133:// S_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 134:// S_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 135:// S_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 136:// S_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 137:// S_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 138:// S_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 139:// S_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 140:// S_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 160:// S_ATOMIC_SWAP_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 161:// S_ATOMIC_CMPSWAP_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,128),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 162:// S_ATOMIC_ADD_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 163:// S_ATOMIC_SUB_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 164:// S_ATOMIC_SMIN_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 165:// S_ATOMIC_UMIN_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 166:// S_ATOMIC_SMAX_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 167:// S_ATOMIC_UMAX_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 168:// S_ATOMIC_AND_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 169:// S_ATOMIC_OR_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 170:// S_ATOMIC_XOR_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 171:// S_ATOMIC_INC_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 case 172:// S_ATOMIC_DEC_X2
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
 break;
 }
@@ -2476,8 +3861,10 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 1:// S_MOV_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 break;
 case 2:// S_CMOV_B32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),true,true);
@@ -2485,8 +3872,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),true,false);
 break;
 case 3:// S_CMOV_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),true,false);
 break;
 case 4:// S_NOT_B32
@@ -2495,8 +3884,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 5:// S_NOT_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 6:// S_WQM_B32
@@ -2505,8 +3896,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 7:// S_WQM_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 8:// S_BREV_B32
@@ -2514,8 +3907,10 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 9:// S_BREV_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 break;
 case 10:// S_BCNT0_I32_B32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
@@ -2524,7 +3919,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 11:// S_BCNT0_I32_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 12:// S_BCNT1_I32_B32
@@ -2534,7 +3930,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 13:// S_BCNT1_I32_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 14:// S_FF0_I32_B32
@@ -2543,7 +3940,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 15:// S_FF0_I32_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 break;
 case 16:// S_FF1_I32_B32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
@@ -2551,7 +3949,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 17:// S_FF1_I32_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 break;
 case 18:// S_FLBIT_I32_B32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
@@ -2559,7 +3958,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 19:// S_FLBIT_I32_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 break;
 case 20:// S_FLBIT_I32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
@@ -2567,7 +3967,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 21:// S_FLBIT_I32_I64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 break;
 case 22:// S_SEXT_I32_I8
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),false,true);
@@ -2582,7 +3983,8 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 25:// S_BITSET0_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 26:// S_BITSET1_B32
@@ -2590,79 +3992,101 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 27:// S_BITSET1_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 case 28:// S_GETPC_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),true,false);
 break;
 case 29:// S_SETPC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 break;
 case 30:// S_SWAPPC_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),true,false);
 break;
 case 31:// S_RFE_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 break;
 case 32:// S_AND_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 33:// S_OR_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 34:// S_XOR_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 35:// S_ANDN2_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 36:// S_ORN2_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 37:// S_NAND_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 38:// S_NOR_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 39:// S_XNOR_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
@@ -2673,8 +4097,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 41:// S_QUADMASK_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 42:// S_MOVRELS_B32
@@ -2683,8 +4109,10 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 43:// S_MOVRELS_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 44:// S_MOVRELD_B32
@@ -2693,8 +4121,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 45:// S_MOVRELD_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 46:// S_CBRANCH_JOIN
@@ -2713,35 +4143,44 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 51:// S_ANDN1_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 52:// S_ORN1_SAVEEXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 53:// S_ANDN1_WREXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 54:// S_ANDN2_WREXEC_B64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 55:// S_BITREPLICATE_B64_B32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 }
@@ -2818,9 +4257,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),true,false);
 break;
 case 11:// S_CSELECT_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),true,false);
 break;
 case 12:// S_AND_B32
@@ -2830,9 +4272,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 13:// S_AND_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 14:// S_OR_B32
@@ -2842,9 +4287,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 15:// S_OR_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 16:// S_XOR_B32
@@ -2854,9 +4302,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 17:// S_XOR_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 18:// S_ANDN2_B32
@@ -2866,9 +4317,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 19:// S_ANDN2_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 20:// S_ORN2_B32
@@ -2878,9 +4332,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 21:// S_ORN2_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 22:// S_NAND_B32
@@ -2890,9 +4347,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 23:// S_NAND_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 24:// S_NOR_B32
@@ -2902,9 +4362,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 25:// S_NOR_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 26:// S_XNOR_B32
@@ -2914,9 +4377,12 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 27:// S_XNOR_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 28:// S_LSHL_B32
@@ -2926,8 +4392,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 29:// S_LSHL_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
@@ -2938,8 +4406,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 31:// S_LSHR_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
@@ -2950,8 +4420,10 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 33:// S_ASHR_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
@@ -2961,7 +4433,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 break;
 case 35:// S_BFM_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 break;
@@ -2983,20 +4456,26 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 39:// S_BFE_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 40:// S_BFE_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 41:// S_CBRANCH_G_FORK
-insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 break;
 case 42:// S_ABSDIFF_I32
@@ -3006,7 +4485,8 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 43:// S_RFE_RESTORE_B64
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 break;
@@ -3135,12 +4615,14 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 14:// S_BITCMP0_B64
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 15:// S_BITCMP1_B64
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
@@ -3155,13 +4637,17 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 18:// S_CMP_EQ_U64
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 case 19:// S_CMP_LG_U64
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 }
@@ -3248,7 +4734,8 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
 break;
 case 16:// S_CBRANCH_I_FORK
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 break;
 case 17:// S_GETREG_B32
@@ -3264,7 +4751,8 @@ insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),false,true);
 insn_in_progress->appendOperand(decodeOPR_SIMM32(decodeOPR_LITERAL()),true,false);
 break;
 case 21:// S_CALL_B64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),true,false);
@@ -3370,9 +4858,6 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 case 30:// S_ENDPGM_ORDERED_PS_DONE
 break;
-case 31:// S_SET_VALU_COEXEC_MODE
-insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
-break;
 }
 }
 void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP1Operands(){
@@ -3390,10 +4875,12 @@ insn_in_progress->appendOperand(decodeOPR_VGPR_OR_LDS(layout.SRC0,32),true,false
 break;
 case 3:// V_CVT_I32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 4:// V_CVT_F64_I32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 5:// V_CVT_F32_I32
@@ -3434,10 +4921,12 @@ insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 15:// V_CVT_F32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 16:// V_CVT_F64_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 17:// V_CVT_F32_UBYTE0
@@ -3458,27 +4947,37 @@ insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 21:// V_CVT_U32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 22:// V_CVT_F64_U32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 23:// V_TRUNC_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 24:// V_CEIL_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 25:// V_RNDNE_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 26:// V_FLOOR_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 27:// V_FRACT_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -3521,20 +5020,26 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 37:// V_RCP_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 38:// V_RSQ_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 39:// V_SQRT_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 40:// V_SQRT_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 41:// V_SIN_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -3566,15 +5071,20 @@ insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 break;
 case 48:// V_FREXP_EXP_I32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 49:// V_FREXP_MANT_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 50:// V_FRACT_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 break;
 case 51:// V_FREXP_EXP_I32_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -3589,10 +5099,6 @@ break;
 case 55:// V_SCREEN_PARTITION_4SE_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
-break;
-case 56:// V_MOV_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
 break;
 case 57:// V_CVT_F16_U16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
@@ -3694,22 +5200,6 @@ case 82:// V_ACCVGPR_MOV_B32
 insn_in_progress->appendOperand(decodeOPR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_ACCVGPR(layout.SRC0,32),true,false);
 break;
-case 84:// V_CVT_F32_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,8),true,false);
-break;
-case 85:// V_CVT_F32_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,8),true,false);
-break;
-case 86:// V_CVT_PK_F32_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
-break;
-case 87:// V_CVT_PK_F32_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,8),true,false);
-break;
 }
 }
 void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP3Operands(){
@@ -3727,10 +5217,12 @@ insn_in_progress->appendOperand(decodeOPR_VGPR_OR_LDS(layout.SRC0,32),true,false
 break;
 case 323:// V_CVT_I32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 324:// V_CVT_F64_I32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 325:// V_CVT_F32_I32
@@ -3771,10 +5263,12 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 335:// V_CVT_F32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 336:// V_CVT_F64_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 337:// V_CVT_F32_UBYTE0
@@ -3795,27 +5289,37 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 341:// V_CVT_U32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 342:// V_CVT_F64_U32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 343:// V_TRUNC_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 344:// V_CEIL_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 345:// V_RNDNE_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 346:// V_FLOOR_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 347:// V_FRACT_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -3858,20 +5362,26 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 357:// V_RCP_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 358:// V_RSQ_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 359:// V_SQRT_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 360:// V_SQRT_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 361:// V_SIN_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -3903,15 +5413,20 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 case 368:// V_FREXP_EXP_I32_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 369:// V_FREXP_MANT_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 370:// V_FRACT_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 break;
 case 371:// V_FREXP_EXP_I32_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -3926,10 +5441,6 @@ break;
 case 375:// V_SCREEN_PARTITION_4SE_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-break;
-case 376:// V_MOV_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
 break;
 case 377:// V_CVT_F16_U16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
@@ -4031,27 +5542,12 @@ case 402:// V_ACCVGPR_MOV_B32
 insn_in_progress->appendOperand(decodeOPR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_ACCVGPR(layout.SRC0,32),true,false);
 break;
-case 404:// V_CVT_F32_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,8),true,false);
-break;
-case 405:// V_CVT_F32_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,8),true,false);
-break;
-case 406:// V_CVT_PK_F32_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-break;
-case 407:// V_CVT_PK_F32_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,8),true,false);
-break;
 case 256:// V_CNDMASK_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+1,32),true,false);
 break;
 case 257:// V_ADD_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -4069,9 +5565,12 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 260:// V_FMAC_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 261:// V_MUL_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -4155,6 +5654,11 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false)
 break;
 case 277:// V_XOR_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+break;
+case 278:// V_MAC_F32
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
@@ -4303,6 +5807,18 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
+case 448:// V_MAD_LEGACY_F32
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
+break;
+case 449:// V_MAD_F32
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
+break;
 case 450:// V_MAD_I32_I24
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
@@ -4364,10 +5880,14 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false)
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 460:// V_FMA_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 break;
 case 461:// V_LERP_U8
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -4478,10 +5998,14 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false)
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 479:// V_DIV_FIXUP_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 break;
 case 482:// V_DIV_FMAS_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -4491,10 +6015,14 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false)
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),true,false);
 break;
 case 483:// V_DIV_FMAS_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),true,false);
 break;
 case 484:// V_MSAD_U8
@@ -4504,22 +6032,35 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false)
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 485:// V_QSAD_PK_U16_U8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 break;
 case 486:// V_MQSAD_PK_U16_U8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 break;
 case 487:// V_MQSAD_U32_U8
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+3,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2+2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2+3,32),true,false);
 break;
 case 490:// V_MAD_LEGACY_F16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
@@ -4700,35 +6241,43 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,16),true,false);
 break;
-case 520:// V_LSHL_ADD_U64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
-break;
 case 640:// V_ADD_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 641:// V_MUL_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 642:// V_MIN_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 643:// V_MAX_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 644:// V_LDEXP_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 645:// V_MUL_LO_U32
@@ -4777,23 +6326,31 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 655:// V_LSHLREV_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 656:// V_LSHRREV_B64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 657:// V_ASHRREV_I64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 658:// V_TRIG_PREOP_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 659:// V_BFM_B32
@@ -4866,1113 +6423,1421 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
-case 674:// V_CVT_PK_FP8_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-break;
-case 675:// V_CVT_PK_BF8_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-break;
-case 676:// V_CVT_SR_FP8_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),true,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-break;
-case 677:// V_CVT_SR_BF8_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,8),true,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-break;
 case 16:// V_CMP_CLASS_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 17:// V_CMPX_CLASS_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 18:// V_CMP_CLASS_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 19:// V_CMPX_CLASS_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 20:// V_CMP_CLASS_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 21:// V_CMPX_CLASS_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 32:// V_CMP_F_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 33:// V_CMP_LT_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 34:// V_CMP_EQ_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 35:// V_CMP_LE_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 36:// V_CMP_GT_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 37:// V_CMP_LG_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 38:// V_CMP_GE_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 39:// V_CMP_O_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 40:// V_CMP_U_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 41:// V_CMP_NGE_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 42:// V_CMP_NLG_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 43:// V_CMP_NGT_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 44:// V_CMP_NLE_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 45:// V_CMP_NEQ_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 46:// V_CMP_NLT_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 47:// V_CMP_TRU_F16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 48:// V_CMPX_F_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 49:// V_CMPX_LT_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 50:// V_CMPX_EQ_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 51:// V_CMPX_LE_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 52:// V_CMPX_GT_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 53:// V_CMPX_LG_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 54:// V_CMPX_GE_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 55:// V_CMPX_O_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 56:// V_CMPX_U_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 57:// V_CMPX_NGE_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 58:// V_CMPX_NLG_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 59:// V_CMPX_NGT_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 60:// V_CMPX_NLE_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 61:// V_CMPX_NEQ_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 62:// V_CMPX_NLT_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 63:// V_CMPX_TRU_F16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 64:// V_CMP_F_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 65:// V_CMP_LT_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 66:// V_CMP_EQ_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 67:// V_CMP_LE_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 68:// V_CMP_GT_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 69:// V_CMP_LG_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 70:// V_CMP_GE_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 71:// V_CMP_O_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 72:// V_CMP_U_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 73:// V_CMP_NGE_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 74:// V_CMP_NLG_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 75:// V_CMP_NGT_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 76:// V_CMP_NLE_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 77:// V_CMP_NEQ_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 78:// V_CMP_NLT_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 79:// V_CMP_TRU_F32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 80:// V_CMPX_F_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 81:// V_CMPX_LT_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 82:// V_CMPX_EQ_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 83:// V_CMPX_LE_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 84:// V_CMPX_GT_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 85:// V_CMPX_LG_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 86:// V_CMPX_GE_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 87:// V_CMPX_O_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 88:// V_CMPX_U_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 89:// V_CMPX_NGE_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 90:// V_CMPX_NLG_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 91:// V_CMPX_NGT_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 92:// V_CMPX_NLE_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 93:// V_CMPX_NEQ_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 94:// V_CMPX_NLT_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 95:// V_CMPX_TRU_F32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 96:// V_CMP_F_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 97:// V_CMP_LT_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 98:// V_CMP_EQ_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 99:// V_CMP_LE_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 100:// V_CMP_GT_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 101:// V_CMP_LG_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 102:// V_CMP_GE_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 103:// V_CMP_O_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 104:// V_CMP_U_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 105:// V_CMP_NGE_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 106:// V_CMP_NLG_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 107:// V_CMP_NGT_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 108:// V_CMP_NLE_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 109:// V_CMP_NEQ_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 110:// V_CMP_NLT_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 111:// V_CMP_TRU_F64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 112:// V_CMPX_F_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 113:// V_CMPX_LT_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 114:// V_CMPX_EQ_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 115:// V_CMPX_LE_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 116:// V_CMPX_GT_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 117:// V_CMPX_LG_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 118:// V_CMPX_GE_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 119:// V_CMPX_O_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 120:// V_CMPX_U_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 121:// V_CMPX_NGE_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 122:// V_CMPX_NLG_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 123:// V_CMPX_NGT_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 124:// V_CMPX_NLE_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 125:// V_CMPX_NEQ_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 126:// V_CMPX_NLT_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 127:// V_CMPX_TRU_F64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 160:// V_CMP_F_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 161:// V_CMP_LT_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 162:// V_CMP_EQ_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 163:// V_CMP_LE_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 164:// V_CMP_GT_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 165:// V_CMP_NE_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 166:// V_CMP_GE_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 167:// V_CMP_T_I16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 168:// V_CMP_F_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 169:// V_CMP_LT_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 170:// V_CMP_EQ_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 171:// V_CMP_LE_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 172:// V_CMP_GT_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 173:// V_CMP_NE_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 174:// V_CMP_GE_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 175:// V_CMP_T_U16
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 176:// V_CMPX_F_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 177:// V_CMPX_LT_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 178:// V_CMPX_EQ_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 179:// V_CMPX_LE_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 180:// V_CMPX_GT_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 181:// V_CMPX_NE_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 182:// V_CMPX_GE_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 183:// V_CMPX_T_I16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 184:// V_CMPX_F_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 185:// V_CMPX_LT_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 186:// V_CMPX_EQ_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 187:// V_CMPX_LE_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 188:// V_CMPX_GT_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 189:// V_CMPX_NE_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 190:// V_CMPX_GE_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 191:// V_CMPX_T_U16
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 192:// V_CMP_F_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 193:// V_CMP_LT_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 194:// V_CMP_EQ_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 195:// V_CMP_LE_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 196:// V_CMP_GT_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 197:// V_CMP_NE_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 198:// V_CMP_GE_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 199:// V_CMP_T_I32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 200:// V_CMP_F_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 201:// V_CMP_LT_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 202:// V_CMP_EQ_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 203:// V_CMP_LE_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 204:// V_CMP_GT_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 205:// V_CMP_NE_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 206:// V_CMP_GE_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 207:// V_CMP_T_U32
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 208:// V_CMPX_F_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 209:// V_CMPX_LT_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 210:// V_CMPX_EQ_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 211:// V_CMPX_LE_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 212:// V_CMPX_GT_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 213:// V_CMPX_NE_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 214:// V_CMPX_GE_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 215:// V_CMPX_T_I32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 216:// V_CMPX_F_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 217:// V_CMPX_LT_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 218:// V_CMPX_EQ_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 219:// V_CMPX_LE_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 220:// V_CMPX_GT_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 221:// V_CMPX_NE_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 222:// V_CMPX_GE_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 223:// V_CMPX_T_U32
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 224:// V_CMP_F_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 225:// V_CMP_LT_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 226:// V_CMP_EQ_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 227:// V_CMP_LE_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 228:// V_CMP_GT_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 229:// V_CMP_NE_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 230:// V_CMP_GE_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 231:// V_CMP_T_I64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 232:// V_CMP_F_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 233:// V_CMP_LT_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 234:// V_CMP_EQ_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 235:// V_CMP_LE_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 236:// V_CMP_GT_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 237:// V_CMP_NE_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 238:// V_CMP_GE_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 239:// V_CMP_T_U64
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 240:// V_CMPX_F_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 241:// V_CMPX_LT_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 242:// V_CMPX_EQ_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 243:// V_CMPX_LE_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 244:// V_CMPX_GT_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 245:// V_CMPX_NE_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 246:// V_CMPX_GE_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 247:// V_CMPX_T_I64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 248:// V_CMPX_F_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 249:// V_CMPX_LT_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 250:// V_CMPX_EQ_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 251:// V_CMPX_LE_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 252:// V_CMPX_GT_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 253:// V_CMPX_NE_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 254:// V_CMPX_GE_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 255:// V_CMPX_T_U64
-insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 }
@@ -6002,9 +7867,12 @@ insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
 break;
 case 4:// V_FMAC_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),true,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),true,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 5:// V_MUL_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -6088,6 +7956,11 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
 break;
 case 21:// V_XOR_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
+break;
+case 22:// V_MAC_F32
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
 break;
@@ -6280,13 +8153,13 @@ break;
 void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP2_LITERALOperands(){
 layout_ENC_VOP2_LITERAL & layout = insn_layout.ENC_VOP2_LITERAL;
 switch(layout.OP){
-case 23:// V_FMAMK_F32
+case 23:// V_MADMK_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SIMM32(layout.SIMM32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
 break;
-case 24:// V_FMAAK_F32
+case 24:// V_MADAK_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
@@ -6311,70 +8184,91 @@ layout_ENC_VOP3B & layout = insn_layout.ENC_VOP3B;
 switch(layout.OP){
 case 281:// V_ADD_CO_U32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 282:// V_SUB_CO_U32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 283:// V_SUBREV_CO_U32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 284:// V_ADDC_CO_U32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+1,32),true,false);
 break;
 case 285:// V_SUBB_CO_U32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+1,32),true,false);
 break;
 case 286:// V_SUBBREV_CO_U32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+1,32),true,false);
 break;
 case 480:// V_DIV_SCALE_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 481:// V_DIV_SCALE_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 break;
 case 488:// V_MAD_U64_U32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 break;
 case 489:// V_MAD_I64_I32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST,64),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,false);
 break;
 }
 }
@@ -6382,25 +8276,25 @@ void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP3POperands(){
 layout_ENC_VOP3P & layout = insn_layout.ENC_VOP3P;
 switch(layout.OP){
 case 0:// V_PK_MAD_I16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,16),true,false);
 break;
 case 1:// V_PK_MUL_LO_U16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 2:// V_PK_ADD_I16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 3:// V_PK_SUB_I16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 4:// V_PK_LSHLREV_B16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -6418,66 +8312,66 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC0,32),true,false)
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 7:// V_PK_MAX_I16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 8:// V_PK_MIN_I16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 9:// V_PK_MAD_U16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,16),true,false);
 break;
 case 10:// V_PK_ADD_U16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 11:// V_PK_SUB_U16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 12:// V_PK_MAX_U16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 13:// V_PK_MIN_U16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 14:// V_PK_FMA_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,16),true,false);
 break;
 case 15:// V_PK_ADD_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 16:// V_PK_MUL_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 17:// V_PK_MIN_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 18:// V_PK_MAX_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 break;
 case 32:// V_MAD_MIX_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -6499,20 +8393,20 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false)
 break;
 case 35:// V_DOT2_F32_F16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 38:// V_DOT2_I32_I16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 39:// V_DOT2_U32_U16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,16),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 40:// V_DOT4_I32_I8
@@ -6540,25 +8434,28 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false)
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 48:// V_PK_FMA_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
 break;
 case 49:// V_PK_MUL_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 50:// V_PK_ADD_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 break;
 case 51:// V_PK_MOV_B32
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,32),true,false);
 break;
 case 88:// V_ACCVGPR_READ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -6573,281 +8470,167 @@ break;
 void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP3P_MFMAOperands(){
 layout_ENC_VOP3P_MFMA & layout = insn_layout.ENC_VOP3P_MFMA;
 switch(layout.OP){
-case 62:// V_MFMA_F32_16X16X8_XF32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
-break;
-case 63:// V_MFMA_F32_32X32X4_XF32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
-break;
-case 64:// V_MFMA_F32_32X32X1_2B_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,1024),false,true);
+case 64:// V_MFMA_F32_32X32X1F32
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,1024),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 65:// V_MFMA_F32_16X16X1_4B_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
+case 65:// V_MFMA_F32_16X16X1F32
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 66:// V_MFMA_F32_4X4X1_16B_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+case 66:// V_MFMA_F32_4X4X1F32
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 68:// V_MFMA_F32_32X32X2_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
+case 68:// V_MFMA_F32_32X32X2F32
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 69:// V_MFMA_F32_16X16X4_F32
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+case 69:// V_MFMA_F32_16X16X4F32
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 72:// V_MFMA_F32_32X32X4_2B_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,1024),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,1024),true,false);
-break;
-case 73:// V_MFMA_F32_16X16X4_4B_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
-break;
-case 74:// V_MFMA_F32_4X4X4_16B_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
-break;
-case 76:// V_MFMA_F32_32X32X8_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
-break;
-case 77:// V_MFMA_F32_16X16X16_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
-break;
-case 80:// V_MFMA_I32_32X32X4_2B_I8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,1024),false,true);
+case 72:// V_MFMA_F32_32X32X4F16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,1024),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 81:// V_MFMA_I32_16X16X4_4B_I8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
+case 73:// V_MFMA_F32_16X16X4F16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 82:// V_MFMA_I32_4X4X4_16B_I8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
+case 74:// V_MFMA_F32_4X4X4F16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 86:// V_MFMA_I32_32X32X16_I8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
+case 76:// V_MFMA_F32_32X32X8F16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 87:// V_MFMA_I32_16X16X32_I8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+case 77:// V_MFMA_F32_16X16X16F16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 93:// V_MFMA_F32_32X32X4_2B_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,1024),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,1024),true,false);
+case 80:// V_MFMA_I32_32X32X4I8
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 94:// V_MFMA_F32_16X16X4_4B_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
+case 81:// V_MFMA_I32_16X16X4I8
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 95:// V_MFMA_F32_4X4X4_16B_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+case 82:// V_MFMA_I32_4X4X4I8
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 96:// V_MFMA_F32_32X32X8_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
+case 84:// V_MFMA_I32_32X32X8I8
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 97:// V_MFMA_F32_16X16X16_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+case 85:// V_MFMA_I32_16X16X16I8
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 98:// V_SMFMAC_F32_16X16X32_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
+case 99:// V_MFMA_F32_32X32X4BF16_1K
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 100:// V_SMFMAC_F32_32X32X16_F16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
+case 100:// V_MFMA_F32_16X16X4BF16_1K
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 102:// V_SMFMAC_F32_16X16X32_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
+case 101:// V_MFMA_F32_4X4X4BF16_1K
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 104:// V_SMFMAC_F32_32X32X16_BF16
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
+case 102:// V_MFMA_F32_32X32X8BF16_1K
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 106:// V_SMFMAC_I32_16X16X64_I8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
+case 103:// V_MFMA_F32_16X16X16BF16_1K
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 108:// V_SMFMAC_I32_32X32X32_I8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
+case 104:// V_MFMA_F32_32X32X2BF16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 110:// V_MFMA_F64_16X16X4_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,256),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,256),true,false);
+case 105:// V_MFMA_F32_16X16X2BF16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 111:// V_MFMA_F64_4X4X4_4B_F64
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,64),true,false);
+case 107:// V_MFMA_F32_4X4X2BF16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 112:// V_MFMA_F32_16X16X32_BF8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+case 108:// V_MFMA_F32_32X32X4BF16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 113:// V_MFMA_F32_16X16X32_BF8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+case 109:// V_MFMA_F32_16X16X8BF16
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 114:// V_MFMA_F32_16X16X32_FP8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
+case 110:// V_MFMA_F64_16X16X4F64
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
-case 115:// V_MFMA_F32_16X16X32_FP8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,128),true,false);
-break;
-case 116:// V_MFMA_F32_32X32X16_BF8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
-break;
-case 117:// V_MFMA_F32_32X32X16_BF8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
-break;
-case 118:// V_MFMA_F32_32X32X16_FP8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
-break;
-case 119:// V_MFMA_F32_32X32X16_FP8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,512),true,false);
-break;
-case 120:// V_SMFMAC_F32_16X16X64_BF8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
-break;
-case 121:// V_SMFMAC_F32_16X16X64_BF8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
-break;
-case 122:// V_SMFMAC_F32_16X16X64_FP8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
-break;
-case 123:// V_SMFMAC_F32_16X16X64_FP8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,128),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
-break;
-case 124:// V_SMFMAC_F32_32X32X32_BF8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
-break;
-case 125:// V_SMFMAC_F32_32X32X32_BF8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
-break;
-case 126:// V_SMFMAC_F32_32X32X32_FP8_BF8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
-break;
-case 127:// V_SMFMAC_F32_32X32X32_FP8_FP8
-insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,512),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,128),true,false);
-insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC2,32),true,false);
+case 111:// V_MFMA_F64_4X4X4F64
+insn_in_progress->appendOperand(decodeOPR_VGPR_OR_ACCVGPR(layout.VDST,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,32),true,false);
 break;
 }
 }
@@ -6867,12 +8650,14 @@ insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 18:// V_CMP_CLASS_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
 break;
 case 19:// V_CMPX_CLASS_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
@@ -7241,178 +9026,242 @@ insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 96:// V_CMP_F_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 97:// V_CMP_LT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 98:// V_CMP_EQ_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 99:// V_CMP_LE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 100:// V_CMP_GT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 101:// V_CMP_LG_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 102:// V_CMP_GE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 103:// V_CMP_O_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 104:// V_CMP_U_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 105:// V_CMP_NGE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 106:// V_CMP_NLG_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 107:// V_CMP_NGT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 108:// V_CMP_NLE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 109:// V_CMP_NEQ_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 110:// V_CMP_NLT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 111:// V_CMP_TRU_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 112:// V_CMPX_F_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 113:// V_CMPX_LT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 114:// V_CMPX_EQ_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 115:// V_CMPX_LE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 116:// V_CMPX_GT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 117:// V_CMPX_LG_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 118:// V_CMPX_GE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 119:// V_CMPX_O_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 120:// V_CMPX_U_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 121:// V_CMPX_NGE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 122:// V_CMPX_NLG_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 123:// V_CMPX_NGT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 124:// V_CMPX_NLE_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 125:// V_CMPX_NEQ_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 126:// V_CMPX_NLT_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 127:// V_CMPX_TRU_F64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 160:// V_CMP_F_I16
@@ -7769,178 +9618,242 @@ insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 224:// V_CMP_F_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 225:// V_CMP_LT_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 226:// V_CMP_EQ_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 227:// V_CMP_LE_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 228:// V_CMP_GT_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 229:// V_CMP_NE_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 230:// V_CMP_GE_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 231:// V_CMP_T_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 232:// V_CMP_F_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 233:// V_CMP_LT_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 234:// V_CMP_EQ_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 235:// V_CMP_LE_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 236:// V_CMP_GT_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 237:// V_CMP_NE_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 238:// V_CMP_GE_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 239:// V_CMP_T_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 break;
 case 240:// V_CMPX_F_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 241:// V_CMPX_LT_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 242:// V_CMPX_EQ_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 243:// V_CMPX_LE_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 244:// V_CMPX_GT_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 245:// V_CMPX_NE_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 246:// V_CMPX_GE_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 247:// V_CMPX_T_I64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 248:// V_CMPX_F_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 249:// V_CMPX_LT_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 250:// V_CMPX_EQ_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 251:// V_CMPX_LE_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 252:// V_CMPX_GT_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 253:// V_CMPX_NE_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 254:// V_CMPX_GE_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 case 255:// V_CMPX_T_U64
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
-insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0,64),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,64),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,32),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 }
