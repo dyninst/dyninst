@@ -320,7 +320,7 @@ default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_PC(uint64_t input,uint32_t opr_size ){
 switch(input){
-case 0 : return makeRegisterExpression(amdgpu_cdna2::pc_all,0,opr_size);
+case 0 : return makeRegisterExpression(amdgpu_cdna2::pc_all);
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 }
@@ -5589,7 +5589,7 @@ default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_VCC(uint64_t input,uint32_t opr_size ){
 switch(input){
-case 0 : return makeRegisterExpression(amdgpu_cdna2::vcc,0,opr_size);
+case 0 : return makeRegisterExpression(amdgpu_cdna2::vcc);
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 }
