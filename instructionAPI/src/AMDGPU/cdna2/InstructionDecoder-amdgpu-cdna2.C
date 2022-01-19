@@ -224,9 +224,6 @@ namespace Dyninst {
         void Dyninst::InstructionAPI::InstructionDecoder_amdgpu_cdna2::finalizeENC_VINTRPOperands(){
         
         }
-        void Dyninst::InstructionAPI::InstructionDecoder_amdgpu_cdna2::finalizeENC_MIMGOperands()
-        {
-        }
 #include "amdgpu_cdna2_decoder_impl.C"
 #include "decodeOperands.C"
 #include "finalizeOperands.C"
