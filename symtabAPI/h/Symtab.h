@@ -508,8 +508,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Offset main_call_addr_; // address of call to main()
 
    unsigned address_width_;
-   char *code_ptr_;
-   char *data_ptr_;
    std::string interpreter_name_;
    Offset entry_address_;
    Offset base_address_;
