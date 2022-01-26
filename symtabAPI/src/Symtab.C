@@ -313,7 +313,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    is_a_out(false),
    main_call_addr_(0),
    address_width_(sizeof(int)),
-   code_ptr_(NULL), data_ptr_(NULL),
    entry_address_(0), base_address_(0), load_address_(0),
    object_type_(obj_Unknown), is_eel_(false),
    no_of_sections(0),
@@ -343,7 +342,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    is_a_out(false),
    main_call_addr_(0),
    address_width_(sizeof(int)),
-   code_ptr_(NULL), data_ptr_(NULL),
    entry_address_(0), base_address_(0), load_address_(0),
    object_type_(obj_Unknown), is_eel_(false),
    no_of_sections(0),
@@ -426,17 +424,6 @@ SYMTAB_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
     // Should we update the underlying Object?
 }
 
-/*
-SYMTAB_EXPORT char* Symtab::image_ptr ()  const 
-{
-   return code_ptr_;
-}
-
-SYMTAB_EXPORT char* Symtab::data_ptr ()  const 
-{ 
-   return data_ptr_;
-}
-*/
 SYMTAB_EXPORT const char*  Symtab::getInterpreterName() const 
 {
    if (interpreter_name_.length())
@@ -1069,7 +1056,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    is_a_out(false),
    main_call_addr_(0),
    address_width_(sizeof(int)),
-   code_ptr_(NULL), data_ptr_(NULL),
    entry_address_(0), base_address_(0), load_address_(0),
    object_type_(obj_Unknown), is_eel_(false),
    no_of_sections(0),
@@ -1139,7 +1125,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    is_a_out(false),
    main_call_addr_(0),
    address_width_(sizeof(int)),
-   code_ptr_(NULL), data_ptr_(NULL),
    entry_address_(0), base_address_(0), load_address_(0),
    object_type_(obj_Unknown), is_eel_(false),
    no_of_sections(0),
@@ -1318,8 +1303,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     /* insert error check here. check if parsed */
     address_width_ = linkedFile->getAddressWidth();
     is_a_out = linkedFile->is_aout();
-    code_ptr_ = linkedFile->code_ptr();
-    data_ptr_ = linkedFile->data_ptr();
 
     if (linkedFile->interpreter_name())
        interpreter_name_ = std::string(linkedFile->interpreter_name());
@@ -1419,7 +1402,6 @@ Symtab::Symtab(const Symtab& obj) :
    is_a_out(obj.is_a_out),
    main_call_addr_(obj.main_call_addr_),
    address_width_(sizeof(int)),
-   code_ptr_(NULL), data_ptr_(NULL),
    entry_address_(0), base_address_(0), load_address_(0),
    object_type_(obj_Unknown), is_eel_(false),
    defaultNamespacePrefix(obj.defaultNamespacePrefix),
