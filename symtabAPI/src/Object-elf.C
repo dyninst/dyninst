@@ -1489,12 +1489,6 @@ void Object::load_object(bool alloc_syms) {
         // find code and data segments....
         find_code_and_data(*elfHdr, txtaddr, dataddr);
 
-        if (elfHdr->e_type() != ET_REL) {
-            if (!code_ptr_ || !code_len_) {
-                //bpfatal( "no text segment\n");
-                goto cleanup;
-            }
-        }
         get_valid_memory_areas(*elfHdr);
 
 #if (defined(os_linux) || defined(os_freebsd))
