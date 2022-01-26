@@ -2429,20 +2429,6 @@ void Object::find_code_and_data(Elf_X &elf,
     //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
 }
 
-const char *Object::elf_vaddr_to_ptr(Offset vaddr) const {
-    const char *ret = NULL;
-    unsigned code_size_ = code_len_;
-    unsigned data_size_ = data_len_;
-
-    if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
-        ret = ((char *) code_ptr_) + (vaddr - code_off_);
-    } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
-        ret = ((char *) data_ptr_) + (vaddr - data_off_);
-    }
-
-    return ret;
-}
-
 Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
                bool alloc_syms, Symtab *st) :
         AObject(mf_, err_func, st),

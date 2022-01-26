@@ -156,8 +156,7 @@ public:
   virtual ~Object();
 
   bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
-  
-  const char *elf_vaddr_to_ptr(Offset vaddr) const;
+    
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
