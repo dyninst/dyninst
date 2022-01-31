@@ -1990,17 +1990,25 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     if (!obj->getAllNewRegions(newSecs))
         log_elferror(err_func_, "No new sections to add");
 
+    unsigned int prev_size = 0;
+    unsigned long sec_addr = 0;
     for (unsigned long nsi = 0; nsi < newSecs.size(); nsi++) {
-	int sec_addr, prev_size;
+	// Update the _DYNAMIC symbol; described in the elf standard as:
+	//  The program header table will have an element of type PT_DYNAMIC.
+	//  This "segment" contains the .dynamic section. A special symbol,
+	//  _DYNAMIC, labels the section
 	if (newSecs[nsi]->getDiskOffset())
 	  sec_addr = newSecs[nsi]->getDiskOffset() + library_adjust;
 	else
 	  sec_addr += prev_size;
 	prev_size = newSecs[nsi]->getDiskSize();
 	if (".dynamic" == newSecs[nsi]->getRegionName()) {
+	    // Found the .dynamic section
 	    for (unsigned long symi = 0; symi < symbolStrs.size(); symi++)
 	      if ("_DYNAMIC" == symbolStrs[symi]) {
-		  rewrite_printf("update _DYNAMIC symbol from %#lx to %#lx\n", (unsigned long) syms[symi].st_value, (unsigned long) sec_addr);
+		  // Found the _DYNAMIC symbol
+		  rewrite_printf("update _DYNAMIC symbol from %#lx to %#lx\n",
+				 (unsigned long) syms[symi].st_value, (unsigned long) sec_addr);
 		  syms[symi].st_value = sec_addr;
 		  break;
 	      }
