@@ -9,8 +9,6 @@ on:
   # Publish packages on release
   release:
     types: [published] 
-    
-  pull_request: []
 
   # On push to main we build and deploy images
   push: 
