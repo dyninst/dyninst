@@ -28,7 +28,6 @@ fileName & std::string \& & Name, not including path, of the source file represe
 language & supportedLanguages & The source language used by the Module. \\
 addr & Offset & Offset of the start of the module, as reported by the symbol table, assuming contiguous modules. \\
 exec & Symtab * & Symtab object that contains the module. \\
-hasLineInformation & bool & True if the module has line information. \\
 \bottomrule
 \end{tabular}
 
@@ -97,14 +96,6 @@ bool findVariablesByName(vector<Function> &ret,
 This method finds and returns a vector of \code{Variable}s whose names match the given pattern. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any (note: a \code{Variable} may not have a typed name). If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matching \code{Variables}, if any.
 Returns \code{true} if it finds variables that match the given name, otherwise returns
 \code{false}. The error value is set to \code{No\_Such\_Variable}.
-}
-
-\begin{apient}
-bool getAllVariables(vector<Variable *> &ret)
-\end{apient}
-\apidesc{
-This method returns all variables in the object file. Returns \code{true} on success
-and \code{false} if there are no modules. The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}
