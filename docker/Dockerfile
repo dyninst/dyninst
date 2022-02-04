@@ -67,7 +67,7 @@ RUN apt-get install -y software-properties-common && \
     apt-get install -y gcc-11 g++-11 && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 70 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9 --slave /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-9 --slave /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-9 && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11 --slave /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-11 --slave /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-11;
-
+   
 # Install spack
 WORKDIR /opt
 RUN git clone --depth 1 https://github.com/spack/spack
@@ -81,7 +81,7 @@ RUN python3 -m pip install botocore boto3 && \
     spack gpg trust key.pub
 
 # Find packages already installed on system, e.g. autoconf
-RUN spack external find && \
+RUN spack external find gcc@11.0.1 autoconf bzip2 git tar xz perl && \
     spack config add 'packages:all:target:[x86_64]' && \
     # Install a new CMake (Tim originally wanted 3.17.1 but spack doesn't have it)
     spack install cmake@${CMAKE_VERSION} perl
