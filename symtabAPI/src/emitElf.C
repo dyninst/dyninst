@@ -342,7 +342,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
             else {
                 if (vers) {
                     // There should only be one version string by this time
-                    //If the verison name already exists then add the same version number to the version symbol table
+                    //If the version name already exists then add the same version number to the version symbol table
                     //Else give a new number and add it to the mapping.
                     if (versionNames.find((*vers)[0]) == versionNames.end()) {
                         mpos += sprintf(mpos, "  new version name: %s\n", (*vers)[0].c_str());
@@ -694,7 +694,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         }
         // Change offsets of sections based on the newly added sections
         if (movePHdrsFirst) {
-            /* This special case is specific to FreeBSD but there is no hurt in
+            /* This special case is specific to FreeBSD but there is no harm in
              * handling it on other platforms.
              *
              * This is necessary because the INTERP header must be located within in
@@ -1105,7 +1105,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
         return;
 
     //We made a new section to contain the program headers--keeps
-    // libelf from overwriting the program headers data when outputing
+    // libelf from overwriting the program headers data when outputting
     // sections.  Fill in the new section's data with what we just wrote.
     Elf_Data *data = elf_newdata(phdrs_scn);
     size_t total_size = (size_t) newEhdr->e_phnum * (size_t) newEhdr->e_phentsize;
@@ -1135,7 +1135,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
 template<class ElfTypes>
 void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
     if (isStaticBinary) return;
-    // This is for REL/RELA if it doesnt already exist in the original binary;
+    // This is for REL/RELA if it doesn't already exist in the original binary;
     if(dynamicSecData.find(tag) != dynamicSecData.end())
         dynamicSecData[tag][0]->d_tag = tag;
     else return;
@@ -1277,7 +1277,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         } else if (!firstNewLoadSec || !newSecs[i]->getDiskOffset()) {
             newshdr->sh_offset = shdr->sh_offset + shdr->sh_size;
         } else {
-            // The offset can be computed by determing the difference from
+            // The offset can be computed by determining the difference from
             // the first new loadable section
             newshdr->sh_offset = firstNewLoadSec->sh_offset + library_adjust +
                                  (newSecs[i]->getDiskOffset() - firstNewLoadSec->sh_addr);
@@ -1632,7 +1632,7 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
 
 /* Regenerates the .symtab, .strtab sections from the symbols
  * Add new .dynsym, .dynstr sections for the newly added dynamic symbols
- * Method - For every symbol call createElfSymbol to get a Elf_Sym corresposnding
+ * Method - For every symbol call createElfSymbol to get a Elf_Sym corresponding
  *          to a Symbol object. Accumulate all and their names to form the sections
  *          and add them to the list of new sections
  */
@@ -1718,7 +1718,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
                         + errMsg;
 		Symtab::setSymtabError(Emit_Error);
                 symtab_log_perror(linkStaticError.c_str());
-		fprintf(stderr, "##### %s\n", linkStaticError.c_str());
+                fprintf(stderr, "##### %s\n", linkStaticError.c_str());
                 return false;
             }
 
@@ -1755,7 +1755,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         }
     }
 
-    // sort allSymbols in a way that every symmbol with index -1 are in order of offset 
+    // sort allSymbols in a way that every symbol with index -1 are in order of offset
     std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByOffsetNewIndices());
 
     int max_index = -1;
@@ -1989,6 +1989,32 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
     if (!obj->getAllNewRegions(newSecs))
         log_elferror(err_func_, "No new sections to add");
+
+    unsigned int prev_size = 0;
+    unsigned long sec_addr = 0;
+    for (unsigned long nsi = 0; nsi < newSecs.size(); nsi++) {
+	// Update the _DYNAMIC symbol; described in the elf standard as:
+	//  The program header table will have an element of type PT_DYNAMIC.
+	//  This "segment" contains the .dynamic section. A special symbol,
+	//  _DYNAMIC, labels the section
+	if (newSecs[nsi]->getDiskOffset())
+	  sec_addr = newSecs[nsi]->getDiskOffset() + library_adjust;
+	else
+	  sec_addr += prev_size;
+	prev_size = newSecs[nsi]->getDiskSize();
+	if (".dynamic" == newSecs[nsi]->getRegionName()) {
+	    // Found the .dynamic section
+	    for (unsigned long symi = 0; symi < symbolStrs.size(); symi++)
+	      if ("_DYNAMIC" == symbolStrs[symi]) {
+		  // Found the _DYNAMIC symbol
+		  rewrite_printf("update _DYNAMIC symbol from %#lx to %#lx\n",
+				 (unsigned long) syms[symi].st_value, (unsigned long) sec_addr);
+		  syms[symi].st_value = sec_addr;
+		  break;
+	      }
+	    break;
+	}
+    }
 
     return true;
 }
