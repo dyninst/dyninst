@@ -852,14 +852,7 @@ Parser::finalize(Function *f)
 
             Block* trg_block = e->trg();
 
-            bool trg_has_call_edge = false;
-            Block::edgelist sources;
-            trg_block->copy_sources(sources);
-            for (auto e2: sources)
-                if (e2->type() == CALL) {
-                    trg_has_call_edge = true;
-                    break;
-                }
+            bool trg_has_call_edge = trg_block->hasCallSource();
 
             // Rule 1:
             // If an edge is currently not a tail call, but the edge target has a CALL incoming edge,
@@ -900,13 +893,7 @@ Parser::finalize(Function *f)
             // Rule 3:
             // If an edge is currently a tail call, but the edge target has only the current edge as incoming edges,
             // we treat this as not tail call.        
-            bool only_incoming = true;
-            for (auto e2: sources)
-                if (e2 != e) {
-                    only_incoming = false;
-                    break;
-                }
-            if (only_incoming) {
+            if (trg_block->getOnlyIncomingEdge() == e) {
                 e->_type._interproc = false;
                 parsing_printf("from %lx to %lx, marked as not tail call (single entry), re-finalize\n", b->last(), e->trg()->start());
                 return false;

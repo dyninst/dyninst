@@ -356,3 +356,26 @@ void Block::moveTargetEdges(Block* B) {
 	}
     trgs.clear();
 }
+
+void Block::copy_sources(edgelist & src) const {
+    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    src = _srclist;
+}
+
+void Block::copy_targets(edgelist & trg) const {
+    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    trg = _trglist;
+}
+
+bool Block::hasCallSource() const {
+    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    for (auto e: _srclist)
+        if (e->type() == CALL)
+            return true;
+    return false;
+}
+
+Edge* Block::getOnlyIncomingEdge() const {
+    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    return _srclist.size() == 1 ? *_srclist.begin() : nullptr;
+}

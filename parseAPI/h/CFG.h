@@ -254,7 +254,6 @@ public:
           Address end, Address last, Function* f = NULL);
 
     virtual ~Block();
-    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
     inline Address start() const { return _start; }
     inline Address end() const { return _end; }
@@ -271,15 +270,11 @@ public:
     /* Edge access */
     const edgelist & sources() const { return _srclist; }
     const edgelist & targets() const { return _trglist; }
-    void copy_sources(edgelist & src) {
-        boost::lock_guard<Block> g(*this);
-        src = _srclist;
-    }
-    void copy_targets(edgelist & trg) {
-        boost::lock_guard<Block> g(*this);
-        trg = _trglist;
-    }
+    void copy_sources(edgelist & src) const;
+    void copy_targets(edgelist & trg) const;
 
+    bool hasCallSource() const;
+    Edge* getOnlyIncomingEdge() const;
     bool consistent(Address addr, Address & prev_insn);
 
     int  containingFuncs() const;
