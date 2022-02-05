@@ -102,9 +102,6 @@ DLLEXPORT void DYNINSTinit();
 DLLEXPORT void DYNINST_snippetBreakpoint();
 DLLEXPORT void DYNINST_stopThread(void *, void *, void *, void *);
 DLLEXPORT void DYNINST_stopInterProc(void *, void *, void *, void *, void *, void *);
-DLLEXPORT void RThandleShadow(void *, void *, void *, void *, void *);
-DLLEXPORT unsigned long RTtranslateMemory(unsigned long, unsigned long, unsigned long);
-DLLEXPORT unsigned long RTtranslateMemoryShift(unsigned long, unsigned long, unsigned long);
 DLLEXPORT void *DYNINSTos_malloc(size_t, void *, void *); 
 DLLEXPORT int DYNINSTloadLibrary(char *);
 
