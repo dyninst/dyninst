@@ -379,21 +379,23 @@ bool Type::isDerivedType() { return dynamic_cast<derivedType*>(this) != NULL; }
 
 // Derived classes from Type
 
-class SYMTAB_EXPORT typeEnum : public Type {
+class SYMTAB_EXPORT typeEnum : public derivedType {
  private:  
    dyn_c_vector<std::pair<std::string, int> > consts;
+   bool is_scoped_{false}; // C++11 scoped enum (i.e., 'enum class')?
  public:
-   typeEnum();
-   typeEnum(typeId_t ID, std::string name = "");
-   typeEnum(std::string name);
-   static typeEnum *create(std::string &name, dyn_c_vector<std::pair<std::string, int> *>&elements,
-   								Symtab *obj = NULL);
-   static typeEnum *create(std::string &name, dyn_c_vector<std::string> &constNames, Symtab *obj);
+   struct scoped_t final {};
+   typeEnum() = default;
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name);
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID);
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID, scoped_t) :
+	   typeEnum(underlying_type, std::move(name), ID) { is_scoped_=true; }
+
    bool addConstant(const std::string &fieldname,int value);
    dyn_c_vector<std::pair<std::string, int> > &getConstants();
-   bool setName(const char *name);
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
+   bool is_scoped() const noexcept { return is_scoped_; }
 };
 typeEnum& Type::asEnumType() { return dynamic_cast<typeEnum&>(*this); }
 bool Type::isEnumType() { return dynamic_cast<typeEnum*>(this) != NULL; }

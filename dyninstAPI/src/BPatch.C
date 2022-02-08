@@ -61,6 +61,7 @@
 #endif
 
 #include <fstream>
+#include <numeric>
 
 using namespace std;
 using namespace SymtabAPI;
@@ -1392,20 +1393,18 @@ BPatch_type * BPatch::createEnum( const char * name,
     if (elementNames.size() != elementIds.size()) {
       return NULL;
     }
-    string typeName = name;
-    dyn_c_vector<pair<string, int> *>elements;
-    for (unsigned int i=0; i < elementNames.size(); i++) 
-        elements.push_back(new pair<string, int>(elementNames[i], elementIds[i]));
-    
-    boost::shared_ptr<Type> typ(typeEnum::create( typeName, elements));
-    if (!typ) return NULL;
-    
-    BPatch_type *newType = new BPatch_type(typ);
-    if (!newType) return NULL;
-    
-    APITypes->addType(newType);
 
-    return(newType);
+    // Make the underlying type a 4-byte signed int
+    auto underlying_type = boost::make_shared<Type>(typeScalar(4, "int", true));
+
+    auto *tenum = new typeEnum(underlying_type, name);
+    for(auto i=0UL; i<elementNames.size(); i++) {
+    	tenum->addConstant(elementNames[i], elementIds[i]);
+    }
+
+    BPatch_type *newType = new BPatch_type(tenum);
+    APITypes->addType(newType);
+    return newType;
 }
 
 
@@ -1421,20 +1420,10 @@ BPatch_type * BPatch::createEnum( const char * name,
 BPatch_type * BPatch::createEnum( const char * name, 
 				        BPatch_Vector<char *> &elementNames)
 {
-    string typeName = name;
-    dyn_c_vector<pair<string, int> *>elements;
-    for (unsigned int i=0; i < elementNames.size(); i++) 
-        elements.push_back(new pair<string, int>(elementNames[i], i));
-    
-    boost::shared_ptr<Type> typ(typeEnum::create( typeName, elements));
-    if (!typ) return NULL;
-    
-    BPatch_type *newType = new BPatch_type(typ);
-    if (!newType) return NULL;
-    
-    APITypes->addType(newType);
-
-    return(newType);
+	// We were only given names, so assume sequentially-ordered values
+	BPatch_Vector<int> ids(elementNames.size());
+	std::iota(ids.begin(), ids.end(), 0);
+	return createEnum(name, elementNames, ids);
 }
 
 /*
