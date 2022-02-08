@@ -439,6 +439,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
             case DW_TAG_ptr_to_member_type:
             case DW_TAG_pointer_type:
             case DW_TAG_reference_type:
+            case DW_TAG_rvalue_reference_type:
                 ret = parseTypeReferences();
                 break;
             case DW_TAG_compile_unit:
@@ -1566,6 +1567,16 @@ bool DwarfWalker::parseTypeReferences() {
                  (void*)indirectType.get(), indirectType->getName().c_str(), type_id(),
                  offset(), indirectType->getSize(), (void*)tc());
          break;
+      case DW_TAG_rvalue_reference_type:
+    	  if(!nameDefined()) {
+    		  curName() = "&&";
+    	  }
+          indirectType = tc()->addOrUpdateType(Type::make_shared<typeRef>(
+                             type_id(), typePointedTo, curName(), typeRef::rvalue_t{}));
+          dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p\n", id(),
+                  (void*)indirectType.get(), indirectType->getName().c_str(), type_id(),
+                  offset(), indirectType->getSize(), (void*)tc());
+          break;
       default:
          dwarf_printf("(0x%lx) Warning: nothing done for tag 0x%x, dwarf_tag(): 0x%x\n",
                  id(), tag(), (unsigned int)dwarf_tag(&e));
