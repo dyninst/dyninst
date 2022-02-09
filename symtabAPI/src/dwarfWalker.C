@@ -54,33 +54,36 @@ using namespace std;
 #define DWARF_FAIL_RET_VAL(x, v) do  {                                  \
       int dwarf_fail_ret_val_status = (x);                              \
       if (dwarf_fail_ret_val_status != 0) {                             \
-         types_printf("[%s:%d]: libdwarf returned %d, ret false\n",     \
+         dwarf_printf("[%s:%d]: libdw returned %d, ret false\n",     \
                  FILE__, __LINE__, dwarf_fail_ret_val_status);          \
          return (v);                                                    \
       }                                                                 \
    } while (0)
 #define DWARF_FAIL_RET(x) DWARF_FAIL_RET_VAL(x, false)
 
+// jk UNUSED, DELETE
+#if 0
 #define DWARF_ERROR_RET_VAL(x, v) do  {                                 \
       int dwarf_error_ret_val_status = (x);                             \
       if (dwarf_error_ret_val_status == 1 /*DW_DLV_ERROR*/) {           \
-         types_printf("[%s:%d]: parsing failure, ret false\n",          \
+         dwarf_printf("[%s:%d]: parsing failure, ret false\n",          \
                  FILE__, __LINE__);                                     \
          return (v);                                                    \
       }                                                                 \
    } while (0)
 #define DWARF_ERROR_RET(x) DWARF_ERROR_RET_VAL(x, false)
+#endif
 
 #define DWARF_CHECK_RET_VAL(x, v) do  {                                 \
       if (x) {                                                          \
-         types_printf("[%s:%d]: parsing failure, ret false\n",          \
+         dwarf_printf("[%s:%d]: parsing failure, ret false\n",          \
                  FILE__, __LINE__);                                     \
          return (v);                                                    \
       }                                                                 \
    } while (0)
 #define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
-DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
+DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg, DieOffsetToCalled *d) :
    DwarfParseActions(symtab, dbg),
    is_mangled_name_(false),
    modLow(0),
@@ -94,11 +97,19 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
    signature(),
    typeoffset(0),
    next_cu_header(0),
-   compile_offset(0)
+   compile_offset(0),
+   dieOffsetToCalled(d)
 {
+    if (!dieOffsetToCalled)  {
+        dieOffsetToCalled = new DieOffsetToCalled;
+        allocatedDieOffsetToCalled = true;
+    }
 }
 
 DwarfWalker::~DwarfWalker() {
+    if (allocatedDieOffsetToCalled)  {
+        delete dieOffsetToCalled;
+    }
 }
 
 static inline void ompc_leftmost(Module* &out, Module* &in) {
@@ -171,7 +182,7 @@ bool DwarfWalker::parse() {
     dwarf_printf("Modules from dwarf_nextcu: %zu\n", module_dies.size() - total_from_unit);
 
     if (dwarf_getalt(dbg()) != NULL) {
-        DwarfWalker w(symtab(), dbg());
+        DwarfWalker w(symtab(), dbg(), dieOffsetToCalled);
         for (unsigned int i = 0; i < module_dies.size(); i++) {
             w.push();
             w.parseModule(module_dies[i],fixUnknownMod);
@@ -180,7 +191,7 @@ bool DwarfWalker::parse() {
     } else {
 #pragma omp parallel
     {
-    DwarfWalker w(symtab(), dbg());
+    DwarfWalker w(symtab(), dbg(), dieOffsetToCalled);
 #pragma omp for reduction(leftmost:fixUnknownMod) \
         schedule(dynamic) nowait
     for (unsigned int i = 0; i < module_dies.size(); i++) {
@@ -189,6 +200,11 @@ bool DwarfWalker::parse() {
         w.pop();
     }
     }
+    }
+
+    auto toParse = dieOffsetToCalled->UsedButUndefinedOffsets();
+    for (auto dieOffset : toParse)  {
+        parseFunctionDeclarationAtOffset(dieOffset);
     }
 
     if (!fixUnknownMod)
@@ -463,6 +479,18 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
                         return false;
                     break;
                 }
+            case DW_TAG_call_site:
+            case DW_TAG_GNU_call_site:
+                dwarf_printf("(0x%lx) XXXXXX: Found call site tag 0x%x, dwarf_tag(): 0x%x\n",
+                        id(), tag(), (unsigned int)dwarf_tag(&e));
+                ret = parseCallSite();
+                break;
+            case DW_TAG_call_site_parameter:
+            case DW_TAG_GNU_call_site_parameter:
+                dwarf_printf("(0x%lx) XXXXXX: Found call site parameter tag 0x%x, dwarf_tag(): 0x%x\n",
+                        id(), tag(), (unsigned int)dwarf_tag(&e));
+                ret = parseCallSiteParameter();
+                break;
             default:
                 dwarf_printf("(0x%lx) Warning: unparsed entry with tag 0x%x, dwarf_tag(): 0x%x\n",
                         id(), tag(), (unsigned int)dwarf_tag(&e));
@@ -508,7 +536,8 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
     return true;
 }
 
-bool DwarfWalker::parseCallsite()
+
+bool DwarfWalker::parseInlineCallSite()
 {
     int has_line = 0, has_file = 0;
     Dwarf_Die e = entry();
@@ -537,6 +566,265 @@ bool DwarfWalker::parseCallsite()
     ifunc->callsite_line = inline_line;
     return true;
 }
+
+
+bool DwarfWalker::parseCallSite()
+{
+    Dwarf_Die e = entry();
+    CallSite *cs = new CallSite;
+    curFunc()->addCallSite(cs);
+
+    bool has_return_pc = dwarf_hasattr_integrate(&e, DW_AT_call_return_pc);
+    Dyninst::Offset return_pc = 0;
+    if (has_return_pc)  {
+        has_return_pc = findConstant(DW_AT_call_return_pc, return_pc, &e, dbg());
+    }  else  {
+        has_return_pc = !dwarf_hasattr_integrate(&e, DW_AT_low_pc);
+        if (has_return_pc)  {
+            has_return_pc = findConstant(DW_AT_low_pc, return_pc, &e, dbg());
+        }
+    }
+    if (has_return_pc)  {
+        cs->SetReturnPc(return_pc);
+    }
+
+    bool has_pc = dwarf_hasattr_integrate(&e, DW_AT_call_pc);
+    Dyninst::Offset pc = 0;
+    if (has_pc)  {
+        has_pc = findConstant(DW_AT_call_pc, pc, &e, dbg());
+    }
+    if (has_pc)  {
+        cs->SetPc(pc);
+    }
+
+
+    bool is_tail_call = false;
+    getFlagValue(&e, DW_AT_call_tail_call, is_tail_call);
+    cs->SetIsTailCall(is_tail_call);
+
+    bool has_origin = false;
+    Dwarf_Off origin_offset = 0;
+    int origin_tag = 0;
+    if (dwarf_hasattr_integrate(&e, DW_AT_call_origin))  {
+        origin_tag = DW_AT_call_origin;
+    }  else if (dwarf_hasattr_integrate(&e, DW_AT_abstract_origin))  {
+        origin_tag = DW_AT_abstract_origin;
+    }
+    if (origin_tag != 0)  {
+        Dwarf_Attribute originAttr;
+        if (dwarf_attr(&e, origin_tag, &originAttr) != NULL)  {
+            Dwarf_Die origin_die;
+            if (dwarf_formref_die(&originAttr, &origin_die) != NULL)  {
+                origin_offset = dwarf_dieoffset(&origin_die);
+                has_origin = true;
+                origin_tag = dwarf_tag(&origin_die);
+            }
+        }
+    }
+    if (has_origin)  {
+        auto fd = dieOffsetToCalled->GetFunctionDescriptor(origin_offset);
+        cs->SetCalled(fd);
+        if (fd->GetName().empty())  {                           // JK
+            char buf[128];                                      // JK
+            sprintf(buf, "die--->%#lx", origin_offset);         // JK
+            fd->SetName(buf);                                   // JK
+        }                                                       // JK
+    }
+
+    bool has_target = dwarf_hasattr_integrate(&e, DW_AT_call_target);
+    if (has_target)  {
+    }  else  {
+        has_target = dwarf_hasattr_integrate(&e, DW_AT_GNU_call_site_target);
+    }
+
+    bool is_target_clobbered = false;
+    getFlagValue(&e, DW_AT_call_target_clobbered, is_target_clobbered);
+    cs->SetIsTargetClobbered(is_target_clobbered);
+
+    bool has_type = dwarf_hasattr_integrate(&e, DW_AT_type);
+    // TODO
+
+    bool has_file = dwarf_hasattr_integrate(&e, DW_AT_call_file);
+    std::string call_file;
+    if (has_file)  {
+        has_file = findString(DW_AT_call_file, call_file);
+	if (has_file)  {
+	    cs->SetFile(call_file);
+	}
+    }
+
+    bool has_line = dwarf_hasattr_integrate(&e, DW_AT_call_line);
+    Dyninst::Offset call_line = 0;
+    if (has_line)  {
+        has_line = findConstant(DW_AT_call_line, call_line, &e, dbg());
+	if (has_line)  {
+	    cs->SetLine(call_line);
+	}
+    }
+
+    bool has_column = dwarf_hasattr_integrate(&e, DW_AT_call_column);
+    Dyninst::Offset call_column = 0;
+    if (has_column)  {
+        has_column = findConstant(DW_AT_call_column, call_column, &e, dbg());
+	if (has_column)  {
+	    cs->SetLine(call_column);
+	}
+    }
+
+    dwarf_printf("(0x%lx) XXXXXX: call site \n"
+            "\thas_return_pc=%d (%#lx)\n"
+            "\thas_pc=%d (%#lx)\n"
+            "\tis_tail_call=%d\n"
+            "\thas_origin=%d (id=%#lx  tag=%#x)\n"
+            "\thas_target=%d\n"
+            "\tis_target_clobbered=%d\n"
+            "\thas_type=%d\n"
+            "\thas_file=%d (%s)\n"
+            "\thas_line=%d (%lu)\n"
+            "\thas_column=%d (%lu)\n",
+            id(),
+            has_return_pc, return_pc,
+            has_pc, pc,
+            is_tail_call,
+            has_origin, origin_offset, (unsigned)origin_tag,
+            has_target,
+            is_target_clobbered,
+            has_type,
+            has_file, call_file.c_str(),
+            has_line, call_line,
+            has_column, call_column
+            );
+
+    return true;
+}
+
+
+bool DwarfWalker::parseCallSiteParameter()
+{
+    Dwarf_Die e = entry();
+
+    bool has_location = dwarf_hasattr_integrate(&e, DW_AT_location);
+    bool has_value = dwarf_hasattr_integrate(&e, DW_AT_call_value);
+    if (has_value)  {
+    }  else  {
+        has_value = dwarf_hasattr_integrate(&e, DW_AT_GNU_call_site_value);
+    }
+    bool has_data_location = dwarf_hasattr_integrate(&e, DW_AT_call_data_location);
+    if (has_data_location)  {
+    }  else  {
+        has_data_location = dwarf_hasattr_integrate(&e, DW_AT_GNU_call_site_data_value);
+    }
+    bool has_data_value = dwarf_hasattr_integrate(&e, DW_AT_call_data_value);
+    bool has_parameter = dwarf_hasattr_integrate(&e, DW_AT_call_parameter);
+    bool has_type = dwarf_hasattr_integrate(&e, DW_AT_type);
+    bool has_name = dwarf_hasattr_integrate(&e, DW_AT_name);
+
+    dwarf_printf("(0x%lx) XXXXXX: call site parameter\n"
+            "\thas_location=%d\n"
+            "\thas_value=%d\n"
+            "\thas_data_location=%d\n"
+            "\thas_data_value=%d\n"
+            "\thas_parameter=%d\n"
+            "\thas_type=%d\n"
+            "\thas_name=%d\n",
+            id(), has_location, has_value, has_data_location, has_data_value,
+            has_parameter, has_type, has_name
+            );
+
+    return true;
+}
+
+
+bool DwarfWalker::parseFunctionDeclaration()
+{
+    dwarf_printf("(0x%lx) parseFunctionDeclaration\n", id());
+
+    Dwarf_Die e = entry();
+    Dwarf_Attribute attr;
+    ContextGuard cg(*this, false);
+    Dwarf_Off declOffset = offset();
+
+    std::string functionName;
+    bool found = dwarf_attr_integrate(&e, DW_AT_linkage_name, &attr);
+    if (!found)  {
+        found = dwarf_attr_integrate(&e, DW_AT_name, &attr);
+    }
+    if (found)  {
+        const char *name = dwarf_formstring(&attr);
+        if (name != NULL)  {
+            functionName = name;
+        }
+    }
+
+   // findType uses specentry, hasAbstractOrigin is really dwarf
+   // failure not that there is an abstract origin
+   bool hasAbstractOrigin;
+   if (!handleAbstractOrigin(hasAbstractOrigin))  {
+       return false;
+   }
+   if (hasAbstractOrigin) {
+      // Clone to spec entry too
+      setSpecEntry(abstractEntry());
+   }
+
+    boost::shared_ptr<Type> returnType;
+    // ignore failure since the returned type is NULL, which is OK
+    findType(returnType, false);
+
+    Dwarf_Die childEntry;
+    int status = dwarf_child(&e, &childEntry);
+    if (status == -1)  {
+        return false;
+    }
+
+    std::vector<boost::shared_ptr<Type>> paramTypes;
+    while (status == 0)  {
+        e = childEntry;
+        setEntry(childEntry);
+
+        if (tag() == DW_TAG_formal_parameter)  {
+            // findType uses specentry, hasAbstractOrigin is really dwarf
+            // failure not that there is an abstract origin
+            if (!handleAbstractOrigin(hasAbstractOrigin))  {
+                return false;
+            }
+            if (hasAbstractOrigin) {
+               // Clone to spec entry too
+               setSpecEntry(abstractEntry());
+            }
+
+             boost::shared_ptr<Type> paramType;
+             findType(paramType, false);
+             paramTypes.push_back(paramType);
+        }
+
+        status = dwarf_siblingof(&e, &childEntry);
+        if (status == -1)  {
+            return false;
+        }
+    }
+
+    dieOffsetToCalled->SetDeclarationIfUsed(declOffset, functionName,
+							returnType, paramTypes);
+
+    return true;
+}
+
+
+bool DwarfWalker::parseFunctionDeclarationAtOffset(Dwarf_Off offset)
+{
+    ContextGuard cg(*this, true);
+    Dwarf_Die die;
+    if (!dwarf_offdie(dbg(), offset, &die))  {
+        dwarf_printf("(0x%lx) parseFunctionDeclarationAtOffset dwarf_offdie failed\n", offset);
+        return false;
+    }
+    setEntry(die);
+    parseFunctionDeclaration();
+
+    return true;
+}
+
 
 bool DwarfWalker::setFunctionFromRange(inline_t func_type)
 {
@@ -640,6 +928,9 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    //This keeps us from parsing abstracts or specifications until
    // we need them.
    if (!func) {
+      if (dieOffsetToCalled->IsUsed(offset()))  {
+          parseFunctionDeclaration();
+      }
       dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() NULL\n", id());
       setParseChild(false);
       return true;
@@ -652,6 +943,12 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       }
       setParseChild(false);
       return true;
+   }
+
+   // if this is a non-inlined function make a function descriptor for it
+   if (auto f = dynamic_cast<Function *>(func))  {
+       dwarf_printf("(0x%lx) parseSubProgram adding function to dieOffsetToCalled\n", id());
+       dieOffsetToCalled->SetFunction(offset(), f);
    }
 
    if (name_result && !curName().empty()) {
@@ -670,7 +967,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    //Collect callsite information for inlined functions.
    if (func_type == InlinedFunc) {
 //       cout << "Parsing callsite for (0x" << hex << id() << ") " << curName() << " at " << func->getOffset() << dec << endl;
-      parseCallsite();
+      parseInlineCallSite();
    }
 
    // Get the return type
@@ -1495,10 +1792,34 @@ bool DwarfWalker::parseTypeReferences() {
    return indirectType ? true : false;
 }
 
+bool DwarfWalker::getFlagValue(Dwarf_Die *die, unsigned int attrName, bool &flag)
+{
+    Dwarf_Attribute attr;
+    flag = false;
+
+    Dwarf_Attribute *attr_ptr = dwarf_attr(die, attrName, &attr);
+    if (!attr_ptr)  {
+        return true;
+    }
+
+    int r = dwarf_formflag(attr_ptr, &flag);
+    if (r == 0)  {
+    }  else if (r == -1)  {
+        assert("dwarf_formflag return -1 error");
+        return false;
+    }  else if (r != 0)  {
+        assert("dwarf_formflag return not 0 or -1 error");
+        return false;
+    }
+
+    return true;
+}
+
+
 bool DwarfWalker::hasDeclaration(bool &isDecl) {
     Dwarf_Die e = entry();
-    isDecl = dwarf_hasattr(&e, DW_AT_declaration);
-    return true;
+    bool r = getFlagValue(&e, DW_AT_declaration, isDecl);
+    return r;
 }
 
 bool DwarfWalker::findTag() {
@@ -2762,7 +3083,8 @@ Offset DwarfParseActions::convertDebugOffset(Offset from) {
    return to;
 }
 
-void DwarfWalker::setFuncReturnType() {
+void DwarfWalker::setFuncReturnType()
+{
     dwarf_printf("(0x%lx) In setFuncReturnType().\n", id());
    boost::shared_ptr<Type> returnType;
    boost::unique_lock<dyn_mutex> l(curFunc()->ret_lock);
@@ -2773,3 +3095,71 @@ void DwarfWalker::setFuncReturnType() {
    }
 }
 
+
+FunctionDescriptor *DieOffsetToCalled::GetFunctionDescriptor(Dwarf_Off offset)
+{
+    FuncMap::accessor a;
+    funcMap.insert(a, offset);
+    return a->second.GetFunctionDescriptor();
+}
+
+
+void DieOffsetToCalled::SetFunction(Dwarf_Off offset, Function *f)
+{
+    FuncMap::accessor a;
+    funcMap.insert(a, offset);
+    a->second.SetFunction(f);
+}
+
+
+bool DieOffsetToCalled::IsUsed(Dwarf_Off offset) const
+{
+    FuncMap::accessor a;
+    if (funcMap.find(a, offset))  {
+        if (a->second.Used())  {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+FunctionDescriptor *DieOffsetToCalled::SetDeclarationIfUsed(
+        Dwarf_Off offset,
+        const std::string &name,
+        boost::shared_ptr<Type> returnType,
+        const std::vector<boost::shared_ptr<Type>> &paramTypes
+    )
+{
+    FuncMap::accessor a;
+    if (funcMap.find(a, offset))  {
+        if (a->second.Used())  {
+            return a->second.SetDeclaration(name, returnType, paramTypes);
+        }
+    }
+
+    return nullptr;
+}
+
+
+std::vector<Dwarf_Off> DieOffsetToCalled::UsedButUndefinedOffsets() const
+{
+    std::vector<Dwarf_Off> usedButUndefined;
+
+    for (auto p: funcMap)  {
+        if (p.second.NeedsDefinition())  {
+            usedButUndefined.push_back(p.first);
+        }
+    }
+
+    return usedButUndefined;
+}
+
+
+DieOffsetToCalled::~DieOffsetToCalled()
+{
+    for (auto p: funcMap)  {
+        p.second.DeleteIfUnused();
+    }
+}
