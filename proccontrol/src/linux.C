@@ -75,7 +75,9 @@
 #include<sys/user.h>
 #include<sys/procfs.h>
 #include<sys/uio.h>
+#if !defined(WITH_SYMLITE)
 #include<linux/elf.h>
+#endif
 #endif
 
 // Before glibc-2.7, sys/ptrace.h lacked PTRACE_O_* and PTRACE_EVENT_*, so we
