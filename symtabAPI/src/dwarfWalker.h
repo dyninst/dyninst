@@ -16,6 +16,7 @@
 #include "VariableLocation.h"
 #include "Type.h"
 #include "Object.h"
+#include "Function.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/optional.hpp>
@@ -60,8 +61,6 @@ namespace SymtabAPI {
 class Symtab;
 class Module;
 class Object;
-class Function;
-class FunctionBase;
 class typeCommon;
 class typeEnum;
 class fieldListType;
@@ -69,6 +68,65 @@ class typeCollection;
 class Type;
 
 using namespace std;
+
+class FuncDescValue {
+  public:
+    FuncDescValue()
+        { funcDesc = new FunctionDescriptor; }
+    bool NeedsDefinition()
+        { return used && !defined; }
+    bool Used(bool u)
+        { used = u; return used; }
+    bool Used()
+        { return used; }
+    bool Defined(bool d)
+        { defined = d; return defined; }
+    bool Defined()
+        { return defined; }
+    void DeleteIfUnused()
+        {
+            if (!used)  {
+                delete funcDesc;
+                funcDesc = nullptr;
+            }
+        }
+    FunctionDescriptor *GetFunctionDescriptor()
+        { used = true; return funcDesc; }
+    void SetFunction(Function *f)
+        { defined = true; funcDesc->SetFunction(f); }
+    FunctionDescriptor *SetDeclaration(
+                const std::string &name,
+                boost::shared_ptr<Type> returnType,
+                const std::vector<boost::shared_ptr<Type>> &paramTypes
+            )
+        {
+            defined = true;
+            funcDesc->SetDeclaration(name, returnType, paramTypes);
+            return funcDesc;
+        }
+  private:
+    bool                    used;
+    bool                    defined;
+    FunctionDescriptor      *funcDesc;
+};
+
+class DieOffsetToCalled {
+  public:
+    using FuncMap = tbb::concurrent_hash_map<Dwarf_Off, FuncDescValue>;
+    FunctionDescriptor *GetFunctionDescriptor(Dwarf_Off offset);
+    void SetFunction(Dwarf_Off offset, Function *f);
+    bool IsUsed(Dwarf_Off offset) const;
+    FunctionDescriptor *SetDeclarationIfUsed(
+        Dwarf_Off                                       offset,
+        const                                           std::string &name,
+        boost::shared_ptr<Type>                         returnType,
+        const std::vector<boost::shared_ptr<Type>>      &paramTypes
+    );
+    std::vector<Dwarf_Off> UsedButUndefinedOffsets() const;
+    ~DieOffsetToCalled();
+  private:
+    FuncMap funcMap;
+};
 
 class DwarfParseActions {
 
@@ -239,7 +297,7 @@ public:
 
     using ParsedFuncs = tbb::concurrent_hash_map<FunctionBase *, bool>;
 
-    DwarfWalker(Symtab *symtab, Dwarf* dbg, std::shared_ptr<ParsedFuncs> pf = nullptr);
+    DwarfWalker(Symtab *symtab, Dwarf* dbg, std::shared_ptr<ParsedFuncs> pf = nullptr, std::shared_ptr<DieOffsetToCalled> d = nullptr);
 
     DwarfWalker(const DwarfWalker& o) :
             DwarfParseActions(o),
@@ -260,10 +318,14 @@ public:
             compile_offset(o.compile_offset),
             info_type_ids_(o.info_type_ids_),
             types_type_ids_(o.types_type_ids_),
-            sig8_type_ids_(o.sig8_type_ids_)
+            sig8_type_ids_(o.sig8_type_ids_),
+            dieOffsetToCalled(o.dieOffsetToCalled)
             {
                 if (!parsedFuncs)  {
                     parsedFuncs = std::make_shared<ParsedFuncs>();
+                }
+                if (!dieOffsetToCalled)  {
+                    dieOffsetToCalled = std::make_shared<DieOffsetToCalled>();
                 }
             }
 
@@ -336,7 +398,12 @@ public:
     static bool buildSrcFiles(Dwarf* dbg, Dwarf_Die entry, StringTablePtr strings);
 private:
 
-    bool parseCallsite();
+    bool parseInlineCallSite();
+    bool parseCallSite();
+    bool parseCallSiteParameter();
+    bool parseFunctionDeclaration();
+    bool parseFunctionDeclarationAtOffset(Dwarf_Off offset);
+    bool getFlagValue(Dwarf_Die *die, unsigned int attrName, bool &flag);
     bool hasDeclaration(bool &decl);
     bool findTag();
     bool handleAbstractOrigin(bool &isAbstractOrigin);
@@ -452,6 +519,8 @@ private:
 
     // Map to connect DW_FORM_ref_sig8 to type IDs.
     dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+
+    std::shared_ptr<DieOffsetToCalled> dieOffsetToCalled;
 
     bool parseModuleSig8(bool is_info);
     void findAllSig8Types();
