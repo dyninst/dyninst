@@ -161,8 +161,7 @@ namespace Dyninst
       m_InsnOp(o.m_InsnOp),
       m_Valid(o.m_Valid),
 	  arch_decoded_from(o.arch_decoded_from),      
-      formatter(o.formatter),
-      dbe(o.dbe)
+      formatter(o.formatter)     
 
     {
       m_size = o.m_size;

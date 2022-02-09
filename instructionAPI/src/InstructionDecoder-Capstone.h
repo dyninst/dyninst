@@ -54,13 +54,13 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
       
         InstructionDecoder_Capstone(Architecture a);
         virtual void doDelayedDecode(const Instruction* insn_to_complete);
-        virtual void setMode(bool is64) {};
+        virtual void setMode(bool);
     protected:
       
         virtual bool decodeOperands(const Instruction* insn_to_complete);
 
         virtual void decodeOpcode(InstructionDecoder::buffer&);
-        virtual Result_Type makeSizeType(unsigned int opType) {};
+        virtual Result_Type makeSizeType(unsigned int);
 
 
     private:
@@ -94,7 +94,7 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         void initializeOpcodeData();
 };
 
-};
-};
+}
+}
 
 #endif //!defined(INSTRUCTION_DECODER_CAPSTONE_H)
