@@ -455,7 +455,6 @@ unsigned int MachRegister::size() const {
                                   return 4;
                               break;
                           }
-        case Arch_amdgpu_rdna:
         case Arch_intelGen9:
                           {
                               assert(0);
@@ -509,7 +508,6 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return amdgpu_vega::pc;
         case Arch_amdgpu_cdna2:
             return amdgpu_cdna2::pc_all;
-        case Arch_amdgpu_rdna:
         case Arch_none:
             return InvalidReg;
     }
@@ -534,8 +532,6 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
         case Arch_aarch32:
         case Arch_cuda:
         case Arch_amdgpu_vega: // TODO:Since amdgpu functions are all inlined, the return address is highly likely in sgpr[30:31]
-        case Arch_amdgpu_rdna:
-        case Arch_amdgpu_cdna:
         case Arch_amdgpu_cdna2:
         case Arch_intelGen9:
             assert(0);
@@ -2331,7 +2327,6 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
         case Arch_cuda:
         case Arch_intelGen9:
         case Arch_amdgpu_vega:
-        case Arch_amdgpu_cdna:
         case Arch_amdgpu_cdna2:
             return 8;
         default:

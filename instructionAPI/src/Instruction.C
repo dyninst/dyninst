@@ -317,11 +317,13 @@ namespace Dyninst
                     curOperand != m_Operands.end();
                     ++curOperand)
             {
+                // Check if the candidate is read as an explicit operand
                 if(curOperand->isRead(candidate))
                 {
                     return true;
                 }
             }
+            // Check if the candidate is read as an implicit operand
             return m_InsnOp.isRead(candidate);
         }
 

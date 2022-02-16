@@ -41,109 +41,110 @@ using namespace std;
 
 namespace Dyninst
 {
-  namespace InstructionAPI
-  {
-    INSTRUCTION_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
+    namespace InstructionAPI
     {
-      std::set<InstructionAST::Ptr> useSet;
-      op_value->getUses(useSet);
-      std::set<InstructionAST::Ptr>::const_iterator curUse;
-      for(curUse = useSet.begin(); curUse != useSet.end(); ++curUse)
-      {
-	RegisterAST::Ptr tmp = boost::dynamic_pointer_cast<RegisterAST>(*curUse);
-	if(tmp) 
-	{
-            if(m_isRead || !(*tmp == *op_value))
-                regsRead.insert(tmp);
-	}
-      }
-    }
-    INSTRUCTION_EXPORT void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
-    {
-      RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
-      if(m_isWritten && op_as_reg)
-      {
-	regsWritten.insert(op_as_reg);
-      }
-    }
+        INSTRUCTION_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
+        {
+            std::set<InstructionAST::Ptr> useSet;
+            // This thing returns something only for RegisterAST Expression
+            op_value->getUses(useSet);
+            std::set<InstructionAST::Ptr>::const_iterator curUse;
+            for(curUse = useSet.begin(); curUse != useSet.end(); ++curUse)
+            {
+                RegisterAST::Ptr tmp = boost::dynamic_pointer_cast<RegisterAST>(*curUse);
+                if(tmp) 
+                {
+                    if(m_isRead || !(*tmp == *op_value))
+                        regsRead.insert(tmp);
+                }
+            }
+        }
+        INSTRUCTION_EXPORT void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
+        {
+            RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
+            if(m_isWritten && op_as_reg)
+            {
+                regsWritten.insert(op_as_reg);
+            }
+        }
 
-    INSTRUCTION_EXPORT RegisterAST::Ptr Operand::getPredicate() const
-    {
-      RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
-      if (m_isTruePredicate || m_isFalsePredicate) {
-        return op_as_reg;
-      }
-      return nullptr;
-    }
+        INSTRUCTION_EXPORT RegisterAST::Ptr Operand::getPredicate() const
+        {
+            RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
+            if (m_isTruePredicate || m_isFalsePredicate) {
+                return op_as_reg;
+            }
+            return nullptr;
+        }
 
-    INSTRUCTION_EXPORT bool Operand::isRead(Expression::Ptr candidate) const
-    {
-      // The whole expression of a read, any subexpression of a write
-      return op_value->isUsed(candidate) && (m_isRead || !(*candidate == *op_value));
-    }
-    INSTRUCTION_EXPORT bool Operand::isWritten(Expression::Ptr candidate) const
-    {
-      // Whole expression of a write
-      return m_isWritten && (*op_value == *candidate);
-    }    
-    INSTRUCTION_EXPORT bool Operand::readsMemory() const
-    {
-      return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isRead);
-    }
-    INSTRUCTION_EXPORT bool Operand::writesMemory() const
-    {
-      return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isWritten);
-    }
-    INSTRUCTION_EXPORT void Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const
-    {
-      if(m_isRead && boost::dynamic_pointer_cast<Dereference>(op_value))
-      {
-	std::vector<Expression::Ptr> tmp;
-	op_value->getChildren(tmp);
-        for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin();
-	    curKid != tmp.end();
-	    ++curKid)
-	{
-	  memAccessors.insert(*curKid);
-	}
-      }
-    }
-    INSTRUCTION_EXPORT void Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const
-    {
-      if(m_isWritten && boost::dynamic_pointer_cast<Dereference>(op_value))
-      {
-	std::vector<Expression::Ptr> tmp;
-	op_value->getChildren(tmp);
-        for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin();
-	    curKid != tmp.end();
-	    ++curKid)
-	{
-	  memAccessors.insert(*curKid);
-	}
-      }
-    }
+        INSTRUCTION_EXPORT bool Operand::isRead(Expression::Ptr candidate) const
+        {
+            // The whole expression of a read, any subexpression of a write
+            return op_value->isUsed(candidate) && (m_isRead || !(*candidate == *op_value));
+        }
+        INSTRUCTION_EXPORT bool Operand::isWritten(Expression::Ptr candidate) const
+        {
+            // Whole expression of a write
+            return m_isWritten && (*op_value == *candidate);
+        }    
+        INSTRUCTION_EXPORT bool Operand::readsMemory() const
+        {
+            return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isRead);
+        }
+        INSTRUCTION_EXPORT bool Operand::writesMemory() const
+        {
+            return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isWritten);
+        }
+        INSTRUCTION_EXPORT void Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const
+        {
+            if(m_isRead && boost::dynamic_pointer_cast<Dereference>(op_value))
+            {
+                std::vector<Expression::Ptr> tmp;
+                op_value->getChildren(tmp);
+                for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin();
+                        curKid != tmp.end();
+                        ++curKid)
+                {
+                    memAccessors.insert(*curKid);
+                }
+            }
+        }
+        INSTRUCTION_EXPORT void Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const
+        {
+            if(m_isWritten && boost::dynamic_pointer_cast<Dereference>(op_value))
+            {
+                std::vector<Expression::Ptr> tmp;
+                op_value->getChildren(tmp);
+                for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin();
+                        curKid != tmp.end();
+                        ++curKid)
+                {
+                    memAccessors.insert(*curKid);
+                }
+            }
+        }
 
 
-    INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
-    {
-      if(!op_value) return "ERROR: format() called on empty operand!";
-      if (addr) {
-          Expression::Ptr thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(arch)));
-          op_value->bind(thePC.get(), Result(u32, addr));
-          Result res = op_value->eval();
-          if (res.defined) {
-              char hex[20];
-              snprintf(hex, 20, "%lux", res.convert<uintmax_t>());
-              return string(hex);
-          }
-      }
-      return op_value->format(arch);
-    }
+        INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
+        {
+            if(!op_value) return "ERROR: format() called on empty operand!";
+            if (addr) {
+                Expression::Ptr thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(arch)));
+                op_value->bind(thePC.get(), Result(u32, addr));
+                Result res = op_value->eval();
+                if (res.defined) {
+                    char hex[20];
+                    snprintf(hex, 20, "%lux", res.convert<uintmax_t>());
+                    return string(hex);
+                }
+            }
+            return op_value->format(arch);
+        }
 
-    INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const
-    {
-      return op_value;
+        INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const
+        {
+            return op_value;
+        }
     }
-  }
 }
 

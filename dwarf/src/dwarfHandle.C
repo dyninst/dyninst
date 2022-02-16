@@ -197,14 +197,11 @@ bool DwarfHandle::init_dbg()
         case EM_CUDA:
             arch = Dyninst::Arch_cuda;
             break;
-        case EM_AMDGPU: {
+        case EM_AMDGPU: { // TODO: This part of logic needs to be updated to reflect the table on the llvm website
             unsigned int ef_amdgpu_mach = 0x000000ff & file->e_flags();
 			switch(ef_amdgpu_mach){
                 case 0x3f:
 					arch = Dyninst::Arch_amdgpu_cdna2;
-                    break;
-				case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38:
-					arch = Dyninst::Arch_amdgpu_rdna;
                     break;
 				case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x30: case 0x31:
 					arch = Dyninst::Arch_amdgpu_vega;
