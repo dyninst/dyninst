@@ -221,38 +221,6 @@ std::string MachRegister::name() const {
             signed int category = reg & 0x00ff0000;
             signed int base_val = reg & 0x000000ff;
             switch(category){
-                /*case amdgpu_cdna2::SGPR_VEC2:
-                  base_val -=  (amdgpu_cdna2::sgpr_vec2_0&0xff);
-                  ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
-                  break;
-                  case amdgpu_cdna2::VGPR_VEC2:
-                  base_val -=  (amdgpu_cdna2::vgpr_vec2_0&0xff);
-                  ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+1)+"]");
-                  break;
-                  case amdgpu_cdna2::SGPR_VEC4:
-                  base_val -=  (amdgpu_cdna2::sgpr_vec4_0&0xff);
-                  ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
-                  break;
-                  case amdgpu_cdna2::VGPR_VEC4:
-                  base_val -=  (amdgpu_cdna2::vgpr_vec4_0&0xff);
-                  ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+3)+"]");
-                  break;
-                  case amdgpu_cdna2::SGPR_VEC8:
-                  base_val -=  (amdgpu_cdna2::sgpr_vec8_0&0xff);
-                  ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
-                  break;
-                  case amdgpu_cdna2::VGPR_VEC8:
-                  base_val -=  (amdgpu_cdna2::vgpr_vec8_0&0xff);
-                  ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+7)+"]");
-                  break;
-                  case amdgpu_cdna2::SGPR_VEC16:
-                  base_val -=  (amdgpu_cdna2::sgpr_vec16_0&0xff);
-                  ret = std::string("SGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
-                  break;
-                  case amdgpu_cdna2::VGPR_VEC16:
-                  base_val -=  (amdgpu_cdna2::vgpr_vec16_0&0xff);
-                  ret = std::string("VGPR["+std::to_string(base_val)+"-"+std::to_string(base_val+15)+"]");
-                  break;*/
                 default:
                     ret = iter->second;
                     break;
