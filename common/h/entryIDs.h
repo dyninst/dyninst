@@ -515,7 +515,7 @@ enum entryID : unsigned int {
   e_ptest,	// SSE 4.1
   e_punpckhbw,
   e_punpckhdq,
-  e_punpckhqd,
+  e_punpckhqdq,
   e_punpckhwd,
   e_punpcklbw,
   e_punpckldq,

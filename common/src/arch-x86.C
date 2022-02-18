@@ -1315,7 +1315,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_ptest, "ptest")
   (e_punpckhbw, "punpckhbw")
   (e_punpckhdq, "punpckhdq")
-  (e_punpckhqd, "punpckhqd")
+  (e_punpckhqdq, "punpckhqdq")
   (e_punpckhwd, "punpckhwd")
   (e_punpcklbw, "punpcklbw")
   (e_punpckldq, "punpckldq")
@@ -4433,7 +4433,7 @@ static ia32_entry sseMap[][4] = {
   { /* SSE6D */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_punpckhqd, t_sse_mult, SSE6D_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+    { e_punpckhqdq, t_sse_mult, SSE6D_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE6E */
