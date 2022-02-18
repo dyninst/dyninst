@@ -518,7 +518,7 @@ enum entryID : unsigned int {
   e_punpckhqd,
   e_punpckhwd,
   e_punpcklbw,
-  e_punpcklqd,
+  e_punpckldq,
   e_punpcklqld,
   e_punpcklwd,
   e_push,
