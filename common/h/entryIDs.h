@@ -187,7 +187,7 @@ enum entryID : unsigned int {
   e_aesimc, 
   e_vaesimc, 
   e_pclmullqlqdq, 
-  e_vpclmullqlqdq, 
+  e_vpclmulqdq,
   e_vpperm,
   e_daa,
   e_das,
