@@ -1283,7 +1283,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_prefetchT0, "prefetchT0")
   (e_prefetchT1, "prefetchT1")
   (e_prefetchT2, "prefetchT2")
-  (e_prefetch_w, "prefetch(w)")
+  (e_prefetch_w, "prefetchw")
   (e_prefetchw, "prefetchw")
   (e_prefetchwt1, "prefetchwt1")
   (e_psadbw, "psadbw")
