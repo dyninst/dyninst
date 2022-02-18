@@ -887,7 +887,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_aesdeclast, "aesdeclast")
   (e_aeskeygenassist, "aeskeygenassist")
   (e_aesimc, "aesimc")
-  (e_pclmullqlqdq, "pclmullqlqdq")
+  (e_pclmulqdq, "pclmulqdq")
   (e_and, "and")
   (e_andnpd, "andnpd")
   (e_andnps, "andnps")
@@ -6039,7 +6039,7 @@ static ia32_entry sseMapTer[][3] =
         { e_mpsadbw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
     }, { /* SSET44 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_pclmullqlqdq, t_sse_ter_mult, SSET44_66, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 },
+        { e_pclmulqdq, t_sse_ter_mult, SSET44_66, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET46 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
