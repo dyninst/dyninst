@@ -1841,7 +1841,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpord, "vpord")
   (e_vporq, "vporq")
   (e_vprolvd, "vprolvd")
-  (e_vprolvq, "vporlvq")
+  (e_vprolvq, "vprolvq")
   (e_vprold, "vprold")
   (e_vprolq, "vprolq")
   (e_vprorvd, "vprorvd")
