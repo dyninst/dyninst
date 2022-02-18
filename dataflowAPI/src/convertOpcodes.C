@@ -668,7 +668,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_pcmpeqd;
         case e_pcmpeqw:
             return x86_pcmpeqw;
-        case e_pcmpgdt:
+        case e_pcmpgtd:
             return x86_pcmpgtd;
         case e_pcmpgtb:
             return x86_pcmpgtb;

@@ -424,7 +424,7 @@ enum entryID : unsigned int {
   e_pcmpeqw,
   e_pcmpestri,	// SSE 4.2
   e_pcmpestrm,	// SSE 4.2
-  e_pcmpgdt,
+  e_pcmpgtd,
   e_pcmpgtb,
   e_pcmpgtq,	// SSE 4.2
   e_pcmpgtw,
