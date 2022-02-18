@@ -1441,7 +1441,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vaeskeygenassist, "vaeskeygenassist")
   (e_vaesimc, "vaesimc")
   (e_vpclmullqlqdq, "vpclmullqlqdq")
-  (e_vpperm, "e_vpperm")
+  (e_vpperm, "vpperm")
   (e_vmpsadbw, "vmpsadbw") 
   (e_vmwrite, "vmwrite") 
   (e_vmread, "vmread") 
