@@ -896,7 +896,6 @@ enum entryID : unsigned int {
   e_vpbroadcastq,
   e_vpbroadcastw,
   e_vpcmpeqd,
-  e_vpcmpequd,
   e_vpcmpub,
   e_vpcmpb,
   e_vpcmpeqb,

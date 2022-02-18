@@ -1740,7 +1740,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpcmov, "vpcmov")
   (e_vpcmpub, "vpcmpub")
   (e_vpcmpb, "vpcmpb")
-  (e_vpcmpequd, "vpcmpequd")
   (e_vpcmpeqb, "vpcmpeqb")
   (e_vpcmpeqd, "vpcmpeqd")
   (e_vpcmpeqq, "vpcmpeqq")
@@ -7701,7 +7700,7 @@ ia32_entry sseMapTerMult[][3] =
     }, { /* SSET1E_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_vpcmpequd, t_done, 0, true, { Wpd, Hps, IK }, 0, s1W2R3R, 0 }
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET1F_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
