@@ -1387,7 +1387,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_prefetchwt1, "prefetchwt1")
   (e_clflushopt, "clflushopt")
   (e_clwb, "clwb")
-  (e_pcommit, "pcommit")
   (e_sidt, "sidt")
   (e_sldt, "sldt")
   (e_smsw, "smsw")

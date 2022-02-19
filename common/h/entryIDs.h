@@ -589,7 +589,6 @@ enum entryID : unsigned int {
   e_prefetchwt1,
   e_clflushopt,
   e_clwb,
-  e_pcommit,
   e_sidt,
   e_sldt,
   e_smsw,
