@@ -1462,7 +1462,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_pdep, "pdep")
   (e_pext, "pext")
   (e_rorx, "rorx")
-  (e_sarx, "sarx")
   (e_shlx, "shlx")
   (e_shrx, "shrx")
   (e_tzcnt, "tzcnt")
