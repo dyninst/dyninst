@@ -1383,7 +1383,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_sha256msg2, "sha256msg2")
   (e_shlx, "shlx")
   (e_sarx, "sarx")
-  (e_prefetchwt1, "prefetchwt1")
   (e_clflushopt, "clflushopt")
   (e_clwb, "clwb")
   (e_sidt, "sidt")
