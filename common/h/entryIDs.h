@@ -338,7 +338,6 @@ enum entryID : unsigned int {
   e_minps,
   e_minsd,
   e_minss,
-  e_mmxud,
   e_mov,
   e_movbe,
   e_movsl,

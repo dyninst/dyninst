@@ -528,8 +528,6 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_minsd;
         case e_minss:
             return x86_minss;
-        case e_mmxud:
-            return x86_unknown_instruction;
         case e_mov:
             return x86_mov;
         case e_movapd:
