@@ -2021,7 +2021,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
 /* What are these? */
  (e_vpmovswb, "vpmovswb")
  (e_vpmovsqw, "vpmovsqw")
- (e_vpmovsqd, "vpmovsqd")
 
  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
