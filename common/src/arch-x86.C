@@ -2020,7 +2020,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
 
 /* What are these? */
  (e_vpmovswb, "vpmovswb")
- (e_vpmovsdb, "vpmovsdb")
  (e_vpmovsqb, "vpmovsqb")
  (e_vpmovsdw, "vpmovsdw")
  (e_vpmovsqw, "vpmovsqw")
