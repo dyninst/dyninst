@@ -1485,7 +1485,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vblendmps, "vblendmps")
   (e_vblendmpd, "vblendmpd")
   (e_vblendps, "vblendps")
-  (e_vblendvpd, "vblendpd")
+  (e_vblendvpd, "vblendvpd")
   (e_vblendvps, "vblendvps")
   (e_vblendvpd, "vblendvpd")
   (e_vpblendmb, "vpblendmb")
