@@ -1782,7 +1782,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpinsrd, "vpinsrd")
   (e_vpinsrq, "vpinsrq")
   (e_vpinsrw, "vpinsrw")
-  (e_vpmaddubsw, "vpmaddubsw")
   (e_vpmaddwd, "vpmaddwd")
   (e_vpmaskmovd, "vpmaskmovd")
   (e_vpmaskmovq, "vpmaskmovq")
