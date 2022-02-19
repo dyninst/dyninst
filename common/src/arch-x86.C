@@ -1164,7 +1164,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movsd_sse, "movsd")
   (e_movshdup, "movshdup")
   (e_movsldup, "movsldup")
-  (e_movslq, "movslq")
   (e_movss, "movss")
   (e_movsw, "movsw")
   (e_movsx, "movsx")
