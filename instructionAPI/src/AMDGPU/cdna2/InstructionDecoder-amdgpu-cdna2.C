@@ -91,7 +91,7 @@ namespace Dyninst {
 		// decoding opcodes
 		// ****************
 
-		MachRegister InstructionDecoder_amdgpu_cdna2::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int len) {
+		MachRegister InstructionDecoder_amdgpu_cdna2::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int) {
 			MachRegister realBase = base;
 			/*if (base == amdgpu_cdna2::s0){
 				switch(len){
