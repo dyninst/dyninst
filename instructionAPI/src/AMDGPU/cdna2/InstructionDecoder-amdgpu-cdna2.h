@@ -36,28 +36,26 @@
 namespace Dyninst {
     namespace InstructionAPI {
 
-#if defined(__GNUC__)
 #define insn_printf(format, ...) \
         do{ \
             printf("[%s:%u]insn_debug " format, FILE__, __LINE__, ## __VA_ARGS__); \
         }while(0)
-#endif
 
-        struct amdgpu_insn_entry;
+        struct amdgpu_cdna2_insn_entry;
         struct amdgpu_mask_entry;
 
-        class InstructionDecoder_amdgpu_vega : public InstructionDecoderImpl {
-            friend struct amdgpu_insn_entry;
+        class InstructionDecoder_amdgpu_cdna2 : public InstructionDecoderImpl {
+            friend struct amdgpu_cdna2_insn_entry;
             friend struct amdgpu_mask_entry;
             enum DecodeFamily {sopp};
 
-        public:
-            InstructionDecoder_amdgpu_vega(Architecture a);
+            public:
+            InstructionDecoder_amdgpu_cdna2(Architecture a);
 
-            virtual ~InstructionDecoder_amdgpu_vega();
+            virtual ~InstructionDecoder_amdgpu_cdna2();
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
-            
+
             // decode one instruction starting from b.start
             // will advance b.start whenver a instruction is successfully decoded
             virtual Instruction decode(InstructionDecoder::buffer &b);
@@ -65,8 +63,8 @@ namespace Dyninst {
             virtual void setMode(bool) { }
 
             virtual bool decodeOperands(const Instruction *insn_to_complete);
-            
-            bool decodeOperands(const amdgpu_insn_entry & insn_entry);
+
+            bool decodeOperands(const amdgpu_cdna2_insn_entry & insn_entry);
 
             virtual void doDelayedDecode(const Instruction *insn_to_complete);
 
@@ -75,9 +73,9 @@ namespace Dyninst {
             static const char* bitfieldInsnAliasMap(entryID);
             static const char* condInsnAliasMap(entryID);
 
-     
 
-        private:
+
+            private:
             virtual Result_Type makeSizeType(unsigned int opType);
 
             bool is64Bit;
@@ -86,11 +84,11 @@ namespace Dyninst {
             unsigned int insn; // the first 32 bit 
             unsigned int insn_high; // the second 32 bit 
             unsigned long long int insn_long; // the combined 64 bit: insn_high << 32 | insn
- 
-            // the main process of decoding an instruciton, won't advance buffer
-            void mainDecode(InstructionDecoder::buffer &b); 
 
-            void mainDecodeOpcode(InstructionDecoder::buffer &b); 
+            // the main process of decoding an instruciton, won't advance buffer
+            void mainDecode(); 
+
+            void mainDecodeOpcode(); 
 
 
             void setupInsnWord(InstructionDecoder::buffer &b); 
@@ -98,38 +96,22 @@ namespace Dyninst {
             boost::shared_ptr<Instruction> insn_in_progress;
 
             template<int start, int end>
-            int field(unsigned int raw) {
+                int field(unsigned int raw) {
 #if defined DEBUG_FIELD
-                std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
-                        (0xFFFFFFFF >> (31 - (end - start)))) << " ";
+                    std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
+                            (0xFFFFFFFF >> (31 - (end - start)))) << " ";
 #endif
-                return (raw >> (start) & (0xFFFFFFFF >> (31 - (end - start))));
-            }
-            
+                    return (raw >> (start) & (0xFFFFFFFF >> (31 - (end - start))));
+                }
+
             template<int start, int end>
-            int longfield(unsigned long long int raw) {
+                int longfield(unsigned long long int raw) {
 #if defined DEBUG_FIELD
-                std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
-                        (0xFFFFFFFFFFFFFFFF >> (63 - (end - start)))) << " ";
+                    std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
+                            (0xFFFFFFFFFFFFFFFF >> (63 - (end - start)))) << " ";
 #endif
-                return ( (raw >> (start)) & (0xFFFFFFFFFFFFFFFF >> (63 - (end - start))));
-            }
- 
-            template<int start, int end>
-            int rev_field(unsigned int raw) {
-#if defined DEBUG_FIELD
-                std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
-                        (0xFFFFFFFF >> (31 - (end - start)))) << " ";
-#endif
-                unsigned int le = (raw >> (start) & (0xFFFFFFFF >> (31 - (end - start))));
-
-                std::cerr << "operating on le " << std::hex << le << std::endl;
-                unsigned int be = __builtin_bswap32(le);
-
-                std::cerr << "operating on be " << std::hex << be << std::endl;
-                return be >> (31 - (end-start));
-            }
-
+                    return ( (raw >> (start)) & (0xFFFFFFFFFFFFFFFF >> (63 - (end - start))));
+                }
 
             int32_t sign_extend32(int size_, int in) {
                 int32_t val = 0 | in;
@@ -194,8 +176,8 @@ namespace Dyninst {
 
             void NOTHING();
             bool fix_bitfieldinsn_alias(int, int);
-	        void fix_condinsn_alias_and_cond(int &);
-	        void modify_mnemonic_simd_upperhalf_insns();
+            void fix_condinsn_alias_and_cond(int &);
+            void modify_mnemonic_simd_upperhalf_insns();
 
             MachRegister makeAmdgpuRegID(MachRegister, unsigned int, unsigned int len = 1);
 
@@ -205,41 +187,26 @@ namespace Dyninst {
 
 
             template<typename T>
-            Expression::Ptr makeLogicalImm(int immr, int imms, int immsLen, Result_Type rT);
+                Expression::Ptr makeLogicalImm(int immr, int imms, int immsLen, Result_Type rT);
 
 
             //for load store
             void insnSize(unsigned int insn_size );
-            
+
             Expression::Ptr decodeSSRC(unsigned int index);
             Expression::Ptr decodeVSRC(unsigned int index);
             Expression::Ptr decodeVDST(unsigned int index);
-            
+
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
-           
-            void finalizeFLATOperands();
-            void finalizeSMEMOperands();
-
-            void finalizeSOPKOperands();
-            void finalizeSOPPOperands();
-            void finalizeSOP2Operands();
-            void finalizeSOP1Operands();
-            void finalizeSOPCOperands();
-
-            void finalizeVOP1Operands();
-            void finalizeVOP2Operands();
-            void finalizeVOPCOperands();
-            void finalizeVINTRPOperands();
-            void finalizeDSOperands();
-            void finalizeMTBUFOperands();
-            void finalizeMUBUFOperands();
-            void finalizeVOP3ABOperands();
-            void finalizeVOP3POperands();
- 
+            
             bool useImm;
-            unsigned int immLen;
-            unsigned int immLiteral;
+            uint32_t immLen;
+            uint32_t immLiteral;
+            uint32_t imm_at_32;
+            uint32_t imm_at_64;
+            uint32_t imm_at_96;
+
             bool setSCC;
 
 #define IS_LD_ST() (isLoad || isStore )
@@ -254,7 +221,7 @@ namespace Dyninst {
             bool isBranch; // this is set for all branch instructions,
             bool isConditional; // this is set for all conditional branch instruction, will set branchCond
             bool isCall; // this is a call function
-            
+
 
 
             // this is set for instructions that directly modify pc
@@ -266,11 +233,11 @@ namespace Dyninst {
 
             Expression::Ptr branchCond;
             Expression::Ptr branchTarget;
-            
+
             void setBranch(){
                 isBranch = true;
             }
-            
+
             void setConditionalBranch(){
                 isConditional = true;
                 // TODO : set conditional branch
@@ -278,40 +245,37 @@ namespace Dyninst {
             void setModifyPC(){
                 isModifyPC = true;
             }
-            
+
             void setCall(){
                 isCall =  true;
             }
 
-            inline unsigned int get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
-                assert(offset %4 ==0 );
-                return b.start[offset+3] << 24 | b.start[offset + 2] << 16 | b.start[offset +1 ] << 8 | b.start [offset];
-            }
+            inline unsigned int get32bit(InstructionDecoder::buffer &b,unsigned int offset );
 
             template<unsigned int start,unsigned int end, unsigned int candidate>
-            void setUseImm(InstructionDecoder::buffer & b, unsigned int offset){
-                if ( longfield<start,end>(insn_long) == candidate ){
-                    useImm = true;
-                    immLen = 4;
-                    immLiteral = get32bit(b,offset);
+                void setUseImm(InstructionDecoder::buffer & b, unsigned int offset){
+                    if ( longfield<start,end>(insn_long) == candidate ){
+                        useImm = true;
+                        immLen = 4;
+                        immLiteral = get32bit(b,offset);
+                    }
+
                 }
-                
-            }
 
             void setSMEM() {isSMEM = true;}
-            
-           
-            
+
+
+
             template<unsigned int num_elements>
-            void setLoad(){isLoad = true; this->num_elements = num_elements; }
-            
+                void setLoad(){isLoad = true; this->num_elements = num_elements; }
+
             template<unsigned int num_elements>
-            void setStore() {isStore = true;this->num_elements = num_elements;}
+                void setStore() {isStore = true;this->num_elements = num_elements;}
 
             void setScratch() {isScratch = true;}
 
             void setBuffer() {isBuffer = true;}
-            
+
             typedef struct buffer_resource_desc{
                 unsigned long long base_address;
                 unsigned stride;
@@ -331,10 +295,22 @@ namespace Dyninst {
                 unsigned non_volatile;
                 unsigned type;
             }buffer_resource_desc;
-            
+
             void debug_instr();
             
-#include "amdgpu_decoder_impl_vega.h"
+            uint32_t decodeOPR_LITERAL();
+            Expression::Ptr decodeOPR_LABEL(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM4(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM8(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM16(uint64_t input);
+            Expression::Ptr decodeOPR_SIMM32(uint64_t input);
+            Expression::Ptr decodeOPR_WAITCNT(uint64_t input);
+            using InstructionDecoderImpl::makeRegisterExpression;
+            Expression::Ptr makeRegisterExpression(MachRegister registerID);
+            Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
+            void specialHandle();
+            #include "amdgpu_cdna2_decoder_impl.h"    
+            #include "decodeOperands.h"    
         };
     }
 }

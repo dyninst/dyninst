@@ -35,7 +35,8 @@ namespace Dyninst {
 	namespace InstructionAPI {
 		typedef void (InstructionDecoder_amdgpu_vega::*operandFactory)();
 
-		typedef amdgpu_insn_entry amdgpu_insn_table[];
+		typedef amdgpu_vega_insn_entry amdgpu_vega_insn_table[];
+    
 		typedef amdgpu_mask_entry amdgpu_decoder_table[];
 
 		const std::array<std::string, 16> InstructionDecoder_amdgpu_vega::condNames = { {
@@ -54,7 +55,7 @@ namespace Dyninst {
 			};
 		}
 
-#include "amdgpu_insn_entry.h"
+#include "amdgpu_vega_insn_entry.h"
 		struct amdgpu_mask_entry {
 			unsigned int mask;
 			std::size_t branchCnt;
@@ -65,7 +66,7 @@ namespace Dyninst {
 			static const std::pair<unsigned int,unsigned int> branchTable[];
 		};
 
-#include "amdgpu_opcode_tables.C"
+#include "amdgpu_vega_opcode_tables.C"
 
 		InstructionDecoder_amdgpu_vega::InstructionDecoder_amdgpu_vega(Architecture a)
 			: InstructionDecoderImpl(a), 
@@ -554,7 +555,7 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeVOP3POperands() {
 		}
 
-		bool InstructionDecoder_amdgpu_vega::decodeOperands(const amdgpu_insn_entry & insn_entry) {
+		bool InstructionDecoder_amdgpu_vega::decodeOperands(const amdgpu_vega_insn_entry & insn_entry) {
 			if(insn_entry.operandCnt!=0){
 				for (std::size_t i =0 ; i < insn_entry.operandCnt; i++){
 					std::mem_fun(insn_entry.operands[i])(this);
@@ -575,7 +576,7 @@ namespace Dyninst {
 
 
 		Expression::Ptr InstructionDecoder_amdgpu_vega::decodeVDST(unsigned int index){
-			index += 255;
+			index += 256;
             return decodeSSRC(index);
 		} 
 
@@ -671,7 +672,7 @@ namespace Dyninst {
 				//std::cerr << "\nusing imm " << imm << std::endl;
 				return Immediate::makeImmediate(Result(u32, unsign_extend32(32,immLiteral )));
 			}else if( 256 <= index  && index <= 511){
-				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::vgpr0,index >>8);
+				MachRegister mr = makeAmdgpuRegID(amdgpu_vega::vgpr0,index &0xff);
 				return makeRegisterExpression(mr);
 			} 
 
@@ -680,7 +681,7 @@ namespace Dyninst {
 
 			assert(0 && "unknown register value ");
 		}
-#include "amdgpu_decoder_impl_vega.C"
+#include "amdgpu_vega_decoder_impl.C"
 
 		void InstructionDecoder_amdgpu_vega::reset(){
 			immLen = 0;
@@ -732,7 +733,7 @@ namespace Dyninst {
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
 				std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
-			//debug_instr();
+			debug_instr();
 			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;

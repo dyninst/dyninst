@@ -14,3 +14,19 @@
 	case amdgpu_op_s_cbranch_g_fork:
 	case amdgpu_op_s_cbranch_i_fork:
 	case amdgpu_op_s_call_b64:
+    case amdgpu_cdna2_op_S_BRANCH:
+	case amdgpu_cdna2_op_S_CBRANCH_SCC0:
+	case amdgpu_cdna2_op_S_CBRANCH_SCC1:
+	case amdgpu_cdna2_op_S_CBRANCH_VCCZ:
+	case amdgpu_cdna2_op_S_CBRANCH_VCCNZ:
+	case amdgpu_cdna2_op_S_CBRANCH_EXECZ:
+	case amdgpu_cdna2_op_S_CBRANCH_EXECNZ:
+	case amdgpu_cdna2_op_S_CBRANCH_CDBGSYS:
+	case amdgpu_cdna2_op_S_CBRANCH_CDBGUSER:
+	case amdgpu_cdna2_op_S_CBRANCH_CDBGSYS_AND_USER:
+	case amdgpu_cdna2_op_S_SETPC_B64:
+	case amdgpu_cdna2_op_S_SWAPPC_B64:
+	case amdgpu_cdna2_op_S_RFE_B64:
+	case amdgpu_cdna2_op_S_CBRANCH_G_FORK:
+	case amdgpu_cdna2_op_S_CBRANCH_I_FORK:
+	case amdgpu_cdna2_op_S_CALL_B64:

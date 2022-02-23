@@ -91,7 +91,7 @@ namespace Dyninst
 
     std::string RegisterAST::format(Architecture arch, formatStyle f) const
     {
-        if(arch == Arch_amdgpu_vega){
+        if(arch == Arch_amdgpu_vega || arch == Arch_amdgpu_cdna2){
             return RegisterAST::format(f);
         }
         return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());
@@ -100,15 +100,35 @@ namespace Dyninst
     std::string RegisterAST::format(formatStyle) const
     {
         std::string name = m_Reg.name();
-        std::string::size_type substr = name.rfind(':');
-        if(substr != std::string::npos)
+        std::string::size_type substr = name.rfind("::");
+        Architecture arch = m_Reg.getArchitecture();
+        if(/*arch != Arch_amdgpu_vega && arch != Arch_amdgpu_cdna2 && */substr != std::string::npos)
         {
-            name = name.substr(substr + 1, name.length());
+            name = name.substr(substr + 2, name.length());
         }
-        if ( m_Reg.size()*8 != m_High - m_Low){
-            name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";
-        }
+        // Size of base register * 8 != m_High - mLow ( in bits) when we it is a register vector
+        if ( m_High -m_Low > 32 && m_Reg.size()*8 != m_High - m_Low){
+            uint32_t id = m_Reg & 0xff ;
+            uint32_t regClass = m_Reg.regClass();
+            uint32_t size = (m_High - m_Low ) / 32;
+            if( regClass == amdgpu_cdna2::SGPR || regClass == amdgpu_vega::SGPR){
+                return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
+            }
 
+            if(regClass == amdgpu_cdna2::VGPR || regClass == amdgpu_vega::VGPR){
+                return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
+            }
+
+            if(regClass == amdgpu_cdna2::ACC_VGPR){
+                return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
+            }
+            if(m_Reg == amdgpu_cdna2::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
+                return "VCC";
+            if(m_Reg == amdgpu_cdna2::exec_lo || m_Reg == amdgpu_vega::exec_lo)
+                return "EXEC";
+
+            name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";
+        } 
         /* we have moved to AT&T syntax (lowercase registers) */
         for(char &c : name) c = std::toupper(c);
 
