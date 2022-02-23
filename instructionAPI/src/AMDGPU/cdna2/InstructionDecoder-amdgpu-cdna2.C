@@ -92,40 +92,7 @@ namespace Dyninst {
 		// ****************
 
 		MachRegister InstructionDecoder_amdgpu_cdna2::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int) {
-			MachRegister realBase = base;
-			/*if (base == amdgpu_cdna2::s0){
-				switch(len){
-					case 2:
-						realBase = amdgpu_cdna2::sgpr_vec2_0;
-						break;
-					case 4:
-						realBase = amdgpu_cdna2::sgpr_vec4_0;
-						break;
-					case 8:
-						realBase = amdgpu_cdna2::sgpr_vec8_0;
-						break;
-					case 16:
-						realBase = amdgpu_cdna2::sgpr_vec16_0;
-						break;
-				}
-			}else if (base == amdgpu_cdna2::v0){
-				switch(len){
-					case 2:
-						realBase = amdgpu_cdna2::vgpr_vec2_0;
-						break;
-					case 4:
-						realBase = amdgpu_cdna2::vgpr_vec4_0;
-						break;
-					case 8:
-						realBase = amdgpu_cdna2::vgpr_vec8_0;
-						break;
-					case 16:
-						realBase = amdgpu_cdna2::vgpr_vec16_0;
-						break;
-				}
-
-			}*/
-			return MachRegister(realBase.val() + encoding);
+			return MachRegister(base.val() + encoding);
 
 		}
 
