@@ -47,11 +47,13 @@ namespace Dyninst {
 			switch(e) {
 				default: assert(!"no alias for entryID");
 			};
+			return nullptr;
 		}
 		const char* InstructionDecoder_amdgpu_cdna2::condInsnAliasMap(entryID e) {
 			switch(e) {
 				default: assert(!"no alias for entryID");
 			};
+			return nullptr;
 		}
 
 #include "amdgpu_cdna2_insn_entry.h"
