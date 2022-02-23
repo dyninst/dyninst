@@ -101,8 +101,7 @@ namespace Dyninst
     {
         std::string name = m_Reg.name();
         std::string::size_type substr = name.rfind("::");
-        Architecture arch = m_Reg.getArchitecture();
-        if(/*arch != Arch_amdgpu_vega && arch != Arch_amdgpu_cdna2 && */substr != std::string::npos)
+        if(substr != std::string::npos)
         {
             name = name.substr(substr + 2, name.length());
         }
