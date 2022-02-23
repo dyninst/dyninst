@@ -43,16 +43,12 @@ namespace Dyninst {
 			"lt", "gt", "le", "al", "nv",
 		} };
 
-		const char* InstructionDecoder_amdgpu_cdna2::bitfieldInsnAliasMap(entryID e) {
-			switch(e) {
-				default: assert(!"no alias for entryID");
-			};
+		const char* InstructionDecoder_amdgpu_cdna2::bitfieldInsnAliasMap(entryID) {
+			assert(!"no alias for entryID");
 			return nullptr;
 		}
-		const char* InstructionDecoder_amdgpu_cdna2::condInsnAliasMap(entryID e) {
-			switch(e) {
-				default: assert(!"no alias for entryID");
-			};
+		const char* InstructionDecoder_amdgpu_cdna2::condInsnAliasMap(entryID) {
+			assert(!"no alias for entryID");
 			return nullptr;
 		}
 
