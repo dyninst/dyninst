@@ -66,11 +66,7 @@ namespace Dyninst {
 #include "amdgpu_cdna2_opcode_tables.C"
 
 		InstructionDecoder_amdgpu_cdna2::InstructionDecoder_amdgpu_cdna2(Architecture a)
-			: InstructionDecoderImpl(a), 
-            insn_size(0), immLen(0) , num_elements(1) , isSMEM(false), isLoad(false), isStore(false),isBuffer(false),
-            isScratch(false) , isBranch(false), isConditional(false) ,isCall(false), isModifyPC(false)
-		{
-		}
+			: InstructionDecoderImpl(a) {}
 
 		InstructionDecoder_amdgpu_cdna2::~InstructionDecoder_amdgpu_cdna2() {
 		}
