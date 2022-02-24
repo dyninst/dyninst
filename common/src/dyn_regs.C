@@ -218,15 +218,7 @@ std::string MachRegister::name() const {
             }
             return ret;
         }else if(getArchitecture() == Arch_amdgpu_cdna2){
-            signed int category = reg & 0x00ff0000;
-            signed int base_val = reg & 0x000000ff;
-            switch(category){
-                default:
-                    ret = iter->second;
-                    break;
-            }
-            return ret;
-
+        	return iter->second;
         }else{
             return iter->second;
         }

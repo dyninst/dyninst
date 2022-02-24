@@ -318,7 +318,7 @@ case 2 : return makeRegisterExpression(amdgpu_cdna2::p0,0,opr_size);
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 }
-Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_PC(uint64_t input,uint32_t opr_size ){
+Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_PC(uint64_t input,uint32_t){
 switch(input){
 case 0 : return makeRegisterExpression(amdgpu_cdna2::pc_all);
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
@@ -4785,7 +4785,7 @@ case 255 : return makeRegisterExpression(amdgpu_cdna2::src_literal,0,opr_size);
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 }
-Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SSRC_0_63_INLINES(uint64_t input,uint32_t opr_size ){
+Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SSRC_0_63_INLINES(uint64_t input,uint32_t){
 switch(input){
 case 128 : return Immediate::makeImmediate(Result(u32, 0));
 case 129 : return Immediate::makeImmediate(Result(u32, 1));
@@ -4854,7 +4854,7 @@ case 191 : return Immediate::makeImmediate(Result(u32, 63));
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 }
-Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SSRC_INLINES(uint64_t input,uint32_t opr_size ){
+Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SSRC_INLINES(uint64_t input,uint32_t){
 switch(input){
 case 128 : return Immediate::makeImmediate(Result(u32, 0));
 case 129 : return Immediate::makeImmediate(Result(u32, 1));
@@ -5587,7 +5587,7 @@ case 123 : return makeRegisterExpression(amdgpu_cdna2::ttmp15,0,opr_size);
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
 }
 }
-Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_VCC(uint64_t input,uint32_t opr_size ){
+Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_VCC(uint64_t input,uint32_t){
 switch(input){
 case 0 : return makeRegisterExpression(amdgpu_cdna2::vcc);
 default: return makeRegisterExpression(amdgpu_cdna2::invalid);
