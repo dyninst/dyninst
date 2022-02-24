@@ -136,3 +136,10 @@ target_link_libraries(common PUBLIC ${TBB_LIBRARIES})
 if(USE_OpenMP)
   set_target_properties(common PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} LINK_FLAGS ${OpenMP_CXX_FLAGS})
 endif()
+
+# Install AMDGPU headers under subdirectory of common/h/AMDGPU
+set(AMDGPU_HEADER
+    ${DYNINST_ROOT}/common/h/AMDGPU
+)
+install(DIRECTORY ${AMDGPU_HEADER} DESTINATION ${INSTALL_INCLUDE_DIR})
+
