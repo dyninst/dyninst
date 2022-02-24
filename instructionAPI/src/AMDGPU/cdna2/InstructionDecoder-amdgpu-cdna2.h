@@ -50,7 +50,7 @@ namespace Dyninst {
             enum DecodeFamily {sopp};
 
             public:
-            InstructionDecoder_amdgpu_cdna2(Architecture a);
+    		InstructionDecoder_amdgpu_cdna2(Architecture a) : InstructionDecoderImpl(a) {}
 
             virtual ~InstructionDecoder_amdgpu_cdna2();
 
