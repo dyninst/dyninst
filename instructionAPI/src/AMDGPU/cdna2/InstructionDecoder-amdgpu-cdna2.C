@@ -121,6 +121,7 @@ namespace Dyninst {
 				return makeRegisterExpression(amdgpu_cdna2::m0);
             cerr << " unknown offset in sgpr or m0 " << offset << endl; 
 			assert(0 && "shouldn't reach here");
+			return {};
 		}
 
 
