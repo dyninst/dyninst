@@ -52,7 +52,7 @@ namespace Dyninst {
             public:
     		InstructionDecoder_amdgpu_cdna2(Architecture a) : InstructionDecoderImpl(a) {}
 
-            virtual ~InstructionDecoder_amdgpu_cdna2();
+            virtual ~InstructionDecoder_amdgpu_cdna2() = default;
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
 

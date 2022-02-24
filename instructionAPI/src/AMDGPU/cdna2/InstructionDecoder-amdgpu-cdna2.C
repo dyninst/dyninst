@@ -65,10 +65,6 @@ namespace Dyninst {
 
 #include "amdgpu_cdna2_opcode_tables.C"
 
-		InstructionDecoder_amdgpu_cdna2::~InstructionDecoder_amdgpu_cdna2() {
-		}
-
-
 		using namespace std;
 		void InstructionDecoder_amdgpu_cdna2::NOTHING() {
 		}
