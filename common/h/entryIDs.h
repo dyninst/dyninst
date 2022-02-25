@@ -3007,8 +3007,7 @@ power_op_dxex,
   aarch64_op_zip1_advsimd,
   aarch64_op_zip2_advsimd,
   amdgpu_op_sop1_nop,
-#include "amdgpu_op_table.h"
-#include "amdgpu_cdna_op_table.h"
+#include "AMDGPU/vega/amdgpu_vega_op_table.h"
 #include "AMDGPU/cdna2/amdgpu_cdna2_op_table.h"
   cuda_op_general,
   cuda_op_call,
