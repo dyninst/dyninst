@@ -1614,7 +1614,7 @@ namespace Dyninst
         const signed int BITS_256     = 0x00000F00;
         const signed int BITS_512     = 0x00001000;
 
-#include "amdgpu_vega_sys_regs.h"
+#include "AMDGPU/vega/amdgpu_vega_sys_regs.h"
     }
 
     namespace amdgpu_cdna2{
