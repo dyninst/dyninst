@@ -44,7 +44,7 @@ enum InstructionFamily{
 	ENC_VOP3B = 20,
 	ENC_VOP3P_MFMA = 21,
 };
-InstructionFamily instr_family;
+InstructionFamily instr_family{};
 typedef void (InstructionDecoder_amdgpu_cdna2::*func_ptr)(void);
 func_ptr decode_lookup_table [22] = {
 	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOP1),

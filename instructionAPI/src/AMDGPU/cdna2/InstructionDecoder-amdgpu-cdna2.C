@@ -43,15 +43,13 @@ namespace Dyninst {
 			"lt", "gt", "le", "al", "nv",
 		} };
 
-		const char* InstructionDecoder_amdgpu_cdna2::bitfieldInsnAliasMap(entryID e) {
-			switch(e) {
-				default: assert(!"no alias for entryID");
-			};
+		const char* InstructionDecoder_amdgpu_cdna2::bitfieldInsnAliasMap(entryID) {
+			assert(!"no alias for entryID");
+			return nullptr;
 		}
-		const char* InstructionDecoder_amdgpu_cdna2::condInsnAliasMap(entryID e) {
-			switch(e) {
-				default: assert(!"no alias for entryID");
-			};
+		const char* InstructionDecoder_amdgpu_cdna2::condInsnAliasMap(entryID) {
+			assert(!"no alias for entryID");
+			return nullptr;
 		}
 
 #include "amdgpu_cdna2_insn_entry.h"
@@ -67,17 +65,6 @@ namespace Dyninst {
 
 #include "amdgpu_cdna2_opcode_tables.C"
 
-		InstructionDecoder_amdgpu_cdna2::InstructionDecoder_amdgpu_cdna2(Architecture a)
-			: InstructionDecoderImpl(a), 
-            insn_size(0), immLen(0) , num_elements(1) , isSMEM(false), isLoad(false), isStore(false),isBuffer(false),
-            isScratch(false) , isBranch(false), isConditional(false) ,isCall(false), isModifyPC(false)
-		{
-		}
-
-		InstructionDecoder_amdgpu_cdna2::~InstructionDecoder_amdgpu_cdna2() {
-		}
-
-
 		using namespace std;
 		void InstructionDecoder_amdgpu_cdna2::NOTHING() {
 		}
@@ -92,40 +79,7 @@ namespace Dyninst {
 		// ****************
 
 		MachRegister InstructionDecoder_amdgpu_cdna2::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int) {
-			MachRegister realBase = base;
-			/*if (base == amdgpu_cdna2::s0){
-				switch(len){
-					case 2:
-						realBase = amdgpu_cdna2::sgpr_vec2_0;
-						break;
-					case 4:
-						realBase = amdgpu_cdna2::sgpr_vec4_0;
-						break;
-					case 8:
-						realBase = amdgpu_cdna2::sgpr_vec8_0;
-						break;
-					case 16:
-						realBase = amdgpu_cdna2::sgpr_vec16_0;
-						break;
-				}
-			}else if (base == amdgpu_cdna2::v0){
-				switch(len){
-					case 2:
-						realBase = amdgpu_cdna2::vgpr_vec2_0;
-						break;
-					case 4:
-						realBase = amdgpu_cdna2::vgpr_vec4_0;
-						break;
-					case 8:
-						realBase = amdgpu_cdna2::vgpr_vec8_0;
-						break;
-					case 16:
-						realBase = amdgpu_cdna2::vgpr_vec16_0;
-						break;
-				}
-
-			}*/
-			return MachRegister(realBase.val() + encoding);
+			return MachRegister(base.val() + encoding);
 
 		}
 
@@ -167,6 +121,7 @@ namespace Dyninst {
 				return makeRegisterExpression(amdgpu_cdna2::m0);
             cerr << " unknown offset in sgpr or m0 " << offset << endl; 
 			assert(0 && "shouldn't reach here");
+			return {};
 		}
 
 

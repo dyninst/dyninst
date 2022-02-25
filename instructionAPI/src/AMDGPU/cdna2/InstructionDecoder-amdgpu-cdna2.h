@@ -50,9 +50,9 @@ namespace Dyninst {
             enum DecodeFamily {sopp};
 
             public:
-            InstructionDecoder_amdgpu_cdna2(Architecture a);
+    		InstructionDecoder_amdgpu_cdna2(Architecture a) : InstructionDecoderImpl(a) {}
 
-            virtual ~InstructionDecoder_amdgpu_cdna2();
+            virtual ~InstructionDecoder_amdgpu_cdna2() = default;
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
 
@@ -78,12 +78,12 @@ namespace Dyninst {
             private:
             virtual Result_Type makeSizeType(unsigned int opType);
 
-            bool is64Bit;
+            bool is64Bit{};
 
-            unsigned int insn_size; // size of the instruction that we are currently working on
-            unsigned int insn; // the first 32 bit 
-            unsigned int insn_high; // the second 32 bit 
-            unsigned long long int insn_long; // the combined 64 bit: insn_high << 32 | insn
+            unsigned int insn_size{}; // size of the instruction that we are currently working on
+            unsigned int insn{}; // the first 32 bit
+            unsigned int insn_high{}; // the second 32 bit
+            unsigned long long int insn_long{}; // the combined 64 bit: insn_high << 32 | insn
 
             // the main process of decoding an instruciton, won't advance buffer
             void mainDecode(); 
@@ -154,23 +154,23 @@ namespace Dyninst {
             }
 
 
-            bool hasHw;
-            int hwField;
+            bool hasHw{};
+            int hwField{};
 
             void processHwFieldInsn(int, int);
 
-            bool hasShift;
-            int shiftField;
+            bool hasShift{};
+            int shiftField{};
 
             void makeBranchTarget(bool, bool, int, int);
 
             Expression::Ptr makeFallThroughExpr();
 
-            int _szField, size;
-            int _typeField;
-            int cmode;
-            int op;
-            int simdAlphabetImm;
+            int _szField{}, size{};
+            int _typeField{};
+            int cmode{};
+            int op{};
+            int simdAlphabetImm{};
 
             void processAlphabetImm();
 
@@ -200,33 +200,33 @@ namespace Dyninst {
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
             
-            bool useImm;
-            uint32_t immLen;
-            uint32_t immLiteral;
-            uint32_t imm_at_32;
-            uint32_t imm_at_64;
-            uint32_t imm_at_96;
+            bool useImm{};
+            uint32_t immLen{};
+            uint32_t immLiteral{};
+            uint32_t imm_at_32{};
+            uint32_t imm_at_64{};
+            uint32_t imm_at_96{};
 
-            bool setSCC;
+            bool setSCC{};
 
 #define IS_LD_ST() (isLoad || isStore )
 
-            unsigned int num_elements ;  // the number of elements that will be load or store by each instruction
-            bool isSMEM; // this is set when using smem instruction
-            bool isLoad; // this is set when a smem instruction is load, will set number of elements that are loaded at the same time
-            bool isStore; // similar to isLoad, but for store instructions
-            bool isBuffer; // 
-            bool isScratch;
+            unsigned int num_elements{1};  // the number of elements that will be load or store by each instruction
+            bool isSMEM{}; // this is set when using smem instruction
+            bool isLoad{}; // this is set when a smem instruction is load, will set number of elements that are loaded at the same time
+            bool isStore{}; // similar to isLoad, but for store instructions
+            bool isBuffer{}; //
+            bool isScratch{};
 
-            bool isBranch; // this is set for all branch instructions,
-            bool isConditional; // this is set for all conditional branch instruction, will set branchCond
-            bool isCall; // this is a call function
+            bool isBranch{}; // this is set for all branch instructions,
+            bool isConditional{}; // this is set for all conditional branch instruction, will set branchCond
+            bool isCall{}; // this is a call function
 
 
 
             // this is set for instructions that directly modify pc
             // namely s_setpc and s_swappc
-            bool isModifyPC;
+            bool isModifyPC{};
 
             // reset the decoder internal state for decoding the next instruction
             void reset();
