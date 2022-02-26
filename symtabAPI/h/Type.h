@@ -63,6 +63,7 @@ class fieldListType;
 class rangedType;
 class derivedType;
 class TypeMemManager;
+class DwarfWalker;
 
 //TODO?? class BPatch(to be  ??)function;
 
@@ -527,6 +528,9 @@ class SYMTAB_EXPORT CBlock : public AnnotatableSparse
 };
 
 class SYMTAB_EXPORT typeStruct : public fieldListType {
+  private:
+   friend class Dyninst::SymtabAPI::DwarfWalker;
+   dyn_c_vector<Type *> vtable_;
  protected:
    void updateSize();
    void postFieldInsert(int nsize);
