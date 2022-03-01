@@ -59,10 +59,6 @@
 #include <iterator>
 #include <errno.h>
 
-#if defined(os_windows)
-#pragma warning(disable:4355 4477)
-#endif
-
 using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;

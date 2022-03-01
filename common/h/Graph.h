@@ -46,9 +46,6 @@
 #include "Annotatable.h"
 #include "Node.h"
 
-#if defined(_MSC_VER)
-#pragma warning(disable:4251)
-#endif
 
 namespace Dyninst {
 class Edge;

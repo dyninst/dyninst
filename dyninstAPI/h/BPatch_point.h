@@ -147,18 +147,9 @@ private:
     AddressSpace *getAS();
 
 private:
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4251) 
-#endif
-    // Disable warning that these vectors cannot be used externally, 
-    // which is irrelevant since the vectors are private
     BPatch_Vector<BPatchSnippetHandle *> preSnippets;
     BPatch_Vector<BPatchSnippetHandle *> postSnippets;
     BPatch_Vector<BPatchSnippetHandle *> allSnippets;
-#if defined(_MSC_VER)
-#pragma warning(pop)    
-#endif
 
 public:
     //~BPatch_point() { delete memacc; };

@@ -56,6 +56,7 @@
 #include <stdio.h>
 #include "dyninstRTExport.h"
 #include "common/src/Types.h"
+#include "common/h/compiler_diagnostics.h"
 
 /* If we must make up a boolean type, we should make it unique */
 typedef unsigned char RT_Boolean;
@@ -166,15 +167,10 @@ typedef struct {
 #define TRAP_HEADER_SIG 0x759191D6
 #define DT_DYNINST 0x6D191957
 
-#if defined(_MSC_VER)
-#pragma warning(disable:4200)
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-// Disable warning about flexible array members in C++
-// FIXME: Flexible array member, traps[], in structure below
-#endif
+// Suppress warning about flexible array members not valid in C++
+// FIXME: invalid flexible array member, traps[], in structure below
+DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_FLEX_ARRAY
+
 struct trap_mapping_header {
    uint32_t signature;
    uint32_t num_entries;
@@ -184,9 +180,8 @@ struct trap_mapping_header {
    uint64_t high_entry;
    trapMapping_t traps[]; //Don't change this to a pointer, despite any compiler warnings
 };
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+
+DYNINST_DIAGNOSTIC_END_SUPPRESS_FLEX_ARRAY
 
 #define MAX_MEMORY_MAPPER_ELEMENTS 1024
 

@@ -57,10 +57,6 @@ static int check_debug_flag(int &flag)
 {
   static std::once_flag initialized;
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4996) 
-#endif
 
   std::call_once(initialized, []() {
 
@@ -90,10 +86,6 @@ static int check_debug_flag(int &flag)
   }
 
   });
-
-#if defined(_MSC_VER)
-#pragma warning(pop)    
-#endif
 
   return flag;
 }

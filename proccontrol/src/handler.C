@@ -53,10 +53,6 @@ using namespace std;
 #include <assert.h>
 #include <cstring>
 
-#ifdef _MSC_VER
-#pragma warning(disable:4477)
-#endif
-
 Handler::Handler(std::string name_) :
    name(name_)
 {
