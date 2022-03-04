@@ -12,9 +12,9 @@ mkdir -p build/dyninst
 printf "⭐️ Preparing to build Dyninst\n"
 echo "::group::build dyninst"   
 cd build/dyninst
-cmake -S /code -B. -DCMAKE_INSTALL_PREFIX=. > >(tee config.out) 2> >(tee config.err >&2)
-make VERBOSE=1 -j2 > >(tee build.out) 2> >(tee build.err >&2)
-make install VERBOSE=1 -j2 > >(tee build-install.out) 2> >(tee build-install.err >&2)
+cmake -S /code -B. -DCMAKE_INSTALL_PREFIX=.
+make VERBOSE=1 -j2
+make install VERBOSE=1 -j2
 echo "::endgroup::"
 
 # 2. Update the test suite
@@ -32,7 +32,7 @@ cd /opt/dyninst-env/
 mkdir -p build/testsuite/tests
 cd build/testsuite
 
-cmake -S /opt/testsuite -B. -DCMAKE_INSTALL_PREFIX=$PWD/tests -DDyninst_DIR=/opt/dyninst-env/build/dyninst/lib/cmake/Dyninst > >(tee config.out) 2> >(tee config.err >&2)
-make VERBOSE=1 -j2 > >(tee build.out) 2> >(tee build.err >&2)
-make install VERBOSE=1 -j2 > >(tee build-install.out) 2> >(tee build-install.err >&2)
+cmake -S /opt/testsuite -B. -DCMAKE_INSTALL_PREFIX=$PWD/tests -DDyninst_DIR=/opt/dyninst-env/build/dyninst/lib/cmake/Dyninst
+make VERBOSE=1 -j2
+make install VERBOSE=1 -j2
 echo "::endgroup::"
