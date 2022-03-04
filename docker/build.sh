@@ -12,8 +12,8 @@ printf "⭐️ Preparing to build Dyninst\n"
 echo "::group::build dyninst"   
 mkdir -p build/dyninst && cd $_
 cmake -S /code -B. -DCMAKE_INSTALL_PREFIX=.
-make VERBOSE=1 -j2
-make install VERBOSE=1 -j2
+cmake --build . -- -j2
+cmake --install .
 echo "::endgroup::"
 
 # 2. Update the test suite
@@ -31,6 +31,6 @@ cd /opt/dyninst-env/
 mkdir -p build/testsuite/tests && cd $_
 
 cmake -S /opt/testsuite -B. -DCMAKE_INSTALL_PREFIX=$PWD/tests -DDyninst_DIR=/opt/dyninst-env/build/dyninst/lib/cmake/Dyninst
-make VERBOSE=1 -j2
-make install VERBOSE=1 -j2
+cmake --build . -- -j2
+cmake --install .
 echo "::endgroup::"
