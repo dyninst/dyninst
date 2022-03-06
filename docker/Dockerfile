@@ -13,7 +13,7 @@ ENV TZ=America/Los_Angeles
 ARG BOOST_VERSION=1.71.0
 ARG ELFUTILS_VERSION=0.186
 ARG LIBIBERTY_VERSION=2.33.1
-ARG INTELTBB_VERSION=2020.2
+ARG INTELTBB_VERSION=2020.3
 ARG PERL_VERSION=5.30.0
 ARG CMAKE_VERSION=3.16.3
 
@@ -51,7 +51,8 @@ RUN apt-get -qq update && \
       wget \
       xsltproc \
       cmake \
-      libboost1.71-all-dev
+      libboost1.71-all-dev \
+      libtbb-dev
 
 # Install Clingo for Spack
 RUN python3 -m pip install --upgrade pip && \
@@ -90,6 +91,11 @@ RUN printf "\n\
   boost:\n\
     externals:\n\
     - spec: boost@${BOOST_VERSION}\n\
+      prefix: /usr\n\
+    buildable: false\n\
+  intel-tbb:\n\
+    externals:\n\
+    - spec: intel-tbb@${INTELTBB_VERSION}\n\
       prefix: /usr\n\
     buildable: false\n\
 " >> ~/.spack/packages.yaml
