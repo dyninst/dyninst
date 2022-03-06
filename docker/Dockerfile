@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Los_Angeles
 
 # We can use build args to populate the specific versions of dependencies (with defaults here)
-ARG BOOST_VERSION=1.73.0
+ARG BOOST_VERSION=1.71.0
 ARG ELFUTILS_VERSION=0.186
 ARG LIBIBERTY_VERSION=2.33.1
 ARG INTELTBB_VERSION=2020.2
@@ -50,7 +50,8 @@ RUN apt-get -qq update && \
       vim \
       wget \
       xsltproc \
-      cmake
+      cmake \
+      libboost1.71-all-dev
 
 # Install Clingo for Spack
 RUN python3 -m pip install --upgrade pip && \
@@ -83,6 +84,15 @@ RUN spack external find gcc@11.0.1 autoconf bzip2 git tar xz perl && \
 
 RUN spack external find cmake && \
     spack config add 'packages:cmake:buildable:False'
+
+# 'spack external find' doesn't work on libraries
+RUN printf "\n\
+  boost:\n\
+    externals:\n\
+    - spec: boost@${BOOST_VERSION}\n\
+      prefix: /usr\n\
+    buildable: false\n\
+" >> ~/.spack/packages.yaml
 
 # Add Dyninst source code here (e.g., from PR or master)
 WORKDIR /code
