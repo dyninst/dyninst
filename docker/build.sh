@@ -41,5 +41,6 @@ mkdir -p $TESTSUITE_INSTALL_DIR
 
 cmake -S /opt/testsuite -B $TESTSUITE_BUILD_DIR -DCMAKE_INSTALL_PREFIX=$TESTSUITE_INSTALL_DIR -DDyninst_DIR=$DYNINST_INSTALL_DIR/lib/cmake/Dyninst
 cmake --build $TESTSUITE_BUILD_DIR -- -j2
-cmake --install $TESTSUITE_BUILD_DIR
+cmake --install $TESTSUITE_BUILD_DIR --prefix $TESTSUITE_INSTALL_DIR
+mv $TESTSUITE_INSTALL_DIR/bin/testsuite/* $TESTSUITE_INSTALL_DIR
 echo "::endgroup::"
