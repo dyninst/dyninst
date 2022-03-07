@@ -263,7 +263,7 @@ namespace Dyninst
 						}
 						
 						Result one(u64, 1);
-						Result rot = arg1 & (Result(u64, (1<<arg2val) - 1));
+						Result rot = arg1 & (Result(u64, (1ULL<<arg2val) - 1));
 						
 						rightLogicalShiftResult lhsRightShift;
 						Result arg2mod = Result(arg2.type, arg2val);

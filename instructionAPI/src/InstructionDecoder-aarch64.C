@@ -2870,7 +2870,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 uint64_t imm = 0;
 
                 for (int imm_index = 0; imm_index < 8; imm_index++)
-                    imm |= (simdAlphabetImm & (1 << imm_index)) ? (0xFF << (imm_index * 8)) : 0;
+                    imm |= (simdAlphabetImm & (1 << imm_index)) ? (0xFFULL << (imm_index * 8)) : 0;
 
                 insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u64, imm)), true, false);
             }
