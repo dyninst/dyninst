@@ -80,8 +80,9 @@ using namespace std;
    } while (0)
 #define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
-DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
+DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf *dbg, std::shared_ptr<ParsedFuncs> pf) :
    DwarfParseActions(symtab, dbg),
+   parsedFuncs(pf),
    is_mangled_name_(false),
    modLow(0),
    modHigh(0),
@@ -96,6 +97,9 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
    next_cu_header(0),
    compile_offset(0)
 {
+    if (!parsedFuncs)  {
+        parsedFuncs = std::make_shared<ParsedFuncs>();
+    }
 }
 
 DwarfWalker::~DwarfWalker() {
@@ -180,7 +184,7 @@ bool DwarfWalker::parse() {
     } else {
 #pragma omp parallel
     {
-    DwarfWalker w(symtab(), dbg());
+    DwarfWalker w(symtab(), dbg(), parsedFuncs);
 #pragma omp for reduction(leftmost:fixUnknownMod) \
         schedule(dynamic) nowait
     for (unsigned int i = 0; i < module_dies.size(); i++) {
@@ -610,6 +614,28 @@ void DwarfParseActions::addPrettyFuncName(std::string name)
    curFunc()->addPrettyName(name, true, true);
 }
 
+
+// helper class to set and restore currentSubprogramFunction
+namespace {
+class SetAndRestoreFunction
+{
+    public:
+        SetAndRestoreFunction(FunctionBase* &v, FunctionBase* newFunc) : var(v)
+        {
+            savedFunc = var;
+            var = newFunc;
+        }
+        ~SetAndRestoreFunction()
+        {
+            var = savedFunc;
+        }
+    private:
+        FunctionBase* &var;
+        FunctionBase* savedFunc;
+};
+}
+
+
 bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    bool name_result;
 
@@ -645,14 +671,28 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       return true;
    }
 
-   if (parsedFuncs.find(func) != parsedFuncs.end()) {
-      dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() not in parsedFuncs\n", id());
-      if(name_result) {
-	  dwarf_printf("\tname is %s\n", curName().c_str());
-      }
-      setParseChild(false);
-      return true;
+   // this function's accessor lock to check if parsed and/or parse it
+   ParsedFuncs::accessor funcParsed;
+
+   // recursive if parsing a specification or abstract origin,
+   // accessor is already locked
+   bool isRecursiveSubprogramParse = (func == currentSubprogramFunction);
+
+   if (!isRecursiveSubprogramParse)  {
+       // check if function is parsed, hold mutex until scope is left
+       parsedFuncs->insert(funcParsed, func);
+       if (funcParsed->second) {
+          dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() marked parsed in parsedFuncs\n", id());
+          if(name_result) {
+              dwarf_printf("\tname is %s\n", curName().c_str());
+          }
+          setParseChild(false);
+          return true;
+       }
    }
+
+   // set the current function being parsed and restore old value on return
+   SetAndRestoreFunction setAndRestore(currentSubprogramFunction, func);
 
    if (name_result && !curName().empty()) {
       dwarf_printf("(0x%lx) Identified function name as %s\n", id(), curName().c_str());
@@ -711,7 +751,11 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
           return false;
    }
 
-   parsedFuncs.insert(func);
+   if (!isRecursiveSubprogramParse)  {
+       // the function is now parsed
+       funcParsed->second = true;
+   }
+
     if (func_type == InlinedFunc) {
         dwarf_printf("End parseSubprogram for inlined func at 0x%p\n", (void*)func->getOffset());
     }
