@@ -80,11 +80,8 @@ RUN python3 -m pip install botocore boto3 && \
     spack gpg trust key.pub
 
 # Find packages already installed on system, e.g. autoconf
-RUN spack external find gcc@11.0.1 autoconf bzip2 git tar xz perl && \
+RUN spack external find --not-buildable gcc@11.0.1 autoconf bzip2 git tar xz perl cmake && \
     spack config add 'packages:all:target:[x86_64]'
-
-RUN spack external find cmake && \
-    spack config add 'packages:cmake:buildable:False'
 
 # 'spack external find' doesn't work on libraries
 RUN printf "\n\
