@@ -10,21 +10,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Los_Angeles
 
 # We can use build args to populate the specific versions of dependencies (with defaults here)
-ARG BOOST_VERSION=1.73.0
+ARG BOOST_VERSION=1.71.0
 ARG ELFUTILS_VERSION=0.186
 ARG LIBIBERTY_VERSION=2.33.1
-ARG INTELTBB_VERSION=2020.2
-ARG PERL_VERSION=5.32.1
-
-# Sort of separate from dyninst (but used to build/test)
-ARG CMAKE_VERSION=3.21.2
-ENV CMAKE_VERSION=${CMAKE_VERSION}
+ARG INTELTBB_VERSION=2020.3
+ARG PERL_VERSION=5.30.0
+ARG CMAKE_VERSION=3.16.3
 
 # Set the branch name for spack to use (should be master even for PR)
 ARG DYNINST_BRANCH=master
 ENV DYNINST_BRANCH=${DYNINST_BRANCH}
-
-# Note that perl 5.30.0 is provided by ubuntu
 
 # Args need to be passed into envars to be used in RUN
 ENV BOOST_VERSION=${BOOST_VERSION}
@@ -32,6 +27,7 @@ ENV ELFUTILS_VERSION=${ELFUTILS_VERSION}
 ENV LIBIBERTY_VERSION=${LIBIBERTY_VERSION}
 ENV INTELTBB_VERSION=${INTELTBB_VERSION}
 ENV PERL_VERSION=${PERL_VERSION}
+ENV CMAKE_VERSION=${CMAKE_VERSION}
 
 RUN apt-get -qq update && \
     apt-get -qq install -fy tzdata && \
@@ -53,7 +49,10 @@ RUN apt-get -qq update && \
       valgrind \
       vim \
       wget \
-      xsltproc
+      xsltproc \
+      cmake \
+      libboost1.71-all-dev \
+      libtbb-dev
 
 # Install Clingo for Spack
 RUN python3 -m pip install --upgrade pip && \
@@ -81,17 +80,22 @@ RUN python3 -m pip install botocore boto3 && \
     spack gpg trust key.pub
 
 # Find packages already installed on system, e.g. autoconf
-RUN spack external find gcc@11.0.1 autoconf bzip2 git tar xz perl && \
-    spack config add 'packages:all:target:[x86_64]' && \
-    # Install a new CMake (Tim originally wanted 3.17.1 but spack doesn't have it)
-    spack install cmake@${CMAKE_VERSION} perl
+RUN spack external find --not-buildable gcc@11.0.1 autoconf bzip2 git tar xz perl cmake && \
+    spack config add 'packages:all:target:[x86_64]'
 
-# Add cmake to a view
-RUN spack view --dependencies no symlink --ignore-conflicts /opt/view cmake@${CMAKE_VERSION} perl
-ENV PATH=/opt/view/bin:$PATH
-
-RUN spack external find cmake && \
-    spack config add 'packages:cmake:buildable:False'
+# 'spack external find' doesn't work on libraries
+RUN printf "\n\
+  boost:\n\
+    externals:\n\
+    - spec: boost@${BOOST_VERSION}\n\
+      prefix: /usr\n\
+    buildable: false\n\
+  intel-tbb:\n\
+    externals:\n\
+    - spec: intel-tbb@${INTELTBB_VERSION}\n\
+      prefix: /usr\n\
+    buildable: false\n\
+" >> ~/.spack/packages.yaml
 
 # Add Dyninst source code here (e.g., from PR or master)
 WORKDIR /code
@@ -114,6 +118,8 @@ RUN . /opt/spack/share/spack/setup-env.sh && \
     spack add dyninst@${DYNINST_BRANCH} && \
 
     # Add our hard coded versions here.
+    spack add cmake@${CMAKE_VERSION} && \
+    spack add perl@${PERL_VERSION} && \
     spack add boost@${BOOST_VERSION} && \
     spack add elfutils@${ELFUTILS_VERSION} && \
     spack add libiberty@${LIBIBERTY_VERSION} && \
