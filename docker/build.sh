@@ -26,9 +26,7 @@ echo "::endgroup::"
 # 2. Update the test suite
 printf "⭐️ Updating the testsuite\n"
 echo "::group::update testsuite"   
-cd /opt/testsuite
-git pull origin master
-cd -
+git -C /opt/testsuite pull origin master
 echo "::endgroup::"
 
 # 3. Build the test suite
