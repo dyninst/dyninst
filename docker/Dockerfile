@@ -15,10 +15,7 @@ ARG ELFUTILS_VERSION=0.186
 ARG LIBIBERTY_VERSION=2.33.1
 ARG INTELTBB_VERSION=2020.2
 ARG PERL_VERSION=5.30.0
-
-# Sort of separate from dyninst (but used to build/test)
-ARG CMAKE_VERSION=3.21.2
-ENV CMAKE_VERSION=${CMAKE_VERSION}
+ARG CMAKE_VERSION=3.16.3
 
 # Set the branch name for spack to use (should be master even for PR)
 ARG DYNINST_BRANCH=master
@@ -30,6 +27,7 @@ ENV ELFUTILS_VERSION=${ELFUTILS_VERSION}
 ENV LIBIBERTY_VERSION=${LIBIBERTY_VERSION}
 ENV INTELTBB_VERSION=${INTELTBB_VERSION}
 ENV PERL_VERSION=${PERL_VERSION}
+ENV CMAKE_VERSION=${CMAKE_VERSION}
 
 RUN apt-get -qq update && \
     apt-get -qq install -fy tzdata && \
@@ -51,7 +49,8 @@ RUN apt-get -qq update && \
       valgrind \
       vim \
       wget \
-      xsltproc
+      xsltproc \
+      cmake
 
 # Install Clingo for Spack
 RUN python3 -m pip install --upgrade pip && \
@@ -80,13 +79,7 @@ RUN python3 -m pip install botocore boto3 && \
 
 # Find packages already installed on system, e.g. autoconf
 RUN spack external find gcc@11.0.1 autoconf bzip2 git tar xz perl && \
-    spack config add 'packages:all:target:[x86_64]' && \
-    # Install a new CMake (Tim originally wanted 3.17.1 but spack doesn't have it)
-    spack install cmake@${CMAKE_VERSION}
-
-# Add cmake to a view
-RUN spack view --dependencies no symlink --ignore-conflicts /opt/view cmake@${CMAKE_VERSION}
-ENV PATH=/opt/view/bin:$PATH
+    spack config add 'packages:all:target:[x86_64]'
 
 RUN spack external find cmake && \
     spack config add 'packages:cmake:buildable:False'
@@ -112,6 +105,7 @@ RUN . /opt/spack/share/spack/setup-env.sh && \
     spack add dyninst@${DYNINST_BRANCH} && \
 
     # Add our hard coded versions here.
+    spack add cmake@${CMAKE_VERSION} && \
     spack add perl@${PERL_VERSION} && \
     spack add boost@${BOOST_VERSION} && \
     spack add elfutils@${ELFUTILS_VERSION} && \
