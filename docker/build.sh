@@ -33,11 +33,15 @@ echo "::endgroup::"
 
 # 3. Build the test suite
 printf "⭐️ Preparing to build the testsuite\n"
-echo "::group::build tests"   
-cd /opt/dyninst-env/
-mkdir -p build/testsuite/tests && cd $_
+echo "::group::build tests"
 
-cmake -S /opt/testsuite -B. -DCMAKE_INSTALL_PREFIX=$PWD/tests -DDyninst_DIR=$DYNINST_INSTALL_DIR/lib/cmake/Dyninst
-cmake --build . -- -j2
-cmake --install .
+TESTSUITE_BUILD_DIR=/opt/dyninst-env/build/testsuite
+mkdir -p $TESTSUITE_BUILD_DIR
+
+TESTSUITE_INSTALL_DIR=/opt/dyninst-env/install/testsuite
+mkdir -p $TESTSUITE_INSTALL_DIR
+
+cmake -S /opt/testsuite -B $TESTSUITE_BUILD_DIR -DCMAKE_INSTALL_PREFIX=$TESTSUITE_INSTALL_DIR -DDyninst_DIR=$DYNINST_INSTALL_DIR/lib/cmake/Dyninst
+cmake --build $TESTSUITE_BUILD_DIR -- -j2
+cmake --install $TESTSUITE_BUILD_DIR
 echo "::endgroup::"

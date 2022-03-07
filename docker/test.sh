@@ -10,7 +10,7 @@ printf "⭐️ Running tests...\n"
 cd /opt/dyninst-env/install/testsuite
 export DYNINSTAPI_RT_LIB=/opt/dyninst-env/install/dyninst/lib/libdyninstAPI_RT.so
 export OMP_NUM_THREADS=2
-export LD_LIBRARY_PATH=/opt/dyninst-env/build/dyninst/lib:$PWD:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/opt/dyninst-env/install/dyninst/lib:$PWD:$LD_LIBRARY_PATH
 ./runTests -64 -all -log test.log -j1 > >(tee stdout.log) 2> >(tee stderr.log >&2)
 
 # TODO will update here to upload given merge to master
