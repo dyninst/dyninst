@@ -214,6 +214,10 @@ protected:
     Symtab *symtab_;
     virtual Object * obj() const ;
 
+    // Function object of current subprogram being parsed; used to detect
+    // parseSubprogram recursion
+    FunctionBase *currentSubprogramFunction = nullptr;
+
 }; // class DwarfParseActions 
 
 struct ContextGuard {
@@ -233,7 +237,9 @@ public:
 
     } Error;
 
-    DwarfWalker(Symtab *symtab, Dwarf* dbg);
+    using ParsedFuncs = tbb::concurrent_hash_map<FunctionBase *, bool>;
+
+    DwarfWalker(Symtab *symtab, Dwarf* dbg, std::shared_ptr<ParsedFuncs> pf = nullptr);
 
     DwarfWalker(const DwarfWalker& o) :
             DwarfParseActions(o),
@@ -254,7 +260,12 @@ public:
             compile_offset(o.compile_offset),
             info_type_ids_(o.info_type_ids_),
             types_type_ids_(o.types_type_ids_),
-            sig8_type_ids_(o.sig8_type_ids_) {}
+            sig8_type_ids_(o.sig8_type_ids_)
+            {
+                if (!parsedFuncs)  {
+                    parsedFuncs = std::make_shared<ParsedFuncs>();
+                }
+            }
 
     virtual ~DwarfWalker();
 
@@ -400,8 +411,8 @@ private:
             Dwarf_Sword listLength);
 
 
-    // Header-only functions get multiple parsed.
-    std::set<FunctionBase *> parsedFuncs;
+    // Map of Function* to bool (indicates function parsed)
+    std::shared_ptr<ParsedFuncs> parsedFuncs;
 private:
     std::string name_;
     bool is_mangled_name_;
