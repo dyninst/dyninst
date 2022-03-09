@@ -1,6 +1,38 @@
 # Change Log
 
-## [12.0.1](https://github.com/dyninst/dyninst/tree/v12.0.0) (2021-11-23)
+## [12.1.0](https://github.com/dyninst/dyninst/tree/v12.1.0) (2022-03-09)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v12.0.1...v12.1.0)
+
+- Correctly handle DWARF subroutines during parallel parsing ([1215](https://github.com/dyninst/dyninst/issues/1215))
+- Docker: simplify build script ([1212](https://github.com/dyninst/dyninst/issues/1212))
+- Make a couple constant 64-bit ULL to avoid getting truncated during shifts ([1207](https://github.com/dyninst/dyninst/issues/1207))
+- Docker: use more OS packages ([1211](https://github.com/dyninst/dyninst/issues/1211))
+- Fix potential buffer overrun in AMDGPU decoders ([1208](https://github.com/dyninst/dyninst/issues/1208))
+- Code clean up for AMDGPU ([1205](https://github.com/dyninst/dyninst/issues/1205))
+- Tidy up classes in AMDGPU ([1204](https://github.com/dyninst/dyninst/issues/1204))
+- Fix compiler warnings in amdgpu cdna2 code ([1198](https://github.com/dyninst/dyninst/issues/1198))
+- Build fixes for amdgpu/cdna2 ([1203](https://github.com/dyninst/dyninst/issues/1203))
+- Add Support for AMDGPU CDNA2 Architectures based on XML ISA spec ([1107](https://github.com/dyninst/dyninst/issues/1107))
+- fix building of symlite ([1197](https://github.com/dyninst/dyninst/issues/1197))
+- Additional cleanup of memory emulation for hybrid analysis ([1172](https://github.com/dyninst/dyninst/issues/1172))
+- Allow zero-length ELF program headers ([1192](https://github.com/dyninst/dyninst/issues/1192))
+- Remove dead code and variables related to Symtab::data_ptr_ and Symtab::code_ptr_ ([1192](https://github.com/dyninst/dyninst/issues/1192))
+- Remove dead code Object::elf_vaddr_to_ptr ([1192](https://github.com/dyninst/dyninst/issues/1192))
+- glibc r_debug extensions to support multiple namespaces ([1175](https://github.com/dyninst/dyninst/issues/1175))
+- Symtab::module documentation cleanup ([1189](https://github.com/dyninst/dyninst/issues/1189))
+- Dockerfile: use explicit packages for 'spack external find' ([1195](https://github.com/dyninst/dyninst/issues/1195))
+- ParseAPI: Speed up the case where a function is called from many locations ([1190](https://github.com/dyninst/dyninst/issues/1190))
+- ELF+DWARF: always parse first entry in source file table ([1184](https://github.com/dyninst/dyninst/issues/1184))
+- Remove interposed definition of _r_debug ([1176](https://github.com/dyninst/dyninst/issues/1176))
+- start of work to add automated testing to dyninst! ([1183](https://github.com/dyninst/dyninst/issues/1183))
+- adding dyninst release trigger ([1181](https://github.com/dyninst/dyninst/issues/1181))
+- fixing workflow trigger ([1182](https://github.com/dyninst/dyninst/issues/1182))
+- Adding first stage of automated docker build ([1180](https://github.com/dyninst/dyninst/issues/1180))
+- Remove erroneous use of realloc in symtabAPI/Type-mem.h ([1170](https://github.com/dyninst/dyninst/issues/1170))
+- Clean up memoryTracker usage in binaryEdit ([877](https://github.com/dyninst/dyninst/issues/877))
+
+
+## [12.0.1](https://github.com/dyninst/dyninst/tree/v12.0.1) (2021-11-23)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v12.0.0...v12.0.1)
 
 **Build Changes**
