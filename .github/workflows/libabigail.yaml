@@ -89,7 +89,6 @@ jobs:
 
     - name: Run Libabigail
       uses: buildsi/libabigail-action@main
-      id: libabigail      
       env:
         lib: ${{ matrix.libs }}
       with: 
