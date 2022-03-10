@@ -13,9 +13,6 @@ jobs:
   build:
     permissions:
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
 
     # Note this inherits the arguments for dependencies from the base container
     # If you move this release trigger to the base-containers workflow you
