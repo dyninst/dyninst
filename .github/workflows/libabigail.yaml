@@ -66,7 +66,7 @@ jobs:
                "libsymtabAPI.so"]
 
         # Artifact pairs (named) for comparison)
-        artifacts: [["pr-libs", "main-libs"],        
+        artifacts: [["pr-libs", "latest-libs"],        
                     ["pr-libs", "release-libs"]]
 
     steps:
@@ -93,7 +93,7 @@ jobs:
       env:
         lib: ${{ matrix.libs }}
       with: 
-        abidiff: previous/opt/dyninst-env/.spack-view/lib/$lib current/opt/dyninst-env/.spack-view/lib/$lib
+        abidiff: previous/${{ env.lib }} current/${{ env.lib }}
 
     - name: Show return code
       env:
