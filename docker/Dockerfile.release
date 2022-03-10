@@ -7,7 +7,6 @@ COPY . /code
 # Add testing and build script to run
 COPY ./docker/build.sh /opt/dyninst-env/build.sh
 
-# Previous WORKDIR, just to be careful - reinstall dyninst if needed
-# Thenbuild and run the test suite
+# Previous WORKDIR, just to be careful - reinstall dyninst at release
 WORKDIR /opt/dyninst-env
 RUN /bin/bash build.sh
