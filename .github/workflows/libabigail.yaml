@@ -67,7 +67,7 @@ jobs:
 
         # Artifact pairs (named) for comparison)
         artifacts: [["pr-libs", "main-libs"],        
-                    ["pr-libs", "release-libs"]
+                    ["pr-libs", "release-libs"]]
 
     - name: Download Previous Version
       uses: actions/download-artifact@v2
