@@ -43,7 +43,7 @@ jobs:
         name: pr-libs
         path: /opt/dyninst-env/.spack-view/lib
 
-  libabigail:
+  abi:
     runs-on: ubuntu-latest
     needs: [get-latest, get-release, get-pr]
     strategy:
@@ -69,6 +69,7 @@ jobs:
         artifacts: [["pr-libs", "main-libs"],        
                     ["pr-libs", "release-libs"]]
 
+    steps:
     - name: Download Previous Version
       uses: actions/download-artifact@v2
       with:
