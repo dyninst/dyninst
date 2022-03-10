@@ -1,0 +1,13 @@
+ARG dyninst_base=ghcr.io/dyninst/dyninst-ubuntu-20.04:latest
+FROM ${dyninst_base}
+
+# Add updated Dyninst code
+COPY . /code
+
+# Add testing and build script to run
+COPY ./docker/build.sh /opt/dyninst-env/build.sh
+
+# Previous WORKDIR, just to be careful - reinstall dyninst if needed
+# Thenbuild and run the test suite
+WORKDIR /opt/dyninst-env
+RUN /bin/bash build.sh
