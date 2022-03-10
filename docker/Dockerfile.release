@@ -1,5 +1,7 @@
 ARG dyninst_base=ghcr.io/dyninst/dyninst-ubuntu-20.04:latest
-FROM ${dyninst_base}
+FROM ${dyninst_base} as builder
+
+# docker build -f Dockerfile.release -t ghcr.io/dyninst/dyninst-ubuntu-20.04:${tag} ../
 
 # Add updated Dyninst code
 COPY . /code
@@ -9,4 +11,27 @@ COPY ./docker/build.sh /opt/dyninst-env/build.sh
 
 # Previous WORKDIR, just to be careful - reinstall dyninst at release
 WORKDIR /opt/dyninst-env
-RUN /bin/bash build.sh
+RUN /bin/bash build.sh && \
+    spack gc -y
+
+# Strip all the binaries
+RUN find -L /opt/dyninst-env/* -type f -exec readlink -f '{}' \; | \
+    xargs file -i | \
+    grep 'charset=binary' | \
+    grep 'x-executable\|x-archive\|x-sharedlib' | \
+    awk -F: '{print $1}' | xargs strip -s
+
+# Modifications to the environment that are necessary to run
+RUN cd /opt/dyninst-env && \
+    spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
+
+# Bare OS image to run the installed executables
+FROM ubuntu:20.04
+
+ENV PATH=/opt/dyninst-env/.spack-env/bin:/opt/spack/bin:$PATH
+
+COPY --from=builder /opt/dyninst-env /opt/dyninst-env
+COPY --from=builder /opt/spack /opt/spack
+COPY --from=builder /etc/profile.d/z10_spack_environment.sh /etc/profile.d/z10_spack_environment.sh
+
+ENTRYPOINT ["/bin/bash", "--rcfile", "/etc/profile", "-l", "-c"]
