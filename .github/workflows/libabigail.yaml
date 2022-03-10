@@ -89,13 +89,8 @@ jobs:
 
     - name: Run Libabigail
       uses: buildsi/libabigail-action@main
-      id: libabigail
+      id: libabigail      
       env:
         lib: ${{ matrix.libs }}
       with: 
         abidiff: previous/${{ env.lib }} current/${{ env.lib }}
-
-    - name: Show return code
-      env:
-        retval: ${{ steps.libabigail.outputs.retval }}
-      run: echo "The return code was ${retval}"
