@@ -41,7 +41,7 @@ jobs:
       uses: actions/upload-artifact@v2-preview
       with:
         name: pr-libs
-        path: /opt/dyninst-env/.spack-env/view/lib
+        path: /opt/dyninst-env/install/dyninst/lib
 
   abi:
     runs-on: ubuntu-latest
