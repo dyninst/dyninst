@@ -11,7 +11,7 @@ jobs:
       uses: actions/upload-artifact@v2-preview
       with:
         name: release-libs
-        path: /opt/dyninst-env/.spack-env/view/lib
+        path: /opt/dyninst-env/install/dyninst/lib
 
   get-latest:
     container: ghcr.io/dyninst/dyninst-ubuntu-20.04:latest
@@ -21,7 +21,7 @@ jobs:
       uses: actions/upload-artifact@v2-preview
       with:
         name: latest-libs
-        path: /opt/dyninst-env/.spack-env/view/lib
+        path: /opt/dyninst-env/install/dyninst/lib
 
   get-pr:
     container: ghcr.io/dyninst/dyninst-ubuntu-20.04:latest
