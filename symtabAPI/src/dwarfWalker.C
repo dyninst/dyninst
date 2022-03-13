@@ -1634,10 +1634,8 @@ bool DwarfWalker::findFuncName() {
 
     Dwarf_Attribute linkageNameAttr;
     Dwarf_Die e = entry();
-    auto status = dwarf_attr_integrate(&e, DW_AT_MIPS_linkage_name, &linkageNameAttr);
 
-    if (status == 0)
-        status = dwarf_attr_integrate(&e, DW_AT_linkage_name, &linkageNameAttr);
+    auto status = dwarf_attr_integrate(&e, DW_AT_linkage_name, &linkageNameAttr);
     if ( status != 0 )  { // previously ==1
         const char *dwarfName = dwarf_formstring(&linkageNameAttr);
         //DWARF_FAIL_RET(dwarfName);
