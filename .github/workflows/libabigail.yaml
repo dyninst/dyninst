@@ -1,0 +1,95 @@
+name: Libabigail ABI Checks
+on: 
+  pull_request: []
+
+jobs:
+  get-release:
+    container: ghcr.io/dyninst/dyninst-ubuntu-20.04:v12.1.0
+    runs-on: ubuntu-latest
+    steps:
+    - name: Upload Libs
+      uses: actions/upload-artifact@v2-preview
+      with:
+        name: release-libs
+        path: /opt/dyninst-env/install/dyninst/lib
+
+  get-latest:
+    container: ghcr.io/dyninst/dyninst-ubuntu-20.04:latest
+    runs-on: ubuntu-latest
+    steps:
+    - name: Upload Libs
+      uses: actions/upload-artifact@v2-preview
+      with:
+        name: latest-libs
+        path: /opt/dyninst-env/install/dyninst/lib
+
+  get-pr:
+    container: ghcr.io/dyninst/dyninst-ubuntu-20.04:latest
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build Pull Request
+      uses: actions/checkout@v3
+    - name: Build
+      run: |
+         rm -rf /code
+         cp -R $PWD /code
+         ls /code
+         cd /opt/dyninst-env
+         /bin/bash build.sh         
+         
+    - name: Upload results
+      uses: actions/upload-artifact@v2-preview
+      with:
+        name: pr-libs
+        path: /opt/dyninst-env/install/dyninst/lib
+
+  abi:
+    runs-on: ubuntu-latest
+    needs: [get-latest, get-release, get-pr]
+    strategy:
+      fail-fast: false
+      matrix:
+
+        # Testing every paired library for release vs pr and main vs. pr
+        libs: ["libcommon.so",
+               "libdynC_API.so",
+               "libdynDwarf.so",
+               "libdynElf.so",
+               "libdyninstAPI_RT.so",
+               "libdyninstAPI.so",
+               "libinstructionAPI.so",
+               "libparseAPI.so",
+               "libpatchAPI.so",
+               "libpcontrol.so",
+               "libstackwalk.so",
+               "libsymLite.so",
+               "libsymtabAPI.so"]
+
+        # Artifact pairs (named) for comparison)
+        artifacts: [["pr-libs", "latest-libs"],        
+                    ["pr-libs", "release-libs"]]
+
+    steps:
+    - name: Download Previous Version
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ matrix.artifacts[1] }}
+        path: previous/
+
+    - name: Download Pull Request Version
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ matrix.artifacts[0] }}
+        path: current/
+
+    - name: Show Files
+      run: |
+        ls current/
+        ls previous/
+
+    - name: Run Libabigail
+      uses: buildsi/libabigail-action@main
+      env:
+        lib: ${{ matrix.libs }}
+      with: 
+        abidiff: previous/${{ env.lib }} current/${{ env.lib }}
