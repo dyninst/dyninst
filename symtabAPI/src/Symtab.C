@@ -75,6 +75,7 @@ static const int Symtab_major_version = DYNINST_MAJOR_VERSION;
 static const int Symtab_minor_version = DYNINST_MINOR_VERSION;
 static const int Symtab_maintenance_version = DYNINST_PATCH_VERSION;
 
+void Symtab::new_func() const {}
 
 void Symtab::version(int& major, int& minor, int& maintenance)
 {
@@ -1671,7 +1672,7 @@ Symtab *Symtab::importBin(std::string)
 }
 
 bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size, 
-                      std::string name, def_t def_bin)
+                      std::string name, def_t def_bin, int)
 {
    bool err = false;
 #if defined(TIMED_PARSE)

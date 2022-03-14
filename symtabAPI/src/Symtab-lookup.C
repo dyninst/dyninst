@@ -64,7 +64,7 @@ using namespace std;
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase );
 bool pattern_match( const char *p, const char *s, bool checkCase );
 
-std::vector<Symbol *> Symtab::findSymbolByOffset(Offset o)
+std::vector<Symbol *> Symtab::findSymbolByOffset(Offset o) const
 {
    indexed_symbols::by_offset_t::const_accessor oa;
    if(everyDefinedSymbol.by_offset.find(oa, o))

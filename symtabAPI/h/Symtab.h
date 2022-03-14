@@ -106,9 +106,13 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class Aggregate;
    friend class relocationEntry;
    friend class Object;
+   
+   int size_change_int{};
 
  public:
 
+  void new_inline_func() const {}
+  void new_func() const;
 
    /***** Public Member Functions *****/
    public:
@@ -128,7 +132,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    static bool openFile(Symtab *&obj, std::string filename, 
                                       def_t defensive_binary = NotDefensive);
    static bool openFile(Symtab *&obj, void *mem_image, size_t size, 
-                                      std::string name, def_t defensive_binary = NotDefensive);
+                                      std::string name, def_t defensive_binary = NotDefensive, int i=0);
    static Symtab *findOpenSymtab(std::string filename);
    static bool closeSymtab(Symtab *);
 
@@ -159,7 +163,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
-   std::vector<Symbol *> findSymbolByOffset(Offset);
+   std::vector<Symbol *> findSymbolByOffset(Offset) const;
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
