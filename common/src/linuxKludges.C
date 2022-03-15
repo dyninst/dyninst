@@ -941,51 +941,6 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
       closedir(dirhandle);
       return true;
    }
-   /**
-    * Linux 2.4:
-    *
-    * PIDs that are created by pthreads have a '.' prepending their name
-    * in /proc.  We'll check all of those for the ones that have this lwp
-    * as a parent pid.
-    **/
-   dirhandle = opendir("/proc");
-   if (!dirhandle)
-   {
-      //No /proc directory.  I give up.  No threads for you.
-      return false;
-   }
-   while ((direntry = readdir(dirhandle)) != NULL)
-   {
-      if (direntry->d_name[0] != '.') {
-         //fprintf(stderr, "%s[%d]: Skipping entry %s\n", FILE__, __LINE__, direntry->d_name);
-         continue;
-      }
-      unsigned lwp_id = atoi(direntry->d_name+1);
-      int lwp_ppid = 0;
-      if (!lwp_id)
-         continue;
-      sprintf(name, "/proc/%u/status", lwp_id);
-      FILE *fd = P_fopen(name, "r");
-      if (!fd) {
-         continue;
-     }
-     char buffer[1024];
-     while (fgets(buffer, 1024, fd)) {
-         if (strncmp(buffer, "Tgid", 4) == 0) {
-             sscanf(buffer, "%*s %d", &lwp_ppid);
-             break;
-         }
-     }
 
-     fclose(fd);
-
-     if (lwp_ppid != pid) {
-         continue;
-     }
-     lwps.push_back(lwp_id);
-  }
-  closedir(dirhandle);
-  lwps.push_back(pid);
-
-  return true;
+  return false;
 }
