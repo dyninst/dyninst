@@ -36,10 +36,6 @@
 #ifndef _REF_COUNTER_H_
 #define _REF_COUNTER_H_
 
-#ifdef external_templates
-#pragma interface
-#endif
-
 #include <assert.h>
 
 template <class T>

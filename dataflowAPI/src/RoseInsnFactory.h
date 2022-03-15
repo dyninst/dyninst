@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#pragma once
 
 #if !defined(_ROSE_INSN_FACTORY_H_)
 #define _ROSE_INSN_FACTORY_H_
@@ -43,13 +42,8 @@
 #include "boost/shared_ptr.hpp"
 #include <vector>
 
-#if defined(_MSC_VER)
-#include "external/stdint-win.h"
-#else
-
 #include <stdint.h>
 
-#endif
 
 class SgAsmInstruction;
 

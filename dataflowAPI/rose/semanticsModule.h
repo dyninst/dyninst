@@ -4,13 +4,7 @@
 #include "SgAsmType.h"
 
 //#include "rose.h"
-#if defined(_MSC_VER)
-#include "external/stdint-win.h"
-#include "external/inttypes-win.h"
-#else
-#include <stdint.h>
 #include <inttypes.h>
-#endif
 
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
