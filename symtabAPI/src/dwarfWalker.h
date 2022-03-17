@@ -98,37 +98,18 @@ public:
     typedef boost::shared_ptr<std::vector<std::pair<Address, Address> > > range_set_ptr;
 private:
     struct Context {
-        FunctionBase *func;
-        boost::shared_ptr<Type> commonBlock;
-        boost::shared_ptr<Type> enumType;
-        boost::shared_ptr<Type> enclosure;
-        bool parseSibling;
-        bool parseChild;
-        Dwarf_Die offset;
-        Dwarf_Die specEntry;
-        Dwarf_Die abstractEntry;
-        unsigned int tag;
-        Address base;
-        range_set_ptr ranges;
-        Context() :
-            func(NULL), commonBlock(NULL),
-            enumType(NULL), enclosure(NULL),
-            parseSibling(true), parseChild(true),
-            tag(0), base(0) {
-        }
-        Context(const Context& o) noexcept :
-                func(o.func),
-                commonBlock(o.commonBlock),
-                enumType(o.enumType),
-                enclosure(o.enclosure),
-                parseSibling(o.parseSibling),
-                parseChild(o.parseChild),
-                offset(o.offset),
-                specEntry(o.specEntry),
-                abstractEntry(o.specEntry),
-                tag(o.tag),
-                base(o.base)
-        {}
+        FunctionBase *func{};
+        boost::shared_ptr<Type> commonBlock{};
+        boost::shared_ptr<Type> enumType{};
+        boost::shared_ptr<Type> enclosure{};
+        bool parseSibling{true};
+        bool parseChild{true};
+        Dwarf_Die offset{};
+        Dwarf_Die specEntry{};
+        Dwarf_Die abstractEntry{};
+        unsigned int tag{};
+        Address base{};
+        range_set_ptr ranges{};
     };
 
     std::stack<Context> c;
@@ -290,6 +271,8 @@ private:
 
     bool parseSubprogram(inline_t func_type);
     bool parseLexicalBlock();
+    bool parseTryBlock();
+    bool parseCatchBlock();
     bool parseRangeTypes(Dwarf* dbg, Dwarf_Die die);
     bool parseCommonBlock();
     bool parseConstant();
