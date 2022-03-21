@@ -381,6 +381,12 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
             case DW_TAG_lexical_block:
                 ret = parseLexicalBlock();
                 break;
+            case DW_TAG_try_block:
+                ret = parseTryBlock();
+                break;
+            case DW_TAG_catch_block:
+                ret = parseCatchBlock();
+                break;
             case DW_TAG_common_block:
                 ret = parseCommonBlock();
                 break;
@@ -856,6 +862,16 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * /*dbg*/, Dwarf_Die die, O
 
 bool DwarfWalker::parseLexicalBlock() {
    dwarf_printf("(0x%lx) Parsing lexical block\n", id());
+   return parseRangeTypes(dbg(), entry());
+}
+
+bool DwarfWalker::parseTryBlock() {
+   dwarf_printf("(0x%lx) Parsing try block ranges\n", id());
+   return parseRangeTypes(dbg(), entry());
+}
+
+bool DwarfWalker::parseCatchBlock() {
+   dwarf_printf("(0x%lx) Parsing catch block ranges\n", id());
    return parseRangeTypes(dbg(), entry());
 }
 
