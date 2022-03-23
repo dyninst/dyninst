@@ -103,10 +103,12 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
 endif()
 
 # If -Wframe-larger-than is available adjust the value to allow for larger
-# frames based on compiler version and build type for the following two files:
+# frames based on compiler version and build type for the following 3 files:
 #
 #       instructionAPI/src/InstructionDecoder-power.C
-#         (includes instructionAPI/src/InstructionDecoder-power.C)
+#         (includes instructionAPI/src/power-opcode-table.C)
+#       instructionAPI/src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C
+#         (includes instructionAPI/src/AMDGPU/cdna2/finalizeOperands.C)
 #       common/src/MachSyscall.C
 #         (includes common/src/SyscallInformation.C)
 #
@@ -125,6 +127,11 @@ if (HAS_CPP_FLAG_Wframe_larger_than)
     set(debugMaxFrameSizeOverridePowerOpcodeTable 358400)
     if (${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[7](\.|$)")
 	set(nonDebugMaxFrameSizeOverridePowerOpcodeTable 38912)
+    endif()
+    # most gcc's are under the default using -Og, but rhel's requires 30000
+    set(debugMaxFrameSizeOverrideFinalizeOperands 30000)
+    if (${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[6](\.|$)")
+	set(nonDebugMaxFrameSizeOverrideFinalizeOperands 30000)
     endif()
 endif()
 

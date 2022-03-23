@@ -58,6 +58,21 @@ if (NOT instructionDecoderPowerExtraFlags STREQUAL "")
             PROPERTIES COMPILE_FLAGS "${instructionDecoderPowerExtraFlags}")
 endif()
 
+set(finalizeOperandsExtraFlags "")
+if (debugMaxFrameSizeOverrideFinalizeOperands)
+        string(APPEND finalizeOperandsExtraFlags
+                " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideFinalizeOperands}>")
+endif()
+if (nonDebugMaxFrameSizeOverrideFinalizeOperands)
+        string(APPEND finalizeOperandsExtraFlags
+                " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideFinalizeOperands}>")
+endif()
+
+if (NOT finalizeOperandsExtraFlags STREQUAL "")
+    SET_SOURCE_FILES_PROPERTIES(src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C
+            PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+endif()
+
 ADD_DEFINITIONS(-DINSTRUCTION_LIB)
 
 dyninst_library(instructionAPI common)
