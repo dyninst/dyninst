@@ -52,7 +52,10 @@ RUN apt-get -qq update && \
       xsltproc \
       cmake \
       libboost1.71-all-dev \
-      libtbb-dev
+      libtbb-dev \
+      libxml2-dev \
+      m4 \
+      libncurses-dev
 
 # Install Clingo for Spack
 RUN python3 -m pip install --upgrade pip && \
@@ -80,7 +83,7 @@ RUN python3 -m pip install botocore boto3 && \
     spack gpg trust key.pub
 
 # Find packages already installed on system, e.g. autoconf
-RUN spack external find --not-buildable gcc@11.0.1 autoconf bzip2 git tar xz perl cmake && \
+RUN spack external find --not-buildable gcc@11.0.1 autoconf bzip2 git tar xz perl cmake m4 ncurses && \
     spack config add 'packages:all:target:[x86_64]'
 
 # 'spack external find' doesn't work on libraries
@@ -93,6 +96,11 @@ RUN printf "\n\
   intel-tbb:\n\
     externals:\n\
     - spec: intel-tbb@${INTELTBB_VERSION}\n\
+      prefix: /usr\n\
+    buildable: false\n\
+  libxml2:\n\
+    externals:\n\
+    - spec: libxml2@2.19.10\n\
       prefix: /usr\n\
     buildable: false\n\
 " >> ~/.spack/packages.yaml
