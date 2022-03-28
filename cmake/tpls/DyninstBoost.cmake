@@ -260,10 +260,15 @@ else()
 
     include(ExternalProject)
     string(REPLACE "." "_" _boost_download_filename ${BOOST_DOWNLOAD_VERSION})
+    # zip is subject to locales on Unix
+    set(_boost_download_ext "zip")
+    if(UNIX)
+        set(_boost_download_ext "tar.gz")
+    endif()
     externalproject_add(
         Boost-External
         PREFIX ${CMAKE_BINARY_DIR}/boost
-        URL http://downloads.sourceforge.net/project/boost/boost/${BOOST_DOWNLOAD_VERSION}/boost_${_boost_download_filename}.zip
+        URL http://downloads.sourceforge.net/project/boost/boost/${BOOST_DOWNLOAD_VERSION}/boost_${_boost_download_filename}.${_boost_download_ext}
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
             ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
