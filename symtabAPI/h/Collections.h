@@ -36,6 +36,8 @@
 #include "Variable.h"
 #include <boost/core/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
+//#include <string_view>
+#include <boost/utility/string_view.hpp>
 
 namespace Dyninst {
 
@@ -68,6 +70,25 @@ public:
   const dyn_c_vector<localVar *> &getAllVars() const;
 };
 
+//using xxx_string_view = std::string_view;
+//using xxx_string_view_hash = std::hash<xxx_string_view>;
+
+using xxx_string_view = boost::string_view;
+using xxx_string_view_hash = boost::hash<xxx_string_view>;
+
+class StringViewHashCompare
+{
+    public:
+	size_t hash(const xxx_string_view &s) const
+	{
+	    return xxx_string_view_hash{}(s);
+	    //return boost::hash<xxx_string_view>{}(s);
+	}
+	bool equal(const xxx_string_view &s1, const xxx_string_view &s2) const
+	{
+	    return (s1 == s2);
+	}
+};
 
 
 /*
@@ -82,7 +103,7 @@ class SYMTAB_EXPORT typeCollection
     friend class Type;
     friend class DwarfWalker;
 
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>> typesByName;
+    dyn_c_hash_map<xxx_string_view, boost::shared_ptr<Type>, StringViewHashCompare> typesByName;
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>> globalVarsByName;
     dyn_c_hash_map<int, boost::shared_ptr<Type>> typesByID;
 

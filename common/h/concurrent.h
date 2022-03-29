@@ -52,12 +52,12 @@ namespace dyn_c_annotations {
     void COMMON_EXPORT runlock(void*);
 }
 
-template<typename K, typename V>
+template<typename K, typename V, typename H = tbb::tbb_hash_compare<K>>
 class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
-    tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> {
+    H, std::allocator<std::pair<K,V>>> {
 
     typedef tbb::concurrent_hash_map<K, V,
-        tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> base;
+        H, std::allocator<std::pair<K,V>>> base;
 public:
     using typename base::value_type;
     using typename base::mapped_type;

@@ -255,7 +255,7 @@ typeCollection::~typeCollection() {}
  */
 boost::shared_ptr<Type> typeCollection::findType(std::string name, Type::do_share_t)
 {
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    decltype(typesByName)::const_accessor a;
 
     if (typesByName.find(a, name))
     	return a->second;
@@ -267,7 +267,7 @@ boost::shared_ptr<Type> typeCollection::findType(std::string name, Type::do_shar
 
 boost::shared_ptr<Type> typeCollection::findTypeLocal(std::string name, Type::do_share_t)
 {
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    decltype(typesByName)::const_accessor a;
 
     if (typesByName.find(a, name))
         return a->second;

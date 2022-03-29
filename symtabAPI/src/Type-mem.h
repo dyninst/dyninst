@@ -92,7 +92,7 @@ boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr
 	/* The type may have gained a name. */
 	if ( a->second->getName() != "")
 	{
-        dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::accessor o;
+        decltype(typesByName)::accessor o;
 		if (typesByName.find(o, a->second->getName()))
 		{
 			if (a->second != o->second)
