@@ -75,18 +75,18 @@ void dyn_c_annotations::rwdeinit(void* ptr) {
 }
 void dyn_c_annotations::wlock(void* ptr) {
     ANNOTATE_RWLOCK_ACQUIRED(ptr, 1 /* writer mode */);
-    ANNOTATE_HAPPENS_AFTER(ptr + 1);  // After all the readers
+    ANNOTATE_HAPPENS_AFTER(static_cast<char*>(ptr) + 1);  // After all the readers
 }
 void dyn_c_annotations::wunlock(void* ptr) {
-    ANNOTATE_HAPPENS_BEFORE(ptr + 2);
+    ANNOTATE_HAPPENS_BEFORE(static_cast<char*>(ptr) + 2);
     ANNOTATE_RWLOCK_RELEASED(ptr, 1 /* writer mode */);
 }
 void dyn_c_annotations::rlock(void* ptr) {
     ANNOTATE_RWLOCK_ACQUIRED(ptr, 0 /* reader mode */);
-    ANNOTATE_HAPPENS_AFTER(ptr + 2);  // After the last writer
+    ANNOTATE_HAPPENS_AFTER(static_cast<char*>(ptr) + 2);  // After the last writer
 }
 void dyn_c_annotations::runlock(void* ptr) {
-    ANNOTATE_HAPPENS_BEFORE(ptr + 1);
+    ANNOTATE_HAPPENS_BEFORE(static_cast<char*>(ptr) + 1);
     ANNOTATE_RWLOCK_RELEASED(ptr, 0 /* reader mode */);
 }
 #endif
