@@ -106,7 +106,6 @@ if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (parseThat)
 endif()
 
-if(BUILD_RTLIB)
   # Build the RT library as a separate project so we can change compilers
   message(STATUS "Configuring DyninstAPI_RT in ${RT_BINARY_DIR}")
   file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile)
@@ -156,9 +155,6 @@ if(BUILD_RTLIB)
 
   install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
-else()
-  message(STATUS "Skipping DyninstAPI_RT. Be sure to build this library if you're using instrumentation.")
-endif()
 set (VERSION_STRING "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
 
