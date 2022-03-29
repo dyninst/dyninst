@@ -1771,8 +1771,8 @@ bool DwarfWalker::addFuncToContainer(boost::shared_ptr<Type> returnType) {
       demangledName.erase(0, offset+1);
    }
 
-   curEnclosure()->asFieldListType().addField( demangledName, Type::make_shared<typeFunction>(
-      type_id(), returnType, demangledName));
+   auto f = Type::make_shared<typeFunction>(type_id(), returnType, std::move(demangledName));
+   curEnclosure()->asFieldListType().addField(f->getName(), f);
 
    return true;
 }

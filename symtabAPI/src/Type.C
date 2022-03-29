@@ -128,7 +128,7 @@ Type::unique_ptr_Type Type::createPlaceholder(typeId_t ID, std::string name)
  */
 Type::Type(std::string name, typeId_t ID, dataClass dataTyp) :
    ID_(ID), 
-   name_(name), 
+   name_(std::move(name)),
    size_(sizeof(int)), 
    type_(dataTyp), 
    updatingSize(false)
@@ -139,7 +139,7 @@ Type::Type(std::string name, typeId_t ID, dataClass dataTyp) :
 
 Type::Type(std::string name, dataClass dataTyp) :
    ID_(getUniqueTypeId()),
-   name_(name), 
+   name_(std::move(name)),
    size_(sizeof(/*long*/ int)), 
    type_(dataTyp), 
    updatingSize(false)
@@ -474,14 +474,14 @@ void typePointer::fixupUnknowns(Module *module)
  */
 
 typeFunction::typeFunction(typeId_t ID, boost::shared_ptr<Type> retType, std::string name) :
-    Type(name, ID, dataFunction), 
+    Type(std::move(name), ID, dataFunction),
 	retType_(retType) 
 {
    size_ = sizeof(void *);
 }
 
 typeFunction::typeFunction(boost::shared_ptr<Type> retType, std::string name) :
-    Type(name, ::getUniqueTypeId(), dataFunction),
+    Type(std::move(name), ::getUniqueTypeId(), dataFunction),
 	retType_(retType) 
 {
    size_ = sizeof(void *);
@@ -1319,14 +1319,18 @@ void typeRef::fixupUnknowns(Module *module)
  * FIELD LIST Type
  */
 
-fieldListType::fieldListType(std::string &name, typeId_t ID, dataClass typeDes) :
-    Type(name, ID, typeDes), derivedFieldList(NULL)
+fieldListType::fieldListType(std::string name, typeId_t ID, dataClass typeDes) :
+    Type(std::move(name), ID, typeDes), derivedFieldList(NULL)
 {   
    size_ = 0;
 }
 
 fieldListType::~fieldListType() 
 {
+   // This destructor is not thread-safe
+   for(auto *p : fieldList) {
+	   delete p;
+   }
    fieldList.clear();
 }
 
@@ -1414,7 +1418,7 @@ void fieldListType::fixupComponents()
 void fieldListType::addField(std::string fieldname, boost::shared_ptr<Type> type, int offsetVal, visibility_t vis)
 {
   Field * newField;
-  newField = new Field(fieldname, type, offsetVal, vis);
+  newField = new Field(std::move(fieldname), type, offsetVal, vis);
 
   // Add field to list of struct/union fields
   fieldList.push_back(newField);
@@ -1602,7 +1606,7 @@ Field::Field() :
  */
 Field::Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal, visibility_t vis) :
 	FIELD_ANNOTATABLE_CLASS(),
-   fieldName_(name), 
+   fieldName_(std::move(name)),
    type_(typ), 
    vis_(vis), 
    offset_(offsetVal)

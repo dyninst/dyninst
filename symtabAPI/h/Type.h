@@ -314,11 +314,11 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
  protected:
    dyn_c_vector<Field *> fieldList;
    dyn_c_vector<Field *> *derivedFieldList;
-   fieldListType(std::string &name, typeId_t ID, dataClass typeDes);
+   fieldListType(std::string name, typeId_t ID, dataClass typeDes);
    /* Each subclass may need to update its size after adding a field */
  public:
    fieldListType();
-   ~fieldListType();
+   virtual ~fieldListType();
    fieldListType& operator=(const fieldListType&) = default;
    bool operator==(const Type &) const;
    dyn_c_vector<Dyninst::SymtabAPI::Field*> *getComponents() const;
@@ -330,11 +330,11 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
    /* Add field for C++ struct or union */
    void addField(std::string fieldname, boost::shared_ptr<Type> type, int offsetVal = -1, visibility_t vis = visUnknown);
    void addField(std::string n, Type* t, int ov = -1, visibility_t v = visUnknown) {
-      addField(n, t->reshare(), ov, v);
+      addField(std::move(n), t->reshare(), ov, v);
    }
    void addField(unsigned num, std::string fieldname, boost::shared_ptr<Type> type, int offsetVal = -1, visibility_t vis = visUnknown);
    void addField(unsigned n, std::string f, Type* t, int o = -1, visibility_t v = visUnknown) {
-      addField(n, f, t->reshare(), o, v);
+      addField(n, std::move(f), t->reshare(), o, v);
    }
    void addField(Field *fld);
    void addField(unsigned num, Field *fld);
@@ -408,10 +408,10 @@ class SYMTAB_EXPORT typeFunction : public Type {
    typeFunction();
    typeFunction(typeId_t ID, boost::shared_ptr<Type> retType, std::string name = "");
    typeFunction(typeId_t i, Type* r, std::string n = "")
-      : typeFunction(i, r->reshare(), n) {}
+      : typeFunction(i, r->reshare(), std::move(n)) {}
    typeFunction(boost::shared_ptr<Type> retType, std::string name = "");
    typeFunction(Type* retType, std::string name = "")
-      : typeFunction(retType->reshare(), name) {}
+      : typeFunction(retType->reshare(), std::move(name)) {}
    static typeFunction *create(std::string &name, boost::shared_ptr<Type> retType, 
                                dyn_c_vector<boost::shared_ptr<Type>> &paramTypes, Symtab *obj = NULL);
    static typeFunction *create(std::string &n, Type* rt, dyn_c_vector<Type*> &p, Symtab* o = NULL) {
