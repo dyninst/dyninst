@@ -1645,26 +1645,59 @@ std::string DwarfWalker::die_name() {
 
 
 bool DwarfWalker::findFuncName() {
-    dwarf_printf("(0x%lx) Checking for linkage name\n", id());
-    /* Prefer linkage names. */
+    dwarf_printf("(0x%lx) Checking for function name\n", id());
 
-    Dwarf_Attribute linkageNameAttr;
     Dwarf_Die e = entry();
 
-    auto status = dwarf_attr_integrate(&e, DW_AT_linkage_name, &linkageNameAttr);
-    if ( status != 0 )  { // previously ==1
-        const char *dwarfName = dwarf_formstring(&linkageNameAttr);
-        //DWARF_FAIL_RET(dwarfName);
-        if(dwarfName==NULL) return false;
-        curName() = dwarfName;
-        setMangledName(true);
-        dwarf_printf("(0x%lx) Found DW_AT_linkage_name of %s, using\n", id(), curName().c_str());
-        return true;
+    // Does this function have a linkage name?
+    {
+        Dwarf_Attribute linkageNameAttr{};
+        Dwarf_Attribute *attr = dwarf_attr_integrate(&e, DW_AT_linkage_name, &linkageNameAttr);
+        if (attr)  {
+          char const* dwarfName = dwarf_formstring(attr);
+          if(!dwarfName) {
+            dwarf_printf("(0x%lx) Found 'DW_AT_linkage_name', but formstring is empty\n", id());
+            return false;
+          }
+          curName() = dwarfName;
+          setMangledName(true);
+          dwarf_printf("(0x%lx) Found DW_AT_linkage_name of %s\n", id(), curName().c_str());
+          return true;
+        }
     }
-    dwarf_printf("(0x%lx) DW_AT_linkage_name name not found\n", id());
 
-    setMangledName(false);
+    // Is this an inlined function?
+    {
+        int const is_inline = dwarf_hasattr(&e, DW_AT_inline);
+        if(is_inline != -1) {
+          // Find the 'DW_AT_name' for this DIE. Do not traverse this as an abstract
+          // instance root (if it is one)- i.e., don't use dwarf_attr_integrate here.
+          Dwarf_Attribute nameAttr{};
+          Dwarf_Attribute *res = dwarf_attr(&e, DW_AT_name, &nameAttr);
+          if(!res) {
+        	  dwarf_printf("(0x%lx) Found an inlined subroutine, but has no 'DW_AT_name'\n", id());
+        	  return false;
+          }
+          char const* dwarfName = dwarf_formstring(&nameAttr);
+          if(!dwarfName) {
+            dwarf_printf("(0x%lx) Found an inlined subroutine, but formstring is empty\n", id());
+            return false;
+          }
+          curName() = dwarfName;
+
+          // Section 2.15 of the DWARF5 spec suggests that DW_AT_name should be the name as it
+          // appears in the source- not mangled.
+          setMangledName(false);
+
+          dwarf_printf("(0x%lx) Found inline DW_AT_name '%s'\n", id(), curName().c_str());
+          return true;
+        }
+    }
+
+    // Assume the name is the unmangled name associated with the current DIE, if any
     curName() = std::move(die_name(entry()));
+    setMangledName(false);
+    dwarf_printf("(0x%lx) No explicit function name found; using most-recently found name '%s'\n", id(), curName().c_str());
     return true;
 }
 
