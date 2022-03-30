@@ -102,17 +102,8 @@ private:
 
    void identifyParamDependencies(BPatch_function* callee, void* calleeAddress);
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4251) 
-#endif
-   // Disable warning that these vectors cannot be used externally, 
-   // which is irrelevant since the vectors are private
    std::map<BPatch_localVar *, BPatch_variableExpr *> local_vars;
    BPatch_Vector<BPatch_localVar *> params;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
 
   public:
    //dynC internal use only

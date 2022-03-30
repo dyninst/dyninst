@@ -40,11 +40,6 @@ int common_debug_lineinfo = 0;
 int common_debug_parsing = 0;
 int common_debug_initialized = 0;
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4996)
-#endif
-
 bool init_debug_common() {
     if (common_debug_initialized) return true;
     common_debug_initialized = 1;
@@ -125,8 +120,3 @@ int common_parsing_printf_int(const char *format, ...)
 
   return ret;
 }
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-

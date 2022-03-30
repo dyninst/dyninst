@@ -351,8 +351,6 @@ class COMMON_EXPORT AnnotatableSparse
 
 #if defined (_MSC_VER)
       typedef dyn_hash_map<void *, void *> annos_by_type_t;
-#pragma warning (push)
-#pragma warning (disable:4251)
 #else
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
 #endif
@@ -747,9 +745,5 @@ class COMMON_EXPORT AnnotatableSparse
 };
 
 } // namespace
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 #endif

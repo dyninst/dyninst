@@ -132,8 +132,6 @@ unset(CMAKE_REQUIRED_FLAGS)
 
 if (MSVC)
   message(STATUS "TODO: Set up custom warning flags for MSVC")
-  string(APPEND CMAKE_C_FLAGS "/wd4251 /wd4091 /wd4503")
-  string(APPEND CMAKE_CXX_FLAGS "/wd4251 /wd4091 /wd4503")
 endif()
 
 message(STATUS "Using C warning flags: ${SUPPORTED_C_WARNING_FLAGS}")

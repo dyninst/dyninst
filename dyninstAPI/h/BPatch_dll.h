@@ -28,10 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if defined(_MSC_VER)
-#pragma warning(disable:4251)
-#endif
-
 #ifndef _BPatch_dll_h_
 #define _BPatch_dll_h_
 
@@ -44,14 +40,6 @@
 #define	BPATCH_DLL_EXPORT
 #else
 #if defined(_MSC_VER)
-// we get numerous spurious warnings about having some template classes
-// needing to have a dll-interface if instances of these classes are
-// to be used by classes whose public interfaces are exported from a DLL.
-// Specifing the template classes with a DLL export interface doesn't 
-// satisfy the compiler.  Until the compiler handles instantiated
-// templates exported from DLLs better, we disable the warning when building
-// or using the dyninstAPI DLL.
-#pragma warning(disable:4251)
 
 #ifdef BPATCH_DLL_BUILD
 // we are building the dyninstAPI DLL

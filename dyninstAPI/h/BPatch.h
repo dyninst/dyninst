@@ -73,10 +73,6 @@ class func_instance;
 #define DYNINST_MINOR DYNINST_MINOR_VERSION
 #define DYNINST_SUBMINOR DYNINST_PATCH_VERSION
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4251)
-#endif
 
 //  BPatch_stats is a collection of instrumentation statistics.
 //  Introduced to export this information to paradyn, which 
@@ -678,10 +674,6 @@ public:
     
     void  addNonReturningFunc(std::string name);
 };
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 
 #endif /* _BPatch_h_ */
