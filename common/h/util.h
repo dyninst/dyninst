@@ -204,10 +204,6 @@
 #include <string>
 #include "dyntypes.h"
 
-#if defined(_MSC_VER)
-#pragma warning(disable: 4251 4275 4396 4996)
-#endif
-
 
 namespace Dyninst {
 

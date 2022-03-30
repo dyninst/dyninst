@@ -40,11 +40,6 @@ int Dyninst::ParseAPI::dyn_debug_malware = 0;
 int Dyninst::ParseAPI::dyn_debug_indirect_collect = 0;
 int Dyninst::ParseAPI::dyn_debug_initialized = 0;
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4996) 
-#endif
-
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
@@ -139,7 +134,3 @@ const std::string PARSE_TAILCALL_FAIL("isTailcallFail");
 
 const std::string PARSE_TOTAL_TIME("parseTotalTime");
 const std::string PARSE_JUMPTABLE_TIME("parseJumpTableTime");
-
-#if defined(_MSC_VER)
-#pragma warning(pop)    
-#endif

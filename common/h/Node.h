@@ -39,9 +39,6 @@
 #include "dyntypes.h"
 #include "boost/shared_ptr.hpp"
 
-#if defined(_MSC_VER)
-#pragma warning(disable:4251)
-#endif
 
 class BPatch_function;
 class BPatch_basicBlock;

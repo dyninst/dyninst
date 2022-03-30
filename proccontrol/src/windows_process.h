@@ -36,7 +36,6 @@
 
 class windows_thread;
 
-#pragma warning (disable: 4250)
 class windows_process : virtual public x86_process, virtual public hybrid_lwp_control_process
 {
 public:

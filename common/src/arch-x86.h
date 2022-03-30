@@ -44,11 +44,6 @@
 
 #include "common/src/ia32_locations.h"
 
-#if defined(i386_unknown_nt4_0)
-// disable VC++ warning C4800: (performance warning)
-// forcing 'unsigned int' value to bool 'true' or 'false'
-#pragma warning (disable : 4800)
-#endif
 
 namespace NS_x86 {
 

@@ -300,10 +300,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
   void removeObject(BPatch_object *obj);
   void removeAllModules();
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4251) 
-#endif
   typedef std::map<mapped_module *,  BPatch_module *> ModMap;
   typedef std::map<mapped_object *,  BPatch_object *> ObjMap;
 
@@ -315,9 +311,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
 
   BPatch_Vector<BPatch_module *> removed_list;
   BPatch_Vector<BPatch_point *> unresolvedCF;
-#if defined(_MSC_VER)
-#pragma warning(pop)    
-#endif
 
   // These private "find" functions convert from internal func_instance
   // representation to the exported BPatch_Function type
