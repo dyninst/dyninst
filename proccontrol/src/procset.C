@@ -45,10 +45,6 @@
 #include <map>
 #include <algorithm>
 
-#if defined(os_windows)
-#include "external/stdint-win.h"
-#include "external/inttypes-win.h"
-#endif
 #include <boost/crc.hpp>
 #include <iterator>
 

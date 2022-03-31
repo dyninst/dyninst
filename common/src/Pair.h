@@ -32,10 +32,6 @@
  * Pair.h: definition of pairs for dictionaries and sets.
 ************************************************************************/
 
-#if defined(external_templates)
-#pragma interface
-#endif
-
 #if !defined(_Pair_h_)
 #define _Pair_h_
 

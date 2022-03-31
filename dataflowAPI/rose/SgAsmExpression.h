@@ -7,16 +7,7 @@
 #include "SgAsmType.h"
 #include "external/rose/powerpcInstructionEnum.h"
 
-
-#if defined(_MSC_VER)
-#include "external/stdint-win.h"
-#include "external/inttypes-win.h"
-#else
-
-#include <stdint.h>
 #include <inttypes.h>
-
-#endif
 
 
 class SgAsmExpression : public SgAsmNode {

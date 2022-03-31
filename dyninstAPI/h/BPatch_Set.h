@@ -31,10 +31,6 @@
 #ifndef _BPatch_Set_h_
 #define _BPatch_Set_h_
 
-#if defined(external_templates)
-#pragma interface
-#endif
-
 /*******************************************************/
 /*		header files 			       */
 /*******************************************************/
