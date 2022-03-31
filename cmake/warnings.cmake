@@ -1,3 +1,16 @@
+#
+# cmake warning options
+#
+
+option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS "Disable all warning suppressions and frame size overrides." OFF)
+
+
+if (DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
+  add_definitions(-DDYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
+  message(STATUS "DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS set: disabling all dyninst warning suppressions and frame size overrides")
+endif()
+
+
 # Frame sizes are larger for debug build, so adjust based on build type
 # files with functions containing large frames are adjust below
 # (the value could be made significantly maller if more files are adjusted).
@@ -112,7 +125,7 @@ endif()
 #       common/src/MachSyscall.C
 #         (includes common/src/SyscallInformation.C)
 #
-if (HAS_CPP_FLAG_Wframe_larger_than)
+if (HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
     # Override the default frame size maximum for DEBUG (-O0) build types
     # as there stack frames are larger:
     #
