@@ -16,8 +16,10 @@ RUN git clone --depth=1 https://github.com/dyninst/external-tests /opt
 COPY ./docker/build.sh /opt/dyninst-env/build.sh
 COPY ./docker/test.sh /opt/dyninst-env/test.sh
 
-# Previous WORKDIR, just to be careful - reinstall dyninst if needed
-# Thenbuild and run the test suite
 WORKDIR /opt/dyninst-env
-RUN /bin/bash build.sh && \
-    /bin/bash test.sh
+
+# Build Dyninst
+RUN /bin/bash build.sh
+
+# Run the tests
+RUN /bin/bash test.sh
