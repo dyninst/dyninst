@@ -60,11 +60,7 @@
 #include <fstream>
 #include <sstream>
 
-#if defined(_MSC_VER)
-#include "external/stdint-win.h"
-#else
 #include <stdint.h>
-#endif
 
 
 #include "../rose/SgAsmx86Instruction.h"
