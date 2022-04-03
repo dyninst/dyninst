@@ -118,19 +118,11 @@ RUN . /opt/spack/share/spack/setup-env.sh && \
     spack env create -d . && \
     echo "  concretization: together" >> spack.yaml && \
     spack env activate . && \
-    
-    # This adds metadata for dyninst to spack.yaml
-    spack develop --path /code dyninst@${DYNINST_BRANCH} && \
-
-    # ...but we need spack add to add to the install list!
-    spack add dyninst@${DYNINST_BRANCH} && \
-
-    # Add our hard coded versions here.
     spack add cmake@${CMAKE_VERSION} && \
     spack add perl@${PERL_VERSION} && \
     spack add boost@${BOOST_VERSION} && \
     spack add elfutils@${ELFUTILS_VERSION} && \
-    spack add libiberty@${LIBIBERTY_VERSION} && \
+    spack add libiberty@${LIBIBERTY_VERSION}+pic && \
     spack add intel-tbb@${INTELTBB_VERSION} && \
     spack install --reuse
     
