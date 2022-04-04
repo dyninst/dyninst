@@ -10,7 +10,7 @@ COPY . /code
 #------
 # A key element of these tests is to be able to _build_ against a Dyninst installation
 # As such, we don't need to keep them in the base image
-RUN git clone --depth=1 https://github.com/dyninst/external-tests /opt
+RUN git clone --depth=1 https://github.com/dyninst/external-tests /opt/external-tests
 
 # Add build scripts to run
 COPY ./docker/build.sh /opt/dyninst-env/build.sh
