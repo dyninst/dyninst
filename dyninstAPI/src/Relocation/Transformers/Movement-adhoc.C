@@ -65,8 +65,8 @@ adhocMovementTransformer::process(RelocBlock* cur, RelocGraph* cfg)
 
 #if defined(cap_stack_mods)
     // Grab some stack modification data structures if we need them
-    OffsetVector* offVec = NULL;
-    TMap*         tMap   = NULL;
+    OffsetVector* offVec = nullptr;
+    TMap*         tMap   = nullptr;
     if(cur->func()->hasStackMod())
     {
         // Make sure we have an offset vector and transformation mapping.  We
@@ -90,18 +90,17 @@ adhocMovementTransformer::process(RelocBlock* cur, RelocGraph* cfg)
         // Analyze definitions to figure out how their displacements need to be
         // modified.
         std::map<Address, StackAccess*>* definitionMap = cur->func()->getDefinitionMap();
-        for(auto defIter = definitionMap->begin(); defIter != definitionMap->end();
-            defIter++)
+        for(auto & defIter : *definitionMap)
         {
-            const Address defAddr   = defIter->first;
-            StackAccess*  defAccess = defIter->second;
+            const Address defAddr   = defIter.first;
+            StackAccess*  defAccess = defIter.second;
 
             // Set up parameters for call to  isStackFrameSensitive
             Offset      origDisp;
             signed long delta;
             Accesses    tmpAccesses;
             tmpAccesses[defAccess->reg()].insert(defAccess);
-            ParseAPI::Block*                     defBlock = NULL;
+            ParseAPI::Block*                     defBlock = nullptr;
             const ParseAPI::Function::blocklist& blocks = cur->func()->ifunc()->blocks();
             for(auto blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++)
             {
@@ -114,7 +113,7 @@ adhocMovementTransformer::process(RelocBlock* cur, RelocGraph* cfg)
                     break;
                 }
             }
-            assert(defBlock != NULL);
+            assert(defBlock != nullptr);
 
             // Get origDisp, delta for this definition via isStackFrameSensitive
             stackmods_printf("Checking isStackFrameSensitive for def @ 0x%lx\n", defAddr);
@@ -197,7 +196,7 @@ adhocMovementTransformer::process(RelocBlock* cur, RelocGraph* cfg)
         {
             // If we have stack modifications, check for sensitive instructions;
             // we must update the displacement encoded in these instructions
-            if(cur->func()->hasStackMod() && cur->func()->getMods()->size())
+            if(cur->func()->hasStackMod() && !cur->func()->getMods()->empty())
             {
                 const Accesses* accesses = cur->func()->getAccesses((*iter)->addr());
                 // If this function makes no stack accesses, no need to perform
@@ -279,11 +278,9 @@ adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr, Instruction insn, Address
     set<Expression::Ptr> mems;
     insn.getMemoryReadOperands(mems);
 
-    for(set<Expression::Ptr>::const_iterator iter = mems.begin(); iter != mems.end();
-        ++iter)
+    for(auto&& exp : mems)
     {
-        Expression::Ptr exp = *iter;
-        if(exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr(), insn))))
+         if(exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr(), insn))))
         {
             // Bind succeeded, eval to get target address
             Result res = exp->eval();
@@ -298,9 +295,7 @@ adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr, Instruction insn, Address
             break;
         }
     }
-    if(target)
-        return true;
-    return false;
+    return (target != 0);
 }
 
 // We define this as "uses PC and is not control flow"
@@ -329,11 +324,9 @@ adhocMovementTransformer::isPCRelData(Widget::Ptr ptr, Instruction insn, Address
     set<Expression::Ptr> mems;
     insn.getMemoryReadOperands(mems);
     insn.getMemoryWriteOperands(mems);
-    for(set<Expression::Ptr>::const_iterator iter = mems.begin(); iter != mems.end();
-        ++iter)
+    for(const auto& exp : mems)
     {
-        Expression::Ptr exp = *iter;
-        if(exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr(), insn))))
+         if(exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr(), insn))))
         {
             // Bind succeeded, eval to get target address
             Result res = exp->eval();
@@ -353,15 +346,20 @@ adhocMovementTransformer::isPCRelData(Widget::Ptr ptr, Instruction insn, Address
     // memory-topping deref stops eval...
     vector<Operand> operands;
     insn.getOperands(operands);
-    for(vector<Operand>::iterator iter = operands.begin(); iter != operands.end(); ++iter)
+    for(auto & operand : operands)
     {
         // If we can bind the PC, then we're in the operand
         // we want.
-        Expression::Ptr exp = iter->getValue();
+        Expression::Ptr exp = operand.getValue();
         if(exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr(), insn))))
         {
             // Bind succeeded, eval to get target address
             Result res = exp->eval();
+            if(!res.defined)
+            {
+                cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;
+                continue;
+            }
             assert(res.defined);
             target = res.convert<Address>();
             return true;
@@ -371,36 +369,33 @@ adhocMovementTransformer::isPCRelData(Widget::Ptr ptr, Instruction insn, Address
     {
         cerr << "Error: failed to bind PC in " << insn.format() << endl;
     }
-    assert(target != 0);
-    return true;
+    return (target != 0);
+    // assert(target != 0);
+    // return true;
 }
 
 class thunkVisitor : public InstructionAPI::Visitor
 {
 public:
-    thunkVisitor()
-    : isThunk(true)
-    , foundSP(false)
-    , foundDeref(false)
-    {}
+    thunkVisitor() = default;
     virtual ~thunkVisitor() {}
 
-    bool isThunk;
-    bool foundSP;
-    bool foundDeref;
+    bool isThunk    = true;
+    bool foundSP    = false;
+    bool foundDeref = false;
 
-    virtual void visit(BinaryFunction*)
+     void visit(BinaryFunction*) override
     {
         relocation_cerr << "\t binfunc, ret false" << endl;
         isThunk = false;
     }
 
-    virtual void visit(Immediate*)
+    void visit(Immediate*) override
     {
         relocation_cerr << "\t imm, ret false" << endl;
         isThunk = false;
     }
-    virtual void visit(RegisterAST* r)
+    void visit(RegisterAST* r) override
     {
         if(foundSP)
         {
@@ -415,7 +410,7 @@ public:
             foundSP = true;
         }
     }
-    virtual void visit(Dereference*)
+    void visit(Dereference*) override
     {
         if(foundDeref)
         {
