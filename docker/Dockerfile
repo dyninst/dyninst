@@ -109,9 +109,6 @@ RUN printf "\n\
 WORKDIR /code
 COPY . /code
 
-# Add test code to base container so we can build tests here
-RUN git clone https://github.com/dyninst/testsuite /opt/testsuite
-
 # Install Dyninst to its own view
 WORKDIR /opt/dyninst-env
 RUN . /opt/spack/share/spack/setup-env.sh && \
@@ -126,6 +123,6 @@ RUN . /opt/spack/share/spack/setup-env.sh && \
     spack add intel-tbb@${INTELTBB_VERSION} && \
     spack install --reuse
     
-# Build tests (but don't run)
+# Build Dyninst
 COPY ./docker/build.sh build.sh
 RUN /bin/bash build.sh

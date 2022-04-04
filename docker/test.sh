@@ -5,15 +5,21 @@ printf "⭐️ Setting up spack environment for Dyninst\n"
 . /opt/spack/share/spack/setup-env.sh
 spack env activate .
 
-# 3. Run the tests
-printf "⭐️ Running tests...\n"
-cd /opt/dyninst-env/install/testsuite
-export DYNINSTAPI_RT_LIB=/opt/dyninst-env/install/dyninst/lib/libdyninstAPI_RT.so
-export OMP_NUM_THREADS=2
-export LD_LIBRARY_PATH=/opt/dyninst-env/install/dyninst/lib:$PWD:$LD_LIBRARY_PATH
-./runTests -64 -all -log test.log -j1 > >(tee stdout.log) 2> >(tee stderr.log >&2)
+# Build the tests
+# NB: There are no tests to execute (yet), so building is the actual test
+printf "⭐️ Building external-tests\n"
+echo "::group::build external-tests"
 
-# TODO will update here to upload given merge to master
-# Run the build script to collect and process the logs then upload them
-# cd /opt/dyninst-env                                                                                   && \
-# perl /opt/testsuite/scripts/build/build.pl --hostname=ci-github --quiet --restart=build --no-run-tests --upload --auth-token=xxxxxxxxxxxxxxxxxxx
+DYNINST_INSTALL_DIR=/opt/dyninst-env/install/dyninst
+
+TESTS_BUILD_DIR=/opt/dyninst-env/build/external-tests
+mkdir -p $TESTS_BUILD_DIR
+
+TESTS_INSTALL_DIR=/opt/dyninst-env/install/external-tests
+mkdir -p $TESTS_INSTALL_DIR
+
+cmake -S /opt/external-tests -B $TESTS_BUILD_DIR -DCMAKE_INSTALL_PREFIX=$TESTS_INSTALL_DIR -DDyninst_DIR=$DYNINST_INSTALL_DIR/lib/cmake/Dyninst
+cmake --build $TESTS_BUILD_DIR
+cmake --install $TESTS_BUILD_DIR
+
+echo "::endgroup::"
