@@ -4,6 +4,10 @@
 
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS "Disable all warning suppressions and frame size overrides." OFF)
 
+set(DYNINST_EXTRA_WARNINGS "" CACHE STRING "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...).")
+
+option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
+
 
 if (DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   add_definitions(-DDYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
@@ -78,6 +82,16 @@ list(APPEND REQUESTED_WARNING_FLAGS
 #list(APPEND REQUESTED_WARNING_FLAGS Wsign-promo)
 #list(APPEND REQUESTED_WARNING_FLAGS Wold-style-cast)
 #list(APPEND REQUESTED_WARNING_FLAGS Walloc-zero)
+
+if (DYNINST_EXTRA_WARNINGS)
+    list(APPEND REQUESTED_WARNING_FLAGS ${DYNINST_EXTRA_WARNINGS})
+    message(STATUS "DYNINST_EXTRA_WARNINGS set, adding extra warnings:  ${DYNINST_EXTRA_WARNINGS}")
+endif()
+
+if (DYNINST_WARNINGS_AS_ERRORS)
+    list(APPEND REQUESTED_WARNING_FLAGS "Werror")
+    message(STATUS "DYNINST_WARNINGS_AS_ERRORS set: treating warnings as errors")
+endif()
 
 if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
   include(CheckCCompilerFlag)
