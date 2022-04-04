@@ -273,6 +273,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
      boost::shared_ptr<Type> tp;
      auto r = findType(tp, n);
      t = tp.get();
+     int x=3;
      return r;
    }
    virtual boost::shared_ptr<Type> findType(unsigned type_id, Type::do_share_t);
