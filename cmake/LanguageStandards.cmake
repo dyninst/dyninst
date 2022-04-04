@@ -6,6 +6,13 @@
 #=========================================================================
 
 #
+# C/C++ language standard cmake options.
+#
+
+set(DYNINST_CXX_LANGUAGE_STANDARD "11" CACHE STRING "C++ language standard version.")
+set(DYNINST_C_LANGUAGE_STANDARD "11" CACHE STRING "C language standard version.")
+
+#
 # --------  C++ language features ----------------
 #
 
@@ -13,7 +20,8 @@
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Require C++11 support
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD ${DYNINST_CXX_LANGUAGE_STANDARD})
+message(STATUS "C++ language standard:  ${DYNINST_CXX_LANGUAGE_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Require the standards-compliant C++11 ABI for gcc
@@ -32,5 +40,6 @@ endif()
 set(CMAKE_C_EXTENSIONS OFF)
 
 # Require C11 support
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD ${DYNINST_C_LANGUAGE_STANDARD})
+message(STATUS "C language standard:  ${DYNINST_C_LANGUAGE_STANDARD}")
 set(CMAKE_C_STANDARD_REQUIRED ON)
