@@ -86,6 +86,7 @@ class localVar;
 class relocationEntry;
 class Type;
 class FunctionBase;
+class FunctionDescriptor;
 class FuncRange;
 
 typedef IBSTree< ModRange > ModRangeLookup;
@@ -303,6 +304,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
      return r;
    }
 
+   bool getExternalFunctionRefs(std::vector<std::pair<Symbol *, FunctionDescriptor *> > &exts);
+   bool getExternalDataRefs(std::vector<std::pair<Symbol *, boost::shared_ptr<Type> > > &exts);   
+   
    void parseTypesNow();
 
    /***** Local Variable Information *****/

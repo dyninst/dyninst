@@ -2027,9 +2027,10 @@ void Symtab::parseTypes()
 	{
 		return;
 	}
-    linkedFile->parseTypeInfo();
+   linkedFile->populateExternalSymbols();
+   linkedFile->parseTypeInfo();
 
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+   for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
    {
        (*i)->setModuleTypes(typeCollection::getModTypeCollection((*i)));
        (*i)->finalizeRanges();
@@ -3056,3 +3057,34 @@ void Symtab::dumpFuncRanges() {
     func_lookup->PrintPreorder();
   }
 }
+
+bool Symtab::getExternalFunctionRefs(std::vector<std::pair<Symbol *, FunctionDescriptor *> > &exts)
+{
+   parseTypesNow();
+   Object *obj = getObject();
+   for (auto i = obj->external_symbols.begin(); i != obj->external_symbols.end(); i++) {
+      AObject::ExternalSymbolInfo *info = i->second;
+      Symbol *sym = info->symbol;
+
+      if (info->ext_type == AObject::ExternalSymbolInfo::ExternalIsFunction) {
+         exts.push_back(make_pair(sym, info->descriptor));
+      }
+   }
+   return true;
+}
+
+bool Symtab::getExternalDataRefs(std::vector<std::pair<Symbol *, boost::shared_ptr<Type> > > &exts)
+{
+   parseTypesNow();
+   Object *obj = getObject();   
+   for (auto i = obj->external_symbols.begin(); i != obj->external_symbols.end(); i++) {
+      AObject::ExternalSymbolInfo *info = i->second;
+      Symbol *sym = info->symbol;
+
+      if (info->ext_type == AObject::ExternalSymbolInfo::ExternalIsData) {
+         exts.push_back(make_pair(sym, info->data_type));
+      }
+   }
+   return true;
+}
+   

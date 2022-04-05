@@ -736,7 +736,7 @@ bool DwarfWalker::parseCallSiteParameter()
 }
 
 
-bool DwarfWalker::parseFunctionDeclaration()
+bool DwarfWalker::parseFunctionDeclaration(AObject::ExternalSymbolInfo *extsym)
 {
     dwarf_printf("(0x%lx) parseFunctionDeclaration\n", id());
 
@@ -805,8 +805,11 @@ bool DwarfWalker::parseFunctionDeclaration()
         }
     }
 
-    dieOffsetToCalled->SetDeclarationIfUsed(declOffset, functionName,
-							returnType, paramTypes);
+    FunctionDescriptor *fdesc = dieOffsetToCalled->SetDeclarationIfUsed(declOffset, functionName,
+                                                                        returnType, paramTypes);
+    if (extsym && fdesc && extsym->ext_type == AObject::ExternalSymbolInfo::ExternalIsFunction) {
+       extsym->descriptor = fdesc;
+    }
 
     return true;
 }
@@ -821,7 +824,7 @@ bool DwarfWalker::parseFunctionDeclarationAtOffset(Dwarf_Off offset)
         return false;
     }
     setEntry(die);
-    parseFunctionDeclaration();
+    parseFunctionDeclaration(NULL);
 
     return true;
 }
@@ -951,8 +954,13 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    //This keeps us from parsing abstracts or specifications until
    // we need them.
    if (!func) {
-      if (dieOffsetToCalled->IsUsed(offset()))  {
-          parseFunctionDeclaration();
+      auto extsym = obj()->external_symbols.find(curName());
+      if (extsym != obj()->external_symbols.end()) {
+         dieOffsetToCalled->GetFunctionDescriptor(offset());
+         parseFunctionDeclaration(extsym->second);
+      }
+      else if (dieOffsetToCalled->IsUsed(offset()))  {
+          parseFunctionDeclaration(NULL);
       }
       dwarf_printf("(0x%lx) parseSubprogram not parsing children b/c curFunc() NULL\n", id());
       setParseChild(false);
@@ -1233,6 +1241,12 @@ bool DwarfWalker::parseVariable() {
    std::vector<VariableLocation> locs;
    if (!decodeLocationList(DW_AT_location, NULL, locs))
        return false;
+
+   auto ext = obj()->external_symbols.find(curName());
+   if (ext != obj()->external_symbols.end() && ext->second->ext_type == AObject::ExternalSymbolInfo::ExternalIsData) {
+      ext->second->data_type = type;
+   }
+   
    if (locs.empty()) return true;
 
    for (unsigned i=0; i<locs.size(); i++) {

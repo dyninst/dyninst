@@ -141,9 +141,22 @@ public:
     virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
+    virtual bool populateExternalSymbols() { return false; }
     // Only implemented for ELF right now
     SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {}
 	SYMTAB_EXPORT virtual void rebase(Offset) {}
+
+    struct ExternalSymbolInfo {
+       Symbol *symbol;
+       FunctionDescriptor *descriptor;
+       boost::shared_ptr<Type> data_type;
+       enum {
+          ExternalIsFunction,
+          ExternalIsData
+       } ext_type;
+    };
+    std::map<std::string, ExternalSymbolInfo*> external_symbols;
+          
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
