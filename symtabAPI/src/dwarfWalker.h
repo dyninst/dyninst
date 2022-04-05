@@ -384,7 +384,7 @@ private:
     bool parseInlineCallSite();
     bool parseCallSite();
     bool parseCallSiteParameter();
-    bool parseFunctionDeclaration();
+    bool parseFunctionDeclaration(AObject::ExternalSymbolInfo *extsym);
     bool parseFunctionDeclarationAtOffset(Dwarf_Off offset);
     bool getFlagValue(Dwarf_Die *die, unsigned int attrName, bool &flag);
     bool hasDeclaration(bool &decl);

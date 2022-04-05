@@ -4360,3 +4360,33 @@ bool Object::isLinuxKernelModule() const
             && hasModinfo()
             && hasGnuLinkonceThisModule();
 }
+
+bool Object::populateExternalSymbolsHelper(vector<relocationEntry> &relocs, bool func) {
+   for (vector<relocationEntry>::iterator i = relocs.begin(); i != relocs.end(); i++) {
+      relocationEntry &r = *i;
+      Symbol *sym = r.getDynSym();
+      if (!sym)
+         continue;
+      std::string name = sym->getMangledName();
+      if (external_symbols.find(name) != external_symbols.end())
+         continue;
+      AObject::ExternalSymbolInfo *syminfo = new AObject::ExternalSymbolInfo();
+      syminfo->symbol = sym;
+      syminfo->descriptor = NULL;
+      syminfo->data_type = NULL;
+      syminfo->ext_type = func ? AObject::ExternalSymbolInfo::ExternalIsFunction : AObject::ExternalSymbolInfo::ExternalIsData;
+
+      external_symbols.insert(make_pair(name, syminfo));
+   }
+   return true;
+}
+
+bool Object::populateExternalSymbols() {
+   if (!external_symbols.empty())
+      return true;   
+   bool result = populateExternalSymbolsHelper(fbt_, true);
+   if (!result)
+      return false;
+   result = populateExternalSymbolsHelper(relocation_table_, false);
+   return result;
+}
