@@ -4,7 +4,7 @@ if (CMAKE_COMPILER_IS_GNUCXX
     OR ${CMAKE_C_COMPILER_ID} MATCHES Intel)
 if(ENABLE_LTO)
     set(LTO_FLAGS "-flto")
-    set(LTO_LINK_FLAGS "-fuse-ld=gold")
+    set(LTO_LINK_FLAGS "-fuse-ld=bfd")
 else()
     set(LTO_FLAGS "")
     set(LTO_LINK_FLAGS "")
