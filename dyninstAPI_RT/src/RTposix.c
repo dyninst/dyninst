@@ -33,6 +33,8 @@
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
+#define _DEFAULT_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
