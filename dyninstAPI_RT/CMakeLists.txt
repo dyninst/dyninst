@@ -4,6 +4,7 @@ project (DyninstRT C)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
 
+include (${DYNINST_ROOT}/cmake/LanguageStandards.cmake)
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 include_directories (

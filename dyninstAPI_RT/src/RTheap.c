@@ -31,6 +31,8 @@
 /* $Id: RTheap.c,v 1.25 2006/05/03 00:31:25 jodom Exp $ */
 /* RTheap.c: platform-generic heap management */
 
+#define _DEFAULT_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #if !defined(os_windows) /* ccw 15 may 2000 : 29 mar 2001 */
