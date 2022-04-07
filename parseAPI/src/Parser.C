@@ -1010,6 +1010,21 @@ Parser::finalize()
         finalize_funcs(discover_funcs);
         clean_bogus_funcs(discover_funcs);
 
+        // We need to redo finalization one more time to get correct
+        // function boundaries. This is intended to handle tail call
+        // correction. Suppose function A contains function B, and
+        // function B tail calls C.
+        // Further, we assume that parseAPI fails to identify the tail call
+        // in B. Then during finalizaiton, we can correct the tail call
+        // either when we finalize A or B, but not both. Therefore,
+        // after finalization, either A or B would have incorrect function
+        // boundary. Therefore, we recompute function boundary.
+        // In addition, there is no need for a loop to redo finalization
+        // as there would be no more tail call correction.
+        // We only need to get correct function boundaries.
+        finalize_funcs(hint_funcs);
+        finalize_funcs(discover_funcs);
+
         for (auto it = hint_funcs.begin(); it != hint_funcs.end(); ++it)
             if (deleted_func.find(*it) == deleted_func.end()) {
                 sorted_funcs.insert(*it);
