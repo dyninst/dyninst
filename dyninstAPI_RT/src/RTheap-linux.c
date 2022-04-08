@@ -31,7 +31,7 @@
 /* $Id: RTheap-linux.c,v 1.9 2008/01/31 18:01:54 legendre Exp $ */
 /* RTheap-linux.c: Linux-specific heap components */
 
-#define _DEFAULT_SOURCE
+#define _GNU_SOURCE
 
 #include <stdlib.h>
 #include <stdio.h>

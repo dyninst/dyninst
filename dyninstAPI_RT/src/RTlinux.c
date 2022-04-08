@@ -33,7 +33,7 @@
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
-#define _DEFAULT_SOURCE
+#define _GNU_SOURCE
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI_RT/src/RTthread.h"

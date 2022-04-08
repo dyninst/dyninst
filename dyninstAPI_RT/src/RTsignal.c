@@ -32,7 +32,7 @@
  * RTsignal.c: C-language signal handling code
  ************************************************************************/
 
-#define _DEFAULT_SOURCE
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <signal.h>
