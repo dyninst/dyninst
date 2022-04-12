@@ -7,10 +7,7 @@ option (LIGHTWEIGHT_SYMTAB "Use lightweight symtab interface for ParseAPI, ProcC
 # Use ParseAPI analysis in Stackwalker?
 option (SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 
-option (BUILD_TARBALLS "Build Dyninst package tarballs. Requires git archive, tar, gzip." OFF)
 option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" OFF)
-
-option(BUILD_DOCS "Build manuals from LaTeX sources" ON)
 
 option (ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
