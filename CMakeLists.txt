@@ -163,20 +163,6 @@ endif()
 set (VERSION_STRING "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
 
-if(BUILD_TARBALLS)
-  find_package(Git)
-  if(GIT_FOUND)
-    if(EXISTS "${DYNINST_ROOT}/.git/")
-      message(STATUS "Source tree is repository, building archive target")
-      add_custom_target(package ALL)
-      add_custom_command(TARGET package
-        COMMAND ${GIT_EXECUTABLE} archive --prefix="${DYNINST_NAME}/" --format=tar.gz -o "${CMAKE_BINARY_DIR}/${DYNINST_NAME}.tgz" HEAD
-        WORKING_DIRECTORY ${DYNINST_ROOT}
-        COMMENT "Packaging Dyninst")
-    endif()
-  endif()
-endif()
-
 if(TARGET boost)
     add_dependencies(common boost)
 endif()
