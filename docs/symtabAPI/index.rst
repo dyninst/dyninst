@@ -1,9 +1,7 @@
-.. container:: titlepage
+.. _`sec:symtab-intro`:
 
-.. _`sec:intro`:
-
-Introduction
-============
+Symtab API Introduction
+=======================
 
 SymtabAPI is a multi-platform library for parsing symbol tables, object
 file headers and debug information. SymtabAPI currently supports the ELF
@@ -44,10 +42,10 @@ would be incorporated and available for subsequent analysis. Other
 examples of such extensions might involve creating and adding new types
 or adding new local variables to certain functions.
 
-.. _`sec:abstractions`:
+.. _`sec:symtab-abstractions`:
 
-Abstractions
-============
+Symtab Abstractions
+===================
 
 = [rectangle, draw, fill=green!25] = [rectangle, draw, rounded corners,
 fill=yellow!25] = [ellipse, draw, fill=red!25] = [trapezium, trapezium
@@ -128,18 +126,13 @@ Some of the types inherit from a second level of type classes, each
 representing a separate category of types.
 
 fieldListType
-   - This category of types represent the container types that contain a
-   list of fields. Examples of this category include structure and the
-   union types.
+   - This category of types represent the container types that contain a list of fields. Examples of this category include structure and the union types.
 
 derivedType
-   - This category of types represent types derived from a base type.
-   Examples of this category include typedef, pointer and reference
-   types.
+   - This category of types represent types derived from a base type. Examples of this category include typedef, pointer and reference types.
 
 rangedType
-   - This category represents range types. Examples of this category
-   include the array and the sub-range types.
+   - This category represents range types. Examples of this category include the array and the sub-range types.
 
 The enum, function, common block and scalar types do not fall under any
 of the above category of types. Each of the specific types is derived
@@ -154,11 +147,11 @@ look-up and addition of new line information. The main classes for this
 interface are LineInformation and LineNoTuple.
 
 LineInformation
-   - A LineInformation class object represents a mapping of line numbers
+   A LineInformation class object represents a mapping of line numbers
    to address range within a module (source file).
 
 Statement/LineNoTuple
-   - A Statement class object represents a location in source code with
+   A Statement class object represents a location in source code with
    a source file, line number in that source file and start column in
    that line. For backwards compatibility, Statements may also be
    referred to as LineNoTuples.
@@ -173,7 +166,7 @@ variables. All the local variables within a function are tied to the
 Symbol class object representing that function.
 
 localVar
-   - A localVar class object represents a local variable or a parameter
+   A localVar class object represents a local variable or a parameter
    belonging to a function.
 
 Dynamic Address Translation
@@ -332,14 +325,14 @@ within function bar.
 The rest of this document describes the class hierarchy and the API in
 detail.
 
-Definitions and Basic Types
-===========================
+Symtab Definitions and Basic Types
+==================================
 
 The following definitions and basic types are referenced throughout the
 rest of this document.
 
-Definitions
------------
+Symtab Definitions
+------------------
 
 Offset
    Offsets represent an address relative to the start address(base) of
@@ -448,8 +441,8 @@ Local Variable
    A local variable represents a variable that has been declared within
    the scope of a sub-routine or a parameter to a sub-routine.
 
-Basic Types
------------
+Symtab Basic Types
+------------------
 
 .. code-block:: cpp
 
@@ -528,98 +521,73 @@ in-memory. This class is responsible for the parsing of the ``Object``
 file information and holding the data that can be accessed through look
 up functions.
 
-+------------------------+--------------+--------------------------+
-| Method name            | Return type  | Method description       |
-+========================+==============+==========================+
-| ``file``               | std::string  | Full path to the opened  |
-|                        |              | file or provided name    |
-|                        |              | for the memory image.    |
-+------------------------+--------------+--------------------------+
-| ``name``               | std::string  | File name without path.  |
-+------------------------+--------------+--------------------------+
-| ``memberName``         | std::string  | For archive (.a) files,  |
-|                        |              | returns the object file  |
-|                        |              | (.o) this Symtab         |
-|                        |              | represents.              |
-+------------------------+--------------+--------------------------+
-| ``getNumberOfRegions`` | unsigned     | Number of regions.       |
-+------------------------+--------------+--------------------------+
-| ``getNumberOfSymbols`` | unsigned     | Total number of symbols  |
-|                        |              | in both the static and   |
-|                        |              | dynamic tables.          |
-+------------------------+--------------+--------------------------+
-| ``mem_image``          | char \*      | Pointer to memory image  |
-|                        |              | for the Symtab; not      |
-|                        |              | valid for disk files.    |
-+------------------------+--------------+--------------------------+
-| ``imageOffset``        | Offset       | Offset of the first code |
-|                        |              | segment from the start   |
-|                        |              | of the binary.           |
-+------------------------+--------------+--------------------------+
-| ``dataOffset``         | Offset       | Offset of the first data |
-|                        |              | segment from the start   |
-|                        |              | of the binary.           |
-+------------------------+--------------+--------------------------+
-| ``imageLength``        | Offset       | Size of the primary      |
-|                        |              | code-containing region,  |
-|                        |              | typically .text.         |
-+------------------------+--------------+--------------------------+
-| ``dataLength``         | Offset       | Size of the primary      |
-|                        |              | data-containing region,  |
-|                        |              | typically .data.         |
-+------------------------+--------------+--------------------------+
-| ``isStaticBinary``     | bool         | True if the binary was   |
-|                        |              | compiled statically.     |
-+------------------------+--------------+--------------------------+
-| ``isExecutable``       | bool         | True if the file is an   |
-|                        |              | executable.              |
-+------------------------+--------------+--------------------------+
-| ``isSharedLibrary``    | bool         | True if the file is a    |
-|                        |              | shared library.          |
-+------------------------+--------------+--------------------------+
-| ``isExec``             | bool         | True if the file is can  |
-|                        |              | only be an executable,   |
-|                        |              | false otherwise          |
-|                        |              | including files that are |
-|                        |              | both exeutables and      |
-|                        |              | shared libraries.        |
-|                        |              | Typically files that are |
-|                        |              | both executables and     |
-|                        |              | shared libraries are     |
-|                        |              | primarily used as        |
-|                        |              | libraries, if you need   |
-|                        |              | to determine specifics   |
-|                        |              | use the methods          |
-|                        |              | ``isExecutable`` and     |
-|                        |              | ``isSharedLibrary``.     |
-+------------------------+--------------+--------------------------+
-| ``isStripped``         | bool         | True if the file was     |
-|                        |              | stripped of symbol table |
-|                        |              | information.             |
-+------------------------+--------------+--------------------------+
-| ``getAddressWidth``    | unsigned     | Size (in bytes) of a     |
-|                        |              | pointer value in the     |
-|                        |              | Symtab; 4 for 32-bit     |
-|                        |              | binaries and 8 for       |
-|                        |              | 64-bit binaries.         |
-+------------------------+--------------+--------------------------+
-| ``getArchitecture``    | Architecture | Representation of the    |
-|                        |              | system architecture for  |
-|                        |              | the binary.              |
-+------------------------+--------------+--------------------------+
-| ``getLoadOffset``      | Offset       | The suggested load       |
-|                        |              | offset of the file;      |
-|                        |              | typically 0 for shared   |
-|                        |              | libraries.               |
-+------------------------+--------------+--------------------------+
-| ``getEntryOffset``     | Offset       | The entry point (where   |
-|                        |              | execution begins) of the |
-|                        |              | binary.                  |
-+------------------------+--------------+--------------------------+
-| ``getBaseOffset``      | Offset       | (Windows only) the       |
-|                        |              | OS-specified base offset |
-|                        |              | of the file.             |
-+------------------------+--------------+--------------------------+
+.. list-table:: The Symtab Class
+   :widths: 30  35 35
+   :header-rows: 1
+
+   * - Method name
+     - Return type
+     - Method description
+   * - ``file``
+     - std::string
+     - Full path to the opened file or provided name for the memory image.
+   * - ``name``
+     - std::string
+     - File name without path.
+   * - ``memberName``
+     - std::string
+     - For archive (.a) files, returns the object file (.o) this Symtab represents.
+   * - ``getNumberOfRegions``
+     - unsigned
+     - Number of regions.
+   * - ``getNumberOfSymbols``
+     - unsigned
+     - Total number of symbols in both the static and dynamic tables.
+   * - ``mem_image``
+     - char *
+     - Pointer to memory image for the Symtab; not valid for disk files.
+   * - ``imageOffset``
+     - Offset
+     - Offset at the first code segment from the start of the binary.
+   * - ``dataOffset``
+     - Offset
+     - Offset at the first data segment from the start of the binary.
+   * - ``imageLength``
+     - Offset
+     - Size of the primary code-containing region, typically .text.
+   * - ``dataLength``
+     - Offset
+     - Size of the primary data-containing region, typically .data.
+   * - ``isStaticBinary``
+     - bool
+     - True if the binary was compiled statically.
+   * - ``isExecutable``
+     - bool
+     - True if the file is an executable.
+   * - ``isSharedLibrary``
+     - bool
+     - True if the file is a shared library.
+   * - ``isExec``
+     - bool
+     - True if the file can only be an executable, false otherwise including both executables and shared libraries. Typically files that are bot executables and shared libraries are primarily used as libraries, if you need to determine specifics use the methods ``isExecutable`` and ``isSharedLibrary``.
+   * - ``isStripped``
+     - bool
+     - True if the file was stripped of symbol table information.
+   * - ``getAddressWidth``
+     - unsigned
+     - Size (in bytes) of a pointer value in the Symtab; 4 for 32-bit binaries and 8 for 64-bit binaries.
+   * - ``getArchitecture``
+     - Architecture
+     - Representation of the system architecture for the binary.
+   * - ``getLoadOffset``
+     - Offset
+     - The suggested load offset of the file; typically 0 for shared libraries.
+   * - ``getEntryOffset``
+     - Offset
+     - The entry point (where execution beings) of the binary.
+   * - ``getBaseOffset``
+     - Offset
+     - (Windows only) the OS-specified base offset of the file.
 
 .. code-block:: cpp
 
@@ -720,7 +688,7 @@ File opening/parsing
 
 .. code-block:: cpp
     
-    static bool openFile(Symtab \*&obj, string filename)
+    static bool openFile(Symtab *&obj, string filename)
 
 Creates a new ``Symtab`` object for an object file on disk. This object
 serves as a handle to the parsed object file. ``filename`` represents
@@ -732,7 +700,7 @@ more error details.
 
 .. code-block:: cpp
 
-    static bool openFile(Symtab \*&obj, char \*mem_image, size_t size, std::string name)
+    static bool openFile(Symtab *&obj, char *mem_image, size_t size, std::string name)
 
 This factory method creates a new ``Symtab`` object for an object file
 in memory. This object serves as a handle to the parsed object file.
@@ -746,7 +714,7 @@ more error details.
 
 .. code-block:: cpp
 
-    static Symtab \*findOpenSymtab(string name)
+    static Symtab *findOpenSymtab(string name)
 
 Find a previously opened ``Symtab`` that matches the provided name.
 
@@ -755,14 +723,14 @@ Module lookup
 
 .. code-block:: cpp
 
-    Module \*getDefaultModule()
+    Module *getDefaultModule()
 
 Returns the default module, a collection of all functions, variables,
 and symbols that do not have an explicit module specified.
 
 .. code-block:: cpp
 
-    bool findModuleByName(Module \*&ret, const string name)
+    bool findModuleByName(Module *&ret, const string name)
 
 This method searches for a module with name ``name``. If the module
 exists returns ``true`` with ``ret`` set to the module handle; otherwise
@@ -770,7 +738,7 @@ returns ``false`` with ``ret`` set to ``NULL``.
 
 .. code-block:: cpp
 
-    bool findModuleByOffset(Module \*&ret, Offset offset)
+    bool findModuleByOffset(Module *&ret, Offset offset)
 
 This method searches for a module that starts at offset ``offset``. If
 the module exists returns ``true`` with ``ret`` set to the module
@@ -778,7 +746,7 @@ handle; otherwise returns ``false`` with ``ret`` set to ``NULL``.
 
 .. code-block:: cpp
 
-    bool getAllModules(vector<module \*> &ret)
+    bool getAllModules(vector<module *> &ret)
 
 This method returns all modules in the object file. Returns ``true`` on
 success and ``false`` if there are no modules. The error value is set to
@@ -789,7 +757,7 @@ Function, Variable, and Symbol lookup
 
 .. code-block:: cpp
 
-    bool findFuncByEntryOffset(Function \*&ret, const Offset offset)
+    bool findFuncByEntryOffset(Function *&ret, const Offset offset)
 
 This method returns the ``Function`` object that begins at ``offset``.
 Returns ``true`` on success and ``false`` if there is no matching
@@ -797,7 +765,7 @@ function. The error value is set to ``No_Such_Function``.
 
 .. code-block:: cpp
 
-    bool findFunctionsByName(std::vector<Function \*> &ret, const std::string name, NameType nameType = anyName, bool isRegex = false, bool checkCase = true)
+    bool findFunctionsByName(std::vector<Function *> &ret, const std::string name, NameType nameType = anyName, bool isRegex = false, bool checkCase = true)
 
 This method finds and returns a vector of ``Function``\ s whose names
 match the given pattern. The ``nameType`` parameter determines which
@@ -812,7 +780,7 @@ otherwise returns ``false``. The error value is set to
 
 .. code-block:: cpp
 
-    bool getContainingFunction(Offset offset, Function \*&ret)
+    bool getContainingFunction(Offset offset, Function *&ret)
 
 This method returns the function, if any, that contains the provided
 ``offset``. Returns ``true`` on success and ``false`` on failure. The
@@ -824,7 +792,7 @@ precision, use the ParseAPI library.
 
 .. code-block:: cpp
 
-    bool getAllFunctions(vector<Function \*> &ret)
+    bool getAllFunctions(vector<Function *> &ret)
 
 This method returns all functions in the object file. Returns ``true``
 on success and ``false`` if there are no modules. The error value is set
@@ -832,7 +800,7 @@ to ``No_Such_Function``.
 
 .. code-block:: cpp
 
-     bool findVariablesByOffset(std::vector<Variable \*> &ret, const Offset offset)
+     bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset)
 
 This method returns a vector of ``Variable``\ s with the specified
 offset. There may be more than one variable at an offset if they have
@@ -841,7 +809,7 @@ no matching variable. The error value is set to ``No_Such_Variable``.
 
 .. code-block:: cpp
 
-   bool findVariablesByName(std::vector<Variable \*> &ret, const std::string name, NameType nameType = anyName, bool isRegex = false, bool checkCase = true)
+   bool findVariablesByName(std::vector<Variable *> &ret, const std::string name, NameType nameType = anyName, bool isRegex = false, bool checkCase = true)
 
 This method finds and returns a vector of ``Variable``\ s whose names
 match the given pattern. The ``nameType`` parameter determines which
@@ -856,7 +824,7 @@ if it finds variables that match the given name, otherwise returns
 
 .. code-block:: cpp
 
-    bool getAllVariables(vector<Variable \*> &ret)
+    bool getAllVariables(vector<Variable *> &ret)
 
 This method returns all variables in the object file. Returns ``true``
 on success and ``false`` if there are no modules. The error value is set
@@ -864,7 +832,7 @@ to ``No_Such_Variable``.
 
 .. code-block:: cpp
 
-    bool findSymbol(vector <Symbol \*> &ret, const string name, Symbol::SymbolType sType, NameType nameType = anyName, bool isRegex = false, bool checkCase = false)
+    bool findSymbol(vector <Symbol *> &ret, const string name, Symbol::SymbolType sType, NameType nameType = anyName, bool isRegex = false, bool checkCase = false)
 
 This method finds and returns a vector of symbols with type ``sType``
 whose names match the given name. The ``nameType`` parameter determines
@@ -880,14 +848,14 @@ the type.
 
 .. code-block:: cpp
 
-    const vector<Symbol \*> \*findSymbolByOffset(Offset offset)
+    const vector<Symbol *> *findSymbolByOffset(Offset offset)
 
 Return a pointer to a vector of ``Symbol``\ s with the specified offset.
 The pointer belongs to ``Symtab`` and should not be modified or freed.
 
 .. code-block:: cpp
 
-    bool getAllSymbols(vector<Symbol \*> &ret)
+    bool getAllSymbols(vector<Symbol *> &ret)
 
 This method returns all symbols. Returns ``true`` on success and
 ``false`` if there are no symbols. The error value is set to
@@ -895,7 +863,7 @@ This method returns all symbols. Returns ``true`` on success and
 
 .. code-block:: cpp
 
-    bool getAllSymbolsByType(vector<Symbol \*> &ret, Symbol::SymbolType sType)
+    bool getAllSymbolsByType(vector<Symbol *> &ret, Symbol::SymbolType sType)
 
 This method returns all symbols whose type matches the given type
 ``sType``. Returns ``true`` on success and ``false`` if there are no
@@ -904,7 +872,7 @@ symbols with the given type. The error value is set to
 
 .. code-block:: cpp
 
-    bool getAllUndefinedSymbols(std::vector<Symbol \*> &ret)
+    bool getAllUndefinedSymbols(std::vector<Symbol *> &ret)
 
 This method returns all symbols that reference symbols in other files
 (e.g., external functions or variables). Returns ``true`` if there is at
@@ -916,7 +884,7 @@ Region lookup
 
 .. code-block:: cpp
 
-    bool getCodeRegions(std::vector<Region \*>&ret)
+    bool getCodeRegions(std::vector<Region *>&ret)
 
 This method finds all the code regions in the object file. Returns
 ``true`` with ``ret`` containing the code regions if there is at least
@@ -924,7 +892,7 @@ one code region in the object file or else returns ``false``.
 
 .. code-block:: cpp
 
-    bool getDataRegions(std::vector<Region \*>&ret)
+    bool getDataRegions(std::vector<Region *>&ret)
 
 This method finds all the data regions in the object file. Returns
 ``true`` with ``ret`` containing the data regions if there is at least
@@ -932,7 +900,7 @@ one data region in the object file or else returns ``false``.
 
 .. code-block:: cpp
 
-    bool getMappedRegions(std::vector<Region \*>&ret)
+    bool getMappedRegions(std::vector<Region *>&ret)
 
 This method finds all the loadable regions in the object file. Returns
 ``true`` with ``ret`` containing the loadable regions if there is at
@@ -940,14 +908,14 @@ least one loadable region in the object file or else returns ``false``.
 
 .. code-block:: cpp
 
-   bool getAllRegions(std::vector<Region \*>&ret)
+   bool getAllRegions(std::vector<Region *>&ret)
 
 This method retrieves all the regions in the object file. Returns
 ``true`` with ``ret`` containing the regions.
 
 .. code-block:: cpp
 
-    bool getAllNewRegions(std::vector<Region \*>&ret)
+    bool getAllNewRegions(std::vector<Region *>&ret)
 
 This method finds all the new regions added to the object file. Returns
 ``true`` with ``ret`` containing the regions if there is at least one
@@ -955,7 +923,7 @@ new region that is added to the object file or else returns ``false``.
 
 .. code-block:: cpp
 
-    bool findRegion(Region \*&reg, string sname)
+    bool findRegion(Region *&reg, string sname)
 
 Find a region (ELF section) wih name ``sname`` in the binary. Returns
 ``true`` if found, with ``reg`` set to the region pointer. Otherwise
@@ -963,7 +931,7 @@ returns ``false`` with ``reg`` set to ``NULL``.
 
 .. code-block:: cpp
     
-    bool findRegion(Region \*&reg, const Offset addr, const unsigned long size)
+    bool findRegion(Region *&reg, const Offset addr, const unsigned long size)
 
 Find a region (ELF section) with a memory offset of ``addr`` and memory
 size of ``size``. Returns ``true`` if found, with ``reg`` set to the
@@ -972,7 +940,7 @@ region pointer. Otherwise returns ``false`` with ``reg`` set to
 
 .. code-block:: cpp
 
-    bool findRegionByEntry(Region \*&reg, const Offset soff)
+    bool findRegionByEntry(Region *&reg, const Offset soff)
 
 Find a region (ELF section) with a memory offset of ``addr``. Returns
 ``true`` if found, with ``reg`` set to the region pointer. Otherwise
@@ -980,7 +948,7 @@ returns ``false`` with ``reg`` set to ``NULL``.
 
 .. code-block:: cpp
 
-    Region \*findEnclosingRegion(const Offset offset)
+    Region *findEnclosingRegion(const Offset offset)
 
 Find the region (ELF section) whose virtual address range contains
 ``offset``. Returns the region if found; otherwise returns ``NULL``.
@@ -1004,7 +972,7 @@ the library will be loaded as well. Cannot be used for static binaries.
 
 .. code-block:: cpp
 
-    Function \*createFunction(std::string name, Offset offset, size_t size, Module \*mod = NULL)
+    Function *createFunction(std::string name, Offset offset, size_t size, Module *mod = NULL)
 
 This method creates a ``Function`` and updates all necessary data
 structures (including creating Symbols, if necessary). The function has
@@ -1015,7 +983,7 @@ success or ``NULL`` on failure.
 
 .. code-block:: cpp
 
-    Variable \*createVariable(std::string name, Offset offset, size_t size, Module \*mod = NULL)
+    Variable *createVariable(std::string name, Offset offset, size_t size, Module *mod = NULL)
 
 This method creates a ``Variable`` and updates all necessary data
 structures (including creating Symbols, if necessary). The variable has
@@ -1026,7 +994,7 @@ success or ``NULL`` on failure.
 
 .. code-block:: cpp
 
-    bool addSymbol(Symbol \*newsym)
+    bool addSymbol(Symbol *newsym)
 
 This method adds a new symbol ``newsym`` to all of the internal data
 structures. The primary name of the ``newsym`` must be a mangled name.
@@ -1037,7 +1005,7 @@ it to symtabAPI. We suggest using ``createFunction`` or
 
 .. code-block:: cpp
 
-    bool addSymbol(Symbol \*newsym, Symbol \*referringSymbol)
+    bool addSymbol(Symbol *newsym, Symbol *referringSymbol)
 
 This method adds a new dynamic symbol ``newsym`` which refers to
 ``referringSymbol`` to all of the internal data structures. ``newsym``
@@ -1051,7 +1019,7 @@ must not be deallocated after adding it to symtabAPI.
 
 .. code-block:: cpp
     
-    bool deleteFunction(Function \*func)
+    bool deleteFunction(Function *func)
 
 This method deletes the ``Function`` ``func`` from all of symtab’s data
 structures. It will not be available for further queries. Return
@@ -1060,7 +1028,7 @@ structures. It will not be available for further queries. Return
 
 .. code-block:: cpp
 
-    bool deleteVariable(Variable \*var)
+    bool deleteVariable(Variable *var)
 
 This method deletes the variable ``var`` from all of symtab’s data
 structures. It will not be available for further queries. Return
@@ -1069,7 +1037,7 @@ structures. It will not be available for further queries. Return
 
 .. code-block:: cpp
 
-    bool deleteSymbol(Symbol \*sym)
+    bool deleteSymbol(Symbol *sym)
 
 This method deletes the symbol ``sym`` from all of symtab’s data
 structures. It will not be available for further queries. Return
@@ -1078,7 +1046,7 @@ structures. It will not be available for further queries. Return
 
 .. code-block:: cpp
 
-    bool addRegion(Offset vaddr, void \*data, unsigned int dataSize, std::string name, Region::RegionType rType_, bool loadable = false, unsigned long memAlign = sizeof(unsigned), bool tls = false)
+    bool addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::RegionType rType_, bool loadable = false, unsigned long memAlign = sizeof(unsigned), bool tls = false)
 
 Creates a new region using the specified parameters and adds it to the
 file.
@@ -1093,7 +1061,7 @@ the start of the region. Useful for allocating new regions.
 
 .. code-block:: cpp
     
-    bool addRegion(Region \*newreg);
+    bool addRegion(Region *newreg);
 
 Adds the provided region to the file.
 
@@ -1102,7 +1070,7 @@ Catch and Exception block lookup
 
 .. code-block:: cpp
 
-    bool getAllExceptions(vector<ExceptionBlock \*> &exceptions)
+    bool getAllExceptions(vector<ExceptionBlock *> &exceptions)
 
 This method retrieves all the exception blocks in the ``Object`` file.
 Returns ``false`` if there are no exception blocks else returns ``true``
@@ -1203,7 +1171,7 @@ needed.
 
 .. code-block:: cpp
 
-    bool findType(Type \*&type, string name)
+    bool findType(Type *&type, string name)
 
 Performs a look up among all the built-in types, standard types and
 user-defined types and returns a handle to the found type with name
@@ -1212,25 +1180,25 @@ handle to the type, else return ``false``.
 
 .. code-block:: cpp
 
-    bool addType(Type \* type)
+    bool addType(Type * type)
 
 Adds a new type ``type`` to symtabAPI. Return ``true`` on success.
 
 .. code-block:: cpp
 
-    static std::vector<Type \*> \* getAllstdTypes()
+    static std::vector<Type *> * getAllstdTypes()
 
 Returns all the standard types that normally occur in a program.
 
 .. code-block:: cpp
 
-    static std::vector<Type \*> \* getAllbuiltInTypes()
+    static std::vector<Type *> * getAllbuiltInTypes()
 
 Returns all the built-in types defined in the binary.
 
 .. code-block:: cpp
 
-    bool findLocalVariable(vector<localVar \*> &vars, string name)
+    bool findLocalVariable(vector<localVar *> &vars, string name)
 
 The method returns a list of local variables named name within the
 object file. Returns ``true`` with ``vars`` containing a list of
@@ -1239,7 +1207,7 @@ else returns ``false``.
 
 .. code-block:: cpp
 
-    bool findVariableType(Type \*&type, std::string name)
+    bool findVariableType(Type *&type, std::string name)
 
 This method looks up a global variable with name ``name`` and returns
 its type attribute. Returns ``true`` if a variable is found or returns
@@ -1356,39 +1324,39 @@ or files produced without module information.
    lang_CMFortran                 Fortran with CM extensions
    ============================== ==============================
 
-+-------------+--------------------+---------------------------------+
-| Method name | Return type        | Method description              |
-+=============+====================+=================================+
-| isShared    | bool               | True if the module is for a     |
-|             |                    | shared library, false for an    |
-|             |                    | executable.                     |
-+-------------+--------------------+---------------------------------+
-| fullName    | std::string &      | Name, including path, of the    |
-|             |                    | source file represented by the  |
-|             |                    | module.                         |
-+-------------+--------------------+---------------------------------+
-| fileName    | std::string &      | Name, not including path, of    |
-|             |                    | the source file represented by  |
-|             |                    | the module.                     |
-+-------------+--------------------+---------------------------------+
-| language    | supportedLanguages | The source language used by the |
-|             |                    | Module.                         |
-+-------------+--------------------+---------------------------------+
-| addr        | Offset             | Offset of the start of the      |
-|             |                    | module, as reported by the      |
-|             |                    | symbol table, assuming          |
-|             |                    | contiguous modules.             |
-+-------------+--------------------+---------------------------------+
-| exec        | Symtab \*          | Symtab object that contains the |
-|             |                    | module.                         |
-+-------------+--------------------+---------------------------------+
+.. list-table::
+   :widths: 30  35 35
+   :header-rows: 1
 
+   * - Method name
+     - Return type
+     - Method description
+   * - isShared
+     - bool
+     - True if the module is for a shared library, false for an executable.
+   * - fullName
+     - std::string &
+     - Name, including path, of the source file represented by the module.
+   * - fileName
+     - std::string &
+     - Name, not including path, of the source file represented by the module.
+   * - language
+     - supportedLanguages
+     - The source language used by the Module.
+   * - addr
+     - Offset
+     - Offset of the start of the module, as reported by the symbol table, assuming contiguous modules.
+   * - exec
+     - Symtab *
+     - Symtab object that contains the module.
+     
+ 
 Function, Variable, Symbol lookup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: cpp
 
-   bool findFunctionByEntryOffset(Function \*&ret, const Offset offset)
+   bool findFunctionByEntryOffset(Function *&ret, const Offset offset)
 
 This method returns the ``Function`` object that begins at ``offset``.
 Returns ``true`` on success and ``false`` if there is no matching
@@ -1412,7 +1380,7 @@ set to ``No_Such_Function``.
 
 .. code-block:: cpp
 
-    bool getAllFunctions(vector<Function \*> &ret)
+    bool getAllFunctions(vector<Function *> &ret)
 
 This method returns all functions in the object file. Returns ``true``
 on success and ``false`` if there are no modules. The error value is set
@@ -1420,7 +1388,7 @@ to ``No_Such_Function``.
 
 .. code-block:: cpp
 
-    bool findVariablesByOffset(std::vector<Variable \*> &ret, const Offset offset)
+    bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset)
 
 This method returns a vector of ``Variable``\ s with the specified
 offset. There may be more than one variable at an offset if they have
@@ -1444,7 +1412,7 @@ it finds variables that match the given name, otherwise returns
 
 .. code-block:: cpp
 
-    bool getAllSymbols(vector<Symbol \*> &ret)
+    bool getAllSymbols(vector<Symbol *> &ret)
 
 
 This method returns all symbols. Returns ``true`` on success and
@@ -1453,7 +1421,7 @@ This method returns all symbols. Returns ``true`` on success and
 
 .. code-block:: cpp
 
-    bool getAllSymbolsByType(vector<Symbol \*> &ret, Symbol::SymbolType sType)
+    bool getAllSymbolsByType(vector<Symbol *> &ret, Symbol::SymbolType sType)
 
 This method returns all symbols whose type matches the given type
 ``sType``. Returns ``true`` on success and ``false`` if there are no
@@ -1462,8 +1430,8 @@ symbols with the given type. The error value is set to
 
 .. _line-number-information-1:
 
-Line number information
-~~~~~~~~~~~~~~~~~~~~~~~
+Line number information for Symtab
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: cpp
 
@@ -1477,7 +1445,7 @@ returns false if none found.
 
 .. code-block:: cpp
 
-    bool getSourceLines(vector<Statement \*> &lines, Offset addressInRange)
+    bool getSourceLines(vector<Statement *> &lines, Offset addressInRange)
 
 This method returns the source file names and line numbers corresponding
 to the given address ``addressInRange``. Searches only this module for
@@ -1488,7 +1456,7 @@ compatibility is provided via typedef.
 
 .. code-block:: cpp
 
-    LineInformation \*getLineInformation() const
+    LineInformation *getLineInformation() const
 
 This method returns the line map (section `7.1 <#LineInformation>`__)
 corresponding to the module. Returns ``NULL`` if there is no line
@@ -1496,19 +1464,19 @@ information existing for the module.
 
 .. code-block:: cpp
 
-    bool getStatements(std::vector<Statement \*> &statements)
+    bool getStatements(std::vector<Statement *> &statements)
 
 Returns all line information (section `7.2 <#Statement>`__) available
 for the module.
 
 .. _`subsubsec:typeInfo`:
 
-Type information
-~~~~~~~~~~~~~~~~
+Type information Symtab
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: cpp
 
-    bool findType(Type \* &type, string name)
+    bool findType(Type * &type, string name)
 
 This method performs a look up and returns a handle to the named
 ``type``. This method searches all the built-in types, standard types
@@ -1518,7 +1486,7 @@ found with type containing the handle to the type, else return
 
 .. code-block:: cpp
 
-    bool findLocalVariable(vector<localVar \*> &vars, string name)
+    bool findLocalVariable(vector<localVar *> &vars, string name)
 
 The method returns a list of local variables within the module with name
 ``name``. Returns ``true`` with vars containing a list of ``localVar``
@@ -1528,7 +1496,7 @@ objects corresponding to the local variables if found or else returns
 
 .. code-block:: cpp
  
-    bool findVariableType(Type \*&type, std::string name)
+    bool findVariableType(Type *&type, std::string name)
 
 This method looks up a global variable with name ``name`` and returns
 its type attribute. Returns ``true`` if a variable is found or returns
@@ -1542,28 +1510,33 @@ Class FunctionBase
 The ``FunctionBase`` class provides a common interface that can
 represent either a regular function or an inlined function.
 
-+---------------+-----------------+----------------------------------+
-| Method name   | Return type     | Method description               |
-+===============+=================+==================================+
-| getModule     | const Module \* | Module this function belongs to. |
-+---------------+-----------------+----------------------------------+
-| getSize       | unsigned        | Size encoded in the symbol       |
-|               |                 | table; may not be actual         |
-|               |                 | function size.                   |
-+---------------+-----------------+----------------------------------+
-| getRegion     | Region \*       | Region containing this function. |
-+---------------+-----------------+----------------------------------+
-| getReturnType | Type \*         | Type representing the return     |
-|               |                 | type of the function.            |
-+---------------+-----------------+----------------------------------+
-| getName       | std::string     | Returns primary name of the      |
-|               |                 | function (first mangled name or  |
-|               |                 | DWARF name)                      |
-+---------------+-----------------+----------------------------------+
+.. list-table:: FunctionBase Class
+   :widths: 30  35 35
+   :header-rows: 1
+
+   * - Method name
+     - Return type
+     - Method description
+   * - getModule
+     - const Module *
+     - Module this function belongs to.
+   * - getSize
+     - unsigned
+     - Size encoded in the symbol table; may not be actual function size.
+   * - getRegion
+     - Region *
+     - Region containing this function.
+   * - getReturnType
+     - Type *
+     - Type representing the return type of the function.
+   * - getName
+     - std::string
+     - Returns primary name of the function (first mangled name or DWARF name).
+
 
 .. code-block:: cpp
 
-    bool setModule (Module \*module)
+    bool setModule (Module *module)
 
 This function changes the module to which the function belongs to
 ``module``. Returns ``true`` if it succeeds.
@@ -1610,7 +1583,7 @@ method returns ``true`` on success and ``false`` on failure.
 
 .. code-block:: cpp
 
-    bool getLocalVariables(vector<localVar \*> &vars)
+    bool getLocalVariables(vector<localVar *> &vars)
 
 This method returns the local variables in the function. ``vars``
 contains the list of variables found. If there is no debugging
@@ -1627,7 +1600,7 @@ for more information.
 
 .. code-block:: cpp
     
-    bool getParams(vector<localVar \*> &params)
+    bool getParams(vector<localVar *> &params)
 
 This method returns the parameters to the function. ``params`` contains
 the list of parameters. If there is no debugging information present
@@ -1636,7 +1609,7 @@ accordingly. Returns ``true`` on success.
 
 .. code-block:: cpp
 
-    bool findLocalVariable(vector<localVar \*> &vars, string name)
+    bool findLocalVariable(vector<localVar *> &vars, string name)
 
 This method returns a list of local variables within a function that
 have name ``name``. ``vars`` contains the list of variables found.
@@ -1644,13 +1617,13 @@ Returns ``true`` on success and ``false`` on failure.
 
 .. code-block:: cpp
 
-    bool setReturnType(Type \*type)
+    bool setReturnType(Type *type)
 
 Sets the return type of a function to ``type``.
 
 .. code-block:: cpp
 
-    FunctionBase\* getInlinedParent()
+    FunctionBase* getInlinedParent()
 
 Gets the function that this function is inlined into, if any. Returns
 ``NULL`` if there is no parent.
@@ -1663,72 +1636,64 @@ Gets the set of functions inlined into this one (possibly empty).
 
 .. _Function:
 
-Class Function
---------------
+Symbtab Class Function
+----------------------
 
 The ``Function`` class represents a collection of symbols that have the
 same address and a type of ``ST_FUNCTION``. When appropriate, use this
 representation instead of the underlying ``Symbol`` objects.
 
-+---------------------+----------------------+----------------------+
-| Method name         | Return type          | Method description   |
-+=====================+======================+======================+
-| getModule           | const Module \*      | Module this function |
-|                     |                      | belongs to.          |
-+---------------------+----------------------+----------------------+
-| getOffset           | Offset               | Offset in the file   |
-|                     |                      | associated with the  |
-|                     |                      | function.            |
-+---------------------+----------------------+----------------------+
-| getSize             | unsigned             | Size encoded in the  |
-|                     |                      | symbol table; may    |
-|                     |                      | not be actual        |
-|                     |                      | function size.       |
-+---------------------+----------------------+----------------------+
-| mangled_names_begin | Aggregate::name_iter | Beginning of a range |
-|                     |                      | of unique names of   |
-|                     |                      | symbols pointing to  |
-|                     |                      | this function.       |
-+---------------------+----------------------+----------------------+
-| mangled_names_end   | Aggregate::name_iter | End of a range of    |
-|                     |                      | unique names of      |
-|                     |                      | symbols pointing to  |
-|                     |                      | this function.       |
-+---------------------+----------------------+----------------------+
-| pretty_names_begin  | Aggregate::name_iter | As above, but        |
-|                     |                      | prettified with the  |
-|                     |                      | demangler.           |
-+---------------------+----------------------+----------------------+
-| pretty_names_end    | Aggregate::name_iter | As above, but        |
-|                     |                      | prettified with the  |
-|                     |                      | demangler.           |
-+---------------------+----------------------+----------------------+
-| typed_names_begin   | Aggregate::name_iter | As above, but        |
-|                     |                      | including full type  |
-|                     |                      | strings.             |
-+---------------------+----------------------+----------------------+
-| typed_names_end     | Aggregate::name_iter | As above, but        |
-|                     |                      | including full type  |
-|                     |                      | strings.             |
-+---------------------+----------------------+----------------------+
-| getRegion           | Region \*            | Region containing    |
-|                     |                      | this function.       |
-+---------------------+----------------------+----------------------+
-| getReturnType       | Type \*              | Type representing    |
-|                     |                      | the return type of   |
-|                     |                      | the function.        |
-+---------------------+----------------------+----------------------+
+.. list-table:: Class Function
+   :widths: 30  35 35
+   :header-rows: 1
+
+   * - Method name
+     - Return type
+     - Method description
+   * - getModule
+     - const Module *
+     - Module this function belongs to.
+   * - getOffset
+     - Offset
+     - Offset in the file associated with the function.
+   * - getSize
+     - unsigned
+     - Size encoded in the symbol table; may not be actual function size.
+   * - mangled_names_begin
+     - Aggregate::name_iter
+     - Beginning of a range of unique names of symbols pointing to this function.
+   * - mangled_names_end
+     - Aggregate::name_iter
+     - End of a range of symbols pointing to this function.
+   * - pretty_names_begin
+     - Aggregate::name_iter
+     - As above, but prettified with the demangler.
+   * - pretty_names_end
+     - Aggregate::name_iter
+     - As above, but prettified with the demangler.
+   * - typed_names_begin
+     - Aggregate::name_iter
+     - As above, but including full type strings.
+   * - typed_names_end
+     - Aggregate::name_iter
+     - As above, but including full type strings.
+   * - getRegion
+     - Region *
+     - Region containing this function
+   * - getReturnType
+     - Type *
+     - Type representing the return type of the function.
 
 .. code-block:: cpp
 
-    bool getSymbols(vector<Symbol \*> &syms) const
+    bool getSymbols(vector<Symbol *> &syms) const
 
 This method returns the vector of ``Symbol``\ s that refer to the
 function.
 
 .. code-block:: cpp
 
-    bool setModule (Module \*module)
+    bool setModule (Module *module)
 
 This function changes the module to which the function belongs to
 ``module``. Returns ``true`` if it succeeds.
@@ -1775,7 +1740,7 @@ method returns ``true`` on success and ``false`` on failure.
 
 .. code-block:: cpp
 
-    bool getLocalVariables(vector<localVar \*> &vars)
+    bool getLocalVariables(vector<localVar *> &vars)
 
 This method returns the local variables in the function. ``vars``
 contains the list of variables found. If there is no debugging
@@ -1792,7 +1757,7 @@ for more information.
 
 .. code-block:: cpp
 
-    bool getParams(vector<localVar \*> &params)
+    bool getParams(vector<localVar *> &params)
 
 This method returns the parameters to the function. ``params`` contains
 the list of parameters. If there is no debugging information present
@@ -1801,7 +1766,7 @@ accordingly. Returns ``true`` on success.
 
 .. code-block:: cpp
 
-    bool findLocalVariable(vector<localVar \*> &vars, string name)
+    bool findLocalVariable(vector<localVar *> &vars, string name)
 
 This method returns a list of local variables within a function that
 have name ``name``. ``vars`` contains the list of variables found.
@@ -1809,7 +1774,7 @@ Returns ``true`` on success and ``false`` on failure.
 
 .. code-block:: cpp
    
-   bool setReturnType(Type \*type)
+   bool setReturnType(Type *type)
 
 Sets the return type of a function to ``type``.
 
@@ -1835,46 +1800,45 @@ Class Variable
 The ``Variable`` class represents a collection of symbols that have the
 same address and represent data.
 
-+---------------------+----------------------+----------------------+
-| Method name         | Return type          | Method description   |
-+=====================+======================+======================+
-| getOffset           | Offset               | Offset associated    |
-|                     |                      | with this variable.  |
-+---------------------+----------------------+----------------------+
-| getSize             | unsigned             | Size of this         |
-|                     |                      | variable in the      |
-|                     |                      | symbol table.        |
-+---------------------+----------------------+----------------------+
-| mangled_names_begin | Aggregate::name_iter | Beginning of a range |
-|                     |                      | of unique names of   |
-|                     |                      | symbols pointing to  |
-|                     |                      | this variable.       |
-+---------------------+----------------------+----------------------+
-| mangled_names_end   | Aggregate::name_iter | End of a range of    |
-|                     |                      | unique names of      |
-|                     |                      | symbols pointing to  |
-|                     |                      | this variable.       |
-+---------------------+----------------------+----------------------+
-| getType             | Type \*              | Type of this         |
-|                     |                      | variable, if known.  |
-+---------------------+----------------------+----------------------+
-| getModule           | const Module \*      | Module that contains |
-|                     |                      | this variable.       |
-+---------------------+----------------------+----------------------+
-| getRegion           | Region \*            | Region that contains |
-|                     |                      | this variable.       |
-+---------------------+----------------------+----------------------+
+.. list-table:: Variable Class
+   :widths: 30  35 35
+   :header-rows: 1
+
+   * - Method name
+     - Return type
+     - Method description
+   * - getOffset
+     - Offset
+     - Offset associated with this variable.
+   * - getSize
+     - unsigned
+     - Size of this variable encoded in the symbol table.
+   * - mangled_names_begin
+     - Aggregate::name_iter
+     - Beginning of a range of unique names of symbols pointing to this variable.
+   * - mangled_names_end
+     - Aggregate::name_iter
+     - End of a range of unique names of symbols pointing to this variable.
+   * - getType
+     - Type *
+     - Type of this variable, if known.
+   * - getModule
+     - const Module *
+     - Module this variable belongs to.
+   * - getRegion
+     - Region *
+     - Region that contains this variable.
 
 .. code-block:: cpp
 
-    bool getSymbols(vector<Symbol \*> &syms) const
+    bool getSymbols(vector<Symbol *> &syms) const
 
 This method returns the vector of ``Symbol``\ s that refer to the
 variable.
 
 .. code-block:: cpp
 
-    bool setModule (Module \*module)
+    bool setModule (Module *module)
 
 This method changes the module to which the variable belongs. Returns
 ``true`` if it succeeds.
@@ -1921,7 +1885,7 @@ method returns ``true`` on success and ``false`` on failure.
 
 .. code-block:: cpp
 
-    bool setType(Type \*type)
+    bool setType(Type *type)
 
 Sets the type of the variable to ``type``.
 
@@ -1968,102 +1932,95 @@ The following two types are platform-specific:
 
     typedef enum TAG_UNKNOWN, TAG_USER, TAG_LIBRARY, TAG_INTERNAL SymbolTag;
 
-+-----------------+------------------+-------------------------------+
-| Method name     | Return type      | Method description            |
-+=================+==================+===============================+
-| getMangledName  | string           | Raw name of the symbol in the |
-|                 |                  | symbol table, including name  |
-|                 |                  | mangling.                     |
-+-----------------+------------------+-------------------------------+
-| getPrettyName   | string           | Demangled name of the symbol  |
-|                 |                  | with parameters (for          |
-|                 |                  | functions) removed.           |
-+-----------------+------------------+-------------------------------+
-| getTypedName    | string           | Demangled name of the symbol  |
-|                 |                  | including full function       |
-|                 |                  | parameters.                   |
-+-----------------+------------------+-------------------------------+
-| getModule       | Module \*        | The module, if any, that      |
-|                 |                  | contains the symbol.          |
-+-----------------+------------------+-------------------------------+
-| getType         | SymbolType       | The symbol type (as defined   |
-|                 |                  | above) of the symbol.         |
-+-----------------+------------------+-------------------------------+
-| getLinkage      | SymbolLinkage    | The linkage (as defined       |
-|                 |                  | above) of the symbol.         |
-+-----------------+------------------+-------------------------------+
-| getVisibility   | SymbolVisibility | The visibility (as defined    |
-|                 |                  | above) of the symbol.         |
-+-----------------+------------------+-------------------------------+
-| tag             | SymbolTag        | The tag (as defined above) of |
-|                 |                  | the symbol.                   |
-+-----------------+------------------+-------------------------------+
-| getOffset       | Offset           | The offset of the object the  |
-|                 |                  | symbols refers to.            |
-+-----------------+------------------+-------------------------------+
-| getSize         | unsigned         | The size of the object the    |
-|                 |                  | symbol refers to.             |
-+-----------------+------------------+-------------------------------+
-| getRegion       | Region \*        | The region containing the     |
-|                 |                  | symbol.                       |
-+-----------------+------------------+-------------------------------+
-| getIndex        | int              | The index of the symbol       |
-|                 |                  | within the symbol table.      |
-+-----------------+------------------+-------------------------------+
-| getStrIndex     | int              | The index of the symbol name  |
-|                 |                  | in the string table.          |
-+-----------------+------------------+-------------------------------+
-| isInDynSymtab   | bool             | If true, the symbol is        |
-|                 |                  | dynamic and can be used as    |
-|                 |                  | the target of an intermodule  |
-|                 |                  | reference. Implies isInSymtab |
-|                 |                  | is false.                     |
-+-----------------+------------------+-------------------------------+
-| isInSymtab      | bool             | If true, the symbol is        |
-|                 |                  | static. Implies isInDynSymtab |
-|                 |                  | is false.                     |
-+-----------------+------------------+-------------------------------+
-| isAbsolute      | bool             | If true, the offset encoded   |
-|                 |                  | in the symbol is an absolute  |
-|                 |                  | value rather than an offset.  |
-+-----------------+------------------+-------------------------------+
-| isFunction      | bool             | If true, the symbol refers to |
-|                 |                  | a function.                   |
-+-----------------+------------------+-------------------------------+
-| getFunction     | Function \*      | The Function that contains    |
-|                 |                  | this symbol if such a         |
-|                 |                  | Function exists.              |
-+-----------------+------------------+-------------------------------+
-| isVariable      | bool             | If true, the symbol refers to |
-|                 |                  | a variable.                   |
-+-----------------+------------------+-------------------------------+
-| getVariable     | Variable \*      | The Variable that contains    |
-|                 |                  | this symbol if such a         |
-|                 |                  | Variable exists.              |
-+-----------------+------------------+-------------------------------+
-| getSymtab       | Symtab \*        | The Symtab that contains this |
-|                 |                  | symbol.                       |
-+-----------------+------------------+-------------------------------+
-| getPtrOffset    | Offset           | For binaries with an OPD      |
-|                 |                  | section, the offset in the    |
-|                 |                  | OPD that contains the         |
-|                 |                  | function pointer data         |
-|                 |                  | structure for this symbol.    |
-+-----------------+------------------+-------------------------------+
-| getLocalTOC     | Offset           | For platforms with a TOC      |
-|                 |                  | register, the expected TOC    |
-|                 |                  | for the object referred to by |
-|                 |                  | this symbol.                  |
-+-----------------+------------------+-------------------------------+
-| isCommonStorage | bool             | True if the symbol represents |
-|                 |                  | a common section (Fortran).   |
-+-----------------+------------------+-------------------------------+
+.. list-table::
+   :widths: 30  35 35
+   :header-rows: 1
 
-SYMTAB_EXPORT Symbol(const std::string& name, SymbolType type,
-SymbolLinkage linkage, SymbolVisibility visibility, Offset offset,
-Module \*module = NULL, Region \*region = NULL, unsigned size = 0, bool
-dyamic = false, bool absolute = false, int index = -1, int strindex =
--1, bool commonStorage = false)
+   * - Method name
+     - Return type
+     - Method description
+   * - getMangledName
+     - string
+     - Raw name of the symbol in the symbol table, including name mangling.
+   * - getPrettyName
+     - string
+     - Demangled name of the symbol with parameters (for functions) removed.
+   * - getTypedName
+     - string
+     - Demangled name of the symbol including full function parameters.
+   * - getModule
+     - Module *
+     - The module, if any, that contains the symbol.
+   * - getType
+     - SymbolType
+     - The symboltype (as defined above) of the symbol.
+   * - getLinkage
+     - SymbolLinkage
+     - The linkage (as defined above) of the symbol.
+   * - getVisibility
+     - SymbolVisibility
+     - The visibility (as defined above) of the symbol.
+   * - tag
+     - SymbolTag
+     - The tag (as defined above) of the symbol.
+   * - getOffset
+     - Offset
+     - The Offset of the object the symbol refers to.
+   * - getSize
+     - unsigned
+     - The size of the object the symbol refers to.
+   * - getRegion
+     - Region *
+     - The region containing the symbol.
+   * - getIndex
+     - int
+     - The index of the symbol within the symbol table.
+   * - getStrIndex
+     - int
+     - The index of the symbol name in the string table.
+   * - IsInDynSymtab
+     - bool
+     - If true, the symbol is dynamic and can be used as the target of an intermodule reference. Implies isInSymtab is false.
+   * - IsInSymtab
+     - bool
+     - If true, the symbol is static. Implies isInDynSymtab is false.
+   * - IsAbsolute
+     - bool
+     - If true, the offset encoded in the symbol is an absolute value rather than offset.
+   * - IsFunction
+     - bool
+     - If true, the symbol refers to a function.
+   * - GetFunction
+     - Funcion *
+     - The Function that contains this symbol if such a Function exists.
+   * - isVariable
+     - bool
+     - If true, the symbol refers to a variable.
+   * - getVariable
+     - Variable *
+     - The Variable that contains the symbol if such a Variable exists.
+   * - getSymtab
+     - Symtab *
+     - The Symtab that contains the symbol.
+   * - getPtrOffset
+     - Offset
+     - For binaries with an OPD section, the offset in the OPD that contains the function pointer data structure for this symbol.
+   * - getLocalTOC
+     - Offset
+     - For platforms with a TOC register, the expected TOC for this object referred to by this symbol.
+   * - isCommonStorage
+     - bool
+     - True if the symbol represents a common section (Fortran).
+
+
+.. code-block:: cpp
+
+    SYMTAB_EXPORT Symbol(const std::string& name, SymbolType type,
+    SymbolLinkage linkage, SymbolVisibility visibility, Offset offset,
+    Module *module = NULL, Region *region = NULL, unsigned size = 0, bool
+    dyamic = false, bool absolute = false, int index = -1, int strindex =
+    -1, bool commonStorage = false)
+
 
 Symbol creation interface:
 
@@ -2122,7 +2079,7 @@ present otherwise returns ``true``.
 
 .. code-block:: cpp
     
-    bool getVersions(std::vector<std::string> \*&vers)
+    bool getVersions(std::vector<std::string> *&vers)
 
 This method retrieves all the version names for this symbol. Returns
 ``false`` if the symbol does not have any version information present.
@@ -2144,10 +2101,10 @@ Each returns ``true`` on success and ``false`` otherwise.
 
     bool setSize (unsigned size) bool setOffset (Offset newOffset) bool
     setMangledName (string name) bool setType (SymbolType sType) bool
-    setModule (Module \*module) bool setRegion (Region \*region) bool
+    setModule (Module *module) bool setRegion (Region *region) bool
     setDynamic (bool dyn) bool setAbsolute (bool absolute) bool
-    setCommonStorage (bool common) bool setFunction (Function \*func) bool
-    setVariable (Variable \*var) bool setIndex (int index) bool setStrIndex
+    setCommonStorage (bool common) bool setFunction (Function *func) bool
+    setVariable (Variable *var) bool setIndex (int index) bool setStrIndex
     (int index) bool setPtrOffset (Offset ptr) bool setLocalTOC (Offset toc)
     bool setVersionNum (unsigned num) bool setVersionFileName (std::string
     &fileName) bool setVersions (std::vector<std::string> &vers)
@@ -2162,7 +2119,7 @@ This class has information of all the members in the archives.
 
 .. code-block:: cpp
 
-    static bool openArchive(Archive \*&img, string name)
+    static bool openArchive(Archive *&img, string name)
 
 This factory method creates a new ``Archive`` object for an archive file
 on disk. This object serves as a handle to the parsed archive file.
@@ -2175,7 +2132,7 @@ more error details.
 
 .. code-block:: cpp
 
-    static bool openArchive(Archive \*&img, char \*mem_image, size_t size)
+    static bool openArchive(Archive *&img, char *mem_image, size_t size)
 
 This factory method creates a new ``Archive`` object for an archive file
 in memory. This object serves as a handle to the parsed archive file.
@@ -2190,7 +2147,7 @@ platforms.
 
 .. code-block:: cpp
 
-    bool getMember(Symtab \*&img, string member_name)
+    bool getMember(Symtab *&img, string member_name)
 
 This method returns the member object handle if the member exists in the
 archive. ``img`` corresponds to the object handle for the member. This
@@ -2199,7 +2156,7 @@ not exist else returns ``true``.
 
 .. code-block:: cpp
 
-    bool getMemberByOffset(Symtab \*&img, Offset memberOffset)
+    bool getMemberByOffset(Symtab *&img, Offset memberOffset)
 
 This method returns the member object handle if the member exists at the
 start offset ``memberOffset`` in the archive. ``img`` corresponds to the
@@ -2208,7 +2165,7 @@ member with name ``member_name`` does not exist else returns ``true``.
 
 .. code-block:: cpp
 
-    bool getAllMembers(vector <Symtab \*> &members)
+    bool getAllMembers(vector <Symtab *> &members)
 
 This method returns all the member object handles in the archive.
 Returns ``true`` on success with ``members`` containing the ``Symtab``
@@ -2223,7 +2180,7 @@ exists in the archive or else returns ``false``.
 
 .. code-block:: cpp
 
-    bool findMemberWithDefinition(Symtab \*&obj, string name)
+    bool findMemberWithDefinition(Symtab *&obj, string name)
 
 This method retrieves the member in an archive which contains the
 definition to a symbol with mangled name ``name``. Returns ``true`` with
@@ -2305,73 +2262,60 @@ the object file. For ELF, regions represent ELF sections.
    | RT_OTHER        | Miscellaneous information                         |
    +-----------------+---------------------------------------------------+
 
-+----------------------+---------------+-------------------------+
-| Method name          | Return type   | Method description      |
-+======================+===============+=========================+
-| getRegionNumber      | unsigned      | Index of the region in  |
-|                      |               | the file, starting at   |
-|                      |               | 0.                      |
-+----------------------+---------------+-------------------------+
-| getRegionName        | std::string   | Name of the region      |
-|                      |               | (e.g. .text, .data).    |
-+----------------------+---------------+-------------------------+
-| getPtrToRawData      | void \*       | Read-only pointer to    |
-|                      |               | the region’s raw data   |
-|                      |               | buffer.                 |
-+----------------------+---------------+-------------------------+
-| getDiskOffset        | Offset        | Offset within the file  |
-|                      |               | where the region        |
-|                      |               | begins.                 |
-+----------------------+---------------+-------------------------+
-| getDiskSize          | unsigned long | Size of the region’s    |
-|                      |               | data in the file.       |
-+----------------------+---------------+-------------------------+
-| getMemOffset         | Offset        | Location where the      |
-|                      |               | region will be loaded   |
-|                      |               | into memory, modified   |
-|                      |               | by the file’s base load |
-|                      |               | address.                |
-+----------------------+---------------+-------------------------+
-| getMemSize           | unsigned long | Size of the region in   |
-|                      |               | memory, including zero  |
-|                      |               | padding.                |
-+----------------------+---------------+-------------------------+
-| isBSS                | bool          | Type query for          |
-|                      |               | uninitialized data      |
-|                      |               | regions (zero disk      |
-|                      |               | size, non-zero memory   |
-|                      |               | size).                  |
-+----------------------+---------------+-------------------------+
-| isText               | bool          | Type query for          |
-|                      |               | executable code         |
-|                      |               | regions.                |
-+----------------------+---------------+-------------------------+
-| isData               | bool          | Type query for          |
-|                      |               | initialized data        |
-|                      |               | regions.                |
-+----------------------+---------------+-------------------------+
-| getRegionPermissions | perm_t        | Permissions for the     |
-|                      |               | region; perm\_ t is     |
-|                      |               | defined above.          |
-+----------------------+---------------+-------------------------+
-| getRegionType        | RegionType    | Type of the region as   |
-|                      |               | defined above.          |
-+----------------------+---------------+-------------------------+
-| isLoadable           | bool          | True if the region will |
-|                      |               | be loaded into memory   |
-|                      |               | (e.g., code or data),   |
-|                      |               | false otherwise (e.g.,  |
-|                      |               | debug information).     |
-+----------------------+---------------+-------------------------+
-| isDirty              | bool          | True if the region’s    |
-|                      |               | raw data buffer has     |
-|                      |               | been modified by the    |
-|                      |               | user.                   |
-+----------------------+---------------+-------------------------+
+
+.. list-table::
+   :widths: 30  35 35
+   :header-rows: 1
+
+   * - Method name
+     - Return type
+     - Method description
+   * - getRegionNumber
+     - unsigned
+     - Index of the region in the file, starting at 0.
+   * - getRegionName
+     - std::string
+     - Name of the region (e.g., .text, .data).
+   * - getPtrToRawData
+     - void *
+     - Read-only pointer to the region's raw data buffer.
+   * - getDiskOffset
+     - Offset
+     - Offset within the file where the region begins.
+   * - getDiskSize
+     - unsigned long
+     - Size of the region's data in the file.
+   * - getMemOffset
+     - Offset
+     - Location where the region will be loaded into memory, modified by the file's base load address.
+   * - getMemSize
+     - unsigned long
+     - Size of the region in memory, including zero padding.
+   * - isBSS
+     - bool
+     - Type query for uninitialized data regions (zero disk size, non-zero memory size).
+   * - isText
+     - bool
+     - Type query for executable code regions.
+   * - isData
+     - bool
+     - Type query for initialized data regions.
+   * - getRegionPermissions
+     - perm_t
+     - Permissions for the region; perm_t is defined above.
+   * - getRegionType
+     - RegionType
+     - Type of the region as defined above.
+   * - isLoadable
+     - bool
+     - True if the region will be loaded into memory (e.g., code or data) false otherwise (e.g., debug information).
+   * - isDirty
+     - bool
+     - True if the region's raw data buffer has been modified by the user.
 
 .. code-block:: cpp
 
-    static Region \*createRegion(Offset diskOff, perm_t perms, RegionType regType, unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0, std::string name = "", char \*rawDataPtr = NULL, bool isLoadable = false, bool isTLS = false, unsigned long memAlign =sizeof(unsigned))
+    static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType, unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0, std::string name = "", char *rawDataPtr = NULL, bool isLoadable = false, bool isTLS = false, unsigned long memAlign =sizeof(unsigned))
 
 This factory method creates a new region with the provided arguments.
 The ``memOff`` and ``memSize`` parameters identify where the region
@@ -2394,7 +2338,7 @@ and is not checked.
 
 .. code-block:: cpp
 
-    bool setPtrToRawData(void \*newPtr, unsigned long rawsize)
+    bool setPtrToRawData(void *newPtr, unsigned long rawsize)
 
 Set the raw data pointer of the region to ``newPtr``. ``rawsize``
 represents the size of the raw data buffer. Returns ``true`` if success
@@ -2417,7 +2361,7 @@ Returns ``true`` on success.
 
 .. code-block:: cpp
 
-    bool addRelocationEntry(Offset relocationAddr, Symbol \*dynref, unsigned
+    bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned
     long relType, Region::RegionType rtype = Region::RT_REL)
 
 Creates and adds a relocation entry for this region. The symbol
@@ -2440,7 +2384,7 @@ Add the provided relocation entry to this region.
 
 .. code-block:: cpp
 
-    bool patchData(Offset off, void \*buf, unsigned size);
+    bool patchData(Offset off, void *buf, unsigned size);
 
 Patch the raw data for this region. ``buf`` represents the buffer to be
 patched at offset ``off`` and size ``size``.
@@ -2497,7 +2441,7 @@ Specifies the user-readable name of the relocation.
 
 .. code-block:: cpp
 
-    Symbol \*getDynSym() const
+    Symbol *getDynSym() const
 
 Specifies the symbol whose final address will be used in the relocation
 calculation. How this address is used is specific to the relocation
@@ -2543,20 +2487,25 @@ Class localVar
 
 This represents a local variable or parameter of a function.
 
-+-------------+-------------+----------------------------------------+
-| Method name | Return type | Method description                     |
-+=============+=============+========================================+
-| getName     | string &    | Name of the local variable or          |
-|             |             | parameter.                             |
-+-------------+-------------+----------------------------------------+
-| getType     | Type \*     | Type associated with the variable.     |
-+-------------+-------------+----------------------------------------+
-| getFileName | string &    | File where the variable was declared,  |
-|             |             | if known.                              |
-+-------------+-------------+----------------------------------------+
-| getLineNum  | int         | Line number where the variable was     |
-|             |             | declared, if known.                    |
-+-------------+-------------+----------------------------------------+
+.. list-table:: Class localVar
+   :widths: 30  35 35
+   :header-rows: 1
+
+   * - Method name
+     - Return type
+     - Method description
+   * - getName
+     - string &
+     - Name of the local variable or parameter.
+   * - getType
+     - Type *
+     - Type associated with the variable.
+   * - getFileName
+     - string &
+     - File where the variable was declared, if known.
+   * - getLineNum
+     - int
+     - Line number where the variable was declared, if known.
 
 .. code-block:: cpp
 
@@ -2652,7 +2601,7 @@ mappings from a line number within a source to the address ranges.
 
 .. code-block:: cpp
 
-    bool getAddressRanges(const char \* lineSource, unsigned int LineNo,
+    bool getAddressRanges(const char * lineSource, unsigned int LineNo,
     std::vector<AddressRange> & ranges)
 
 This methos returns the address ranges in ``ranges`` corresponding to
@@ -2663,7 +2612,7 @@ if none found.
 
 .. code-block:: cpp
 
-    bool getSourceLines(Offset addressInRange, std::vector<Statement \*> & lines) bool getSourceLines(Offset addressInRange,
+    bool getSourceLines(Offset addressInRange, std::vector<Statement *> & lines) bool getSourceLines(Offset addressInRange,
     std::vector<LineNoTuple> & lines)
 
 These methods returns the source file names and line numbers
@@ -2675,7 +2624,7 @@ order of arguments is reversed from the corresponding interfaces in
 
 .. code-block:: cpp
 
-    bool addLine(const char \* lineSource, unsigned int lineNo, unsigned int
+    bool addLine(const char * lineSource, unsigned int lineNo, unsigned int
     lineOffset, Offset lowInclusiveAddr, Offset highExclusiveAddr)
 
 This method adds a new line to the line Map. ``lineSource`` represents
@@ -2684,7 +2633,7 @@ the source file name. ``lineNo`` represents the line number.
 .. code-block:: cpp
 
     bool addAddressRange(Offset lowInclusiveAddr, Offset highExclusiveAddr,
-    const char\* lineSource, unsigned int lineNo, unsigned int lineOffset = 0);
+    const char* lineSource, unsigned int lineNo, unsigned int lineOffset = 0);
 
 This method adds an address range
 ``[lowInclusiveAddr, highExclusiveAddr)`` for the line with line number
@@ -2735,7 +2684,7 @@ SymtabAPI.
 ====== ============= ========================
 Member Return type   Method description
 ====== ============= ========================
-first  const char \* Equivalent to getFile.
+first  const char *  Equivalent to getFile.
 second unsigned int  Equivalent to getLine.
 column unsigned int  Equivalent to getColumn.
 ====== ============= ========================
@@ -2813,13 +2762,13 @@ from a given ``Type`` object returned as part of a look up operation.
 
 .. code-block:: cpp
 
-   //Example shows how to retrieve a structure type object from a given ``Type'' object
+   // Example shows how to retrieve a structure type object from a given Type object
    using namespace Dyninst;
    using namespace SymtabAPI;
 
    //Obj represents a handle to a parsed object file using symtabAPI
    //Find a structure type in the object file
-   Type *structType = obj->findType(``structType1'');
+   Type *structType = obj->findType("structType1");
 
    // Get the specific typeStruct object
    typeStruct *stType = structType->isStructType();
@@ -2877,14 +2826,14 @@ This method returns the total size in bytes occupied by the type.
 
 .. code-block:: cpp
 
-    typeEnum \*getEnumType()
+    typeEnum *getEnumType()
 
 If this ``Type`` hobject represents an enum type, then return the object
 casting the ``Type`` object to ``typeEnum`` otherwise return ``NULL``.
 
 .. code-block:: cpp
 
-    typePointer \*getPointerType()
+    typePointer *getPointerType()
 
 If this ``Type`` object represents an pointer type, then return the
 object casting the ``Type`` object to ``typePointer`` otherwise return
@@ -2892,7 +2841,7 @@ object casting the ``Type`` object to ``typePointer`` otherwise return
 
 .. code-block:: cpp
 
-    typeFunction \*getFunctionType()
+    typeFunction *getFunctionType()
 
 If this ``Type`` object represents an ``Function`` type, then return the
 object casting the ``Type`` object to ``typeFunction`` otherwise return
@@ -2900,7 +2849,7 @@ object casting the ``Type`` object to ``typeFunction`` otherwise return
 
 .. code-block:: cpp
 
-    typeRange \*getSubrangeType()
+    typeRange *getSubrangeType()
 
 If this ``Type`` object represents a ``Subrange`` type, then return the
 object casting the ``Type`` object to ``typeSubrange`` otherwise return
@@ -2908,7 +2857,7 @@ object casting the ``Type`` object to ``typeSubrange`` otherwise return
 
 .. code-block:: cpp
 
-    typeArray \*getArrayType()
+    typeArray *getArrayType()
 
 If this ``Type`` object represents an ``Array`` type, then return the
 object casting the ``Type`` object to ``typeArray`` otherwise return
@@ -2916,7 +2865,7 @@ object casting the ``Type`` object to ``typeArray`` otherwise return
 
 .. code-block:: cpp
 
-    typeStruct \*getStructType()
+    typeStruct *getStructType()
 
 If this ``Type`` object represents a ``Structure`` type, then return the
 object casting the ``Type`` object to ``typeStruct`` otherwise return
@@ -2924,7 +2873,7 @@ object casting the ``Type`` object to ``typeStruct`` otherwise return
 
 .. code-block:: cpp
 
-    typeUnion \*getUnionType()
+    typeUnion *getUnionType()
 
 If this ``Type`` object represents a ``Union`` type, then return the
 object casting the ``Type`` object to ``typeUnion`` otherwise return
@@ -2932,7 +2881,7 @@ object casting the ``Type`` object to ``typeUnion`` otherwise return
 
 .. code-block:: cpp
 
-    typeScalar \*getScalarType()
+    typeScalar *getScalarType()
 
 If this ``Type`` object represents a ``Scalar`` type, then return the
 object casting the ``Type`` object to ``typeScalar`` otherwise return
@@ -2940,7 +2889,7 @@ object casting the ``Type`` object to ``typeScalar`` otherwise return
 
 .. code-block:: cpp
 
-    typeCommon \*getCommonType()
+    typeCommon *getCommonType()
 
 If this ``Type`` object represents a ``Common`` type, then return the
 object casting the ``Type`` object to ``typeCommon`` otherwise return
@@ -2948,7 +2897,7 @@ object casting the ``Type`` object to ``typeCommon`` otherwise return
 
 .. code-block:: cpp
 
-    typeTypedef \*getTypedefType()
+    typeTypedef *getTypedefType()
 
 If this ``Type`` object represents a ``TypeDef`` type, then return the
 object casting the ``Type`` object to ``typeTypedef`` otherwise return
@@ -2956,7 +2905,7 @@ object casting the ``Type`` object to ``typeTypedef`` otherwise return
 
 .. code-block:: cpp
 
-    typeRef \*getRefType()
+    typeRef *getRefType()
 
 If this ``Type`` object represents a ``Reference`` type, then return the
 object casting the ``Type`` object to ``typeRef`` otherwise return
@@ -2969,9 +2918,11 @@ This class represents an enumeration type containing a list of constants
 with values. This class is derived from ``Type``, so all those member
 functions are applicable. ``typeEnum`` inherits from the ``Type`` class.
 
-static typeEnum \*create(string &name, vector<pair<string, int> \*>
-&consts, Symtab \*obj = NULL) static typeEnum \*create(string &name,
-vector<string> &constNames, Symtab \*obj)
+.. code-block:: cpp
+
+    static typeEnum *create(string &name, vector<pair<string, int> *>
+    &consts, Symtab *obj = NULL) static typeEnum *create(string &name,
+    vector<string> &constNames, Symtab *obj)
 
 These factory methods create a new enumerated type. There are two
 variations to this function. ``consts`` supplies the names and Ids of
@@ -2997,14 +2948,14 @@ by a (name, value) pair of the constant.
 
 .. code-block:: cpp
 
-    bool setName(const char\* name)
+    bool setName(const char* name)
 
 This method sets the new name of the enum type to ``name``. Returns
 ``true`` if it succeeds, else returns ``false``.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the enum type is compatible with the
 given type ``type`` or else returns ``false``.
@@ -3019,7 +2970,8 @@ inherits from the ``Type`` class.
 
 .. code-block:: cpp
 
-    static typeFunction \*create(string &name, Type \*retType, vector<Type\*> &paramTypes, Symtab \*obj = NULL)
+    static typeFunction *create(string &name, Type *retType, vector<Type*> &paramTypes, Symtab *obj = NULL)
+
 
 This factory method creates a new function type with name ``name``.
 ``retType`` represents the return type of the function and
@@ -3030,28 +2982,28 @@ will be available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the function type is compatible with the
 given type ``type`` or else returns ``false``.
 
 .. code-block:: cpp
 
-    bool addParam(Type \*type)
+    bool addParam(Type *type)
 
 This method adds a new function parameter with type ``type`` to the
 function type. Returns ``true`` if it succeeds, else returns ``false``.
 
 .. code-block:: cpp
 
-    Type \*getReturnType() const
+    Type *getReturnType() const
 
 This method returns the return type for this function type. Returns
 ``NULL`` if there is no return type associated with this function type.
 
 .. code-block:: cpp
 
-    bool setRetType(Type \*rtype)
+    bool setRetType(Type *rtype)
 
 This method sets the return type of the function type to ``rtype``.
 Returns ``true`` if it succeeds, else returns ``false``.
@@ -3065,7 +3017,7 @@ This method sets the new name of the function type to ``name``. Returns
 
 .. code-block:: cpp
 
-    vector< Type \*> &getParams() const
+    vector< Type *> &getParams() const
 
 This method returns the vector containing the individual parameters
 represented by their types in order. Returns ``NULL`` if there are no
@@ -3080,7 +3032,7 @@ This class represents a scalar type. This class is derived from
 
 .. code-block:: cpp
 
-    static typeScalar \*create(string &name, int size, Symtab \*obj = NULL)
+    static typeScalar *create(string &name, int size, Symtab *obj = NULL)
 
 This factory method creates a new scalar type. The ``name`` field is
 used to specify the name of the type, and the ``size`` parameter is used
@@ -3098,7 +3050,7 @@ returns ``false``.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the scalar type is compatible with the
 given type ``type`` or else returns ``false``.
@@ -3119,7 +3071,7 @@ unknown(default) visibility.
 
 .. code-block:: cpp
 
-    Field(string &name, Type \*type, visibility_t vis = visUnknown)
+    Field(string &name, Type *type, visibility_t vis = visUnknown)
 
 This constructor creates a new field with name ``name``, type ``type``
 and visibility ``vis``. This newly created ``Field`` can be added to a
@@ -3133,7 +3085,7 @@ This method returns the name associated with the field in the container.
 
 .. code-block:: cpp
 
-    Type \*getType()
+    Type *getType()
 
 This method returns the type associated with the field in the container.
 
@@ -3164,7 +3116,7 @@ inherits from the ``Type`` class.
 
 .. code-block:: cpp
 
-    vector<Field \*> \*getComponents()
+    vector<Field *> *getComponents()
 
 This method returns the list of all fields present in the container.
 This gives information about the name, type and visibility of each of
@@ -3172,7 +3124,7 @@ the fields. Returns ``NULL`` of there are no fields.
 
 .. code-block:: cpp
 
-    void addField(std::string fieldname, Type \*type, int offsetVal = -1,
+    void addField(std::string fieldname, Type *type, int offsetVal = -1,
     visibility_t vis = visUnknown)
 
 This method adds a new field at the end to the container type with field
@@ -3180,7 +3132,7 @@ name ``fieldname``, type ``type`` and type visibility ``vis``.
 
 .. code-block:: cpp
 
-    void addField(unsigned num, std::string fieldname, Type \*type, int
+    void addField(unsigned num, std::string fieldname, Type *type, int
     offsetVal = -1, visibility_t vis = visUnknown)
 
 This method adds a field after the field with number ``num`` with field
@@ -3188,13 +3140,13 @@ name ``fieldname``, type ``type`` and type visibility ``vis``.
 
 .. code-block:: cpp
 
-    void addField(Field \*fld)
+    void addField(Field *fld)
 
 This method adds a new field ``fld`` to the container type.
 
 .. code-block:: cpp
 
-    void addField(unsigned num, Field \*fld)
+    void addField(unsigned num, Field *fld)
 
 This method adds a field ``fld`` after field ``num`` to the container
 type.
@@ -3210,7 +3162,7 @@ Class typeStruct : public fieldListType
 
 .. code-block:: cpp
 
-    static typeStruct \*create(string &name, vector<pair<string, Type \*>*> &flds, Symtab \*obj = NULL)
+    static typeStruct *create(string &name, vector<pair<string, Type *>*> &flds, Symtab *obj = NULL)
 
 This factory method creates a new struct type. The name of the structure
 is specified in the ``name`` parameter. The ``flds`` vector specifies
@@ -3221,7 +3173,7 @@ available for further queries.
 
 .. code-block:: cpp
 
-    static typeStruct \*create(string &name, vector<Field \*> &fields, Symtab \*obj = NULL)
+    static typeStruct *create(string &name, vector<Field *> &fields, Symtab *obj = NULL)
 
 This factory method creates a new struct type. The name of the structure
 is specified in the ``name`` parameter. The ``fields`` vector specifies
@@ -3231,7 +3183,7 @@ to any object file, but it will be available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the struct type is compatible with the
 given type ``type`` or else returns ``false``.
@@ -3248,7 +3200,7 @@ Class typeUnion
 
 .. code-block:: cpp
 
-    static typeUnion \*create(string &name, vector<pair<string, Type \*>*> &flds, Symtab \*obj = NULL)
+    static typeUnion *create(string &name, vector<pair<string, Type *>*> &flds, Symtab *obj = NULL)
 
 This factory method creates a new union type. The name of the union is
 specified in the ``name`` parameter. The ``flds`` vector specifies the
@@ -3259,7 +3211,7 @@ further queries.
 
 .. code-block:: cpp
 
-    static typeUnion \*create(string &name, vector<Field \*> &fields, Symtab \*obj = NULL)
+    static typeUnion *create(string &name, vector<Field *> &fields, Symtab *obj = NULL)
 
 This factory method creates a new union type. The name of the structure
 is specified in the ``name`` parameter. The ``fields`` vector specifies
@@ -3269,7 +3221,7 @@ to any object file, but it will be available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the union type is compatible with the
 given type ``type`` or else returns ``false``.
@@ -3286,7 +3238,7 @@ Class typeCommon
 
 .. code-block:: cpp
 
-    vector<CBlocks \*> \*getCBlocks()
+    vector<CBlocks *> *getCBlocks()
 
 This method returns the common block objects for the type. The methods
 of the ``CBlock`` can be used to access information about the members of
@@ -3302,7 +3254,7 @@ Class CBlock
 
 .. code-block:: cpp
 
-    bool getComponents(vector<Field \*> \*vars)
+    bool getComponents(vector<Field *> *vars)
 
 This method returns the vector containing the individual variables of
 the common block. Returns ``true`` if there is at least one variable,
@@ -3310,7 +3262,7 @@ else returns ``false``.
 
 .. code-block:: cpp
 
-    bool getFunctions(vector<Symbol \*> \*funcs)
+    bool getFunctions(vector<Symbol *> *funcs)
 
 This method returns the functions that can see this common block with
 the set of variables described in ``getComponents`` method above.
@@ -3328,7 +3280,7 @@ all the member functions of class ``Type`` are applicable.
 
 .. code-block:: cpp
 
-    Type \*getConstituentType() const
+    Type *getConstituentType() const
 
 This method returns the type of the base type to which this type refers
 to.
@@ -3344,7 +3296,7 @@ Class typePointer
 
 .. code-block:: cpp
 
-    static typePointer \*create(string &name, Type \*ptr, Symtab \*obj = NULL) static typePointer \*create(string &name, Type \*ptr, int size, Symtab \*obj = NULL)
+    static typePointer *create(string &name, Type *ptr, Symtab *obj = NULL) static typePointer *create(string &name, Type *ptr, int size, Symtab *obj = NULL)
 
 These factory methods create a new type, named ``name``, which points to
 objects of type ``ptr``. The first form creates a pointer whose size is
@@ -3356,14 +3308,14 @@ any object file, but it will be available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the Pointer type is compatible with the
 given type ``type`` or else returns ``false``.
 
 .. code-block:: cpp
 
-    bool setPtr(Type \*ptr)
+    bool setPtr(Type *ptr)
 
 This method sets the pointer type to point to the type in ``ptr``.
 Returns ``true`` if it succeeds, else returns ``false``.
@@ -3379,7 +3331,7 @@ Class typeTypedef
 
 .. code-block:: cpp
 
-    static typeTypedef \*create(string &name, Type \*ptr, Symtab \*obj = NULL)
+    static typeTypedef *create(string &name, Type *ptr, Symtab *obj = NULL)
 
 This factory method creates a new type called ``name`` and having the
 type ``ptr``. The newly created type is added to the ``Symtab`` object
@@ -3388,7 +3340,7 @@ file, but it will be available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the typedef type is compatible with the
 given type ``type`` or else returns ``false``.
@@ -3405,7 +3357,7 @@ Class typeRef
 
 .. code-block:: cpp
 
-    static typeRef \*create(string &name, Type \*ptr, Symtab \* obj = NULL)
+    static typeRef *create(string &name, Type *ptr, Symtab * obj = NULL)
 
 This factory method creates a new type, named ``name``, which is a
 reference to objects of type ``ptr``. The newly created type is added to
@@ -3414,7 +3366,7 @@ added to any object file, but it will be available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the ref type is compatible with the
 given type ``type`` or else returns ``false``.
@@ -3455,7 +3407,7 @@ Class typeSubrange
 
 .. code-block:: cpp
 
-    static typeSubrange \*create(string &name, int size, int low, int hi, symtab \*obj = NULL)
+    static typeSubrange *create(string &name, int size, int low, int hi, symtab *obj = NULL)
 
 This factory method creates a new sub-range type. The name of the type
 is ``name``, and the size is ``size``. The lower bound of the type is
@@ -3466,7 +3418,7 @@ will be available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if this sub range type is compatible with
 the given type ``type`` or else returns ``false``.
@@ -3480,7 +3432,7 @@ Class typeArray
 
 .. code-block:: cpp
 
-    static typeArray \*create(string &name, Type \*type, int low, int hi, Symtab \*obj = NULL)
+    static typeArray *create(string &name, Type *type, int low, int hi, Symtab *obj = NULL)
 
 This factory method creates a new array type. The name of the type is
 ``name``, and the type of each element is ``type``. The index of the
@@ -3491,14 +3443,14 @@ available for further queries.
 
 .. code-block:: cpp
 
-    bool isCompatible(Type \*type)
+    bool isCompatible(Type *type)
 
 This method returns ``true`` if the array type is compatible with the
 given type ``type`` or else returns ``false``.
 
 .. code-block:: cpp
 
-    Type \*getBaseType() const
+    Type *getBaseType() const
 
 This method returns the base type of this array type.
 
@@ -3549,7 +3501,7 @@ updated an ``AddressLookup`` object’s view of its process.
 
 .. code-block:: cpp
 
-    static AddressLookup \*createAddressLookup(ProcessReader \*reader = NULL)
+    static AddressLookup *createAddressLookup(ProcessReader *reader = NULL)
 
 This factory constructor creates a new ``AddressLookup`` object
 associated with the process that called this function. The returned
@@ -3561,7 +3513,7 @@ on success and ``NULL`` on error.
 
 .. code-block:: cpp
 
-    static AddressLookup \*createAddressLookup(PID pid, ProcessReader \*reader = NULL)
+    static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL)
 
 This factory constructor creates a new ``AddressLookup`` object
 associated with the process referred to by ``pid``. The returned
@@ -3574,7 +3526,7 @@ on success and ``NULL`` on error.
 .. code-block:: cpp
 
     typedef struct std::string name; Address codeAddr; Address dataAddr; LoadedLibrary;
-    static AddressLookup \*createAddressLookup(const
+    static AddressLookup *createAddressLookup(const
     std::vector<LoadedLibrary> &ll)
 
 This factory constructor creates a new ``AddressLookup`` associated with
@@ -3613,7 +3565,7 @@ returns ``true`` on success and ``false`` on error.
 
 .. code-block:: cpp
 
-    bool getAddress(Symtab \*tab, Symbol \*sym, Address &addr)
+    bool getAddress(Symtab *tab, Symbol *sym, Address &addr)
 
 Given a ``Symtab`` object, ``tab``, and a symbol, ``sym``, this function
 returns the address, ``addr``, where the symbol can be found in the
@@ -3623,7 +3575,7 @@ and ``false`` otherwise.
 
 .. code-block:: cpp
 
-    bool getAddress(Symtab \*tab, Offset off, Address &addr)
+    bool getAddress(Symtab *tab, Offset off, Address &addr)
 
 Given a ``Symtab`` object, ``tab``, and an offset into that object,
 ``off``, this function returns the address, ``addr``, of that location
@@ -3633,8 +3585,7 @@ sym and ``false`` otherwise.
 
 .. code-block:: cpp
 
-    bool getSymbol(Address addr, Symbol \* &sym, Symtab\* &tab, bool close =
-false)
+    bool getSymbol(Address addr, Symbol * &sym, Symtab* &tab, bool close = false)
 
 Given an address, ``addr``, this function returns the ``Symtab`` object,
 ``tab``, and ``Symbol``, ``sym``, that reside at that address. If the
@@ -3645,7 +3596,7 @@ if it was able to find a symbol and ``false`` otherwise.
 
 .. code-block:: cpp
 
-    bool getOffset(Address addr, Symtab\* &tab, Offset &off)
+    bool getOffset(Address addr, Symtab* &tab, Offset &off)
 
 Given an address, ``addr``, this function returns the ``Symtab`` object,
 ``tab``, and an offset into ``tab``, ``off``, that reside at that
@@ -3661,7 +3612,7 @@ Symtab.
 
 .. code-block:: cpp
 
-    bool getAllSymtabs(std::vector<Symtab \*> &tabs)
+    bool getAllSymtabs(std::vector<Symtab *> &tabs)
 
 This function returns all ``Symtab`` objects that are contained in the
 process represented by this ``AddressLookup`` object. This will include
@@ -3670,7 +3621,7 @@ This function returns ``true`` on success and ``false`` otherwise.
 
 .. code-block:: cpp
 
-    bool getLoadAddress(Symtab \*sym, Address &load_address)
+    bool getLoadAddress(Symtab *sym, Address &load_address)
 
 Given a ``Symtab`` object, ``sym``, that resides in the process
 associated with this ``AddressLookup``, this function returns
@@ -3682,7 +3633,7 @@ otherwise.
 
 .. code-block:: cpp
 
-    bool getDataLoadAddress(Symtab \*sym, Address &load_addr)
+    bool getDataLoadAddress(Symtab *sym, Address &load_addr)
 
 Given a Symtab object, ``sym``, this function returns the load address
 of its data section. This function returns ``true`` on success and
@@ -3714,7 +3665,7 @@ class constructor.
 
 .. code-block:: cpp
 
-    virtual bool ReadMem(Address traced, void \*inSelf, unsigned size) = 0
+    virtual bool ReadMem(Address traced, void *inSelf, unsigned size) = 0
 
 This function should read ``size`` bytes from the address at ``traced``
 into the buffer pointed to by ``inSelf``. This function must return

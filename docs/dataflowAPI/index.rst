@@ -1,5 +1,3 @@
-.. container:: titlepage
-
 .. _`sec:intro`:
 
 Introduction
@@ -338,13 +336,13 @@ Return the address of this assignment.
 
 .. code-block:: cpp
     
-    ParseAPI::Function \*func() const;
+    ParseAPI::Function *func() const;
 
 Return the function that contains this assignment.
 
 .. code-block:: cpp
     
-    ParseAPI::Block \*block() const;
+    ParseAPI::Block *block() const;
 
 Return the block that contains this assignment.
 
@@ -376,7 +374,7 @@ treated as a single memory region.
 .. code-block:: cpp
 
     void convert(InstructionAPI::Instruction::Ptr insn, const Address &addr,
-    ParseAPI::Function \*func, ParseAPI::Block \*blk,
+    ParseAPI::Function *func, ParseAPI::Block *blk,
     std::vector<Assignment::Ptr> &assign);
 
 Convert instruction ``insn`` to assignments and return these assignments
@@ -441,7 +439,7 @@ address ``addr``.
 
 .. code-block:: cpp
 
-    Absloc(int o, int r, ParseAPI::Function \*f);
+    Absloc(int o, int r, ParseAPI::Function *f);
 
 Create a Stack type abstract location, representing a stack variable in
 the frame of function ``f``, within abstract region ``r``, and at offset
@@ -494,7 +492,7 @@ truly represents a stack variable.
 
 .. code-block:: cpp
 
-    ParseAPI::Function \*func() const;
+    ParseAPI::Function *func() const;
 
 Return the function of the stack variable represented by this abstract
 location. This method should only be called when this abstract location
@@ -612,7 +610,7 @@ is treated as a single memory region.
 
 .. code-block:: cpp
 
-    void convertAll(InstructionAPI::Expression::Ptr expr, Address addr, ParseAPI::Function \*func, ParseAPI::Block \*block, std::vector<AbsRegion> &regions);
+    void convertAll(InstructionAPI::Expression::Ptr expr, Address addr, ParseAPI::Function *func, ParseAPI::Block *block, std::vector<AbsRegion> &regions);
 
 Create all abstract regions used in ``expr`` and return them in
 ``regions``. All registers appear in ``expr`` will have a separate
@@ -624,7 +622,7 @@ is at address ``addr`` and replace PC with a constant value ``addr``.
 
 .. code-block:: cpp
 
-    void convertAll(InstructionAPI::Instruction::Ptr insn, Address addr, ParseAPI::Function \*func, ParseAPI::Block \*block, std::vector<AbsRegion> &used, std::vector<AbsRegion> &defined);
+    void convertAll(InstructionAPI::Instruction::Ptr insn, Address addr, ParseAPI::Function *func, ParseAPI::Block *block, std::vector<AbsRegion> &used, std::vector<AbsRegion> &defined);
 
 Create abstract regions appearing in instruction ``insn``. Input
 abstract regions of this instructions are returned in ``used`` and
@@ -643,7 +641,7 @@ Create an abstract region representing the register ``reg``.
 
 .. code-block:: cpp 
 
-    AbsRegion convert(InstructionAPI::Expression::Ptr expr, Address addr, ParseAPI::Function \*func, ParseAPI::Block \*block);
+    AbsRegion convert(InstructionAPI::Expression::Ptr expr, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
 
 Create and return the single abstract region represented by ``expr``.
 
@@ -732,6 +730,7 @@ Clear the marking of entry / exit nodes. Note that the nodes are not
 deleted from the graph.
 
 .. code-block:: cpp
+
     unsigned size() const;
 
 Return the number of nodes in the graph.
@@ -827,7 +826,7 @@ Set the source / target node.
 Iterator for edges. Common iterator operations including ``++``, ``–``,
 and dereferencing are supported.
 
-.. _`sec:slicing`:
+.. _`sec:slicer`:
 
 Class Slicer
 ------------
@@ -850,7 +849,7 @@ provide customized stopping criteria for the slicer.
 
 .. code-block:: cpp
 
-    Slicer(AssignmentPtr a, ParseAPI::Block \*block, ParseAPI::Function \*func, bool cache = true, bool stackAnalysis = true);
+    Slicer(AssignmentPtr a, ParseAPI::Block *block, ParseAPI::Function *func, bool cache = true, bool stackAnalysis = true);
 
 Construct a slicer, which can then be used to perform forward or
 backward slicing starting at the assignment ``a``. ``block`` and
@@ -877,7 +876,7 @@ The default node data type in a slice graph.
 
 .. code-block:: cpp
 
-    typedef boost::shared_ptr<SliceNode> Ptr; static SliceNode::Ptr SliceNode::create(AssignmentPtr ptr, ParseAPI::Block \*block, ParseAPI::Function \*func);
+    typedef boost::shared_ptr<SliceNode> Ptr; static SliceNode::Ptr SliceNode::create(AssignmentPtr ptr, ParseAPI::Block *block, ParseAPI::Function *func);
 
 Create a slice node, which represents assignment ``ptr`` in basic block
 ``block`` and function ``func``.
@@ -885,19 +884,28 @@ Create a slice node, which represents assignment ``ptr`` in basic block
 Class SliceNode has the following methods to retrieve information
 associated the node:
 
-+-------------+----------------------+------------------------------------------+
-| Method name | Return type          | Method description                       |
-+=============+======================+==========================================+
-| block       | ParseAPI::Block\*    | Basic block of this SliceNode.           |
-+-------------+----------------------+------------------------------------------+
-| func        | ParseAPI::Function\* | Function of this SliceNode.              |
-+-------------+----------------------+------------------------------------------+
-| addr        | Address              | Address of this SliceNode.               |
-+-------------+----------------------+------------------------------------------+
-| assign      | Assignment::Ptr      | Assignment of this SliceNode.            |
-+-------------+----------------------+------------------------------------------+
-| format      | std::string          | String representation of this SliceNode. |
-+-------------+----------------------+------------------------------------------+
+.. list-table:: Class SlideNode Methods
+   :widths: 30  35 35
+   :header-rows: 1
+
+   * - Method name
+     - Return type
+     - Method description
+   * - block
+     - ParseAPI::Block*
+     - Basic block of this SliceNode.
+   * - func
+     - ParseAPI::Function*
+     - Function of this SliceNode. 
+   * - addr
+     - Address
+     - Address of this SliceNode.
+   * - assign
+     - Assignment::Ptr
+     - Assignment of this SliceNode.
+   * - format
+     - std::string
+     - String representation of this SliceNode. 
 
 .. code-block:: cpp
 
@@ -972,7 +980,7 @@ return ``false``.
 
 .. code-block:: cpp
 
-    typedef std::pair<ParseAPI::Function \*, int> StackDepth_t; typedef std::stack<StackDepth_t> CallStack_t; virtual bool followCall(ParseAPI::Function \* callee, CallStack_t & cs, AbsRegion argument);
+    typedef std::pair<ParseAPI::Function *, int> StackDepth_t; typedef std::stack<StackDepth_t> CallStack_t; virtual bool followCall(ParseAPI::Function * callee, CallStack_t & cs, AbsRegion argument);
 
 This predicate function is called when the slicer reaches a direct call
 site. If it returns ``true``, the slicer will follow into the callee
@@ -986,7 +994,7 @@ call this function at an indirect call site.
 
 .. code-block:: cpp
 
-    virtual std::vector<ParseAPI::Function \*> followCallBackward(ParseAPI::Block \* caller, CallStack_t & cs, AbsRegion argument);
+    virtual std::vector<ParseAPI::Function *> followCallBackward(ParseAPI::Block * caller, CallStack_t & cs, AbsRegion argument);
 
 This predicate function is called when the slicer reaches the entry of a
 function in the case of backward slicing or reaches a return instruction
@@ -1074,14 +1082,14 @@ stack heights mean.
 
 .. code-block:: cpp
 
-    StackAnalysis(ParseAPI::Function \*f)
+    StackAnalysis(ParseAPI::Function *f)
 
 Constructs a StackAnalysis object for function ``f``.
 
 
 .. code-block:: cpp
 
-    StackAnalysis(ParseAPI::Function \*f, const std::map<Address, Address> &crm, const std::map<Address, TransferSet> &fs)
+    StackAnalysis(ParseAPI::Function *f, const std::map<Address, Address> &crm, const std::map<Address, TransferSet> &fs)
 
 Constructs a StackAnalysis object for function ``f`` with
 interprocedural analysis activated. A call resolution map is passed in
@@ -1093,7 +1101,7 @@ function summaries are then used at all call sites to those functions.
 
 .. code-block:: cpp
 
-    StackAnalysis::Height find(ParseAPI::Block \*b, Address addr, Absloc loc)
+    StackAnalysis::Height find(ParseAPI::Block *b, Address addr, Absloc loc)
 
 Returns the stack height of abstract location ``loc`` before execution
 of the instruction with address ``addr`` contained in basic block ``b``.
@@ -1103,8 +1111,8 @@ object.
 
 .. code-block:: cpp
 
-    StackAnalysis::Height findSP(ParseAPI::Block \*b, Address addr)
-    StackAnalysis::Height findFP(ParseAPI::Block \*b, Address addr)
+    StackAnalysis::Height findSP(ParseAPI::Block *b, Address addr)
+    StackAnalysis::Height findFP(ParseAPI::Block *b, Address addr)
 
 Returns the stack height of the stack pointer and frame pointer,
 respectively, before execution of the instruction with address ``addr``
@@ -1114,7 +1122,7 @@ to create this StackAnalysis object.
 
 .. code-block:: cpp
 
-    void findDefinedHeights(ParseAPI::Block \*b, Address addr, std::vector<std::pair<Absloc, StackAnalysis::Height>> &heights)
+    void findDefinedHeights(ParseAPI::Block *b, Address addr, std::vector<std::pair<Absloc, StackAnalysis::Height>> &heights)
 
 Writes to the vector ``heights`` all defined <abstract location, stack
 height> pairs before execution of the instruction with address ``addr``
@@ -1295,7 +1303,7 @@ Return the class type ID of this node.
 
 .. code-block:: cpp
 
-    virtual Ptr accept(ASTVisitor \*v);
+    virtual Ptr accept(ASTVisitor *v);
 
 Apply visitor ``v`` to this node. Note that this method will not
 automatically apply the visitor to its children.
@@ -1525,12 +1533,12 @@ write customized analyses for ASTs.
 .. code-block:: cpp
 
     typedef boost::shared_ptr<AST> ASTVisitor::ASTPtr; virtual
-    ASTVisitor::ASTPtr ASTVisitor::visit(AST \*); virtual ASTVisitor::ASTPtr
-    ASTVisitor::visit(DataflowAPI::BottomAST \*); virtual ASTVisitor::ASTPtr
-    ASTVisitor::visit(DataflowAPI::ConstantAST \*); virtual
-    ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST \*);
-    virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST \*);
-    virtual ASTVisitor::ASTPtr ASTVisitor::visit(StackAST \*);
+    ASTVisitor::ASTPtr ASTVisitor::visit(AST *); virtual ASTVisitor::ASTPtr
+    ASTVisitor::visit(DataflowAPI::BottomAST *); virtual ASTVisitor::ASTPtr
+    ASTVisitor::visit(DataflowAPI::ConstantAST *); virtual
+    ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST *);
+    virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *);
+    virtual ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *);
 
 Callback functions for visiting each type of AST node. The default
 behavior is to return the input parameter.

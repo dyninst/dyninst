@@ -1,9 +1,7 @@
-.. container:: titlepage
+.. _`sec:instruction-intro`:
 
-.. _`sec:intro`:
-
-Introduction
-============
+Instruction API Introduction
+============================
 
 When analyzing and modifying binary code, it is necessary to translate
 between raw binary instructions and an abstract form that describes the
@@ -164,10 +162,8 @@ is represented using these objects.
    InstructionAST intermediate node types and the objects they own
 
 .. figure:: fig/instruction_representation.pdf
-   :alt: The decomposition of ``mov`` ``%eax``, (``%esi``)
+   :alt: The decomposition of mov %eax, (%esi)
    :name: fig:representation
-
-   The decomposition of ``mov`` ``%eax``, (``%esi``)
 
 These ASTs may be searched for leaf elements or subtrees (via
 ``getUses`` and ``isUsed``) and traversed breadth-first or depth-first
@@ -285,7 +281,7 @@ Returns the size of the corresponding machine instruction, in bytes.
 
 .. code-block:: cpp
 
-    const void \* ptr() const
+    const void * ptr() const
 
 Returns a pointer to the raw byte representation of the corresponding
 machine instruction.
@@ -848,12 +844,8 @@ even though calling ``eval`` on the Dereference returns a ``Result``
 with an undefined value.
 
 .. figure:: fig/deref-eval.pdf
-   :alt: Applying ``eval`` to a Dereference tree with two registers
-   having user-provided values.
+   :alt: Applying eval to a Dereference tree with two registers having user-provided values.
    :name: fig:deref-eval
-
-   Applying ``eval`` to a Dereference tree with two registers having
-   user-provided values.
 
 .. code-block:: cpp
 
@@ -891,7 +883,7 @@ bytes.
 
 .. code-block:: cpp
     
-    bool bind(Expression \* expr, const Result & value)
+    bool bind(Expression * expr, const Result & value)
 
 ``bind`` searches for all instances of the Expression ``expr`` within
 this Expression, and sets the result of ``eval`` for those
@@ -1400,7 +1392,7 @@ bytes and a length, and constructs an Instruction.
 
 .. code-block:: cpp
 
-    InstructionDecoder(const unsigned char \*buffer, size_t size, Architecture arch) InstructionDecoder(const void \*buffer, size_t size, Architecture arch)
+    InstructionDecoder(const unsigned char *buffer, size_t size, Architecture arch) InstructionDecoder(const void *buffer, size_t size, Architecture arch)
 
 Construct an ``InstructionDecoder`` over the provided ``buffer`` and
 ``size``. We consider the buffer to contain instructions from the

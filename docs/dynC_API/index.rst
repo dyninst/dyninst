@@ -1,5 +1,3 @@
-.. container:: titlepage
-
 DynC API
 ========
 
@@ -29,7 +27,7 @@ the mutatee.
 
 Look up ``printf``:
 
-::
+.. code-block:: cpp
 
      std::vector<BPatch_function *> *printf_func;
      appImage->findFunction("printf", printf_func);
@@ -37,7 +35,7 @@ Look up ``printf``:
 
 Create each ``printf`` pattern:
 
-::
+.. code-block:: cpp
 
      BPatch_constExpr entryPattern("Entering %s, called %d times.\n");
      BPatch_constExpr exitPattern("Exiting %s.\n");
@@ -46,74 +44,74 @@ Create each ``printf`` pattern:
 
 Create snippet vectors:
 
-::
+.. code-block:: cpp
 
-        std::vector<BPatch_snippet *> entrySnippetVect;
-        std::vector<BPatch_snippet *> exitSnippetVect;
+    std::vector<BPatch_snippet *> entrySnippetVect;
+    std::vector<BPatch_snippet *> exitSnippetVect;
 
 Create the ``intCounter`` global variable:
 
-::
+.. code-block:: cpp
 
-        appProc->malloc(appImage->findType("int"), std::string("intCounter"));
+    appProc->malloc(appImage->findType("int"), std::string("intCounter"));
 
 Get the name of the function:
 
-::
+.. code-block:: cpp
 
-        char fName[128];
-        BPatch_constExpr funcName(functions[i]->getName(fName, 128));
+    char fName[128];
+    BPatch_constExpr funcName(functions[i]->getName(fName, 128));
 
 Build the entry ``printf``:
 
-::
-
-        std::vector<BPatch_snippet *> entryArgs;
-        entryArgs.push_back(entryPattern);
-        entryArgs.push_back(funcName);
-        entryArgs.push_back(intCounter);
+.. code-block:: cpp
+    
+    std::vector<BPatch_snippet *> entryArgs;
+    entryArgs.push_back(entryPattern);
+    entryArgs.push_back(funcName);
+    entryArgs.push_back(intCounter);
 
 Build the exit ``printf``:
 
-::
+.. code-block:: cpp
 
-        std::vector<BPatch_snippet *> exitArgs;
-        exitArgs.push_back(exitPattern);
-        exitArgs.push_back(funcName);
+    std::vector<BPatch_snippet *> exitArgs;
+    exitArgs.push_back(exitPattern);
+    exitArgs.push_back(funcName);
 
 Add ``printf`` to the snippet:
 
-::
 
-        entrySnippetVect.push_back(BPatch_functionCallExpr(*printf_func, entryArgs));
-        exitSnippetVect.push_back(BPatch_functionCallExpr(*printf_func, exitArgs));
+.. code-block:: cpp
+
+    entrySnippetVect.push_back(BPatch_functionCallExpr(*printf_func, entryArgs));
+    exitSnippetVect.push_back(BPatch_functionCallExpr(*printf_func, exitArgs));
 
 Increment the counter:
 
-::
+.. code-block:: cpp
 
-        BPatch_arithExpr addOne(BPatch_assign, *intCounter, 
-               BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
+    BPatch_arithExpr addOne(BPatch_assign, *intCounter, 
+    BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
 
 Add increment to the entry snippet:
 
-::
+.. code-block:: cpp
 
-        entrySnippetVect.push_back(&addOne);
+    entrySnippetVect.push_back(&addOne);
 
 Insert the snippets:
 
-::
+.. code-block:: cpp
 
-        appProc->insertSnippet(*entrySnippetVect, functions[i]->findPoint(BPatch_entry));
-        appProc->insertSnippet(*exitSnippetVect, functions[i]->findPoint(BPatch_exit));
+    appProc->insertSnippet(*entrySnippetVect, functions[i]->findPoint(BPatch_entry));
+    appProc->insertSnippet(*exitSnippetVect, functions[i]->findPoint(BPatch_exit));
 
-.. container:: center
 
 .. _dync-api-1:
 
-DynC API
-~~~~~~~~
+The DynC API
+~~~~~~~~~~~~
 
 A function tracer is much easier to build in DynC API, especially if
 reading dynC code from file. Storing dynC code in external files not
@@ -123,42 +121,42 @@ snippets without recompiling.
 In this example, the files ``myEntryDynC.txt`` and ``myExitDynC.txt``
 contain dynC code:
 
-::
+.. code-block:: cpp
 
-     // myEntryDynC.txt
-     static int intCounter;
-     printf("Entering %s, called %d times.\n", dyninst`function_name, intCounter++);
+    // myEntryDynC.txt
+    static int intCounter;
+    printf("Entering %s, called %d times.\n", dyninstfunction_name, intCounter++);
 
-::
-
-     // myExitDynC.txt
-     printf("Leaving %s.\n", dyninst`function_name);
+.. code-block:: cpp
+    
+    // myExitDynC.txt
+    printf("Leaving %s.\n", dyninst function_name);
 
 The code to read, build, and insert the snippets would look something
 like the following:
 
 First open files:
 
-::
+.. code-block:: cpp
 
-     FILE *entryFile = fopen("myEntryDynC.txt", "r");
-     FILE *exitFile = fopen("myExitDynC.txt", "r");
+    FILE *entryFile = fopen("myEntryDynC.txt", "r");
+    FILE *exitFile = fopen("myExitDynC.txt", "r");
 
 Next call DynC API with each function’s entry and exit points:
 
-::
+.. code-block:: cpp
 
-     BPatch_snippet *entrySnippet = 
-          dynC_API::createSnippet(entryFile, entryPoint, "entrySnippet");
-     BPatch_snippet *exitSnippet = 
-          dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
+    BPatch_snippet *entrySnippet = 
+         dynC_API::createSnippet(entryFile, entryPoint, "entrySnippet");
+    BPatch_snippet *exitSnippet = 
+         dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
 
 Finally insert the snippets at each function’s entry and exit points:
 
-::
+.. code-block:: cpp
 
-     appProc->insertSnippet(*entrySnippet, entryPoint);
-     appProc->insertSnippet(*exitSnippet, exitPoint);
+    appProc->insertSnippet(*entrySnippet, entryPoint);
+    appProc->insertSnippet(*exitSnippet, exitPoint);
 
 Calling DynC API
 ----------------
@@ -166,9 +164,9 @@ Calling DynC API
 All DynC functions reside in the ``dynC_API`` namespace. The primary
 DynC API function is:
 
-::
+.. code-block:: cpp
 
-      BPatch_Snippet *createSnippet(<dynC code>, <location>, char * name);
+    BPatch_Snippet *createSnippet(<dynC code>, <location>, char * name);
 
 | where ``<dynC code>`` can be either a constant c-style string or a
   file descriptor and ``<location>`` can take the form of a
@@ -265,9 +263,9 @@ the identifier. The DynC domains are as follows:
 
 Example:
 
-::
+.. code-block:: cpp
 
-      inf`printf("n is equal to %d.\n", ++global`n);
+    printf("n is equal to %d.\n", ++global);
 
 This would increment and print the value of the mutatee global variable
 n.
@@ -282,36 +280,36 @@ Block and line comments work as they do in C or C++.
 
 Example:
 
-::
+.. code-block:: cpp
 
-      /*
-       * This is a comment.
-       */
-      int i; // So is this.
+    /*
+     * This is a comment.
+     */
+    int i; // So is this.
 
 Conditionals
 ~~~~~~~~~~~~
 
 Use ``if`` to conditionally execute code. Example:
 
-::
+.. code-block:: cpp
 
-      if(x == 0){
-         inf`printf("x == 0.\n");
-      }
+    if(x == 0){
+        printf("x == 0.\n");
+     }
 
 The ``else`` command can be used to specify code executed if a condition
 is not true. Example:
 
-::
+.. code-block:: cpp
 
-      if(x == 0){
-         inf`printf("x == 0.\n");
-      }else if(x > 3){
-         inf`printf("x > 3.\n");
-      }else{
-         inf`printf("x < 3 but x }= 0.\n");
-      }
+    if(x == 0){
+        printf("x == 0.\n");
+     }else if(x > 3){
+        printf("x > 3.\n");
+     }else{
+        printf("x < 3 but x }= 0.\n");
+     }
 
 .. _`sec:firstOnly`:
 
@@ -326,13 +324,13 @@ snippet.
 
 A first-only code block is equivalent to the following:
 
-::
+.. code-block:: cpp
 
-      static int firstTime = 0;
-      if(firstTime == 0){
-        <code>
-        firstTime = 1;
-      }
+    static int firstTime = 0;
+    if(firstTime == 0){
+      <code>
+      firstTime = 1;
+    }
 
 DynC will only execute the code in a first-only section the first time a
 snippet is executed. If ``createSnippet(...)`` is called multiple times
@@ -346,42 +344,43 @@ where the returned ``BPatch_Snippet`` is inserted.
 
 Example Touch:
 
-::
 
-      {%
-         inf`printf("Function %s has been touched.\n", dyninst`function_name);
-      %}
+.. code-block:: cpp
+
+    {%
+       printf("Function %s has been touched.\n", dyninst function_name);
+    %}
 
 If ``createSnippet(...)`` is passed the code in Example Touch and the
 name ``"fooTouchSnip"`` and the returned ``BPatch_snippet`` is inserted
 at the entry to function ``foo``, the output would be:
 
-::
+.. code-block:: cpp
 
-      Function foo has been touched.
-      (mutatee exit)
+    Function foo has been touched.
+    (mutatee exit)
 
 If the dynC code in Example Touch is passed to ``createSnippet(...)``
 multiple times and each snippet is given the same name, but is inserted
 at the entries of the functions ``foo``, ``bar``, and ``run``
 respectively, the output would be:
 
-::
+.. code-block:: cpp
 
-      Function foo has been touched.
-      (mutatee exit)
+    Function foo has been touched.
+    (mutatee exit)
 
 Creating the snippets with distinct names (e.g. ``createSnippet(...)``
 is called with the dynC code in Example Touch multiple times and the
 snippets are named ``"fooTouchSnip"``, ``"barTouchSnip"``,
 ``"runTouchSnip"``) would produce an output like:
 
-::
+.. code-block:: cpp
 
-      Function foo has been touched.
-      Function bar has been touched.
-      Function run has been touched.
-      (mutatee exit)
+    Function foo has been touched.
+    Function bar has been touched.
+    Function run has been touched.
+    (mutatee exit)
 
 A cautionary note: the use of first-only blocks can be expensive, as a
 conditional must be evaluated each time the snippet is executed. If the
@@ -397,17 +396,17 @@ created.
 
 For example,
 
-::
+.. code-block:: cpp
 
-      int i;
-      i = 5;
+    int i;
+    i = 5;
 
 would create an uninitialized variable named ``i`` of type integer. The
 value of ``i`` is then set to 5. This is equivalent to:
 
-::
-
-      int i = 5;
+.. code-block:: cpp
+   
+    int i = 5;
 
 Static Variables
 ~~~~~~~~~~~~~~~~
@@ -418,33 +417,33 @@ executions of snippets, declare the variable as static.
 
 Example:
 
-::
+.. code-block:: cpp
 
-      int i = 10;
-      inf`printf("i is %d.\n", i++);
+    int i = 10;
+    printf("i is %d.\n", i++);
 
 If the above is inserted at the entrance to a function that is called
 four times, the output would be:
 
-::
+.. code-block:: cpp
 
-   i is 10.
-   i is 10.
-   i is 10.
-   i is 10.
+    i is 10.
+    i is 10.
+    i is 10.
+    i is 10.
 
 Adding ``static`` to the variable declaration would make the value of
 ``i`` persist across executions:
 
-::
+.. code-block:: cpp
 
-      static int i = 10;
-      inf`printf("i is %d.\n", i++);
+    static int i = 10;
+    printf("i is %d.\n", i++);
 
 Produces:
 
-::
-
+.. code-block:: cpp
+    
    i is 10.
    i is 11.
    i is 12.
@@ -453,11 +452,11 @@ Produces:
 A variable declared in a first-only section will also behave statically,
 as the initialization occurs only once.
 
-::
+.. code-block:: cpp
 
-      {%
-         int i = 10;
-      %}
+    {%
+       int i = 10;
+    %}
 
 .. _`sec:varExplain`:
 
@@ -494,53 +493,52 @@ Guide*). This code is located in mutator code (*not* in dynC code).
 
 **myMutator.C:**
 
-::
+.. code-block:: cpp
 
-      ...
-      // Creates a global variable of type in named globalIntN
-      myAddressSpace->malloc(myImage->getType("int"), "globalIntN"); 
+    ...
+    // Creates a global variable of type in named globalIntN
+    myAddressSpace->malloc(myImage->getType("int"), "globalIntN"); 
       
-      // file1 and file2 are FILE *, entryPoint and exitPoint are BPatch_point 
-      BPatch_snippet *snippet1 = dynC::createSnippet(file1, &entryPoint, "mySnippet1"); 
-      BPatch_snippet *snippet2 = dynC::createSnippet(file2, &exitPoint, "mySnippet2");
+    // file1 and file2 are FILE *, entryPoint and exitPoint are BPatch_point 
+    BPatch_snippet *snippet1 = dynC::createSnippet(file1, &entryPoint, "mySnippet1"); 
+    BPatch_snippet *snippet2 = dynC::createSnippet(file2, &exitPoint, "mySnippet2");
       
-      assert(snippet1);
-      assert(snippet2);
+    assert(snippet1);
+    assert(snippet2);
       
-      myAdressSpace->insertSnippet(snippet1, &entryPoint);
-      myAdressSpace->insertSnippet(snippet2, &exitPoint);
+    myAdressSpace->insertSnippet(snippet1, &entryPoint);
+    myAdressSpace->insertSnippet(snippet2, &exitPoint);
       
-      // run the mutatee
-      ((BPatch_process *)myAdressSpace)->continueExecution();
-      ...
+    // run the mutatee
+    ((BPatch_process *)myAdressSpace)->continueExecution();
+    ...
 
 **file1:**
 
-::
+.. code-block:: cpp
 
-      {%
-         global`globalIntN = 0; // initialize global variable in first-only section
-      %}
-      inf`printf("Welcome to function %s. Global variable globalIntN = %d.\n", 
-           dyninst`function_name, global`globalIntN++);
+    global globalIntN = 0; // initialize global variable in first-only section
+    printf("Welcome to function %s. Global variable globalIntN = %d.\n", 
+      dyninst function_name, global globalIntN++);
+
 
 **file2:**
 
-::
+.. code-block:: cpp
 
-      inf`printf("Goodbye from function %s. Global variable globalIntN = %d.\n", 
-           dyninst`function_name, global`globalIntN++);
+    printf("Goodbye from function %s. Global variable globalIntN = %d.\n", 
+      dyninst function_name, global globalIntN++);
 
 When run, the output from the instrumentation would be:
 
-::
+.. code-block:: cpp
 
-      Welcome to function foo. Global variable globalIntN = 0.
-      Goodbye from function foo. Global variable globalIntN = 1.
-      Welcome to function foo. Global variable globalIntN = 2.
-      Goodbye from function foo. Global variable globalIntN = 3.
-      Welcome to function foo. Global variable globalIntN = 4.
-      Goodbye from function foo. Global variable globalIntN = 5.
+    Welcome to function foo. Global variable globalIntN = 0.
+    Goodbye from function foo. Global variable globalIntN = 1.
+    Welcome to function foo. Global variable globalIntN = 2.
+    Goodbye from function foo. Global variable globalIntN = 3.
+    Welcome to function foo. Global variable globalIntN = 4.
+    Goodbye from function foo. Global variable globalIntN = 5.
 
 .. _dataTypes:
 
@@ -552,10 +550,11 @@ Data Types
   c-string primitives are also recognized:
 | Example:
 
-::
 
-      int i = 12;
-      char *s = "hello";
+.. code-block:: cpp
+
+    int i = 12;
+    char *s = "hello";
 
 Pointers
 ~~~~~~~~
@@ -572,13 +571,13 @@ Arrays in DynC behave much the same way they do in C.
 
 Example:
 
-::
+.. code-block:: cpp
 
-      int array[3] = {1, 2, 3};
-      char *names[] = {"Mark", "Phil", "Deb", "Tracy"};
-      names[2] = "Gwen" // change Deb to Gwen
-      inf`printf("The seventh element of mutArray is %d.\n", global`mutArray[6]); //Mutatee array 
-      if(inf`strcmp(*names, "Mark") == 0){} // This will evaluate to true. 
+    int array[3] = {1, 2, 3};
+    char *names[] = {"Mark", "Phil", "Deb", "Tracy"};
+    names[2] = "Gwen" // change Deb to Gwen
+    printf("The seventh element of mutArray is %d.\n", global mutArray[6]); //Mutatee array 
+    if(istrcmp(*names, "Mark") == 0){} // This will evaluate to true. 
 
 DynC Limitations
 ----------------

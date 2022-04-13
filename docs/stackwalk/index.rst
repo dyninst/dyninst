@@ -1,9 +1,7 @@
-.. container:: titlepage
+.. _`sec:stackwalk-intro`:
 
-.. _`sec:intro`:
-
-Introduction
-============
+Stackwalk Introduction
+======================
 
 This document describes StackwalkerAPI, an API and library for walking a
 call stack. The call stack (also known as the run-time stack) is a stack
@@ -28,7 +26,7 @@ about the call stack. For example, the following C++ code-snippet is all
 that is needed to walk and print the call stack of the currently running
 thread.
 
-::
+.. code-block:: cpp
 
    std::vector<Frame> stackwalk; 
    string s;
@@ -47,7 +45,7 @@ stackwalk). To change the above example to perform a third party
 stackwalk, we would only need to pass a process identifier to newWalker,
 e.g:
 
-::
+.. code-block:: cpp
 
    Walker *walker = Walker::newWalker(pid);
 
@@ -93,10 +91,10 @@ Look up symbolic names
    performs an address to name mapping, allowing StackwalkerAPI to
    associate names with stack frames.
 
-.. _`sec:abstractions`:
+.. _`sec:stackwalk-abstractions`:
 
-Abstractions
-============
+Stackwalk Abstractions
+======================
 
 StackwalkerAPI contains two interfaces: the Stackwalking Interface and
 the Callback Interface. The stackwalking interface is used to walk the
@@ -137,8 +135,8 @@ Frame
    information such as the symbolic name associated with the Frame
    object, and values of its saved registers.
 
-Callback Interface
-------------------
+Stackwalk Callback Interface
+----------------------------
 
 StackwalkerAPI includes default implementations of the Callback
 Interface on each of its supported platforms. These default
@@ -184,10 +182,10 @@ SymbolLookup
    StackwalkerAPI. A user could, for example, use this interface to
    allow StackwalkerAPI to use libelf to look up symbol names instead.
 
-.. _`sec:api`:
+.. _`sec:stackwalk-api`:
 
-API Reference
-=============
+Stackwalk API Reference
+=======================
 
 This section describes the StackwalkerAPI interface. It is divided into
 three sub-sections: a description of the definitions and basic types
@@ -314,22 +312,30 @@ may not directly match the target process’ pointer representation.
 Address is guaranteed to be at least large enough to hold an address in
 a target process, but may be larger.
 
-typedef ... Dyninst::PID
+.. code-block:: cpp
+
+    typedef ... Dyninst::PID
 
 A handle for identifying a process. On UNIX systems this will be an
 integer representing a PID. On Windows this will be a HANDLE object.
 
-typedef ... Dyninst::THR_ID
+.. code-block:: cpp
+
+    typedef ... Dyninst::THR_ID
 
 A handle for identifying a thread. On Linux platforms this is an integer
 referring to a TID (Thread Identifier). On Windows it is a HANDLE
 object.
 
-class Dyninst::MachRegister
+.. code-block:: cpp
+
+    class Dyninst::MachRegister
 
 A value that names a machine register.
 
-typedef unsigned long Dyninst::MachRegisterVal
+.. code-block:: cpp
+
+    typedef unsigned long Dyninst::MachRegisterVal
 
 A value that holds the contents of a register. A Dyninst::MachRegister
 names a specific register, while a Dyninst::MachRegisterVal represents
@@ -348,8 +354,8 @@ namespace Stackwalker.
 
 .. _`sec:stackwalking-interface`:
 
-Stackwalking Interface
-----------------------
+Stackwalk Interface
+-------------------
 
 This section describes StackwalkerAPI’s interface for walking a call
 stack. This interface is sufficient for walking call stacks on all the
@@ -358,22 +364,22 @@ systems and variations covered by our default callbacks.
 To collect a stackwalk, first create new Walker object associated with
 the target process via
 
-::
+.. code-block:: cpp
 
        Walker::newWalker()
 
 or
 
-::
+.. code-block:: cpp
 
-       Walker::newWalker(Dyninst::PID pid)
+    Walker::newWalker(Dyninst::PID pid)
 
 Once a Walker object has been created, a call stack can be walked with
 the
 
-::
+.. code-block:: cpp
 
-   Walker::walkStack
+    Walker::walkStack
 
 method. The new stack walk is returned as a vector of Frame objects.
 
@@ -411,13 +417,13 @@ customize how the ``Walker`` steps through stack frames. The
 ``SymbolLookup`` object is used to customize how StackwalkerAPI looks up
 symbolic names of the function or object that created a stack frame.
 
-static Walker \*newWalker() static Walker \*newWalker(Dyninst::PID pid)
-static Walker \*newWalker(Dyninst::PID pid, std::string executable)
-static Walker \*newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
-static Walker \*newWalker(std::string executable, const
-std::vector<std::string> &argv) static Walker \*newWalker(ProcessState
-\*proc, StepperGroup \*steppergroup = NULL , SymbolLookup \*lookup =
-NULL)
+.. code-block:: cpp
+
+    static Walker *newWalker() static Walker *newWalker(Dyninst::PID pid)
+    static Walker *newWalker(Dyninst::PID pid, std::string executable)
+    static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
+    static Walker *newWalker(std::string executable, const
+    std::vector<std::string> &argv) static Walker *newWalker(ProcessState *proc, StepperGroup *steppergroup = NULL , SymbolLookup *lookup = NULL)
 
 These factory methods return new Walker objects:
 
@@ -451,18 +457,21 @@ This method returns NULL if it was unable to create a new Walker object.
 The new Walker object was created with the new operator, and should be
 deallocated with the delete operator when it is no longer needed.
 
-static bool newWalker(const std::vector<Dyninst::PID> &pids,
-std::vector<Walker \*> &walkers_out) static bool newWalker(const
-std::vector<Dyninst::PID> &pids, std::vector<Walker \*> &walkers_out,
-std::string executable)
+.. code-block:: cpp
+
+    static bool newWalker(const std::vector<Dyninst::PID> &pids,
+    std::vector<Walker *> &walkers_out) static bool newWalker(const
+    std::vector<Dyninst::PID> &pids, std::vector<Walker *> &walkers_out,
+    std::string executable)
 
 This method attaches to a group of processes and returns a vector of
 Walker objects that perform third-party stackwalks. As above, the first
 variant takes a list of PIDs and attaches to those processes; the second
 variant also specifies the executable binary.
 
-bool walkStack(std::vector<Frame> &stackwalk, Dyninst::THR_ID thread =
-NULL_THR_ID)
+.. code-block:: cpp
+
+    bool walkStack(std::vector<Frame> &stackwalk, Dyninst::THR_ID thread = NULL_THR_ID)
 
 This method walks a call stack in the process associated with this
 ``Walker``. The call stack is returned as a vector of ``Frame`` objects
@@ -480,8 +489,9 @@ including signal handlers and optimized, frameless functions.
 
 This method returns ``true`` on success and ``false`` on failure.
 
-bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame
-&frame)
+.. code-block:: cpp
+
+    bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
 
 This method walks a call stack starting from the given stack frame,
 ``frame``. The call stack will be output in the ``stackwalk`` vector,
@@ -490,14 +500,18 @@ stack stored in index ``stackwalk.size()-1``.
 
 This method returns ``true`` on success and ``false`` on failure.
 
-bool walkSingleFrame(const Frame &in, Frame &out)
+.. code-block:: cpp
+
+    bool walkSingleFrame(const Frame &in, Frame &out)
 
 This methods walks through single frame, ``in``. Parameter ``out`` will
 be set to ``in``\ ’s caller frame.
 
 This method returns ``true`` on success and ``false`` on failure.
 
-bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
+.. code-block:: cpp
+
+    bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
 
 This method returns the ``Frame`` object on the top of the stack in
 parameter frame. Under ``walkStack``, ``frame`` would be the one
@@ -510,7 +524,9 @@ default thread will be the thread that called ``getInitialFrame``.
 
 This method returns ``true`` on success and ``false`` on failure.
 
-bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
+.. code-block:: cpp
+
+    bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
 
 This method returns a vector of threads in the target process upon which
 StackwalkerAPI can walk call stacks. The threads are returned in output
@@ -522,36 +538,50 @@ a vector containing only the current thread.
 
 This method returns ``true`` on success and ``false`` on failure.
 
-ProcessState \*getProcessState() const
+.. code-block:: cpp
+
+    ProcessState *getProcessState() const
 
 This method returns the ``ProcessState`` object associated with this
 ``Walker``.
 
-StepperGroup \*getStepperGroup() const
+.. code-block:: cpp
+
+    StepperGroup *getStepperGroup() const
 
 This method returns the ``StepperGroup`` object associated with this
 ``Walker``.
 
-SymbolLookup \*getSymbolLookup() const
+.. code-block:: cpp
+
+    SymbolLookup *getSymbolLookup() const
 
 This method returns the ``SymbolLookup`` object associated with this
 ``Walker``.
 
-bool addStepper(FrameStepper \*stepper)
+.. code-block:: cpp
+
+    bool addStepper(FrameStepper *stepper)
 
 This method adds a provided FrameStepper to those used by the Walker.
 
-static SymbolReaderFactory \*getSymbolReader()
+.. code-block:: cpp
+
+    static SymbolReaderFactory *getSymbolReader()
 
 This method returns a factory for creating process-specific symbol
 readers. Unlike the above methods it is global across all Walkers and is
 thus defined static.
 
-static void setSymbolReader(SymbolReaderFactory \*);
+.. code-block:: cpp
+
+    static void setSymbolReader(SymbolReaderFactory *);
 
 Set the symbol reader factory used when creating ``Walker`` objects.
 
-static void version(int &major, int &minor, int &maintenance)
+.. code-block:: cpp
+
+    static void version(int &major, int &minor, int &maintenance)
 
 This method returns version information (e.g., 8, 0, 0 for the 8.0
 release).
@@ -580,9 +610,9 @@ uses these functions to change return addresses on the stack when it
 relocates code. The RA, SP, and FP may be found in a register or in a
 memory address on a call stack.
 
-static Frame \*newFrame(Dyninst::MachRegisterVal ra,
-Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker
-\*walker)
+.. code-block:: cpp
+
+    static Frame *newFrame(Dyninst::MachRegisterVal ra, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker)
 
 This method creates a new ``Frame`` object and sets the mandatory data
 members: RA, SP and FP. The new ``Frame`` object is associated with
@@ -594,43 +624,59 @@ The new ``Frame`` object is created with the ``new`` operator, and the
 user should be deallocate it with the ``delete`` operator when it is no
 longer needed.
 
-bool operator==(const Frame &)
+.. code-block:: cpp
+
+    bool operator==(const Frame &)
 
 ``Frame`` objects have a defined equality operator.
 
-Dyninst::MachRegisterVal getRA() const
+.. code-block:: cpp
+
+    Dyninst::MachRegisterVal getRA() const
 
 This method returns this ``Frame`` object’s return address.
 
-void setRA(Dyninst::MachRegisterVal val)
+.. code-block:: cpp
+
+    void setRA(Dyninst::MachRegisterVal val)
 
 This method sets this ``Frame`` object’s return address to ``val``.
 
-Dyninst::MachRegisterVal getSP() const
+.. code-block:: cpp
+
+    Dyninst::MachRegisterVal getSP() const
 
 This method returns this ``Frame`` object’s stack pointer.
 
-void setSP(Dyninst::MachRegisterVal val)
+.. code-block:: cpp
+
+    void setSP(Dyninst::MachRegisterVal val)
 
 This method sets this ``Frame`` object’s stack pointer to ``val``.
 
-Dyninst::MachRegisterVal getFP() const
+.. code-block:: cpp
+
+    Dyninst::MachRegisterVal getFP() const
 
 This method returns this ``Frame`` object’s frame pointer.
 
-void setFP(Dyninst::MachRegisterVal val)
+.. code-block:: cpp
+
+    void setFP(Dyninst::MachRegisterVal val)
 
 This method sets this ``Frame`` object’s frame pointer to ``val``.
 
-bool isTopFrame() const; bool isBottomFrame() const;
+.. code-block:: cpp
+
+    bool isTopFrame() const; bool isBottomFrame() const;
 
 These methods return whether a ``Frame`` object is the top (e.g., most
 recently executing) or bottom of the stack walk.
 
-typedef enum loc_address, loc_register, loc_unknown storage_t;
+.. code-block:: cpp
 
-typedef struct union Dyninst::Address addr; Dyninst::MachRegister reg;
-val; storage_t location; location_t;
+    typedef enum loc_address, loc_register, loc_unknown storage_t;
+    typedef struct union Dyninst::Address addr; Dyninst::MachRegister reg; val; storage_t location; location_t;
 
 The ``location_t`` structure is used by the ``getRALocation``,
 ``getSPLocation``, and ``getFPLocation`` methods to describe where in
@@ -645,31 +691,45 @@ object was not created by a stackwalk (using the ``newframe`` factory
 method, for example), and has not had a set location method called, then
 location will contain ``loc_unknown``.
 
-location_t getRALocation() const
+.. code-block:: cpp
+
+    location_t getRALocation() const
 
 This method returns a ``location_t`` describing where the RA was found.
 
-void setRALocation(location_t newval)
+.. code-block:: cpp
+
+    void setRALocation(location_t newval)
 
 This method sets the location of where the RA was found to newval.
 
-location_t getSPLocation() const
+.. code-block:: cpp
+
+    location_t getSPLocation() const
 
 This method returns a ``location_t`` describing where the SP was found.
 
-void setSPLocation(location_t newval)
+.. code-block:: cpp
+
+    void setSPLocation(location_t newval)
 
 This method sets the location of where the SP was found to ``newval``.
 
-location_t getFPLocation() const
+.. code-block:: cpp
+
+    location_t getFPLocation() const
 
 This method returns a ``location_t`` describing where the FP was found.
 
-void setFPLocation(location_t newval)
+.. code-block:: cpp
+
+    void setFPLocation(location_t newval)
 
 This method sets the location of where the FP was found to ``newval``.
 
-bool getName(std::string &str) const
+.. code-block:: cpp
+
+    bool getName(std::string &str) const
 
 This method returns a stack frame’s symbolic name. Most stack frames are
 created by functions, or function-like objects such as signal handlers
@@ -688,7 +748,9 @@ error.
 
 This method returns ``true`` on success and ``false`` on error.
 
-bool getObject(void\* &obj) const
+.. code-block:: cpp
+
+    bool getObject(void* &obj) const
 
 In addition to returning a symbolic name (see ``getName``) the
 ``SymbolLookup`` interface allows for an opaque object, a ``void*``, to
@@ -699,25 +761,31 @@ object or NULL if no symbol is found.
 
 This method returns ``true`` on success and ``false`` on error.
 
-Walker \*getWalker() const;
+.. code-block:: cpp
+
+    Walker *getWalker() const;
 
 This method returns the ``Walker`` object that constructed this stack
 frame.
 
-THR_ID getThread() const;
+.. code-block:: cpp
+
+    THR_ID getThread() const;
 
 This method returns the execution thread that the current ``Frame``
 represents.
 
-FrameStepper\* getStepper() const
+.. code-block:: cpp
+
+    FrameStepper* getStepper() const
 
 This method returns the ``FrameStepper`` object that was used to
 construct this ``Frame`` object in the ``stepper`` output parameter.
-
 This method returns ``true`` on success and ``false`` on error.
 
-bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void\*
-&symtab) const
+.. code-block:: cpp
+
+    bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const
 
 This method returns the DSO (a library or executable) and an offset into
 that DSO that points to the location within that DSO where this frame
@@ -728,7 +796,9 @@ default it will contain a pointer to a Dyninst::Symtab object for this
 DSO. See the SymtabAPI Programmer’s Guide for more information on using
 Dyninst::Symtab objects.
 
-bool nonCall() const
+.. code-block:: cpp
+
+    bool nonCall() const
 
 This method returns whether a ``Frame`` object represents a function
 call; if ``false``, the ``Frame`` may represent instrumentation, a
@@ -742,42 +812,55 @@ Mapping Addresses to Libraries
 StackwalkerAPI provides an interface to access the addresses where
 libraries are mapped in the target process.
 
-typedef std::pair<std::string, Address> LibAddrPair;
+.. code-block:: cpp
+
+    typedef std::pair<std::string, Address> LibAddrPair;
 
 A pair consisting of a library filename and its base address in the
 target process.
 
-class LibraryState
+.. code-block:: cpp
+
+    class LibraryState
 
 Class providing interfaces for library tracking. Only the public query
 interfaces below are user-facing; the other public methods are callbacks
 that allow StackwalkerAPI to update its internal state.
 
-virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
+.. code-block:: cpp
+
+    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
 
 Given an address ``addr`` in the target process, returns ``true`` and
 sets ``lib`` to the name and base address of the library containing
 addr. Given an address outside the target process, returns ``false``.
 
-virtual bool getLibraries(std::vector<LibAddrPair> &libs, bool
-allow_refresh = true) = 0;
+.. code-block:: cpp
+
+    virtual bool getLibraries(std::vector<LibAddrPair> &libs, bool allow_refresh = true) = 0;
 
 Fills ``libs`` with the libraries loaded in the target process. If
 ``allow_refresh`` is true, this method will attempt to ensure that this
 list is freshly updated via inspection of the process; if it is false,
 it will return a cached list.
 
-virtual bool getLibc(LibAddrPair &lc);
+.. code-block:: cpp
+
+    virtual bool getLibc(LibAddrPair &lc);
 
 Convenience function to find the name and base address of the standard C
 runtime, if present.
 
-virtual bool getLibthread(LibAddrPair &lt);
+.. code-block:: cpp
+
+    virtual bool getLibthread(LibAddrPair &lt);
 
 Convenience function to find the name and base address of the standard
 thread library, if present (e.g. pthreads).
 
-virtual bool getAOut(LibAddrPair &ao) = 0;
+.. code-block:: cpp
+
+    virtual bool getAOut(LibAddrPair &ao) = 0;
 
 Convenience function to find the name and base address of the
 executable.
@@ -798,18 +881,21 @@ look up local variables contained in that function and the types of
 those local variables. See the SymtabAPI Programmer’s Guide for more
 information.
 
-static Dyninst::SymtabAPI::Function \*getFunctionForFrame(Frame f)
+.. code-block:: cpp
+
+    static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
 
 This method returns a SymtabAPI function handle for the function that
 created the call stack frame, f.
 
-static int glvv_Success = 0; static int glvv_EParam = -1; static int
-glvv_EOutOfScope = -2; static int glvv_EBufferSize = -3; static int
-glvv_EUnknown = -4;
+.. code-block:: cpp
 
-static int getLocalVariableValue(Dyninst::SymtabAPI::localVar \*var,
-std::vector<Frame> &swalk, unsigned frame, void \*out_buffer, unsigned
-out_buffer_size)
+    static int glvv_Success = 0; static int glvv_EParam = -1; static int
+    glvv_EOutOfScope = -2; static int glvv_EBufferSize = -3; static int
+    glvv_EUnknown = -4;
+
+    static int getLocalVariableValue(Dyninst::SymtabAPI::localVar *var,
+    std::vector<Frame> &swalk, unsigned frame, void *out_buffer, unsigned out_buffer_size)
 
 Given a local variable and a stack frame from a call stack, this
 function returns the value of the variable in that frame. The local
@@ -857,8 +943,8 @@ glvv_EUnknown
 
 .. _`sec:callback-interface`:
 
-Callback Interface
-------------------
+Stackwalk Callback Interface
+----------------------------
 
 This subsection describes the Callback Interface for StackwalkerAPI. The
 Callback Interface is primarily used to port StackwalkerAPI to new
@@ -872,7 +958,7 @@ the necessary methods. To use a new ProcessState, StepperGroup, or
 SymbolLookup class with StackwalkerAPI, create a new instance of the
 class and register it with a new Walker object using the
 
-::
+.. code-block:: cpp
 
    Walker::newWalker(ProcessState *, StepperGroup *, SymbolLookup *)
 
@@ -880,7 +966,7 @@ factory method (see Section `3.3.1 <#subsec:walker>`__). To use a new
 FrameStepper class with StackwalkerAPI, create a new instance of the
 class and register it with a StepperGroup using the
 
-::
+.. code-block:: cpp
 
    StepperGroup::addStepper(FrameStepper *)
 
@@ -979,10 +1065,10 @@ this class and implement the the desired virtual functions. The
 ``getCallerFrame, getPriority``, and ``getName`` functions must be
 implemented; all others may be overridden if desired.
 
-typedef enum gcf_success, gcf_stackbottom, gcf_not_me, gcf_error
-gcframe_ret_t
+.. code-block:: cpp
 
-virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0
+    typedef enum gcf_success, gcf_stackbottom, gcf_not_me, gcf_error gcframe_ret_t
+    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0
 
 This method walks through a single stack frame and generates a Frame
 object that represents the caller’s stack frame. Parameter in will be a
@@ -1046,7 +1132,9 @@ through. StackwalkerAPI will then attempt to locate another
 return ``gcf_error`` if there was an error and the stack walk should be
 aborted.
 
-virtual void registerStepperGroup(StepperGroup \*steppergroup)
+.. code-block:: cpp
+
+    virtual void registerStepperGroup(StepperGroup *steppergroup)
 
 This method is used to notify a ``FrameStepper`` when StackwalkerAPI
 adds it to a ``StepperGroup``. The ``StepperGroup`` to which this
@@ -1054,7 +1142,9 @@ adds it to a ``StepperGroup``. The ``StepperGroup`` to which this
 This method can be used to initialize the ``FrameStepper`` (in addition
 to any ``FrameStepper`` constructor).
 
-virtual unsigned getPriority() const = 0
+.. code-block:: cpp
+
+    virtual unsigned getPriority() const = 0
 
 This method is used by the ``StepperGroup`` to decide which
 ``FrameStepper`` to use if multiple ``FrameStepper`` objects are
@@ -1069,28 +1159,38 @@ return priorities between ``0x1000`` and ``0x2000``. If two
 have the same priority, then the order in which they are used is
 undefined.
 
-FrameStepper(Walker \*w);
+.. code-block:: cpp
+
+    FrameStepper(Walker *w);
 
 Constructor definition for all ``FrameStepper`` instances.
 
-virtual ProcessState \*getProcessState();
+.. code-block:: cpp
+
+    virtual ProcessState *getProcessState();
 
 Return the ``ProcessState`` used by the ``FrameStepper``. Can be
 overridden if the user desires.
 
-virtual Walker \*getWalker();
+.. code-block:: cpp
+
+    virtual Walker *getWalker();
 
 Return the ``Walker`` associated with the ``FrameStepper``. Can be
 overridden if the user desires.
 
-typedef std::pair<std::string, Address> LibAddrPair; typedef enum
-library_load, library_unload lib_change_t; virtual void
-newLibraryNotification(LibAddrPair \*libAddr, lib_change_t change);
+.. code-block:: cpp
+
+    typedef std::pair<std::string, Address> LibAddrPair; typedef enum
+    library_load, library_unload lib_change_t; virtual void
+    newLibraryNotification(LibAddrPair *libAddr, lib_change_t change);
 
 This function is called when a new library is loaded by the process; it
 should be implemented if the ``FrameStepper`` requires such information.
 
-virtual const char \*getName() const = 0;
+.. code-block:: cpp
+
+    virtual const char *getName() const = 0;
 
 Returns a name for the ``FrameStepper``; must be implemented by the
 user.
@@ -1115,12 +1215,16 @@ of that interface. Users who want to customize the ``StepperGroup``
 should inherit from this class and re-implement any of the below virtual
 functions.
 
-StepperGroup(Walker \*walker)
+.. code-block:: cpp
+
+    StepperGroup(Walker *walker)
 
 This factory constructor creates a new ``StepperGroup`` object
 associated with ``walker``.
 
-virtual bool addStepper(FrameStepper \*stepper)
+.. code-block:: cpp
+
+    virtual bool addStepper(FrameStepper *stepper)
 
 This method adds a new ``FrameStepper`` to this ``StepperGroup``. The
 newly added stepper will be tracked by this ``StepperGroup``, and it
@@ -1129,19 +1233,23 @@ will be considered for use when walking through stack frames.
 This method returns ``true`` if it successfully added the
 ``FrameStepper``, and ``false`` on error.
 
-virtual bool addStepper(FrameStepper \*stepper, Address start, Address
-end) = 0;
+.. code-block:: cpp
+
+    virtual bool addStepper(FrameStepper *stepper, Address start, Address end) = 0;
 
 Add the specified ``FrameStepper`` to the list of known steppers, and
 register it to handle frames in the range [``start``, ``end``).
 
-virtual void registerStepper(FrameStepper \*stepper);
+.. code-block:: cpp
+
+    virtual void registerStepper(FrameStepper *stepper);
 
 Add the specified ``FrameStepper`` to the list of known steppers and use
 it over the entire address space.
 
-virtual bool findStepperForAddr(Address addr, FrameStepper\* &out, const
-FrameStepper \*last_tried = NULL) = 0
+.. code-block:: cpp
+
+    virtual bool findStepperForAddr(Address addr, FrameStepper* &out, const FrameStepper *last_tried = NULL) = 0
 
 Given an address that points into a function (or function-like object),
 addr, this method decides which ``FrameStepper`` should be used to walk
@@ -1165,18 +1273,24 @@ the one with the highest priority will be tried first.
 
 This method returns ``true`` on success and ``false`` on failure.
 
-typedef std::pair<std::string, Address> LibAddrPair; typedef enum
-library_load, library_unload lib_change_t; virtual void
-newLibraryNotification(LibAddrPair \*libaddr, lib_change_t change);
+.. code-block:: cpp
+
+    typedef std::pair<std::string, Address> LibAddrPair; typedef enum
+    library_load, library_unload lib_change_t; virtual void
+    newLibraryNotification(LibAddrPair *libaddr, lib_change_t change);
 
 Called by the StackwalkerAPI when a new library is loaded.
 
-Walker \*getWalker() const
+.. code-block:: cpp
+
+    Walker *getWalker() const
 
 This method returns the Walker object that associated with this
 StepperGroup.
 
-void getSteppers(std::set<FrameStepper \*> &);
+.. code-block:: cpp
+
+    void getSteppers(std::set<FrameStepper *> &);
 
 Fill in the provided set with all ``FrameSteppers`` registered in the
 ``StepperGroup``.
@@ -1198,30 +1312,40 @@ and ``ProcDebug`` does a third party stackwalk.
 A new ``ProcessState`` class can be created by inheriting from this
 class and implementing the necessary methods.
 
-static ProcessState \*getProcessStateByPid(Dyninst::PID pid)
+.. code-block:: cpp
+
+    static ProcessState *getProcessStateByPid(Dyninst::PID pid)
 
 Given a ``PID``, return the corresponding ``ProcessState`` object.
 
-virtual unsigned getAddressWidth() = 0;
+.. code-block:: cpp
+
+    virtual unsigned getAddressWidth() = 0;
 
 Return the number of bytes in a pointer for the target process. This
 value is 4 for 32-bit platforms (x86, PowerPC-32) and 8 for 64-bit
 platforms (x86-64, PowerPC-64).
 
-typedef enum Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 Architecture;
-virtual Dyninst::Architecture getArchitecture() = 0;
+.. code-block:: cpp
+
+    typedef enum Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 Architecture;
+    virtual Dyninst::Architecture getArchitecture() = 0;
 
 Return the appropriate architecture for the target process.
 
-virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID
-thread, Dyninst::MachRegisterVal &val) = 0
+.. code-block:: cpp
+
+    virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID
+    thread, Dyninst::MachRegisterVal &val) = 0
 
 This method takes a register name as input, ``reg``, and returns the
 value in that register in ``val`` in the thread thread.
 
 This method returns ``true`` on success and ``false`` on error.
 
-virtual bool readMem(void \*dest, Address source, size_t size) = 0
+.. code-block:: cpp
+
+    virtual bool readMem(void *dest, Address source, size_t size) = 0
 
 This method reads memory from the target process. Parameter ``dest``
 should point to an allocated buffer of memory at least ``size`` bytes in
@@ -1230,7 +1354,9 @@ target process to be read from. If this method succeeds, ``size`` bytes
 of memory is copied from ``source``, stored in ``dest``, and ``true`` is
 returned. This method returns ``false`` otherwise.
 
-virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0
+.. code-block:: cpp
+
+    virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0
 
 This method returns a list of threads whose call stacks can be walked in
 the target process. Thread are returned in the ``threads`` vector. In
@@ -1244,24 +1370,32 @@ thread (see ``Walker::WalkStack``).
 
 This method returns ``true`` on success and ``false`` on error.
 
-virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
+.. code-block:: cpp
+
+    virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
 
 This method returns the thread representing the initial process in the
 ``default_tid`` output parameter.
 
 This method returns ``true`` on success and ``false`` on error.
 
-virtual Dyninst::PID getProcessId()
+.. code-block:: cpp
+
+    virtual Dyninst::PID getProcessId()
 
 This method returns a process ID for the target process. The default
 ``ProcessState`` implementations (``ProcDebug`` and ``ProcSelf``) will
 return a PID on UNIX systems and a HANDLE object on Windows.
 
-Walker \*getWalker() const;
+.. code-block:: cpp
+
+    Walker *getWalker() const;
 
 Return the ``Walker`` associated with the current process state.
 
-std::string getExecutablePath();
+.. code-block:: cpp
+
+    std::string getExecutablePath();
 
 Returns the name of the executable associated with the current process
 state.
@@ -1280,7 +1414,9 @@ walk.
 Each ``Library`` is represented using a ``LibAddrPair`` object, which is
 defined as follows:
 
-typedef std::pair<std::string, Dyninst::Address> LibAddrPair
+.. code-block:: cpp
+
+    typedef std::pair<std::string, Dyninst::Address> LibAddrPair
 
 ``LibAddrPair.first`` refers to the file path of the library that was
 loaded, and ``LibAddrPair.second`` is the load address of that library
@@ -1288,7 +1424,9 @@ in the process’ address space. The load address of a library can be
 added to a symbol offset from the file in order to get the absolute
 address of a symbol.
 
-virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0
+.. code-block:: cpp
+
+    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0
 
 This method returns a DSO, using the ``lib`` output parameter, that is
 loaded over address ``addr`` in the current process.
@@ -1296,21 +1434,27 @@ loaded over address ``addr`` in the current process.
 This method returns ``false`` if no library is loaded over ``addr`` or
 an error occurs, and ``true`` if it successfully found a library.
 
-virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0
+.. code-block:: cpp
+
+    virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0
 
 This method returns all DSOs that are loaded into the process’ address
 space in the output vector parameter, ``libs``.
 
 This method returns ``true`` on success and ``false`` on error.
 
-virtual void notifyOfUpdate() = 0
+.. code-block:: cpp
+
+    virtual void notifyOfUpdate() = 0
 
 This method is called by the ``ProcessState`` when it detects a change
 in the process’ list of loaded libraries. Implementations of
 ``LibraryStates`` should use this method to refresh their lists of
 loaded libraries.
 
-virtual Address getLibTrapAddress() = 0
+.. code-block:: cpp
+
+    virtual Address getLibTrapAddress() = 0
 
 Some platforms that implement the System/V standard (Linux) use a trap
 event to determine when a process loads a library. A trap instruction is
@@ -1344,12 +1488,15 @@ The default implementation of ``SymbolLookup`` provided by
 StackwalkerAPI uses the ``SymLite`` tool to lookup symbol names. It
 returns a Symbol object in the anonymous ``void*``.
 
-SymbolLookup(std::string exec_path = "");
+.. code-block:: cpp
+
+    SymbolLookup(std::string exec_path = "");
 
 Constructor for a ``SymbolLookup`` object.
 
-virtual bool lookupAtAddr(Address addr, string &out_name, void\*
-&out_value) = 0
+.. code-block:: cpp
+
+    virtual bool lookupAtAddr(Address addr, string &out_name, void* &out_value) = 0
 
 This method takes an address, ``addr``, as input and returns the
 function name, ``out_name``, and an opaque value, ``out_value``, at that
@@ -1361,12 +1508,16 @@ values returned are used by the ``Frame::getName`` and
 
 This method returns ``true`` on success and ``false`` on error.
 
-virtual Walker \*getWalker()
+.. code-block:: cpp
+
+    virtual Walker *getWalker()
 
 This method returns the ``Walker`` object associated with this
 ``SymbolLookup``.
 
-virtual ProcessState \*getProcessSate()
+.. code-block:: cpp
+
+    virtual ProcessState *getProcessSate()
 
 This method returns the ``ProcessState`` object associated with this
 ``SymbolLookup``.
@@ -1395,8 +1546,8 @@ To illustrate the complexities with running in 3rd party mode, consider
 the follow code snippet that uses StackwalkerAPI to collect a stack walk
 every five seconds.
 
-::
-
+.. code-block:: cpp
+    
    Walker *walker = Walker::newWalker(pid);
    std::vector<Frame> swalk;
    for (;;) {
@@ -1435,7 +1586,7 @@ more information on the ``select`` system call. Note that this example
 does not include all of the proper error handling and includes that
 should be present when using ``select``.
 
-::
+.. code-block:: cpp
 
    Walker *walker = Walker::newWalker(pid);
    ProcDebug *debugger = (ProcDebug *) walker->getProcessState();
@@ -1476,7 +1627,7 @@ get at a ``ProcDebug`` object is to cast the return value of
 operation can be used to test if a ``Walker`` uses the ``ProcDebug``
 interface:
 
-::
+.. code-block:: cpp
 
    ProcDebug *debugger;
    debugger = dynamic_cast<ProcDebug*>(walker->getProcessState());
@@ -1496,7 +1647,9 @@ death. As an implementation of the ``ProcessState`` class, ``ProcDebug``
 also provides all of the functionality described in
 Section `3.6.4 <#subsec:processstate>`__.
 
-virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
+.. code-block:: cpp
+
+    virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
 
 This method pauses a process or thread. The paused object will not
 resume execution until ``ProcDebug::resume`` is called. If the ``tid``
@@ -1514,7 +1667,9 @@ thread.
 
 This method returns ``true`` if successful and ``false`` on error.
 
-virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
+.. code-block:: cpp
+
+    virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
 
 This method resumes execution on a paused process or thread. This method
 only resumes threads that were paused by the ``ProcDebug::pause`` call,
@@ -1525,7 +1680,9 @@ all paused threads in the process.
 
 This method returns ``true`` if successful and ``false`` on error.
 
-virtual bool detach(bool leave_stopped = false)
+.. code-block:: cpp
+
+    virtual bool detach(bool leave_stopped = false)
 
 This method detaches StackwalkerAPI from the target process.
 StackwalkerAPI will no longer receive debug events on this target
@@ -1544,7 +1701,9 @@ detach call.
 
 This method returns ``true`` if successful and ``false`` on error.
 
-virtual bool isTerminated()
+.. code-block:: cpp
+
+    virtual bool isTerminated()
 
 This method returns ``true`` if the associated target process has
 terminated and ``false`` otherwise. A target process may terminate
@@ -1556,7 +1715,9 @@ A process termination will also be signaled through the notification FD.
 Users should check processes for the isTerminated state after returning
 from handleDebugEvent.
 
-static int getNotificationFD()
+.. code-block:: cpp
+
+    static int getNotificationFD()
 
 This method returns StackwalkerAPI’s notification FD. The notification
 FD is a file descriptor that StackwalkerAPI will write a byte to
@@ -1569,7 +1730,9 @@ Section `4.1 <#subsec:debugger>`__.
 StackwalkerAPI will only create one notification FD, even if it is
 attached to multiple 3rd party target processes.
 
-static bool handleDebugEvent(bool block = false)
+.. code-block:: cpp
+
+    static bool handleDebugEvent(bool block = false)
 
 When this method is called StackwalkerAPI will receive and handle all
 pending debug events from each 3rd party target process to which it is
@@ -1646,8 +1809,9 @@ has a ``push %ebp`` instruction, but no ``mov %esp,%ebp``). If the
 ``FrameFuncHelper`` cannot determine the ``frame_type``, then it should
 be assigned the value ``unknown_t``.
 
-typedef enum unknown_s=0, unset_frame, halfset_frame, set_frame
-frame_state;
+.. code-block:: cpp
+
+    typedef enum unknown_s=0, unset_frame, halfset_frame, set_frame frame_state;
 
 The ``frame_state`` type determines the current state of function with a
 stack frame at some point of execution. For example, a function may set
@@ -1666,8 +1830,9 @@ currently only meaningful on the x86 family of architecture, and should
 if the function has saved the old frame pointer, but not yet set up a
 new frame pointer.
 
-typedef std::pair<frame_type, frame_state> alloc_frame_t; virtual
-alloc_frame_t allocatesFrame(Address addr) = 0;
+.. code-block:: cpp
+
+    typedef std::pair<frame_type, frame_state> alloc_frame_t; virtual alloc_frame_t allocatesFrame(Address addr) = 0;
 
 The ``allocatesFrame`` function of ``FrameFuncHelper`` returns a
 ``alloc_frame_t`` that describes the frame_type of the function at
