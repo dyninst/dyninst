@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CiteLang Credit Badge</title>
+  <style>
+body{
+  background-color:#1b1b1b;
+}
+
+text { 
+  pointer-events: none; 
+}
+
+p,
+label {
+    font: 1rem 'Fira Sans', sans-serif;
+    color:white;
+}
+
+input {
+    margin: .4rem;
+}
+</style>
+</head>
+<body>
+<head>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+<body>
+    <h3 style="color:white">requests</h3>
+    <svg></svg>
+</body>
+
+<script>
+var data = {"name": "requests", "credit": 0.5, "size": 100, "round_by": 3, "credit_rounded": 0.5, "children": [{"name": "win-inet-pton", "credit": 0.07142857142857142, "credit_rounded": 0.071, "weight": 0.07142857142857142, "size": 14.285714285714286, "round_by": 3, "children": [], "color": "#b751b7"}, {"name": "PySocks", "credit": 0.07142857142857142, "credit_rounded": 0.071, "weight": 0.07142857142857142, "size": 14.285714285714286, "round_by": 3, "children": [], "color": "#a961bc"}, {"name": "charset-normalizer", "credit": 0.03571428571428571, "credit_rounded": 0.036, "weight": 0.07142857142857142, "size": 14.285714285714286, "round_by": 3, "children": [{"name": "unicodedata2", "credit": 0.017857142857142856, "credit_rounded": 0.018, "weight": 0.03571428571428571, "size": 100.0, "round_by": 3, "children": [{"name": "pytest-randomly", "credit": 0.004464285714285714, "credit_rounded": 0.004, "weight": 0.004464285714285714, "size": 25.0, "round_by": 3, "children": [], "color": "#9d9bd2"}, {"name": "pytest-xdist", "credit": 0.004464285714285714, "credit_rounded": 0.004, "weight": 0.004464285714285714, "size": 25.0, "round_by": 3, "children": [], "color": "#9c81c8"}, {"name": "coverage", "credit": 0.004464285714285714, "credit_rounded": 0.004, "weight": 0.004464285714285714, "size": 25.0, "round_by": 3, "children": [], "color": "#b148a2"}, {"name": "pytest", "credit": 0.004464285714285714, "credit_rounded": 0.004, "weight": 0.004464285714285714, "size": 25.0, "round_by": 3, "children": [], "color": "#9c95cf"}], "color": "#b4c0dc"}], "color": "#9b86ca"}, {"name": "idna", "credit": 0.07142857142857142, "credit_rounded": 0.071, "weight": 0.07142857142857142, "size": 14.285714285714286, "round_by": 3, "children": [], "color": "#a171c2"}, {"name": "chardet", "credit": 0.07142857142857142, "credit_rounded": 0.071, "weight": 0.07142857142857142, "size": 14.285714285714286, "round_by": 3, "children": [], "color": "#a36cc0"}, {"name": "certifi", "credit": 0.07142857142857142, "credit_rounded": 0.071, "weight": 0.07142857142857142, "size": 14.285714285714286, "round_by": 3, "children": [], "color": "#ac4697"}, {"name": "urllib3", "credit": 0.03571428571428571, "credit_rounded": 0.036, "weight": 0.07142857142857142, "size": 14.285714285714286, "round_by": 3, "children": [{"name": "PySocks", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#a961bc"}, {"name": "ipaddress", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#b54bae"}, {"name": "certifi", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#ac4697"}, {"name": "idna", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#a171c2"}, {"name": "cryptography", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#a666be"}, {"name": "pyOpenSSL", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#aab1d8"}, {"name": "brotlipy", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#b256b9"}, {"name": "brotli", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#a5a9d6"}, {"name": "brotlicffi", "credit": 0.003968253968253968, "credit_rounded": 0.004, "weight": 0.003968253968253968, "size": 11.11111111111111, "round_by": 3, "children": [], "color": "#9b90cd"}], "color": "#afb9da"}], "color": "#9f76c4", "total": 0.9999999999999997}
+var width = 800; 
+var height = 800;
+var radius = Math.min(width, height) / 2; 
+
+var g = d3.select('svg') 
+    .attr('width', width)
+    .attr('height', height)
+    .append('g')
+    .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')');  
+
+var partition = d3.partition()  
+    .size([2 * Math.PI, radius]);
+
+var root = d3.hierarchy(data)  
+    .sum(function (d) { return d.weight});
+
+// console.dir(root)
+partition(root);  
+
+var color=d3.scaleLinear()
+  .domain([0, 1])
+  .range(["#96C4FF", "red"]);
+
+arc = d3.arc()
+    .startAngle(function (d) { d.x0s = d.x0; return d.x0; })
+    .endAngle(function (d) { d.x1s = d.x1; return d.x1; })
+    .innerRadius(function (d) { return d.y0; })
+    .outerRadius(function (d) { return d.y1; })
+    .cornerRadius(10);
+
+let slice = g.selectAll('path')
+    .data(root.descendants())  
+    .enter()  
+    .append('g')
+    .attr("class", function (d) { return d.depth ? "node" : "pNode"});
+
+    slice.append('path')  
+    // .attr("display", function (d) { return d.depth ? null : "none"; })  
+    .attr("d", arc)  
+    .style('stroke', '#1b1b1b')
+    .style('stroke-width',10)
+    .style("fill", function (d,i) {return d.data.color})
+    .on('mouseover',function(d){
+      d3.select(this).style('fill','purple');
+      g.append('text').classed('middleText', true).attr('x',-35).attr('y',15).text(d.data.name).style('font-family','helvetica')
+                .style('font-size','40')
+                .style('fill','white');
+    })
+    .on('mouseout',function(d){
+      d3.select(this).style("fill", function (d,i) {return d.data.color})
+      d3.select('.middleText').remove();
+    });  
+
+g.selectAll(".node")
+            .append("text")
+            .attr("transform", function(d) {
+             return "translate(" + arc.centroid(d) + ")rotate(" + computeTextRotation(d) + ")"; })
+            .attr("dx", "-8") 
+            .attr("dy", ".5em")
+           // .text(function(d) { return d.parent ? d.data.name : "" })
+            .style('font-family','helvetica')
+            .style('font-size','10')
+            .style('fill','white');
+
+
+
+function computeTextRotation(d) {
+    var angle = (d.x0 + d.x1) / Math.PI * 90;
+    return (angle < 180) ? angle - 90 : angle + 90;  
+}
+
+let b = true;
+d3.selectAll(".pNode").on("click", function(d,i) {
+    b = !b;
+
+    if (b) { 
+      root.sum(function (d) { return d.weight; });
+    } else {
+      root.count();  
+    }
+    root.sort(function(a, b) { return b.value - a.value; });  
+
+    partition(root);  
+
+    slice.selectAll("path").transition().duration(1750).attrTween("d", arcTweenPath); 
+    slice.selectAll("text").transition().duration(1750).attrTween("transform", arcTweenText); 
+
+});
+
+function arcTweenPath(a, i) {
+    var oi = d3.interpolate({ x0: a.x0s, x1: a.x1s }, a);  
+    function tween(t) {  
+        var b = oi(t);  
+        a.x0s = b.x0;  
+        a.x1s = b.x1;  
+        return arc(b); 
+    }
+    return tween;  
+}
+
+function arcTweenText(a, i) {
+    let oi = d3.interpolate({ x0: a.x0s, x1: a.x1s }, a);
+    function tween(t) {
+        var b = oi(t);
+        return "translate(" + arc.centroid(b) + ")rotate(" + computeTextRotation(b) + ")";
+    }
+    return tween;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+
+name: Documentation
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths: [ docs ]
+  workflow_dispatch:
+
+jobs:
+  Build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+    - name: Build
+      run: |
+        set +e
+        cd docs
+        python3 -m venv env
+        source env/bin/activate
+        pip install -r requirements.txt
+        `cd $(find env/lib -type d -name sphinxcontrib) && wget https://raw.githubusercontent.com/wpilibsuite/sphinxext-remoteliteralinclude/main/sphinxext/remoteliteralinclude.py`
+        make html
