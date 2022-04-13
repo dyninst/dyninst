@@ -125,3 +125,5 @@ cmake-build-*/
 .cproject
 .settings
 .pydevproject
+docs/env
+docs/_build
