@@ -75,12 +75,9 @@ WORKDIR /opt
 RUN git clone --depth 1 https://github.com/spack/spack
 ENV PATH=/opt/spack/bin:$PATH
 
-# Use the autamus build cache for faster install
-# Note that autamus currently uses 18.04
-RUN python3 -m pip install botocore boto3 && \
-    spack mirror add autamus s3://autamus-cache && \
-    curl http://s3.amazonaws.com/autamus-cache/build_cache/_pgp/FFEB24B0A9D81F6D5597F9900B59588C86C41BE7.pub > key.pub && \
-    spack gpg trust key.pub
+# Install the boto3 package for using AWS services
+# spack uses this for its binary caches
+RUN python3 -m pip install botocore boto3
 
 # Find packages already installed on system, e.g. autoconf
 RUN spack external find --not-buildable gcc@11.0.1 autoconf bzip2 git tar xz perl cmake m4 ncurses && \
