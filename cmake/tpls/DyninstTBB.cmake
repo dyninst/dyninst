@@ -37,6 +37,13 @@
 #
 #=====================================================================================
 
+include_guard(GLOBAL)
+
+include(DyninstUtilities)
+
+# always provide Dyninst::TBB even if it is a dummy
+dyninst_add_interface_library(TBB "Threading Building Blocks")
+
 if(TBB_FOUND)
     return()
 endif()
@@ -60,9 +67,9 @@ set(TBB_MIN_VERSION
     CACHE STRING "Minimum version of TBB (assumes a dotted-decimal format: YYYY.XX)")
 
 if(${TBB_MIN_VERSION} VERSION_LESS ${_tbb_min_version})
-    message(
+    dyninst_message(
         FATAL_ERROR
-            "Requested TBB version ${TBB_MIN_VERSION} is less than minimum supported version ${_tbb_min_version}"
+        "Requested TBB version ${TBB_MIN_VERSION} is less than minimum supported version ${_tbb_min_version}"
         )
 endif()
 
@@ -76,21 +83,23 @@ set(TBB_ROOT_DIR
 # TBB include directory hint
 set(TBB_INCLUDEDIR
     "${TBB_ROOT_DIR}/include"
-    CACHE PATH "TBB include directory")
+    CACHE INTERNAL "TBB include directory")
 
 # TBB library directory hint
 set(TBB_LIBRARYDIR
     "${TBB_ROOT_DIR}/lib"
-    CACHE PATH "TBB library directory")
+    CACHE INTERNAL "TBB library directory")
 
 # Translate to FindTBB names
 set(TBB_LIBRARY ${TBB_LIBRARYDIR})
 set(TBB_INCLUDE_DIR ${TBB_INCLUDEDIR})
 
 # The specific TBB libraries we need NB: This should _NOT_ be a cache variable
-set(_tbb_components tbb tbbmalloc tbbmalloc_proxy)
+set(_tbb_components tbb tbbmalloc_proxy tbbmalloc)
 
-find_package(TBB ${TBB_MIN_VERSION} COMPONENTS ${_tbb_components})
+if(NOT BUILD_TBB)
+    find_package(TBB ${TBB_MIN_VERSION} COMPONENTS ${_tbb_components})
+endif()
 
 # -------------- SOURCE BUILD -------------------------------------------------
 if(TBB_FOUND)
@@ -108,38 +117,47 @@ if(TBB_FOUND)
     set(TBB_LIBRARIES
         ${TBB_LIBRARIES}
         CACHE FILEPATH "TBB library files" FORCE)
-
-    if(NOT TARGET TBB)
-        add_library(TBB SHARED IMPORTED)
-    endif()
-elseif(NOT TBB_FOUND AND STERILE_BUILD)
-    message(
-        FATAL_ERROR "TBB not found and cannot be downloaded because build is sterile.")
+elseif(STERILE_BUILD)
+    dyninst_message(FATAL_ERROR
+                    "TBB not found and cannot be downloaded because build is sterile.")
+elseif(NOT BUILD_TBB)
+    dyninst_message(
+        FATAL_ERROR
+        "TBB was not found. Either configure cmake to find TBB properly or set BUILD_TBB=ON to download and build"
+        )
 else()
     # If we didn't find a suitable version on the system, then download one from the web
-    message(STATUS "${ThreadingBuildingBlocks_ERROR_REASON}")
-    message(STATUS "Attempting to build TBB(${TBB_MIN_VERSION}) as external project")
+    dyninst_message(STATUS "${ThreadingBuildingBlocks_ERROR_REASON}")
+    dyninst_message(STATUS
+                    "Attempting to build TBB(${TBB_MIN_VERSION}) as external project")
 
     if(NOT UNIX)
-        message(FATAL_ERROR "Building TBB from source is not supported on this platform")
+        dyninst_message(FATAL_ERROR
+                        "Building TBB from source is not supported on this platform")
     endif()
 
-    # Forcibly update the cache variables
     set(TBB_ROOT_DIR
         ${CMAKE_INSTALL_PREFIX}
         CACHE PATH "TBB root directory" FORCE)
+
+    set(_tbb_libraries)
+    set(_tbb_components_cfg)
+    set(_tbb_library_dirs $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib>
+                          $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
+    set(_tbb_include_dirs
+        $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/include>
+        $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_INCLUDE_DIR}>)
+
+    # Forcibly update the cache variables
     set(TBB_INCLUDE_DIRS
-        ${TBB_ROOT_DIR}/include
+        "${_tbb_include_dirs}"
         CACHE PATH "TBB include directory" FORCE)
     set(TBB_LIBRARY_DIRS
-        ${TBB_ROOT_DIR}/lib
+        "${_tbb_library_dirs}"
         CACHE PATH "TBB library directory" FORCE)
     set(TBB_DEFINITIONS
         ""
         CACHE STRING "TBB compiler definitions" FORCE)
-
-    set(_tbb_libraries)
-    set(_tbb_components_cfg)
 
     foreach(c ${_tbb_components})
         # Generate make target names
@@ -150,18 +168,22 @@ else()
             list(APPEND _tbb_components_cfg ${c}_release)
         endif()
 
+        set(_tbb_${c}_lib
+            $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}>
+            $<INSTALL_INTERFACE:${c}>)
+
         # Generate library filenames
-        list(APPEND _tbb_libraries "${TBB_LIBRARY_DIRS}/lib${c}.so")
+        list(APPEND _tbb_libraries ${_tbb_${c}_lib})
 
         foreach(t RELEASE DEBUG)
             set(TBB_${c}_LIBRARY_${t}
-                "${TBB_LIBRARY_DIRS}/lib${c}.so"
+                "${_tbb_${c}_lib}"
                 CACHE FILEPATH "" FORCE)
         endforeach()
     endforeach()
 
     set(TBB_LIBRARIES
-        ${_tbb_libraries}
+        "${_tbb_libraries}"
         CACHE FILEPATH "TBB library files" FORCE)
 
     # Split the dotted decimal version into major/minor parts
@@ -169,8 +191,7 @@ else()
     list(GET _tbb_download_name 0 _tbb_ver_major)
     list(GET _tbb_download_name 1 _tbb_ver_minor)
 
-    include(ExternalProject)
-    set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
+    set(_tbb_prefix_dir ${PROJECT_BINARY_DIR}/tbb)
 
     # Set the compiler for TBB It assumes gcc and tests for Intel, so clang is the only
     # one that needs special treatment.
@@ -178,26 +199,65 @@ else()
         set(_tbb_compiler "compiler=clang")
     endif()
 
+    find_program(
+        MAKE_EXECUTABLE
+        NAMES make gmake
+        PATH_SUFFIXES bin)
+
+    if(NOT MAKE_EXECUTABLE AND CMAKE_GENERATOR MATCHES "Ninja")
+        dyninst_message(
+            FATAL_ERROR
+            "make/gmake executable not found. Please re-run with -DMAKE_EXECUTABLE=/path/to/make"
+            )
+    elseif(NOT MAKE_EXECUTABLE AND CMAKE_GENERATOR MATCHES "Makefiles")
+        set(MAKE_EXECUTABLE "$(MAKE)")
+    endif()
+
+    include(ExternalProject)
     externalproject_add(
-        TBB
+        TBB-External
         PREFIX ${_tbb_prefix_dir}
         URL https://github.com/01org/tbb/archive/${_tbb_ver_major}_U${_tbb_ver_minor}.tar.gz
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
-            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} $(MAKE) -C src
+            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+            [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=] ${MAKE_EXECUTABLE} -C src
             ${_tbb_components_cfg} tbb_build_dir=${_tbb_prefix_dir}/src
             tbb_build_prefix=tbb ${_tbb_compiler}
-        INSTALL_COMMAND
-            ${CMAKE_COMMAND} -DLIBDIR=${TBB_LIBRARY_DIRS} -DINCDIR=${TBB_INCLUDE_DIRS}
-            -DPREFIX=${_tbb_prefix_dir} -P
-            ${PROJECT_SOURCE_DIR}/cmake/tpls/DyninstTBBInstall.cmake)
+        INSTALL_COMMAND "")
+
+    # post-build target for installing build
+    add_custom_command(
+        TARGET TBB-External
+        POST_BUILD
+        COMMAND
+            ${CMAKE_COMMAND} ARGS -DLIBDIR=${TPL_STAGING_PREFIX}/lib
+            -DINCDIR=${TPL_STAGING_PREFIX}/include -DPREFIX=${_tbb_prefix_dir} -P
+            ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake
+        COMMENT "Installing TBB...")
+
+    add_custom_target(
+        install-tbb-external
+        COMMAND
+            ${CMAKE_COMMAND} -DLIBDIR=${TPL_STAGING_PREFIX}/lib
+            -DINCDIR=${TPL_STAGING_PREFIX}/include -DPREFIX=${_tbb_prefix_dir} -P
+            ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake
+        COMMENT "Installing TBB...")
 endif()
 
-include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
-link_directories(${TBB_LIBRARY_DIRS})
+foreach(_DIR_TYPE INCLUDE LIBRARY)
+    if(TBB_${_DIR_TYPE}_DIRS)
+        list(REMOVE_DUPLICATES TBB_${_DIR_TYPE}_DIRS)
+    endif()
+endforeach()
 
-message(STATUS "TBB include directory: ${TBB_INCLUDE_DIRS}")
-message(STATUS "TBB library directory: ${TBB_LIBRARY_DIRS}")
-message(STATUS "TBB libraries: ${TBB_LIBRARIES}")
-message(STATUS "TBB definitions: ${TBB_DEFINITIONS}")
+target_include_directories(TBB SYSTEM INTERFACE ${TBB_INCLUDE_DIRS})
+target_compile_definitions(TBB INTERFACE ${TBB_DEFINITIONS})
+target_link_directories(TBB INTERFACE ${TBB_LIBRARY_DIRS})
+target_link_libraries(TBB INTERFACE ${TBB_LIBRARIES})
+
+dyninst_message(STATUS "TBB include directory: ${TBB_INCLUDE_DIRS}")
+dyninst_message(STATUS "TBB library directory: ${TBB_LIBRARY_DIRS}")
+dyninst_message(STATUS "TBB libraries: ${TBB_LIBRARIES}")
+dyninst_message(STATUS "TBB definitions: ${TBB_DEFINITIONS}")
