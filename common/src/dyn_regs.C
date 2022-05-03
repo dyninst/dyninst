@@ -1834,10 +1834,12 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             break;
         case Arch_amdgpu_vega:
         case Arch_amdgpu_cdna2:
-            // ignore CUDA register encodings for now
+            // ignore AMD register encodings for now
             return Dyninst::InvalidReg;
             break;
-
+	case Arch_intelGen9:
+            return Dyninst::InvalidReg;
+            break;
         case Arch_none:
             return Dyninst::InvalidReg;
             break;
