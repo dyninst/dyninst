@@ -2,9 +2,6 @@
 # cmake warning options
 #
 
-option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
-       "Disable all warning suppressions and frame size overrides." OFF)
-
 set(DYNINST_EXTRA_WARNINGS
     ""
     CACHE
@@ -12,13 +9,11 @@ set(DYNINST_EXTRA_WARNINGS
         "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
     )
 
-option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
-
-if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-    add_definitions(-DDYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
-    message(
+if(DISABLE_DIAGNOSTIC_SUPPRESSIONS)
+    add_compile_definitions(DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
+    dyninst_message(
         STATUS
-            "DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS set: disabling all dyninst warning suppressions and frame size overrides"
+        "DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS set: disabling all dyninst warning suppressions and frame size overrides"
         )
 endif()
 
@@ -93,7 +88,7 @@ if(DYNINST_EXTRA_WARNINGS)
         )
 endif()
 
-if(DYNINST_WARNINGS_AS_ERRORS)
+if(WARNINGS_AS_ERRORS)
     list(APPEND REQUESTED_WARNING_FLAGS "Werror")
     message(STATUS "DYNINST_WARNINGS_AS_ERRORS set: treating warnings as errors")
 endif()
@@ -103,9 +98,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
     foreach(f IN LISTS REQUESTED_WARNING_FLAGS)
         string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_C_FLAG_${f}")
         set(CMAKE_REQUIRED_FLAGS "-${f}")
+        dyninst_begin_flag_check()
         check_c_source_compiles(
             "int main(){return 0;}" "${v}" FAIL_REGEX
             "warning: *command[- ]line option|-Wunknown-warning-option")
+        dyninst_end_flag_check()
         # Previous two lines are equivalent to below, but also catches a 0 exit status
         # with a warning message output: check_c_compiler_flag("-${f}" "${v}")
         if(${v})
@@ -124,9 +121,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
     foreach(f IN LISTS REQUESTED_WARNING_FLAGS)
         string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_CPP_FLAG_${f}")
         set(CMAKE_REQUIRED_FLAGS "-${f}")
+        dyninst_begin_flag_check()
         check_cxx_source_compiles(
             "int main(){return 0;}" "${v}" FAIL_REGEX
             "warning: *command[- ]line option|-Wunknown-warning-option")
+        dyninst_end_flag_check()
         if(${v})
             string(APPEND SUPPORTED_CXX_WARNING_FLAGS " -${f}")
             if(f MATCHES "^(.*)=[0-9]+$")
@@ -173,13 +172,13 @@ endif()
 unset(CMAKE_REQUIRED_FLAGS)
 
 if(MSVC)
-    message(STATUS "TODO: Set up custom warning flags for MSVC")
+    dyninst_message(STATUS "TODO: Set up custom warning flags for MSVC")
 endif()
 
-message(STATUS "Using C warning flags: ${SUPPORTED_C_WARNING_FLAGS}")
-message(STATUS "Using CXX warning flags: ${SUPPORTED_CXX_WARNING_FLAGS}")
-message(
+dyninst_message(STATUS "Using C warning flags: ${SUPPORTED_C_WARNING_FLAGS}")
+dyninst_message(STATUS "Using CXX warning flags: ${SUPPORTED_CXX_WARNING_FLAGS}")
+dyninst_message(
     STATUS
-        "Extra CXX DEBUG warning flags: -Wframe-larger-than=${defaultDebugMaxFrameSize}")
+    "Extra CXX DEBUG warning flags: -Wframe-larger-than=${defaultDebugMaxFrameSize}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SUPPORTED_C_WARNING_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SUPPORTED_CXX_WARNING_FLAGS}")
