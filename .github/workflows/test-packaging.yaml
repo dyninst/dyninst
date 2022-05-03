@@ -1,0 +1,78 @@
+name: Test Packaging
+
+on:
+  pull_request:
+    branches: [ master ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  ubuntu-focal:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        c_compiler: ['gcc']
+        cxx_compiler: ['g++']
+        build_tpls: ['ON', 'OFF']
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install System Packages
+      if: ${{ build_tpls == "OFF" }}
+      timeout-minutes: 5
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake m4 autoconf libtool libgomp1 dpkg-dev rpm alien ${{ matrix.c_compiler }} ${{ matrix.cxx_compiler }}
+
+    - name: Install 3rd-party Packages
+      if: ${{ build_tpls == "OFF" }}
+      timeout-minutes: 5
+      run: |
+        sudo apt-get install -y libboost-all-dev libtbb-dev libiberty-dev
+
+    - name: Build Dyninst
+      timeout-minutes: 25
+      run:
+        cmake --version &&
+        cmake -B build
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DCMAKE_INSTALL_PREFIX=/opt/dyninst-build
+          -DSTERILE_BUILD=OFF
+          -DBUILD_ELFUTILS=ON
+          -DBUILD_TBB=${{ matrix.build_tpls }}
+          -DBUILD_BOOST=${{ matrix.build_tpls }}
+          -DBUILD_LIBIBERTY=${{ matrix.build_tpls }} &&
+        cmake --build build --target all --parallel 4 &&
+        cmake --build build --target install --parallel 2
+
+    - name: Generate Packages
+      timeout-minutes: 10
+      run: |
+        cd ${{ github.workspace }}/build
+        cpack -G STGZ
+        cpack -G DEB -D CPACK_PACKAGING_INSTALL_PREFIX=/opt/dyninst-deb
+        cpack -G RPM -D CPACK_PACKAGING_INSTALL_PREFIX=/opt/dyninst-rpm
+
+    - name: Install Packages
+      timeout-minutes: 10
+      run: |
+        cd ${{ github.workspace }}/build
+        mkdir /opt/dyninst-stgz
+        ./Dyninst-*-Linux.sh --prefix=/opt/dyninst-stgz --exclude-subdir --skip-license
+        sudo dpkg --debug=10 -i ./dyninst_*.deb
+        sudo alien -i ./dyninst-*.rpm
+        find /opt/dyninst-* -type f
+
+    - name: Verify Packages Install
+      timeout-minutes: 10
+      run: |
+        cd ${{ github.workspace }}/build
+        mkdir -p packaging-test
+        echo -e "cmake_minimum_required(VERSION 3.16 FATAL_ERROR)\nproject(dyninst-stgz LANGUAGES C CXX)\nfind_package(Dyninst REQUIRED)\n" > CMakeLists.txt
+        CMAKE_PREFIX_PATH=/opt/dyninst-stgz cmake -B build-stgz .
+        CMAKE_PREFIX_PATH=/opt/dyninst-deb  cmake -B build-deb  .
+        CMAKE_PREFIX_PATH=/opt/dyninst-rpm  cmake -B build-rpm  .
