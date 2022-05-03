@@ -100,12 +100,12 @@ function(dyninst_library target)
         DESTINATION "${INSTALL_CMAKE_DIR}")
 endfunction()
 
-include(${DYNINST_ROOT}/cmake/platform.cmake)
-include(${DYNINST_ROOT}/cmake/cap_arch_def.cmake)
-include(${DYNINST_ROOT}/cmake/visibility.cmake)
-include(${DYNINST_ROOT}/cmake/warnings.cmake)
-include(${DYNINST_ROOT}/cmake/options.cmake)
-include(${DYNINST_ROOT}/cmake/optimization.cmake)
+include(DyninstPlatform)
+include(DyninstCapArchDef)
+include(DyninstVisibility)
+include(DyninstWarnings)
+include(DyninstOptions)
+include(DyninstOptimization)
 
 set(BUILD_SHARED_LIBS ON)
 

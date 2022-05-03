@@ -1,11 +1,14 @@
 # CMake configuration for dyninstAPI_RT directory
-cmake_minimum_required(VERSION 2.6.4)
-project(DyninstRT C)
+cmake_minimum_required(VERSION 3.4.0 FATAL_ERROR)
+project(DyninstRT LANGUAGES C)
 
 set(DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
 
-include(${DYNINST_ROOT}/cmake/LanguageStandards.cmake)
-include(${DYNINST_ROOT}/cmake/shared.cmake)
+list(INSERT CMAKE_MODULE_PATH 0 "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/tpls"
+     "${DYNINST_ROOT}/cmake/Modules")
+
+include(DyninstLanguageStandards)
+include(DyninstLibrary)
 
 include_directories(${DYNINST_ROOT}/dyninstAPI_RT/src ${DYNINST_ROOT}/dyninstAPI_RT/h
                     ${DYNINST_ROOT})

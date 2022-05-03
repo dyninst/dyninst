@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.0)
+cmake_minimum_required(VERSION 3.4.0 FATAL_ERROR)
 
 # There is a bug in 3.19.0 that causes .S files to be treated like C files
 if(CMAKE_VERSION VERSION_EQUAL "3.19.0")
@@ -26,24 +26,24 @@ endif()
 set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
 set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
-set(CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules"
-                      ${CMAKE_MODULE_PATH})
+list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
+     "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
 # Set the C and C++ language standards
-include(LanguageStandards)
+include(DyninstLanguageStandards)
 
 # Find the necessary third-party libraries
-find_package(ThreadDB)
+find_package(Thread_DB)
 find_package(Threads)
-include(Boost)
-include(ThreadingBuildingBlocks)
-include(ElfUtils)
+include(DyninstBoost)
+include(DyninstTBB)
+include(DyninstElfUtils)
 
 if(UNIX)
-    include(LibIberty REQUIRED)
+    include(DyninstLibIberty)
 endif()
 
-include(shared)
+include(DyninstLibrary)
 
 if(USE_OpenMP)
     find_package(OpenMP REQUIRED)
