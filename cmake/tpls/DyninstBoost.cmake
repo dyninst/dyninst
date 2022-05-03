@@ -46,9 +46,12 @@
 #
 #========================================================================================================
 
-if(Boost_FOUND)
-    return()
-endif()
+include_guard(GLOBAL)
+
+include(DyninstUtilities)
+
+# always provide Dyninst::Boost even if it is empty
+dyninst_add_interface_library(Boost "Boost interface library")
 
 # Need at least Boost-1.67 because of deprecated headers
 set(_boost_min_version 1.70.0)
@@ -60,9 +63,9 @@ set(Boost_MIN_VERSION
 
 # Enforce minimum version
 if(${Boost_MIN_VERSION} VERSION_LESS ${_boost_min_version})
-    message(
+    dyninst_message(
         FATAL_ERROR
-            "Requested Boost-${Boost_MIN_VERSION} is less than minimum supported version (${_boost_min_version})"
+        "Requested Boost-${Boost_MIN_VERSION} is less than minimum supported version (${_boost_min_version})"
         )
 endif()
 
@@ -99,9 +102,9 @@ set(Boost_NO_SYSTEM_PATHS
 
 # A sanity check This must be done _before_ the cache variables are set
 if(PATH_BOOST AND Boost_ROOT_DIR)
-    message(
+    dyninst_message(
         FATAL_ERROR
-            "PATH_BOOST AND Boost_ROOT_DIR both specified. Please provide only one")
+        "PATH_BOOST AND Boost_ROOT_DIR both specified. Please provide only one")
 endif()
 
 # Provide a default root directory
@@ -122,21 +125,21 @@ set(BOOST_ROOT ${Boost_ROOT_DIR})
 set(_boost_defines)
 
 # Disable auto-linking
-list(APPEND _boost_defines -DBOOST_ALL_NO_LIB=1)
+list(APPEND _boost_defines BOOST_ALL_NO_LIB=1)
 
 # Disable generating serialization code in boost::multi_index
-list(APPEND _boost_defines -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
+list(APPEND _boost_defines BOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
 
 # There are broken versions of MSVC that won't handle variadic templates correctly
 # (despite the C++11 test case passing).
 if(MSVC)
-    list(APPEND _boost_defines -DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
+    list(APPEND _boost_defines BOOST_NO_CXX11_VARIADIC_TEMPLATES)
 endif()
 
 set(Boost_DEFINES
     ${_boost_defines}
     CACHE STRING "Boost compiler defines")
-add_definitions(${Boost_DEFINES})
+add_compile_definitions(${Boost_DEFINES})
 
 # -------------- INTERNALS ----------------------------------------------------
 
@@ -146,13 +149,22 @@ set(Boost_NO_BOOST_CMAKE ON)
 
 # The required Boost library components NB: These are just the ones that require
 # compilation/linking This should _not_ be a cache variable
-set(_boost_components atomic chrono date_time filesystem thread timer)
+set(_boost_components
+    atomic
+    chrono
+    date_time
+    filesystem
+    system
+    thread
+    timer)
 
-find_package(Boost ${Boost_MIN_VERSION} COMPONENTS ${_boost_components})
+if(NOT BUILD_BOOST)
+    find_package(Boost ${Boost_MIN_VERSION} QUIET COMPONENTS ${_boost_components})
+endif()
 
 # -------------- SOURCE BUILD -------------------------------------------------
 
-if(Boost_FOUND)
+if(Boost_FOUND AND NOT BUILD_BOOST)
     # Force the cache entries to be updated Normally, these would not be exported.
     # However, we need them in the Testsuite
     set(Boost_INCLUDE_DIRS
@@ -164,30 +176,30 @@ if(Boost_FOUND)
     set(Boost_INCLUDE_DIR
         ${Boost_INCLUDE_DIR}
         CACHE PATH "Boost include directory" FORCE)
-    add_library(boost SHARED IMPORTED)
 elseif(NOT Boost_FOUND AND STERILE_BUILD)
-    message(
-        FATAL_ERROR "Boost not found and cannot be downloaded because build is sterile.")
+    dyninst_message(FATAL_ERROR
+                    "Boost not found and cannot be downloaded because build is sterile.")
+elseif(NOT BUILD_BOOST)
+    dyninst_message(
+        FATAL_ERROR
+        "Boost was not found. Either configure cmake to find Boost properly or set BUILD_BOOST=ON to download and build"
+        )
 else()
+    dyninst_add_option(BOOST_LINK_STATIC "Link to boost libraries statically" ON)
     # If we didn't find a suitable version on the system, then download one from the web
-    set(_boost_download_version "1.69.0")
+    dyninst_add_cache_option(BOOST_DOWNLOAD_VERSION "1.70.0"
+                             CACHE STRING "Version of boost to download and install")
 
-    # If the user specifies a version other than _boost_download_version, use that
-    # version. NB: We know Boost_MIN_VERSION is >= _boost_min_version from earlier checks
-    if(${Boost_MIN_VERSION} VERSION_LESS ${_boost_download_version}
-       OR ${Boost_MIN_VERSION} VERSION_GREATER ${_boost_download_version})
-        set(_boost_download_version ${Boost_MIN_VERSION})
+    # If the user specifies a version other than BOOST_DOWNLOAD_VERSION, use that version.
+    if(${BOOST_DOWNLOAD_VERSION} VERSION_LESS ${Boost_MIN_VERSION})
+        dyninst_message(
+            FATAL_ERROR
+            "Boost download version is set to ${BOOST_DOWNLOAD_VERSION} but Boost minimum version is set to ${Boost_MIN_VERSION}"
+            )
     endif()
-    message(STATUS "${Boost_ERROR_REASON}")
-    message(STATUS "Attempting to build ${_boost_download_version} as external project")
 
-    # This is an internal consistency check. Normal users should not trip this since they
-    # cannot affect _boost_download_version.
-    if(${_boost_download_version} VERSION_LESS ${Boost_MIN_VERSION})
-        message(
-            FATAL_ERROR "Download version of Boost (${_boost_download_version}) "
-                        "is older than minimum allowed version (${Boost_MIN_VERSION})")
-    endif()
+    dyninst_message(STATUS
+                    "Attempting to build ${BOOST_DOWNLOAD_VERSION} as external project")
 
     if(Boost_USE_MULTITHREADED)
         set(_boost_threading multi)
@@ -203,22 +215,22 @@ else()
 
     # Change the base directory
     set(Boost_ROOT_DIR
-        ${CMAKE_INSTALL_PREFIX}
+        ${TPL_STAGING_PREFIX}
         CACHE PATH "Base directory the of Boost installation" FORCE)
 
     # Update the exported variables
     set(Boost_INCLUDE_DIRS
-        ${Boost_ROOT_DIR}/include
+        "$<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/include>;$<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_INCLUDE_DIR}>"
         CACHE PATH "Boost include directory" FORCE)
     set(Boost_LIBRARY_DIRS
-        ${Boost_ROOT_DIR}/lib
+        "$<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib>;$<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>"
         CACHE PATH "Boost library directory" FORCE)
     set(Boost_INCLUDE_DIR
         ${Boost_INCLUDE_DIRS}
         CACHE PATH "Boost include directory" FORCE)
 
-    set(BOOST_ARGS --ignore-site-config --link=static
-                   --runtime-link=${_boost_runtime_link} --threading=${_boost_threading})
+    set(BOOST_ARGS link=static runtime-link=${_boost_runtime_link}
+                   threading=${_boost_threading})
     if(WIN32)
         # NB: We need to build both debug/release on windows as we don't use
         # CMAKE_BUILD_TYPE
@@ -230,46 +242,88 @@ else()
     else()
         set(BOOST_BOOTSTRAP "./bootstrap.sh")
         set(BOOST_BUILD "./b2")
-        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        if(CMAKE_BUILD_TYPE MATCHES "^(Debug|DEBUG)$")
             list(APPEND BOOST_ARGS variant=debug)
         else()
             list(APPEND BOOST_ARGS variant=release)
         endif()
     endif()
 
+    # the submodules we always need + append the existing cache variable in case user
+    # needs to adds some
+    set(_boost_submodules tools/build tools/boost_install libs/config libs/headers
+                          ${BOOST_SUBMODULES})
+
     # Join the component names together to pass to --with-libraries during bootstrap
     set(_boost_lib_names "")
     foreach(c ${_boost_components})
         # list(JOIN ...) is in cmake 3.12
         string(CONCAT _boost_lib_names "${_boost_lib_names}${c},")
+        list(APPEND _boost_submodules libs/${c})
     endforeach()
 
+    if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang|Intel)")
+        list(APPEND BOOST_ARGS cflags=-fPIC cxxflags=-fPIC)
+    endif()
+
+    string(REPLACE "." "_" _boost_download_filename ${BOOST_DOWNLOAD_VERSION})
+    # zip is subject to locales on Unix
+    set(_boost_download_ext "zip")
+    if(UNIX)
+        set(_boost_download_ext "tar.gz")
+    endif()
+
+    list(REMOVE_DUPLICATES _boost_submodules)
+    # internal + force with appending existing cache variable above lets user specify
+    # BOOST_SUBMODULES as needed
+    dyninst_add_cache_option(BOOST_SUBMODULES "${_boost_submodules}"
+                             CACHE INTERNAL "Boost submodules to build" FORCE)
+
     include(ExternalProject)
-    string(REPLACE "." "_" _boost_download_filename ${_boost_download_version})
     externalproject_add(
-        boost
-        PREFIX ${CMAKE_BINARY_DIR}/boost
-        URL http://downloads.sourceforge.net/project/boost/boost/${_boost_download_version}/boost_${_boost_download_filename}.zip
+        Boost-External
+        PREFIX ${PROJECT_BINARY_DIR}/boost
+        GIT_REPOSITORY https://github.com/boostorg/boost.git
+        GIT_TAG boost-${BOOST_DOWNLOAD_VERSION}
+        GIT_SUBMODULES ${BOOST_SUBMODULES}
         BUILD_IN_SOURCE 1
-        CONFIGURE_COMMAND
-            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ${BOOST_BOOTSTRAP}
-            --prefix=${Boost_ROOT_DIR} --with-libraries=${_boost_lib_names}
-        BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
+        CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR}
+                          --with-libraries=${_boost_lib_names}
+        BUILD_COMMAND ${BOOST_BUILD} --ignore-site-config --prefix=${Boost_ROOT_DIR} -j2
+                      ${BOOST_ARGS} -d0 install
         INSTALL_COMMAND "")
+
+    # target for re-executing the installation
+    add_custom_target(
+        install-boost-external
+        COMMAND ${BOOST_BUILD} ${BOOST_ARGS} -d0 install
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/boost/src/Boost-External
+        COMMENT "Installing Boost...")
+
+    set(_LIB_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    if(BOOST_LINK_STATIC)
+        set(_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    endif()
 
     if(WIN32)
         # We need to specify different library names for debug vs release
         set(Boost_LIBRARIES "")
         foreach(c ${_boost_components})
             list(APPEND Boost_LIBRARIES "optimized libboost_${c} debug libboost_${c}-gd ")
+            set(Boost_${c}_LIBRARY
+                $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:boost_${c}>)
+            set(Boost_${c}_LIBRARY_DEBUG
+                $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:libboost_${c}-gd>)
 
             # Also export cache variables for the file location of each library
             string(TOUPPER ${c} _basename)
             set(Boost_${_basename}_LIBRARY_RELEASE
-                "${Boost_LIBRARY_DIRS}/libboost_${c}.dll"
+                "${Boost_${c}_LIBRARY}"
                 CACHE FILEPATH "" FORCE)
             set(Boost_${_basename}_LIBRARY_DEBUG
-                "${Boost_LIBRARY_DIRS}/libboost_${c}-gd.dll"
+                "${Boost_${c}_LIBRARY_DEBUG}"
                 CACHE FILEPATH "" FORCE)
         endforeach()
     else()
@@ -277,15 +331,19 @@ else()
         # boost_system
         set(Boost_LIBRARIES "")
         foreach(c ${_boost_components})
-            list(APPEND Boost_LIBRARIES "${Boost_LIBRARY_DIRS}/libboost_${c}.so")
+            set(Boost_${c}_LIBRARY
+                $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libboost_${c}${_LIB_SUFFIX}>
+                )
+            list(APPEND Boost_LIBRARIES "${Boost_${c}_LIBRARY}")
 
             # Also export cache variables for the file location of each library
             string(TOUPPER ${c} _basename)
             set(Boost_${_basename}_LIBRARY_RELEASE
-                "${Boost_LIBRARY_DIRS}/libboost_${c}.so"
+                "${Boost_${c}_LIBRARY}"
                 CACHE FILEPATH "" FORCE)
             set(Boost_${_basename}_LIBRARY_DEBUG
-                "${Boost_LIBRARY_DIRS}/libboost_${c}.so"
+                "${Boost_${c}_LIBRARY}"
                 CACHE FILEPATH "" FORCE)
         endforeach()
     endif()
@@ -313,10 +371,12 @@ set(Boost_LIBRARIES
     ${Boost_LIBRARIES}
     CACHE FILEPATH "Boost library files" FORCE)
 
-link_directories(${Boost_LIBRARY_DIRS})
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+target_include_directories(Boost SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
+target_compile_definitions(Boost INTERFACE ${Boost_DEFINITIONS})
+target_link_directories(Boost INTERFACE ${Boost_LIBRARY_DIRS})
+target_link_libraries(Boost INTERFACE ${Boost_LIBRARIES})
 
-message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
-message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
-message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
-message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+dyninst_message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
+dyninst_message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
+dyninst_message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
+dyninst_message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
