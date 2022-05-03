@@ -57,29 +57,28 @@ if(PLATFORM MATCHES linux)
     set(C_SRC_LIST ${C_SRC_LIST} src/symbolDemangle.c)
 endif()
 
+set(_PRIVATE_COMPILE_DEFS)
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
     set(SRC_LIST
         ${SRC_LIST} src/ntKludges.C
         # src/dthread-win.C src/dthread.C
         src/addrtranslate-win.C)
-    add_definitions(-DWIN32 -D_WIN32_WINNT=0x500)
+    list(APPEND _PRIVATE_COMPILE_DEFS WIN32 _WIN32_WINNT=0x500)
 endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 set_source_files_properties(${C_SRC_LIST} PROPERTIES LANGUAGE C)
-set(SRC_LIST ${SRC_LIST} ${C_SRC_LIST})
 
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[789](\.|$)")
-        # Disable var-tracking-assignments for arch-x86.C for gcc 7, 8, & 9. The default
-        # max size for these compilers is too small so it fails, adjusting it using
-        #
-        # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=600000000"
-        #
-        # succeeds, but just disable it.
-        set_source_files_properties(
-            src/arch-x86.C PROPERTIES COMPILE_FLAGS "-fno-var-tracking-assignments")
-    endif()
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" AND ${CMAKE_CXX_COMPILER_VERSION} MATCHES
+                                              "^[789](\.|$)")
+    # Disable var-tracking-assignments for arch-x86.C for gcc 7, 8, & 9. The default max
+    # size for these compilers is too small so it fails, adjusting it using
+    #
+    # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=600000000"
+    #
+    # succeeds, but just disable it.
+    set_source_files_properties(src/arch-x86.C PROPERTIES COMPILE_FLAGS
+                                                          "-fno-var-tracking-assignments")
 endif()
 
 # adjust warning threshold if set in cmake/warnings.cmake
@@ -100,33 +99,25 @@ if(nonDebugMaxFrameSizeOverrideSyscallInformation)
         )
 endif()
 
-add_definitions(-DCOMMON_LIB)
-
-dyninst_library(common)
-
-if(TARGET LibIberty)
-    add_dependencies(common LibIberty)
-    target_link_libraries(common PRIVATE LibIberty)
-
-    if(${ENABLE_STATIC_LIBS})
-        target_link_libraries(common_static PRIVATE LibIberty)
-    endif()
-endif()
-
-if(TARGET TBB)
-    add_dependencies(common TBB)
-endif()
-if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
-    target_link_private_libraries(common Psapi WS2_32 dbghelp)
-endif()
-target_link_private_libraries(common ${Boost_LIBRARIES})
-target_link_libraries(common PUBLIC ${TBB_LIBRARIES})
-
-if(USE_OpenMP)
-    set_target_properties(common PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-                                            LINK_FLAGS ${OpenMP_CXX_FLAGS})
-endif()
+dyninst_library(
+    common
+    SOURCES ${SRC_LIST} ${C_SRC_LIST}
+    COMPILE_DEFINITIONS PRIVATE COMMON_LIB ${_PRIVATE_COMPILE_DEFS}
+    INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
+                        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/h>
+    DEPENDS LibIberty-External TBB-External
+    LINK_LIBRARIES
+        Dyninst::headers
+        Dyninst::Boost
+        Dyninst::TBB
+        INTERFACE
+        $<BUILD_INTERFACE:Dyninst::ElfUtils>
+        PRIVATE
+        Dyninst::LibIberty
+        Dyninst::dynWinPsapi
+        Dyninst::dynWinWs2_32
+        Dyninst::dynWinDbgHelp)
 
 # Install AMDGPU headers under subdirectory of common/h/AMDGPU
-set(AMDGPU_HEADER ${DYNINST_ROOT}/common/h/AMDGPU)
+set(AMDGPU_HEADER ${CMAKE_CURRENT_LIST_DIR}/h/AMDGPU)
 install(DIRECTORY ${AMDGPU_HEADER} DESTINATION ${INSTALL_INCLUDE_DIR})

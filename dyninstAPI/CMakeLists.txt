@@ -1,7 +1,5 @@
 # CMake configuration for dyninstAPI directory
 
-include_directories(src h ${PROJECT_SOURCE_DIR}/proccontrol/h)
-
 set(SRC_LIST
     src/BPatch.C
     src/BPatch_image.C
@@ -173,28 +171,9 @@ elseif(PLATFORM MATCHES windows OR PLATFORM MATCHES nt)
 endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
-add_definitions(-DBPATCH_DLL_BUILD)
 if(PLATFORM MATCHES i386 AND UNIX)
     set(SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
     set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
-endif()
-
-dyninst_library(
-    dyninstAPI
-    common
-    instructionAPI
-    stackwalk
-    pcontrol
-    patchAPI
-    parseAPI
-    symtabAPI)
-
-target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES})
-if(UNIX)
-    # Boost auto-links on Windows; don't double-link
-    target_link_private_libraries(dyninstAPI pthread)
-else()
-    target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)
 endif()
 
 if(UNIX)
@@ -206,8 +185,27 @@ if(UNIX)
             set(DYNINST_COMPILER_SEARCH_DIRS ${CMAKE_MATCH_1})
         endif()
     endif()
-    target_compile_definitions(
-        dyninstAPI PRIVATE DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS})
+    set(_PRIVATE_COMPILE_DEFS
+        DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS})
 endif()
 
-install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
+dyninst_library(
+    dyninstAPI
+    SOURCES ${SRC_LIST}
+    COMPILE_DEFINITIONS PRIVATE BPATCH_DLL_BUILD ${_PRIVATE_COMPILE_DEFS}
+    INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
+                        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    LINK_LIBRARIES
+        Dyninst::headers
+        Dyninst::common
+        Dyninst::instructionAPI
+        Dyninst::stackwalk
+        Dyninst::pcontrol
+        Dyninst::patchAPI
+        Dyninst::parseAPI
+        Dyninst::symtabAPI
+        PRIVATE
+        Dyninst::dynPthread
+        Dyninst::dynWinDbgHelp
+        Dyninst::dynWinWs2_32
+        Dyninst::dynWinImageHelp)

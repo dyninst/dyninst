@@ -1,7 +1,5 @@
 # CMake configuration for patchAPI directory
 
-include_directories(${PROJECT_SOURCE_DIR}/patchAPI/src)
-
 set(SRC_LIST
     src/AddrSpace.C
     src/Instrumenter.C
@@ -22,7 +20,9 @@ set(SRC_LIST
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
-add_definitions(-DPATCHAPI_LIB)
-
-dyninst_library(patchAPI common instructionAPI parseAPI)
-target_link_private_libraries(patchAPI ${Boost_LIBRARIES})
+dyninst_library(
+    patchAPI
+    SOURCES ${SRC_LIST}
+    COMPILE_DEFINITIONS PRIVATE PATCHAPI_LIB
+    LINK_LIBRARIES Dyninst::headers Dyninst::common Dyninst::instructionAPI
+                   Dyninst::parseAPI)
