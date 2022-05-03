@@ -27,20 +27,20 @@ set(CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules"
                       ${CMAKE_MODULE_PATH})
 
 # Set the C and C++ language standards
-include(LanguageStandards)
+include(DyninstLanguageStandards)
 
 # Find the necessary third-party libraries
-find_package(ThreadDB)
+find_package(Thread_DB)
 find_package(Threads)
-include(Boost)
-include(ThreadingBuildingBlocks)
-include(ElfUtils)
+include(DyninstBoost)
+include(DyninstTBB)
+include(DyninstElfUtils)
 
 if(UNIX)
-    include(LibIberty REQUIRED)
+    include(DyninstLibIberty REQUIRED)
 endif()
 
-include(shared)
+include(DyninstLibrary)
 
 if(USE_OpenMP)
     find_package(OpenMP REQUIRED)
