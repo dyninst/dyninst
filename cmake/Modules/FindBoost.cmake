@@ -1264,7 +1264,7 @@ function(_Boost_COMPONENT_DEPENDENCIES component _ret)
                                          atomic)
             set(_Boost_WSERIALIZATION_DEPENDENCIES serialization)
         endif()
-        if(NOT Boost_VERSION VERSION_LESS 107100)
+        if(NOT Boost_VERSION VERSION_LESS 107100 AND NOT Boost_FIND_QUIETLY)
             message(
                 WARNING
                     "New Boost version may have incorrect or missing dependencies and imported targets"
@@ -1285,7 +1285,9 @@ function(_Boost_COMPONENT_DEPENDENCIES component _ret)
     if(NOT _boost_DEPS_STRING)
         set(_boost_DEPS_STRING "(none)")
     endif()
-    # message(STATUS "Dependencies for Boost::${component}: ${_boost_DEPS_STRING}")
+    if(Boost_DEBUG)
+        message(STATUS "Dependencies for Boost::${component}: ${_boost_DEPS_STRING}")
+    endif()
 endfunction()
 
 #
@@ -1369,7 +1371,9 @@ function(_Boost_COMPONENT_HEADERS component _hdrs)
     if(NOT _boost_HDRS_STRING)
         set(_boost_HDRS_STRING "(none)")
     endif()
-    # message(STATUS "Headers for Boost::${component}: ${_boost_HDRS_STRING}")
+    if(Boost_DEBUG)
+        message(STATUS "Headers for Boost::${component}: ${_boost_HDRS_STRING}")
+    endif()
 endfunction()
 
 #

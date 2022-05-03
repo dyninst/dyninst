@@ -5,6 +5,8 @@
 #
 #=========================================================================
 
+include(DyninstUtilities)
+
 #
 # C/C++ language standard cmake options.
 #
@@ -25,7 +27,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Require C++11 support
 set(CMAKE_CXX_STANDARD ${DYNINST_CXX_LANGUAGE_STANDARD})
-message(STATUS "C++ language standard:  ${DYNINST_CXX_LANGUAGE_STANDARD}")
+dyninst_message(STATUS "C++ language standard:  ${DYNINST_CXX_LANGUAGE_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Require the standards-compliant C++11 ABI for gcc
@@ -44,5 +46,10 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Require C11 support
 set(CMAKE_C_STANDARD ${DYNINST_C_LANGUAGE_STANDARD})
-message(STATUS "C language standard:  ${DYNINST_C_LANGUAGE_STANDARD}")
+dyninst_message(STATUS "C language standard:  ${DYNINST_C_LANGUAGE_STANDARD}")
 set(CMAKE_C_STANDARD_REQUIRED ON)
+
+dyninst_add_interface_library(LanguageFeatures)
+target_compile_features(
+    LanguageFeatures INTERFACE c_std_${DYNINST_C_LANGUAGE_STANDARD}
+                               cxx_std_${DYNINST_CXX_LANGUAGE_STANDARD})
