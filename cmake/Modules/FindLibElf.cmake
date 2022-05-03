@@ -86,4 +86,9 @@ if(LibElf_FOUND)
     # is only one file in LibElf_LIBRARIES
     get_filename_component(_elf_dir ${LibElf_LIBRARIES} DIRECTORY)
     set(LibElf_LIBRARY_DIRS ${_elf_dir} "${_elf_dir}/elfutils")
+
+    add_library(LibElf::LibElf INTERFACE IMPORTED)
+    target_include_directories(LibElf::LibElf INTERFACE ${LibElf_INCLUDE_DIR})
+    target_link_directories(LibElf::LibElf INTERFACE ${LibElf_LIBRARY_DIRS})
+    target_link_libraries(LibElf::LibElf INTERFACE ${LibElf_LIBRARIES})
 endif()
