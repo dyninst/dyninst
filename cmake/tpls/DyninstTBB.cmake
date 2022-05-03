@@ -191,7 +191,7 @@ else()
         INSTALL_COMMAND
             ${CMAKE_COMMAND} -DLIBDIR=${TBB_LIBRARY_DIRS} -DINCDIR=${TBB_INCLUDE_DIRS}
             -DPREFIX=${_tbb_prefix_dir} -P
-            ${CMAKE_CURRENT_LIST_DIR}/ThreadingBuildingBlocks.install.cmake)
+            ${PROJECT_SOURCE_DIR}/cmake/tpls/DyninstTBBInstall.cmake)
 endif()
 
 include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
