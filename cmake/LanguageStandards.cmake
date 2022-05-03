@@ -9,8 +9,12 @@
 # C/C++ language standard cmake options.
 #
 
-set(DYNINST_CXX_LANGUAGE_STANDARD "11" CACHE STRING "C++ language standard version.")
-set(DYNINST_C_LANGUAGE_STANDARD "11" CACHE STRING "C language standard version.")
+set(DYNINST_CXX_LANGUAGE_STANDARD
+    "11"
+    CACHE STRING "C++ language standard version.")
+set(DYNINST_C_LANGUAGE_STANDARD
+    "11"
+    CACHE STRING "C language standard version.")
 
 #
 # --------  C++ language features ----------------
@@ -26,11 +30,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Require the standards-compliant C++11 ABI for gcc
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0")
-    message(FATAL_ERROR "Dyninst requires gcc >= 6.0")
-  endif()
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0")
+        message(FATAL_ERROR "Dyninst requires gcc >= 6.0")
+    endif()
 endif()
-
 
 #
 # --------  C language features ----------------

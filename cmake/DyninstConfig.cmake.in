@@ -8,37 +8,35 @@
 # compute paths
 
 get_filename_component(DYNINST_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set (DYNINST_INCLUDE_DIR @CONF_INCLUDE_DIRS@)
+set(DYNINST_INCLUDE_DIR @CONF_INCLUDE_DIRS@)
 
-# Library dependencies
-#include ("${DYNINST_CMAKE_DIR}/DyninstTargets.cmake")
+# Library dependencies include ("${DYNINST_CMAKE_DIR}/DyninstTargets.cmake")
 foreach(TARG @ALL_DYNINST_TARGETS@)
-  include ("${DYNINST_CMAKE_DIR}/${TARG}Targets.cmake" OPTIONAL)
+    include("${DYNINST_CMAKE_DIR}/${TARG}Targets.cmake" OPTIONAL)
 endforeach()
 
-set (DYNINST_LIBRARIES "dyninstAPI")
+set(DYNINST_LIBRARIES "dyninstAPI")
 
 # Other variables Dyninst mutators may depend on
-set (DYNINST_PLATFORM "@PLATFORM@")
-set (DYNINST_INTERNAL_DEFINES @UNIFIED_DEFINES@)
+set(DYNINST_PLATFORM "@PLATFORM@")
+set(DYNINST_INTERNAL_DEFINES @UNIFIED_DEFINES@)
 
 if(DYNINST_FIND_COMPONENTS)
-  foreach(COMP DYNINST_FIND_COMPONENTS)
-    if(NOT TARGET ${COMP})
-      set(DYNINST_${COMP}_FOUND 0)
-      if(DYNINST_FIND_REQUIRED_${COMP})
-	MESSAGE(ERROR "${COMP} was not part of the Dyninst build")
-      endif()
-    else()
-      set(DYNINST_${COMP}_FOUND 1)
-      MESSAGE(STATUS "Found ${COMP}")
-    endif()
-  endforeach()
+    foreach(COMP DYNINST_FIND_COMPONENTS)
+        if(NOT TARGET ${COMP})
+            set(DYNINST_${COMP}_FOUND 0)
+            if(DYNINST_FIND_REQUIRED_${COMP})
+                message(ERROR "${COMP} was not part of the Dyninst build")
+            endif()
+        else()
+            set(DYNINST_${COMP}_FOUND 1)
+            message(STATUS "Found ${COMP}")
+        endif()
+    endforeach()
 endif()
 
 if(TARGET dyninstAPI)
-  set(Dyninst_FOUND 1)
+    set(Dyninst_FOUND 1)
 else()
-  set(Dyninst_FOUND 0)
+    set(Dyninst_FOUND 0)
 endif()
-

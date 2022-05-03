@@ -35,36 +35,35 @@ include(DyninstSystemPaths)
 # Non-standard subdirectories to search
 set(_path_suffixes libelf libelfls elfutils)
 
-find_path(LibElf_INCLUDE_DIR
-          NAMES libelf.h
-          HINTS ${LibElf_ROOT_DIR}/include ${LibElf_ROOT_DIR} ${LibElf_INCLUDEDIR}
-          PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
-          PATH_SUFFIXES ${_path_suffixes}
-          DOC "libelf include directories")
+find_path(
+    LibElf_INCLUDE_DIR
+    NAMES libelf.h
+    HINTS ${LibElf_ROOT_DIR}/include ${LibElf_ROOT_DIR} ${LibElf_INCLUDEDIR}
+    PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
+    PATH_SUFFIXES ${_path_suffixes}
+    DOC "libelf include directories")
 
-find_library(LibElf_LIBRARIES
-             NAMES libelf.so.1 libelf.so
-             HINTS ${LibElf_ROOT_DIR}/lib ${LibElf_ROOT_DIR} ${LibElf_LIBRARYDIR}
-             PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
-             PATH_SUFFIXES ${_path_suffixes})
+find_library(
+    LibElf_LIBRARIES
+    NAMES libelf.so.1 libelf.so
+    HINTS ${LibElf_ROOT_DIR}/lib ${LibElf_ROOT_DIR} ${LibElf_LIBRARYDIR}
+    PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
+    PATH_SUFFIXES ${_path_suffixes})
 
 # Find the library with the highest version
 set(_max_ver 0.0)
 set(_max_ver_lib)
 foreach(l ${LibElf_LIBRARIES})
-  get_filename_component(_elf_realpath ${LibElf_LIBRARIES} REALPATH)
-  string(REGEX MATCH
-               "libelf\\-(.+)\\.so\\.*$"
-               res
-               ${_elf_realpath})
+    get_filename_component(_elf_realpath ${LibElf_LIBRARIES} REALPATH)
+    string(REGEX MATCH "libelf\\-(.+)\\.so\\.*$" res ${_elf_realpath})
 
-  # The library version number is stored in CMAKE_MATCH_1
-  set(_cur_ver ${CMAKE_MATCH_1})
+    # The library version number is stored in CMAKE_MATCH_1
+    set(_cur_ver ${CMAKE_MATCH_1})
 
-  if(${_cur_ver} VERSION_GREATER ${_max_ver})
-    set(_max_ver ${_cur_ver})
-    set(_max_ver_lib ${l})
-  endif()
+    if(${_cur_ver} VERSION_GREATER ${_max_ver})
+        set(_max_ver ${_cur_ver})
+        set(_max_ver_lib ${l})
+    endif()
 endforeach()
 
 # Set the exported variables to the best match
@@ -72,22 +71,19 @@ set(LibElf_LIBRARIES ${_max_ver_lib})
 set(LibElf_VERSION ${_max_ver})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(LibElf
-                                  FOUND_VAR
-                                  LibElf_FOUND
-                                  REQUIRED_VARS
-                                  LibElf_LIBRARIES
-                                  LibElf_INCLUDE_DIR
-                                  VERSION_VAR
-                                  LibElf_VERSION)
+find_package_handle_standard_args(
+    LibElf
+    FOUND_VAR LibElf_FOUND
+    REQUIRED_VARS LibElf_LIBRARIES LibElf_INCLUDE_DIR
+    VERSION_VAR LibElf_VERSION)
 
 # Export cache variables
 if(LibElf_FOUND)
-  set(LibElf_INCLUDE_DIRS ${LibElf_INCLUDE_DIR})
-  set(LibElf_LIBRARIES ${LibElf_LIBRARIES})
+    set(LibElf_INCLUDE_DIRS ${LibElf_INCLUDE_DIR})
+    set(LibElf_LIBRARIES ${LibElf_LIBRARIES})
 
-  # Because we only report the library with the largest version, we are
-  # guaranteed there is only one file in LibElf_LIBRARIES
-  get_filename_component(_elf_dir ${LibElf_LIBRARIES} DIRECTORY)
-  set(LibElf_LIBRARY_DIRS ${_elf_dir} "${_elf_dir}/elfutils")
+    # Because we only report the library with the largest version, we are guaranteed there
+    # is only one file in LibElf_LIBRARIES
+    get_filename_component(_elf_dir ${LibElf_LIBRARIES} DIRECTORY)
+    set(LibElf_LIBRARY_DIRS ${_elf_dir} "${_elf_dir}/elfutils")
 endif()
