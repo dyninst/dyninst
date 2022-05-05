@@ -4,7 +4,7 @@
 #  cap_32_64 - This host 64-bit platform supports modifying 32-bit binaries
 #
 
-  set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
+set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
 if(PLATFORM MATCHES i386)
     set(ARCH_DEFINES -Darch_x86)
