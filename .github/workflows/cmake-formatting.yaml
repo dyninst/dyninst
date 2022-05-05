@@ -1,0 +1,29 @@
+
+name: Formatting
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  cmake-formatting:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        python3 -m pip install cmake-format
+    - name: cmake-format
+      run: |
+        set +e
+        cmake-format -i $(find . -type f | egrep 'CMakeLists.txt|\.cmake$')
+        if [ $(git diff | wc -l) -gt 0 ]; then
+          echo -e "\nError! CMake files not formatted."
+          echo -e "\nRun the following to fix:"
+          for f in $(git diff --name-only); do echo -e "  cmake-format -i $f"; done
+          echo
+          exit 1
+        fi

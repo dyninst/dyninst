@@ -5,8 +5,10 @@ set(DYNINST_SYSTEM_INCLUDE_PATHS
     /opt/include
     /opt/local/include
     /sw/include
-    ENV CPATH
-    ENV PATH)
+    ENV
+    CPATH
+    ENV
+    PATH)
 
 set(DYNINST_SYSTEM_LIBRARY_PATHS
     /usr/lib
@@ -17,6 +19,9 @@ set(DYNINST_SYSTEM_LIBRARY_PATHS
     /opt/local/lib
     /opt/local/lib64
     /sw/lib
-    ENV LIBRARY_PATH
-    ENV LD_LIBRARY_PATH
-    ENV PATH)
+    ENV
+    LIBRARY_PATH
+    ENV
+    LD_LIBRARY_PATH
+    ENV
+    PATH)
