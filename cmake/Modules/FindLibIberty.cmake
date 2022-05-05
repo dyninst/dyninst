@@ -30,13 +30,13 @@
 #========================================================================================
 
 if(LibIberty_FOUND)
-  return()
+    return()
 endif()
 
-# Keep the semantics of IBERTY_LIBRARIES for backward compatibility
-# NB: If both are specified, LibIberty_LIBRARIES is ignored
+# Keep the semantics of IBERTY_LIBRARIES for backward compatibility NB: If both are
+# specified, LibIberty_LIBRARIES is ignored
 if(NOT "${IBERTY_LIBRARIES}" STREQUAL "")
-  set(LibIberty_LIBRARIES ${IBERTY_LIBRARIES})
+    set(LibIberty_LIBRARIES ${IBERTY_LIBRARIES})
 endif()
 
 include(DyninstSystemPaths)
@@ -44,38 +44,37 @@ include(DyninstSystemPaths)
 # Non-standard subdirectories to search
 set(_path_suffixes libiberty iberty)
 
-find_path(LibIberty_INCLUDE_DIRS
-          NAMES libiberty.h
-          HINTS ${LibIberty_ROOT_DIR} ${LibIberty_ROOT_DIR}/include ${LibIberty_INCLUDEDIR}
-          PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
-          PATH_SUFFIXES ${_path_suffixes}
-          DOC "LibIberty include directories")
+find_path(
+    LibIberty_INCLUDE_DIRS
+    NAMES libiberty.h
+    HINTS ${LibIberty_ROOT_DIR} ${LibIberty_ROOT_DIR}/include ${LibIberty_INCLUDEDIR}
+    PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
+    PATH_SUFFIXES ${_path_suffixes}
+    DOC "LibIberty include directories")
 
 # iberty_pic is for Debian <= wheezy
-find_library(LibIberty_LIBRARIES
-             NAMES iberty_pic iberty
-             HINTS ${LibIberty_ROOT_DIR}
-                   ${LibIberty_LIBRARYDIR}
-                   ${IBERTY_LIBRARIES}
-             PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
-             PATH_SUFFIXES ${_path_suffixes})
+find_library(
+    LibIberty_LIBRARIES
+    NAMES iberty_pic iberty
+    HINTS ${LibIberty_ROOT_DIR} ${LibIberty_LIBRARYDIR} ${IBERTY_LIBRARIES}
+    PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
+    PATH_SUFFIXES ${_path_suffixes})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(LibIberty
-                                  FOUND_VAR
-                                  LibIberty_FOUND
-                                  REQUIRED_VARS
-                                  LibIberty_LIBRARIES)
+find_package_handle_standard_args(
+    LibIberty
+    FOUND_VAR LibIberty_FOUND
+    REQUIRED_VARS LibIberty_LIBRARIES)
 
 # For backwards compatibility only
 set(IBERTY_FOUND ${LibIberty_FOUND})
 
 if(LibIberty_FOUND)
-  foreach(l ${LibIberty_LIBRARIES})
-    get_filename_component(_dir ${l} DIRECTORY)
-    list(APPEND LibIberty_LIBRARY_DIRS ${_dir})
-  endforeach()
-  
-  # For backwards compatibility only
-  set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
+    foreach(l ${LibIberty_LIBRARIES})
+        get_filename_component(_dir ${l} DIRECTORY)
+        list(APPEND LibIberty_LIBRARY_DIRS ${_dir})
+    endforeach()
+
+    # For backwards compatibility only
+    set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
 endif()

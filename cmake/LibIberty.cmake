@@ -22,46 +22,48 @@
 #======================================================================================
 
 if(LibIberty_FOUND)
-  return()
+    return()
 endif()
 
 if(NOT UNIX)
-  return()
+    return()
 endif()
 
 # -------------- PATHS --------------------------------------------------------
 
 # Base directory the of LibIberty installation
-set(LibIberty_ROOT_DIR "/usr"
+set(LibIberty_ROOT_DIR
+    "/usr"
     CACHE PATH "Base directory the of LibIberty installation")
 
 # Hint directory that contains the LibIberty library files
-set(LibIberty_LIBRARYDIR "${LibIberty_ROOT_DIR}/lib"
+set(LibIberty_LIBRARYDIR
+    "${LibIberty_ROOT_DIR}/lib"
     CACHE PATH "Hint directory that contains the LibIberty library files")
 
 # -------------- PACKAGES -----------------------------------------------------
 
 find_package(LibIberty REQUIRED)
 
-
 # -------------- EXPORT VARIABLES ---------------------------------------------
 
 add_library(LibIberty STATIC IMPORTED GLOBAL)
 set_target_properties(LibIberty PROPERTIES IMPORTED_LOCATION ${LibIberty_LIBRARIES})
-set_target_properties(LibIberty PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${LibIberty_INCLUDE_DIRS})
+set_target_properties(LibIberty PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                           ${LibIberty_INCLUDE_DIRS})
 
-set(LibIberty_ROOT_DIR ${LibIberty_ROOT_DIR}
-    CACHE PATH "Base directory the of LibIberty installation"
-    FORCE)
-set(LibIberty_INCLUDE_DIRS ${LibIberty_INCLUDE_DIRS}
-    CACHE PATH "LibIberty include directories"
-    FORCE)
-set(LibIberty_LIBRARY_DIRS ${LibIberty_LIBRARY_DIRS}
-    CACHE PATH "LibIberty library directory"
-    FORCE)
-set(LibIberty_LIBRARIES ${LibIberty_LIBRARIES}
-    CACHE FILEPATH "LibIberty library files"
-    FORCE)
+set(LibIberty_ROOT_DIR
+    ${LibIberty_ROOT_DIR}
+    CACHE PATH "Base directory the of LibIberty installation" FORCE)
+set(LibIberty_INCLUDE_DIRS
+    ${LibIberty_INCLUDE_DIRS}
+    CACHE PATH "LibIberty include directories" FORCE)
+set(LibIberty_LIBRARY_DIRS
+    ${LibIberty_LIBRARY_DIRS}
+    CACHE PATH "LibIberty library directory" FORCE)
+set(LibIberty_LIBRARIES
+    ${LibIberty_LIBRARIES}
+    CACHE FILEPATH "LibIberty library files" FORCE)
 
 # For backward compatibility only
 set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})

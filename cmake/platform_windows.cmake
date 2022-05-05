@@ -1,1 +1,1 @@
-set (PLATFORM i386-unknown-nt4.0)
+set(PLATFORM i386-unknown-nt4.0)
