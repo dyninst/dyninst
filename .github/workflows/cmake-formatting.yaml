@@ -21,8 +21,8 @@ jobs:
         set +e
         cmake-format -i $(find . -type f | egrep 'CMakeLists.txt|\.cmake$')
         if [ $(git diff | wc -l) -gt 0 ]; then
-          echo -e "\nError! CMake files not formatted.\n"
-          echo -e "\nRun the following to fix:\n"
-          for f in $(git diff --name-only); do echo "cmake-format -i $f"; done
+          echo -e "\nError! CMake files not formatted."
+          echo -e "\nRun the following to fix:"
+          for f in $(git diff --name-only); do echo -e "\tcmake-format -i $f"; done
           exit 1
         fi
