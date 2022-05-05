@@ -23,6 +23,7 @@ jobs:
         if [ $(git diff | wc -l) -gt 0 ]; then
           echo -e "\nError! CMake files not formatted."
           echo -e "\nRun the following to fix:"
-          for f in $(git diff --name-only); do echo -e "\tcmake-format -i $f"; done
+          for f in $(git diff --name-only); do echo -e "  cmake-format -i $f"; done
+          echo
           exit 1
         fi
