@@ -71,7 +71,7 @@ find_package_handle_standard_args(LibIberty
 set(IBERTY_FOUND ${LibIberty_FOUND})
 
 if(LibIberty_FOUND)
-  foreach(l in ${LibIberty_LIBRARIES})
+  foreach(l ${LibIberty_LIBRARIES})
     get_filename_component(_dir ${l} DIRECTORY)
     list(APPEND LibIberty_LIBRARY_DIRS ${_dir})
   endforeach()
