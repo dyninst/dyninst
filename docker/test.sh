@@ -18,7 +18,7 @@ mkdir -p $TESTS_BUILD_DIR
 TESTS_INSTALL_DIR=/opt/dyninst-env/install/external-tests
 mkdir -p $TESTS_INSTALL_DIR
 
-cmake -S /opt/external-tests -B $TESTS_BUILD_DIR -DCMAKE_INSTALL_PREFIX=$TESTS_INSTALL_DIR -DDyninst_DIR=$DYNINST_INSTALL_DIR/lib/cmake/Dyninst
+cmake -S /opt/external-tests -B $TESTS_BUILD_DIR -DCMAKE_INSTALL_PREFIX=$TESTS_INSTALL_DIR -DDyninst_DIR=$DYNINST_INSTALL_DIR/lib/cmake/Dyninst -DDYNINST_IMPORT_DEPRECATED_TARGETS=ON
 cmake --build $TESTS_BUILD_DIR
 cmake --install $TESTS_BUILD_DIR
 
