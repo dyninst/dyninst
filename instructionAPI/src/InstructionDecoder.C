@@ -32,6 +32,12 @@
 #include "InstructionDecoderImpl.h"
 #include "Instruction.h"
 
+namespace {
+	namespace ia = Dyninst::InstructionAPI;
+	using ui = ia::InstructionDecoder::unknown_instruction;
+	ui::callback_t callback{};
+}
+
 using namespace std;
 namespace Dyninst
 {
@@ -67,7 +73,15 @@ namespace Dyninst
         m_Impl->doDelayedDecode(i);
     }
     
-
+    using cbt = InstructionDecoder::unknown_instruction::callback_t;
+    void InstructionDecoder::unknown_instruction::register_callback(cbt cb) {
+    	::callback = cb;
+    }
+    cbt InstructionDecoder::unknown_instruction::unregister_callback() {
+    	auto c = ::callback;
+    	::callback = nullptr;
+    	return c;
+    }
   }
 }
 

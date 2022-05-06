@@ -82,6 +82,15 @@ namespace Dyninst
                   start(b), end(e) {}
       };
 
+      // This interface allows registering a callback function to be invoked
+      // when the InstructionDecoder encounters a byte sequence it is not able
+      // to successfully convert into a known instruction
+      struct unknown_instruction {
+		  using callback_t = Instruction(*)();
+		  static void register_callback(callback_t);
+		  static callback_t unregister_callback();
+      };
+
         private:
             buffer m_buf;
       boost::shared_ptr<InstructionDecoderImpl> m_Impl;
