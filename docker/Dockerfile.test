@@ -3,6 +3,9 @@ FROM ${dyninst_base}
 
 # docker build --build-arg dyninst_base=ghcr.io/dyninst/dyninst-ubuntu-20.04:latest -f Dockerfile.test -t dyninst-test ../
 
+# Remove old code
+RUN rm -rf /code
+
 # Add updated Dyninst code
 COPY . /code
 

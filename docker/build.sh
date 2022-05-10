@@ -17,7 +17,7 @@ mkdir -p $DYNINST_INSTALL_DIR
 
 CMAKE_WERROR_FLAGS='-DCMAKE_C_FLAGS="-Werror" -DCMAKE_CXX_FLAGS="-Werror"'
 cmake -S /code -B $DYNINST_BUILD_DIR -DCMAKE_INSTALL_PREFIX=$DYNINST_INSTALL_DIR $CMAKE_WERROR_FLAGS
-cmake --build $DYNINST_BUILD_DIR -- -j2
+cmake --build $DYNINST_BUILD_DIR --target all --parallel 2 -- VERBOSE=1
 cmake --install $DYNINST_BUILD_DIR
 
 echo "::endgroup::"
