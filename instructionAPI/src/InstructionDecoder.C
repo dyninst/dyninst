@@ -59,14 +59,21 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
     {
       if(m_buf.start >= m_buf.end) return Instruction();
-      return m_Impl->decode(m_buf);
+      Instruction const& ins = m_Impl->decode(m_buf);
+      if(!ins.isLegalInsn() && ::callback) {
+    	return ::callback(m_buf);
+      }
+      return ins;
     }
     
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* b)
     {
       buffer tmp(b, b+maxInstructionLength);
-      
-      return m_Impl->decode(tmp);
+      Instruction const& ins = m_Impl->decode(tmp);
+      if(!ins.isLegalInsn() && ::callback) {
+    	  return ::callback(tmp);
+      }
+      return ins;
     }
     INSTRUCTION_EXPORT void InstructionDecoder::doDelayedDecode(const Instruction* i)
     {
