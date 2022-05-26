@@ -84,8 +84,8 @@ namespace Dyninst
         INSTRUCTION_EXPORT Instruction::Instruction(Operation what,
                 size_t size, const unsigned char* raw,
                 Dyninst::Architecture arch)
-            : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch),
-            formatter(&ArchSpecificFormatter::getFormatter(arch))
+            : m_InsnOp(what), m_Valid(what.getID() != e_No_Entry), arch_decoded_from(arch),
+            formatter(ArchSpecificFormatter::getFormatter(arch))
         {
             copyRaw(size, raw);
 
