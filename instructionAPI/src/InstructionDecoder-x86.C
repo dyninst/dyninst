@@ -1759,13 +1759,20 @@ namespace Dyninst
         assert(locs->sib_position == -1);
         decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
         ia32_decode(IA32_DECODE_PREFIXES, b.start, *decodedInstruction, is64BitMode);
+
+        static ia32_entry invalid = { e_No_Entry, 0, 0, false, { {0,0}, {0,0}, {0,0} }, 0, 0, 0 };
+        if(decodedInstruction->getLegacyType() == ILLEGAL) {
+        	m_Operation = Operation(&invalid, nullptr, nullptr, m_Arch);
+        	return;
+        }
+
         sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
         if (decodedInstruction->getPrefix()->rexW()) {
             // as per 2.2.1.2 - rex.w overrides 66h
             sizePrefixPresent = false;
         }
         addrSizePrefixPresent = (decodedInstruction->getPrefix()->getAddrSzPrefix() == 0x67);
-        static ia32_entry invalid = { e_No_Entry, 0, 0, false, { {0,0}, {0,0}, {0,0} }, 0, 0, 0 };
+
         if(decodedInstruction->getEntry()) {
             // check prefix validity
             // lock prefix only allowed on certain insns.
