@@ -1834,6 +1834,10 @@ namespace Dyninst
     void InstructionDecoder_x86::decodeOpcode(InstructionDecoder::buffer& b)
     {
         doIA32Decode(b);
+
+        // Do not move through the buffer if a bad instruction was encountered
+        if(m_Operation.getID() == e_No_Entry) return;
+
         b.start += decodedInstruction->getSize();
     }
     
