@@ -86,7 +86,11 @@ namespace Dyninst
       // when the InstructionDecoder encounters a byte sequence it is not able
       // to successfully convert into a known instruction
       struct unknown_instruction {
-		  struct replacement final { Instruction i{}; size_t bytes_consumed{}; };
+		  struct replacement final {
+			  Instruction i{};
+			  size_t bytes_consumed{};
+			  replacement(Instruction ins, size_t bytes) : i{std::move(ins)}, bytes_consumed{bytes}{}
+		  };
 		  using callback_t = replacement(*)(buffer);
 		  static void register_callback(callback_t);
 		  static callback_t unregister_callback();
