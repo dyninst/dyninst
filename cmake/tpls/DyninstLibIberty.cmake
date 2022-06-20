@@ -68,37 +68,44 @@ else()
     include(ExternalProject)
     externalproject_add(
         LibIberty-External
-        PREFIX ${CMAKE_BINARY_DIR}/binutils
+        PREFIX ${PROJECT_BINARY_DIR}/binutils
         URL http://ftp.gnu.org/gnu/binutils/binutils-2.31.1.tar.gz
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
             ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
             CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g <SOURCE_DIR>/configure
-            --prefix=${CMAKE_BINARY_DIR}/binutils
+            --prefix=${PROJECT_BINARY_DIR}/binutils
         BUILD_COMMAND make
-        INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libiberty
-        INSTALL_COMMAND install <SOURCE_DIR>/libiberty/libiberty.a <INSTALL_DIR>)
+        INSTALL_COMMAND "")
+
+    add_custom_command(
+        TARGET LibIberty-External
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E make_directory ${TPL_STAGING_PREFIX}/lib
+        COMMAND
+            install ARGS -C
+            ${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External/libiberty/libiberty.a
+            ${TPL_STAGING_PREFIX}/lib
+        COMMENT "Installing LibIberty...")
 
     # target for re-executing the installation
     add_custom_target(
         install-libiberty-external
         COMMAND
-            install
-            ${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/libiberty/libiberty.a
-            ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libiberty
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External
+            install -C ${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External/libiberty.a
+            ${TPL_STAGING_PREFIX}/lib
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External
         COMMENT "Installing LibIberty...")
 
-    set(_li_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
+    set(_li_root ${TPL_STAGING_PREFIX})
     set(_li_inc_dirs
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/include>
-        $<INSTALL_INTERFACE:lib/dyninst-tpls/include>)
-    set(_li_lib_dirs
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/libiberty>
-        $<INSTALL_INTERFACE:lib/dyninst-tpls/lib>)
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External/include>)
+    set(_li_lib_dirs $<BUILD_INTERFACE:${_li_root}/lib>
+                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
     set(_li_libs
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/binutils/src/LibIberty-External/libiberty/libiberty.a>
-        $<INSTALL_INTERFACE:iberty>)
+        $<BUILD_INTERFACE:${_li_root}/lib/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
+        )
 
     # For backward compatibility
     set(IBERTY_FOUND TRUE)

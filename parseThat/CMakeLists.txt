@@ -29,9 +29,15 @@ target_link_libraries(
             Dyninst::Boost
             Dyninst::ElfUtils)
 
-set_target_properties(
-    parseThat PROPERTIES INSTALL_RPATH_USE_LINK_PATH ON
-                         INSTALL_RPATH "\$ORIGIN/../lib:\$ORIGIN/../lib/dyninst-tpls/lib")
+if(UNIX AND NOT APPLE)
+    set_target_properties(
+        parseThat
+        PROPERTIES
+            INSTALL_RPATH_USE_LINK_PATH ON
+            INSTALL_RPATH
+            "\$ORIGIN/../${INSTALL_LIB_DIR}:\$ORIGIN/../${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}"
+        )
+endif()
 
 if(USE_OpenMP)
     if(NOT OpenMP_FOUND)

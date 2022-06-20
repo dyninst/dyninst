@@ -27,21 +27,6 @@ set(CPACK_RESOURCE_FILE_LICENSE
     "@PROJECT_LICENSE_FILE@"
     CACHE STRING "")
 
-if(@BUILD_BOOST@
-   OR @BUILD_TBB@
-   OR @BUILD_ELFUTILS@
-   OR @BUILD_LIBIBERTY@)
-    set(CPACK_INSTALLED_DIRECTORIES
-        "@CMAKE_INSTALL_PREFIX@/lib/dyninst-tpls/include" "lib/dyninst-tpls/include"
-        "@CMAKE_INSTALL_PREFIX@/lib/dyninst-tpls/lib" "lib/dyninst-tpls/lib")
-endif()
-
-if(@BUILD_ELFUTILS@)
-    list(APPEND CPACK_INSTALLED_DIRECTORIES "@CMAKE_INSTALL_PREFIX@/lib/dyninst-tpls/bin"
-         "lib/dyninst-tpls/bin" "@CMAKE_INSTALL_PREFIX@/lib/dyninst-tpls/share"
-         "lib/dyninst-tpls/share")
-endif()
-
 foreach(
     _VAR
     NAME

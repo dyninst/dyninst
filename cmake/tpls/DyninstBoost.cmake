@@ -213,22 +213,22 @@ else()
 
     # Change the base directory
     set(Boost_ROOT_DIR
-        ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls
+        ${TPL_STAGING_PREFIX}
         CACHE PATH "Base directory the of Boost installation" FORCE)
 
     # Update the exported variables
     set(Boost_INCLUDE_DIRS
-        "$<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include>;$<INSTALL_INTERFACE:lib/dyninst-tpls/include>"
+        "$<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/include>;$<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}/${TPL_INSTALL_INCLUDE_DIR}>"
         CACHE PATH "Boost include directory" FORCE)
     set(Boost_LIBRARY_DIRS
-        "$<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib>;$<INSTALL_INTERFACE:lib/dyninst-tpls/lib>"
+        "$<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib>;$<INSTALL_INTERFACE:${CMAKE_INSTALL_LIBDIR}/${TPL_INSTALL_LIB_DIR}>"
         CACHE PATH "Boost library directory" FORCE)
     set(Boost_INCLUDE_DIR
         ${Boost_INCLUDE_DIRS}
         CACHE PATH "Boost include directory" FORCE)
 
-    set(BOOST_ARGS --ignore-site-config --link=static
-                   --runtime-link=${_boost_runtime_link} --threading=${_boost_threading})
+    set(BOOST_ARGS link=static runtime-link=${_boost_runtime_link}
+                   threading=${_boost_threading})
     if(WIN32)
         # NB: We need to build both debug/release on windows as we don't use
         # CMAKE_BUILD_TYPE
@@ -258,30 +258,37 @@ else()
         list(APPEND BOOST_ARGS cflags=-fPIC cxxflags=-fPIC)
     endif()
 
-    include(ExternalProject)
     string(REPLACE "." "_" _boost_download_filename ${BOOST_DOWNLOAD_VERSION})
     # zip is subject to locales on Unix
     set(_boost_download_ext "zip")
     if(UNIX)
         set(_boost_download_ext "tar.gz")
     endif()
+
+    include(ExternalProject)
     externalproject_add(
         Boost-External
-        PREFIX ${CMAKE_BINARY_DIR}/boost
+        PREFIX ${PROJECT_BINARY_DIR}/boost
         URL http://downloads.sourceforge.net/project/boost/boost/${BOOST_DOWNLOAD_VERSION}/boost_${_boost_download_filename}.${_boost_download_ext}
         BUILD_IN_SOURCE 1
-        CONFIGURE_COMMAND
-            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
-            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g ${BOOST_BOOTSTRAP}
-            --prefix=${Boost_ROOT_DIR} --with-libraries=${_boost_lib_names}
-        BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
+        CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR}
+                          --with-libraries=${_boost_lib_names}
+        BUILD_COMMAND ${BOOST_BUILD} --ignore-site-config --prefix=${Boost_ROOT_DIR} -j2
+                      ${BOOST_ARGS} -d0 install
         INSTALL_COMMAND "")
+
+    add_custom_command(
+        TARGET Boost-External
+        POST_BUILD
+        COMMAND ${BOOST_BUILD} ARGS ${BOOST_ARGS} -d0 install
+        COMMENT "Installing Boost..."
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/boost/src/Boost-External)
 
     # target for re-executing the installation
     add_custom_target(
         install-boost-external
         COMMAND ${BOOST_BUILD} ${BOOST_ARGS} -d0 install
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/boost/src/Boost-External
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/boost/src/Boost-External
         COMMENT "Installing Boost...")
 
     set(_LIB_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
@@ -295,10 +302,10 @@ else()
         foreach(c ${_boost_components})
             list(APPEND Boost_LIBRARIES "optimized libboost_${c} debug libboost_${c}-gd ")
             set(Boost_${c}_LIBRARY
-                $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libboost_${c}${_LIB_SUFFIX}>
-                $<INSTALL_INTERFACE:libboost_${c}>)
+                $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:boost_${c}>)
             set(Boost_${c}_LIBRARY_DEBUG
-                $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
                 $<INSTALL_INTERFACE:libboost_${c}-gd>)
 
             # Also export cache variables for the file location of each library
@@ -316,8 +323,9 @@ else()
         set(Boost_LIBRARIES "")
         foreach(c ${_boost_components})
             set(Boost_${c}_LIBRARY
-                $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib/libboost_${c}${_LIB_SUFFIX}>
-                $<INSTALL_INTERFACE:boost_${c}>)
+                $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libboost_${c}${_LIB_SUFFIX}>
+                )
             list(APPEND Boost_LIBRARIES "${Boost_${c}_LIBRARY}")
 
             # Also export cache variables for the file location of each library

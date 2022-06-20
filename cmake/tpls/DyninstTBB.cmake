@@ -134,11 +134,11 @@ else()
 
     set(_tbb_libraries)
     set(_tbb_components_cfg)
-    set(_tbb_library_dirs $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/tbb/src/tbb_release>
-                          $<INSTALL_INTERFACE:lib/dyninst-tpls/lib>)
+    set(_tbb_library_dirs $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib>
+                          $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
     set(_tbb_include_dirs
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/tbb/src/TBB-External/include>
-        $<INSTALL_INTERFACE:lib/dyninst-tpls/include>)
+        $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/include>
+        $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_INCLUDE_DIR}>)
 
     # Forcibly update the cache variables
     set(TBB_INCLUDE_DIRS
@@ -161,7 +161,7 @@ else()
         endif()
 
         set(_tbb_${c}_lib
-            $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/tbb/src/tbb_release/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}>
+            $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}>
             $<INSTALL_INTERFACE:${c}>)
 
         # Generate library filenames
@@ -183,8 +183,7 @@ else()
     list(GET _tbb_download_name 0 _tbb_ver_major)
     list(GET _tbb_download_name 1 _tbb_ver_minor)
 
-    include(ExternalProject)
-    set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
+    set(_tbb_prefix_dir ${PROJECT_BINARY_DIR}/tbb)
 
     # Set the compiler for TBB It assumes gcc and tests for Intel, so clang is the only
     # one that needs special treatment.
@@ -206,6 +205,7 @@ else()
         set(MAKE_EXECUTABLE "$(MAKE)")
     endif()
 
+    include(ExternalProject)
     externalproject_add(
         TBB-External
         PREFIX ${_tbb_prefix_dir}
@@ -214,33 +214,28 @@ else()
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
             ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
-            [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=]
-            ${MAKE_EXECUTABLE} -C src ${_tbb_components_cfg}
-            tbb_build_dir=${_tbb_prefix_dir}/src tbb_build_prefix=tbb ${_tbb_compiler}
-        INSTALL_COMMAND
-            ${CMAKE_COMMAND} -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib
-            -DINCDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include
-            -DPREFIX=${_tbb_prefix_dir} -P
-            ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake)
+            [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=] ${MAKE_EXECUTABLE} -C src
+            ${_tbb_components_cfg} tbb_build_dir=${_tbb_prefix_dir}/src
+            tbb_build_prefix=tbb ${_tbb_compiler}
+        INSTALL_COMMAND "")
 
-    # target for re-executing the installation
-    add_custom_target(
-        install-tbb-external
+    # post-build target for installing build
+    add_custom_command(
+        TARGET TBB-External
+        POST_BUILD
         COMMAND
-            ${CMAKE_COMMAND} -DLIBDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/lib
-            -DINCDIR=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include
-            -DPREFIX=${_tbb_prefix_dir} -P
+            ${CMAKE_COMMAND} ARGS -DLIBDIR=${TPL_STAGING_PREFIX}/lib
+            -DINCDIR=${TPL_STAGING_PREFIX}/include -DPREFIX=${_tbb_prefix_dir} -P
             ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake
         COMMENT "Installing TBB...")
 
-    foreach(c ${_tbb_components})
-        install(
-            PROGRAMS
-                ${_tbb_prefix_dir}/src/tbb_release/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}
-                ${_tbb_prefix_dir}/src/tbb_release/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}.2
-            DESTINATION lib/dyninst-tpls/lib
-            OPTIONAL)
-    endforeach()
+    add_custom_target(
+        install-tbb-external
+        COMMAND
+            ${CMAKE_COMMAND} -DLIBDIR=${TPL_STAGING_PREFIX}/lib
+            -DINCDIR=${TPL_STAGING_PREFIX}/include -DPREFIX=${_tbb_prefix_dir} -P
+            ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake
+        COMMENT "Installing TBB...")
 endif()
 
 foreach(_DIR_TYPE INCLUDE LIBRARY)

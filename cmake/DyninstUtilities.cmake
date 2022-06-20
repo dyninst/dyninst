@@ -174,12 +174,49 @@ function(DYNINST_ADD_OPTION _NAME _MESSAGE _DEFAULT)
 endfunction()
 
 # ----------------------------------------------------------------------------------------#
+# function dyninst_sync_option(VAR) ensures both non-prefixed option and prefixed option
+# are identical
+#
+function(DYNINST_SYNC_OPTION _NAME)
+    if(DYNINST_OPTION_PREFIX)
+        # set the option locally for this project
+        set(${_NAME}
+            "${DYNINST_${_NAME}}"
+            PARENT_SCOPE)
+    else()
+        # set the option locally for this project
+        set(DYNINST_${_NAME}
+            "${${_NAME}}"
+            PARENT_SCOPE)
+    endif()
+endfunction()
+
+# ----------------------------------------------------------------------------------------#
+# function dyninst_sync_option(VAR) ensures both non-prefixed option and prefixed option
+# are identical
+#
+function(DYNINST_UNSET_CACHE_OPTION _NAME)
+    if(DYNINST_OPTION_PREFIX)
+        # set the option locally for this project
+        unset(DYNINST_${_NAME} CACHE)
+        unset(${_NAME} PARENT_SCOPE)
+    else()
+        # set the option locally for this project
+        unset(${_NAME} CACHE)
+        unset(DYNINST_${_NAME} PARENT_SCOPE)
+    endif()
+endfunction()
+
+# ----------------------------------------------------------------------------------------#
 # function dyninst_add_cache_option(<same args as setting cache variable>) Add an option
 # and add as a feature
 #
 function(DYNINST_ADD_CACHE_OPTION _NAME _VALUE _PROP _TYPE _HELPSTRING)
+    if("FORCE" IN_LIST ARGN)
+        set(_FORCE FORCE)
+    endif()
     if(DYNINST_OPTION_PREFIX)
-        set(DYNINST_${_NAME} "${_VALUE}" ${_PROP} ${_TYPE} "${_HELPSTRING}" ${ARGN})
+        set(DYNINST_${_NAME} "${_VALUE}" ${_PROP} ${_TYPE} "${_HELPSTRING}" ${_FORCE})
         # set the option locally for this project
         set(${_NAME}
             ${DYNINST_${_NAME}}
@@ -187,7 +224,7 @@ function(DYNINST_ADD_CACHE_OPTION _NAME _VALUE _PROP _TYPE _HELPSTRING)
         # for after this if/else
         set(_NAME DYNINST_${_NAME})
     else()
-        set(${_NAME} "${_VALUE}" ${_PROP} ${_TYPE} "${_HELPSTRING}" ${ARGN})
+        set(${_NAME} "${_VALUE}" ${_PROP} ${_TYPE} "${_HELPSTRING}" ${_FORCE})
         # set the option locally for this project
         set(DYNINST_${_NAME}
             ${${_NAME}}

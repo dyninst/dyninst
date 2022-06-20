@@ -145,14 +145,15 @@ else()
     include(ExternalProject)
     externalproject_add(
         ElfUtils-External
-        PREFIX ${CMAKE_BINARY_DIR}/elfutils
+        PREFIX ${PROJECT_BINARY_DIR}/elfutils
         URL https://sourceware.org/elfutils/ftp/${ELFUTILS_DOWNLOAD_VERSION}/elfutils-${ELFUTILS_DOWNLOAD_VERSION}.tar.bz2
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
             ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
-            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g <SOURCE_DIR>/configure
-            --enable-install-elfh --prefix=${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls
-            --disable-libdebuginfod --disable-debuginfod --enable-thread-safety
+            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g
+            [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=] <SOURCE_DIR>/configure
+            --enable-install-elfh --prefix=${TPL_STAGING_PREFIX} --disable-libdebuginfod
+            --disable-debuginfod --enable-thread-safety
         BUILD_COMMAND make install
         INSTALL_COMMAND "")
 
@@ -160,23 +161,20 @@ else()
     add_custom_target(
         install-elfutils-external
         COMMAND make install
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/elfutils/src/ElfUtils-External
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/elfutils/src/ElfUtils-External
         COMMENT "Installing ElfUtils...")
 
-    set(_eu_root ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls)
-    set(_eu_inc_dirs
-        $<BUILD_INTERFACE:${_eu_root}/include>
-        $<BUILD_INTERFACE:${_eu_root}/include/elfutils>
-        $<INSTALL_INTERFACE:lib/dyninst-tpls/include>
-        $<INSTALL_INTERFACE:lib/dyninst-tpls/include/elfutils>)
-    set(_eu_lib_dirs
-        $<BUILD_INTERFACE:${_eu_root}/lib> $<BUILD_INTERFACE:${_eu_root}/lib/elfutils>
-        $<INSTALL_INTERFACE:lib/dyninst-tpls/lib>
-        $<INSTALL_INTERFACE:lib/dyninst-tpls/lib/elfutils>)
+    set(_eu_root ${TPL_STAGING_PREFIX})
+    set(_eu_inc_dirs $<BUILD_INTERFACE:${_eu_root}/include>
+                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_INCLUDE_DIR}>)
+    set(_eu_lib_dirs $<BUILD_INTERFACE:${_eu_root}/lib>
+                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
     set(_eu_libs
         $<BUILD_INTERFACE:${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
         $<BUILD_INTERFACE:${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        $<INSTALL_INTERFACE:dw> $<INSTALL_INTERFACE:elf>)
+        $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        )
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------

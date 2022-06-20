@@ -39,20 +39,10 @@ dyninst_add_option(
     STERILE_BUILD "Do not download/build any third-party dependencies from source" OFF
     ADVANCED)
 
-list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib"
-     isSystemDir)
-if("${isSystemDir}" STREQUAL "-1")
-    if(UNIX AND NOT APPLE)
-        set(CMAKE_INSTALL_RPATH
-            "\$ORIGIN:\$ORIGIN/dyninst-tpls/lib:${CMAKE_INSTALL_PREFIX}/lib")
-    else()
-        set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-    endif()
-endif()
-
 # Set the C and C++ language standards
 include(DyninstLanguageStandards)
 include(DyninstOptions)
+include(DyninstInstallDirs)
 
 # Find the necessary third-party libraries
 find_package(Thread_DB)
@@ -63,13 +53,40 @@ include(DyninstTBB)
 include(DyninstElfUtils)
 include(DyninstLibIberty)
 
-if(BUILD_BOOST
-   OR BUILD_TBB
-   OR BUILD_ELFUTILS
-   OR BUILD_LIBIBERTY)
-    # for packaging
-    install(DIRECTORY ${CMAKE_INSTALL_PREFIX}/lib/dyninst-tpls/include/
-            DESTINATION lib/dyninst-tpls/include)
+# for packaging
+if(_DYNINST_BUILDING_TPLS)
+    install(
+        DIRECTORY ${TPL_STAGING_PREFIX}/include/
+        DESTINATION ${INSTALL_LIB_DIR}/${TPL_INSTALL_INCLUDE_DIR}
+        COMPONENT "tpls"
+        OPTIONAL)
+
+    install(
+        DIRECTORY ${TPL_STAGING_PREFIX}/bin/
+        DESTINATION ${INSTALL_LIB_DIR}/${TPL_INSTALL_BIN_DIR}
+        COMPONENT "tpls"
+        OPTIONAL)
+
+    install(
+        DIRECTORY ${TPL_STAGING_PREFIX}/share/
+        DESTINATION ${INSTALL_LIB_DIR}/${TPL_INSTALL_DOC_DIR}
+        COMPONENT "tpls"
+        OPTIONAL)
+
+    install(
+        DIRECTORY ${TPL_STAGING_PREFIX}/lib/
+        DESTINATION ${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}
+        COMPONENT "tpls"
+        OPTIONAL FILES_MATCHING
+        PATTERN "*${CMAKE_SHARED_LIBRARY_SUFFIX}*"
+        PATTERN "*${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+    install(
+        DIRECTORY ${TPL_STAGING_PREFIX}/lib/pkgconfig/
+        DESTINATION ${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/pkgconfig
+        COMPONENT "tpls"
+        OPTIONAL FILES_MATCHING
+        PATTERN "*.pc")
 endif()
 
 include(DyninstLibrary)

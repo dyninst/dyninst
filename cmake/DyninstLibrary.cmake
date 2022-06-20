@@ -244,22 +244,7 @@ include(DyninstWarnings)
 include(DyninstOptions)
 include(DyninstOptimization)
 include(DyninstEndian)
-
-set(INSTALL_BIN_DIR
-    bin
-    CACHE PATH "Installation directory for executables")
-set(INSTALL_LIB_DIR
-    lib
-    CACHE PATH "Installation directory for libraries")
-set(INSTALL_INCLUDE_DIR
-    include
-    CACHE PATH "Installation directory for header files")
-set(INSTALL_CMAKE_DIR
-    lib/cmake/${PROJECT_NAME}
-    CACHE PATH "Installation directory for CMake files")
-set(INSTALL_DOC_DIR
-    share/doc
-    CACHE PATH "Installation directory for manuals")
+include(DyninstInstallDirs)
 
 # provide an absolute path (if needed) but do not rewrite the with absolute path because
 # CPack only bundles install commands which use relative paths
