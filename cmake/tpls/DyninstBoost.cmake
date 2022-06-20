@@ -277,13 +277,6 @@ else()
                       ${BOOST_ARGS} -d0 install
         INSTALL_COMMAND "")
 
-    add_custom_command(
-        TARGET Boost-External
-        POST_BUILD
-        COMMAND ${BOOST_BUILD} ARGS ${BOOST_ARGS} -d0 install
-        COMMENT "Installing Boost..."
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/boost/src/Boost-External)
-
     # target for re-executing the installation
     add_custom_target(
         install-boost-external
