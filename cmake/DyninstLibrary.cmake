@@ -84,13 +84,13 @@ function(dyninst_library TARG_NAME)
     set(ADDED_TARGETS)
 
     # local headers
-    file(GLOB _DEFAILT_TARG_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/h/*.h"
+    file(GLOB _DEFAULT_TARG_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/h/*.h"
          "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
 
     # set default values
     _dyninst_library_set_default(TARG_DEFAULT_VISIBILITY PUBLIC)
     _dyninst_library_set_default(TARG_DESTINATION ${INSTALL_LIB_DIR})
-    _dyninst_library_set_default(TARG_HEADERS ${_DEFAILT_TARG_HEADERS})
+    _dyninst_library_set_default(TARG_HEADERS ${_DEFAULT_TARG_HEADERS})
     _dyninst_library_set_default(BUILD_SHARED_LIBS ON)
     _dyninst_library_set_default(BUILD_STATIC_LIBS OFF)
 
@@ -138,6 +138,7 @@ function(dyninst_library TARG_NAME)
     dyninst_add_source_format_target(${TARG_NAME} ${_format_sources})
 
     foreach(_target ${ADDED_TARGETS})
+        dyninst_append_property_list(DYNINST_BUILD_TARGETS ${_target})
 
         foreach(_DEP ${TARG_DEPENDS})
             if(TARGET ${_DEP}) # dependencies must always be a target
