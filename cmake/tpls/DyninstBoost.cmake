@@ -317,7 +317,7 @@ else()
         foreach(c ${_boost_components})
             set(Boost_${c}_LIBRARY
                 $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
-                $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libboost_${c}${_LIB_SUFFIX}>
+                $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libboost_${c}${_LIB_SUFFIX}>
                 )
             list(APPEND Boost_LIBRARIES "${Boost_${c}_LIBRARY}")
 

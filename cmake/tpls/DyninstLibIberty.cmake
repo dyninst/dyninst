@@ -104,7 +104,7 @@ else()
                      $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
     set(_li_libs
         $<BUILD_INTERFACE:${_li_root}/lib/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
-        $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
         )
 
     # For backward compatibility
