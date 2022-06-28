@@ -92,7 +92,8 @@ else()
     add_custom_target(
         install-libiberty-external
         COMMAND
-            install -C ${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External/libiberty.a
+            install -C
+            ${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External/libiberty/libiberty.a
             ${TPL_STAGING_PREFIX}/lib
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External
         COMMENT "Installing LibIberty...")
