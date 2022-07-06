@@ -219,6 +219,8 @@ namespace Dyninst {
 			imm_at_64 = get32bit(b,8);
 
 			insn_long = ( ((uint64_t) insn_high) << 32) | insn;
+           //cout << " setup insn_long = " <<  std::hex << insn_long << endl;
+
 		}
 		void InstructionDecoder_amdgpu_cdna2::decodeOpcode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
@@ -237,6 +239,7 @@ namespace Dyninst {
                 //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
 				//std::mem_fn(decode_lookup_table[instr_family])(this);
 			}
+			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
@@ -246,6 +249,7 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
+			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 		}

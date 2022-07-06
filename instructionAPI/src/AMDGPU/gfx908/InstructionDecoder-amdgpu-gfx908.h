@@ -211,6 +211,7 @@ namespace Dyninst {
 
 #define IS_LD_ST() (isLoad || isStore )
 
+            unsigned int num_elements{1};  // the number of elements that will be load or store by each instruction
             bool isSMEM{}; // this is set when using smem instruction
             bool isLoad{}; // this is set when a smem instruction is load, will set number of elements that are loaded at the same time
             bool isStore{}; // similar to isLoad, but for store instructions
@@ -265,6 +266,12 @@ namespace Dyninst {
 
 
 
+            template<unsigned int num_elements>
+                void setLoad(){isLoad = true; this->num_elements = num_elements; }
+
+            template<unsigned int num_elements>
+                void setStore() {isStore = true;this->num_elements = num_elements;}
+
             void setScratch() {isScratch = true;}
 
             void setBuffer() {isBuffer = true;}
@@ -299,7 +306,7 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_SIMM32(uint64_t input);
             Expression::Ptr decodeOPR_WAITCNT(uint64_t input);
             using InstructionDecoderImpl::makeRegisterExpression;
-            Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t num_elements = 1);
+            Expression::Ptr makeRegisterExpression(MachRegister registerID);
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
             void specialHandle();
             #include "amdgpu_gfx908_decoder_impl.h"    

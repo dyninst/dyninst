@@ -723,6 +723,7 @@ namespace Dyninst {
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
 				std::mem_fn(decode_lookup_table[instr_family])(this);
 			}
+			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
@@ -731,6 +732,7 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode(b);
+			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 			b.start += insn_in_progress->size();

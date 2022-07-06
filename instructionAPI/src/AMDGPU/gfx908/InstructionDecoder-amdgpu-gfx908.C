@@ -30,7 +30,7 @@
 
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-gfx908.h"
-#include <array>
+#include "debug_decode.h"
 
 namespace Dyninst {
 	namespace InstructionAPI {
@@ -125,23 +125,6 @@ namespace Dyninst {
 			return {};
 		}
 
-        void  InstructionDecoder_amdgpu_gfx908::processOPR_SMEM_OFFSET(layout_ENC_SMEM & layout){
-            if (layout.IMM ==0 ){
-                if( layout.SOFFSET_EN ==0 ) {
-                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.OFFSET), true , false ); 
-                }else{
-                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.SOFFSET), true , false ); 
-                }
-            }else{
-                if( layout.SOFFSET_EN ==0 ) {
-                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(s64,layout.OFFSET)),false ,false);
-                }else{
-                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(s64,layout.OFFSET)),false,false);
-                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.SOFFSET),true ,false); 
-                }
-            }
-        }
-
         uint32_t InstructionDecoder_amdgpu_gfx908::decodeOPR_LITERAL(){
             if (!useImm){
                     useImm = true;
@@ -178,7 +161,7 @@ namespace Dyninst {
         Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_WAITCNT(uint64_t input){
 		    return Immediate::makeImmediate(Result(s16, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeRegisterExpression(MachRegister registerID, uint32_t ){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeRegisterExpression(MachRegister registerID){
             if(registerID == amdgpu_gfx908::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
             }
@@ -207,6 +190,7 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_gfx908::reset(){
 			immLen = 0;
 			insn_size = 0;
+			num_elements =1;
 			isBranch = false;
 			isConditional = false;
 			isModifyPC =false;
@@ -231,6 +215,7 @@ namespace Dyninst {
 			imm_at_64 = get32bit(b,8);
 
 			insn_long = ( ((uint64_t) insn_high) << 32) | insn;
+            decoding_printf("[%s:%d]: setting up insnword, bits = %llu\n",FILE__,__LINE__, insn_long );
 
 
 		}
@@ -253,6 +238,7 @@ namespace Dyninst {
                 //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
 				//std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
+            decoding_printf("[%s:%d]: decoded instruction = %s\n",FILE__,__LINE__, insn_in_progress->getOperation().mnemonic.c_str() );
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
@@ -262,6 +248,8 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
+            decoding_printf("[%s:%d]: decoded instruction = %s\n",FILE__,__LINE__, insn_in_progress->getOperation().mnemonic.c_str() );
+			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 		}
