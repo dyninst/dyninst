@@ -29,30 +29,31 @@
  */
 
 #include "Ternary.h"
-#include "InstructionDecoder-amdgpu-cdna2.h"
+#include "InstructionDecoder-amdgpu-gfx908.h"
+#include "debug_decode.h"
 
 namespace Dyninst {
 	namespace InstructionAPI {
-		typedef void (InstructionDecoder_amdgpu_cdna2::*operandFactory)();
+		typedef void (InstructionDecoder_amdgpu_gfx908::*operandFactory)();
 
-		typedef amdgpu_cdna2_insn_entry amdgpu_cdna2_insn_table[];
+		typedef amdgpu_gfx908_insn_entry amdgpu_gfx908_insn_table[];
 		typedef amdgpu_mask_entry amdgpu_decoder_table[];
 
-		const std::array<std::string, 16> InstructionDecoder_amdgpu_cdna2::condNames = { {
+		const std::array<std::string, 16> InstructionDecoder_amdgpu_gfx908::condNames = { {
 			"eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
 			"lt", "gt", "le", "al", "nv",
 		} };
 
-		const char* InstructionDecoder_amdgpu_cdna2::bitfieldInsnAliasMap(entryID) {
+		const char* InstructionDecoder_amdgpu_gfx908::bitfieldInsnAliasMap(entryID) {
 			assert(!"no alias for entryID");
 			return nullptr;
 		}
-		const char* InstructionDecoder_amdgpu_cdna2::condInsnAliasMap(entryID) {
+		const char* InstructionDecoder_amdgpu_gfx908::condInsnAliasMap(entryID) {
 			assert(!"no alias for entryID");
 			return nullptr;
 		}
 
-#include "amdgpu_cdna2_insn_entry.h"
+#include "amdgpu_gfx908_insn_entry.h"
 		struct amdgpu_mask_entry {
 			unsigned int mask;
 			std::size_t branchCnt;
@@ -63,13 +64,13 @@ namespace Dyninst {
 			static const std::pair<unsigned int,unsigned int> branchTable[];
 		};
 
-#include "amdgpu_cdna2_opcode_tables.C"
+#include "amdgpu_gfx908_opcode_tables.C"
 
 		using namespace std;
-		void InstructionDecoder_amdgpu_cdna2::NOTHING() {
+		void InstructionDecoder_amdgpu_gfx908::NOTHING() {
 		}
 
-		Result_Type InstructionDecoder_amdgpu_cdna2::makeSizeType(unsigned int) {
+		Result_Type InstructionDecoder_amdgpu_gfx908::makeSizeType(unsigned int) {
 			assert(0); //not implemented
 			return u32;
 		}
@@ -78,17 +79,17 @@ namespace Dyninst {
 		// decoding opcodes
 		// ****************
 
-		MachRegister InstructionDecoder_amdgpu_cdna2::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int) {
+		MachRegister InstructionDecoder_amdgpu_gfx908::makeAmdgpuRegID(MachRegister base, unsigned int encoding , unsigned int) {
 			return MachRegister(base.val() + encoding);
 
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu_cdna2::makePCExpr() {
-			MachRegister baseReg = amdgpu_cdna2::pc_all;
+		Expression::Ptr InstructionDecoder_amdgpu_gfx908::makePCExpr() {
+			MachRegister baseReg = amdgpu_gfx908::pc_all;
 			return makeRegisterExpression(baseReg);
 		}
 
-		void InstructionDecoder_amdgpu_cdna2::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
+		void InstructionDecoder_amdgpu_gfx908::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
 				int immLen_ = 16) {
 			Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
 			int64_t offset = sign_extend64(immLen_, immVal * 4);
@@ -103,29 +104,29 @@ namespace Dyninst {
 
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeFallThroughExpr() {
+		Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeFallThroughExpr() {
 			// TODO: while s_call_B64 is always 4 bytes, it is not clear whether all instructions that has a fall through branch are 4 bytes long
 			return makeAddExpression(makePCExpr(), Immediate::makeImmediate(Result(u64, unsign_extend64(3, 4))), u64);
 		}
 
 
-		bool InstructionDecoder_amdgpu_cdna2::decodeOperands(const Instruction *) {
+		bool InstructionDecoder_amdgpu_gfx908::decodeOperands(const Instruction *) {
 			assert(0 && "decodeOperands deprecated for amdgpu");
 			return true;
 		}
 
-		Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeSGPRorM0(unsigned int offset){
+		Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeSGPRorM0(unsigned int offset){
 			if( offset <= 104)
-				return makeRegisterExpression(makeAmdgpuRegID(amdgpu_cdna2::s0,offset));
+				return makeRegisterExpression(makeAmdgpuRegID(amdgpu_gfx908::s0,offset));
 			if (offset == 124)
-				return makeRegisterExpression(amdgpu_cdna2::m0);
+				return makeRegisterExpression(amdgpu_gfx908::m0);
             cerr << " unknown offset in sgpr or m0 " << offset << endl; 
 			assert(0 && "shouldn't reach here");
 			return {};
 		}
 
 
-        uint32_t InstructionDecoder_amdgpu_cdna2::decodeOPR_LITERAL(){
+        uint32_t InstructionDecoder_amdgpu_gfx908::decodeOPR_LITERAL(){
             if (!useImm){
                     useImm = true;
                     immLen = 4;
@@ -139,36 +140,36 @@ namespace Dyninst {
             } 
             return immLiteral;
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_LABEL(uint64_t input){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_LABEL(uint64_t input){
         	Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
 			int64_t offset = sign_extend64(immLen, input * 4);
 			Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
 			return makeAddExpression(lhs, rhs, s64);
 	
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SIMM4(uint64_t input){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM4(uint64_t input){
 		    return Immediate::makeImmediate(Result(s8, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SIMM8(uint64_t input){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM8(uint64_t input){
 		    return Immediate::makeImmediate(Result(s8, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SIMM16(uint64_t input){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM16(uint64_t input){
 		    return Immediate::makeImmediate(Result(s16, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_SIMM32(uint64_t input){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM32(uint64_t input){
 		    return Immediate::makeImmediate(Result(s32, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_WAITCNT(uint64_t input){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_WAITCNT(uint64_t input){
 		    return Immediate::makeImmediate(Result(s16, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeRegisterExpression(MachRegister registerID){
-            if(registerID == amdgpu_cdna2::src_literal){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeRegisterExpression(MachRegister registerID){
+            if(registerID == amdgpu_gfx908::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
             }
             return InstructionDecoderImpl::makeRegisterExpression(registerID);
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeRegisterExpression(MachRegister registerID, uint32_t low, uint32_t high ){
-            if(registerID == amdgpu_cdna2::src_literal){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeRegisterExpression(MachRegister registerID, uint32_t low, uint32_t high ){
+            if(registerID == amdgpu_gfx908::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
             }
             return InstructionDecoderImpl::makeRegisterExpression(registerID, low, high );
@@ -176,13 +177,10 @@ namespace Dyninst {
 
 
 
-        void Dyninst::InstructionAPI::InstructionDecoder_amdgpu_cdna2::finalizeENC_VINTRPOperands(){
-        
-        }
-#include "amdgpu_cdna2_decoder_impl.C"
+#include "amdgpu_gfx908_decoder_impl.C"
 #include "decodeOperands.C"
 #include "finalizeOperands.C"
-		inline unsigned int InstructionDecoder_amdgpu_cdna2::get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
+		inline unsigned int InstructionDecoder_amdgpu_gfx908::get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
 			assert(offset %4 ==0 );
             if(b.start + offset + 4 <= b.end)
 			    return b.start[offset+3] << 24 | b.start[offset + 2] << 16 | b.start[offset +1 ] << 8 | b.start [offset];
@@ -190,7 +188,7 @@ namespace Dyninst {
 		}
 
 
-		void InstructionDecoder_amdgpu_cdna2::reset(){
+		void InstructionDecoder_amdgpu_gfx908::reset(){
 			immLen = 0;
 			insn_size = 0;
 			num_elements =1;
@@ -208,48 +206,50 @@ namespace Dyninst {
 		}
 		// here we assemble the first 64 bit (if available) as an instruction
 
-		void InstructionDecoder_amdgpu_cdna2::setupInsnWord(InstructionDecoder::buffer &b) {
+		void InstructionDecoder_amdgpu_gfx908::setupInsnWord(InstructionDecoder::buffer &b) {
 			reset();
-			if (b.start > b.end)
-				return;
+
+
 			insn = get32bit(b,0);
 
 			imm_at_32 = insn_high = get32bit(b,4);
 			imm_at_64 = get32bit(b,8);
 
 			insn_long = ( ((uint64_t) insn_high) << 32) | insn;
-            //cout << " setup insn_long = " <<  std::hex << insn_long << endl;
+            decoding_printf("[%s:%d]: setting up insnword, bits = %llu\n",FILE__,__LINE__, insn_long );
+
 
 		}
-		void InstructionDecoder_amdgpu_cdna2::decodeOpcode(InstructionDecoder::buffer &b) {
+		void InstructionDecoder_amdgpu_gfx908::decodeOpcode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
 			mainDecode();
 			b.start += insn_in_progress->size();
 		}
 		
-		void InstructionDecoder_amdgpu_cdna2::debug_instr(){
+		void InstructionDecoder_amdgpu_gfx908::debug_instr(){
 			cout << "decoded instruction " <<  insn_in_progress->getOperation().mnemonic << " " << std::hex << insn_long << " insn_family = " << instr_family 
 				<< "  length = " <<  insn_in_progress->size()<< endl << endl;
 
 		}
 
-		Instruction InstructionDecoder_amdgpu_cdna2::decode(InstructionDecoder::buffer &b) {
+		Instruction InstructionDecoder_amdgpu_gfx908::decode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
 			mainDecode();
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
                 //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
 				//std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
-			cout.clear();
+            decoding_printf("[%s:%d]: decoded instruction = %s\n",FILE__,__LINE__, insn_in_progress->getOperation().mnemonic.c_str() );
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
 
-		void InstructionDecoder_amdgpu_cdna2::doDelayedDecode(const Instruction *insn_to_complete) {
+		void InstructionDecoder_amdgpu_gfx908::doDelayedDecode(const Instruction *insn_to_complete) {
 
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
+            decoding_printf("[%s:%d]: decoded instruction = %s\n",FILE__,__LINE__, insn_in_progress->getOperation().mnemonic.c_str() );
 			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());

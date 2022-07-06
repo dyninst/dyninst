@@ -1767,6 +1767,13 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 // this is special treatment for non-returning instruction
                 // examples are amdgpu_op_s_endpgm and amddgpu_op_s_endpgm_saved
                 //cout << "calling endblock for non-returning instruction " << std::hex <<ah->getAddr() << endl; 
+                //
+
+
+                parsing_printf("[%s:%d] gpu exit insn 0x%lx: %s \n",
+                        FILE__,__LINE__,curAddr, ah->getInstruction().format().c_str() );
+
+
                 end_block(cur,ahPtr);
                 break;
             }

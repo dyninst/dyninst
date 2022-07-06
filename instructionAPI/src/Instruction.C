@@ -59,7 +59,7 @@ using namespace NS_x86;
 
 #define DECODE_OPERANDS() \
     do { \
-        if (arch_decoded_from != Arch_cuda && arch_decoded_from != Arch_amdgpu_cdna2 && m_Operands.empty()) { \
+        if (arch_decoded_from != Arch_cuda && arch_decoded_from != Arch_amdgpu_gfx908 && arch_decoded_from != Arch_amdgpu_cdna2 && m_Operands.empty()) { \
             decodeOperands(); \
         }\
     }while(0) 
