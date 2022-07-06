@@ -203,7 +203,10 @@ bool DwarfHandle::init_dbg()
                 case 0x3f:
 					arch = Dyninst::Arch_amdgpu_cdna2;
                     break;
-				case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x30: case 0x31:
+                case 0x30:
+                    arch = Dyninst::Arch_amdgpu_gfx908;
+                    break;
+				case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x31:
 					arch = Dyninst::Arch_amdgpu_vega;
                     break;
 				case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18:

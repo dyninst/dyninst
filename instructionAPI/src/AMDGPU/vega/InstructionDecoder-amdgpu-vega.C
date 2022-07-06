@@ -698,8 +698,6 @@ namespace Dyninst {
 			insn = insn_high = insn_long = 0;
 			useImm = false;
 			isCall = false;
-			if (!getenv("DEBUG_DECODE"))
-				cout.setstate(ios_base::badbit);
 		}
 		// here we assemble the first 64 bit (if available) as an instruction
 
@@ -733,7 +731,6 @@ namespace Dyninst {
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
 				std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
-			debug_instr();
 			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
@@ -743,7 +740,6 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode(b);
-			//debug_instr();
 			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());

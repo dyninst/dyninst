@@ -4002,11 +4002,15 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),true,false);
 break;
 case 29:// S_SETPC_B64
+setBranch();
+setModifyPC();
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 break;
 case 30:// S_SWAPPC_B64
+setBranch();
+setModifyPC();
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,32),true,false);
@@ -4768,31 +4772,51 @@ break;
 case 1:// S_ENDPGM
 break;
 case 2:// S_BRANCH
+setBranch();
+makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 break;
 case 3:// S_WAKEUP
 break;
 case 4:// S_CBRANCH_SCC0
+setBranch();
+setConditionalBranch();
+makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),true,false);
 break;
 case 5:// S_CBRANCH_SCC1
+setBranch();
+setConditionalBranch();
+makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),true,false);
 break;
 case 6:// S_CBRANCH_VCCZ
+setBranch();
+setConditionalBranch();
+makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),true,false);
 break;
 case 7:// S_CBRANCH_VCCNZ
+setBranch();
+setConditionalBranch();
+makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),true,false);
 break;
 case 8:// S_CBRANCH_EXECZ
+setBranch();
+setConditionalBranch();
+makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
 case 9:// S_CBRANCH_EXECNZ
+setBranch();
+setConditionalBranch();
+makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),true,false);
 break;
