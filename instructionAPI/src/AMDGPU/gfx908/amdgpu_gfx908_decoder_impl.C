@@ -1989,7 +1989,6 @@ void InstructionDecoder_amdgpu_gfx908::decodeENC_MIMG(){
 }
 void InstructionDecoder_amdgpu_gfx908::decodeENC_EXP(){
 	insn_size = 8;
-	layout_ENC_EXP & layout = insn_layout.ENC_EXP;
 }
 void InstructionDecoder_amdgpu_gfx908::decodeENC_FLAT(){
 	insn_size = 8;
