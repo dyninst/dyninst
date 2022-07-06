@@ -109,6 +109,27 @@ MachRegister MachRegister::getBaseRegister() const {
                 default:
                     return *this;
             }
+        case Arch_amdgpu_gfx908:
+            switch (category){
+                case amdgpu_gfx908::SGPR:
+                case amdgpu_gfx908::SGPR_VEC2:
+                case amdgpu_gfx908::SGPR_VEC4:
+                case amdgpu_gfx908::SGPR_VEC8:
+                case amdgpu_gfx908::SGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_gfx908::s0); 
+                case amdgpu_gfx908::VGPR:
+                case amdgpu_gfx908::VGPR_VEC2:
+                case amdgpu_gfx908::VGPR_VEC4:
+                case amdgpu_gfx908::VGPR_VEC8:
+                case amdgpu_gfx908::VGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_gfx908::v0); 
+                case amdgpu_gfx908::HWR:
+                    return MachRegister(reg);
+
+                default:
+                    return *this;
+            }
+
         case Arch_amdgpu_cdna2:
             switch (category){
                 case amdgpu_cdna2::SGPR:
@@ -217,7 +238,7 @@ std::string MachRegister::name() const {
                     break;
             }
             return ret;
-        }else if(getArchitecture() == Arch_amdgpu_cdna2){
+        }else if(getArchitecture() == Arch_amdgpu_cdna2 || getArchitecture() == Arch_amdgpu_gfx908){
         	return iter->second;
         }else{
             return iter->second;
@@ -342,6 +363,51 @@ unsigned int MachRegister::size() const {
                                       assert(0);
                                   }
                               }
+        case Arch_amdgpu_gfx908:{
+                                   int reg_class = (reg&0x00ff0000 ) ;
+                                   if ( reg_class == amdgpu_gfx908::SGPR || reg_class == amdgpu_gfx908::VGPR){
+                                       return 4;
+                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC2 || reg_class == amdgpu_gfx908::VGPR_VEC2){
+                                       return 8;
+                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC4 || reg_class == amdgpu_gfx908::VGPR_VEC4){
+                                       return 16;
+                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC8 || reg_class == amdgpu_gfx908::VGPR_VEC8){
+                                       return 32;
+                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC16 || reg_class == amdgpu_gfx908::VGPR_VEC16){
+                                       return 64;
+                                   }else{
+                                       switch(reg & 0x00007f00){
+                                           case amdgpu_gfx908::BITS_1:
+                                           case amdgpu_gfx908::BITS_2:
+                                           case amdgpu_gfx908::BITS_3:
+                                           case amdgpu_gfx908::BITS_4:
+                                           case amdgpu_gfx908::BITS_6:
+                                           case amdgpu_gfx908::BITS_7:
+                                           case amdgpu_gfx908::BITS_8:
+                                               return 1;
+                                           case amdgpu_gfx908::BITS_9:
+                                           case amdgpu_gfx908::BITS_15:
+                                           case amdgpu_gfx908::BITS_16:
+                                               return 2;
+                                           case amdgpu_gfx908::BITS_32:
+                                               return 4;
+                                           case amdgpu_gfx908::BITS_48:
+                                               return 6;
+                                           case amdgpu_gfx908::BITS_64:
+                                               return 8; 
+                                           case amdgpu_gfx908::BITS_128:
+                                               return 16;
+                                           case amdgpu_gfx908::BITS_256:
+                                               return 32;
+                                           case amdgpu_gfx908::BITS_512:
+                                               return 64;
+                                       }
+                                       common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+                                       assert(0);
+                                   }
+                               }
+
+
         case Arch_amdgpu_cdna2:{
                                    int reg_class = (reg&0x00ff0000 ) ;
                                    if ( reg_class == amdgpu_cdna2::SGPR || reg_class == amdgpu_cdna2::VGPR){
@@ -466,6 +532,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return InvalidReg;
         case Arch_amdgpu_vega:
             return amdgpu_vega::pc;
+        case Arch_amdgpu_gfx908:
+            return amdgpu_gfx908::pc_all;
         case Arch_amdgpu_cdna2:
             return amdgpu_cdna2::pc_all;
         case Arch_none:
@@ -492,6 +560,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
         case Arch_aarch32:
         case Arch_cuda:
         case Arch_amdgpu_vega: // TODO:Since amdgpu functions are all inlined, the return address is highly likely in sgpr[30:31]
+        case Arch_amdgpu_gfx908:
         case Arch_amdgpu_cdna2:
         case Arch_intelGen9:
             assert(0);
@@ -517,6 +586,7 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
             return aarch64::x29; //aarch64: frame pointer is X29 by convention
 
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_gfx908:
         case Arch_amdgpu_cdna2:
         case Arch_none:
             return InvalidReg;
@@ -547,7 +617,7 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
             assert(0);
         case Arch_none:
         case Arch_amdgpu_vega:
-
+        case Arch_amdgpu_gfx908:
         case Arch_amdgpu_cdna2:
             return InvalidReg;
         default:
@@ -574,6 +644,7 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
         case Arch_aarch32:
         case Arch_cuda:
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_gfx908:
         case Arch_amdgpu_cdna2:
             assert(0);
         case Arch_none:
@@ -686,7 +757,7 @@ bool MachRegister::isPC() const
 {
     return (*this == x86_64::rip || *this == x86::eip ||
             *this == ppc32::pc || *this == ppc64::pc ||
-            *this == aarch64::pc || *this == amdgpu_cdna2::pc_all  );
+            *this == aarch64::pc || *this == amdgpu_gfx908::pc_all ||*this == amdgpu_cdna2::pc_all  );
 }
 
 bool MachRegister::isFramePointer() const
@@ -741,6 +812,7 @@ bool MachRegister::isFlag() const
                             return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
                         }
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_gfx908:
         case Arch_amdgpu_cdna2:
                         {
                             return (reg & 0x0000F000);
@@ -838,7 +910,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
     // Rose: class, number, position
     // Dyninst: category, base id, subrange
     Architecture maybe_amdgpu = getArchitecture();
-    if (maybe_amdgpu==Arch_amdgpu_vega || maybe_amdgpu == Arch_amdgpu_cdna2){
+    if (maybe_amdgpu==Arch_amdgpu_vega || maybe_amdgpu == Arch_amdgpu_gfx908 || maybe_amdgpu == Arch_amdgpu_cdna2){
         getAMDGPUROSERegister(c,n,p);
         return;
     }
@@ -2289,6 +2361,7 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
         case Arch_cuda:
         case Arch_intelGen9:
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_gfx908:
         case Arch_amdgpu_cdna2:
             return 8;
         default:
