@@ -3646,9 +3646,15 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 
     int status;
 
-    while ((status = dwarf_next_lines(dbg, off = next_off, &next_off, &cu,
-			     &files, &fileCount, &lineBuffer, &lineCount)) == 0)
-    {
+    while (1) {
+
+#pragma omp critical (next_lines)
+{
+    status = dwarf_next_lines(dbg, off = next_off, &next_off, &cu,
+                              &files, &fileCount, &lineBuffer, &lineCount);
+}
+    if (status != 0) break;
+      
 
     boost::unique_lock<dyn_mutex> l(strings->lock);
     size_t offset = strings->size();
