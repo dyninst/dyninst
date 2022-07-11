@@ -29,6 +29,7 @@
  */
 #include <vector>
 #include <map>
+#include <atomic>
 
 #include <boost/assign/list_of.hpp>
 
@@ -482,6 +483,9 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
     parsing_printf("[%s:%d] processing %lu symtab hints\n",FILE__,__LINE__,
         fsyms.size());
 
+    atomic_bool foundEntrySymbol{};
+    Address entryOffset = _symtab->getEntryOffset();
+
 #pragma omp parallel for schedule(auto)
     for (unsigned int i = 0; i < fsyms.size(); i++) {
         SymtabAPI::Function *f = fsyms[i];
@@ -542,6 +546,10 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                            sr->getMemOffset(),
                            sr->getMemOffset()+sr->getDiskSize());
         } else {
+          if (entryOffset == offset)  {
+            foundEntrySymbol = true;
+          }
+
           _hints.push_back(Hint(f->getOffset(), f->getSymbolSize(), cr, fname_s));
           parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                          f->getOffset(),
@@ -549,6 +557,40 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                          cr->offset(),
                          cr->offset()+cr->length());
         }
+    }
+
+    if (!foundEntrySymbol && _symtab->isExecutable())  {
+      // add entry point as this object is an executable
+      // and no symbol referenced the entry point
+      parsing_printf("Adding exectable entry point at %lx\n", entryOffset);
+      SymtabAPI::Region *sr = _symtab->findEnclosingRegion(entryOffset);
+      if (sr)  {
+        CodeRegion *cr = NULL;
+        {
+          RegionMap::const_accessor a;
+          bool found = rmap.find(a, sr);
+          if (found)  {
+            cr = a->second;
+          }
+        }
+
+        if (cr)  {
+	  const char startFuncName[] = "_start";
+	  // use 0 for function length as length is unknown and value unused
+          _hints.push_back(Hint(entryOffset, 0, cr, startFuncName));
+          parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
+                         entryOffset,
+                         startFuncName,
+                         cr->offset(),
+                         cr->offset() + cr->length());
+        }  else  {
+          parsing_printf("[%s:%d] unrecognized Region %lx entry point function %lx\n",
+              FILE__, __LINE__, sr->getMemOffset(), entryOffset);
+        }
+      }  else  {
+        parsing_printf("[%s:%d] Symtab Region for entry point function %lx not found\n",
+            FILE__, __LINE__, entryOffset);
+      }
     }
 }
 
