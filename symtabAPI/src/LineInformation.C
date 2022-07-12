@@ -60,8 +60,12 @@ bool LineInformation::addLine( unsigned int lineSource,
                                         lowInclusiveAddr, highExclusiveAddr);
     Statement::Ptr insert_me(the_stmt);
     insert_me->setStrings_(strings_);
-   return insert( insert_me).second;
-
+   bool result;
+#pragma omp critical (addLine)
+{
+   result = insert( insert_me).second;
+}
+   return result;
 } /* end setLineToAddressRangeMapping() */
 bool LineInformation::addLine( std::string lineSource,
                                unsigned int lineNo,
@@ -78,7 +82,10 @@ void LineInformation::addLineInfo(LineInformation *lineInfo)
 {
     if(!lineInfo)
         return;
+#pragma omp critical (addLine)
+{
     insert(lineInfo->begin(), lineInfo->end());
+}
 }
 
 bool LineInformation::addAddressRange( Offset lowInclusiveAddr, 
