@@ -52,6 +52,9 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <link.h>
+#include <gnu/libc-version.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #if defined(DYNINST_RT_STATIC_LIB)
 /*
@@ -445,13 +448,33 @@ dyninstTrapHandler(int sig, siginfo_t* sg, ucontext_t* context)
 #    if defined(cap_binary_rewriter)
 
 extern struct r_debug    _r_debug;
-DLLEXPORT struct r_debug _r_debug __attribute__((weak));
+// Remove because of an issue with glibc-2.35+ switching to namespaces.
+// Previously there was a dynamic relocation against _r_debug in the loader which
+// picked up the interposed definition, but glibc now uses a direct internal hidden
+// symbol reference and thus no longer updates the interposed object.
+//
+// DLLEXPORT struct r_debug _r_debug __attribute__((weak));
 
 /* Verify that the r_debug variable is visible */
 void
 r_debugCheck()
 {
-    assert(_r_debug.r_map);
+#        define LIBC_VERSION_BUFFER_LENGTH 1024
+    char _version_s[LIBC_VERSION_BUFFER_LENGTH];
+    snprintf(_version_s, LIBC_VERSION_BUFFER_LENGTH, "%s", gnu_get_libc_version());
+    unsigned long _version[2];
+    unsigned long idx = 0;
+    char* token = strtok(_version_s, ".");
+    while(token != NULL && idx < 2)
+    {
+        _version[idx++] = atol(token);
+        token = strtok(NULL, ".");
+    }
+    if(_version[0] < 2 || (_version[0] == 2 && _version[1] < 35))
+    {
+        assert(_r_debug.r_map);
+    }
+#        undef LIBC_VERSION_BUFFER_LENGTH
 }
 
 #        define NUM_LIBRARIES 512  // Important, max number of rewritten libraries
