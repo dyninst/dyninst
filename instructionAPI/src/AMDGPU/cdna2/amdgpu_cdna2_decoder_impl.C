@@ -145,7 +145,6 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPK(uint64_t I){
 	case 3103784960:
 	case 3095396352:
 	case 3128950784:
-	case 3120562176:
 	case 3087007744:
 		return true;
 	default:
@@ -1559,6 +1558,14 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_SCRATCH(uint64_t I){
 		return false;
 	}
 }
+bool InstructionDecoder_amdgpu_cdna2::IS_SOPK_INST_LITERAL_(uint64_t I){
+	switch( I & 4286578688 ){
+	case 3120562176:
+		return true;
+	default:
+		return false;
+	}
+}
 bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP2_LITERAL(uint64_t I){
 	switch( I & 4261412864 ){
 	case 771751936:
@@ -1959,6 +1966,20 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_SCRATCH(){
 	finalizeENC_FLAT_SCRATCHOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
+void InstructionDecoder_amdgpu_cdna2::decodeSOPK_INST_LITERAL_(){
+	insn_size = 8;
+	layout_SOPK_INST_LITERAL_ & layout = insn_layout.SOPK_INST_LITERAL_;
+	layout.ENCODING = longfield<28,31>(insn_long);
+	layout.OP = longfield<23,27>(insn_long);
+	layout.SDST = longfield<16,22>(insn_long);
+	layout.SIMM16 = longfield<0,15>(insn_long);
+	layout.SIMM32 = longfield<32,63>(insn_long);
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::SOPK_INST_LITERAL__insn_table) / sizeof(amdgpu_cdna2_insn_entry::SOPK_INST_LITERAL__insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::SOPK_INST_LITERAL__insn_table[layout.OP];
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	finalizeSOPK_INST_LITERAL_Operands();
+	this->insn_in_progress->updateSize(insn_size + immLen);
+}
 void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2_LITERAL(){
 	insn_size = 8;
 	layout_ENC_VOP2_LITERAL & layout = insn_layout.ENC_VOP2_LITERAL;
@@ -2166,6 +2187,14 @@ void InstructionDecoder_amdgpu_cdna2::mainDecodeOpcode(){
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_FLAT_SCRATCH;
 	}
+	else 	if(IS_SOPK_INST_LITERAL_(insn_long)){
+		insn_size = 8;
+		uint32_t op_value = longfield<23,27>(insn_long);
+		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::SOPK_INST_LITERAL__insn_table) / sizeof(amdgpu_cdna2_insn_entry::SOPK_INST_LITERAL__insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::SOPK_INST_LITERAL__insn_table[op];
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		instr_family = SOPK_INST_LITERAL_;
+	}
 	else 	if(IS_ENC_VOP2_LITERAL(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<25,30>(insn_long);
@@ -2248,6 +2277,9 @@ void InstructionDecoder_amdgpu_cdna2::mainDecode(){
 	}
 	else 	if(IS_ENC_FLAT_SCRATCH(insn_long)){
 		decodeENC_FLAT_SCRATCH();
+	}
+	else 	if(IS_SOPK_INST_LITERAL_(insn_long)){
+		decodeSOPK_INST_LITERAL_();
 	}
 	else 	if(IS_ENC_VOP2_LITERAL(insn_long)){
 		decodeENC_VOP2_LITERAL();
