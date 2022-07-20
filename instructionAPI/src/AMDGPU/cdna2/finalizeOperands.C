@@ -4750,16 +4750,21 @@ case 18:// S_SETREG_B32
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST,32),true,false);
 break;
-case 20:// S_SETREG_IMM32_B32
-insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),false,true);
-insn_in_progress->appendOperand(decodeOPR_SIMM32(decodeOPR_LITERAL()),true,false);
-break;
 case 21:// S_CALL_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_PC(0,64),true,false);
+break;
+}
+}
+void InstructionDecoder_amdgpu_cdna2::finalizeSOPK_INST_LITERAL_Operands(){
+layout_SOPK_INST_LITERAL_ & layout = insn_layout.SOPK_INST_LITERAL_;
+switch(layout.OP){
+case 20:// S_SETREG_IMM32_B32
+insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),false,true);
+insn_in_progress->appendOperand(decodeOPR_SIMM32(decodeOPR_LITERAL()),true,false);
 break;
 }
 }
@@ -8256,8 +8261,8 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+1,32),true,false);
 break;
 case 480:// V_DIV_SCALE_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+0,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
@@ -8265,8 +8270,8 @@ break;
 case 481:// V_DIV_SCALE_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+0,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);

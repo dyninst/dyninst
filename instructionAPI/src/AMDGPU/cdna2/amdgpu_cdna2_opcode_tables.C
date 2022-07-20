@@ -1017,9 +1017,32 @@ const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_SOPK_insn_table = {
 {amdgpu_cdna2_op_S_GETREG_B32,"S_GETREG_B32",0,&operandTable[0]} ,//17
 {amdgpu_cdna2_op_S_SETREG_B32,"S_SETREG_B32",0,&operandTable[0]} ,//18
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//19
-{amdgpu_cdna2_op_S_SETREG_IMM32_B32,"S_SETREG_IMM32_B32",0,&operandTable[0]} ,//20
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//20
 {amdgpu_cdna2_op_S_CALL_B64,"S_CALL_B64",0,&operandTable[0]} ,//21
 }; // end ENC_SOPK_insn_table
+const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::SOPK_INST_LITERAL__insn_table = {
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//0
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//1
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//2
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//3
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//4
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//5
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//6
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//7
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//8
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//9
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//10
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//11
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//12
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//13
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//14
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//15
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//16
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//17
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//18
+{amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//19
+{amdgpu_cdna2_op_S_SETREG_IMM32_B32,"S_SETREG_IMM32_B32",0,&operandTable[0]} ,//20
+}; // end SOPK_INST_LITERAL__insn_table
 const amdgpu_cdna2_insn_table amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table = {
 {amdgpu_cdna2_op_S_NOP,"S_NOP",0,&operandTable[0]} ,//0
 {amdgpu_cdna2_op_S_ENDPGM,"S_ENDPGM",0,&operandTable[0]} ,//1
