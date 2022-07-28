@@ -1,5 +1,47 @@
 # Change Log
 
+## [12.2.0](https://github.com/dyninst/dyninst/tree/v12.2.0) (2022-07-28)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v12.1.0...v12.2.0)
+
+- Add exec entry point to parse hints is missing
+- fix races with parallel analysis of cubins ([1284](https://github.com/dyninst/dyninst/issues/1284))
+- Docker: make build.sh verbose, fix file copy bug in Dockerfile.test ([1273](https://github.com/dyninst/dyninst/issues/1273))
+- Remove endian CMake check ([1270](https://github.com/dyninst/dyninst/issues/1270))
+- Update and enforce formatting of CMake files ([1267](https://github.com/dyninst/dyninst/issues/1267))
+- Fix bug in processing library paths in FindLibIberty.cmake ([1266](https://github.com/dyninst/dyninst/issues/1266))
+- Fix decoding of DWARF expressions into machine registers for Intel GPUs ([1262](https://github.com/dyninst/dyninst/issues/1262))
+- Docker: don't use autamus cache ([1259](https://github.com/dyninst/dyninst/issues/1259))
+- Remove unused build options ([1253](https://github.com/dyninst/dyninst/issues/1253))
+- Fix dyninstAPI_RT files to build with older glibc ([1252](https://github.com/dyninst/dyninst/issues/1252))
+- Redo finalization to get correct function boundiaries when ([1249](https://github.com/dyninst/dyninst/issues/1249))
+- Fix format string errors in stackwalk/callchecker.C ([1250](https://github.com/dyninst/dyninst/issues/1250))
+- Make dyninstAPI_RT files build with standard C ([1246](https://github.com/dyninst/dyninst/issues/1246))
+- Add cmake options for C/C++ language standards ([1246](https://github.com/dyninst/dyninst/issues/1246))
+- Use bfd linker for LTO ([1248](https://github.com/dyninst/dyninst/issues/1248))
+- Cleanup (remove) ancient linux kernel support ([1241](https://github.com/dyninst/dyninst/issues/1241))
+- remove unused files containing pragmas ([1240](https://github.com/dyninst/dyninst/issues/1240))
+- Remove unneeded #pragma's ([1240](https://github.com/dyninst/dyninst/issues/1240))
+- Add compiler warning related cmake options ([1239](https://github.com/dyninst/dyninst/issues/1239))
+- Add cmake option to disable diagnostic suppressions ([1239](https://github.com/dyninst/dyninst/issues/1239))
+- Fix frame-larger-than warning ([1239](https://github.com/dyninst/dyninst/issues/1239))
+- Remove MSC compiler warning suppressions ([1239](https://github.com/dyninst/dyninst/issues/1239))
+- Improve compiler diagnostic suppression handling ([1239](https://github.com/dyninst/dyninst/issues/1239))
+- Remove unused git files ([1244](https://github.com/dyninst/dyninst/issues/1244))
+- Docker: make compile warnings fatal ([1242](https://github.com/dyninst/dyninst/issues/1242))
+- Docker: use external-tests instead of testsuite in base image ([1209](https://github.com/dyninst/dyninst/issues/1209))
+- Docker: don't build Dyninst through spack for the environment ([1222](https://github.com/dyninst/dyninst/issues/1222))
+- Docker: use more OS packages for dependencies ([1221](https://github.com/dyninst/dyninst/issues/1221))
+- Remove void pointer arithmetic when using Valgrind annotations ([1236](https://github.com/dyninst/dyninst/issues/1236))
+- Add parsing of names for inlined functions in DWARF ([1237](https://github.com/dyninst/dyninst/issues/1237))
+- Remove BUILD_RT option ([1238](https://github.com/dyninst/dyninst/issues/1238))
+- Fix warnings with cmake's MINSIZEREL build type ([1235](https://github.com/dyninst/dyninst/issues/1235))
+- Correctly propagate pc ranges for blocks and local variables ([1226](https://github.com/dyninst/dyninst/issues/1226))
+- Docker: testing workflow to run libabigail ([1220](https://github.com/dyninst/dyninst/issues/1220))
+- Remove usage of DW_AT_MIPS_linkage_name ([1223](https://github.com/dyninst/dyninst/issues/1223))
+- Docker: adding a workflow for release ([1219](https://github.com/dyninst/dyninst/issues/1219))
+- Merge pull request #1217 from dyninst/thaines/docker_base_container_defaults
+- Update dependency versions in base container config
+
 ## [12.1.0](https://github.com/dyninst/dyninst/tree/v12.1.0) (2022-03-09)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v12.0.1...v12.1.0)
 
