@@ -185,7 +185,7 @@ elseif(NOT BUILD_BOOST)
 else()
     dyninst_add_option(BOOST_LINK_STATIC "Link to boost libraries statically" ON)
     # If we didn't find a suitable version on the system, then download one from the web
-    dyninst_add_cache_option(BOOST_DOWNLOAD_VERSION "1.69.0"
+    dyninst_add_cache_option(BOOST_DOWNLOAD_VERSION "1.79.0"
                              CACHE STRING "Version of boost to download and install")
 
     # If the user specifies a version other than BOOST_DOWNLOAD_VERSION, use that version.
@@ -269,7 +269,8 @@ else()
     externalproject_add(
         Boost-External
         PREFIX ${PROJECT_BINARY_DIR}/boost
-        URL http://downloads.sourceforge.net/project/boost/boost/${BOOST_DOWNLOAD_VERSION}/boost_${_boost_download_filename}.${_boost_download_ext}
+        GIT_REPOSITORY https://github.com/boostorg/boost.git
+        GIT_TAG boost-${BOOST_DOWNLOAD_VERSION}
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR}
                           --with-libraries=${_boost_lib_names}
