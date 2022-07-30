@@ -32,7 +32,6 @@ jobs:
     - name: Build
       run: |
          apt-get update
-         apt-get install -y python3 build-essential cmake
          rm -rf /code
          cp -R $PWD /code
          ls /code
