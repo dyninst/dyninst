@@ -31,7 +31,6 @@ jobs:
       uses: actions/checkout@v3
     - name: Build
       run: |
-         apt-get update
          rm -rf /code
          cp -R $PWD /code
          ls /code
