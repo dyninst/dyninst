@@ -1,5 +1,5 @@
 name: Libabigail ABI Checks
-on: 
+on:
   pull_request: []
 
 jobs:
@@ -31,12 +31,14 @@ jobs:
       uses: actions/checkout@v3
     - name: Build
       run: |
+         apt-get update
+         apt-get install -y python3 build-essential cmake
          rm -rf /code
          cp -R $PWD /code
          ls /code
          cd /opt/dyninst-env
-         /bin/bash build.sh         
-         
+         /bin/bash build.sh
+
     - name: Upload results
       uses: actions/upload-artifact@v2-preview
       with:
@@ -66,7 +68,7 @@ jobs:
                "libsymtabAPI.so"]
 
         # Artifact pairs (named) for comparison)
-        artifacts: [["pr-libs", "latest-libs"],        
+        artifacts: [["pr-libs", "latest-libs"],
                     ["pr-libs", "release-libs"]]
 
     steps:
@@ -91,5 +93,5 @@ jobs:
       uses: buildsi/libabigail-action@main
       env:
         lib: ${{ matrix.libs }}
-      with: 
+      with:
         abidiff: previous/${{ env.lib }} current/${{ env.lib }}
