@@ -1,0 +1,60 @@
+name: Package Release
+
+on:
+  push:
+    tags: []
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-20.04
+
+    env:
+      DYNINST_DEBIAN_PACKAGE_RELEASE: 1
+      DYNINST_RPM_PACKAGE_RELEASE: 1
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install System Packages
+      timeout-minutes: 10
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake m4 autoconf libtool libgomp1 rpm dpkg-dev gcc g++
+
+    - name: Build Dyninst
+      timeout-minutes: 25
+      run:
+        cmake --version &&
+        cmake -B build
+          -DCMAKE_C_COMPILER=gcc
+          -DCMAKE_CXX_COMPILER=g++
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=/opt/dyninst-staged
+          -DSTERILE_BUILD=OFF
+          -DBUILD_ELFUTILS=ON
+          -DBUILD_TBB=ON
+          -DBUILD_BOOST=ON
+          -DBUILD_LIBIBERTY=ON &&
+        cmake --build build --target all --parallel 4
+
+    - name: Generate Packaging
+      timeout-minutes: 15
+      run: |
+        pushd ${{ github.workspace }}/build
+        cpack -G STGZ
+        cpack -G DEB -D CPACK_PACKAGING_INSTALL_PREFIX=/opt/dyninst
+        cpack -G RPM -D CPACK_PACKAGING_INSTALL_PREFIX=/opt/dyninst
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') && github.repository == 'dyninst/dyninst'
+        with:
+          fail_on_unmatched_files: True
+          files: |
+            ${{ github.workspace }}/build/dyninst_*.deb
+            ${{ github.workspace }}/build/dyninst-*.rpm
+            ${{ github.workspace }}/build/Dyninst-*.sh
