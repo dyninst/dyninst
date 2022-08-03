@@ -64,7 +64,7 @@ RUN python3 -m pip install --upgrade pip && \
 
 # Update gcc to 11.1.1 (otherwise we'd have 9.3.0)
 RUN apt-get install -y software-properties-common && \
-    add-apt-repository 'deb http://mirrors.kernel.org/ubuntu hirsute main universe' && \
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
     apt-get update && \
     apt-get install -y gcc-11 g++-11 && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 70 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9 --slave /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-9 --slave /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-9 && \
@@ -80,7 +80,7 @@ ENV PATH=/opt/spack/bin:$PATH
 RUN python3 -m pip install botocore boto3
 
 # Find packages already installed on system, e.g. autoconf
-RUN spack external find --not-buildable gcc@11.0.1 autoconf bzip2 git tar xz perl cmake m4 ncurses && \
+RUN spack external find --not-buildable gcc autoconf bzip2 git tar xz perl cmake m4 ncurses && \
     spack config add 'packages:all:target:[x86_64]'
 
 # 'spack external find' doesn't work on libraries
