@@ -154,7 +154,8 @@ find_path(
 if(TBB_INCLUDE_DIRS)
     # Starting in 2020.1.1, tbb_stddef.h is replaced by version.h
     set(_version_files "${TBB_INCLUDE_DIRS}/tbb/tbb_stddef.h"
-                       "${TBB_INCLUDE_DIRS}/tbb/version.h")
+                       "${TBB_INCLUDE_DIRS}/tbb/version.h"
+                       "${TBB_INCLUDE_DIRS}/oneapi/tbb/version.h")
     foreach(f IN ITEMS ${_version_files})
         if(EXISTS ${f})
             set(_version_file ${f})
