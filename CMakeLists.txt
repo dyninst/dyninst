@@ -26,8 +26,8 @@ endif()
 set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
 set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
-set(CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules"
-                      ${CMAKE_MODULE_PATH})
+list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
+     "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
 # Set the C and C++ language standards
 include(LanguageStandards)
