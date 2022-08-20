@@ -260,7 +260,7 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) :
     init(NULL,false);
 }
 
-SymtabCodeSource::SymtabCodeSource(char * file) :
+SymtabCodeSource::SymtabCodeSource(const char * file) :
     _symtab(NULL),
     owns_symtab(true),
     stats_parse(new ::StatContainer()),
