@@ -9907,8 +9907,8 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRC2+1,32),true,false);
 break;
 case 480:// V_DIV_SCALE_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2,32),true,false);
@@ -9916,8 +9916,8 @@ break;
 case 481:// V_DIV_SCALE_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,32),false,true);
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+0,32),false,true);
+insn_in_progress->appendOperand(decodeOPR_VCC(layout.SDST+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,32),true,false);
