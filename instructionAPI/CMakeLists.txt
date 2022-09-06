@@ -6,7 +6,6 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/vega)
 
 set(SRC_LIST
-    src/debug_decode.C
     src/Instruction.C
     src/InstructionAST.C
     src/Operation.C
