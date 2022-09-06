@@ -222,6 +222,15 @@ namespace Dyninst {
             bool isConditional{}; // this is set for all conditional branch instruction, will set branchCond
             bool isCall{}; // this is a call function
 
+            bool isMemInstr{};
+            bool useVMCNT{};
+            bool useLGKMCNT{};
+
+            void setMem(){ isMemInstr = true; }
+            void setVMCNT(){ useVMCNT = true; }
+            void setLGKMCNT(){ useLGKMCNT = true; }
+
+
 
 
             // this is set for instructions that directly modify pc
