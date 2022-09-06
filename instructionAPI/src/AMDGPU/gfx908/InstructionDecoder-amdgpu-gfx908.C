@@ -30,7 +30,6 @@
 
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-gfx908.h"
-#include "debug_decode.h"
 
 namespace Dyninst {
 	namespace InstructionAPI {
@@ -215,7 +214,6 @@ namespace Dyninst {
 			imm_at_64 = get32bit(b,8);
 
 			insn_long = ( ((uint64_t) insn_high) << 32) | insn;
-            decoding_printf("[%s:%d]: setting up insnword, bits = %llu\n",FILE__,__LINE__, insn_long );
 
 
 		}
@@ -238,7 +236,6 @@ namespace Dyninst {
                 //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
 				//std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
-            decoding_printf("[%s:%d]: decoded instruction = %s\n",FILE__,__LINE__, insn_in_progress->getOperation().mnemonic.c_str() );
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
@@ -248,7 +245,6 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
-            decoding_printf("[%s:%d]: decoded instruction = %s\n",FILE__,__LINE__, insn_in_progress->getOperation().mnemonic.c_str() );
 			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
