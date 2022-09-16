@@ -196,7 +196,7 @@ PCProcess::instrumentMTFuncs()
         fprintf(stderr, "[%s:%d] - Couldn't find any dyn_pthread_self, expected 1\n",
                 __FILE__, __LINE__);
     }
-    assert(ptself_syms.size() == 1);
+    assert(ptself_syms.size() >= 1);
     Address dyn_pthread_self = ptself_syms[0]->getAddress();
     // Find pthread_self
     std::vector<func_instance*> pthread_self_funcs;
