@@ -33,6 +33,7 @@
 #include "dyninstAPI/src/Relocation/CFG/RelocBlock.h"
 #include "dyninstAPI/src/Relocation/CFG/RelocTarget.h"
 #include "../CFG/RelocGraph.h"
+#include "dyninstAPI/src/debug.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -44,7 +45,7 @@ Transformer::processGraph(RelocGraph* cfg)
     {
         if(!process(cur, cfg))
         {
-            cerr << "Failed to transform trace " << cur->id() << endl;
+            relocation_cerr << "Failed to transform trace " << cur->id() << endl;
             return false;
         }
     }

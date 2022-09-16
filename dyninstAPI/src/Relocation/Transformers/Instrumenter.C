@@ -423,9 +423,9 @@ Instrumenter::handleCondDirExits(RelocBlock* trace, RelocGraph* cfg, instPoint* 
 
     if(!cond || !cond->trg)
     {
-        relocation_err << __FILE__ << ":" << __LINE__ << " :: " << __FUNCTION__
-                       << " failed due to nullptr. Dyninst could not redirect to"
-                       << " the instrumentation block\n";
+        relocation_cerr << __FILE__ << ":" << __LINE__ << " :: " << __FUNCTION__
+                        << " failed due to nullptr. Dyninst could not redirect to"
+                        << " the instrumentation block\n";
         return false;
     }
 

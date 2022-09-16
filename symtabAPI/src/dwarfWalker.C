@@ -2198,7 +2198,7 @@ DwarfWalker::decodeLocationList(Dwarf_Half attr, Address* initialStackValue,
                                         &exprs, &exprlen);
             if(offset == -1)
             {
-                cerr << "err message: " << dwarf_errmsg(dwarf_errno()) << endl;
+                dwarf_printf("(0x%lx) %s\n", id(), dwarf_errmsg(dwarf_errno()));
                 return false;
             }
             if(offset == 0)
