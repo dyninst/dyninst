@@ -896,10 +896,10 @@ AddressSpace::getPtrToInstruction(const Address addr) const
     if(obj)
         return obj->getPtrToInstruction(addr);
 
-    fprintf(stderr, "[%s:%d] failed to find matching range for address %lx\n", FILE__,
-            __LINE__, addr);
-    assert(0);
-    return NULL;
+    std::stringstream _msg;
+    _msg << "[" << FILE__ << ":" << __LINE__ << "] failed to find matching range for address " << addr;
+    throw std::runtime_error(_msg.str());
+    return nullptr;
 }
 
 bool

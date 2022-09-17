@@ -652,9 +652,13 @@ BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction>& ins
 {
     using namespace InstructionAPI;
 
-    InstructionDecoder d(
-        (const unsigned char*) (iblock->proc()->getPtrToInstruction(getStartAddress())),
-        size(), iblock->llb()->obj()->cs()->getArch());
+    const unsigned char* ptr =
+        (const unsigned char*) iblock->proc()->getPtrToInstruction(getStartAddress());
+
+    if(ptr == nullptr)
+        return false;
+
+    InstructionDecoder d(ptr, size(), iblock->llb()->obj()->cs()->getArch());
     do
     {
         insns.push_back(d.decode());
@@ -675,13 +679,13 @@ BPatch_basicBlock::getInstructions(
     Address              addr = getStartAddress();
     const unsigned char* ptr =
         (const unsigned char*) iblock->proc()->getPtrToInstruction(addr);
-    if(ptr == NULL)
+    if(ptr == nullptr)
         return false;
     InstructionDecoder d(ptr, size(), iblock->llb()->obj()->cs()->getArch());
 
     while(addr < getEndAddress())
     {
-        insnInstances.push_back(std::make_pair(d.decode(), addr));
+        insnInstances.emplace_back(d.decode(), addr);
         addr += insnInstances.back().first.size();
     }
 

@@ -46,6 +46,10 @@
 #include "function.h"
 #include "dataflowAPI/h/stackanalysis.h"
 
+#include <sstream>
+#include <string>
+#include <stdexcept>
+
 using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
@@ -286,7 +290,8 @@ adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr, Instruction insn, Address
             Result res = exp->eval();
             if(!res.defined)
             {
-                cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;
+                relocation_cerr << "ERROR: failed bind/eval at " << std::hex
+                                << ptr->addr() << endl;
                 if(insn.getControlFlowTarget())
                     return false;
             }
@@ -302,6 +307,8 @@ adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr, Instruction insn, Address
 bool
 adhocMovementTransformer::isPCRelData(Widget::Ptr ptr, Instruction insn, Address& target)
 {
+    std::stringstream _err_messages{};
+
     target = 0;
     switch(insn.getCategory())
     {
@@ -332,10 +339,10 @@ adhocMovementTransformer::isPCRelData(Widget::Ptr ptr, Instruction insn, Address
             Result res = exp->eval();
             if(!res.defined)
             {
-                cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;
+                _err_messages << "ERROR: failed bind/eval at 0x" << std::hex
+                              << ptr->addr() << "\n";
                 continue;
             }
-            assert(res.defined);
             target = res.convert<Address>();
             return true;
         }
@@ -357,18 +364,25 @@ adhocMovementTransformer::isPCRelData(Widget::Ptr ptr, Instruction insn, Address
             Result res = exp->eval();
             if(!res.defined)
             {
-                cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;
+                _err_messages << "ERROR: failed bind/eval at 0x" << std::hex
+                              << ptr->addr() << "\n";
                 continue;
             }
-            assert(res.defined);
             target = res.convert<Address>();
             return true;
         }
     }
+
     if(target == 0)
     {
-        cerr << "Error: failed to bind PC in " << insn.format() << endl;
+        _err_messages << "ERROR: failed to bind to PC in " << insn.format() << "\n";
+        throw std::runtime_error(_err_messages.str());
     }
+    else if(!_err_messages.str().empty())
+    {
+        relocation_cerr << _err_messages.str() << endl;
+    }
+
     return (target != 0);
     // assert(target != 0);
     // return true;
@@ -458,7 +472,7 @@ adhocMovementTransformer::isGetPC(Widget::Ptr ptr, Instruction insn, Absloc& alo
             CFT->bind(thePC.get(), Result(u64, ptr->addr()));
             break;
         default:
-            assert(0);
+            throw std::runtime_error(std::string{ "Unrecognized architecture for " } + insn.format());
             break;
     }
 
@@ -488,12 +502,13 @@ adhocMovementTransformer::isGetPC(Widget::Ptr ptr, Instruction insn, Absloc& alo
     {
         const unsigned char* buf = reinterpret_cast<const unsigned char*>(
             addrSpace->getPtrToInstruction(target));
+
         if(!buf)
         {
-            cerr << "Error: illegal pointer to buffer!" << endl;
-            cerr << "Target of " << hex << target << " from addr " << ptr->addr()
+            std::stringstream _msg;
+            _msg << "Error: illegal pointer to buffer! Target of " << hex << target << " from addr " << ptr->addr()
                  << " in insn " << insn.format() << dec << endl;
-            assert(0);
+            throw std::runtime_error(_msg.str());
         }
 
         InstructionDecoder decoder(buf, 2 * InstructionDecoder::maxInstructionLength,
@@ -668,7 +683,10 @@ adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp, signed long& d
                 }
                 else
                 {
-                    assert(0);
+                    throw std::runtime_error(
+                        std::string{ __FUNCTION__ } +
+                        std::string{ " :: unknown error in " __FILE__ ":" } +
+                        std::to_string(__LINE__));
                 }
             }
 
