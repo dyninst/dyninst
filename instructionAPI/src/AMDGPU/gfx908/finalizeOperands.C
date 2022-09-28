@@ -756,6 +756,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 17:// FLAT_LOAD_SBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -763,6 +765,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 18:// FLAT_LOAD_USHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -770,6 +774,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 19:// FLAT_LOAD_SSHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -777,6 +783,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 20:// FLAT_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -784,6 +792,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 21:// FLAT_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -792,6 +802,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 22:// FLAT_LOAD_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -801,6 +813,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 23:// FLAT_LOAD_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -811,6 +825,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 24:// FLAT_STORE_BYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -818,6 +834,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 25:// FLAT_STORE_BYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -825,6 +843,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 26:// FLAT_STORE_SHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -832,6 +852,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 27:// FLAT_STORE_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -839,6 +861,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 28:// FLAT_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -846,6 +870,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 29:// FLAT_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -854,6 +880,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 30:// FLAT_STORE_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -863,6 +891,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 31:// FLAT_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -873,6 +903,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 32:// FLAT_LOAD_UBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -880,6 +912,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 33:// FLAT_LOAD_UBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -887,6 +921,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 34:// FLAT_LOAD_SBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -894,6 +930,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 35:// FLAT_LOAD_SBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -901,6 +939,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 36:// FLAT_LOAD_SHORT_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -908,6 +948,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 37:// FLAT_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -915,6 +957,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 64:// FLAT_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -923,6 +967,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 65:// FLAT_ATOMIC_CMPSWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -933,6 +979,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 66:// FLAT_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -941,6 +989,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 67:// FLAT_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -949,6 +999,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 68:// FLAT_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -957,6 +1009,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 69:// FLAT_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -965,6 +1019,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 70:// FLAT_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -973,6 +1029,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 71:// FLAT_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -981,6 +1039,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 72:// FLAT_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -989,6 +1049,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 73:// FLAT_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -997,6 +1059,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 74:// FLAT_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1005,6 +1069,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 75:// FLAT_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1013,6 +1079,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 76:// FLAT_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1021,6 +1089,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 96:// FLAT_ATOMIC_SWAP_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1031,6 +1101,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 97:// FLAT_ATOMIC_CMPSWAP_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1045,6 +1117,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 98:// FLAT_ATOMIC_ADD_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1055,6 +1129,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 99:// FLAT_ATOMIC_SUB_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1065,6 +1141,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 100:// FLAT_ATOMIC_SMIN_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1075,6 +1153,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 101:// FLAT_ATOMIC_UMIN_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1085,6 +1165,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 102:// FLAT_ATOMIC_SMAX_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1095,6 +1177,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 103:// FLAT_ATOMIC_UMAX_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1105,6 +1189,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 104:// FLAT_ATOMIC_AND_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1115,6 +1201,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 105:// FLAT_ATOMIC_OR_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1125,6 +1213,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 106:// FLAT_ATOMIC_XOR_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1135,6 +1225,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 107:// FLAT_ATOMIC_INC_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1145,6 +1237,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 108:// FLAT_ATOMIC_DEC_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1155,6 +1249,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 }
 }
@@ -1168,6 +1264,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 17:// GLOBAL_LOAD_SBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1176,6 +1274,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 18:// GLOBAL_LOAD_USHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1184,6 +1284,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 19:// GLOBAL_LOAD_SSHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1192,6 +1294,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 20:// GLOBAL_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1200,6 +1304,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 21:// GLOBAL_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1209,6 +1315,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 22:// GLOBAL_LOAD_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1219,6 +1327,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 23:// GLOBAL_LOAD_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1230,6 +1340,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 24:// GLOBAL_STORE_BYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1238,6 +1350,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 25:// GLOBAL_STORE_BYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1246,6 +1360,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 26:// GLOBAL_STORE_SHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1254,6 +1370,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 27:// GLOBAL_STORE_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1262,6 +1380,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 28:// GLOBAL_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1270,6 +1390,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 29:// GLOBAL_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1279,6 +1401,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 30:// GLOBAL_STORE_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1289,6 +1413,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 31:// GLOBAL_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,32),true,false);
@@ -1300,6 +1426,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 32:// GLOBAL_LOAD_UBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1308,6 +1436,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 33:// GLOBAL_LOAD_UBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1316,6 +1446,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 34:// GLOBAL_LOAD_SBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1324,6 +1456,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 35:// GLOBAL_LOAD_SBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1332,6 +1466,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 36:// GLOBAL_LOAD_SHORT_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1340,6 +1476,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 37:// GLOBAL_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1348,6 +1486,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 64:// GLOBAL_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1357,6 +1497,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 65:// GLOBAL_ATOMIC_CMPSWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1368,6 +1510,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 66:// GLOBAL_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1377,6 +1521,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 67:// GLOBAL_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1386,6 +1532,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 68:// GLOBAL_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1395,6 +1543,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 69:// GLOBAL_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1404,6 +1554,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 70:// GLOBAL_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1413,6 +1565,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 71:// GLOBAL_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1422,6 +1576,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 72:// GLOBAL_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1431,6 +1587,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 73:// GLOBAL_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1440,6 +1598,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 74:// GLOBAL_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1449,6 +1609,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 75:// GLOBAL_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1458,6 +1620,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 76:// GLOBAL_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1467,6 +1631,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 77:// GLOBAL_ATOMIC_ADD_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1476,6 +1642,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 78:// GLOBAL_ATOMIC_PK_ADD_F16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1485,6 +1653,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 96:// GLOBAL_ATOMIC_SWAP_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1496,6 +1666,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 97:// GLOBAL_ATOMIC_CMPSWAP_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1511,6 +1683,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 98:// GLOBAL_ATOMIC_ADD_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1522,6 +1696,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 99:// GLOBAL_ATOMIC_SUB_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1533,6 +1709,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 100:// GLOBAL_ATOMIC_SMIN_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1544,6 +1722,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 101:// GLOBAL_ATOMIC_UMIN_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1555,6 +1735,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 102:// GLOBAL_ATOMIC_SMAX_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1566,6 +1748,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 103:// GLOBAL_ATOMIC_UMAX_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1577,6 +1761,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 104:// GLOBAL_ATOMIC_AND_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1588,6 +1774,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 105:// GLOBAL_ATOMIC_OR_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1599,6 +1787,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 106:// GLOBAL_ATOMIC_XOR_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1610,6 +1800,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 107:// GLOBAL_ATOMIC_INC_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1621,6 +1813,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 108:// GLOBAL_ATOMIC_DEC_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1632,6 +1826,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 }
 }
@@ -1644,6 +1840,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 17:// SCRATCH_LOAD_SBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1651,6 +1849,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 18:// SCRATCH_LOAD_USHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1658,6 +1858,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 19:// SCRATCH_LOAD_SSHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1665,6 +1867,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 20:// SCRATCH_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1672,6 +1876,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 21:// SCRATCH_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1680,6 +1886,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 22:// SCRATCH_LOAD_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1689,6 +1897,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 23:// SCRATCH_LOAD_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,32),false,true);
@@ -1699,6 +1909,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 24:// SCRATCH_STORE_BYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1706,6 +1918,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 25:// SCRATCH_STORE_BYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1713,6 +1927,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 26:// SCRATCH_STORE_SHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1720,6 +1936,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 27:// SCRATCH_STORE_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1727,6 +1945,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 28:// SCRATCH_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1734,6 +1954,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 29:// SCRATCH_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1742,6 +1964,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 30:// SCRATCH_STORE_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1751,6 +1975,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 31:// SCRATCH_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
@@ -1761,6 +1987,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 32:// SCRATCH_LOAD_UBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1768,6 +1996,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 33:// SCRATCH_LOAD_UBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1775,6 +2005,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 34:// SCRATCH_LOAD_SBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1782,6 +2014,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 35:// SCRATCH_LOAD_SBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1789,6 +2023,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 36:// SCRATCH_LOAD_SHORT_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1796,6 +2032,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 37:// SCRATCH_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST,32),false,true);
@@ -1803,6 +2041,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0,64),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 }
 }
@@ -1826,6 +2066,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 1:// IMAGE_LOAD_MIP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -1844,6 +2085,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 2:// IMAGE_LOAD_PCK
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -1862,6 +2104,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 3:// IMAGE_LOAD_PCK_SGN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -1880,6 +2123,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 4:// IMAGE_LOAD_MIP_PCK
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -1898,6 +2142,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 5:// IMAGE_LOAD_MIP_PCK_SGN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -1916,6 +2161,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 8:// IMAGE_STORE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -1934,6 +2180,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 9:// IMAGE_STORE_MIP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -1952,6 +2199,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 10:// IMAGE_STORE_PCK
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -1970,6 +2218,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 11:// IMAGE_STORE_MIP_PCK
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -1988,6 +2237,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 14:// IMAGE_GET_RESINFO
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2003,6 +2253,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 16:// IMAGE_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2021,6 +2272,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 17:// IMAGE_ATOMIC_CMPSWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2039,6 +2291,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 18:// IMAGE_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2057,6 +2310,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 19:// IMAGE_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2075,6 +2329,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 20:// IMAGE_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2093,6 +2348,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 21:// IMAGE_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2111,6 +2367,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 22:// IMAGE_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2129,6 +2386,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 23:// IMAGE_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2147,6 +2405,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 24:// IMAGE_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2165,6 +2424,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 25:// IMAGE_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2183,6 +2443,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 26:// IMAGE_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2201,6 +2462,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 27:// IMAGE_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2219,6 +2481,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 28:// IMAGE_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -2237,6 +2500,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+4,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+5,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+6,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+7,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 32:// IMAGE_SAMPLE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2258,6 +2522,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 33:// IMAGE_SAMPLE_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2280,6 +2545,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 34:// IMAGE_SAMPLE_D
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2307,6 +2573,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 35:// IMAGE_SAMPLE_D_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2335,6 +2602,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 36:// IMAGE_SAMPLE_L
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2357,6 +2625,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 37:// IMAGE_SAMPLE_B
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2379,6 +2648,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 38:// IMAGE_SAMPLE_B_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2402,6 +2672,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 39:// IMAGE_SAMPLE_LZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2423,6 +2694,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 40:// IMAGE_SAMPLE_C
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2445,6 +2717,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 41:// IMAGE_SAMPLE_C_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2468,6 +2741,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 42:// IMAGE_SAMPLE_C_D
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2496,6 +2770,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 43:// IMAGE_SAMPLE_C_D_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2525,6 +2800,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 44:// IMAGE_SAMPLE_C_L
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2548,6 +2824,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 45:// IMAGE_SAMPLE_C_B
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2571,6 +2848,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 46:// IMAGE_SAMPLE_C_B_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2595,6 +2873,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 47:// IMAGE_SAMPLE_C_LZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2617,6 +2896,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 48:// IMAGE_SAMPLE_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2639,6 +2919,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 49:// IMAGE_SAMPLE_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2662,6 +2943,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 50:// IMAGE_SAMPLE_D_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2690,6 +2972,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 51:// IMAGE_SAMPLE_D_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2719,6 +3002,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 52:// IMAGE_SAMPLE_L_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2742,6 +3026,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 53:// IMAGE_SAMPLE_B_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2765,6 +3050,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 54:// IMAGE_SAMPLE_B_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2789,6 +3075,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 55:// IMAGE_SAMPLE_LZ_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2811,6 +3098,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 56:// IMAGE_SAMPLE_C_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2834,6 +3122,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 57:// IMAGE_SAMPLE_C_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2858,6 +3147,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 58:// IMAGE_SAMPLE_C_D_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2887,6 +3177,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 59:// IMAGE_SAMPLE_C_D_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2917,6 +3208,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 60:// IMAGE_SAMPLE_C_L_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2941,6 +3233,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 61:// IMAGE_SAMPLE_C_B_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2965,6 +3258,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 62:// IMAGE_SAMPLE_C_B_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -2990,6 +3284,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 63:// IMAGE_SAMPLE_C_LZ_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3013,6 +3308,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 64:// IMAGE_GATHER4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3034,6 +3330,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 65:// IMAGE_GATHER4_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3056,6 +3353,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 66:// IMAGE_GATHER4H
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3077,6 +3375,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 68:// IMAGE_GATHER4_L
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3099,6 +3398,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 69:// IMAGE_GATHER4_B
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3121,6 +3421,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 70:// IMAGE_GATHER4_B_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3144,6 +3445,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 71:// IMAGE_GATHER4_LZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3165,6 +3467,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 72:// IMAGE_GATHER4_C
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3187,6 +3490,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 73:// IMAGE_GATHER4_C_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3210,6 +3514,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 74:// IMAGE_GATHER4H_PCK
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3231,6 +3536,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 75:// IMAGE_GATHER8H_PCK
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3252,6 +3558,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 76:// IMAGE_GATHER4_C_L
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3275,6 +3582,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 77:// IMAGE_GATHER4_C_B
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3298,6 +3606,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 78:// IMAGE_GATHER4_C_B_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3322,6 +3631,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 79:// IMAGE_GATHER4_C_LZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3344,6 +3654,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 80:// IMAGE_GATHER4_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3366,6 +3677,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 81:// IMAGE_GATHER4_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3389,6 +3701,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 84:// IMAGE_GATHER4_L_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3412,6 +3725,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 85:// IMAGE_GATHER4_B_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3435,6 +3749,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 86:// IMAGE_GATHER4_B_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3459,6 +3774,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 87:// IMAGE_GATHER4_LZ_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3481,6 +3797,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 88:// IMAGE_GATHER4_C_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3504,6 +3821,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 89:// IMAGE_GATHER4_C_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3528,6 +3846,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 92:// IMAGE_GATHER4_C_L_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3552,6 +3871,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 93:// IMAGE_GATHER4_C_B_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3576,6 +3896,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 94:// IMAGE_GATHER4_C_B_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3601,6 +3922,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 95:// IMAGE_GATHER4_C_LZ_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3624,6 +3946,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 96:// IMAGE_GET_LOD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3645,6 +3968,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 104:// IMAGE_SAMPLE_CD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3672,6 +3996,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 105:// IMAGE_SAMPLE_CD_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3700,6 +4025,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 106:// IMAGE_SAMPLE_C_CD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3728,6 +4054,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 107:// IMAGE_SAMPLE_C_CD_CL
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3757,6 +4084,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 108:// IMAGE_SAMPLE_CD_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3785,6 +4113,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 109:// IMAGE_SAMPLE_CD_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3814,6 +4143,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 110:// IMAGE_SAMPLE_C_CD_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3843,6 +4173,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 111:// IMAGE_SAMPLE_C_CD_CL_O
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3873,6 +4204,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 }
 }
@@ -3888,6 +4220,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 1:// TBUFFER_LOAD_FORMAT_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3899,6 +4232,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 2:// TBUFFER_LOAD_FORMAT_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3911,6 +4245,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 3:// TBUFFER_LOAD_FORMAT_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -3924,6 +4259,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 4:// TBUFFER_STORE_FORMAT_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -3934,6 +4270,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 5:// TBUFFER_STORE_FORMAT_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -3945,6 +4282,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 6:// TBUFFER_STORE_FORMAT_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -3957,6 +4295,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 7:// TBUFFER_STORE_FORMAT_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -3970,6 +4309,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 8:// TBUFFER_LOAD_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -3980,6 +4320,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 9:// TBUFFER_LOAD_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -3990,6 +4331,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 10:// TBUFFER_LOAD_FORMAT_D16_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4001,6 +4343,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 11:// TBUFFER_LOAD_FORMAT_D16_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4012,6 +4355,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 12:// TBUFFER_STORE_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4022,6 +4366,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 13:// TBUFFER_STORE_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4032,6 +4377,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 14:// TBUFFER_STORE_FORMAT_D16_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4043,6 +4389,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 15:// TBUFFER_STORE_FORMAT_D16_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4054,6 +4401,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 }
 }
@@ -4069,6 +4417,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 1:// BUFFER_LOAD_FORMAT_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4080,6 +4429,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 2:// BUFFER_LOAD_FORMAT_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4092,6 +4442,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 3:// BUFFER_LOAD_FORMAT_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4105,6 +4456,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 4:// BUFFER_STORE_FORMAT_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4115,6 +4467,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 5:// BUFFER_STORE_FORMAT_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4126,6 +4479,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 6:// BUFFER_STORE_FORMAT_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4138,6 +4492,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 7:// BUFFER_STORE_FORMAT_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4151,6 +4506,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 8:// BUFFER_LOAD_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4161,6 +4517,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 9:// BUFFER_LOAD_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4171,6 +4528,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 10:// BUFFER_LOAD_FORMAT_D16_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4182,6 +4540,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 11:// BUFFER_LOAD_FORMAT_D16_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4193,6 +4552,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 12:// BUFFER_STORE_FORMAT_D16_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4203,6 +4563,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 13:// BUFFER_STORE_FORMAT_D16_XY
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4213,6 +4574,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 14:// BUFFER_STORE_FORMAT_D16_XYZ
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4224,6 +4586,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 15:// BUFFER_STORE_FORMAT_D16_XYZW
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4235,6 +4598,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 16:// BUFFER_LOAD_UBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4245,6 +4609,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 17:// BUFFER_LOAD_SBYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4255,6 +4620,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 18:// BUFFER_LOAD_USHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4265,6 +4631,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 19:// BUFFER_LOAD_SSHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4275,6 +4642,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 20:// BUFFER_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4285,6 +4653,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 21:// BUFFER_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4296,6 +4665,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 22:// BUFFER_LOAD_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4308,6 +4678,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 23:// BUFFER_LOAD_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),false,true);
@@ -4321,6 +4692,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 24:// BUFFER_STORE_BYTE
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4331,6 +4703,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 25:// BUFFER_STORE_BYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4341,6 +4714,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 26:// BUFFER_STORE_SHORT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4351,6 +4725,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 27:// BUFFER_STORE_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4361,6 +4736,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 28:// BUFFER_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4371,6 +4747,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 29:// BUFFER_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4382,6 +4759,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 30:// BUFFER_STORE_DWORDX3
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4394,6 +4772,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 31:// BUFFER_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,false);
@@ -4407,6 +4786,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 32:// BUFFER_LOAD_UBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4417,6 +4797,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 33:// BUFFER_LOAD_UBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4427,6 +4808,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 34:// BUFFER_LOAD_SBYTE_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4437,6 +4819,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 35:// BUFFER_LOAD_SBYTE_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4447,6 +4830,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 36:// BUFFER_LOAD_SHORT_D16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4457,6 +4841,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 37:// BUFFER_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4467,6 +4852,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 38:// BUFFER_LOAD_FORMAT_D16_HI_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),false,true);
@@ -4477,6 +4863,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 39:// BUFFER_STORE_FORMAT_D16_HI_X
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,false);
@@ -4487,6 +4874,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 61:// BUFFER_STORE_LDS_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+0,32),true,false);
@@ -4494,10 +4882,13 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 62:// BUFFER_WBINVL1
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 63:// BUFFER_WBINVL1_VOL
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 64:// BUFFER_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4508,6 +4899,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 65:// BUFFER_ATOMIC_CMPSWAP
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4519,6 +4911,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 66:// BUFFER_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4529,6 +4922,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 67:// BUFFER_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4539,6 +4933,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 68:// BUFFER_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4549,6 +4944,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 69:// BUFFER_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4559,6 +4955,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 70:// BUFFER_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4569,6 +4966,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 71:// BUFFER_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4579,6 +4977,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 72:// BUFFER_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4589,6 +4988,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 73:// BUFFER_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4599,6 +4999,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 74:// BUFFER_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4609,6 +5010,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 75:// BUFFER_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4619,6 +5021,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 76:// BUFFER_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4629,6 +5032,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 77:// BUFFER_ATOMIC_ADD_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4639,6 +5043,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 78:// BUFFER_ATOMIC_PK_ADD_F16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA,32),true,true);
@@ -4649,6 +5054,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 96:// BUFFER_ATOMIC_SWAP_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4660,6 +5066,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 97:// BUFFER_ATOMIC_CMPSWAP_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4673,6 +5080,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 98:// BUFFER_ATOMIC_ADD_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4684,6 +5092,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 99:// BUFFER_ATOMIC_SUB_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4695,6 +5104,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 100:// BUFFER_ATOMIC_SMIN_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4706,6 +5116,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 101:// BUFFER_ATOMIC_UMIN_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4717,6 +5128,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 102:// BUFFER_ATOMIC_SMAX_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4728,6 +5140,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 103:// BUFFER_ATOMIC_UMAX_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4739,6 +5152,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 104:// BUFFER_ATOMIC_AND_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4750,6 +5164,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 105:// BUFFER_ATOMIC_OR_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4761,6 +5176,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 106:// BUFFER_ATOMIC_XOR_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4772,6 +5188,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 107:// BUFFER_ATOMIC_INC_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4783,6 +5200,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 case 108:// BUFFER_ATOMIC_DEC_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDATA+0,32),true,true);
@@ -4794,6 +5212,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SRSRC+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 break;
 }
 }
@@ -4805,6 +5224,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 1:// S_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4812,6 +5232,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 2:// S_LOAD_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4821,6 +5242,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 3:// S_LOAD_DWORDX8
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4834,6 +5256,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+7,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 4:// S_LOAD_DWORDX16
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4855,12 +5278,14 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+15,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 5:// S_SCRATCH_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 6:// S_SCRATCH_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4868,6 +5293,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 7:// S_SCRATCH_LOAD_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4877,6 +5303,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 8:// S_BUFFER_LOAD_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),false,true);
@@ -4885,6 +5312,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 9:// S_BUFFER_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4894,6 +5322,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 10:// S_BUFFER_LOAD_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4905,6 +5334,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 11:// S_BUFFER_LOAD_DWORDX8
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4920,6 +5350,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 12:// S_BUFFER_LOAD_DWORDX16
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
@@ -4943,12 +5374,14 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 16:// S_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 17:// S_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
@@ -4956,6 +5389,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 18:// S_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
@@ -4965,12 +5399,14 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 21:// S_SCRATCH_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 22:// S_SCRATCH_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
@@ -4978,6 +5414,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 23:// S_SCRATCH_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
@@ -4987,6 +5424,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 24:// S_BUFFER_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,false);
@@ -4995,6 +5433,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 25:// S_BUFFER_STORE_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
@@ -5004,6 +5443,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 26:// S_BUFFER_STORE_DWORDX4
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
@@ -5015,28 +5455,36 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 32:// S_DCACHE_INV
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 33:// S_DCACHE_WB
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 34:// S_DCACHE_INV_VOL
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 35:// S_DCACHE_WB_VOL
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 36:// S_MEMTIME
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 37:// S_MEMREALTIME
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 38:// S_ATC_PROBE
 insn_in_progress->appendOperand(decodeOPR_SIMM8(layout.SDATA),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 39:// S_ATC_PROBE_BUFFER
 insn_in_progress->appendOperand(decodeOPR_SIMM8(layout.SDATA),true,false);
@@ -5045,16 +5493,19 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 40:// S_DCACHE_DISCARD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 41:// S_DCACHE_DISCARD_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 64:// S_BUFFER_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5063,6 +5514,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 65:// S_BUFFER_ATOMIC_CMPSWAP
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5072,6 +5524,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 66:// S_BUFFER_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5080,6 +5533,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 67:// S_BUFFER_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5088,6 +5542,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 68:// S_BUFFER_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5096,6 +5551,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 69:// S_BUFFER_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5104,6 +5560,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 70:// S_BUFFER_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5112,6 +5569,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 71:// S_BUFFER_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5120,6 +5578,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 72:// S_BUFFER_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5128,6 +5587,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 73:// S_BUFFER_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5136,6 +5596,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 74:// S_BUFFER_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5144,6 +5605,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 75:// S_BUFFER_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5152,6 +5614,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 76:// S_BUFFER_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
@@ -5160,6 +5623,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 96:// S_BUFFER_ATOMIC_SWAP_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5169,6 +5633,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 97:// S_BUFFER_ATOMIC_CMPSWAP_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5180,6 +5645,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 98:// S_BUFFER_ATOMIC_ADD_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5189,6 +5655,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 99:// S_BUFFER_ATOMIC_SUB_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5198,6 +5665,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 100:// S_BUFFER_ATOMIC_SMIN_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5207,6 +5675,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 101:// S_BUFFER_ATOMIC_UMIN_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5216,6 +5685,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 102:// S_BUFFER_ATOMIC_SMAX_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5225,6 +5695,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 103:// S_BUFFER_ATOMIC_UMAX_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5234,6 +5705,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 104:// S_BUFFER_ATOMIC_AND_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5243,6 +5715,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 105:// S_BUFFER_ATOMIC_OR_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5252,6 +5725,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 106:// S_BUFFER_ATOMIC_XOR_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5261,6 +5735,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 107:// S_BUFFER_ATOMIC_INC_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5270,6 +5745,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 108:// S_BUFFER_ATOMIC_DEC_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5279,12 +5755,14 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 128:// S_ATOMIC_SWAP
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 129:// S_ATOMIC_CMPSWAP
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5292,72 +5770,84 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 130:// S_ATOMIC_ADD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 131:// S_ATOMIC_SUB
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 132:// S_ATOMIC_SMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 133:// S_ATOMIC_UMIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 134:// S_ATOMIC_SMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 135:// S_ATOMIC_UMAX
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 136:// S_ATOMIC_AND
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 137:// S_ATOMIC_OR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 138:// S_ATOMIC_XOR
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 139:// S_ATOMIC_INC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 140:// S_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 160:// S_ATOMIC_SWAP_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5365,6 +5855,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 161:// S_ATOMIC_CMPSWAP_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5374,6 +5865,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 162:// S_ATOMIC_ADD_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5381,6 +5873,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 163:// S_ATOMIC_SUB_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5388,6 +5881,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 164:// S_ATOMIC_SMIN_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5395,6 +5889,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 165:// S_ATOMIC_UMIN_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5402,6 +5897,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 166:// S_ATOMIC_SMAX_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5409,6 +5905,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 167:// S_ATOMIC_UMAX_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5416,6 +5913,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 168:// S_ATOMIC_AND_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5423,6 +5921,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 169:// S_ATOMIC_OR_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5430,6 +5929,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 170:// S_ATOMIC_XOR_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5437,6 +5937,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 171:// S_ATOMIC_INC_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5444,6 +5945,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 case 172:// S_ATOMIC_DEC_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
@@ -5451,6 +5953,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
 }
 }
@@ -6432,9 +6935,24 @@ case 11:// S_SETKILL
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
 break;
 case 12:// S_WAITCNT
-insn_in_progress->appendOperand(decodeOPR_WAITCNT(layout.SIMM16),true,false);
-break;
-case 13:// S_SETHALT
+{
+uint32_t vmcnt = ((0x3& (layout.SIMM16 >>14))<<4) | (layout.SIMM16 & 0xf);
+uint32_t expcnt  ((layout.SIMM16>>4) & 0x7);
+uint32_t lgkmcnt  ((layout.SIMM16>>8) & 0xf);
+if (vmcnt != 0x3f) {
+	insn_in_progress->appendOperand( makeRegisterExpression(amdgpu_gfx908::vmcnt, 0 ,32),false,true);
+	insn_in_progress->appendOperand( Immediate::makeImmediate(Result(u32,vmcnt)),false,false);
+}
+if (expcnt != 0x7) {
+	insn_in_progress->appendOperand( makeRegisterExpression(amdgpu_gfx908::expcnt, 0 ,32),false,true);
+	insn_in_progress->appendOperand( Immediate::makeImmediate(Result(u32,expcnt)),false,false);
+}
+if (lgkmcnt != 0xf) {
+	insn_in_progress->appendOperand( makeRegisterExpression(amdgpu_gfx908::lgkmcnt, 0 ,32),false,true);
+	insn_in_progress->appendOperand( Immediate::makeImmediate(Result(u32,lgkmcnt)),false,false);
+}
+}
+break;case 13:// S_SETHALT
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
 break;
 case 14:// S_SLEEP

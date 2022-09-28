@@ -44,6 +44,7 @@
 #include "common/src/singleton_object_pool.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
+#include "debug_dataflow.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -520,39 +521,96 @@ void AssignmentConverter::convert(const Instruction &I,
 
         }
         else if(I.getOperation().getID()== amdgpu_gfx908_op_S_WAITCNT){
-            /*std::vector<Operand> operands;
+            std::vector<Operand> operands;
             I.getOperands(operands);
-            assert(operands.size() == 1);
-            uint16_t opr_value =  operands[0].getValue();
+            bool found = false;
+            size_t opi;
+            for (opi = 0 ; opi < operands.size() ; opi++){
 
-            uint32_t lgkmcnt_value = (opr_value & 0x0f00)>>8;
-            uint32_t vmcnt_value = (op_value >> 10) | (opr_value & 0xf); */
-                AbsRegion lgkmcnt = AbsRegion(MachRegister(amdgpu_gfx908::lgkmcnt)) ;
+                RegisterAST::Ptr sgpr_pair = boost::dynamic_pointer_cast<RegisterAST>(operands[opi].getValue());
+                if (sgpr_pair.get() == nullptr)
+                    continue;
+                if(sgpr_pair->getID() == amdgpu_gfx908::vmcnt){
+                    /*std::vector<AbsRegion> regions;
+                    aConverter.convertAll(operands[opi+1].getValue(), addr, func, block, regions);*/
 
-                Assignment::Ptr lgkmcntA = Assignment::makeAssignment(I, 
-                        addr,
-                        func,
-                        block,
-                        lgkmcnt);
-                assignments.push_back(lgkmcntA);
+                    AbsRegion vmcnt = AbsRegion(MachRegister(amdgpu_gfx908::vmcnt)) ;
 
+                    Assignment::Ptr vmcntA = Assignment::makeAssignment(I, 
+                            addr,
+                            func,
+                            block,
+                            vmcnt);
+                    vmcntA->addInput(vmcnt); 
+                    //vmcntA->addInput(regions[0]); 
+                    assignments.push_back(vmcntA);
 
-                AbsRegion vmcnt = AbsRegion(MachRegister(amdgpu_gfx908::vmcnt)) ;
-                Assignment::Ptr vmcntA = Assignment::makeAssignment(I, 
-                        addr,
-                        func,
-                        block,
-                        vmcnt);
-                assignments.push_back(vmcntA);
+                }
 
+                if(sgpr_pair->getID() == amdgpu_gfx908::lgkmcnt){
+                    /*std::vector<AbsRegion> regions;
+                    slicing_printf(" converting for waitcnt with lgkm, opi = %u\n",opi);
+                    aConverter.convertAll(operands[opi+1].getValue(), addr, func, block, regions);
 
+                    slicing_printf(" after convert all\n");*/
+                    AbsRegion lgkmcnt = AbsRegion(MachRegister(amdgpu_gfx908::lgkmcnt)) ;
+
+                    Assignment::Ptr lgkmcntA = Assignment::makeAssignment(I, 
+                            addr,
+                            func,
+                            block,
+                            lgkmcnt);
+
+                    slicing_printf(" before adding input assignment\n");
+
+                    lgkmcntA->addInput(lgkmcnt); 
+
+                    //slicing_printf(" before adding 2nd input assignment, size of regions = %u\n",regions.size());
+                    //lgkmcntA->addInput(regions[0]); 
+
+                    slicing_printf(" after convert all, pushing assignment\n");
+                    assignments.push_back(lgkmcntA);
+                }
+
+            }
+        }else if(I.getOperation().getID()== amdgpu_gfx908_op_S_ENDPGM){
+                    AbsRegion vmcnt = AbsRegion(MachRegister(amdgpu_gfx908::vmcnt)) ;
+
+                    Assignment::Ptr vmcntA = Assignment::makeAssignment(I, 
+                            addr,
+                            func,
+                            block,
+                            vmcnt);
+
+                    vmcntA->addInput(vmcnt); 
+                    assignments.push_back(vmcntA);
+
+                    AbsRegion lgkmcnt = AbsRegion(MachRegister(amdgpu_gfx908::lgkmcnt)) ;
+                    Assignment::Ptr lgkmcntA = Assignment::makeAssignment(I, 
+                            addr,
+                            func,
+                            block,
+                            lgkmcnt);
+
+                    lgkmcntA->addInput(lgkmcnt); 
+                    assignments.push_back(lgkmcntA);
+
+                    AbsRegion expcnt = AbsRegion(MachRegister(amdgpu_gfx908::expcnt)) ;
+                    Assignment::Ptr expcntA = Assignment::makeAssignment(I, 
+                            addr,
+                            func,
+                            block,
+                            expcnt);
+
+                    expcntA->addInput(expcnt); 
+                    assignments.push_back(expcntA);
 
         }
-
 
         switch(I.getOperation().getID()){
 #include "AMDGPU/gfx908/vmcnt_cases.h"
             {
+
                 AbsRegion vmcnt = AbsRegion(MachRegister(amdgpu_gfx908::vmcnt)) ;
 
                 Assignment::Ptr vmcntA = Assignment::makeAssignment(I, 
@@ -565,8 +623,12 @@ void AssignmentConverter::convert(const Instruction &I,
 
                 break;
             }
+        }
+
+        switch(I.getOperation().getID()){
 #include "AMDGPU/gfx908/lgkmcnt_cases.h"
             {
+
                 AbsRegion lgkmcnt = AbsRegion(MachRegister(amdgpu_gfx908::lgkmcnt)) ;
 
                 Assignment::Ptr lgkmcntA = Assignment::makeAssignment(I, 
@@ -577,35 +639,8 @@ void AssignmentConverter::convert(const Instruction &I,
                 lgkmcntA->addInput(lgkmcnt); 
                 assignments.push_back(lgkmcntA);
 
-
                 break;
             }
-#include "AMDGPU/gfx908/bothcnt_cases.h"
-            {
-                AbsRegion lgkmcnt = AbsRegion(MachRegister(amdgpu_gfx908::lgkmcnt)) ;
-
-                Assignment::Ptr lgkmcntA = Assignment::makeAssignment(I, 
-                        addr,
-                        func,
-                        block,
-                        lgkmcnt);
-                lgkmcntA->addInput(lgkmcnt); 
-                assignments.push_back(lgkmcntA);
-
-
-                AbsRegion vmcnt = AbsRegion(MachRegister(amdgpu_gfx908::vmcnt)) ;
-                Assignment::Ptr vmcntA = Assignment::makeAssignment(I, 
-                        addr,
-                        func,
-                        block,
-                        vmcnt);
-                vmcntA->addInput(vmcnt); 
-                assignments.push_back(vmcntA);
-
-
-                break;
-            }
-
         }
     }
 
@@ -1086,6 +1121,8 @@ void AssignmentConverter::convert(const Instruction &I,
                                 break;
                             }      
         default:
+                           if(arch == Arch_amdgpu_gfx908)
+                               break;
                             // Assume full intra-dependence of non-flag and non-pc registers. 
                             std::vector<AbsRegion> used;
                             std::vector<AbsRegion> defined;
