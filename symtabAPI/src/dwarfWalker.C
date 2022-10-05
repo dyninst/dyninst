@@ -2647,9 +2647,10 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
             }
         }
         else {
-            dwarf_printf("(0x%lx) Using lexical range, shifted by module low\n", id());
-            loc.lowPC = location->ld_lopc + base;
-            loc.hiPC = location->ld_hipc + base;
+            dwarf_printf("(0x%lx) Using lexical range\n", id());
+
+            loc.lowPC = location->ld_lopc;
+            loc.hiPC = location->ld_hipc;
 
             dwarf_printf("(0x%lx) valid over range 0x%lx to 0x%lx\n",
                     id(), loc.lowPC, loc.hiPC);
