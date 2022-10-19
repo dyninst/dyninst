@@ -1,12 +1,3 @@
-# CMake configuration for dyninstAPI_RT directory
-cmake_minimum_required(VERSION 2.6.4)
-project(DyninstRT C)
-
-set(DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
-
-include(${DYNINST_ROOT}/cmake/LanguageStandards.cmake)
-include(${DYNINST_ROOT}/cmake/shared.cmake)
-
 include_directories(${DYNINST_ROOT}/dyninstAPI_RT/src ${DYNINST_ROOT}/dyninstAPI_RT/h
                     ${DYNINST_ROOT})
 
@@ -88,9 +79,6 @@ if(UNIX)
 endif()
 
 add_library(dyninstAPI_RT SHARED ${SRC_LIST})
-if(TARGET TBB)
-    add_dependencies(dyninstAPI_RT TBB)
-endif()
 
 if(NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
     target_link_libraries(dyninstAPI_RT ${CMAKE_DL_LIBS})
@@ -99,9 +87,7 @@ else() # windows
 endif()
 
 add_library(dyninstAPI_RT_static STATIC ${SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST})
-if(TARGET TBB)
-    add_dependencies(dyninstAPI_RT_static TBB)
-endif()
+
 
 # this should carry over from CMakeLists.txt
 set_target_properties(
