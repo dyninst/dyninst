@@ -102,12 +102,6 @@ if(${SYMREADER} MATCHES symtabAPI)
 endif()
 
 add_subdirectory(dyninstAPI_RT)
-#if(TARGET dyninstAPI)
-#  add_dependencies(dyninstAPI DyninstRT)
-#endif()
-#if(TARGET dyninstAPI-static)
-#  add_dependencies(dyninstAPI-static DyninstRT)
-#endif()
 
 set(ENABLE_STATIC_LIBS
     NO
