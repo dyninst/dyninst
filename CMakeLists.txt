@@ -107,9 +107,6 @@ set(ENABLE_STATIC_LIBS
     NO
     CACHE STRING "Build static libraries as well?")
 
-
-install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
-
 set(VERSION_STRING
     "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
 set(DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
