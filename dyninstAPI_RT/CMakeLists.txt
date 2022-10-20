@@ -46,11 +46,8 @@ set(RT_STATIC_ONLY_SRC_LIST_aarch64 src/RTstatic_ctors_dtors-aarch64.c)
 # that gcc can handle .S.
 enable_language(ASM)
 file(GLOB SRC_ASSEMBLY "src/*.S")
-if(NEED_NATIVE_ASSEMBER MATCHES YES)
-    set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE ASM)
-else()
-    set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE C)
-endif()
+set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE C)
+
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)
