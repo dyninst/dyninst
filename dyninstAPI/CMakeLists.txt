@@ -87,7 +87,9 @@ set(SRC_LIST
     src/Relocation/DynInstrumenter.C
     src/Patching.C
     src/frameChecker.C
-    src/BPatch_memoryAccessAdapter.C)
+    src/BPatch_memoryAccessAdapter.C
+    src/codegen-amdgpu.C
+    )
 
 # This is just .. messy. Sorry.
 
