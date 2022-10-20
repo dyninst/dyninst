@@ -23,9 +23,6 @@ if("${isSystemDir}" STREQUAL "-1")
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif()
 
-set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
-set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
-
 set(CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules"
                       ${CMAKE_MODULE_PATH})
 
