@@ -527,9 +527,7 @@ BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *
 {
    if (!isValid()) {
       if (notify_on_failure) {
-         using namespace std;
-         string msg = string("Module is not valid: ") + string(mod->fileName());
-         BPatch_reportError(BPatchSerious, 100, msg.c_str());
+         BPatch_reportError(BPatchSerious, 100, "Module is not valid: ");
       }
       return NULL;
    }
