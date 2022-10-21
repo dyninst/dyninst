@@ -527,7 +527,7 @@ BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *
 {
    if (!isValid()) {
       if (notify_on_failure) {
-         BPatch_reportError(BPatchSerious, 100, "Module is not valid: ");
+         BPatch_reportError(BPatchSerious, 100, "Module is not valid");
       }
       return NULL;
    }
