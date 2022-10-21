@@ -33,7 +33,7 @@ find_path(
     NAMES debuginfod.h
     HINTS ${PC_Debuginfod_INCLUDEDIR} ${PC_Debuginfod_INCLUDE_DIRS}
           ${LibDebuginfod_ROOT_DIR}/include ${LibDebuginfod_ROOT_DIR}
-          ${LibDebuginfod_INCLUDEDIR}
+          ${LibDebuginfod_INCLUDEDIR} ${PC_Debuginfod_INCLUDEDIR}/elfutils
     PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
     PATH_SUFFIXES ${_path_suffixes}
     DOC "libdebuginfod include directories")
