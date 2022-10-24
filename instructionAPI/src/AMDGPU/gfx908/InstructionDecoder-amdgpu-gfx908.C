@@ -124,6 +124,22 @@ namespace Dyninst {
 			return {};
 		}
 
+        void  InstructionDecoder_amdgpu_gfx908::processOPR_SMEM_OFFSET(layout_ENC_SMEM & layout){
+            if (layout.IMM ==0 ){
+                if( layout.SOFFSET_EN ==0 ) {
+                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.OFFSET), true , false ); 
+                }else{
+                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.SOFFSET), true , false ); 
+                }
+            }else{
+                if( layout.SOFFSET_EN ==0 ) {
+                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(s64,layout.OFFSET)),false ,false);
+                }else{
+                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(s64,layout.OFFSET)),false,false);
+                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.SOFFSET),true ,false); 
+                }
+            }
+        }
 
         uint32_t InstructionDecoder_amdgpu_gfx908::decodeOPR_LITERAL(){
             if (!useImm){
