@@ -48,7 +48,6 @@ enable_language(ASM)
 file(GLOB SRC_ASSEMBLY "src/*.S")
 set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE C)
 
-
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)
     if(PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
@@ -84,7 +83,6 @@ else() # windows
 endif()
 
 add_library(dyninstAPI_RT_static STATIC ${SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST})
-
 
 # this should carry over from CMakeLists.txt
 set_target_properties(
