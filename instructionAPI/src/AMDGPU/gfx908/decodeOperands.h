@@ -8,7 +8,7 @@ Expression::Ptr decodeOPR_SDST(uint64_t input, uint32_t opr_size );
 Expression::Ptr decodeOPR_SDST_EXEC(uint64_t input, uint32_t opr_size );
 Expression::Ptr decodeOPR_SDST_M0(uint64_t input, uint32_t opr_size );
 Expression::Ptr decodeOPR_SGPR(uint64_t input, uint32_t opr_size );
-Expression::Ptr decodeOPR_SMEM_OFFSET(uint64_t input, uint32_t opr_size );
+void processOPR_SMEM_OFFSET(layout_ENC_SMEM & layout  );
 Expression::Ptr decodeOPR_SRC(uint64_t input, uint32_t opr_size );
 Expression::Ptr decodeOPR_SRC_ACCVGPR(uint64_t input, uint32_t opr_size );
 Expression::Ptr decodeOPR_SRC_ACCVGPR_OR_CONST(uint64_t input, uint32_t opr_size );
