@@ -1053,7 +1053,7 @@ case 0:case 5:
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 1:case 6:
 //S_LOAD_DWORDX2,S_SCRATCH_LOAD_DWORDX2
@@ -1061,7 +1061,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 2:case 7:
 //S_LOAD_DWORDX4,S_SCRATCH_LOAD_DWORDX4
@@ -1071,7 +1071,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 3:
 //S_LOAD_DWORDX8
@@ -1085,7 +1085,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+6,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+7,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 4:
 //S_LOAD_DWORDX16
@@ -1107,7 +1107,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+14,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+15,32),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 8:
 //S_BUFFER_LOAD_DWORD
@@ -1116,7 +1116,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 9:
 //S_BUFFER_LOAD_DWORDX2
@@ -1126,7 +1126,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 10:
 //S_BUFFER_LOAD_DWORDX4
@@ -1138,7 +1138,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 11:
 //S_BUFFER_LOAD_DWORDX8
@@ -1154,7 +1154,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 12:
 //S_BUFFER_LOAD_DWORDX16
@@ -1178,14 +1178,14 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 16:case 21:
 //S_STORE_DWORD,S_SCRATCH_STORE_DWORD
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 17:case 22:
 //S_STORE_DWORDX2,S_SCRATCH_STORE_DWORDX2
@@ -1193,7 +1193,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 18:case 23:
 //S_STORE_DWORDX4,S_SCRATCH_STORE_DWORDX4
@@ -1203,7 +1203,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 24:
 //S_BUFFER_STORE_DWORD
@@ -1212,7 +1212,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 25:
 //S_BUFFER_STORE_DWORDX2
@@ -1222,7 +1222,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 26:
 //S_BUFFER_STORE_DWORDX4
@@ -1234,7 +1234,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 32:case 33:case 34:case 35:
 //S_DCACHE_INV,S_DCACHE_WB,S_DCACHE_INV_VOL,S_DCACHE_WB_VOL
@@ -1249,7 +1249,7 @@ case 38:
 insn_in_progress->appendOperand(decodeOPR_SIMM8(layout.SDATA),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 39:
 //S_ATC_PROBE_BUFFER
@@ -1258,13 +1258,13 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 40:case 41:
 //S_DCACHE_DISCARD,S_DCACHE_DISCARD_X2
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 64:case 66:case 67:case 68:case 69:case 70:case 71:case 72:case 73:case 74:case 75:case 76:
 //S_BUFFER_ATOMIC_SWAP,S_BUFFER_ATOMIC_ADD,S_BUFFER_ATOMIC_SUB,S_BUFFER_ATOMIC_SMIN,S_BUFFER_ATOMIC_UMIN,S_BUFFER_ATOMIC_SMAX,S_BUFFER_ATOMIC_UMAX,S_BUFFER_ATOMIC_AND,S_BUFFER_ATOMIC_OR,S_BUFFER_ATOMIC_XOR,S_BUFFER_ATOMIC_INC,S_BUFFER_ATOMIC_DEC
@@ -1273,7 +1273,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 65:case 96:case 98:case 99:case 100:case 101:case 102:case 103:case 104:case 105:case 106:case 107:case 108:
 //S_BUFFER_ATOMIC_CMPSWAP,S_BUFFER_ATOMIC_SWAP_X2,S_BUFFER_ATOMIC_ADD_X2,S_BUFFER_ATOMIC_SUB_X2,S_BUFFER_ATOMIC_SMIN_X2,S_BUFFER_ATOMIC_UMIN_X2,S_BUFFER_ATOMIC_SMAX_X2,S_BUFFER_ATOMIC_UMAX_X2,S_BUFFER_ATOMIC_AND_X2,S_BUFFER_ATOMIC_OR_X2,S_BUFFER_ATOMIC_XOR_X2,S_BUFFER_ATOMIC_INC_X2,S_BUFFER_ATOMIC_DEC_X2
@@ -1283,7 +1283,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 97:
 //S_BUFFER_ATOMIC_CMPSWAP_X2
@@ -1295,14 +1295,14 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+2,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+3,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 128:case 130:case 131:case 132:case 133:case 134:case 135:case 136:case 137:case 138:case 139:case 140:
 //S_ATOMIC_SWAP,S_ATOMIC_ADD,S_ATOMIC_SUB,S_ATOMIC_SMIN,S_ATOMIC_UMIN,S_ATOMIC_SMAX,S_ATOMIC_UMAX,S_ATOMIC_AND,S_ATOMIC_OR,S_ATOMIC_XOR,S_ATOMIC_INC,S_ATOMIC_DEC
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 129:case 160:case 162:case 163:case 164:case 165:case 166:case 167:case 168:case 169:case 170:case 171:case 172:
 //S_ATOMIC_CMPSWAP,S_ATOMIC_SWAP_X2,S_ATOMIC_ADD_X2,S_ATOMIC_SUB_X2,S_ATOMIC_SMIN_X2,S_ATOMIC_UMIN_X2,S_ATOMIC_SMAX_X2,S_ATOMIC_UMAX_X2,S_ATOMIC_AND_X2,S_ATOMIC_OR_X2,S_ATOMIC_XOR_X2,S_ATOMIC_INC_X2,S_ATOMIC_DEC_X2
@@ -1310,7 +1310,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+0,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+1,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 case 161:
 //S_ATOMIC_CMPSWAP_X2
@@ -1320,7 +1320,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+2,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDATA+3,32),true,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+0,32),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SBASE+1,32),true,false);
-insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,false);
+processOPR_SMEM_OFFSET(layout);
 break;
 }
 }
