@@ -49,19 +49,19 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    RegisterAST::RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit) :
-            Expression(r), m_Reg(r), m_Low(lowbit), m_High(highbit)
+    RegisterAST::RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit ,uint32_t num_elements) :
+            Expression(r), m_Reg(r), m_Low(lowbit), m_High(highbit) , m_num_elements(num_elements)
     {
     }
-    RegisterAST::RegisterAST(MachRegister r) :
-            Expression(r), m_Reg(r), m_Low(0)
+    RegisterAST::RegisterAST(MachRegister r, uint32_t num_elements) :
+            Expression(r), m_Reg(r), m_Low(0), m_num_elements(num_elements)
     {
 
         m_High = r.size() * 8;
     }
 
-    RegisterAST::RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType):
-			Expression(regType), m_Reg(r), m_Low(lowbit), m_High(highbit)
+    RegisterAST::RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType, uint32_t num_elements):
+			Expression(regType), m_Reg(r), m_Low(lowbit), m_High(highbit), m_num_elements(num_elements)
     {
 	}
 
@@ -106,8 +106,37 @@ namespace Dyninst
         {
             name = name.substr(substr + 2, name.length());
         }
+        if( m_num_elements ==0 ){
+            return "";
+        }else if ( m_num_elements > 1){
+            uint32_t id = m_Reg & 0xff ;
+            uint32_t regClass = m_Reg.regClass();
+ 
+            uint32_t  size = m_num_elements;
+             DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
+
+            if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_cdna2::SGPR || regClass == amdgpu_vega::SGPR){
+                return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
+            }
+
+            if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_cdna2::VGPR || regClass == amdgpu_vega::VGPR){
+                return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
+            }
+
+            DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
+
+            if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_cdna2::ACC_VGPR){
+                return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
+            }
+            if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_cdna2::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
+                return "VCC";
+            if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_cdna2::exec_lo || m_Reg == amdgpu_vega::exec_lo)
+                return "EXEC";
+
+       
+        }else if ( m_High -m_Low > 32 && m_Reg.size()*8 != m_High - m_Low){
+
         // Size of base register * 8 != m_High - mLow ( in bits) when we it is a register vector
-        if ( m_High -m_Low > 32 && m_Reg.size()*8 != m_High - m_Low){
             uint32_t id = m_Reg & 0xff ;
             uint32_t regClass = m_Reg.regClass();
             uint32_t size = (m_High - m_Low ) / 32;
@@ -136,7 +165,7 @@ namespace Dyninst
                 return "EXEC";
 
             name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";
-        } 
+        }
         /* we have moved to AT&T syntax (lowercase registers) */
         for(char &c : name) c = std::toupper(c);
 

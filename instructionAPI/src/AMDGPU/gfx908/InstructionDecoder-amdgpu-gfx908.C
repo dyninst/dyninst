@@ -206,7 +206,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_gfx908::reset(){
 			immLen = 0;
 			insn_size = 0;
-			num_elements =1;
 			isBranch = false;
 			isConditional = false;
 			isModifyPC =false;

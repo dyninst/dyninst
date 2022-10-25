@@ -67,7 +67,10 @@ class InstructionDecoderImpl
         virtual Expression::Ptr makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
 		virtual Expression::Ptr makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
-        virtual Expression::Ptr makeRegisterExpression(MachRegister reg);
+
+
+
+        virtual Expression::Ptr makeRegisterExpression(MachRegister reg, uint32_t num_elements = 1);
         // added version to support loading partial values out of register
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, unsigned int start , unsigned int end);
         virtual Expression::Ptr makeMaskRegisterExpression(MachRegister reg);

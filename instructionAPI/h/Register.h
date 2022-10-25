@@ -55,9 +55,9 @@ namespace Dyninst
       typedef boost::shared_ptr<RegisterAST> Ptr;
       
       /// Construct a register, assigning it the ID \c id.
-      RegisterAST(MachRegister r);
-      RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit);
-      RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType);
+      RegisterAST(MachRegister r, uint32_t num_elements = 1 );
+      RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, uint32_t num_elements = 1);
+      RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType, uint32_t num_elements = 1);
   
       virtual ~RegisterAST();
       
@@ -113,6 +113,7 @@ namespace Dyninst
       MachRegister m_Reg;
       unsigned int m_Low;
       unsigned int m_High;
+      unsigned int m_num_elements;
     };
 
     /**
