@@ -211,7 +211,6 @@ namespace Dyninst {
 
 #define IS_LD_ST() (isLoad || isStore )
 
-            unsigned int num_elements{1};  // the number of elements that will be load or store by each instruction
             bool isSMEM{}; // this is set when using smem instruction
             bool isLoad{}; // this is set when a smem instruction is load, will set number of elements that are loaded at the same time
             bool isStore{}; // similar to isLoad, but for store instructions
@@ -265,12 +264,6 @@ namespace Dyninst {
             void setSMEM() {isSMEM = true;}
 
 
-
-            template<unsigned int num_elements>
-                void setLoad(){isLoad = true; this->num_elements = num_elements; }
-
-            template<unsigned int num_elements>
-                void setStore() {isStore = true;this->num_elements = num_elements;}
 
             void setScratch() {isScratch = true;}
 
