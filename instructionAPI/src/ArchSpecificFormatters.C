@@ -188,7 +188,9 @@ std::string AmdgpuFormatter::getInstructionString(std::vector<std::string> opera
     for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
         if (*itr == "")
             continue;
-        if(printed)
+
+        out += *itr;
+        if(itr != operands.end() - 1)
             out += ", ";
         out += *itr;
         printed = true;
