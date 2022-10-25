@@ -18,7 +18,7 @@ break;
 case 29:case 153:case 155:case 157:
 //DS_WRITE_ADDTID_B32,DS_GWS_INIT,DS_GWS_SEMA_BR,DS_GWS_BARRIER
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 32:case 33:case 34:case 35:case 36:case 37:case 38:case 39:case 40:case 41:case 42:case 43:case 45:case 50:case 51:case 53:case 62:case 63:
 //DS_ADD_RTN_U32,DS_SUB_RTN_U32,DS_RSUB_RTN_U32,DS_INC_RTN_U32,DS_DEC_RTN_U32,DS_MIN_RTN_I32,DS_MAX_RTN_I32,DS_MIN_RTN_U32,DS_MAX_RTN_U32,DS_AND_RTN_B32,DS_OR_RTN_B32,DS_XOR_RTN_B32,DS_WRXCHG_RTN_B32,DS_MIN_RTN_F32,DS_MAX_RTN_F32,DS_ADD_RTN_F32,DS_PERMUTE_B32,DS_BPERMUTE_B32
@@ -110,18 +110,18 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 break;
 case 152:case 154:case 156:
 //DS_GWS_SEMA_RELEASE_ALL,DS_GWS_SEMA_V,DS_GWS_SEMA_P
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 182:case 189:case 190:
 //DS_READ_ADDTID_B32,DS_CONSUME,DS_APPEND
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 191:
 //DS_ORDERED_COUNT
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 222:
 //DS_WRITE_B96
@@ -155,8 +155,8 @@ case 16:case 17:case 18:case 19:case 20:case 32:case 33:case 34:case 35:case 36:
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -166,8 +166,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -178,8 +178,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -191,8 +191,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+3,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -201,8 +201,8 @@ case 24:case 25:case 26:case 27:case 28:
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -212,8 +212,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -224,8 +224,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,3),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -237,8 +237,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -248,8 +248,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -261,8 +261,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -278,8 +278,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -297,7 +297,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -311,7 +311,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -326,7 +326,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -342,7 +342,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -355,7 +355,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -369,7 +369,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -384,7 +384,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -400,7 +400,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -414,7 +414,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -430,7 +430,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -450,7 +450,7 @@ if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -466,8 +466,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -479,8 +479,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -493,8 +493,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -508,8 +508,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -520,8 +520,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -533,8 +533,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -547,8 +547,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -562,8 +562,8 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,0),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
 }
-insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::vmcnt,0,36),true,true,true);
 insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,16),true,true,true);
 break;
@@ -1502,7 +1502,7 @@ case 2:
 //S_CMOV_B32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),true,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 3:
 //S_CMOV_B64
@@ -1510,13 +1510,13 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,2),true,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,0),true,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 4:case 6:case 10:case 12:case 40:case 48:
 //S_NOT_B32,S_WQM_B32,S_BCNT0_I32_B32,S_BCNT1_I32_B32,S_QUADMASK_B32,S_ABS_I32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 5:case 7:case 41:
 //S_NOT_B64,S_WQM_B64,S_QUADMASK_B64
@@ -1524,14 +1524,14 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 11:case 13:
 //S_BCNT0_I32_B64,S_BCNT1_I32_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 15:case 17:case 19:case 21:
 //S_FF0_I32_B64,S_FF1_I32_B64,S_FLBIT_I32_B64,S_FLBIT_I32_I64
@@ -1554,7 +1554,7 @@ case 28:
 //S_GETPC_B64
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_PC(0),true,false);
+insn_in_progress->appendOperand(decodeOPR_PC(0),true,false,true);
 break;
 case 29:
 //S_SETPC_B64
@@ -1562,7 +1562,7 @@ setBranch();
 setModifyPC();
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_PC(0),false,true);
+insn_in_progress->appendOperand(decodeOPR_PC(0),false,true,true);
 break;
 case 30:
 //S_SWAPPC_B64
@@ -1572,14 +1572,14 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_PC(0),false,true);
-insn_in_progress->appendOperand(decodeOPR_PC(0),true,false);
+insn_in_progress->appendOperand(decodeOPR_PC(0),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_PC(0),true,false,true);
 break;
 case 31:
 //S_RFE_B64
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_PC(0),false,true);
+insn_in_progress->appendOperand(decodeOPR_PC(0),false,true,true);
 break;
 case 32:case 33:case 34:case 35:case 36:case 37:case 38:case 39:case 51:case 52:case 53:case 54:
 //S_AND_SAVEEXEC_B64,S_OR_SAVEEXEC_B64,S_XOR_SAVEEXEC_B64,S_ANDN2_SAVEEXEC_B64,S_ORN2_SAVEEXEC_B64,S_NAND_SAVEEXEC_B64,S_NOR_SAVEEXEC_B64,S_XNOR_SAVEEXEC_B64,S_ANDN1_SAVEEXEC_B64,S_ORN1_SAVEEXEC_B64,S_ANDN1_WREXEC_B64,S_ANDN2_WREXEC_B64
@@ -1587,15 +1587,15 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),true,false,true);
 break;
 case 42:
 //S_MOVRELS_B32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 43:
 //S_MOVRELS_B64
@@ -1603,13 +1603,13 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 44:
 //S_MOVRELD_B32
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 45:
 //S_MOVRELD_B64
@@ -1617,19 +1617,19 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 46:
 //S_CBRANCH_JOIN
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
-insn_in_progress->appendOperand(decodeOPR_PC(0),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_PC(0),false,true,true);
 break;
 case 50:
 //S_SET_GPR_IDX_IDX
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),false,true);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 55:
 //S_BITREPLICATE_B64_B32
@@ -1647,22 +1647,22 @@ case 0:case 1:case 2:case 3:case 6:case 7:case 8:case 9:case 12:case 14:case 16:
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 4:case 5:
 //S_ADDC_U32,S_SUBB_U32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 10:
 //S_CSELECT_B32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 11:
 //S_CSELECT_B64
@@ -1672,7 +1672,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 13:case 15:case 17:case 19:case 21:case 23:case 25:case 27:
 //S_AND_B64,S_OR_B64,S_XOR_B64,S_ANDN2_B64,S_ORN2_B64,S_NAND_B64,S_NOR_B64,S_XNOR_B64
@@ -1682,7 +1682,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 29:case 31:case 33:case 39:case 40:
 //S_LSHL_B64,S_LSHR_B64,S_ASHR_I64,S_BFE_U64,S_BFE_I64
@@ -1691,7 +1691,7 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 34:case 36:case 44:case 45:case 50:case 51:case 52:
 //S_BFM_B32,S_MUL_I32,S_MUL_HI_U32,S_MUL_HI_I32,S_PACK_LL_B32_B16,S_PACK_LH_B32_B16,S_PACK_HH_B32_B16
@@ -1712,14 +1712,14 @@ insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC0+0,2),true,fals
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SSRC1+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_PC(0),false,true);
+insn_in_progress->appendOperand(decodeOPR_PC(0),false,true,true);
 break;
 case 43:
 //S_RFE_RESTORE_B64
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_PC(0),false,true);
+insn_in_progress->appendOperand(decodeOPR_PC(0),false,true,true);
 break;
 }
 }
@@ -1730,14 +1730,14 @@ case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 9:case 10:ca
 //S_CMP_EQ_I32,S_CMP_LG_I32,S_CMP_GT_I32,S_CMP_GE_I32,S_CMP_LT_I32,S_CMP_LE_I32,S_CMP_EQ_U32,S_CMP_LG_U32,S_CMP_GT_U32,S_CMP_GE_U32,S_CMP_LT_U32,S_CMP_LE_U32,S_BITCMP0_B32,S_BITCMP1_B32
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 14:case 15:
 //S_BITCMP0_B64,S_BITCMP1_B64
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 16:
 //S_SETVSKIP
@@ -1748,8 +1748,8 @@ case 17:
 //S_SET_GPR_IDX_ON
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SIMM4(layout.SSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),false,true);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 18:case 19:
 //S_CMP_EQ_U64,S_CMP_LG_U64
@@ -1757,7 +1757,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 }
 }
@@ -1773,19 +1773,19 @@ case 1:
 //S_CMOVK_I32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),true,true);
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 9:case 10:case 11:case 12:case 13:
 //S_CMPK_EQ_I32,S_CMPK_LG_I32,S_CMPK_GT_I32,S_CMPK_GE_I32,S_CMPK_LT_I32,S_CMPK_LE_I32,S_CMPK_EQ_U32,S_CMPK_LG_U32,S_CMPK_GT_U32,S_CMPK_GE_U32,S_CMPK_LT_U32,S_CMPK_LE_U32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),true,false);
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 14:
 //S_ADDK_I32
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST),true,true);
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),false,true,true);
 break;
 case 15:
 //S_MULK_I32
@@ -1808,8 +1808,8 @@ case 21:
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.SDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_PC(0),false,true);
-insn_in_progress->appendOperand(decodeOPR_PC(0),true,false);
+insn_in_progress->appendOperand(decodeOPR_PC(0),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_PC(0),true,false,true);
 break;
 }
 }
@@ -1845,7 +1845,7 @@ setBranch();
 setConditionalBranch();
 makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false);
+insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 6:case 7:
 //S_CBRANCH_VCCZ,S_CBRANCH_VCCNZ
@@ -1853,7 +1853,7 @@ setBranch();
 setConditionalBranch();
 makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_VCC(0),true,false);
+insn_in_progress->appendOperand(decodeOPR_VCC(0),true,false,true);
 break;
 case 8:case 9:
 //S_CBRANCH_EXECZ,S_CBRANCH_EXECNZ
@@ -1861,7 +1861,7 @@ setBranch();
 setConditionalBranch();
 makeBranchTarget(isCall,isConditional,layout.SIMM16);
 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),true,false,true);
 break;
 case 12:
 //S_WAITCNT
@@ -1885,11 +1885,11 @@ if (lgkmcnt != 0xf) {
 break;case 16:case 17:
 //S_SENDMSG,S_SENDMSGHALT
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 22:
 //S_TTRACEDATA
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 23:case 24:case 25:case 26:
 //S_CBRANCH_CDBGSYS,S_CBRANCH_CDBGUSER,S_CBRANCH_CDBGSYS_OR_USER,S_CBRANCH_CDBGSYS_AND_USER
@@ -1898,8 +1898,8 @@ break;
 case 29:
 //S_SET_GPR_IDX_MODE
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),false,true);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),false,true,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 }
 }
@@ -1911,21 +1911,21 @@ case 0:
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC),true,false);
 insn_in_progress->appendOperand(decodeOPR_ATTR(layout.ATTR),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 1:
 //V_INTERP_P2_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),true,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC),true,false);
 insn_in_progress->appendOperand(decodeOPR_ATTR(layout.ATTR),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 2:
 //V_INTERP_MOV_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_PARAM(layout.VSRC),true,false);
 insn_in_progress->appendOperand(decodeOPR_ATTR(layout.ATTR),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 }
 }
@@ -1937,21 +1937,21 @@ case 624:
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC1),true,false);
 insn_in_progress->appendOperand(decodeOPR_ATTR(layout.SRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 625:
 //V_INTERP_P2_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),true,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_VGPR(layout.SRC1),true,false);
 insn_in_progress->appendOperand(decodeOPR_ATTR(layout.SRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 626:
 //V_INTERP_MOV_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_PARAM(layout.SRC1),true,false);
 insn_in_progress->appendOperand(decodeOPR_ATTR(layout.SRC0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 320:case 373:
 //V_NOP,V_CLREXCP
@@ -2040,7 +2040,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2),true,false);
-insn_in_progress->appendOperand(decodeOPR_VCC(0),true,false);
+insn_in_progress->appendOperand(decodeOPR_VCC(0),true,false,true);
 break;
 case 483:
 //V_DIV_FMAS_F64
@@ -2052,7 +2052,7 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,2),true,false
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VCC(0),true,false);
+insn_in_progress->appendOperand(decodeOPR_VCC(0),true,false,true);
 break;
 case 485:case 486:
 //V_QSAD_PK_U16_U8,V_MQSAD_PK_U16_U8
@@ -2141,7 +2141,7 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
 break;
 case 18:
 //V_CMP_CLASS_F64
@@ -2158,7 +2158,7 @@ insn_in_progress->appendOperand(decodeOPR_SDST(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
 break;
 case 96:case 97:case 98:case 99:case 100:case 101:case 102:case 103:case 104:case 105:case 106:case 107:case 108:case 109:case 110:case 111:case 224:case 225:case 226:case 227:case 228:case 229:case 230:case 231:case 232:case 233:case 234:case 235:case 236:case 237:case 238:case 239:
 //V_CMP_F_F64,V_CMP_LT_F64,V_CMP_EQ_F64,V_CMP_LE_F64,V_CMP_GT_F64,V_CMP_LG_F64,V_CMP_GE_F64,V_CMP_O_F64,V_CMP_U_F64,V_CMP_NGE_F64,V_CMP_NLG_F64,V_CMP_NGT_F64,V_CMP_NLE_F64,V_CMP_NEQ_F64,V_CMP_NLT_F64,V_CMP_TRU_F64,V_CMP_F_I64,V_CMP_LT_I64,V_CMP_EQ_I64,V_CMP_LE_I64,V_CMP_GT_I64,V_CMP_NE_I64,V_CMP_GE_I64,V_CMP_T_I64,V_CMP_F_U64,V_CMP_LT_U64,V_CMP_EQ_U64,V_CMP_LE_U64,V_CMP_GT_U64,V_CMP_NE_U64,V_CMP_GE_U64,V_CMP_T_U64
@@ -2177,7 +2177,7 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+0,2),true,false)
 insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC1+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
 break;
 }
 }
@@ -2436,7 +2436,7 @@ case 17:case 21:case 48:case 49:case 50:case 51:case 52:case 53:case 54:case 55:
 insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
 break;
 case 18:
 //V_CMP_CLASS_F64
@@ -2451,7 +2451,7 @@ insn_in_progress->appendOperand(decodeOPR_VCC(0,64),false,true);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
 break;
 case 96:case 97:case 98:case 99:case 100:case 101:case 102:case 103:case 104:case 105:case 106:case 107:case 108:case 109:case 110:case 111:case 224:case 225:case 226:case 227:case 228:case 229:case 230:case 231:case 232:case 233:case 234:case 235:case 236:case 237:case 238:case 239:
 //V_CMP_F_F64,V_CMP_LT_F64,V_CMP_EQ_F64,V_CMP_LE_F64,V_CMP_GT_F64,V_CMP_LG_F64,V_CMP_GE_F64,V_CMP_O_F64,V_CMP_U_F64,V_CMP_NGE_F64,V_CMP_NLG_F64,V_CMP_NGT_F64,V_CMP_NLE_F64,V_CMP_NEQ_F64,V_CMP_NLT_F64,V_CMP_TRU_F64,V_CMP_F_I64,V_CMP_LT_I64,V_CMP_EQ_I64,V_CMP_LE_I64,V_CMP_GT_I64,V_CMP_NE_I64,V_CMP_GE_I64,V_CMP_T_I64,V_CMP_F_U64,V_CMP_LT_U64,V_CMP_EQ_U64,V_CMP_LE_U64,V_CMP_GT_U64,V_CMP_NE_U64,V_CMP_GE_U64,V_CMP_T_U64
@@ -2468,7 +2468,7 @@ insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SRC(layout.SRC0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true);
+insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
 break;
 }
 }
