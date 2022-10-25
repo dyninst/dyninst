@@ -1837,14 +1837,12 @@ case 2:
 //S_BRANCH
 setBranch();
 makeBranchTarget(isCall,isConditional,layout.SIMM16);
-insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 break;
 case 4:case 5:
 //S_CBRANCH_SCC0,S_CBRANCH_SCC1
 setBranch();
 setConditionalBranch();
 makeBranchTarget(isCall,isConditional,layout.SIMM16);
-insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253),true,false,true);
 break;
 case 6:case 7:
@@ -1852,7 +1850,6 @@ case 6:case 7:
 setBranch();
 setConditionalBranch();
 makeBranchTarget(isCall,isConditional,layout.SIMM16);
-insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_VCC(0),true,false,true);
 break;
 case 8:case 9:
@@ -1860,7 +1857,6 @@ case 8:case 9:
 setBranch();
 setConditionalBranch();
 makeBranchTarget(isCall,isConditional,layout.SIMM16);
-insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
 insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),true,false,true);
 break;
 case 12:
