@@ -184,14 +184,14 @@ std::string AmdgpuFormatter::formatDeref(std::string addrString) {
 
 std::string AmdgpuFormatter::getInstructionString(std::vector<std::string> operands) {
     std::string out;
-
+    bool printed = false;
     for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
         if (*itr == "")
             continue;
-
-        out += *itr;
-        if(itr != operands.end() - 1)
+        if(printed)
             out += ", ";
+        out += *itr;
+        printed = true;
     }
 
     return out;
