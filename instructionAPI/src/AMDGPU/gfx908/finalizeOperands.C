@@ -291,9 +291,12 @@ switch(layout.OP){
 case 16:case 17:case 18:case 19:case 20:case 32:case 33:case 34:case 35:case 36:case 37:
 //GLOBAL_LOAD_UBYTE,GLOBAL_LOAD_SBYTE,GLOBAL_LOAD_USHORT,GLOBAL_LOAD_SSHORT,GLOBAL_LOAD_DWORD,GLOBAL_LOAD_UBYTE_D16,GLOBAL_LOAD_UBYTE_D16_HI,GLOBAL_LOAD_SBYTE_D16,GLOBAL_LOAD_SBYTE_D16_HI,GLOBAL_LOAD_SHORT_D16,GLOBAL_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-if(layout.SADDR != 0x7f){
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
@@ -305,9 +308,12 @@ case 21:
 //GLOBAL_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-if(layout.SADDR != 0x7f){
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
@@ -320,9 +326,12 @@ case 22:
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,3),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-if(layout.SADDR != 0x7f){
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
@@ -336,9 +345,12 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,4),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+3,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-if(layout.SADDR != 0x7f){
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
@@ -348,9 +360,12 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 24:case 25:case 26:case 27:case 28:
 //GLOBAL_STORE_BYTE,GLOBAL_STORE_BYTE_D16_HI,GLOBAL_STORE_SHORT,GLOBAL_STORE_SHORT_D16_HI,GLOBAL_STORE_DWORD
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
@@ -361,9 +376,12 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 29:
 //GLOBAL_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
@@ -375,9 +393,12 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 30:
 //GLOBAL_STORE_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,3),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,3),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 if(layout.SADDR != 0x7f){
@@ -390,9 +411,12 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 31:
 //GLOBAL_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,0),true,false);
@@ -407,9 +431,12 @@ break;
 case 64:case 66:case 67:case 68:case 69:case 70:case 71:case 72:case 73:case 74:case 75:case 76:case 77:case 78:
 //GLOBAL_ATOMIC_SWAP,GLOBAL_ATOMIC_ADD,GLOBAL_ATOMIC_SUB,GLOBAL_ATOMIC_SMIN,GLOBAL_ATOMIC_UMIN,GLOBAL_ATOMIC_SMAX,GLOBAL_ATOMIC_UMAX,GLOBAL_ATOMIC_AND,GLOBAL_ATOMIC_OR,GLOBAL_ATOMIC_XOR,GLOBAL_ATOMIC_INC,GLOBAL_ATOMIC_DEC,GLOBAL_ATOMIC_ADD_F32,GLOBAL_ATOMIC_PK_ADD_F16
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
@@ -422,9 +449,12 @@ case 65:case 96:case 98:case 99:case 100:case 101:case 102:case 103:case 104:cas
 //GLOBAL_ATOMIC_CMPSWAP,GLOBAL_ATOMIC_SWAP_X2,GLOBAL_ATOMIC_ADD_X2,GLOBAL_ATOMIC_SUB_X2,GLOBAL_ATOMIC_SMIN_X2,GLOBAL_ATOMIC_UMIN_X2,GLOBAL_ATOMIC_SMAX_X2,GLOBAL_ATOMIC_UMAX_X2,GLOBAL_ATOMIC_AND_X2,GLOBAL_ATOMIC_OR_X2,GLOBAL_ATOMIC_XOR_X2,GLOBAL_ATOMIC_INC_X2,GLOBAL_ATOMIC_DEC_X2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 if(layout.SADDR != 0x7f){
 insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+0,2),true,false);
@@ -440,9 +470,12 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,4),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+3,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,0),true,false);
@@ -462,9 +495,14 @@ switch(layout.OP){
 case 16:case 17:case 18:case 19:case 20:case 32:case 33:case 34:case 35:case 36:case 37:
 //SCRATCH_LOAD_UBYTE,SCRATCH_LOAD_SBYTE,SCRATCH_LOAD_USHORT,SCRATCH_LOAD_SSHORT,SCRATCH_LOAD_DWORD,SCRATCH_LOAD_UBYTE_D16,SCRATCH_LOAD_UBYTE_D16_HI,SCRATCH_LOAD_SBYTE_D16,SCRATCH_LOAD_SBYTE_D16_HI,SCRATCH_LOAD_SHORT_D16,SCRATCH_LOAD_SHORT_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
@@ -475,9 +513,14 @@ case 21:
 //SCRATCH_LOAD_DWORDX2
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
@@ -489,9 +532,14 @@ case 22:
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,3),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
@@ -504,9 +552,14 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,4),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+3,0),false,true);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}if(layout.SADDR != 0x7f){
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
@@ -515,10 +568,15 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 24:case 25:case 26:case 27:case 28:
 //SCRATCH_STORE_BYTE,SCRATCH_STORE_BYTE_D16_HI,SCRATCH_STORE_SHORT,SCRATCH_STORE_SHORT_D16_HI,SCRATCH_STORE_DWORD
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA),true,false);
 if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
@@ -527,11 +585,16 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 29:
 //SCRATCH_STORE_DWORDX2
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
@@ -540,12 +603,17 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 30:
 //SCRATCH_STORE_DWORDX3
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,3),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,3),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
@@ -554,13 +622,18 @@ insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx908::lgkmcnt,0,
 break;
 case 31:
 //SCRATCH_STORE_DWORDX4
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
-insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
+if(layout.SADDR == 0x7f){
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR+1,0),true,false);
+}else{
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,1),true,false);
+}insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+0,4),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+2,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA+3,0),true,false);
 if(layout.SADDR != 0x7f){
-insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR,2),true,false);
+insn_in_progress->appendOperand(decodeOPR_SREG(layout.SADDR+1,0),true,false);
 }
 insn_in_progress->appendOperand(decodeOPR_FLAT_SCRATCH(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
