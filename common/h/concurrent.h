@@ -54,10 +54,10 @@ namespace dyn_c_annotations {
 
 template<typename K, typename V>
 class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
-    tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> {
+    tbb::tbb_hash_compare<K>, std::allocator<std::pair<const K,V>>> {
 
     typedef tbb::concurrent_hash_map<K, V,
-        tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> base;
+        tbb::tbb_hash_compare<K>, std::allocator<std::pair<const K,V>>> base;
 public:
     using typename base::value_type;
     using typename base::mapped_type;
