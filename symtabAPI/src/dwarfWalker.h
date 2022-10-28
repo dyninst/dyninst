@@ -26,30 +26,28 @@
 #include <bits/stdc++.h>
 
 namespace Dyninst {
-namespace SymtabAPI {
-    typedef struct {
-        Dwarf_Off off;
-        bool file;
-        Module * m;
-    } type_key;
-}
-}
-
-namespace tbb {
-    using namespace Dyninst::SymtabAPI;
-    template<>
-    struct tbb_hash_compare<type_key> {
-        static size_t hash(const type_key& k) {
-            size_t seed = 0;
-            boost::hash_combine(seed, k.off);
-            boost::hash_combine(seed, k.file);
-            boost::hash_combine(seed, static_cast<void *>(k.m));
-            return seed;
-        }
-        static bool equal(const type_key& k1, const type_key& k2) {
-            return (k1.off==k2.off && k1.file==k2.file && k1.m==k2.m);
-        }
-    };
+	namespace SymtabAPI {
+		typedef struct {
+			Dwarf_Off off;
+			bool file;
+			Module * m;
+		} type_key;
+		inline bool operator==(type_key const& k1, type_key const& k2) {
+			return k1.off==k2.off && k1.file==k2.file && k1.m==k2.m;
+		}
+	}
+	namespace concurrent {
+		template<>
+		struct hasher<SymtabAPI::type_key> {
+			size_t operator()(const SymtabAPI::type_key& k) const {
+				size_t seed = 0;
+				boost::hash_combine(seed, k.off);
+				boost::hash_combine(seed, k.file);
+				boost::hash_combine(seed, static_cast<void *>(k.m));
+				return seed;
+			}
+		};
+	}
 }
 
 namespace Dyninst {
