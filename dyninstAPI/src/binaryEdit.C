@@ -324,6 +324,13 @@ BinaryEdit*
 BinaryEdit::openFile(const std::string& file, PatchMgrPtr mgr,
                      Dyninst::PatchAPI::Patcher::Ptr patch, const std::string& member)
 {
+    if(file.empty())
+    {
+        startup_printf("%s[%d]:  failed to read file empty filename\n", FILE__, __LINE__);
+        showErrorCallback(68, "Can't read executable file with no name");
+        return nullptr;
+    }
+
     if(!OS::executableExists(file))
     {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__,
@@ -331,7 +338,7 @@ BinaryEdit::openFile(const std::string& file, PatchMgrPtr mgr,
         std::string msg =
             std::string("Can't read executable file ") + file + (": ") + strerror(errno);
         showErrorCallback(68, msg.c_str());
-        return NULL;
+        return nullptr;
     }
 
     fileDescriptor desc;
@@ -339,7 +346,7 @@ BinaryEdit::openFile(const std::string& file, PatchMgrPtr mgr,
     {
         startup_printf("%s[%d]: failed to create file descriptor for %s!\n", FILE__,
                        __LINE__, file.c_str());
-        return NULL;
+        return nullptr;
     }
 
     // Open the mapped object as an archive member
@@ -360,7 +367,7 @@ BinaryEdit::openFile(const std::string& file, PatchMgrPtr mgr,
     {
         startup_printf("%s[%d]: failed to create mapped object for %s\n", FILE__,
                        __LINE__, file.c_str());
-        return NULL;
+        return nullptr;
     }
 
     /* PatchAPI stuffs */
@@ -383,7 +390,7 @@ BinaryEdit::openFile(const std::string& file, PatchMgrPtr mgr,
     // I assume we'll pass it to DynSymtab, then add our base
     // address to it at the mapped_ level.
     Symtab* linkedFile = newBinaryEdit->getAOut()->parse_img()->getObject();
-    Region* newSec     = NULL;
+    Region* newSec     = nullptr;
     linkedFile->findRegion(newSec, ".dyninstInst");
     if(newSec)
     {
@@ -392,7 +399,7 @@ BinaryEdit::openFile(const std::string& file, PatchMgrPtr mgr,
             stderr,
             "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n",
             file.c_str());
-        return NULL;
+        return nullptr;
     }
     Address base = linkedFile->getFreeOffset(50 * 1024 * 1024);
     base += (1024 * 1024);
@@ -449,7 +456,8 @@ BinaryEdit::openResolvedLibraryName(std::string                         filename
      */
     std::map<std::string, BinaryEdit*> retMap;
     assert(mgr());
-    BinaryEdit* temp = BinaryEdit::openFile(filename, mgr(), patcher());
+    BinaryEdit* temp =
+        (mgr() && patcher()) ? BinaryEdit::openFile(filename, mgr(), patcher()) : nullptr;
 
     if(temp && temp->getAddressWidth() == getAddressWidth())
     {
@@ -509,7 +517,7 @@ BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
         if(deps.find(lib) == deps.end())
         {
             std::map<std::string, BinaryEdit*> res;
-            if(!openResolvedLibraryName(lib, res))
+            if(openResolvedLibraryName(lib, res) == nullptr)
                 return false;
             std::map<std::string, BinaryEdit*>::iterator bedit_it;
             for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it)
