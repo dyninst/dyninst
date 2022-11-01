@@ -194,28 +194,32 @@ PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
 bool
 BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& paths)
 {
-    char *              libPathStr, *libPath;
-    std::vector<string> libPaths;
-    struct stat         dummy;
-    char                buffer[512];
-    char *              pos, *key, *val;
+    auto _path_exists = [](const std::string& _filename) {
+        struct stat dummy;
+        return (stat(_filename.c_str(), &dummy) == 0);
+    };
+
+    auto _emplace_if_exists = [&paths, filename,
+                               _path_exists](const std::string& _directory) {
+        auto _filename = _directory + "/" + filename;
+        if(_path_exists(_filename))
+            paths.emplace_back(std::move(_filename));
+    };
 
     // prefer qualified file paths
-    if(stat(filename.c_str(), &dummy) == 0)
-    {
-        paths.push_back(filename);
-    }
+    if(_path_exists(filename))
+        paths.emplace_back(filename);
 
     // For cross-rewriting
     char* dyn_path = getenv("DYNINST_REWRITER_PATHS");
     if(dyn_path)
     {
-        libPathStr = strdup(dyn_path);
-        libPath    = strtok(libPathStr, ":");
-        while(libPath != NULL)
+        char* libPathStr = strdup(dyn_path);
+        char* libPath    = strtok(libPathStr, ":");
+        while(libPath != nullptr)
         {
-            libPaths.push_back(string(libPath));
-            libPath = strtok(NULL, ":");
+            _emplace_if_exists(libPath);
+            libPath = strtok(nullptr, ":");
         }
         free(libPathStr);
     }
@@ -224,12 +228,12 @@ BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& 
     char* ld_path = getenv("LD_LIBRARY_PATH");
     if(ld_path)
     {
-        libPathStr = strdup(ld_path);
-        libPath    = strtok(libPathStr, ":");
-        while(libPath != NULL)
+        char* libPathStr = strdup(ld_path);
+        char* libPath    = strtok(libPathStr, ":");
+        while(libPath != nullptr)
         {
-            libPaths.push_back(string(libPath));
-            libPath = strtok(NULL, ":");
+            _emplace_if_exists(libPath);
+            libPath = strtok(nullptr, ":");
         }
         free(libPathStr);
     }
@@ -243,12 +247,12 @@ BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& 
 #    define xstr(s) str(s)
 #    define str(s) #    s
 
-        libPathStr = strdup(xstr(DYNINST_COMPILER_SEARCH_DIRS));
-        libPath    = strtok(libPathStr, ":");
-        while(libPath != NULL)
+        char* libPathStr = strdup(xstr(DYNINST_COMPILER_SEARCH_DIRS));
+        char* libPath    = strtok(libPathStr, ":");
+        while(libPath != nullptr)
         {
-            libPaths.emplace_back(libPath);
-            libPath = strtok(NULL, ":");
+            _emplace_if_exists(libPath);
+            libPath = strtok(nullptr, ":");
         }
         free(libPathStr);
 
@@ -256,15 +260,6 @@ BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& 
 #    undef xstr
     }
 #endif
-    // libPaths.push_back(string(getenv("PWD")));
-    for(unsigned int i = 0; i < libPaths.size(); i++)
-    {
-        string str = libPaths[i] + "/" + filename;
-        if(stat(str.c_str(), &dummy) == 0)
-        {
-            paths.push_back(str);
-        }
-    }
 
     // search ld.so.cache
     // apparently ubuntu doesn't like pclosing NULL, so a shared pointer custom
@@ -272,58 +267,50 @@ BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& 
     FILE* ldconfig = popen("/sbin/ldconfig -p", "r");
     if(ldconfig)
     {
-        if(!fgets(buffer, 512, ldconfig))
-        {  // ignore first line
-            return false;
-        }
-        while(fgets(buffer, 512, ldconfig) != NULL)
+        char buffer[512];
+        // ignore first line
+        if(fgets(buffer, 512, ldconfig))
         {
-            pos = buffer;
-            while(*pos == ' ' || *pos == '\t')
-                pos++;
-            key = pos;
-            while(*pos != ' ')
-                pos++;
-            *pos = '\0';
-            while(*pos != '=' && *(pos + 1) != '>')
-                pos++;
-            pos += 2;
-            while(*pos == ' ' || *pos == '\t')
-                pos++;
-            val = pos;
-            while(*pos != '\n' && *pos != '\0')
-                pos++;
-            *pos = '\0';
-            if(strcmp(key, filename.c_str()) == 0)
+            char *pos, *key, *val;
+            while(fgets(buffer, 512, ldconfig) != nullptr)
             {
-                paths.push_back(val);
+                pos = buffer;
+                while(*pos == ' ' || *pos == '\t')
+                    pos++;
+                key = pos;
+                while(*pos != ' ')
+                    pos++;
+                *pos = '\0';
+                while(*pos != '=' && *(pos + 1) != '>')
+                    pos++;
+                pos += 2;
+                while(*pos == ' ' || *pos == '\t')
+                    pos++;
+                val = pos;
+                while(*pos != '\n' && *pos != '\0')
+                    pos++;
+                *pos = '\0';
+                if(key != nullptr &&
+                   strncmp(key, filename.c_str(),
+                           std::min<size_t>(strlen(key), filename.length())) == 0)
+                {
+                    paths.emplace_back(val);
+                }
             }
         }
         pclose(ldconfig);
     }
 
     // search hard-coded system paths
-    libPaths.clear();
-    libPaths.push_back("/usr/local/lib");
-    libPaths.push_back("/usr/share/lib");
-    libPaths.push_back("/usr/lib");
-    libPaths.push_back("/usr/lib64");
-    libPaths.push_back("/usr/lib/x86_64-linux-gnu");
-    libPaths.push_back("/lib");
-    libPaths.push_back("/lib64");
-    libPaths.push_back("/lib/x86_64-linux-gnu");
-    libPaths.push_back("/usr/lib/i386-linux-gnu");
-    libPaths.push_back("/usr/lib32");
-    for(unsigned int i = 0; i < libPaths.size(); i++)
+    for(const char* itr :
+        { "/usr/local/lib", "/usr/share/lib", "/usr/lib", "/usr/lib64",
+          "/usr/lib/x86_64-linux-gnu", "/lib", "/lib64", "/lib/x86_64-linux-gnu",
+          "/usr/lib/i386-linux-gnu", "/usr/lib32" })
     {
-        string str = libPaths[i] + "/" + filename;
-        if(stat(str.c_str(), &dummy) == 0)
-        {
-            paths.push_back(str);
-        }
+        _emplace_if_exists(itr);
     }
 
-    return (0 < paths.size());
+    return (!paths.empty());
 }
 
 bool
