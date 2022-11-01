@@ -48,6 +48,10 @@ include(DyninstInstallDirs)
 find_package(Thread_DB)
 find_package(Threads REQUIRED)
 
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW) # DOWNLOAD_EXTRACT_TIMESTAMP
+endif()
+
 include(DyninstBoost)
 include(DyninstTBB)
 include(DyninstElfUtils)
