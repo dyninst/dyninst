@@ -42,6 +42,7 @@
 #include "mapped_module.h"
 #include "linux.h"
 #include <dlfcn.h>
+#include <string>
 
 #include "boost/shared_ptr.hpp"
 
@@ -193,11 +194,12 @@ PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
 
 namespace
 {
+
 template <typename ContainerT = std::vector<std::string>,
           typename PredicateT = std::function<std::string(const std::string&)>>
 inline ContainerT
 delimit(
-    const std::string& line, const std::string& delimiters = "\"',;: ",
+    const std::string& line, const std::string& delimiters = ":",
     PredicateT&& predicate = [](const std::string& s) -> std::string { return s; })
 {
     size_t     _beginp = 0;  // position that is the beginning of the new string
@@ -293,34 +295,48 @@ BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& 
     FILE* ldconfig = popen("/sbin/ldconfig -p", "r");
     if(ldconfig)
     {
-        char buffer[512];
+        constexpr size_t buffer_size = 512;
+        char             buffer[buffer_size];
         // ignore first line
-        if(fgets(buffer, 512, ldconfig))
+        if(fgets(buffer, buffer_size, ldconfig))
         {
-            char *pos, *key, *val;
-            while(fgets(buffer, 512, ldconfig) != nullptr)
-            {
-                pos = buffer;
-                while(*pos == ' ' || *pos == '\t')
-                    pos++;
-                key = pos;
-                while(*pos != ' ')
-                    pos++;
-                *pos = '\0';
-                while(*pos != '=' && *(pos + 1) != '>')
-                    pos++;
-                pos += 2;
-                while(*pos == ' ' || *pos == '\t')
-                    pos++;
-                val = pos;
-                while(*pos != '\n' && *pos != '\0')
-                    pos++;
-                *pos = '\0';
-                if(key != nullptr &&
-                   strncmp(key, filename.c_str(),
-                           std::min<size_t>(strlen(key), filename.length())) == 0)
+            // each line constaining relevant info should be in form:
+            //      <LIBRARY_BASENAME> (...) => <RESOLVED_ABSOLUTE_PATH>
+            // example:
+            //      libz.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libz.so
+            auto _get_entry = [](const std::string& _inp) {
+                auto _paren_pos = _inp.find('(');
+                auto _arrow_pos = _inp.find("=>", _paren_pos);
+                if(_arrow_pos == std::string::npos || _paren_pos == std::string::npos)
+                    return std::string{};
+                if(_arrow_pos + 2 < _inp.length())
                 {
-                    paths.emplace_back(val);
+                    auto _pos = _inp.find_first_not_of(" \t", _arrow_pos + 2);
+                    if(_pos < _inp.length())
+                        return _inp.substr(_pos);
+                }
+                return std::string{};
+            };
+
+            auto _data = std::stringstream{};
+            while(fgets(buffer, buffer_size, ldconfig) != nullptr)
+            {
+                _data << buffer;
+                auto _len = strnlen(buffer, buffer_size);
+                if(_len > 0 && buffer[_len - 1] == '\n')
+                {
+                    auto _v = _data.str();
+                    if(!_v.empty())
+                    {
+                        _v          = _v.substr(_v.find_first_not_of(" \t"));
+                        if(_v.length() > 1)
+                        {
+                            auto _entry = _get_entry(_v.substr(0, _v.length() - 1));
+                            if(!_entry.empty())
+                                _emplace_if_exists(_entry);
+                        }
+                    }
+                    _data = std::stringstream{};
                 }
             }
         }
