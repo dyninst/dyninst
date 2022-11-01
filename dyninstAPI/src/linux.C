@@ -191,12 +191,56 @@ PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
     return false;
 }
 
+namespace
+{
+template <typename ContainerT = std::vector<std::string>,
+          typename PredicateT = std::function<std::string(const std::string&)>>
+inline ContainerT
+delimit(
+    const std::string& line, const std::string& delimiters = "\"',;: ",
+    PredicateT&& predicate = [](const std::string& s) -> std::string { return s; })
+{
+    size_t     _beginp = 0;  // position that is the beginning of the new string
+    size_t     _delimp = 0;  // position of the delimiter in the string
+    ContainerT _result = {};
+    while(_beginp < line.length() && _delimp < line.length())
+    {
+        // find the first character (starting at _delimp) that is not a delimiter
+        _beginp = line.find_first_not_of(delimiters, _delimp);
+        // if no a character after or at _end that is not a delimiter is not found
+        // then we are done
+        if(_beginp == std::string::npos)
+            break;
+        // starting at the position of the new string, find the next delimiter
+        _delimp = line.find_first_of(delimiters, _beginp);
+        std::string _tmp{};
+        try
+        {
+            // starting at the position of the new string, get the characters
+            // between this position and the next delimiter
+            if(_beginp < line.length())
+                _tmp = line.substr(_beginp, _delimp - _beginp);
+        } catch(std::exception& e)
+        {
+            // print the exception but don't fail, unless maybe it should?
+            fprintf(stderr, "%s\n", e.what());
+        }
+        // don't add empty strings
+        if(!_tmp.empty())
+        {
+            _result.emplace_back(std::forward<PredicateT>(predicate)(_tmp));
+        }
+    }
+    return _result;
+}
+}
+
 bool
 BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& paths)
 {
     auto _path_exists = [](const std::string& _filename) {
         struct stat dummy;
-        return (stat(_filename.c_str(), &dummy) == 0);
+        return (_filename.empty()) ? false : (stat(_filename.c_str(), &dummy) == 0);
     };
 
     auto _emplace_if_exists = [&paths, filename,
@@ -214,28 +258,16 @@ BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& 
     char* dyn_path = getenv("DYNINST_REWRITER_PATHS");
     if(dyn_path)
     {
-        char* libPathStr = strdup(dyn_path);
-        char* libPath    = strtok(libPathStr, ":");
-        while(libPath != nullptr)
-        {
-            _emplace_if_exists(libPath);
-            libPath = strtok(nullptr, ":");
-        }
-        free(libPathStr);
+        for(const auto& itr : delimit(dyn_path, ":"))
+            _emplace_if_exists(itr);
     }
 
     // search paths from environment variables
     char* ld_path = getenv("LD_LIBRARY_PATH");
     if(ld_path)
     {
-        char* libPathStr = strdup(ld_path);
-        char* libPath    = strtok(libPathStr, ":");
-        while(libPath != nullptr)
-        {
-            _emplace_if_exists(libPath);
-            libPath = strtok(nullptr, ":");
-        }
-        free(libPathStr);
+        for(const auto& itr : delimit(ld_path, ":"))
+            _emplace_if_exists(itr);
     }
 
 #ifdef DYNINST_COMPILER_SEARCH_DIRS
@@ -247,14 +279,8 @@ BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& 
 #    define xstr(s) str(s)
 #    define str(s) #    s
 
-        char* libPathStr = strdup(xstr(DYNINST_COMPILER_SEARCH_DIRS));
-        char* libPath    = strtok(libPathStr, ":");
-        while(libPath != nullptr)
-        {
-            _emplace_if_exists(libPath);
-            libPath = strtok(nullptr, ":");
-        }
-        free(libPathStr);
+        for(const auto& itr : delimit(xstr(DYNINST_COMPILER_SEARCH_DIRS), ":"))
+            _emplace_if_exists(itr);
 
 #    undef str
 #    undef xstr
