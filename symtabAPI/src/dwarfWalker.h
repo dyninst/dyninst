@@ -218,7 +218,7 @@ public:
 
     } Error;
 
-    using ParsedFuncs = tbb::concurrent_hash_map<FunctionBase *, bool>;
+    using ParsedFuncs = Dyninst::dyn_c_hash_map<FunctionBase *, bool>;
 
     DwarfWalker(Symtab *symtab, Dwarf* dbg, std::shared_ptr<ParsedFuncs> pf = nullptr);
 
