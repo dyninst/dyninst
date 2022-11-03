@@ -10,4 +10,4 @@ if(WIN32)
 endif()
 
 dyninst_library(dynC_API dyninstAPI)
-target_link_private_libraries(dynC_API ${Boost_LIBRARIES})
+target_link_libraries(dynC_API PRIVATE common)
