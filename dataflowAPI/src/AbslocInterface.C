@@ -428,10 +428,8 @@ bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
  
   StackAnalysis::Height heightSA = sA.findSP(block, addr);
 
-  // Ensure that analysis has been performed.
-  assert(!heightSA.isTop());
-  
-  if (heightSA.isBottom()) {
+  // return false if height unknown
+  if (heightSA.isBottom() || heightSA.isTop()) {
     return false;
   }
   
@@ -449,10 +447,8 @@ bool AbsRegionConverter::getCurrentFrameHeight(ParseAPI::Function *func,
 
   StackAnalysis::Height heightSA = sA.find(block, addr, MachRegister::getFramePointer(func->isrc()->getArch()));;
 
-  // Ensure that analysis has been performed.
-  assert(!heightSA.isTop());
-  
-  if (heightSA.isBottom()) {
+  // return false if height unknown
+  if (heightSA.isBottom() || heightSA.isTop()) {
     return false;
   }
   
