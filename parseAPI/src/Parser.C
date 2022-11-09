@@ -53,8 +53,6 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#include "tbb/concurrent_vector.h"
-
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
