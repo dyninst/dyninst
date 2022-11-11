@@ -918,9 +918,11 @@ Parser::finalize(Function *f)
             b->copy_targets(targets);
             for (auto e : targets) {
                 if (!e->interproc() && (e->type() == INDIRECT || e->type() == DIRECT)) {
+		  if (b->last() != e->trg()->start()) { // if not an instruction that branches to itself
                     e->_type._interproc = true;
                     parsing_printf("from %lx to %lx, marked as tail call (jump at entry), re-finalize\n", b->last(), e->trg()->start());
                     return false;
+		  }
                 }
             }
         }
