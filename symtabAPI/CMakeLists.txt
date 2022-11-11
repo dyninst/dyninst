@@ -70,6 +70,7 @@ else()
 endif()
 
 dyninst_library(symtabAPI ${DEPS})
+target_link_libraries(symtabAPI PRIVATE TBB)
 
 if(TARGET ElfUtils)
     add_dependencies(symtabAPI ElfUtils)

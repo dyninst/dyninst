@@ -76,7 +76,7 @@ if(ADD_VALGRIND_ANNOTATIONS)
     add_definitions(-DENABLE_VG_ANNOTATIONS)
 endif()
 
-include_directories(${DYNINST_ROOT} ${DYNINST_ROOT}/external ${TBB_INCLUDE_DIRS})
+include_directories(${DYNINST_ROOT} ${DYNINST_ROOT}/external)
 
 # Component time
 add_subdirectory(common)
