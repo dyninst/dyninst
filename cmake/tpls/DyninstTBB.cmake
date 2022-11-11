@@ -21,19 +21,19 @@ set(TBB_ROOT_DIR
     CACHE PATH "TBB root directory for Dyninst")
 mark_as_advanced(TBB_ROOT_DIR)
 
-find_package(TBB ${_min_version}
-	HINTS ${TBB_ROOT_DIR}
-	COMPONENTS tbb tbbmalloc tbbmalloc_proxy
-	REQUIRED)
+find_package(
+    TBB ${_min_version} HINTS ${TBB_ROOT_DIR}
+    COMPONENTS tbb tbbmalloc tbbmalloc_proxy
+    REQUIRED)
 
 # Make an interface dummy target to force includes to be treated as SYSTEM
 add_library(Dyninst::TBB INTERFACE IMPORTED)
 target_link_libraries(Dyninst::TBB INTERFACE TBB::tbb TBB::tbbmalloc TBB::tbbmalloc_proxy)
-target_include_directories(Dyninst::TBB SYSTEM INTERFACE
-	$<TARGET_PROPERTY:TBB::tbb,INTERFACE_INCLUDE_DIRECTORIES>
-	$<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_INCLUDE_DIRECTORIES>
-	$<TARGET_PROPERTY:TBB::tbbmalloc_proxy,INTERFACE_INCLUDE_DIRECTORIES>
-)
+target_include_directories(
+    Dyninst::TBB SYSTEM
+    INTERFACE $<TARGET_PROPERTY:TBB::tbb,INTERFACE_INCLUDE_DIRECTORIES>
+              $<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_INCLUDE_DIRECTORIES>
+              $<TARGET_PROPERTY:TBB::tbbmalloc_proxy,INTERFACE_INCLUDE_DIRECTORIES>)
 
 message(STATUS "Found TBB ${TBB_VERSION}")
 get_target_property(_tmp TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
