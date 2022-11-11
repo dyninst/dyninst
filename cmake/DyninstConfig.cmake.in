@@ -5,6 +5,8 @@
 # DYNINST_LIBRARIES
 # DYNINST_INTERNAL_DEFINES - used by the test suite
 
+include(DyninstTBB)
+
 # compute paths
 
 get_filename_component(DYNINST_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
