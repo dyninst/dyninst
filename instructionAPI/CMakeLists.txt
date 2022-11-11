@@ -87,5 +87,4 @@ add_definitions(-DINSTRUCTION_LIB)
 
 dyninst_library(instructionAPI common)
 
-target_link_private_libraries(instructionAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES}
-                              tbbmalloc)
+target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
