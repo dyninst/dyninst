@@ -85,7 +85,7 @@ namespace Dyninst
                 size_t size, const unsigned char* raw,
                 Dyninst::Architecture arch)
             : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch),
-            formatter(ArchSpecificFormatter::getFormatter(arch))
+            formatter(&ArchSpecificFormatter::getFormatter(arch))
         {
             copyRaw(size, raw);
 
@@ -130,7 +130,7 @@ namespace Dyninst
         }
 
         INSTRUCTION_EXPORT Instruction::Instruction() :
-            m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(ArchSpecificFormatter::getFormatter(Arch_x86_64))
+            m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(nullptr)
         {
 #if defined(DEBUG_INSN_ALLOCATIONS)
             numInsnsAllocated++;
@@ -451,11 +451,17 @@ namespace Dyninst
         }
 
         INSTRUCTION_EXPORT ArchSpecificFormatter& Instruction::getFormatter() const {
-            return formatter;
+            return *formatter;
         }
 
         INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
         {
+            // if Arch_none, this is an error and the formatter is nullptr,
+            // so return an error string (could also abort or except)
+            if (arch_decoded_from == Arch_none)  {
+                return "ERROR_NO_ARCH_SET_FOR_INSTRUCTION";
+            }
+
             DECODE_OPERANDS();
             //remove this once ArchSpecificFormatter is extended for all architectures
 
@@ -518,7 +524,7 @@ namespace Dyninst
             cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
 
-            return opstr + formatter.getInstructionString(formattedOperands);
+            return opstr + formatter->getInstructionString(formattedOperands);
         }
 
         INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
