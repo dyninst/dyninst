@@ -1768,10 +1768,11 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
                                         (const unsigned char *)buildid.c_str(),
                                         0, &filename);
      debuginfod_end(client);
+     
+     string fname{filename};
+     free(filename);
 
      if (fd >= 0) {
-        string fname = string(filename);
-        free(filename);
         close(fd);
 
         bool result = loadDebugFileFromDisk(fname,
