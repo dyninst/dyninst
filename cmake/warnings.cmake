@@ -96,10 +96,11 @@ endif()
 if(DYNINST_WARNINGS_AS_ERRORS)
     list(APPEND REQUESTED_WARNING_FLAGS "Werror")
     message(STATUS "DYNINST_WARNINGS_AS_ERRORS set: treating warnings as errors")
-    
-    # If not building with OpenMP or if static libs are enabled, ignore OpenMP pragma warnings
+
+    # If not building with OpenMP or if static libs are enabled, ignore OpenMP pragma
+    # warnings
     if(NOT USE_OpenMP OR ENABLE_STATIC_LIBS)
-    	list(APPEND REQUESTED_WARNING_FLAGS "Wno-unknown-pragmas")
+        list(APPEND REQUESTED_WARNING_FLAGS "Wno-unknown-pragmas")
     endif()
 endif()
 

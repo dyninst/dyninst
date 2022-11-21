@@ -1,5 +1,26 @@
 # Change Log
 
+## [12.2.1](https://github.com/dyninst/dyninst/tree/v12.2.1) (2022-11-21)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v12.2.0...v12.2.1)
+
+- Fix shadowing of 'filename' member in Elf_X::findDebugFile ([1325](https://github.com/dyninst/dyninst/issues/1325))
+- Ignore unknown pragma warnings when building without OpenMP ([1324](https://github.com/dyninst/dyninst/issues/1324))
+- fix Instruction class to allow valid assignment ([1323](https://github.com/dyninst/dyninst/issues/1323))
+- ParseAPI: improve tail call recognition ([1315](https://github.com/dyninst/dyninst/issues/1315))
+- Support hash_compare concept from TBB >= 2021.1 ([1316](https://github.com/dyninst/dyninst/issues/1316))
+- Remove unused TBB from parseAPI ([1317](https://github.com/dyninst/dyninst/issues/1317))
+- Use dyn_c_hash_map in DwarfWalker ([1318](https://github.com/dyninst/dyninst/issues/1318))
+- Directly link to common in dynC_API ([1319](https://github.com/dyninst/dyninst/issues/1319))
+- Manually add hex prefix when formatting an Operand ([1313](https://github.com/dyninst/dyninst/issues/1313))
+- Allow assignment conversion without framepointer ([1314](https://github.com/dyninst/dyninst/issues/1314))
+- Fix incorrect format string in Result.h for u48 / s48 / u64 / s64 ([1311](https://github.com/dyninst/dyninst/issues/1311))
+- Do not build dyninstAPI_RT as separate CMake project ([1309](https://github.com/dyninst/dyninst/issues/1309))
+- Fix possible null pointer access in BPatch_module::findFunctionByAddress ([1308](https://github.com/dyninst/dyninst/issues/1308))
+- Search 'elfutils' subdirectory for libdebuginfod/includedir ([1307](https://github.com/dyninst/dyninst/issues/1307))
+- Fix public header deletes ([1301](https://github.com/dyninst/dyninst/issues/1301))
+- fix location list PC range values ([1297](https://github.com/dyninst/dyninst/issues/1297))
+- Docker - use ppa for gcc11 ([1291](https://github.com/dyninst/dyninst/issues/1291))
+
 ## [12.2.0](https://github.com/dyninst/dyninst/tree/v12.2.0) (2022-07-28)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v12.1.0...v12.2.0)
 
