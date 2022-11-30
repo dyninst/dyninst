@@ -13,11 +13,6 @@
 # Boost_USE_MULTITHREADED   - Use the multithreaded version of Boost
 # Boost_USE_STATIC_RUNTIME  - Use libraries linked statically to the C++ runtime
 #
-# Options inherited from Modules/FindBoost.cmake that may be useful
-#
-# BOOST_INCLUDEDIR          - Hint directory that contains the Boost headers files
-# BOOST_LIBRARYDIR          - Hint directory that contains the Boost library files
-#
 # Advanced options:
 #
 # Boost_DEBUG               - Enable debug output from FindBoost
@@ -41,9 +36,6 @@
 # The exported Boost_ROOT_DIR can be different from the value provided by the user in the case that
 # it is determined to build Boost from source. In such a case, Boost_ROOT_DIR will contain the
 # directory of the from-source installation.
-#
-# See Modules/FindBoost.cmake for additional input and exported variables
-#
 #========================================================================================================
 
 if(Boost_FOUND)
