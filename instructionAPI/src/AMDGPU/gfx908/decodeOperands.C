@@ -1060,7 +1060,7 @@ case 509 : return makeRegisterExpression(amdgpu_gfx908::v253, num_elements );
 case 510 : return makeRegisterExpression(amdgpu_gfx908::v254, num_elements );
 case 511 : return makeRegisterExpression(amdgpu_gfx908::v255, num_elements );
 case 254 : return makeRegisterExpression(amdgpu_gfx908::src_lds_direct, num_elements );
-case 255 : return makeRegisterExpression(amdgpu_gfx908::src_literal, num_elements );
+case 255 : return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
 default: return makeRegisterExpression(amdgpu_gfx908::invalid);
 }
 }
@@ -2159,7 +2159,7 @@ case 508 : return makeRegisterExpression(amdgpu_gfx908::v252, num_elements );
 case 509 : return makeRegisterExpression(amdgpu_gfx908::v253, num_elements );
 case 510 : return makeRegisterExpression(amdgpu_gfx908::v254, num_elements );
 case 511 : return makeRegisterExpression(amdgpu_gfx908::v255, num_elements );
-case 255 : return makeRegisterExpression(amdgpu_gfx908::src_literal, num_elements );
+case 255 : return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
 default: return makeRegisterExpression(amdgpu_gfx908::invalid);
 }
 }
@@ -4397,7 +4397,7 @@ case 236 : return makeRegisterExpression(amdgpu_gfx908::src_shared_limit, num_el
 case 237 : return makeRegisterExpression(amdgpu_gfx908::src_private_base, num_elements );
 case 238 : return makeRegisterExpression(amdgpu_gfx908::src_private_limit, num_elements );
 case 239 : return makeRegisterExpression(amdgpu_gfx908::src_pops_exiting_wave_id, num_elements );
-case 255 : return makeRegisterExpression(amdgpu_gfx908::src_literal, num_elements );
+case 255 : return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
 default: return makeRegisterExpression(amdgpu_gfx908::invalid);
 }
 }
@@ -5010,9 +5010,9 @@ case 254 : return makeRegisterExpression(amdgpu_gfx908::src_lds_direct, num_elem
 default: return makeRegisterExpression(amdgpu_gfx908::invalid);
 }
 }
-Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SSRC_SPECIAL_LIT(uint64_t input, uint32_t num_elements){
+Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SSRC_SPECIAL_LIT(uint64_t input, uint32_t ){
 switch(input){
-case 255 : return makeRegisterExpression(amdgpu_gfx908::src_literal, num_elements );
+case 255 : return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
 default: return makeRegisterExpression(amdgpu_gfx908::invalid);
 }
 }
