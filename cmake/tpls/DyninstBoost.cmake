@@ -9,7 +9,6 @@
 #
 # Boost_ROOT_DIR            - Hint directory that contains the Boost installation
 # PATH_BOOST                - Alias for Boost_ROOT_DIR
-# Boost_MIN_VERSION         - Minimum acceptable version of Boost
 # Boost_USE_MULTITHREADED   - Use the multithreaded version of Boost
 # Boost_USE_STATIC_RUNTIME  - Use libraries linked statically to the C++ runtime
 #
@@ -42,21 +41,9 @@ if(Boost_FOUND)
     return()
 endif()
 
-# Need at least Boost-1.67 because of deprecated headers
+# Need at least 1.70 because of deprecated headers
 set(_boost_min_version 1.70.0)
 
-# Provide a default, if the user didn't specify
-set(Boost_MIN_VERSION
-    ${_boost_min_version}
-    CACHE STRING "Minimum Boost version")
-
-# Enforce minimum version
-if(${Boost_MIN_VERSION} VERSION_LESS ${_boost_min_version})
-    message(
-        FATAL_ERROR
-            "Requested Boost-${Boost_MIN_VERSION} is less than minimum supported version (${_boost_min_version})"
-        )
-endif()
 
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
 
