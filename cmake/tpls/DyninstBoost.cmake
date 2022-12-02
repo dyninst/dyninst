@@ -1,25 +1,12 @@
-#===============================================================================================
+#===========================================================
 #
 # Configure Boost
 #
 #   ----------------------------------------
 #
-# Accepts the following CMake variables
+# Boost_ROOT_DIR - Directory hint for Boost installation
 #
-# Boost_ROOT_DIR            - Hint directory that contains the Boost installation
-#
-# Exports the following CMake cache variables
-#
-# Boost_ROOT_DIR            - Computed base directory the of Boost installation
-# Boost_INCLUDE_DIRS        - Boost include directories
-# Boost_INCLUDE_DIR         - Alias for Boost_INCLUDE_DIRS
-# Boost_LIBRARY_DIRS        - Link directories for Boost libraries
-# Boost_DEFINES             - Boost compiler definitions
-# Boost_LIBRARIES           - Boost library files
-# Boost_<C>_LIBRARY_RELEASE - Release libraries to link for component <C> (<C> is upper-case)
-# Boost_<C>_LIBRARY_DEBUG   - Debug libraries to link for component <C>
-#
-#===============================================================================================
+#===========================================================
 
 include_guard(GLOBAL)
 
@@ -65,11 +52,6 @@ add_definitions(${Boost_DEFINES})
 set(_boost_components atomic chrono date_time filesystem thread timer)
 
 find_package(Boost ${Boost_MIN_VERSION} REQUIRED HINTS ${Boost_ROOT_DIR} ${PATH_BOOST} ${BOOST_ROOT} COMPONENTS ${_boost_components})
-
-# Export the complete set of libraries
-set(Boost_LIBRARIES
-    ${Boost_LIBRARIES}
-    CACHE FILEPATH "Boost library files" FORCE)
 
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
