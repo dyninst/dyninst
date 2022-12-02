@@ -10,9 +10,6 @@
 # Boost_ROOT_DIR            - Hint directory that contains the Boost installation
 # PATH_BOOST                - Alias for Boost_ROOT_DIR
 #
-# Advanced options:
-#
-# Boost_NO_SYSTEM_PATHS     - Disable searching in locations not specified by hint variables
 #
 # Exports the following CMake cache variables
 #
@@ -48,11 +45,6 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
 # -------------- PATHS --------------------------------------------------------
-
-# By default, search system paths
-set(Boost_NO_SYSTEM_PATHS
-    OFF
-    CACHE BOOL "Disable searching in locations not specified by hint variables")
 
 # A sanity check This must be done _before_ the cache variables are set
 if(PATH_BOOST AND Boost_ROOT_DIR)
