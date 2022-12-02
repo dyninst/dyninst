@@ -1,14 +1,12 @@
-#========================================================================================================
-# Boost.cmake
+#===============================================================================================
 #
-# Configure Boost for Dyninst
+# Configure Boost
 #
 #   ----------------------------------------
 #
 # Accepts the following CMake variables
 #
 # Boost_ROOT_DIR            - Hint directory that contains the Boost installation
-#
 #
 # Exports the following CMake cache variables
 #
@@ -21,11 +19,7 @@
 # Boost_<C>_LIBRARY_RELEASE - Release libraries to link for component <C> (<C> is upper-case)
 # Boost_<C>_LIBRARY_DEBUG   - Debug libraries to link for component <C>
 #
-# NOTE:
-# The exported Boost_ROOT_DIR can be different from the value provided by the user in the case that
-# it is determined to build Boost from source. In such a case, Boost_ROOT_DIR will contain the
-# directory of the from-source installation.
-#========================================================================================================
+#===============================================================================================
 
 if(Boost_FOUND)
     return()
@@ -34,8 +28,6 @@ endif()
 # Need at least 1.70 because of deprecated headers
 set(_boost_min_version 1.70.0)
 
-
-# -------------- RUNTIME CONFIGURATION ----------------------------------------
 
 # Use multithreaded libraries
 set(Boost_USE_MULTITHREADED ON)
@@ -70,8 +62,6 @@ set(Boost_DEFINES
     CACHE STRING "Boost compiler defines")
 add_definitions(${Boost_DEFINES})
 
-# -------------- INTERNALS ----------------------------------------------------
-
 # Disable Boost's own CMake as it's known to be buggy NB: This should not be a cache
 # variable
 set(Boost_NO_BOOST_CMAKE ON)
@@ -81,8 +71,6 @@ set(Boost_NO_BOOST_CMAKE ON)
 set(_boost_components atomic chrono date_time filesystem thread timer)
 
 find_package(Boost ${Boost_MIN_VERSION} REQUIRED HINTS ${Boost_ROOT_DIR} ${PATH_BOOST} ${BOOST_ROOT} COMPONENTS ${_boost_components})
-
-# -------------- EXPORT VARIABLES ---------------------------------------------
 
 # Export the complete set of libraries
 set(Boost_LIBRARIES
