@@ -12,7 +12,6 @@
 #
 # Advanced options:
 #
-# Boost_DEBUG               - Enable debug output from FindBoost
 # Boost_NO_SYSTEM_PATHS     - Disable searching in locations not specified by hint variables
 #
 # Exports the following CMake cache variables
@@ -47,11 +46,6 @@ set(Boost_USE_MULTITHREADED ON)
 
 # Don't use libraries linked statically to the C++ runtime
 set(Boost_USE_STATIC_RUNTIME OFF)
-
-# Enable debug output from FindBoost
-set(Boost_DEBUG
-    OFF
-    CACHE BOOL "Enable debug output from FindBoost")
 
 # -------------- PATHS --------------------------------------------------------
 
