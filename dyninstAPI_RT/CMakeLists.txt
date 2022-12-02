@@ -77,9 +77,9 @@ endif()
 add_library(dyninstAPI_RT SHARED ${SRC_LIST})
 
 if(NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
-    target_link_libraries(dyninstAPI_RT ${CMAKE_DL_LIBS})
+    target_link_libraries(dyninstAPI_RT PRIVATE ${CMAKE_DL_LIBS})
 else() # windows
-    target_link_libraries(dyninstAPI_RT ws2_32 dbghelp psapi)
+    target_link_libraries(dyninstAPI_RT PRIVATE ws2_32 dbghelp psapi)
 endif()
 
 add_library(dyninstAPI_RT_static STATIC ${SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST})
