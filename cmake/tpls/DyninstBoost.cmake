@@ -9,7 +9,6 @@
 #
 # Boost_ROOT_DIR            - Hint directory that contains the Boost installation
 # PATH_BOOST                - Alias for Boost_ROOT_DIR
-# Boost_USE_MULTITHREADED   - Use the multithreaded version of Boost
 # Boost_USE_STATIC_RUNTIME  - Use libraries linked statically to the C++ runtime
 #
 # Advanced options:
@@ -27,8 +26,6 @@
 # Boost_LIBRARIES           - Boost library files
 # Boost_<C>_LIBRARY_RELEASE - Release libraries to link for component <C> (<C> is upper-case)
 # Boost_<C>_LIBRARY_DEBUG   - Debug libraries to link for component <C>
-# Boost_THREAD_LIBRARY      - The filename of the Boost thread library
-# Boost_USE_MULTITHREADED   - Use the multithreaded version of Boost
 # Boost_USE_STATIC_RUNTIME  - Use libraries linked statically to the C++ runtime
 #
 # NOTE:
@@ -47,22 +44,14 @@ set(_boost_min_version 1.70.0)
 
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
 
-# Use the multithreaded version of Boost NB: This _must_ be a cache variable as it
-# controls the tagged layout of Boost library names
-set(Boost_USE_MULTITHREADED
-    ON
-    CACHE BOOL "Enable multithreaded Boost libraries")
+# Use multithreaded libraries
+set(Boost_USE_MULTITHREADED ON)
 
 # Don't use libraries linked statically to the C++ runtime NB: This _must_ be a cache
 # variable as it controls the tagged layout of Boost library names
 set(Boost_USE_STATIC_RUNTIME
     OFF
     CACHE BOOL "Enable usage of libraries statically linked to C++ runtime")
-
-# If using multithreaded Boost, make sure Threads has been intialized
-if(Boost_USE_MULTITHREADED AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
-    find_package(Threads)
-endif()
 
 # Enable debug output from FindBoost
 set(Boost_DEBUG
@@ -131,21 +120,6 @@ find_package(Boost ${Boost_MIN_VERSION} REQUIRED COMPONENTS ${_boost_components}
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
 
-# Export Boost_THREAD_LIBRARY
-list(FIND _boost_components "thread" _building_threads)
-if(Boost_USE_MULTITHREADED AND ${_building_threads})
-    # On Windows, always use the debug version On Linux, we don't use tagged builds, so
-    # the debug/release filenames are the same
-    set(Boost_THREAD_LIBRARY
-        ${Boost_THREAD_LIBRARY_DEBUG}
-        CACHE FILEPATH "Boost thread library")
-endif()
-
-# Add the system thread library
-if(Boost_USE_MULTITHREADED)
-    list(APPEND Boost_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-endif()
-
 # Export the complete set of libraries
 set(Boost_LIBRARIES
     ${Boost_LIBRARIES}
@@ -156,5 +130,4 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
-message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
