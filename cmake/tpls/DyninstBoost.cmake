@@ -60,10 +60,6 @@ set(Boost_DEFINES
     CACHE STRING "Boost compiler defines")
 add_definitions(${Boost_DEFINES})
 
-# Disable Boost's own CMake as it's known to be buggy NB: This should not be a cache
-# variable
-set(Boost_NO_BOOST_CMAKE ON)
-
 # The required Boost library components NB: These are just the ones that require
 # compilation/linking This should _not_ be a cache variable
 set(_boost_components atomic chrono date_time filesystem thread timer)
