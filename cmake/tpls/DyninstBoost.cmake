@@ -21,9 +21,7 @@
 #
 #===============================================================================================
 
-if(Boost_FOUND)
-    return()
-endif()
+include_guard(GLOBAL)
 
 # Need at least 1.70 because of deprecated headers
 set(_boost_min_version 1.70.0)
