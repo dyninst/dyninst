@@ -8,7 +8,6 @@
 # Accepts the following CMake variables
 #
 # Boost_ROOT_DIR            - Hint directory that contains the Boost installation
-# PATH_BOOST                - Alias for Boost_ROOT_DIR
 #
 #
 # Exports the following CMake cache variables
@@ -44,27 +43,11 @@ set(Boost_USE_MULTITHREADED ON)
 # Don't use libraries linked statically to the C++ runtime
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-# -------------- PATHS --------------------------------------------------------
-
-# A sanity check This must be done _before_ the cache variables are set
-if(PATH_BOOST AND Boost_ROOT_DIR)
-    message(
-        FATAL_ERROR
-            "PATH_BOOST AND Boost_ROOT_DIR both specified. Please provide only one")
-endif()
-
-# Provide a default root directory
-if(NOT PATH_BOOST AND NOT Boost_ROOT_DIR)
-    set(PATH_BOOST "/usr")
-endif()
-
 # Set the default location to look for Boost
 set(Boost_ROOT_DIR
-    ${PATH_BOOST}
-    CACHE PATH "Base directory the of Boost installation")
-
-# In FindBoost, Boost_ROOT_DIR is spelled BOOST_ROOT
-set(BOOST_ROOT ${Boost_ROOT_DIR})
+    "/usr"
+    CACHE PATH "Boost root directory for Dyninst")
+mark_as_advanced(Boost_ROOT_DIR)
 
 # -------------- COMPILER DEFINES ---------------------------------------------
 
@@ -97,7 +80,7 @@ set(Boost_NO_BOOST_CMAKE ON)
 # compilation/linking This should _not_ be a cache variable
 set(_boost_components atomic chrono date_time filesystem thread timer)
 
-find_package(Boost ${Boost_MIN_VERSION} REQUIRED COMPONENTS ${_boost_components})
+find_package(Boost ${Boost_MIN_VERSION} REQUIRED HINTS ${Boost_ROOT_DIR} ${PATH_BOOST} ${BOOST_ROOT} COMPONENTS ${_boost_components})
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
 
