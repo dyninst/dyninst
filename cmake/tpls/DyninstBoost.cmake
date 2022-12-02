@@ -36,12 +36,6 @@ list(APPEND _boost_defines -DBOOST_ALL_NO_LIB=1)
 # Disable generating serialization code in boost::multi_index
 list(APPEND _boost_defines -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
 
-# There are broken versions of MSVC that won't handle variadic templates correctly
-# (despite the C++11 test case passing).
-if(MSVC)
-    list(APPEND _boost_defines -DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
-endif()
-
 set(Boost_DEFINES
     ${_boost_defines}
     CACHE STRING "Boost compiler defines")
