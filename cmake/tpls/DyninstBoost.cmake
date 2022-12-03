@@ -35,5 +35,11 @@ target_link_libraries(Dyninst::Boost INTERFACE ${Boost_LIBRARIES})
 target_include_directories(Dyninst::Boost SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
 target_compile_definitions(Dyninst::Boost INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
 
+# Just the headers (effectively a simplified Boost::headers target)
+add_library(Dyninst::Boost_headers INTERFACE IMPORTED)
+target_include_directories(Dyninst::Boost_headers SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
+target_compile_definitions(Dyninst::Boost_headers INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
+
+message(STATUS "Found Boost ${Boost_VERSION}")
 message(STATUS "Boost include directories: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
