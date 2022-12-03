@@ -25,6 +25,9 @@ set(Boost_ROOT_DIR
     CACHE PATH "Boost root directory for Dyninst")
 mark_as_advanced(Boost_ROOT_DIR)
 
+# Starting in CMake 3.20, suppress "unknown version" warnings
+set(Boost_NO_WARN_NEW_VERSIONS ON)
+
 # Library components that need to be linked against
 set(_boost_components atomic chrono date_time filesystem thread timer)
 find_package(
