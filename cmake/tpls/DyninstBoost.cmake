@@ -27,8 +27,7 @@ mark_as_advanced(Boost_ROOT_DIR)
 
 # Library components that need to be linked against
 set(_boost_components atomic chrono date_time filesystem thread timer)
-
-find_package(Boost ${Boost_MIN_VERSION} REQUIRED HINTS ${Boost_ROOT_DIR} ${PATH_BOOST} ${BOOST_ROOT} COMPONENTS ${_boost_components})
+find_package(Boost ${Boost_MIN_VERSION} QUIET REQUIRED HINTS ${Boost_ROOT_DIR} ${PATH_BOOST} ${BOOST_ROOT} COMPONENTS ${_boost_components})
 
 list(TRANSFORM ${_boost_components} PREPEND "Boost::" _boost_targets)
 list(APPEND _boost_targets "Boost::headers")
