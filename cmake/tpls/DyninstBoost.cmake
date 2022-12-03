@@ -29,18 +29,10 @@ mark_as_advanced(Boost_ROOT_DIR)
 set(_boost_components atomic chrono date_time filesystem thread timer)
 find_package(Boost ${Boost_MIN_VERSION} QUIET REQUIRED HINTS ${Boost_ROOT_DIR} ${PATH_BOOST} ${BOOST_ROOT} COMPONENTS ${_boost_components})
 
-list(TRANSFORM ${_boost_components} PREPEND "Boost::" _boost_targets)
-list(APPEND _boost_targets "Boost::headers")
-
-set(_boost_iface_dirs)
-foreach(_t IN_LIST _boost_targets)
-  list(APPEND _boost_iface_dirs "\$<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>")
-endforeach()
-
 # Make an interface dummy target to force includes to be treated as SYSTEM
 add_library(Dyninst::Boost INTERFACE IMPORTED)
-target_link_libraries(Dyninst::Boost INTERFACE ${_boost_targets})
-target_include_directories(Dyninst::Boost SYSTEM INTERFACE ${_boost_iface_dirs})
+target_link_libraries(Dyninst::Boost INTERFACE ${Boost_LIBRARIES})
+target_include_directories(Dyninst::Boost SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
 target_compile_definitions(Dyninst::Boost INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
 
 message(STATUS "Boost include directories: ${Boost_INCLUDE_DIRS}")
