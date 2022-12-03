@@ -116,8 +116,8 @@ endif()
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
     target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()
-target_link_private_libraries(common ${Boost_LIBRARIES})
-target_link_libraries(common PUBLIC Dyninst::TBB)
+
+target_link_libraries(common PUBLIC Dyninst::TBB Dyninst::Boost)
 
 if(USE_OpenMP)
     set_target_properties(common PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}

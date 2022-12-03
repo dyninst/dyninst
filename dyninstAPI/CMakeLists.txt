@@ -189,7 +189,7 @@ dyninst_library(
     parseAPI
     symtabAPI)
 
-target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
+target_link_libraries(dyninstAPI PUBLIC Dyninst::Boost_headers)
 
 if(UNIX)
     # Boost auto-links on Windows; don't double-link

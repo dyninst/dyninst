@@ -25,4 +25,4 @@ set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 add_definitions(-DPATCHAPI_LIB)
 
 dyninst_library(patchAPI common instructionAPI parseAPI)
-target_link_private_libraries(patchAPI ${Boost_LIBRARIES})
+target_link_libraries(patchAPI PUBLIC Dyninst::Boost_headers)
