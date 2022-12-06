@@ -265,26 +265,6 @@ else()
         set(_boost_download_ext "tar.gz")
     endif()
 
-    include(ExternalProject)
-    externalproject_add(
-        Boost-External
-        PREFIX ${PROJECT_BINARY_DIR}/boost
-        GIT_REPOSITORY https://github.com/boostorg/boost.git
-        GIT_TAG boost-${BOOST_DOWNLOAD_VERSION}
-        BUILD_IN_SOURCE 1
-        CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR}
-                          --with-libraries=${_boost_lib_names}
-        BUILD_COMMAND ${BOOST_BUILD} --ignore-site-config --prefix=${Boost_ROOT_DIR} -j2
-                      ${BOOST_ARGS} -d0 install
-        INSTALL_COMMAND "")
-
-    # target for re-executing the installation
-    add_custom_target(
-        install-boost-external
-        COMMAND ${BOOST_BUILD} ${BOOST_ARGS} -d0 install
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/boost/src/Boost-External
-        COMMENT "Installing Boost...")
-
     set(_LIB_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
     if(BOOST_LINK_STATIC)
         set(_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -295,6 +275,7 @@ else()
         set(Boost_LIBRARIES "")
         foreach(c ${_boost_components})
             list(APPEND Boost_LIBRARIES "optimized libboost_${c} debug libboost_${c}-gd ")
+            list(APPEND _boost_build_byproducts "{TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}")
             set(Boost_${c}_LIBRARY
                 $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
                 $<INSTALL_INTERFACE:boost_${c}>)
@@ -320,6 +301,7 @@ else()
                 $<BUILD_INTERFACE:${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}>
                 $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libboost_${c}${_LIB_SUFFIX}>
                 )
+            list(APPEND _boost_build_byproducts "${TPL_STAGING_PREFIX}/lib/libboost_${c}${_LIB_SUFFIX}")
             list(APPEND Boost_LIBRARIES "${Boost_${c}_LIBRARY}")
 
             # Also export cache variables for the file location of each library
@@ -332,6 +314,27 @@ else()
                 CACHE FILEPATH "" FORCE)
         endforeach()
     endif()
+
+    include(ExternalProject)
+    externalproject_add(
+        Boost-External
+        PREFIX ${PROJECT_BINARY_DIR}/boost
+        GIT_REPOSITORY https://github.com/boostorg/boost.git
+        GIT_TAG boost-${BOOST_DOWNLOAD_VERSION}
+        BUILD_IN_SOURCE 1
+        CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR}
+                          --with-libraries=${_boost_lib_names}
+        BUILD_COMMAND ${BOOST_BUILD} --ignore-site-config --prefix=${Boost_ROOT_DIR} -j2
+                      ${BOOST_ARGS} -d0 install
+        BUILD_BYPRODUCTS ${_boost_build_byproducts}
+        INSTALL_COMMAND "")
+
+    # target for re-executing the installation
+    add_custom_target(
+        install-boost-external
+        COMMAND ${BOOST_BUILD} ${BOOST_ARGS} -d0 install
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/boost/src/Boost-External
+        COMMENT "Installing Boost...")
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------

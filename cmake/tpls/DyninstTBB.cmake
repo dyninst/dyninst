@@ -166,6 +166,7 @@ else()
 
         # Generate library filenames
         list(APPEND _tbb_libraries ${_tbb_${c}_lib})
+        list(APPEND _tbb_build_byproducts "${TPL_STAGING_PREFIX}/lib/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
         foreach(t RELEASE DEBUG)
             set(TBB_${c}_LIBRARY_${t}
@@ -217,6 +218,7 @@ else()
             [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=] ${MAKE_EXECUTABLE} -C src
             ${_tbb_components_cfg} tbb_build_dir=${_tbb_prefix_dir}/src
             tbb_build_prefix=tbb ${_tbb_compiler}
+        BUILD_BYPRODUCTS ${_tbb_build_byproducts}
         INSTALL_COMMAND "")
 
     # post-build target for installing build

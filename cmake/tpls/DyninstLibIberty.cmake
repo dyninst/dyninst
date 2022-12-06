@@ -65,6 +65,17 @@ else()
     dyninst_message(STATUS "${LibIberty_ERROR_REASON}")
     dyninst_message(STATUS "Attempting to build LibIberty as external project")
 
+    set(_li_root ${TPL_STAGING_PREFIX})
+    set(_li_inc_dirs
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External/include>)
+    set(_li_lib_dirs $<BUILD_INTERFACE:${_li_root}/lib>
+                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
+    set(_li_libs
+        $<BUILD_INTERFACE:${_li_root}/lib/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
+        )
+    set(_li_build_byproducts "${_li_root}/lib/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
     include(ExternalProject)
     externalproject_add(
         LibIberty-External
@@ -76,6 +87,7 @@ else()
             CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g <SOURCE_DIR>/configure
             --prefix=${PROJECT_BINARY_DIR}/binutils
         BUILD_COMMAND make
+        BUILD_BYPRODUCTS ${_li_build_byproducts}
         INSTALL_COMMAND "")
 
     add_custom_command(
@@ -97,16 +109,6 @@ else()
             ${TPL_STAGING_PREFIX}/lib
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External
         COMMENT "Installing LibIberty...")
-
-    set(_li_root ${TPL_STAGING_PREFIX})
-    set(_li_inc_dirs
-        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/binutils/src/LibIberty-External/include>)
-    set(_li_lib_dirs $<BUILD_INTERFACE:${_li_root}/lib>
-                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
-    set(_li_libs
-        $<BUILD_INTERFACE:${_li_root}/lib/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
-        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libiberty${CMAKE_STATIC_LIBRARY_SUFFIX}>
-        )
 
     # For backward compatibility
     set(IBERTY_FOUND TRUE)

@@ -142,6 +142,21 @@ else()
         dyninst_message(FATAL_ERROR "ElfUtils will only build with the GNU compiler")
     endif()
 
+    set(_eu_root ${TPL_STAGING_PREFIX})
+    set(_eu_inc_dirs $<BUILD_INTERFACE:${_eu_root}/include>
+                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_INCLUDE_DIR}>)
+    set(_eu_lib_dirs $<BUILD_INTERFACE:${_eu_root}/lib>
+                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
+    set(_eu_libs
+        $<BUILD_INTERFACE:${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        $<BUILD_INTERFACE:${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
+        )
+    set(_eu_build_byproducts
+        "${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        "${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
     include(ExternalProject)
     externalproject_add(
         ElfUtils-External
@@ -155,6 +170,7 @@ else()
             --enable-install-elfh --prefix=${TPL_STAGING_PREFIX} --disable-libdebuginfod
             --disable-debuginfod --enable-thread-safety
         BUILD_COMMAND make install
+        BUILD_BYPRODUCTS ${_eu_build_byproducts}
         INSTALL_COMMAND "")
 
     # target for re-executing the installation
@@ -163,18 +179,6 @@ else()
         COMMAND make install
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/elfutils/src/ElfUtils-External
         COMMENT "Installing ElfUtils...")
-
-    set(_eu_root ${TPL_STAGING_PREFIX})
-    set(_eu_inc_dirs $<BUILD_INTERFACE:${_eu_root}/include>
-                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_INCLUDE_DIR}>)
-    set(_eu_lib_dirs $<BUILD_INTERFACE:${_eu_root}/lib>
-                     $<INSTALL_INTERFACE:${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}>)
-    set(_eu_libs
-        $<BUILD_INTERFACE:${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        $<BUILD_INTERFACE:${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
-        )
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
