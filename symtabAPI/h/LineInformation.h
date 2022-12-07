@@ -53,7 +53,7 @@ public:
       LineInformation();
 
       /* You MAY freely deallocate the lineSource strings you pass in. */
-      bool addLine( std::string lineSource,
+      bool addLine( const std::string &lineSource,
             unsigned int lineNo, 
             unsigned int lineOffset, 
             Offset lowInclusiveAddr, 
