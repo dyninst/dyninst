@@ -76,7 +76,7 @@ if(TARGET ElfUtils)
     add_dependencies(symtabAPI ElfUtils)
 endif()
 
-target_link_private_libraries(symtabAPI ${Boost_LIBRARIES})
+target_link_libraries(symtabAPI PUBLIC Dyninst::Boost)
 
 if(USE_OpenMP)
     set_target_properties(symtabAPI PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}

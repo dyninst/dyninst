@@ -90,4 +90,4 @@ add_definitions(-DINSTRUCTION_LIB)
 
 dyninst_library(instructionAPI common)
 
-target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
+target_link_libraries(instructionAPI PUBLIC Dyninst::Boost_headers)

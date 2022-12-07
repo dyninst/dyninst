@@ -12,4 +12,5 @@ set(SRC_LIST src/dwarfResult.C src/dwarfExprParser.C src/dwarfFrameParser.C
 
 dyninst_library(dynDwarf dynElf common ${LibDwarf_LIBRARIES})
 add_dependencies(dynDwarf ElfUtils)
-target_link_private_libraries(dynDwarf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES})
+target_link_private_libraries(dynDwarf ${ElfUtils_LIBRARIES})
+target_link_libraries(dynDwarf PUBLIC Dyninst::Boost_headers)
