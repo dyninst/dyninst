@@ -6,6 +6,7 @@
 # DYNINST_INTERNAL_DEFINES - used by the test suite
 
 include(DyninstTBB)
+include(DyninstBoost)
 
 # compute paths
 

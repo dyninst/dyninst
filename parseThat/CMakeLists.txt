@@ -30,6 +30,5 @@ target_link_private_libraries(
     pcontrol
     dynDwarf
     dynElf
-    ${Boost_LIBRARIES}
     ${ElfUtils_LIBRARIES})
 install(TARGETS parseThat RUNTIME DESTINATION bin)
