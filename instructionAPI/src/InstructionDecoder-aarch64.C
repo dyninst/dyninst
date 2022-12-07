@@ -2960,7 +2960,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 skipRm = true;
 
             for (std::size_t i = 0; i < insn_table_entry.operandCnt; i++) {
-                std::mem_fun(insn_table_entry.operands[i])(this);
+                std::mem_fn(insn_table_entry.operands[i])(this);
             }
 
             if (insn_table_index == 0)

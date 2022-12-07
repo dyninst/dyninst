@@ -132,7 +132,8 @@ class StackLocation {
         ValidPCRange* _valid;
 };
 
-struct less_StackLocation: public std::binary_function<StackLocation*, StackLocation*, bool> {
+struct less_StackLocation
+{
     bool operator()(StackLocation* a, StackLocation* b) const {
         if (a->isStackMemory() && b->isStackMemory()) {
             if (a->off().height() == b->off().height()) {
@@ -178,7 +179,7 @@ class tmpObject
         ValidPCRange* _valid;
 };
 
-struct less_tmpObject: public std::binary_function<tmpObject, tmpObject, bool>
+struct less_tmpObject
 {
     bool operator()(tmpObject a, tmpObject b) const {
         if (a.offset() < b.offset()) {

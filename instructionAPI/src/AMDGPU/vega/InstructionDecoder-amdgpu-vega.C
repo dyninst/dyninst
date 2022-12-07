@@ -552,7 +552,7 @@ namespace Dyninst {
 		bool InstructionDecoder_amdgpu_vega::decodeOperands(const amdgpu_vega_insn_entry & insn_entry) {
 			if(insn_entry.operandCnt!=0){
 				for (std::size_t i =0 ; i < insn_entry.operandCnt; i++){
-					std::mem_fun(insn_entry.operands[i])(this);
+					std::mem_fn(insn_entry.operands[i])(this);
 				}
 			}
 			return true;
@@ -721,7 +721,7 @@ namespace Dyninst {
 			setupInsnWord(b);
 			mainDecodeOpcode(b);
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
-				std::mem_fun(decode_lookup_table[instr_family])(this);
+				std::mem_fn(decode_lookup_table[instr_family])(this);
 			}
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;

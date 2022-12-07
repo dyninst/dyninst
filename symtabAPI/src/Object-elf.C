@@ -129,7 +129,7 @@ const char *pdelf_get_shnames(Elf_X *elf) {
 //
 // Compare function for use with the Vector<T> sort method.
 //
-struct SectionHeaderSortFunction : public binary_function<Elf_X_Shdr *, Elf_X_Shdr *, bool> {
+struct SectionHeaderSortFunction  {
     bool operator()(Elf_X_Shdr *hdr1, Elf_X_Shdr *hdr2) {
         return (hdr1->sh_addr() < hdr2->sh_addr());
     }
@@ -3122,7 +3122,7 @@ int read_except_table_gcc3(
 }
 
 
-struct exception_compare : public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool> {
+struct exception_compare  {
     bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) const {
         if (e1.tryStart() < e2.tryStart())
             return true;
