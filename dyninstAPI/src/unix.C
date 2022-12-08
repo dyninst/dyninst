@@ -743,45 +743,21 @@ func_instance *block_instance::callee() {
    
    // get the relocation information for this image
    Symtab *sym = obj()->parse_img()->getObject();
-   std::vector<relocationEntry> fbt;
-   if (!sym->getFuncBindingTable(fbt)) {
-      return NULL;
-   }
-
-
-   /**
-    * Object files and static binaries will not have a function binding table
-    * because the function binding table holds relocations used by the dynamic
-    * linker
-    */
-   if (!fbt.size() && !sym->isStaticBinary() &&
-           sym->getObjectType() != obj_RelocatableFile ) 
-   {
-      fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
-   }
-   
-   std::map<Address, std::string> pltFuncs;
-   obj()->parse_img()->getPltFuncs(pltFuncs);
-
    // find the target address in the list of relocationEntries
-   if (pltFuncs.find(target_addr) != pltFuncs.end()) {
+   relocationEntry function_binding;
+   if(sym->findPltEntryByTarget(target_addr, function_binding)) {
 	  Address base_addr = obj()->codeBase();
-      for (u_int i=0; i < fbt.size(); i++) {
-         if (fbt[i].target_addr() == target_addr) 
-         {
             // check to see if this function has been bound yet...if the
             // PLT entry for this function has been modified by the runtime
             // linker
             func_instance *target_pdf = 0;
-            if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
+      if (proc()->hasBeenBound(function_binding, target_pdf, base_addr)) {
                updateCallTarget(target_pdf);
                obj()->setCalleeName(this, target_pdf->symTabName());
                obj()->setCallee(this, target_pdf);
                return target_pdf;
             }
-         }
-      }
-      return callee(pltFuncs[target_addr]);
+      return callee(function_binding.name());
    } else {
 	   /*
 	    * Sometimes, the PLT address and the CFG target aren't the same
