@@ -329,30 +329,28 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
 }
 
 bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd) {
-    std::set< std::pair<Address, Address> > func_range;
-    for (auto fit = sorted_funcs.begin(); fit != sorted_funcs.end(); ++fit) {
-        Function * f = *fit;
-	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit) {
-	    FuncExtent *fe = *eit;
-	    func_range.insert(make_pair(fe->start(), fe->end()));
-	}
-    }
-    auto iter = func_range.upper_bound(make_pair(curAddr, std::numeric_limits<Address>::max() ));
-    if (iter == func_range.end()) {
-        gapEnd = cr->offset() + cr->length();
-    } else {
-        gapEnd = iter->first;
-    }
-    if (iter == func_range.begin()) {
-        gapStart = curAddr;
-    } else {
-	--iter;
-        if (iter->second > curAddr) {
-	    gapStart = iter->second;
-        } else {
-	    gapStart = curAddr;
+    gapStart = curAddr;
+    for(auto fit = sorted_funcs.cbegin(); fit != sorted_funcs.cend(); ++fit) {
+        Function* f = *fit;
+        for(auto eit = f->extents().cbegin(); eit != f->extents().cend(); ++eit)
+        {
+            FuncExtent* fe = *eit;
+            if(gapStart >= fe->start() && gapStart < fe->end())
+                gapStart = fe->end();
         }
     }
+
+    gapEnd = cr->offset() + cr->length();
+    for(auto fit = sorted_funcs.crbegin(); fit != sorted_funcs.crend(); ++fit) {
+        Function* f = *fit;
+        for(auto eit = f->extents().crbegin(); eit != f->extents().crend(); ++eit)
+        {
+            FuncExtent* fe = *eit;
+            if(fe->start() >= gapStart && fe->start() < gapEnd)
+                gapEnd = fe->start();
+        }
+    }
+
     return gapStart < gapEnd;
 }
 
