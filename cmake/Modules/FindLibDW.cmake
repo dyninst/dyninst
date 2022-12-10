@@ -1,86 +1,87 @@
-#===================================================================================
-# FindLibDwarf.cmake
-#
-# Find libdw include dirs and libraries
-#
-#		----------------------------------------
-#
-# Use this module by invoking find_package with the form::
-#
-#  find_package(LibDwarf
-#    [version] [EXACT]      # Minimum or EXACT version e.g. 0.173
-#    [REQUIRED]             # Fail with error if libdw is not found
-#  )
-#
-# This module reads hints about search locations from variables::
-#
-#	LibDwarf_ROOT_DIR		- Base directory the of libdw installation
-#	LibDwarf_INCLUDEDIR		- Hint directory that contains the libdw headers files
-#	LibDwarf_LIBRARYDIR		- Hint directory that contains the libdw library files
-#
-# and saves search results persistently in CMake cache entries::
-#
-#	LibDwarf_FOUND			- True if headers and requested libraries were found
-#	LibDwarf_INCLUDE_DIRS 	- libdw include directories
-#	LibDwarf_LIBRARY_DIRS	- Link directories for libdw libraries
-#	LibDwarf_LIBRARIES		- libdw library files
-#
-#===================================================================================
+#[=======================================================================[.rst:
+FindLibDW
+---------
 
-include(DyninstSystemPaths)
+Find libdw, the elfutils library for DWARF data and ELF file or process inspection.
 
-# Non-standard subdirectories to search
-set(_path_suffixes libdw libdwarf elfutils)
+Imported targets
+^^^^^^^^^^^^^^^^
+
+This module defines the following :prop_tgt:`IMPORTED` target:
+
+``LibDW::LibDW``
+  The libdw library, if found.
+
+Result variables
+^^^^^^^^^^^^^^^^
+
+This module will set the following variables in your project:
+
+``LibDW_INCLUDE_DIRS``
+  where to find libdw.h, etc.
+``LibDW_LIBRARIES``
+  the libraries to link against to use libdw.
+``LibDW_FOUND``
+  If false, do not try to use libdw.
+``LibDW_VERSION``
+  the version of the libdw library found
+
+#]=======================================================================]
+
+find_package(PkgConfig QUIET)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(PC_LIBDW QUIET libdw)
+endif()
 
 find_path(
-    LibDwarf_INCLUDE_DIR
+    LibDW_INCLUDE_DIR
     NAMES libdw.h
-    HINTS ${LibDwarf_ROOT_DIR}/include ${LibDwarf_ROOT_DIR} ${LibDwarf_INCLUDEDIR}
-    PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
-    PATH_SUFFIXES ${_path_suffixes}
-    DOC "libdw include directories")
+    HINTS ${PC_LIBDW_INCLUDE_DIRS}
+    PATH_SUFFIXES elfutils)
+mark_as_advanced(LibDW_INCLUDE_DIR)
 
 find_library(
-    LibDwarf_LIBRARIES
-    NAMES libdw.so.1 libdw.so
-    HINTS ${LibDwarf_ROOT_DIR}/lib ${LibDwarf_ROOT_DIR} ${LibDwarf_LIBRARYDIR}
-    PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
-    PATH_SUFFIXES ${_path_suffixes})
+    LibDW_LIBRARY
+    NAMES libdw dw
+    HINTS ${PC_LIBDW_LIBRARY_DIRS}
+    PATH_SUFFIXES elfutils)
+mark_as_advanced(LibDW_LIBRARY)
 
-# Find the library with the highest version
-set(_max_ver 0.0)
-set(_max_ver_lib)
-foreach(l ${LibDwarf_LIBRARIES})
-    get_filename_component(_dw_realpath ${LibDwarf_LIBRARIES} REALPATH)
-    string(REGEX MATCH "libdw\\-(.+)\\.so\\.*$" res ${_dw_realpath})
-
-    # The library version number is stored in CMAKE_MATCH_1
-    set(_cur_ver ${CMAKE_MATCH_1})
-
-    if(${_cur_ver} VERSION_GREATER ${_max_ver})
-        set(_max_ver ${_cur_ver})
-        set(_max_ver_lib ${l})
+if(EXISTS "${LibDW_INCLUDE_DIR}/version.h")
+    file(STRINGS "${LibDW_INCLUDE_DIR}/version.h" _version_line
+         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+    if(NOT "x${_version}" STREQUAL "x")
+        set(LibDW_VERSION "0.${_version}")
     endif()
-endforeach()
+    unset(_version_line)
+    unset(_version)
+elseif(PC_LIBDW_FOUND)
+    set(LibDW_VERSION "${PC_LIBDW_VERSION}")
+endif()
 
-# Set the exported variables to the best match
-set(LibDwarf_LIBRARIES ${_max_ver_lib})
-set(LibDwarf_VERSION ${_max_ver})
+if("x${LibDW_VERSION}" STREQUAL "x")
+    message(FATAL_ERROR "Unable to find version for libdw")
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-    LibDwarf
-    FOUND_VAR LibDwarf_FOUND
-    REQUIRED_VARS LibDwarf_LIBRARIES LibDwarf_INCLUDE_DIR
-    VERSION_VAR LibDwarf_VERSION)
+    LibDW
+    FOUND_VAR LibDW_FOUND
+    REQUIRED_VARS LibDW_LIBRARY LibDW_INCLUDE_DIR
+    VERSION_VAR LibDW_VERSION)
 
-# Export cache variables
-if(LibDwarf_FOUND)
-    set(LibDwarf_INCLUDE_DIRS ${LibDwarf_INCLUDE_DIR})
-    set(LibDwarf_LIBRARIES ${LibDwarf_LIBRARIES})
+if(LibDW_FOUND)
+    set(LibDW_INCLUDE_DIRS ${LibDW_INCLUDE_DIR})
+    set(LibDW_LIBRARIES ${LibDW_LIBRARY})
 
-    # Because we only report the library with the largest version, we are guaranteed there
-    # is only one file in LibDwarf_LIBRARIES
-    get_filename_component(_dw_dir ${LibDwarf_LIBRARIES} DIRECTORY)
-    set(LibDwarf_LIBRARY_DIRS ${_dw_dir})
+    if(NOT TARGET LibDW::LibDW)
+        add_library(LibDW::LibDW UNKNOWN IMPORTED)
+        set_target_properties(LibDW::LibDW PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                      "${LibDW_INCLUDE_DIRS}")
+
+        set_target_properties(
+            LibDW::LibDW PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                    IMPORTED_LOCATION "${LibDW_LIBRARIES}")
+    endif()
 endif()
