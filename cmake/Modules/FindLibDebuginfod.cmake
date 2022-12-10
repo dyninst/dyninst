@@ -1,62 +1,88 @@
-#========================================================================================
-# FindDebuginfod
-# -----------
-#
-# Find debuginfod library and headers
-#
-# The module defines the following variables:
-#
-# This module reads hints about search locations from variables::
-#
-#       LibDebuginfod_ROOT_DIR         - Base directory the of libdebuginfod installation
-#       LibDebuginfod_INCLUDEDIR       - Hint directory that contains the libdebuginfod headers files
-#       LibDebuginfod_LIBRARYDIR       - Hint directory that contains the libdebuginfod library files
-#
-# and saves search results persistently in CMake cache entries::
-#
-#       LibDebuginfod_FOUND            - True if headers and requested libraries were found
-#       LibDebuginfod_INCLUDE_DIRS     - libdebuginfod include directories
-#       LibDebuginfod_LIBRARY_DIRS     - Link directories for libdebuginfod libraries
-#       LibDebuginfod_LIBRARIES        - libdebuginfod library files
-#
-# Utilize package config (e.g. /usr/lib64/pkgconfig/libdebuginfod.pc) to fetch
-# version information.
-#
-#========================================================================================
+#[=======================================================================[.rst:
+FindLibDebuginfod
+-----------------
+
+Find libdebuginfod, the elfutils library to query debuginfo files from debuginfod servers.
+
+Imported targets
+^^^^^^^^^^^^^^^^
+
+This module defines the following :prop_tgt:`IMPORTED` target:
+
+``LibDebuginfod::LibDebuginfod``
+  The libdebuginfod library, if found.
+
+Result variables
+^^^^^^^^^^^^^^^^
+
+This module will set the following variables in your project:
+
+``LibDebuginfod_INCLUDE_DIRS``
+  where to find debuginfod.h, etc.
+``LibDebuginfod_LIBRARIES``
+  the libraries to link against to use libdebuginfod.
+``LibDebuginfod_FOUND``
+  If false, do not try to use libdebuginfod.
+``LibDebuginfod_VERSION``
+  the version of the libdebuginfod library found
+
+#]=======================================================================]
 
 find_package(PkgConfig QUIET)
-pkg_check_modules(PC_Debuginfod QUIET REQUIRED libdebuginfod>=${ElfUtils_MIN_VERSION})
-set(LibDebuginfod_VERSION "${PC_Debuginfod_VERSION}")
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(PC_LIBDEBUGINFOD QUIET libdebuginfod)
+endif()
 
 find_path(
-    LibDebuginfod_INCLUDE_DIRS
+    LibDebuginfod_INCLUDE_DIR
     NAMES debuginfod.h
-    HINTS ${PC_Debuginfod_INCLUDEDIR} ${PC_Debuginfod_INCLUDE_DIRS}
-          ${LibDebuginfod_ROOT_DIR}/include ${LibDebuginfod_ROOT_DIR}
-          ${LibDebuginfod_INCLUDEDIR} ${PC_Debuginfod_INCLUDEDIR}/elfutils
-    PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
-    PATH_SUFFIXES ${_path_suffixes}
-    DOC "libdebuginfod include directories")
+    HINTS ${PC_LIBDEBUGINFOD_INCLUDE_DIRS}
+    PATH_SUFFIXES elfutils)
+mark_as_advanced(LibDebuginfod_INCLUDE_DIR)
 
 find_library(
-    LibDebuginfod_LIBRARIES
-    NAMES libdebuginfod.so.1 libdebuginfod.so
-    HINTS ${PC_Debuginfod_LIBDIR} ${PC_Debuginfod_LIBRARY_DIRS}
-          ${LibDebuginfod_ROOT_DIR}/lib ${LibDebuginfod_ROOT_DIR}
-          ${LibDebuginfod_LIBRARYDIR}
-    PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
-    PATH_SUFFIXES ${_path_suffixes})
+    LibDebuginfod_LIBRARY
+    NAMES libdebuginfod debuginfod
+    HINTS ${PC_LIBDEBUGINFOD_LIBRARY_DIRS}
+    PATH_SUFFIXES elfutils)
+mark_as_advanced(LibDebuginfod_LIBRARY)
+
+if(EXISTS "${LibDebuginfod_INCLUDE_DIR}/version.h")
+	file(STRINGS "${LibDebuginfod_INCLUDE_DIR}/version.h" _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+	string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+	if(NOT "x${_version}" STREQUAL "x")
+		set(LibDebuginfod_VERSION "0.${_version}")
+	endif()
+	unset(_version_line)
+	unset(_version)
+elseif(PC_LIBDEBUGINFOD_FOUND)
+	set(LibDebuginfod_VERSION "${PC_LIBDEBUGINFOD_VERSION}")
+endif()
+
+if("x${LibDebuginfod_VERSION}" STREQUAL "x")
+	message(FATAL_ERROR "Unable to find version for libdebuginfod")
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     LibDebuginfod
     FOUND_VAR LibDebuginfod_FOUND
-    REQUIRED_VARS LibDebuginfod_INCLUDE_DIRS LibDebuginfod_LIBRARIES
+    REQUIRED_VARS LibDebuginfod_LIBRARY LibDebuginfod_INCLUDE_DIR
     VERSION_VAR LibDebuginfod_VERSION)
 
 if(LibDebuginfod_FOUND)
-    set(LibDebuginfod_INCLUDE_DIRS ${LibDebuginfod_INCLUDE_DIRS})
-    set(LibDebuginfod_LIBRARIES ${LibDebuginfod_LIBRARIES})
-    get_filename_component(_debuginfod_dir ${LibDebuginfod_LIBRARIES} DIRECTORY)
-    set(LibDebuginfod_LIBRARY_DIRS ${_debuginfod_dir} "${_debuginfod_dir}/elfutils")
+    set(LibDebuginfod_INCLUDE_DIRS ${LibDebuginfod_INCLUDE_DIR})
+    set(LibDebuginfod_LIBRARIES ${LibDebuginfod_LIBRARY})
+
+    if(NOT TARGET LibDebuginfod::LibDebuginfod)
+        add_library(LibDebuginfod::LibDebuginfod UNKNOWN IMPORTED)
+        set_target_properties(
+            LibDebuginfod::LibDebuginfod PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                    "${LibDebuginfod_INCLUDE_DIRS}")
+
+        set_target_properties(
+            LibDebuginfod::LibDebuginfod
+            PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C" IMPORTED_LOCATION
+                                                             "${LibDebuginfod_LIBRARIES}")
+    endif()
 endif()
