@@ -1,89 +1,92 @@
-#========================================================================================
-# FindLibElf.cmake
-#
-# Find libelf include dirs and libraries
-#
-#		----------------------------------------
-#
-# Use this module by invoking find_package with the form::
-#
-#  find_package(LibElf
-#    [version] [EXACT]      # Minimum or EXACT version e.g. 0.173
-#    [REQUIRED]             # Fail with error if libelf is not found
-#  )
-#
-# This module reads hints about search locations from variables::
-#
-#	LibElf_ROOT_DIR		- Base directory the of libelf installation
-#	LibElf_INCLUDEDIR	- Hint directory that contains the libelf headers files
-#	LibElf_LIBRARYDIR	- Hint directory that contains the libelf library files
-#
-# and saves search results persistently in CMake cache entries::
-#
-#	LibElf_FOUND			- True if headers and requested libraries were found
-#	LibElf_INCLUDE_DIRS 	- libelf include directories
-#	LibElf_LIBRARY_DIRS		- Link directories for libelf libraries
-#	LibElf_LIBRARIES		- libelf library files
-#
-#
-# Based on the version by Bernhard Walle <bernhard.walle@gmx.de> Copyright (c) 2008
-#
-#========================================================================================
+#[=======================================================================[.rst:
+FindLibELF
+----------
 
-include(DyninstSystemPaths)
+Find libelf, the elfutils library to read and write ELF files.
 
-# Non-standard subdirectories to search
-set(_path_suffixes libelf libelfls elfutils)
+Imported targets
+^^^^^^^^^^^^^^^^
+
+This module defines the following :prop_tgt:`IMPORTED` target:
+
+``LibELF::LibELF``
+  The libelf library, if found.
+
+Result variables
+^^^^^^^^^^^^^^^^
+
+This module will set the following variables in your project:
+
+``LibELF_INCLUDE_DIRS``
+  where to find libelf.h, etc.
+``LibELF_LIBRARIES``
+  the libraries to link against to use libelf.
+``LibELF_FOUND``
+  If false, do not try to use libelf.
+``LibELF_VERSION``
+  the version of the libelf library found
+
+#]=======================================================================]
+
+find_package(PkgConfig QUIET)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(PC_LIBELF QUIET libelf)
+endif()
 
 find_path(
-    LibElf_INCLUDE_DIR
+    LibELF_INCLUDE_DIR
     NAMES libelf.h
-    HINTS ${LibElf_ROOT_DIR}/include ${LibElf_ROOT_DIR} ${LibElf_INCLUDEDIR}
-    PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
-    PATH_SUFFIXES ${_path_suffixes}
-    DOC "libelf include directories")
+    HINTS ${PC_LIBELF_INCLUDE_DIRS}
+    PATH_SUFFIXES elfutils)
+mark_as_advanced(LibELF_INCLUDE_DIR)
 
 find_library(
-    LibElf_LIBRARIES
-    NAMES libelf.so.1 libelf.so
-    HINTS ${LibElf_ROOT_DIR}/lib ${LibElf_ROOT_DIR} ${LibElf_LIBRARYDIR}
-    PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
-    PATH_SUFFIXES ${_path_suffixes})
+    LibELF_LIBRARY
+    NAMES libelf elf
+    HINTS ${PC_LIBELF_LIBRARY_DIRS}
+    PATH_SUFFIXES elfutils)
+mark_as_advanced(LibELF_LIBRARY)
 
-# Find the library with the highest version
-set(_max_ver 0.0)
-set(_max_ver_lib)
-foreach(l ${LibElf_LIBRARIES})
-    get_filename_component(_elf_realpath ${LibElf_LIBRARIES} REALPATH)
-    string(REGEX MATCH "libelf\\-(.+)\\.so\\.*$" res ${_elf_realpath})
-
-    # The library version number is stored in CMAKE_MATCH_1
-    set(_cur_ver ${CMAKE_MATCH_1})
-
-    if(${_cur_ver} VERSION_GREATER ${_max_ver})
-        set(_max_ver ${_cur_ver})
-        set(_max_ver_lib ${l})
+macro(_check_libelf_version _file)
+    file(STRINGS ${_file} _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+    if(NOT "x${_version}" STREQUAL "x")
+        set(LibELF_VERSION "0.${_version}")
     endif()
-endforeach()
+    unset(_version_line)
+    unset(_version)
+endmacro()
 
-# Set the exported variables to the best match
-set(LibElf_LIBRARIES ${_max_ver_lib})
-set(LibElf_VERSION ${_max_ver})
+if(EXISTS "${LibELF_INCLUDE_DIR}/version.h")
+    _check_libelf_version("${LibELF_INCLUDE_DIR}/version.h")
+elseif(EXISTS "${LibELF_INCLUDE_DIR}/elfutils/version.h")
+    _check_libelf_version("${LibELF_INCLUDE_DIR}/elfutils/version.h")
+elseif(PC_LIBELF_FOUND)
+    set(LibELF_VERSION "${PC_LIBELF_VERSION}")
+endif()
+
+if("x${LibELF_VERSION}" STREQUAL "x")
+    message(FATAL_ERROR "Unable to find version for libelf")
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-    LibElf
-    FOUND_VAR LibElf_FOUND
-    REQUIRED_VARS LibElf_LIBRARIES LibElf_INCLUDE_DIR
-    VERSION_VAR LibElf_VERSION)
+    LibELF
+    FOUND_VAR LibELF_FOUND
+    REQUIRED_VARS LibELF_LIBRARY LibELF_INCLUDE_DIR
+    VERSION_VAR LibELF_VERSION)
 
-# Export cache variables
-if(LibElf_FOUND)
-    set(LibElf_INCLUDE_DIRS ${LibElf_INCLUDE_DIR})
-    set(LibElf_LIBRARIES ${LibElf_LIBRARIES})
+if(LibELF_FOUND)
+    set(LibELF_INCLUDE_DIRS ${LibELF_INCLUDE_DIR})
+    set(LibELF_LIBRARIES ${LibELF_LIBRARY})
 
-    # Because we only report the library with the largest version, we are guaranteed there
-    # is only one file in LibElf_LIBRARIES
-    get_filename_component(_elf_dir ${LibElf_LIBRARIES} DIRECTORY)
-    set(LibElf_LIBRARY_DIRS ${_elf_dir} "${_elf_dir}/elfutils")
+    if(NOT TARGET LibELF::LibELF)
+        add_library(LibELF::LibELF UNKNOWN IMPORTED)
+        set_target_properties(LibELF::LibELF PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                        "${LibELF_INCLUDE_DIRS}")
+
+        set_target_properties(
+            LibELF::LibELF PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                      IMPORTED_LOCATION "${LibELF_LIBRARIES}")
+    endif()
 endif()
