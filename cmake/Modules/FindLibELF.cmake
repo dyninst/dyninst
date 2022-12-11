@@ -27,7 +27,7 @@ This module will set the following variables in your project:
   the version of the libelf library found
 
 #]=======================================================================]
-cmake_policy(SET CMP0074 NEW)  # Use <Package>_ROOT
+cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)

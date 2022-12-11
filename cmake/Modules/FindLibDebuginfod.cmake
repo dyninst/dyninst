@@ -27,7 +27,7 @@ This module will set the following variables in your project:
   the version of the libdebuginfod library found
 
 #]=======================================================================]
-cmake_policy(SET CMP0074 NEW)  # Use <Package>_ROOT
+cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
@@ -49,19 +49,20 @@ find_library(
 mark_as_advanced(LibDebuginfod_LIBRARY)
 
 if(EXISTS "${LibDebuginfod_INCLUDE_DIR}/version.h")
-	file(STRINGS "${LibDebuginfod_INCLUDE_DIR}/version.h" _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
-	string(REGEX MATCH "[0-9]+" _version "${_version_line}")
-	if(NOT "x${_version}" STREQUAL "x")
-		set(LibDebuginfod_VERSION "0.${_version}")
-	endif()
-	unset(_version_line)
-	unset(_version)
+    file(STRINGS "${LibDebuginfod_INCLUDE_DIR}/version.h" _version_line
+         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+    if(NOT "x${_version}" STREQUAL "x")
+        set(LibDebuginfod_VERSION "0.${_version}")
+    endif()
+    unset(_version_line)
+    unset(_version)
 elseif(PC_LIBDEBUGINFOD_FOUND)
-	set(LibDebuginfod_VERSION "${PC_LIBDEBUGINFOD_VERSION}")
+    set(LibDebuginfod_VERSION "${PC_LIBDEBUGINFOD_VERSION}")
 endif()
 
 if("x${LibDebuginfod_VERSION}" STREQUAL "x")
-	message(FATAL_ERROR "Unable to find version for libdebuginfod")
+    message(FATAL_ERROR "Unable to find version for libdebuginfod")
 endif()
 
 include(FindPackageHandleStandardArgs)
