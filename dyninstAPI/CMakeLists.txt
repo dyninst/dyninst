@@ -190,6 +190,7 @@ dyninst_library(
     symtabAPI)
 
 target_link_libraries(dyninstAPI PUBLIC Dyninst::Boost_headers)
+target_link_libraries(dyninstAPI PRIVATE Dyninst::ElfUtils)
 
 if(UNIX)
     # Boost auto-links on Windows; don't double-link

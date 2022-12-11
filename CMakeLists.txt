@@ -23,8 +23,13 @@ if("${isSystemDir}" STREQUAL "-1")
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif()
 
+<<<<<<< HEAD
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
      "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
+=======
+set(CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/tpls" "${DYNINST_ROOT}/cmake/Modules"
+                      ${CMAKE_MODULE_PATH})
+>>>>>>> d38cfd33b (Update the CMakeLists to use new targets)
 
 # Set the C and C++ language standards
 include(DyninstLanguageStandards)
@@ -32,6 +37,7 @@ include(DyninstLanguageStandards)
 # Find the necessary third-party libraries
 find_package(Thread_DB)
 find_package(Threads)
+<<<<<<< HEAD
 
 include(DyninstBoost)
 include(DyninstTBB)
@@ -39,6 +45,14 @@ include(DyninstElfUtils)
 
 if(UNIX)
     include(DyninstLibIberty REQUIRED)
+=======
+include(Boost)
+include(ThreadingBuildingBlocks)
+
+if(UNIX)
+    include(DyninstElfUtils)
+    include(LibIberty REQUIRED)
+>>>>>>> d38cfd33b (Update the CMakeLists to use new targets)
 endif()
 
 include(DyninstLibrary)
