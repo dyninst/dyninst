@@ -37,6 +37,7 @@ Support for libdebuginfod can be added by specifying it in ``COMPONENTS``.
    target_add_libraries(foo PUBLIC Elfutils::Elfutils)
 
 #]=======================================================================]
+cmake_policy(SET CMP0074 NEW)  # Use <Package>_ROOT
 
 if(${Elfutils_FIND_REQUIRED})
   set(_required "REQUIRED")
@@ -99,16 +100,27 @@ if(Elfutils_FOUND)
     set(Elfutils_INCLUDE_DIRS ${LibDW_INCLUDE_DIRS} ${LibELF_INCLUDE_DIRS} ${LibDebuginfod_INCLUDE_DIRS})
     set(Elfutils_LIBRARIES ${LibDW_LIBRARIES} ${LibELF_LIBRARIES} ${LibDebuginfod_LIBRARIES})
 
+    if(NOT TARGET Elfutils::dw)
+        add_library(Elfutils::dw INTERFACE IMPORTED)
+        target_link_libraries(Elfutils::dw INTERFACE LibDW::LibDW)
+    endif()
+    if(NOT TARGET Elfutils::elf)
+        add_library(Elfutils::elf INTERFACE IMPORTED)
+        target_link_libraries(Elfutils::elf INTERFACE LibELF::LibELF)
+    endif()
+    if(NOT TARGET Elfutils::debuginfod)
+        add_library(Elfutils::debuginfod INTERFACE IMPORTED)
+        if(${_need_debuginfod})
+        	target_link_libraries(Elfutils::debuginfod INTERFACE LibDebuginfod::LibDebuginfod)
+        endif()
+    endif()
     if(NOT TARGET Elfutils::Elfutils)
         add_library(Elfutils::Elfutils INTERFACE IMPORTED)
         target_link_libraries(Elfutils::Elfutils INTERFACE LibELF::LibELF LibDW::LibDW)
         if(${_need_debuginfod})
         	target_link_libraries(Elfutils::Elfutils INTERFACE LibDebuginfod::LibDebuginfod)
         endif()
-        add_library(Elfutils::dw ALIAS LibDW::LibDW)
-        add_library(Elfutils::elf ALIAS LibELF::LibELF) 
-    endif()
-    
+    endif()    
 endif()
 
 unset(_exact)
