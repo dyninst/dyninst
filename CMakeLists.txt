@@ -48,9 +48,9 @@ if(UNIX)
 =======
 include(Boost)
 include(ThreadingBuildingBlocks)
+include(DyninstElfUtils)
 
 if(UNIX)
-    include(DyninstElfUtils)
     include(LibIberty REQUIRED)
 >>>>>>> d38cfd33b (Update the CMakeLists to use new targets)
 endif()

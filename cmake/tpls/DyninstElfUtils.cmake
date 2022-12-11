@@ -10,6 +10,14 @@
 
 include_guard(GLOBAL)
 
+# elfutils is only available on Unixes; provide a dummy target on other platforms
+if(NOT UNIX)
+	if(NOT TARGET Dyninst::ElfUtils)
+    add_library(Dyninst::ElfUtils INTERFACE)
+  endif()
+  return()
+endif()
+
 # We need >=0.186 because of NVIDIA line map extensions
 set(_min_version 0.186)
 
