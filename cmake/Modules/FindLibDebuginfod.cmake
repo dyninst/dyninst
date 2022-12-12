@@ -30,11 +30,11 @@ This module will set the following variables in your project:
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
 if(LibDebuginfod_FIND_QUIETLY)
-	set(_quiet "QUIET")
+    set(_quiet "QUIET")
 endif()
 
 if(NOT "x${LibDebuginfod_FIND_VERSION}" STREQUAL "x")
-	set(_version ">=${LibDebuginfod_FIND_VERSION}")
+    set(_version ">=${LibDebuginfod_FIND_VERSION}")
 endif()
 
 find_package(PkgConfig QUIET)
@@ -43,34 +43,40 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(PC_LIBDEBUGINFOD_FOUND)
-	set(LibDebuginfod_INCLUDE_DIRS ${PC_LIBDEBUGINFOD_INCLUDE_DIRS} CACHE PATH "")
-	set(LibDebuginfod_LIBRARIES ${PC_LIBDEBUGINFOD_LIBRARIES} CACHE PATH "")
-	set(LibDebuginfod_VERSION ${PC_LIBDEBUGINFOD_VERSION} CACHE STRING "")
+    set(LibDebuginfod_INCLUDE_DIRS
+        ${PC_LIBDEBUGINFOD_INCLUDE_DIRS}
+        CACHE PATH "")
+    set(LibDebuginfod_LIBRARIES
+        ${PC_LIBDEBUGINFOD_LIBRARIES}
+        CACHE PATH "")
+    set(LibDebuginfod_VERSION
+        ${PC_LIBDEBUGINFOD_VERSION}
+        CACHE STRING "")
 else()
-	find_path(
-	    LibDebuginfod_INCLUDE_DIRS
-	    NAMES debuginfod.h
-	    PATH_SUFFIXES elfutils)
-	
-	find_library(
-	    LibDebuginfod_LIBRARIES
-	    NAMES libdebuginfod debuginfod
-	    PATH_SUFFIXES elfutils)
-	
-	if(EXISTS "${LibDebuginfod_INCLUDE_DIRS}/version.h")
-	    file(STRINGS "${LibDebuginfod_INCLUDE_DIRS}/version.h" _version_line
-	         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
-	    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
-	    if(NOT "x${_version}" STREQUAL "x")
-	        set(LibDebuginfod_VERSION "0.${_version}")
-	    endif()
-	    unset(_version_line)
-	    unset(_version)
-	endif()
-	
-	if("x${LibDebuginfod_VERSION}" STREQUAL "x")
-	    message(FATAL_ERROR "Unable to find version for libdebuginfod")
-	endif()
+    find_path(
+        LibDebuginfod_INCLUDE_DIRS
+        NAMES debuginfod.h
+        PATH_SUFFIXES elfutils)
+
+    find_library(
+        LibDebuginfod_LIBRARIES
+        NAMES libdebuginfod debuginfod
+        PATH_SUFFIXES elfutils)
+
+    if(EXISTS "${LibDebuginfod_INCLUDE_DIRS}/version.h")
+        file(STRINGS "${LibDebuginfod_INCLUDE_DIRS}/version.h" _version_line
+             REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+        string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+        if(NOT "x${_version}" STREQUAL "x")
+            set(LibDebuginfod_VERSION "0.${_version}")
+        endif()
+        unset(_version_line)
+        unset(_version)
+    endif()
+
+    if("x${LibDebuginfod_VERSION}" STREQUAL "x")
+        message(FATAL_ERROR "Unable to find version for libdebuginfod")
+    endif()
 endif()
 
 include(FindPackageHandleStandardArgs)
