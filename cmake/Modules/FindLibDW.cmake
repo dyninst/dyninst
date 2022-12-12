@@ -91,7 +91,7 @@ if(LibDW_FOUND)
     mark_as_advanced(LibDW_LIBRARIES)
 
     # Some platforms explicitly list libelf as a dependency, so separate it out
-    if(${LibDW_LIBRARIES} MATCHES "libelf")
+    if("${LibDW_LIBRARIES}" MATCHES "libelf")
         foreach(_l LibDW_LIBRARIES)
             if(${_l} MATCHES "libdw")
                 set(_libdw ${_l})
