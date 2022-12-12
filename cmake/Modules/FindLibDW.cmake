@@ -90,10 +90,30 @@ if(LibDW_FOUND)
     mark_as_advanced(LibDW_INCLUDE_DIR)
     mark_as_advanced(LibDW_LIBRARIES)
 
+    # Some platforms explicitly list libelf as a dependency, so separate it out
+    if(${LibDW_LIBRARIES} MATCHES "libelf")
+        foreach(_l LibDW_LIBRARIES)
+            if(${_l} MATCHES "libdw")
+                set(_libdw ${_l})
+            else()
+                list(APPEND _link_libs ${_l})
+            endif()
+        endforeach()
+    endif()
+
     if(NOT TARGET LibDW::LibDW)
         add_library(LibDW::LibDW UNKNOWN IMPORTED)
         set_target_properties(LibDW::LibDW PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                                       "${LibDW_INCLUDE_DIRS}")
+
+        if(NOT "x${_link_libs}" STREQUAL "x")
+            set_target_properties(
+                LibDW::LibDW PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                        IMPORTED_LINK_DEPENDENT_LIBRARIES "${_link_libs}")
+            set(LibDW_LIBRARIES ${_libdw})
+            unset(_libdw)
+            unset(_link_libs)
+        endif()
 
         set_target_properties(
             LibDW::LibDW PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
