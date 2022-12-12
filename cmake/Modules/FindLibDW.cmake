@@ -47,7 +47,7 @@ if(PC_LIBDW_FOUND)
         ${PC_LIBDW_INCLUDE_DIRS}
         CACHE PATH "")
     set(LibDW_LIBRARIES
-        ${PC_LIBDW_LIBRARIES}
+        ${PC_LIBDW_LINK_LIBRARIES}
         CACHE PATH "")
     set(LibDW_VERSION
         ${PC_LIBDW_VERSION}

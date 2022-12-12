@@ -47,7 +47,7 @@ if(PC_LIBELF_FOUND)
         ${PC_LIBELF_INCLUDE_DIRS}
         CACHE PATH "")
     set(LibELF_LIBRARIES
-        ${PC_LIBELF_LIBRARIES}
+        ${PC_LIBELF_LINK_LIBRARIES}
         CACHE PATH "")
     set(LibELF_VERSION
         ${PC_LIBELF_VERSION}
