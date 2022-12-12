@@ -98,3 +98,6 @@ if(LibDebuginfod_FOUND)
                                                              "${LibDebuginfod_LIBRARIES}")
     endif()
 endif()
+
+unset(_quiet)
+unset(_version)

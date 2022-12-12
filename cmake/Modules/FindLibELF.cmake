@@ -103,3 +103,4 @@ if(LibELF_FOUND)
 endif()
 
 unset(_quiet)
+unset(_version)

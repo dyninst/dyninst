@@ -96,3 +96,6 @@ if(LibDW_FOUND)
                                     IMPORTED_LOCATION "${LibDW_LIBRARIES}")
     endif()
 endif()
+
+unset(_quiet)
+unset(_version)
