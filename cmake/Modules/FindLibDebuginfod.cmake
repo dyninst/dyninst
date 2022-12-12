@@ -43,6 +43,11 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(PC_LIBDEBUGINFOD_FOUND)
+		# FindPkgConfig sometimes gets the include dir wrong
+		if("x${PC_LIBDEBUGINFOD_INCLUDE_DIRS}" STREQUAL "x")
+			pkg_get_variable(PC_LIBDEBUGINFOD_INCLUDE_DIRS libdebuginfod includedir)
+		endif()
+		
     set(LibDebuginfod_INCLUDE_DIRS
         ${PC_LIBDEBUGINFOD_INCLUDE_DIRS}
         CACHE PATH "")

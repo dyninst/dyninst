@@ -43,6 +43,11 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(PC_LIBDW_FOUND)
+		# FindPkgConfig sometimes gets the include dir wrong
+		if("x${PC_LIBDW_INCLUDE_DIRS}" STREQUAL "x")
+			pkg_get_variable(PC_LIBDW_INCLUDE_DIRS libdw includedir)
+		endif()
+		
     set(LibDW_INCLUDE_DIRS
         ${PC_LIBDW_INCLUDE_DIRS}
         CACHE PATH "")
