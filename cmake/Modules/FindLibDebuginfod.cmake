@@ -43,24 +43,22 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(PC_LIBDEBUGINFOD_FOUND)
-	set(LibDebuginfod_INCLUDE_DIR ${PC_LIBDEBUGINFOD_INCLUDE_DIRS})
-	set(LibDebuginfod_LIBRARY ${PC_LIBDEBUGINFOD_LIBRARIES})
-	set(LibDebuginfod_VERSION ${PC_LIBDEBUGINFOD_VERSION})
+	set(LibDebuginfod_INCLUDE_DIRS ${PC_LIBDEBUGINFOD_INCLUDE_DIRS} CACHE PATH "")
+	set(LibDebuginfod_LIBRARIES ${PC_LIBDEBUGINFOD_LIBRARIES} CACHE PATH "")
+	set(LibDebuginfod_VERSION ${PC_LIBDEBUGINFOD_VERSION} CACHE STRING "")
 else()
 	find_path(
-	    LibDebuginfod_INCLUDE_DIR
+	    LibDebuginfod_INCLUDE_DIRS
 	    NAMES debuginfod.h
 	    PATH_SUFFIXES elfutils)
-	mark_as_advanced(LibDebuginfod_INCLUDE_DIR)
 	
 	find_library(
-	    LibDebuginfod_LIBRARY
+	    LibDebuginfod_LIBRARIES
 	    NAMES libdebuginfod debuginfod
 	    PATH_SUFFIXES elfutils)
-	mark_as_advanced(LibDebuginfod_LIBRARY)
 	
-	if(EXISTS "${LibDebuginfod_INCLUDE_DIR}/version.h")
-	    file(STRINGS "${LibDebuginfod_INCLUDE_DIR}/version.h" _version_line
+	if(EXISTS "${LibDebuginfod_INCLUDE_DIRS}/version.h")
+	    file(STRINGS "${LibDebuginfod_INCLUDE_DIRS}/version.h" _version_line
 	         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
 	    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
 	    if(NOT "x${_version}" STREQUAL "x")
@@ -79,12 +77,12 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     LibDebuginfod
     FOUND_VAR LibDebuginfod_FOUND
-    REQUIRED_VARS LibDebuginfod_LIBRARY LibDebuginfod_INCLUDE_DIR
+    REQUIRED_VARS LibDebuginfod_LIBRARIES LibDebuginfod_INCLUDE_DIRS
     VERSION_VAR LibDebuginfod_VERSION)
 
 if(LibDebuginfod_FOUND)
-    set(LibDebuginfod_INCLUDE_DIRS ${LibDebuginfod_INCLUDE_DIR})
-    set(LibDebuginfod_LIBRARIES ${LibDebuginfod_LIBRARY})
+    mark_as_advanced(LibDebuginfod_INCLUDE_DIR)
+    mark_as_advanced(LibDebuginfod_LIBRARIES)
 
     if(NOT TARGET LibDebuginfod::LibDebuginfod)
         add_library(LibDebuginfod::LibDebuginfod UNKNOWN IMPORTED)

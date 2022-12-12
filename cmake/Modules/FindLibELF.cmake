@@ -43,22 +43,20 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(PC_LIBELF_FOUND)
-	set(LibELF_INCLUDE_DIR ${PC_LIBELF_INCLUDE_DIRS})
-	set(LibELF_LIBRARY ${PC_LIBELF_LIBRARIES})
-	set(LibELF_VERSION ${PC_LIBELF_VERSION})
+	set(LibELF_INCLUDE_DIRS ${PC_LIBELF_INCLUDE_DIRS} CACHE PATH "")
+	set(LibELF_LIBRARIES ${PC_LIBELF_LIBRARIES} CACHE PATH "")
+	set(LibELF_VERSION ${PC_LIBELF_VERSION} CACHE STRING "")
 else()
 	find_path(
-	    LibELF_INCLUDE_DIR
+	    LibELF_INCLUDE_DIRS
 	    NAMES libelf.h
 	    PATH_SUFFIXES elfutils)
-	mark_as_advanced(LibELF_INCLUDE_DIR)
 	
 	find_library(
-	    LibELF_LIBRARY
+	    LibELF_LIBRARIES
 	    NAMES libelf elf
 	    PATH_SUFFIXES elfutils)
-	mark_as_advanced(LibELF_LIBRARY)
-	
+
 	macro(_check_libelf_version _file)
 	    file(STRINGS ${_file} _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
 	    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
@@ -69,10 +67,10 @@ else()
 	    unset(_version)
 	endmacro()
 	
-	if(EXISTS "${LibELF_INCLUDE_DIR}/version.h")
-	    _check_libelf_version("${LibELF_INCLUDE_DIR}/version.h")
-	elseif(EXISTS "${LibELF_INCLUDE_DIR}/elfutils/version.h")
-	    _check_libelf_version("${LibELF_INCLUDE_DIR}/elfutils/version.h")
+	if(EXISTS "${LibELF_INCLUDE_DIRS}/version.h")
+	    _check_libelf_version("${LibELF_INCLUDE_DIRS}/version.h")
+	elseif(EXISTS "${LibELF_INCLUDE_DIRS}/elfutils/version.h")
+	    _check_libelf_version("${LibELF_INCLUDE_DIRS}/elfutils/version.h")
 	endif()
 	
 	if("x${LibELF_VERSION}" STREQUAL "x")
@@ -84,12 +82,12 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     LibELF
     FOUND_VAR LibELF_FOUND
-    REQUIRED_VARS LibELF_LIBRARY LibELF_INCLUDE_DIR
+    REQUIRED_VARS LibELF_LIBRARIES LibELF_INCLUDE_DIRS
     VERSION_VAR LibELF_VERSION)
 
 if(LibELF_FOUND)
-    set(LibELF_INCLUDE_DIRS ${LibELF_INCLUDE_DIR})
-    set(LibELF_LIBRARIES ${LibELF_LIBRARY})
+	mark_as_advanced(LibELF_INCLUDE_DIRS)
+	mark_as_advanced(LibELF_LIBRARIES)
 
     if(NOT TARGET LibELF::LibELF)
         add_library(LibELF::LibELF UNKNOWN IMPORTED)

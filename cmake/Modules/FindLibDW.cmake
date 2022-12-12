@@ -43,24 +43,22 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(PC_LIBDW_FOUND)
-	set(LibDW_INCLUDE_DIR ${PC_LIBDW_INCLUDE_DIRS})
-	set(LibDW_LIBRARY ${PC_LIBDW_LIBRARIES})
-	set(LibDW_VERSION ${PC_LIBDW_VERSION})
+	set(LibDW_INCLUDE_DIRS ${PC_LIBDW_INCLUDE_DIRS} CACHE PATH "")
+	set(LibDW_LIBRARIES ${PC_LIBDW_LIBRARIES} CACHE PATH "")
+	set(LibDW_VERSION ${PC_LIBDW_VERSION} CACHE STRING "")
 else()
 	find_path(
-	    LibDW_INCLUDE_DIR
+	    LibDW_INCLUDE_DIRS
 	    NAMES libdw.h
 	    PATH_SUFFIXES elfutils)
-	mark_as_advanced(LibDW_INCLUDE_DIR)
 	
 	find_library(
-	    LibDW_LIBRARY
+	    LibDW_LIBRARIES
 	    NAMES libdw dw
 	    PATH_SUFFIXES elfutils)
-	mark_as_advanced(LibDW_LIBRARY)
 	
-	if(EXISTS "${LibDW_INCLUDE_DIR}/version.h")
-	    file(STRINGS "${LibDW_INCLUDE_DIR}/version.h" _version_line
+	if(EXISTS "${LibDW_INCLUDE_DIRS}/version.h")
+	    file(STRINGS "${LibDW_INCLUDE_DIRS}/version.h" _version_line
 	         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
 	    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
 	    if(NOT "x${_version}" STREQUAL "x")
@@ -79,12 +77,12 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     LibDW
     FOUND_VAR LibDW_FOUND
-    REQUIRED_VARS LibDW_LIBRARY LibDW_INCLUDE_DIR
+    REQUIRED_VARS LibDW_LIBRARIES LibDW_INCLUDE_DIRS
     VERSION_VAR LibDW_VERSION)
 
 if(LibDW_FOUND)
-    set(LibDW_INCLUDE_DIRS ${LibDW_INCLUDE_DIR})
-    set(LibDW_LIBRARIES ${LibDW_LIBRARY})
+	mark_as_advanced(LibDW_INCLUDE_DIR)
+	mark_as_advanced(LibDW_LIBRARIES)
 
     if(NOT TARGET LibDW::LibDW)
         add_library(LibDW::LibDW UNKNOWN IMPORTED)
