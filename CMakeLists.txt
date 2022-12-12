@@ -36,10 +36,7 @@ find_package(Threads)
 include(DyninstBoost)
 include(DyninstTBB)
 include(DyninstElfUtils)
-
-if(UNIX)
-    include(DyninstLibIberty REQUIRED)
-endif()
+include(DyninstLibIberty)
 
 include(DyninstLibrary)
 

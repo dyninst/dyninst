@@ -104,13 +104,8 @@ add_definitions(-DCOMMON_LIB)
 
 dyninst_library(common)
 
-if(TARGET LibIberty)
-    add_dependencies(common LibIberty)
-    target_link_libraries(common PRIVATE LibIberty)
-
-    if(${ENABLE_STATIC_LIBS})
-        target_link_libraries(common_static PRIVATE LibIberty)
-    endif()
+if(${ENABLE_STATIC_LIBS})
+    target_link_libraries(common_static PRIVATE Dyninst::LibIberty)
 endif()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
@@ -118,6 +113,7 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
 endif()
 
 target_link_libraries(common PUBLIC Dyninst::TBB Dyninst::Boost)
+target_link_libraries(common PRIVATE Dyninst::LibIberty)
 
 if(USE_OpenMP)
     set_target_properties(common PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
