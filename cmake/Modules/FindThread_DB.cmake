@@ -1,49 +1,58 @@
-# - Try to find thread_db
-# Once done this will define
-#
-#  THREAD_DB_FOUND - system has thread_db
-#  THREAD_DB_INCLUDE_DIRS - the thread_db include directory
-#  THREAD_DB_LIBRARIES - Link these to use thread_db
-#  THREAD_DB_DEFINITIONS - Compiler switches required for using thread_db
-#
+#[=======================================================================[.rst:
+FindThread_DB
+-------------
 
-if(THREAD_DB_LIBRARIES AND THREAD_DB_INCLUDE_DIRS)
-    set(Thread_Db_FIND_QUIETLY TRUE)
-endif(THREAD_DB_LIBRARIES AND THREAD_DB_INCLUDE_DIRS)
+Find thread_db, the debugger interface for the NPTL library.
 
-find_path(
-    THREAD_DB_INCLUDE_DIR
-    NAMES thread_db.h
-    HINTS ${THREAD_DB_INCLUDE_DIRS}
-    PATHS /usr/include
-          /usr/include/thread_db
-          /usr/local/include
-          /opt/local/include
-          /sw/include
-          ENV
-          CPATH) # PATH and INCLUDE will also work
+Imported targets
+^^^^^^^^^^^^^^^^
 
-find_library(
-    THREAD_DB_LIBRARIES
-    NAMES thread_db
-    HINTS ${THREAD_DB_LIBRARIES}
-    PATHS /usr/lib
-          /usr/lib64
-          /usr/local/lib
-          /usr/local/lib64
-          /opt/local/lib
-          /opt/local/lib64
-          /sw/lib
-          ENV
-          LIBRARY_PATH # PATH and LIB will also work
-          ENV
-          LD_LIBRARY_PATH)
+This module defines the following :prop_tgt:`IMPORTED` target:
+
+``Thread_DB::Thread_DB``
+  The threaddb library, if found.
+
+Result variables
+^^^^^^^^^^^^^^^^
+
+This module will set the following variables in your project:
+
+``Thread_DB_INCLUDE_DIRS``
+  where to find thread_db.h, etc.
+``Thread_DB_LIBRARIES``
+  the libraries to link against to use thread_db.
+``Thread_DB_FOUND``
+  If false, do not try to use thread_db.
+
+ Thread_DB does not have its own version number or release schedule.
+ See https://gcc.gnu.org/onlinedocs/thread_db/Using.html#Using for details.
+
+#]=======================================================================]
+cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
+
+find_path(Thread_DB_INCLUDE_DIRS NAMES thread_db.h)
+mark_as_advanced(Thread_DB_INCLUDE_DIRS)
+
+find_library(Thread_DB_LIBRARIES NAMES thread_db)
+mark_as_advanced(Thread_DB_LIBRARIES)
+
 include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(
+    Thread_DB
+    FOUND_VAR Thread_DB_FOUND
+    REQUIRED_VARS Thread_DB_LIBRARIES Thread_DB_INCLUDE_DIRS)
 
-# handle the QUIETLY and REQUIRED arguments and set THREAD_DB_FOUND to TRUE if all listed
-# variables are TRUE
-find_package_handle_standard_args(Thread_DB DEFAULT_MSG THREAD_DB_LIBRARIES
-                                  THREAD_DB_INCLUDE_DIR)
+if(Thread_DB_FOUND)
+    set(Thread_DB_INCLUDE_DIRS ${Thread_DB_INCLUDE_DIRS})
+    set(Thread_DB_LIBRARIES ${Thread_DB_LIBRARIES})
 
-# mark_as_advanced(LIBDW_INCLUDE_DIR DWARF_INCLUDE_DIR)
-# mark_as_advanced(THREAD_DB_INCLUDE_DIRS THREAD_DB_LIBRARIES)
+    if(NOT TARGET Thread_DB::Thread_DB)
+        add_library(Thread_DB::Thread_DB UNKNOWN IMPORTED)
+        set_target_properties(Thread_DB::Thread_DB PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                      "${Thread_DB_INCLUDE_DIRS}")
+
+        set_target_properties(
+            Thread_DB::Thread_DB PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                    IMPORTED_LOCATION "${Thread_DB_LIBRARIES}")
+    endif()
+endif()
