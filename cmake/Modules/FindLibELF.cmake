@@ -42,40 +42,42 @@ if(PKG_CONFIG_FOUND)
     pkg_check_modules(PC_LIBELF ${_quiet} "libelf${_version}")
 endif()
 
-find_path(
-    LibELF_INCLUDE_DIR
-    NAMES libelf.h
-    HINTS ${PC_LIBELF_INCLUDE_DIRS}
-    PATH_SUFFIXES elfutils)
-mark_as_advanced(LibELF_INCLUDE_DIR)
-
-find_library(
-    LibELF_LIBRARY
-    NAMES libelf elf
-    HINTS ${PC_LIBELF_LIBRARY_DIRS}
-    PATH_SUFFIXES elfutils)
-mark_as_advanced(LibELF_LIBRARY)
-
-macro(_check_libelf_version _file)
-    file(STRINGS ${_file} _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
-    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
-    if(NOT "x${_version}" STREQUAL "x")
-        set(LibELF_VERSION "0.${_version}")
-    endif()
-    unset(_version_line)
-    unset(_version)
-endmacro()
-
-if(EXISTS "${LibELF_INCLUDE_DIR}/version.h")
-    _check_libelf_version("${LibELF_INCLUDE_DIR}/version.h")
-elseif(EXISTS "${LibELF_INCLUDE_DIR}/elfutils/version.h")
-    _check_libelf_version("${LibELF_INCLUDE_DIR}/elfutils/version.h")
-elseif(PC_LIBELF_FOUND)
-    set(LibELF_VERSION "${PC_LIBELF_VERSION}")
-endif()
-
-if("x${LibELF_VERSION}" STREQUAL "x")
-    message(FATAL_ERROR "Unable to find version for libelf")
+if(PC_LIBELF_FOUND)
+	set(LibELF_INCLUDE_DIR ${PC_LIBELF_INCLUDE_DIRS})
+	set(LibELF_LIBRARY ${PC_LIBELF_LIBRARIES})
+	set(LibELF_VERSION ${PC_LIBELF_VERSION})
+else()
+	find_path(
+	    LibELF_INCLUDE_DIR
+	    NAMES libelf.h
+	    PATH_SUFFIXES elfutils)
+	mark_as_advanced(LibELF_INCLUDE_DIR)
+	
+	find_library(
+	    LibELF_LIBRARY
+	    NAMES libelf elf
+	    PATH_SUFFIXES elfutils)
+	mark_as_advanced(LibELF_LIBRARY)
+	
+	macro(_check_libelf_version _file)
+	    file(STRINGS ${_file} _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+	    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+	    if(NOT "x${_version}" STREQUAL "x")
+	        set(LibELF_VERSION "0.${_version}")
+	    endif()
+	    unset(_version_line)
+	    unset(_version)
+	endmacro()
+	
+	if(EXISTS "${LibELF_INCLUDE_DIR}/version.h")
+	    _check_libelf_version("${LibELF_INCLUDE_DIR}/version.h")
+	elseif(EXISTS "${LibELF_INCLUDE_DIR}/elfutils/version.h")
+	    _check_libelf_version("${LibELF_INCLUDE_DIR}/elfutils/version.h")
+	endif()
+	
+	if("x${LibELF_VERSION}" STREQUAL "x")
+	    message(FATAL_ERROR "Unable to find version for libelf")
+	endif()
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -99,3 +101,5 @@ if(LibELF_FOUND)
                                       IMPORTED_LOCATION "${LibELF_LIBRARIES}")
     endif()
 endif()
+
+unset(_quiet)

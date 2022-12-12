@@ -42,35 +42,37 @@ if(PKG_CONFIG_FOUND)
     pkg_check_modules(PC_LIBDW ${_quiet} "libdw${_version}")
 endif()
 
-find_path(
-    LibDW_INCLUDE_DIR
-    NAMES libdw.h
-    HINTS ${PC_LIBDW_INCLUDE_DIRS}
-    PATH_SUFFIXES elfutils)
-mark_as_advanced(LibDW_INCLUDE_DIR)
-
-find_library(
-    LibDW_LIBRARY
-    NAMES libdw dw
-    HINTS ${PC_LIBDW_LIBRARY_DIRS}
-    PATH_SUFFIXES elfutils)
-mark_as_advanced(LibDW_LIBRARY)
-
-if(EXISTS "${LibDW_INCLUDE_DIR}/version.h")
-    file(STRINGS "${LibDW_INCLUDE_DIR}/version.h" _version_line
-         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
-    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
-    if(NOT "x${_version}" STREQUAL "x")
-        set(LibDW_VERSION "0.${_version}")
-    endif()
-    unset(_version_line)
-    unset(_version)
-elseif(PC_LIBDW_FOUND)
-    set(LibDW_VERSION "${PC_LIBDW_VERSION}")
-endif()
-
-if("x${LibDW_VERSION}" STREQUAL "x")
-    message(FATAL_ERROR "Unable to find version for libdw")
+if(PC_LIBDW_FOUND)
+	set(LibDW_INCLUDE_DIR ${PC_LIBDW_INCLUDE_DIRS})
+	set(LibDW_LIBRARY ${PC_LIBDW_LIBRARIES})
+	set(LibDW_VERSION ${PC_LIBDW_VERSION})
+else()
+	find_path(
+	    LibDW_INCLUDE_DIR
+	    NAMES libdw.h
+	    PATH_SUFFIXES elfutils)
+	mark_as_advanced(LibDW_INCLUDE_DIR)
+	
+	find_library(
+	    LibDW_LIBRARY
+	    NAMES libdw dw
+	    PATH_SUFFIXES elfutils)
+	mark_as_advanced(LibDW_LIBRARY)
+	
+	if(EXISTS "${LibDW_INCLUDE_DIR}/version.h")
+	    file(STRINGS "${LibDW_INCLUDE_DIR}/version.h" _version_line
+	         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+	    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+	    if(NOT "x${_version}" STREQUAL "x")
+	        set(LibDW_VERSION "0.${_version}")
+	    endif()
+	    unset(_version_line)
+	    unset(_version)
+	endif()
+	
+	if("x${LibDW_VERSION}" STREQUAL "x")
+	    message(FATAL_ERROR "Unable to find version for libdw")
+	endif()
 endif()
 
 include(FindPackageHandleStandardArgs)

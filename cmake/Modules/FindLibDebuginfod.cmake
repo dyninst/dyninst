@@ -42,35 +42,37 @@ if(PKG_CONFIG_FOUND)
     pkg_check_modules(PC_LIBDEBUGINFOD ${_quiet} "libdebuginfod${_version}")
 endif()
 
-find_path(
-    LibDebuginfod_INCLUDE_DIR
-    NAMES debuginfod.h
-    HINTS ${PC_LIBDEBUGINFOD_INCLUDE_DIRS}
-    PATH_SUFFIXES elfutils)
-mark_as_advanced(LibDebuginfod_INCLUDE_DIR)
-
-find_library(
-    LibDebuginfod_LIBRARY
-    NAMES libdebuginfod debuginfod
-    HINTS ${PC_LIBDEBUGINFOD_LIBRARY_DIRS}
-    PATH_SUFFIXES elfutils)
-mark_as_advanced(LibDebuginfod_LIBRARY)
-
-if(EXISTS "${LibDebuginfod_INCLUDE_DIR}/version.h")
-    file(STRINGS "${LibDebuginfod_INCLUDE_DIR}/version.h" _version_line
-         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
-    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
-    if(NOT "x${_version}" STREQUAL "x")
-        set(LibDebuginfod_VERSION "0.${_version}")
-    endif()
-    unset(_version_line)
-    unset(_version)
-elseif(PC_LIBDEBUGINFOD_FOUND)
-    set(LibDebuginfod_VERSION "${PC_LIBDEBUGINFOD_VERSION}")
-endif()
-
-if("x${LibDebuginfod_VERSION}" STREQUAL "x")
-    message(FATAL_ERROR "Unable to find version for libdebuginfod")
+if(PC_LIBDEBUGINFOD_FOUND)
+	set(LibDebuginfod_INCLUDE_DIR ${PC_LIBDEBUGINFOD_INCLUDE_DIRS})
+	set(LibDebuginfod_LIBRARY ${PC_LIBDEBUGINFOD_LIBRARIES})
+	set(LibDebuginfod_VERSION ${PC_LIBDEBUGINFOD_VERSION})
+else()
+	find_path(
+	    LibDebuginfod_INCLUDE_DIR
+	    NAMES debuginfod.h
+	    PATH_SUFFIXES elfutils)
+	mark_as_advanced(LibDebuginfod_INCLUDE_DIR)
+	
+	find_library(
+	    LibDebuginfod_LIBRARY
+	    NAMES libdebuginfod debuginfod
+	    PATH_SUFFIXES elfutils)
+	mark_as_advanced(LibDebuginfod_LIBRARY)
+	
+	if(EXISTS "${LibDebuginfod_INCLUDE_DIR}/version.h")
+	    file(STRINGS "${LibDebuginfod_INCLUDE_DIR}/version.h" _version_line
+	         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+	    string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+	    if(NOT "x${_version}" STREQUAL "x")
+	        set(LibDebuginfod_VERSION "0.${_version}")
+	    endif()
+	    unset(_version_line)
+	    unset(_version)
+	endif()
+	
+	if("x${LibDebuginfod_VERSION}" STREQUAL "x")
+	    message(FATAL_ERROR "Unable to find version for libdebuginfod")
+	endif()
 endif()
 
 include(FindPackageHandleStandardArgs)
