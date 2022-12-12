@@ -33,9 +33,13 @@ if(LibDW_FIND_QUIETLY)
 	set(_quiet "QUIET")
 endif()
 
+if(NOT "x${LibDW_FIND_VERSION}" STREQUAL "x")
+	set(_version ">=${LibDW_FIND_VERSION}")
+endif()
+
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(PC_LIBDW ${_quiet} libdw)
+    pkg_check_modules(PC_LIBDW ${_quiet} "libdw${_version}")
 endif()
 
 find_path(

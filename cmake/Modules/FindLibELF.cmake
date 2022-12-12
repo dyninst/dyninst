@@ -33,9 +33,13 @@ if(LibELF_FIND_QUIETLY)
 	set(_quiet "QUIET")
 endif()
 
+if(NOT "x${LibELF_FIND_VERSION}" STREQUAL "x")
+	set(_version ">=${LibELF_FIND_VERSION}")
+endif()
+
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(PC_LIBELF ${_quiet} libelf)
+    pkg_check_modules(PC_LIBELF ${_quiet} "libelf${_version}")
 endif()
 
 find_path(

@@ -33,9 +33,13 @@ if(LibDebuginfod_FIND_QUIETLY)
 	set(_quiet "QUIET")
 endif()
 
+if(NOT "x${LibDebuginfod_FIND_VERSION}" STREQUAL "x")
+	set(_version ">=${LibDebuginfod_FIND_VERSION}")
+endif()
+
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(PC_LIBDEBUGINFOD ${_quiet} libdebuginfod)
+    pkg_check_modules(PC_LIBDEBUGINFOD ${_quiet} "libdebuginfod${_version}")
 endif()
 
 find_path(
