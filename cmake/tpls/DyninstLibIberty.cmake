@@ -28,6 +28,6 @@ find_package(LibIberty REQUIRED)
 
 if(NOT TARGET Dyninst::LibIberty)
 	add_library(Dyninst::LibIberty INTERFACE IMPORTED)
-	target_include_directories(Dyninst::LibIberty SYSTEM INTERFACE LibIberty::LibIberty)
+	target_include_directories(Dyninst::LibIberty SYSTEM INTERFACE ${LibIberty_INCLUDE_DIRS})
 	target_link_libraries(Dyninst::LibIberty INTERFACE LibIberty::LibIberty)
 endif()
