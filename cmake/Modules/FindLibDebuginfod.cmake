@@ -29,9 +29,13 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
+if(LibDebuginfod_FIND_QUIETLY)
+	set(_quiet "QUIET")
+endif()
+
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(PC_LIBDEBUGINFOD QUIET libdebuginfod)
+    pkg_check_modules(PC_LIBDEBUGINFOD ${_quiet} libdebuginfod)
 endif()
 
 find_path(

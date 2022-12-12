@@ -29,9 +29,13 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
+if(LibDW_FIND_QUIETLY)
+	set(_quiet "QUIET")
+endif()
+
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(PC_LIBDW QUIET libdw)
+    pkg_check_modules(PC_LIBDW ${_quiet} libdw)
 endif()
 
 find_path(
