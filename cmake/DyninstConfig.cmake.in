@@ -8,6 +8,7 @@
 include(DyninstTBB)
 include(DyninstBoost)
 include(DyninstElfUtils)
+include(DyninstLibIberty)
 
 # compute paths
 
