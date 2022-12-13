@@ -9,5 +9,5 @@ if(WIN32)
     add_definitions(-DYY_NO_UNISTD_H)
 endif()
 
-dyninst_library(dynC_API dyninstAPI)
+dyninst_library(dynC_API dyninstAPI symtabAPI)
 target_link_libraries(dynC_API PRIVATE common)

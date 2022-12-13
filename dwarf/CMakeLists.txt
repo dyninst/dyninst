@@ -10,7 +10,6 @@ add_definitions(-DDYNDWARF_LIB)
 set(SRC_LIST src/dwarfResult.C src/dwarfExprParser.C src/dwarfFrameParser.C
              src/dwarfHandle.C src/dwarf_subrange.cpp)
 
-dyninst_library(dynDwarf dynElf common ${LibDwarf_LIBRARIES})
-add_dependencies(dynDwarf ElfUtils)
-target_link_private_libraries(dynDwarf ${ElfUtils_LIBRARIES})
+dyninst_library(dynDwarf dynElf common)
 target_link_libraries(dynDwarf PUBLIC Dyninst::Boost_headers)
+target_link_libraries(dynDwarf PRIVATE Dyninst::ElfUtils)
