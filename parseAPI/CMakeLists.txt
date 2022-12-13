@@ -103,6 +103,7 @@ endif()
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
 
 target_link_libraries(parseAPI PUBLIC Dyninst::Boost_headers)
+target_link_libraries(parseAPI PUBLIC symtabAPI)
 
 if(WIN32)
     target_link_private_libraries(parseAPI shlwapi)

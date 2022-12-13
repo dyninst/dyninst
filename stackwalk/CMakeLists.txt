@@ -69,4 +69,6 @@ if(SW_ANALYSIS_STEPPER)
 endif()
 
 dyninst_library(stackwalk ${DEPS})
+
 target_link_libraries(stackwalk PUBLIC Dyninst::Boost_headers)
+target_link_libraries(stackwalk PRIVATE Dyninst::ElfUtils)

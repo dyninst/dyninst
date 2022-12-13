@@ -64,18 +64,14 @@ add_definitions(-DSYMTAB_LIB)
 set(DEPS common)
 
 if(UNIX)
-    list(APPEND DEPS dynElf dynDwarf ${ElfUtils_LIBRARIES})
+    list(APPEND DEPS dynElf dynDwarf)
 else()
     list(APPEND DEPS dbghelp)
 endif()
 
 dyninst_library(symtabAPI ${DEPS})
 target_link_libraries(symtabAPI PRIVATE Dyninst::TBB)
-
-if(TARGET ElfUtils)
-    add_dependencies(symtabAPI ElfUtils)
-endif()
-
+target_link_libraries(symtabAPI PUBLIC Dyninst::ElfUtils)
 target_link_libraries(symtabAPI PUBLIC Dyninst::Boost)
 
 if(USE_OpenMP)
