@@ -68,18 +68,23 @@ else()
         NAMES valgrind
         PATH_SUFFIXES valgrind)
 
-#define __VALGRIND_MAJOR__    3
-#define __VALGRIND_MINOR__    18
-    if(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind.h")
-    elseif(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
-        file(STRINGS "${Valgrind_INCLUDE_DIRS}/version.h" _version_line
-             REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
-        string(REGEX MATCH "[0-9]+" _version "${_version_line}")
-        if(NOT "x${_version}" STREQUAL "x")
-            set(Valgrind_VERSION "0.${_version}")
-        endif()
+    macro(_check_valgrind_version _file)
+        file(STRINGS ${_file} _version_line
+             REGEX "^#define __VALGRIND_MAJOR__[ \t]+[0-9]+")
+        string(REGEX MATCH "[0-9]+" _major "${_version_line}")
+        file(STRINGS ${_file} _version_line
+             REGEX "^#define __VALGRIND_MINOR__[ \t]+[0-9]+")
+        string(REGEX MATCH "[0-9]+" _minor "${_version_line}")
+        set(Valgrind_VERSION "${_major}.${_minor}")
         unset(_version_line)
-        unset(_version)
+        unset(_major)
+        unset(_minor)
+    endmacro()
+    
+    if(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind.h")
+    	_check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind.h")
+    elseif(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
+    	_check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
     endif()
 
     if("x${Valgrind_VERSION}" STREQUAL "x")
