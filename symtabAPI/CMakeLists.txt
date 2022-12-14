@@ -70,11 +70,6 @@ else()
 endif()
 
 dyninst_library(symtabAPI ${DEPS})
-target_link_libraries(symtabAPI PRIVATE Dyninst::TBB)
+target_link_libraries(symtabAPI PRIVATE Dyninst::TBB OpenMP::OpenMP_CXX)
 target_link_libraries(symtabAPI PUBLIC Dyninst::ElfUtils)
 target_link_libraries(symtabAPI PUBLIC Dyninst::Boost)
-
-if(USE_OpenMP)
-    set_target_properties(symtabAPI PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-                                               LINK_FLAGS ${OpenMP_CXX_FLAGS})
-endif()
