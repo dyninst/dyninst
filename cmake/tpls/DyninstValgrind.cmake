@@ -27,7 +27,8 @@ mark_as_advanced(Valgrind_ROOT_DIR)
 find_package(Valgrind REQUIRED)
 
 if(NOT TARGET Dyninst::Valgrind)
-	add_library(Dyninst::Valgrind INTERFACE IMPORTED)
-	target_include_directories(Dyninst::Valgrind SYSTEM INTERFACE ${Valgrind_INCLUDE_DIRS})
-	target_compile_definitions(Dyninst::Valgrind INTERFACE ENABLE_VG_ANNOTATIONS)
+    add_library(Dyninst::Valgrind INTERFACE IMPORTED)
+    target_include_directories(Dyninst::Valgrind SYSTEM
+                               INTERFACE ${Valgrind_INCLUDE_DIRS})
+    target_compile_definitions(Dyninst::Valgrind INTERFACE ENABLE_VG_ANNOTATIONS)
 endif()

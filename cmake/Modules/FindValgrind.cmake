@@ -41,11 +41,11 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 if(PC_VALGRIND_FOUND)
-		# FindPkgConfig sometimes gets the include dir wrong
-		if("x${PC_VALGRIND_INCLUDE_DIRS}" STREQUAL "x")
-			pkg_get_variable(PC_VALGRIND_INCLUDE_DIRS valgrind includedir)
-		endif()
-		
+    # FindPkgConfig sometimes gets the include dir wrong
+    if("x${PC_VALGRIND_INCLUDE_DIRS}" STREQUAL "x")
+        pkg_get_variable(PC_VALGRIND_INCLUDE_DIRS valgrind includedir)
+    endif()
+
     set(Valgrind_INCLUDE_DIRS
         ${PC_VALGRIND_INCLUDE_DIRS}
         CACHE PATH "")
@@ -70,11 +70,11 @@ else()
         unset(_major)
         unset(_minor)
     endmacro()
-    
+
     if(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind.h")
-    	_check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind.h")
+        _check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind.h")
     elseif(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
-    	_check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
+        _check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
     endif()
 
     if("x${Valgrind_VERSION}" STREQUAL "x")
