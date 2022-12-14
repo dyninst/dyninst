@@ -1,45 +1,135 @@
-#========================================================================================
-# FindValgrind.cmake
-#
-# Find Valgrind include dirs
-#
-#		----------------------------------------
-#
-# Use this module by invoking find_package with the form::
-#
-#  find_package(Valgrind
-#    [REQUIRED]             # Fail with error if Valgrind headers are not found
-#  )
-#
-# This module reads hints about search locations from variables::
-#
-#	Valgrind_ROOT_DIR	- Base directory the of Valgrind installation
-#	Valgrind_INCLUDEDIR	- Hint directory that contains the Valgrind headers files
-#
-# and saves search results persistently in CMake cache entries::
-#
-#	Valgrind_FOUND		- True if headers were found
-#	Valgrind_INCLUDE_DIRS 	- Valgrind include directories
-#
-#========================================================================================
+#[=======================================================================[.rst:
+FindLibValgrind
+---------------
 
-include(DyninstSystemPaths)
+Find valgrind, a dynamic binary instrumentation framework.
 
-find_path(
-    Valgrind_INCLUDE_DIR
-    NAMES valgrind.h
-    HINTS ${Valgrind_ROOT_DIR}/include ${Valgrind_ROOT_DIR} ${Valgrind_INCLUDEDIR}
-    PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
-    PATH_SUFFIXES valgrind
-    DOC "Valgrind include directory")
+Imported targets
+^^^^^^^^^^^^^^^^
+
+This module defines the following :prop_tgt:`IMPORTED` target:
+
+``Valgrind::Valgrind``
+  The valgrind library, if found.
+
+Result variables
+^^^^^^^^^^^^^^^^
+
+This module will set the following variables in your project:
+
+``Valgrind_INCLUDE_DIRS``
+  where to find valgrind.h, etc.
+``Valgrind_LIBRARIES``
+  the libraries to link against to use valgrind.
+``Valgrind_FOUND``
+  If false, do not try to use valgrind.
+``Valgrind_VERSION``
+  the version of the valgrind library found
+
+#]=======================================================================]
+cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
+
+if(Valgrind_FIND_QUIETLY)
+    set(_quiet "QUIET")
+endif()
+
+if(NOT "x${Valgrind_FIND_VERSION}" STREQUAL "x")
+    set(_version ">=${Valgrind_FIND_VERSION}")
+endif()
+
+find_package(PkgConfig QUIET)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(PC_VALGRIND ${_quiet} "valgrind${_version}")
+endif()
+
+if(PC_VALGRIND_FOUND)
+		# FindPkgConfig sometimes gets the include dir wrong
+		if("x${PC_VALGRIND_INCLUDE_DIRS}" STREQUAL "x")
+			pkg_get_variable(PC_VALGRIND_INCLUDE_DIRS valgrind includedir)
+		endif()
+		
+    set(Valgrind_INCLUDE_DIRS
+        ${PC_VALGRIND_INCLUDE_DIRS}
+        CACHE PATH "")
+    set(Valgrind_LIBRARIES
+        ${PC_VALGRIND_LINK_LIBRARIES}
+        CACHE PATH "")
+    set(Valgrind_VERSION
+        ${PC_VALGRIND_VERSION}
+        CACHE STRING "")
+else()
+    find_path(
+        Valgrind_INCLUDE_DIRS
+        NAMES valgrind.h
+        PATH_SUFFIXES valgrind)
+
+    find_library(
+        Valgrind_LIBRARIES
+        NAMES valgrind
+        PATH_SUFFIXES valgrind)
+
+#define __VALGRIND_MAJOR__    3
+#define __VALGRIND_MINOR__    18
+    if(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind.h")
+    elseif(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
+        file(STRINGS "${Valgrind_INCLUDE_DIRS}/version.h" _version_line
+             REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+        string(REGEX MATCH "[0-9]+" _version "${_version_line}")
+        if(NOT "x${_version}" STREQUAL "x")
+            set(Valgrind_VERSION "0.${_version}")
+        endif()
+        unset(_version_line)
+        unset(_version)
+    endif()
+
+    if("x${Valgrind_VERSION}" STREQUAL "x")
+        message(FATAL_ERROR "Unable to find version for valgrind")
+    endif()
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     Valgrind
     FOUND_VAR Valgrind_FOUND
-    REQUIRED_VARS Valgrind_INCLUDE_DIR)
+    REQUIRED_VARS Valgrind_LIBRARIES Valgrind_INCLUDE_DIRS
+    VERSION_VAR Valgrind_VERSION)
 
-# Export cache variables
 if(Valgrind_FOUND)
-    set(Valgrind_INCLUDE_DIRS ${Valgrind_INCLUDE_DIR})
+    mark_as_advanced(Valgrind_INCLUDE_DIR)
+    mark_as_advanced(Valgrind_LIBRARIES)
+
+    # Some platforms explicitly list libelf as a dependency, so separate it out
+    list(LENGTH Valgrind_LIBRARIES _cnt)
+    if(${_cnt} GREATER 1)
+        foreach(_l ${Valgrind_LIBRARIES})
+            if(${_l} MATCHES "valgrind")
+                set(_libdw ${_l})
+            else()
+                list(APPEND _link_libs ${_l})
+            endif()
+        endforeach()
+    endif()
+    unset(_cnt)
+
+    if(NOT TARGET Valgrind::Valgrind)
+        add_library(Valgrind::Valgrind UNKNOWN IMPORTED)
+        set_target_properties(Valgrind::Valgrind PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                                                      "${Valgrind_INCLUDE_DIRS}")
+
+        if(NOT "x${_link_libs}" STREQUAL "x")
+            set_target_properties(
+                Valgrind::Valgrind PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                        IMPORTED_LINK_DEPENDENT_LIBRARIES "${_link_libs}")
+            set(Valgrind_LIBRARIES ${_libdw})
+            unset(_libdw)
+            unset(_link_libs)
+        endif()
+
+        set_target_properties(
+            Valgrind::Valgrind PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                    IMPORTED_LOCATION "${Valgrind_LIBRARIES}")
+    endif()
 endif()
+
+unset(_quiet)
+unset(_version)
