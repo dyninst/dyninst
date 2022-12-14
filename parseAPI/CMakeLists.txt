@@ -103,7 +103,7 @@ endif()
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
 
 target_link_libraries(parseAPI PUBLIC Dyninst::Boost_headers)
-target_link_libraries(parseAPI PUBLIC symtabAPI)
+target_link_libraries(parseAPI PUBLIC symtabAPI OpenMP::OpenMP_CXX)
 
 if(WIN32)
     target_link_private_libraries(parseAPI shlwapi)
@@ -112,11 +112,6 @@ message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")
 file(GLOB headers "h/*.h")
 file(GLOB dataflowheaders "../dataflowAPI/h/*.h")
 set_target_properties(parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
-
-if(USE_OpenMP)
-    set_target_properties(parseAPI PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-                                              LINK_FLAGS ${OpenMP_CXX_FLAGS})
-endif()
 
 if(${ENABLE_STATIC_LIBS})
     set_target_properties(parseAPI_static PROPERTIES PUBLIC_HEADER
