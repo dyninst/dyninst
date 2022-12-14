@@ -25,7 +25,7 @@ This module will set the following variables in your project:
   If false, do not try to use thread_db.
 
  Thread_DB does not have its own version number or release schedule.
- See https://gcc.gnu.org/onlinedocs/thread_db/Using.html#Using for details.
+ See https://sourceware.org/gdb/current/onlinedocs/gdb/Threads.html for details.
 
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
