@@ -19,8 +19,6 @@ This module will set the following variables in your project:
 
 ``Valgrind_INCLUDE_DIRS``
   where to find valgrind.h, etc.
-``Valgrind_LIBRARIES``
-  the libraries to link against to use valgrind.
 ``Valgrind_FOUND``
   If false, do not try to use valgrind.
 ``Valgrind_VERSION``
@@ -51,9 +49,6 @@ if(PC_VALGRIND_FOUND)
     set(Valgrind_INCLUDE_DIRS
         ${PC_VALGRIND_INCLUDE_DIRS}
         CACHE PATH "")
-    set(Valgrind_LIBRARIES
-        ${PC_VALGRIND_LINK_LIBRARIES}
-        CACHE PATH "")
     set(Valgrind_VERSION
         ${PC_VALGRIND_VERSION}
         CACHE STRING "")
@@ -61,11 +56,6 @@ else()
     find_path(
         Valgrind_INCLUDE_DIRS
         NAMES valgrind.h
-        PATH_SUFFIXES valgrind)
-
-    find_library(
-        Valgrind_LIBRARIES
-        NAMES valgrind
         PATH_SUFFIXES valgrind)
 
     macro(_check_valgrind_version _file)
@@ -96,45 +86,9 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     Valgrind
     FOUND_VAR Valgrind_FOUND
-    REQUIRED_VARS Valgrind_LIBRARIES Valgrind_INCLUDE_DIRS
+    REQUIRED_VARS Valgrind_INCLUDE_DIRS
     VERSION_VAR Valgrind_VERSION)
 
-if(Valgrind_FOUND)
-    mark_as_advanced(Valgrind_INCLUDE_DIR)
-    mark_as_advanced(Valgrind_LIBRARIES)
-
-    # Some platforms explicitly list libelf as a dependency, so separate it out
-    list(LENGTH Valgrind_LIBRARIES _cnt)
-    if(${_cnt} GREATER 1)
-        foreach(_l ${Valgrind_LIBRARIES})
-            if(${_l} MATCHES "valgrind")
-                set(_libdw ${_l})
-            else()
-                list(APPEND _link_libs ${_l})
-            endif()
-        endforeach()
-    endif()
-    unset(_cnt)
-
-    if(NOT TARGET Valgrind::Valgrind)
-        add_library(Valgrind::Valgrind UNKNOWN IMPORTED)
-        set_target_properties(Valgrind::Valgrind PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                      "${Valgrind_INCLUDE_DIRS}")
-
-        if(NOT "x${_link_libs}" STREQUAL "x")
-            set_target_properties(
-                Valgrind::Valgrind PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                                        IMPORTED_LINK_DEPENDENT_LIBRARIES "${_link_libs}")
-            set(Valgrind_LIBRARIES ${_libdw})
-            unset(_libdw)
-            unset(_link_libs)
-        endif()
-
-        set_target_properties(
-            Valgrind::Valgrind PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                                    IMPORTED_LOCATION "${Valgrind_LIBRARIES}")
-    endif()
-endif()
-
+mark_as_advanced(Valgrind_INCLUDE_DIRS)
 unset(_quiet)
 unset(_version)
