@@ -113,7 +113,7 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
 endif()
 
 target_link_libraries(common PUBLIC Dyninst::TBB Dyninst::Boost)
-target_link_libraries(common PRIVATE Dyninst::LibIberty OpenMP::OpenMP_CXX)
+target_link_libraries(common PRIVATE Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind)
 
 # Install AMDGPU headers under subdirectory of common/h/AMDGPU
 set(AMDGPU_HEADER ${DYNINST_ROOT}/common/h/AMDGPU)

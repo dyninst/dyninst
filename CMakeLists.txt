@@ -71,11 +71,7 @@ endforeach()
 set(ADD_VALGRIND_ANNOTATIONS
     OFF
     CACHE BOOL "Enable annotations for Valgrind analysis")
-if(ADD_VALGRIND_ANNOTATIONS)
-    find_package(Valgrind REQUIRED)
-    include_directories(${Valgrind_INCLUDE_DIRS})
-    add_definitions(-DENABLE_VG_ANNOTATIONS)
-endif()
+include(DyninstValgrind)
 
 include_directories(${DYNINST_ROOT} ${DYNINST_ROOT}/external)
 
