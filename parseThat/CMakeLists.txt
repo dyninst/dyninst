@@ -13,11 +13,6 @@ add_executable(
     src/dyninstCompat.v5.C)
 add_definitions(-DHAVE_BPATCH_PROCESS_H)
 
-if(USE_OpenMP)
-    set_target_properties(parseThat PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-                                               LINK_FLAGS ${OpenMP_CXX_FLAGS})
-endif()
-
 target_link_private_libraries(
     parseThat
     dyninstAPI
@@ -30,6 +25,7 @@ target_link_private_libraries(
     pcontrol
     dynDwarf
     dynElf
-    Dyninst::ElfUtils)
+    Dyninst::ElfUtils
+    OpenMP::OpenMP_CXX)
 
 install(TARGETS parseThat RUNTIME DESTINATION bin)
