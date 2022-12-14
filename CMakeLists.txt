@@ -30,13 +30,13 @@ list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
 include(DyninstLanguageStandards)
 
 # Find the necessary third-party libraries
-find_package(Thread_DB)
 find_package(Threads)
 
 include(DyninstBoost)
 include(DyninstTBB)
 include(DyninstElfUtils)
 include(DyninstLibIberty)
+include(DyninstThread_DB)
 
 include(DyninstLibrary)
 

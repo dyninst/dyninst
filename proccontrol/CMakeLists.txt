@@ -70,6 +70,7 @@ dyninst_library(pcontrol ${DEPS})
 
 target_link_private_libraries(pcontrol ${CMAKE_DL_LIBS})
 target_link_libraries(pcontrol PUBLIC Dyninst::Boost_headers)
+target_link_libraries(pcontrol PRIVATE Dyninst::Thread_DB)
 
 if(UNIX)
     # Boost auto-links on Windows; don't double-link
