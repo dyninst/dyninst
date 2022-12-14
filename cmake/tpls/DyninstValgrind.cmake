@@ -11,7 +11,7 @@
 include_guard(GLOBAL)
 
 # valgrind is only available on Unixes; provide a dummy target on other platforms
-if(NOT UNIX)
+if(NOT UNIX OR NOT ADD_VALGRIND_ANNOTATIONS)
     if(NOT TARGET Dyninst::Valgrind)
         add_library(Dyninst::Valgrind INTERFACE)
     endif()
