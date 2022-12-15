@@ -1,45 +1,94 @@
-#========================================================================================
-# FindValgrind.cmake
-#
-# Find Valgrind include dirs
-#
-#		----------------------------------------
-#
-# Use this module by invoking find_package with the form::
-#
-#  find_package(Valgrind
-#    [REQUIRED]             # Fail with error if Valgrind headers are not found
-#  )
-#
-# This module reads hints about search locations from variables::
-#
-#	Valgrind_ROOT_DIR	- Base directory the of Valgrind installation
-#	Valgrind_INCLUDEDIR	- Hint directory that contains the Valgrind headers files
-#
-# and saves search results persistently in CMake cache entries::
-#
-#	Valgrind_FOUND		- True if headers were found
-#	Valgrind_INCLUDE_DIRS 	- Valgrind include directories
-#
-#========================================================================================
+#[=======================================================================[.rst:
+FindLibValgrind
+---------------
 
-include(DyninstSystemPaths)
+Find valgrind, a dynamic binary instrumentation framework.
 
-find_path(
-    Valgrind_INCLUDE_DIR
-    NAMES valgrind.h
-    HINTS ${Valgrind_ROOT_DIR}/include ${Valgrind_ROOT_DIR} ${Valgrind_INCLUDEDIR}
-    PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
-    PATH_SUFFIXES valgrind
-    DOC "Valgrind include directory")
+Imported targets
+^^^^^^^^^^^^^^^^
+
+This module defines the following :prop_tgt:`IMPORTED` target:
+
+``Valgrind::Valgrind``
+  The valgrind library, if found.
+
+Result variables
+^^^^^^^^^^^^^^^^
+
+This module will set the following variables in your project:
+
+``Valgrind_INCLUDE_DIRS``
+  where to find valgrind.h, etc.
+``Valgrind_FOUND``
+  If false, do not try to use valgrind.
+``Valgrind_VERSION``
+  the version of the valgrind library found
+
+#]=======================================================================]
+cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
+
+if(Valgrind_FIND_QUIETLY)
+    set(_quiet "QUIET")
+endif()
+
+if(NOT "x${Valgrind_FIND_VERSION}" STREQUAL "x")
+    set(_version ">=${Valgrind_FIND_VERSION}")
+endif()
+
+find_package(PkgConfig QUIET)
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(PC_VALGRIND ${_quiet} "valgrind${_version}")
+endif()
+
+if(PC_VALGRIND_FOUND)
+    # FindPkgConfig sometimes gets the include dir wrong
+    if("x${PC_VALGRIND_INCLUDE_DIRS}" STREQUAL "x")
+        pkg_get_variable(PC_VALGRIND_INCLUDE_DIRS valgrind includedir)
+    endif()
+
+    set(Valgrind_INCLUDE_DIRS
+        ${PC_VALGRIND_INCLUDE_DIRS}
+        CACHE PATH "")
+    set(Valgrind_VERSION
+        ${PC_VALGRIND_VERSION}
+        CACHE STRING "")
+else()
+    find_path(
+        Valgrind_INCLUDE_DIRS
+        NAMES valgrind.h
+        PATH_SUFFIXES valgrind)
+
+    macro(_check_valgrind_version _file)
+        file(STRINGS ${_file} _version_line
+             REGEX "^#define __VALGRIND_MAJOR__[ \t]+[0-9]+")
+        string(REGEX MATCH "[0-9]+" _major "${_version_line}")
+        file(STRINGS ${_file} _version_line
+             REGEX "^#define __VALGRIND_MINOR__[ \t]+[0-9]+")
+        string(REGEX MATCH "[0-9]+" _minor "${_version_line}")
+        set(Valgrind_VERSION "${_major}.${_minor}")
+        unset(_version_line)
+        unset(_major)
+        unset(_minor)
+    endmacro()
+
+    if(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind.h")
+        _check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind.h")
+    elseif(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
+        _check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
+    endif()
+
+    if("x${Valgrind_VERSION}" STREQUAL "x")
+        message(FATAL_ERROR "Unable to find version for valgrind")
+    endif()
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     Valgrind
     FOUND_VAR Valgrind_FOUND
-    REQUIRED_VARS Valgrind_INCLUDE_DIR)
+    REQUIRED_VARS Valgrind_INCLUDE_DIRS
+    VERSION_VAR Valgrind_VERSION)
 
-# Export cache variables
-if(Valgrind_FOUND)
-    set(Valgrind_INCLUDE_DIRS ${Valgrind_INCLUDE_DIR})
-endif()
+mark_as_advanced(Valgrind_INCLUDE_DIRS)
+unset(_quiet)
+unset(_version)
