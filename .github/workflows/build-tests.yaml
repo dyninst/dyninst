@@ -1,0 +1,48 @@
+name: Build Tests
+
+on:
+  pull_request:
+     branches:
+        - master
+
+jobs:
+  build:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+         container: ['ubuntu-20.04']
+    runs-on: ubuntu-latest
+    container: ghcr.io/dyninst/amd64-${{ matrix.container }}:latest
+    name: ${{ matrix.container }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build Dyninst
+        run: bash docker/build.sh $PWD
+
+      - name: Build testsuite
+        run: |
+           git clone --depth=1 https://github.com/dyninst/testsuite
+           cd testsuite
+           mkdir build; cd $_
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
+      - name: Build Examples
+        run: |
+           git clone --depth=1 https://github.com/dyninst/examples
+           cd examples
+           mkdir build; cd $_
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
+      - name: Build External-tests
+        run: |
+           git clone --depth=1 https://github.com/dyninst/external-tests
+           cd external-tests
+           mkdir build; cd $_
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
