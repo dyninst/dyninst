@@ -1,0 +1,29 @@
+name: Check dependency versions
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+       - '**.cmake'
+       - '**CMakeLists.txt'
+       - 'docker/dependencies.versions'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          current=$(awk 'match($0,/set\(_boost_min_version (.+)\)/,a){print a[1]}' cmake/Boost.cmake)
+          expected=$(awk 'match($0,/boost:(.+)/,a){print a[1]}' docker/dependencies.versions)
+          if test "$current" != "$expected"; then echo "Boost mismatch: $current != $expected" >/dev/stderr; fi
+  
+          current=$(awk 'match($0,/set\(_tbb_min_version (.+)\)/,a){print a[1]}' cmake/ThreadingBuildingBlocks.cmake)
+          expected=$(awk 'match($0,/tbb:(.+)/,a){print a[1]}' docker/dependencies.versions)
+          IFS=' ' read -a versions <<< $(echo $current)
+          if test "${versions[0]}" != "$expected" -a "${versions[1]}" != "$expected"; then
+            echo "TBB mismatch: ('${versions[0]}','${versions[1]}') != $expected" >/dev/stderr
+          fi
+          
+          current=$(awk 'match($0,/set\(_min_version (.+)\)/,a){print a[1]}' cmake/ElfUtils.cmake)
+          expected=$(awk 'match($0,/elfutils:(.+)/,a){print a[1]}' docker/dependencies.versions)
+          if test "$current" != "$expected"; then echo "Elfutils mismatch: $current != $expected" >/dev/stderr; fi
