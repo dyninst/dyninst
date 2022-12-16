@@ -138,13 +138,6 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
     endif()
 endif()
 
-#
-# DyninstConfig.cmake
-
-file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
-
-# For the install tree
-set(CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
 
 # set default configuration type
 
