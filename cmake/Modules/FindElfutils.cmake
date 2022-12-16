@@ -12,29 +12,25 @@ Imported targets
 
 This module defines the following :prop_tgt:`IMPORTED` target:
 
-``Elfutils::dw``
-  An alias to the libdw library, if found.
-
-``Elfutils::elf``
-  An alias to the libelf library, if found.
-
-``Elfutils::debuginfod``
-  An alias to the libdebuginfod library, if requested and found.
-
 ``Elfutils::Elfutils``
-  A meta-target for both of the above
+  The elfutils library, if found.
+
+This module will set the following variables in your project:
+
+``Elfutils_INCLUDE_DIRS``
+  where to find elfutils headers
+``Elfutils_LIBRARIES``
+  the libraries to link against to use elfutils.
+``Elfutils_FOUND``
+  If false, do not try to use elfutils.
+``Elfutils_VERSION``
+  the version of the elfutils library found
 
 Support for libdebuginfod can be added by specifying it in ``COMPONENTS``.
 
 .. code-block:: cmake
 
    find_package(Elfutils 0.186 EXACT REQUIRED COMPONENTS debuginfod)
-
-   # Add dependency only on libdw
-   target_add_libraries(foo PUBLIC Elfutils::dw)
-
-   # Add dependency on all of elfutils
-   target_add_libraries(foo PUBLIC Elfutils::Elfutils)
 
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
@@ -104,21 +100,6 @@ if(Elfutils_FOUND)
 		
 		mark_as_advanced(Elfutils_VERSION)
 
-    if(NOT TARGET Elfutils::dw)
-        add_library(Elfutils::dw INTERFACE IMPORTED)
-        target_link_libraries(Elfutils::dw INTERFACE LibDW::LibDW)
-    endif()
-    if(NOT TARGET Elfutils::elf)
-        add_library(Elfutils::elf INTERFACE IMPORTED)
-        target_link_libraries(Elfutils::elf INTERFACE LibELF::LibELF)
-    endif()
-    if(NOT TARGET Elfutils::debuginfod)
-        add_library(Elfutils::debuginfod INTERFACE IMPORTED)
-        if(${_need_debuginfod})
-            target_link_libraries(Elfutils::debuginfod
-                                  INTERFACE LibDebuginfod::LibDebuginfod)
-        endif()
-    endif()
     if(NOT TARGET Elfutils::Elfutils)
         add_library(Elfutils::Elfutils INTERFACE IMPORTED)
         target_link_libraries(Elfutils::Elfutils INTERFACE LibELF::LibELF LibDW::LibDW)
