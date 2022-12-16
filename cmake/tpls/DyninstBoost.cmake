@@ -11,7 +11,7 @@
 include_guard(GLOBAL)
 
 # Need at least 1.71 for a usable BoostConfig.cmake
-set(_boost_min_version 1.71.0)
+set(_min_version 1.71.0)
 
 # Use multithreaded libraries
 set(Boost_USE_MULTITHREADED ON)
