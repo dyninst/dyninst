@@ -27,17 +27,18 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
-if(Valgrind_FIND_QUIETLY)
-    set(_quiet "QUIET")
-endif()
-
-if(NOT "x${Valgrind_FIND_VERSION}" STREQUAL "x")
-    set(_version ">=${Valgrind_FIND_VERSION}")
-endif()
-
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
+		if(NOT "x${Valgrind_FIND_VERSION}" STREQUAL "x")
+		    set(_version ">=${Valgrind_FIND_VERSION}")
+		endif()
+		if(Valgrind_FIND_QUIETLY)
+		    set(_quiet "QUIET")
+		endif()
+		
     pkg_check_modules(PC_VALGRIND ${_quiet} "valgrind${_version}")
+    unset(_version)
+    unset(_quiet)
 endif()
 
 if(PC_VALGRIND_FOUND)
@@ -90,5 +91,3 @@ find_package_handle_standard_args(
     VERSION_VAR Valgrind_VERSION)
 
 mark_as_advanced(Valgrind_INCLUDE_DIRS)
-unset(_quiet)
-unset(_version)

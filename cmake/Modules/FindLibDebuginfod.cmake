@@ -29,17 +29,18 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
-if(LibDebuginfod_FIND_QUIETLY)
-    set(_quiet "QUIET")
-endif()
-
-if(NOT "x${LibDebuginfod_FIND_VERSION}" STREQUAL "x")
-    set(_version ">=${LibDebuginfod_FIND_VERSION}")
-endif()
-
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
+		if(NOT "x${LibDebuginfod_FIND_VERSION}" STREQUAL "x")
+		    set(_version ">=${LibDebuginfod_FIND_VERSION}")
+		endif()
+		if(LibDebuginfod_FIND_QUIETLY)
+		    set(_quiet "QUIET")
+		endif()
+		
     pkg_check_modules(PC_LIBDEBUGINFOD ${_quiet} "libdebuginfod${_version}")
+    unset(_version)
+    unset(_quiet)
 endif()
 
 if(PC_LIBDEBUGINFOD_FOUND)
@@ -107,6 +108,3 @@ if(LibDebuginfod_FOUND)
                                                              "${LibDebuginfod_LIBRARIES}")
     endif()
 endif()
-
-unset(_quiet)
-unset(_version)
