@@ -29,17 +29,18 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
-if(LibELF_FIND_QUIETLY)
-    set(_quiet "QUIET")
-endif()
-
-if(NOT "x${LibELF_FIND_VERSION}" STREQUAL "x")
-    set(_version ">=${LibELF_FIND_VERSION}")
-endif()
-
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
+		if(NOT "x${LibELF_FIND_VERSION}" STREQUAL "x")
+		    set(_version ">=${LibELF_FIND_VERSION}")
+		endif()
+		if(LibELF_FIND_QUIETLY)
+		    set(_quiet "QUIET")
+		endif()
+
     pkg_check_modules(PC_LIBELF ${_quiet} "libelf${_version}")
+    unset(_version)
+    unset(_quiet)
 endif()
 
 if(PC_LIBELF_FOUND)
@@ -111,6 +112,3 @@ if(LibELF_FOUND)
                                       IMPORTED_LOCATION "${LibELF_LIBRARIES}")
     endif()
 endif()
-
-unset(_quiet)
-unset(_version)
