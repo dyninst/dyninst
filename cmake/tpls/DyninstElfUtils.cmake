@@ -41,6 +41,7 @@ unset(_components)
 
 if(NOT TARGET Dyninst::ElfUtils)
     add_library(Dyninst::ElfUtils INTERFACE IMPORTED)
+    target_include_directories(Dyninst::ElfUtils SYSTEM INTERFACE ${Elfutils_INCLUDE_DIRS})
     target_link_libraries(Dyninst::ElfUtils INTERFACE Elfutils::Elfutils)
     if(ENABLE_DEBUGINFOD)
         set_property(
