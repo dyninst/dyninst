@@ -111,6 +111,6 @@ endif()
 
 # add_subdirectory(testsuite)
 
-# Copy out all of the cmake files so they can be used by the Testsuite
-install(DIRECTORY ${DYNINST_ROOT}/cmake/ DESTINATION ${INSTALL_CMAKE_DIR})
-install(FILES ${PROJECT_BINARY_DIR}/CMakeCache.txt DESTINATION ${INSTALL_CMAKE_DIR})
+# Export the Find modules for thirdy-party libraries provided by us
+install(DIRECTORY ${DYNINST_ROOT}/cmake/Modules DESTINATION ${INSTALL_CMAKE_DIR})
+install(DIRECTORY ${DYNINST_ROOT}/cmake/tpls DESTINATION ${INSTALL_CMAKE_DIR})
