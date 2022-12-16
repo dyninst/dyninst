@@ -31,10 +31,8 @@ This module will set the following variables in your project:
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
 find_path(Thread_DB_INCLUDE_DIRS NAMES thread_db.h)
-mark_as_advanced(Thread_DB_INCLUDE_DIRS)
 
 find_library(Thread_DB_LIBRARIES NAMES thread_db)
-mark_as_advanced(Thread_DB_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
@@ -43,9 +41,6 @@ find_package_handle_standard_args(
     REQUIRED_VARS Thread_DB_LIBRARIES Thread_DB_INCLUDE_DIRS)
 
 if(Thread_DB_FOUND)
-    set(Thread_DB_INCLUDE_DIRS ${Thread_DB_INCLUDE_DIRS})
-    set(Thread_DB_LIBRARIES ${Thread_DB_LIBRARIES})
-
     if(NOT TARGET Thread_DB::Thread_DB)
         add_library(Thread_DB::Thread_DB UNKNOWN IMPORTED)
         set_target_properties(Thread_DB::Thread_DB PROPERTIES INTERFACE_INCLUDE_DIRECTORIES

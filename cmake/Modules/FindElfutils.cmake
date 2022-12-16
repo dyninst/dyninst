@@ -95,9 +95,14 @@ endif()
 
 if(Elfutils_FOUND)
     set(Elfutils_INCLUDE_DIRS ${LibDW_INCLUDE_DIRS} ${LibELF_INCLUDE_DIRS}
-                              ${LibDebuginfod_INCLUDE_DIRS})
+                              ${LibDebuginfod_INCLUDE_DIRS} CACHE PATH "")
+		mark_as_advanced(Elfutils_INCLUDE_DIRS)
+
     set(Elfutils_LIBRARIES ${LibDW_LIBRARIES} ${LibELF_LIBRARIES}
-                           ${LibDebuginfod_LIBRARIES})
+                           ${LibDebuginfod_LIBRARIES} CACHE PATH "")
+		mark_as_advanced(Elfutils_LIBRARIES)
+		
+		mark_as_advanced(Elfutils_VERSION)
 
     if(NOT TARGET Elfutils::dw)
         add_library(Elfutils::dw INTERFACE IMPORTED)
