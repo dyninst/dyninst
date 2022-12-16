@@ -2,7 +2,6 @@
 # It defines the following variables:
 #
 # DYNINST_INCLUDE_DIRS
-# DYNINST_LIBRARIES
 # DYNINST_INTERNAL_DEFINES - used by the test suite
 
 include(DyninstTBB)
@@ -19,8 +18,6 @@ set(DYNINST_INCLUDE_DIR @CONF_INCLUDE_DIRS@)
 foreach(TARG @ALL_DYNINST_TARGETS@)
     include("${DYNINST_CMAKE_DIR}/${TARG}Targets.cmake" OPTIONAL)
 endforeach()
-
-set(DYNINST_LIBRARIES "dyninstAPI")
 
 # Other variables Dyninst mutators may depend on
 set(DYNINST_PLATFORM "@PLATFORM@")
