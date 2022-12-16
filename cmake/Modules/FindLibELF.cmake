@@ -101,6 +101,7 @@ find_package_handle_standard_args(
 if(LibELF_FOUND)
     mark_as_advanced(LibELF_INCLUDE_DIRS)
     mark_as_advanced(LibELF_LIBRARIES)
+    mark_as_advanced(LibELF_VERSION)
 
     if(NOT TARGET LibELF::LibELF)
         add_library(LibELF::LibELF UNKNOWN IMPORTED)
