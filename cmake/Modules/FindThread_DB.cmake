@@ -44,10 +44,8 @@ if(Thread_DB_FOUND)
     if(NOT TARGET Thread_DB::Thread_DB)
         add_library(Thread_DB::Thread_DB UNKNOWN IMPORTED)
         set_target_properties(Thread_DB::Thread_DB PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                      "${Thread_DB_INCLUDE_DIRS}")
-
-        set_target_properties(
-            Thread_DB::Thread_DB PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                                      "${Thread_DB_INCLUDE_DIRS}"
+                                                      IMPORTED_LINK_INTERFACE_LANGUAGES "C"
                                     IMPORTED_LOCATION "${Thread_DB_LIBRARIES}")
     endif()
 endif()

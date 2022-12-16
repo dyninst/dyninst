@@ -106,10 +106,8 @@ if(LibELF_FOUND)
     if(NOT TARGET LibELF::LibELF)
         add_library(LibELF::LibELF UNKNOWN IMPORTED)
         set_target_properties(LibELF::LibELF PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                        "${LibELF_INCLUDE_DIRS}")
-
-        set_target_properties(
-            LibELF::LibELF PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                                        "${LibELF_INCLUDE_DIRS}"
+                                      IMPORTED_LINK_INTERFACE_LANGUAGES "C"
                                       IMPORTED_LOCATION "${LibELF_LIBRARIES}")
     endif()
 endif()

@@ -52,10 +52,8 @@ if(LibIberty_FOUND)
     if(NOT TARGET LibIberty::LibIberty)
         add_library(LibIberty::LibIberty UNKNOWN IMPORTED)
         set_target_properties(LibIberty::LibIberty PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                      "${LibIberty_INCLUDE_DIRS}")
-
-        set_target_properties(
-            LibIberty::LibIberty PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                                                      "${LibIberty_INCLUDE_DIRS}"
+                                    IMPORTED_LINK_INTERFACE_LANGUAGES "C"
                                     IMPORTED_LOCATION "${LibIberty_LIBRARIES}")
     endif()
 endif()

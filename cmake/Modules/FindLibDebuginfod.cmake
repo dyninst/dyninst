@@ -101,11 +101,8 @@ if(LibDebuginfod_FOUND)
         add_library(LibDebuginfod::LibDebuginfod UNKNOWN IMPORTED)
         set_target_properties(
             LibDebuginfod::LibDebuginfod PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                    "${LibDebuginfod_INCLUDE_DIRS}")
-
-        set_target_properties(
-            LibDebuginfod::LibDebuginfod
-            PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C" IMPORTED_LOCATION
+                                                    "${LibDebuginfod_INCLUDE_DIRS}"
+                                                    IMPORTED_LINK_INTERFACE_LANGUAGES "C" IMPORTED_LOCATION
                                                              "${LibDebuginfod_LIBRARIES}")
     endif()
 endif()
