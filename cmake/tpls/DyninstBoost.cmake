@@ -32,7 +32,7 @@ set(Boost_NO_WARN_NEW_VERSIONS ON)
 set(_boost_components atomic chrono date_time filesystem thread timer)
 find_package(
     Boost
-    ${Boost_MIN_VERSION}
+    ${_min_version}
     QUIET
     REQUIRED
     HINTS
