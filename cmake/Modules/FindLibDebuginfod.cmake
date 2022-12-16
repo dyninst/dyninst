@@ -95,6 +95,7 @@ find_package_handle_standard_args(
 if(LibDebuginfod_FOUND)
     mark_as_advanced(LibDebuginfod_INCLUDE_DIR)
     mark_as_advanced(LibDebuginfod_LIBRARIES)
+    mark_as_advanced(LibDebuginfod_VERSION)
 
     if(NOT TARGET LibDebuginfod::LibDebuginfod)
         add_library(LibDebuginfod::LibDebuginfod UNKNOWN IMPORTED)

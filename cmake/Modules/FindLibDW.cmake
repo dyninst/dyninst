@@ -95,6 +95,7 @@ find_package_handle_standard_args(
 if(LibDW_FOUND)
     mark_as_advanced(LibDW_INCLUDE_DIR)
     mark_as_advanced(LibDW_LIBRARIES)
+    mark_as_advanced(LibDW_VERSION)
 
     # Some platforms explicitly list libelf as a dependency, so separate it out
     list(LENGTH LibDW_LIBRARIES _cnt)
