@@ -16,13 +16,12 @@ include(DyninstLibIberty)
 set(CMAKE_MODULE_PATH ${_DYNINST_module_path_save})
 unset(_DYNINST_module_path_save)
 
-get_filename_component(DYNINST_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 # -- DO NOT USE -- This is for legacy purposes only
 set(DYNINST_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../include")
 
-# Library dependencies include ("${DYNINST_CMAKE_DIR}/DyninstTargets.cmake")
+# Library dependencies include ("${CMAKE_CURRENT_LIST_DIR}/DyninstTargets.cmake")
 foreach(TARG @ALL_DYNINST_TARGETS@)
-    include("${DYNINST_CMAKE_DIR}/${TARG}Targets.cmake" OPTIONAL)
+    include("${CMAKE_CURRENT_LIST_DIR}/${TARG}Targets.cmake" OPTIONAL)
 endforeach()
 
 # Other variables Dyninst mutators may depend on
