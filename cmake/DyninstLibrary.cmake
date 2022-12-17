@@ -78,13 +78,6 @@ function(dyninst_library target)
         DESTINATION "${INSTALL_CMAKE_DIR}")
 endfunction()
 
-include(DyninstPlatform)
-include(DyninstCapArchDef)
-include(DyninstVisibility)
-include(DyninstWarnings)
-include(DyninstOptions)
-include(DyninstOptimization)
-
 set(BUILD_SHARED_LIBS ON)
 
 set(INSTALL_BIN_DIR

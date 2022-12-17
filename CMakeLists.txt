@@ -30,8 +30,16 @@ endif()
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
      "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
-# Set the C and C++ language standards
+# Handle user options first
+include(DyninstOptions)
+
+# Set up Dyninst internals
+include(DyninstPlatform)
+include(DyninstCapArchDef)
 include(DyninstLanguageStandards)
+include(DyninstWarnings)
+include(DyninstVisibility)
+include(DyninstOptimization)
 
 # Find the necessary third-party libraries
 find_package(Threads)
