@@ -41,14 +41,14 @@ include(DyninstWarnings)
 include(DyninstVisibility)
 include(DyninstOptimization)
 
-# Find the necessary third-party libraries
+# Locate third-party libraries
 find_package(Threads)
-
 include(DyninstBoost)
 include(DyninstTBB)
 include(DyninstElfUtils)
 include(DyninstLibIberty)
 include(DyninstThread_DB)
+include(DyninstValgrind)
 
 include(DyninstLibrary)
 
