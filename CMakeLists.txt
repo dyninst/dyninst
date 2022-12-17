@@ -13,10 +13,6 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(STERILE_BUILD
-    ON
-    CACHE BOOL "Do not download/build any third-party dependencies from source")
-
 list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib"
      isSystemDir)
 if("${isSystemDir}" STREQUAL "-1")
@@ -68,11 +64,6 @@ foreach(dir ${HEADER_DIRS})
     include_directories(${DYNINST_ROOT}/${dir}/h)
 endforeach()
 
-set(ADD_VALGRIND_ANNOTATIONS
-    OFF
-    CACHE BOOL "Enable annotations for Valgrind analysis")
-include(DyninstValgrind)
-
 include_directories(${DYNINST_ROOT} ${DYNINST_ROOT}/external)
 
 # Component time
@@ -96,10 +87,6 @@ if(${SYMREADER} MATCHES symtabAPI)
 endif()
 
 add_subdirectory(dyninstAPI_RT)
-
-set(ENABLE_STATIC_LIBS
-    NO
-    CACHE STRING "Build static libraries as well?")
 
 set(VERSION_STRING
     "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
