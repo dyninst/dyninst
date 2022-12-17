@@ -90,9 +90,6 @@ set(INSTALL_INCLUDE_DIR
 set(INSTALL_CMAKE_DIR
     lib/cmake/${PROJECT_NAME}
     CACHE PATH "Installation directory for CMake files")
-set(INSTALL_DOC_DIR
-    share/doc
-    CACHE PATH "Installation directory for manuals")
 
 # Make the above absolute paths if necessary
 foreach(p BIN LIB INCLUDE CMAKE)
