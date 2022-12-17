@@ -13,7 +13,12 @@ set(SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set(LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
 set(DYNINST_VERSION "${LIBVERSION}")
 
-project(Dyninst)
+project(
+    Dyninst
+    VERSION ${DYNINST_VERSION}
+    DESCRIPTION "Tools for binary instrumentation, analysis, and modification"
+    HOMEPAGE_URL "https://github.com/dyninst/dyninst"
+    LANGUAGES C CXX ASM)
 
 set(DYNINST_ROOT ${PROJECT_SOURCE_DIR})
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
