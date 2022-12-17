@@ -104,10 +104,6 @@ endif()
 
 add_subdirectory(dyninstAPI_RT)
 
-set(VERSION_STRING
-    "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}.${DYNINST_PATCH_VERSION}")
-set(DYNINST_NAME "DyninstAPI-${VERSION_STRING}")
-
 if(TARGET boost)
     add_dependencies(common boost)
 endif()
