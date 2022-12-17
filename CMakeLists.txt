@@ -104,10 +104,6 @@ endif()
 
 add_subdirectory(dyninstAPI_RT)
 
-if(TARGET boost)
-    add_dependencies(common boost)
-endif()
-
 # add_subdirectory(testsuite)
 
 # Export the Find modules for thirdy-party libraries provided by us
