@@ -78,8 +78,6 @@ function(dyninst_library target)
         DESTINATION "${INSTALL_CMAKE_DIR}")
 endfunction()
 
-set(BUILD_SHARED_LIBS ON)
-
 set(INSTALL_BIN_DIR
     bin
     CACHE PATH "Installation directory for executables")
