@@ -2,18 +2,6 @@
 # cmake warning options
 #
 
-option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
-       "Disable all warning suppressions and frame size overrides." OFF)
-
-set(DYNINST_EXTRA_WARNINGS
-    ""
-    CACHE
-        STRING
-        "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
-    )
-
-option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
-
 if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
     add_definitions(-DDYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
     message(
