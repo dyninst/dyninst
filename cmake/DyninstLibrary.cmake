@@ -112,14 +112,3 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
         add_definitions(-Dsnprintf=_snprintf)
     endif()
 endif()
-
-
-# set default configuration type
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE
-        RelWithDebInfo
-        CACHE STRING
-              "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)"
-              FORCE)
-endif()
