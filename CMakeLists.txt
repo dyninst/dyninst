@@ -104,8 +104,6 @@ endif()
 
 add_subdirectory(dyninstAPI_RT)
 
-# add_subdirectory(testsuite)
-
 # Export the Find modules for thirdy-party libraries provided by us
 install(DIRECTORY ${DYNINST_ROOT}/cmake/Modules DESTINATION ${INSTALL_CMAKE_DIR})
 install(DIRECTORY ${DYNINST_ROOT}/cmake/tpls DESTINATION ${INSTALL_CMAKE_DIR})
