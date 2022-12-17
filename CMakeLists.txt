@@ -20,6 +20,10 @@ project(
     HOMEPAGE_URL "https://github.com/dyninst/dyninst"
     LANGUAGES C CXX ASM)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
+
 set(DYNINST_ROOT ${PROJECT_SOURCE_DIR})
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
