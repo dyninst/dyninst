@@ -13,12 +13,6 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
-if(LIGHTWEIGHT_SYMTAB)
-    set(SYMREADER symLite)
-else()
-    set(SYMREADER symtabAPI)
-endif()
-
 # Link libraries privately when possible
 function(target_link_private_libraries target)
     if(${CMAKE_VERSION} VERSION_LESS "2.8.7")
