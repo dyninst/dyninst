@@ -43,7 +43,6 @@ include(DyninstPlatform)
 include(DyninstCapArchDef)
 include(DyninstLanguageStandards)
 include(DyninstWarnings)
-include(DyninstVisibility)
 include(DyninstOptimization)
 
 # Locate third-party libraries
