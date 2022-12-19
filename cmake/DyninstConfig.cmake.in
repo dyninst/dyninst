@@ -41,11 +41,5 @@ if(DYNINST_FIND_COMPONENTS)
     endforeach()
 endif()
 
-if(TARGET dyninstAPI)
-    set(Dyninst_FOUND 1)
-else()
-    set(Dyninst_FOUND 0)
-endif()
-
 # -- DO NOT USE -- This is for legacy purposes only
 set_and_check(DYNINST_INCLUDE_DIR @INSTALL_INCLUDE_DIR@)
