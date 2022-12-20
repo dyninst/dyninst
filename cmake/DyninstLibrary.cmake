@@ -64,10 +64,6 @@ function(dyninst_library target)
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
-    add_custom_target(
-        ${target}-install
-        DEPENDS ${target}
-        COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_install.cmake")
     set(ALL_DYNINST_TARGETS
         "${ALL_DYNINST_TARGETS};${target}"
         CACHE INTERNAL "")
