@@ -4,8 +4,6 @@ include(CMakePackageConfigHelpers)
 install(DIRECTORY ${DYNINST_ROOT}/cmake/Modules DESTINATION ${INSTALL_CMAKE_DIR})
 install(DIRECTORY ${DYNINST_ROOT}/cmake/tpls DESTINATION ${INSTALL_CMAKE_DIR})
 
-configure_file(cmake/version.h.in common/h/dyninstversion.h)
-
 configure_package_config_file(
     ${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
     ${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
