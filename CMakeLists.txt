@@ -63,6 +63,7 @@ else()
 	add_library(OpenMP::OpenMP_CXX INTERFACE IMPORTED)
 endif()
 
+configure_file(cmake/version.h.in common/h/dyninstversion.h)
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${PROJECT_BINARY_DIR}/common/h)
 set(HEADER_DIRS
