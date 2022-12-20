@@ -68,19 +68,6 @@ function(dyninst_library target)
         "${ALL_DYNINST_TARGETS};${target}"
         CACHE INTERNAL "")
     install(EXPORT ${target}Targets DESTINATION "${INSTALL_CMAKE_DIR}")
-    configure_file(
-        "${DYNINST_ROOT}/cmake/${PROJECT_NAME}Config.cmake.in"
-        "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}Config.cmake"
-        @ONLY)
-    configure_file(
-        "${DYNINST_ROOT}/cmake/${PROJECT_NAME}ConfigVersion.cmake.in"
-        "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}ConfigVersion.cmake"
-        @ONLY)
-    install(
-        FILES
-            "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}Config.cmake"
-            "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${PROJECT_NAME}ConfigVersion.cmake"
-        DESTINATION "${INSTALL_CMAKE_DIR}")
 endfunction()
 
 set(INSTALL_BIN_DIR
