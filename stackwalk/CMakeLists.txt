@@ -30,7 +30,7 @@ elseif(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
     if(DYNINST_ARCH_ppc64le)
         set(SRC_LIST ${SRC_LIST} src/linux-ppc-swk.C src/ppc-swk.C)
 
-    elseif(PLATFORM MATCHES aarch64)
+    elseif(DYNINST_ARCH_aarch64)
         set(SRC_LIST ${SRC_LIST} src/linux-aarch64-swk.C src/aarch64-swk.C
                      src/dbginfo-stepper.C)
 

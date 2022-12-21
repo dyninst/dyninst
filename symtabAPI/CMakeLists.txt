@@ -45,7 +45,7 @@ if(DYNINST_OS_FreeBSD OR DYNINST_OS_Linux)
     elseif(DYNINST_ARCH_ppc64le)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-ppc64.C
                      src/relocationEntry-elf-ppc64.C)
-    elseif(PLATFORM MATCHES aarch64)
+    elseif(DYNINST_ARCH_aarch64)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-aarch64.C
                      src/relocationEntry-elf-aarch64.C)
     else(TRUE)

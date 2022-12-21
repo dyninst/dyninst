@@ -128,7 +128,7 @@ elseif(DYNINST_ARCH_ppc64le)
         src/stackwalk-ppc.C
         src/Relocation/Widgets/CFWidget-ppc.C
         src/Relocation/Widgets/PCWidget-ppc.C)
-elseif(PLATFORM MATCHES aarch64)
+elseif(DYNINST_ARCH_aarch64)
     set(SRC_LIST
         ${SRC_LIST}
         src/inst-aarch64.C
@@ -151,7 +151,7 @@ elseif(DYNINST_OS_Linux)
         set(SRC_LIST ${SRC_LIST} src/linux-x86.C)
     elseif(DYNINST_ARCH_ppc64le)
         set(SRC_LIST ${SRC_LIST} src/linux-power.C)
-    elseif(PLATFORM MATCHES aarch64)
+    elseif(DYNINST_ARCH_aarch64)
         set(SRC_LIST ${SRC_LIST} src/linux-aarch64.C)
     endif()
 elseif(DYNINST_OS_Windows)

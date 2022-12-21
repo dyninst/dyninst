@@ -67,7 +67,7 @@ if(UNIX)
         set(SRC_LIST ${SRC_LIST} ${SRC_LIST_i386})
         set(RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST}
                                     ${RT_STATIC_ONLY_SRC_LIST_i386})
-    elseif(PLATFORM MATCHES aarch64)
+    elseif(DYNINST_ARCH_aarch64)
         set(SRC_LIST ${SRC_LIST} ${SRC_LIST_aarch64})
         set(RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST}
                                     ${RT_STATIC_ONLY_SRC_LIST_aarch64})
