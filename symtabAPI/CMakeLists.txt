@@ -38,7 +38,7 @@ if(DYNINST_OS_FreeBSD OR DYNINST_OS_Linux)
         src/emitElfStatic.C
         src/dwarfWalker.C)
 
-    if(PLATFORM MATCHES x86_64 OR PLATFORM MATCHES amd64)
+    if(DYNINST_ARCH_x86_64)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)
     elseif(PLATFORM MATCHES i386)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)

@@ -34,7 +34,7 @@ elseif(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
         set(SRC_LIST ${SRC_LIST} src/linux-aarch64-swk.C src/aarch64-swk.C
                      src/dbginfo-stepper.C)
 
-    elseif(PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
+    elseif(DYNINST_ARCH_i386 OR DYNINST_ARCH_x86_64)
         set(SRC_LIST ${SRC_LIST} src/dbginfo-stepper.C src/linux-x86-swk.C
                      src/x86-wanderer.C src/linuxbsd-x86-swk.C src/x86-swk.C)
     endif()
