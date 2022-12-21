@@ -3,7 +3,7 @@ include_directories(${DYNINST_ROOT}/dyninstAPI_RT/src ${DYNINST_ROOT}/dyninstAPI
 
 set(SRC_LIST src/RTcommon.c)
 
-if(PLATFORM MATCHES freebsd)
+if(DYNINST_OS_FreeBSD)
     set(SRC_LIST
         ${SRC_LIST}
         src/RTposix.c

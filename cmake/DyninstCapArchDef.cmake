@@ -46,7 +46,7 @@ if(DYNINST_OS_Linux)
                     -Dcap_mutatee_traps -Dcap_ptrace)
     set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
 
-elseif(PLATFORM MATCHES freebsd)
+elseif(DYNINST_OS_FreeBSD)
     set(OS_DEFINES -Dos_freebsd)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_binary_rewriter -Dcap_dwarf -Dcap_mutatee_traps)
     set(BUG_DEFINES

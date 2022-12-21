@@ -25,7 +25,7 @@ set(SRC_LIST
     src/debug.C
     src/SymtabReader.C)
 
-if(PLATFORM MATCHES freebsd OR DYNINST_OS_Linux)
+if(DYNINST_OS_FreeBSD OR DYNINST_OS_Linux)
 
     set(SRC_LIST
         ${SRC_LIST}
