@@ -105,9 +105,7 @@ if(cap_stack_mods_found GREATER -1)
         src/StackMod/TMap.C)
 endif()
 
-if(PLATFORM MATCHES i386
-   OR PLATFORM MATCHES amd64
-   OR PLATFORM MATCHES x86_64)
+if(DYNINST_ARCH_i386 OR DYNINST_ARCH_x86_64)
     set(SRC_LIST
         ${SRC_LIST}
         src/RegisterConversion-x86.C
@@ -149,7 +147,7 @@ if(DYNINST_OS_FreeBSD)
 elseif(DYNINST_OS_Linux)
     set(SRC_LIST ${SRC_LIST} src/linux.C src/inst-linux.C src/unix.C
                  src/syscallNotification.C src/syscall-linux.C)
-    if(PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
+    if(DYNINST_ARCH_i386 OR DYNINST_ARCH_x86_64)
         set(SRC_LIST ${SRC_LIST} src/linux-x86.C)
     elseif(PLATFORM MATCHES ppc)
         set(SRC_LIST ${SRC_LIST} src/linux-power.C)
@@ -174,7 +172,7 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 add_definitions(-DBPATCH_DLL_BUILD)
-if(PLATFORM MATCHES i386 AND UNIX)
+if(DYNINST_ARCH_i386 AND UNIX)
     set(SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
     set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif()
