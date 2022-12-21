@@ -45,7 +45,7 @@ if(PLATFORM MATCHES freebsd)
     set(C_SRC_LIST ${C_SRC_LIST} src/symbolDemangle.c)
 endif()
 
-if(PLATFORM MATCHES linux)
+if(DYNINST_OS_Linux)
     set(SRC_LIST
         ${SRC_LIST}
         src/linuxKludges.C

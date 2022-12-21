@@ -146,7 +146,7 @@ endif()
 if(PLATFORM MATCHES freebsd)
     set(SRC_LIST ${SRC_LIST} src/freebsd.C src/unix.C src/freebsd-x86.C
                  src/syscallNotification.C src/syscall-freebsd.C)
-elseif(PLATFORM MATCHES linux)
+elseif(DYNINST_OS_Linux)
     set(SRC_LIST ${SRC_LIST} src/linux.C src/inst-linux.C src/unix.C
                  src/syscallNotification.C src/syscall-linux.C)
     if(PLATFORM MATCHES i386 OR PLATFORM MATCHES x86_64)
