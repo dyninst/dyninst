@@ -24,7 +24,7 @@ foreach(TARG @ALL_DYNINST_TARGETS@)
 endforeach()
 
 # Other variables Dyninst mutators may depend on
-set(DYNINST_PLATFORM "@PLATFORM@")
+set(DYNINST_PLATFORM "@DYNINST_PLATFORM@")
 set(DYNINST_INTERNAL_DEFINES @UNIFIED_DEFINES@)
 
 if(DYNINST_FIND_COMPONENTS)
