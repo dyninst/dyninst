@@ -31,8 +31,6 @@ elseif(DYNINST_ARCH_x86_64)
 
 elseif(DYNINST_ARCH_ppc64le)
     set(ARCH_DEFINES -Darch_power -Darch_64bit)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
 elseif(DYNINST_ARCH_aarch64)
     # set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
