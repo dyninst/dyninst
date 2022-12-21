@@ -49,7 +49,7 @@ if(PLATFORM MATCHES freebsd)
         ../common/src/dthread-unix.C
         ../common/src/dthread.C
         src/loadLibrary/codegen-freebsd.C)
-elseif(PLATFORM MATCHES linux)
+elseif(DYNINST_OS_Linux)
     set(SRC_LIST
         ${SRC_LIST}
         src/linux.C

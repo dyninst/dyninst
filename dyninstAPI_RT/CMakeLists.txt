@@ -13,7 +13,7 @@ if(PLATFORM MATCHES freebsd)
         src/RTthread.c
         src/RTspace.S
         src/RTsignal.c)
-elseif(PLATFORM MATCHES linux)
+elseif(DYNINST_OS_Linux)
     set(SRC_LIST
         ${SRC_LIST}
         src/RTposix.c
