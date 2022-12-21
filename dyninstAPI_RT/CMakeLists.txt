@@ -57,7 +57,7 @@ if(UNIX)
         set(SRC_LIST ${SRC_LIST} ${SRC_LIST_x86_64})
         set(RT_STATIC_ONLY_SRC_LIST ${RT_STATIC_ONLY_SRC_LIST}
                                     ${RT_STATIC_ONLY_SRC_LIST_x86_64})
-    elseif(PLATFORM MATCHES ppc64)
+    elseif(DYNINST_ARCH_ppc64le)
         set(SRC_LIST_mabi ${SRC_LIST})
         set(RT_STATIC_ONLY_SRC_LIST_mabi ${RT_STATIC_ONLY_SRC_LIST})
         set(SRC_LIST ${SRC_LIST} ${SRC_LIST_ppc64})

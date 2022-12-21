@@ -29,7 +29,7 @@ elseif(DYNINST_ARCH_x86_64)
         -Dcap_tramp_liveness
         -Dcap_stack_mods)
 
-elseif(PLATFORM MATCHES ppc64)
+elseif(DYNINST_ARCH_ppc64le)
     set(ARCH_DEFINES -Darch_power -Darch_64bit)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
