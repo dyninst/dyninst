@@ -156,7 +156,7 @@ elseif(PLATFORM MATCHES linux)
     elseif(PLATFORM MATCHES aarch64)
         set(SRC_LIST ${SRC_LIST} src/linux-aarch64.C)
     endif()
-elseif(PLATFORM MATCHES windows OR PLATFORM MATCHES nt)
+elseif(DYNINST_OS_Windows)
     set(SRC_LIST
         ${SRC_LIST}
         src/hybridCallbacks.C

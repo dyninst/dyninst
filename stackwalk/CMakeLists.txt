@@ -39,7 +39,7 @@ elseif(PLATFORM MATCHES linux OR PLATFORM MATCHES freebsd)
                      src/x86-wanderer.C src/linuxbsd-x86-swk.C src/x86-swk.C)
     endif()
 endif()
-if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+if(DYNINST_OS_Windows)
     set(SRC_LIST ${SRC_LIST} src/x86-wanderer.C src/x86-swk.C src/win-x86-swk.C
                  src/symtab-swk.C)
 endif()
