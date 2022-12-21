@@ -27,7 +27,7 @@ if(DYNINST_OS_FreeBSD)
         src/freebsd-x86-swk.C)
 elseif(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
     set(SRC_LIST ${SRC_LIST} src/symtab-swk.C src/linuxbsd-swk.C src/linux-swk.C)
-    if(PLATFORM MATCHES ppc)
+    if(DYNINST_ARCH_ppc64le)
         set(SRC_LIST ${SRC_LIST} src/linux-ppc-swk.C src/ppc-swk.C)
 
     elseif(PLATFORM MATCHES aarch64)
