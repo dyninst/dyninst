@@ -40,7 +40,7 @@ elseif(PLATFORM MATCHES aarch64)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 endif(PLATFORM MATCHES i386)
 
-if(PLATFORM MATCHES linux)
+if(DYNINST_OS_Linux)
     set(OS_DEFINES -Dos_linux)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_async_events -Dcap_binary_rewriter -Dcap_dwarf
                     -Dcap_mutatee_traps -Dcap_ptrace)
@@ -56,7 +56,7 @@ elseif(PLATFORM MATCHES freebsd)
 elseif(DYNINST_OS_Windows)
     set(OS_DEFINES -Dos_windows)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_mutatee_traps)
-endif(PLATFORM MATCHES linux)
+endif()
 
 if(PLATFORM STREQUAL i386-unknown-linux2.4)
     set(OLD_DEFINES -Di386_unknown_linux2_0)
