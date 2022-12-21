@@ -26,7 +26,7 @@ elseif(PLATFORM MATCHES linux)
     set(RT_STATIC_ONLY_SRC_LIST
         ${RT_STATIC_ONLY_SRC_LIST} src/RTstatic_ctors_dtors_begin.c
         src/RTstatic_ctors_dtors_end.c)
-elseif(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+elseif(DYNINST_OS_Windows)
     set(SRC_LIST ${SRC_LIST} src/RTheap.c src/RTheap-win.c src/RTwinnt.c src/RTthread.c
                  src/RTthread-x86.c)
 endif()
@@ -76,7 +76,7 @@ endif()
 
 add_library(dyninstAPI_RT SHARED ${SRC_LIST})
 
-if(NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
+if(NOT DYNINST_OS_Windows)
     target_link_libraries(dyninstAPI_RT PRIVATE ${CMAKE_DL_LIBS})
 else() # windows
     target_link_libraries(dyninstAPI_RT PRIVATE ws2_32 dbghelp psapi)

@@ -91,7 +91,7 @@ foreach(p BIN LIB INCLUDE CMAKE)
     endif()
 endforeach()
 
-if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+if(DYNINST_OS_Windows)
     add_definitions(-DWIN32_LEAN_AND_MEAN)
     if(CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
         add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)

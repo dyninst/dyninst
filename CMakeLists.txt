@@ -76,7 +76,7 @@ set(HEADER_DIRS
     proccontrol
     stackwalk
     symtabAPI)
-if(NOT ${PLATFORM} MATCHES nt)
+if(NOT DYNINST_OS_Windows)
     set(HEADER_DIRS ${HEADER_DIRS} dwarf elf symlite)
 endif()
 
@@ -88,7 +88,7 @@ include_directories(${DYNINST_ROOT} ${DYNINST_ROOT}/external)
 
 # Component time
 add_subdirectory(common)
-if(NOT ${PLATFORM} MATCHES nt)
+if(NOT DYNINST_OS_Windows)
     add_subdirectory(elf)
     add_subdirectory(dwarf)
     add_subdirectory(symlite)
