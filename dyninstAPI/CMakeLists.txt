@@ -118,7 +118,7 @@ if(DYNINST_ARCH_i386 OR DYNINST_ARCH_x86_64)
         src/dynProcess-x86.C
         src/parse-x86.C
         src/IAPI_to_AST.C)
-elseif(PLATFORM MATCHES ppc)
+elseif(DYNINST_ARCH_ppc64le)
     set(SRC_LIST
         ${SRC_LIST}
         src/inst-power.C
@@ -149,7 +149,7 @@ elseif(DYNINST_OS_Linux)
                  src/syscallNotification.C src/syscall-linux.C)
     if(DYNINST_ARCH_i386 OR DYNINST_ARCH_x86_64)
         set(SRC_LIST ${SRC_LIST} src/linux-x86.C)
-    elseif(PLATFORM MATCHES ppc)
+    elseif(DYNINST_ARCH_ppc64le)
         set(SRC_LIST ${SRC_LIST} src/linux-power.C)
     elseif(PLATFORM MATCHES aarch64)
         set(SRC_LIST ${SRC_LIST} src/linux-aarch64.C)
