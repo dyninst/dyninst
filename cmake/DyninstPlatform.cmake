@@ -38,6 +38,26 @@ if(${_host_os} STREQUAL "FreeBSD")
 	endif()
 endif()
 
+
+# These checks are redundant, but protect against string name changes
+if(${_host_os} STREQUAL "Linux")
+	set(DYNINST_OS_Linux TRUE)
+elseif(${_host_os} STREQUAL "FreeBSD")
+	set(DYNINST_OS_FreeBSD TRUE)
+elseif(${_host_os} STREQUAL "Windows")
+	set(DYNINST_OS_Windows TRUE)
+endif()
+
+if(${_host_arch} STREQUAL "x86_64" OR ${_host_arch} STREQUAL "amd64")
+	set(DYNINST_ARCH_x86_64 TRUE)
+elseif(${_host_arch} STREQUAL "aarch64")
+	set(DYNINST_ARCH_aarch64 TRUE)
+elseif(${_host_arch} STREQUAL "ppc64le")
+	set(DYNINST_ARCH_ppc64le TRUE)
+elseif(${_host_arch} STREQUAL "i386")
+	set(DYNINST_ARCH_i386 TRUE)
+endif()
+
 if(${_host_os} STREQUAL "Linux")
 	if(NOT _is64bit)
 		set(PLATFORM i386-unknown-linux2.4)
