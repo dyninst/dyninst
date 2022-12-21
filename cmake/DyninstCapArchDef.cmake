@@ -58,29 +58,27 @@ elseif(DYNINST_OS_Windows)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_mutatee_traps)
 endif()
 
-if(PLATFORM STREQUAL i386-unknown-linux2.4)
+if(DYNINST_OS_Linux AND DYNINST_ARCH_i386)
     set(OLD_DEFINES -Di386_unknown_linux2_0)
 
-elseif(PLATFORM STREQUAL x86_64-unknown-linux2.4)
+elseif(DYNINST_OS_Linux AND DYNINST_ARCH_x86_64)
     set(OLD_DEFINES -Dx86_64_unknown_linux2_4)
 
-elseif(PLATFORM STREQUAL ppc64_linux)
+elseif(DYNINST_OS_Linux AND DYNINST_ARCH_ppc64le)
     set(OLD_DEFINES -Dppc64_linux)
     set(BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
 
-elseif(PLATFORM STREQUAL i386-unknown-freebsd7.2)
+elseif(DYNINST_OS_FreeBSD AND DYNINST_ARCH_i386)
     set(OLD_DEFINES -Di386_unknown_freebsd7_0)
 
-elseif(PLATFORM STREQUAL amd64-unknown-freebsd7.2)
+elseif(DYNINST_OS_FreeBSD AND DYNINST_ARCH_x86_64)
     set(OLD_DEFINES -Damd64_unknown_freebsd7_0)
 
 elseif(DYNINST_OS_Windows)
     set(OLD_DEFINES -Di386_unknown_nt4_0)
-elseif(PLATFORM STREQUAL aarch64-unknown-linux)
+elseif(DYNINST_OS_Linux AND DYNINST_ARCH_aarch64)
     set(OLD_DEFINES -Daarch64_unknown_linux)
-else(PLATFORM STREQUAL i386-unknown-linux2.4)
-    message(FATAL_ERROR "Unknown platform: ${PLATFORM}")
-endif(PLATFORM STREQUAL i386-unknown-linux2.4)
+endif()
 
 set(UNIFIED_DEFINES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES} ${OS_DEFINES}
                     ${OLD_DEFINES})
