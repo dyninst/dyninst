@@ -53,7 +53,7 @@ elseif(PLATFORM MATCHES freebsd)
         -Dbug_freebsd_missing_sigstop -Dbug_freebsd_mt_suspend -Dbug_freebsd_change_pc
         -Dbug_phdrs_first_page -Dbug_syscall_changepc_rewind)
 
-elseif(PLATFORM STREQUAL i386-unknown-nt4.0)
+elseif(DYNINST_OS_Windows)
     set(OS_DEFINES -Dos_windows)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_mutatee_traps)
 endif(PLATFORM MATCHES linux)
@@ -74,7 +74,7 @@ elseif(PLATFORM STREQUAL i386-unknown-freebsd7.2)
 elseif(PLATFORM STREQUAL amd64-unknown-freebsd7.2)
     set(OLD_DEFINES -Damd64_unknown_freebsd7_0)
 
-elseif(PLATFORM STREQUAL i386-unknown-nt4.0)
+elseif(DYNINST_OS_Windows)
     set(OLD_DEFINES -Di386_unknown_nt4_0)
 elseif(PLATFORM STREQUAL aarch64-unknown-linux)
     set(OLD_DEFINES -Daarch64_unknown_linux)

@@ -53,7 +53,7 @@ if(PLATFORM MATCHES freebsd OR PLATFORM MATCHES linux)
     endif()
 endif()
 
-if(PLATFORM MATCHES nt)
+if(DYNINST_OS_Windows)
     set(SRC_LIST ${SRC_LIST} src/Object-nt.C src/emitWin.C src/relocationEntry-stub.C)
 endif()
 

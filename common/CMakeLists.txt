@@ -57,7 +57,7 @@ if(PLATFORM MATCHES linux)
     set(C_SRC_LIST ${C_SRC_LIST} src/symbolDemangle.c)
 endif()
 
-if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+if(DYNINST_OS_Windows)
     set(SRC_LIST
         ${SRC_LIST} src/ntKludges.C
         # src/dthread-win.C src/dthread.C
@@ -108,7 +108,7 @@ if(${ENABLE_STATIC_LIBS})
     target_link_libraries(common_static PRIVATE Dyninst::LibIberty)
 endif()
 
-if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+if(DYNINST_OS_Windows)
     target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()
 
