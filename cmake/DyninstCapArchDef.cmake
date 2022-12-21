@@ -6,7 +6,7 @@
 
 set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
-if(PLATFORM MATCHES i386)
+if(DYNINST_ARCH_i386)
     set(ARCH_DEFINES -Darch_x86)
     set(CAP_DEFINES
         ${CAP_DEFINES}
@@ -17,7 +17,7 @@ if(PLATFORM MATCHES i386)
         -Dcap_virtual_registers
         -Dcap_stack_mods)
 
-elseif(PLATFORM MATCHES x86_64 OR PLATFORM MATCHES amd64)
+elseif(DYNINST_ARCH_x86_64)
     set(ARCH_DEFINES -Darch_x86_64 -Darch_64bit)
     set(CAP_DEFINES
         ${CAP_DEFINES}
@@ -38,7 +38,7 @@ elseif(PLATFORM MATCHES aarch64)
     # set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
     set(ARCH_DEFINES -Darch_aarch64 -Darch_64bit)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
-endif(PLATFORM MATCHES i386)
+endif()
 
 if(DYNINST_OS_Linux)
     set(OS_DEFINES -Dos_linux)
