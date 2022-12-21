@@ -40,7 +40,7 @@ elseif(WIN32)
         ../common/src/dthread.C)
 endif()
 
-if(PLATFORM MATCHES freebsd)
+if(DYNINST_OS_FreeBSD)
     set(SRC_LIST
         ${SRC_LIST}
         src/freebsd.C

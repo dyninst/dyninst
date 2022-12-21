@@ -39,7 +39,7 @@ set(SRC_LIST
 
 set(C_SRC_LIST)
 
-if(PLATFORM MATCHES freebsd)
+if(DYNINST_OS_FreeBSD)
     set(SRC_LIST ${SRC_LIST} src/freebsdKludges.C src/addrtranslate-sysv.C
                  src/addrtranslate-freebsd.C src/symbolDemangleWithCache.C)
     set(C_SRC_LIST ${C_SRC_LIST} src/symbolDemangle.c)

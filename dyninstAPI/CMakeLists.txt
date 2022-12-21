@@ -143,7 +143,7 @@ elseif(PLATFORM MATCHES aarch64)
         src/Relocation/Widgets/PCWidget-aarch64.C)
 endif()
 
-if(PLATFORM MATCHES freebsd)
+if(DYNINST_OS_FreeBSD)
     set(SRC_LIST ${SRC_LIST} src/freebsd.C src/unix.C src/freebsd-x86.C
                  src/syscallNotification.C src/syscall-freebsd.C)
 elseif(DYNINST_OS_Linux)

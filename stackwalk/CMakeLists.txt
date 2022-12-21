@@ -14,7 +14,7 @@ set(SRC_LIST
     src/libstate.C
     src/sw_pcontrol.C)
 
-if(PLATFORM MATCHES freebsd)
+if(DYNINST_OS_FreeBSD)
     set(SRC_LIST
         ${SRC_LIST}
         src/freebsd-swk.C
@@ -25,7 +25,7 @@ if(PLATFORM MATCHES freebsd)
         src/linuxbsd-swk.C
         src/linuxbsd-x86-swk.C
         src/freebsd-x86-swk.C)
-elseif(DYNINST_OS_Linux OR PLATFORM MATCHES freebsd)
+elseif(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
     set(SRC_LIST ${SRC_LIST} src/symtab-swk.C src/linuxbsd-swk.C src/linux-swk.C)
     if(PLATFORM MATCHES ppc)
         set(SRC_LIST ${SRC_LIST} src/linux-ppc-swk.C src/ppc-swk.C)
