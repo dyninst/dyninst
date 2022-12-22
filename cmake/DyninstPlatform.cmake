@@ -24,20 +24,6 @@ if(NOT _is64bit AND NOT ${_host_arch} STREQUAL "i386")
 	message(FATAL_ERROR "32-bit programming is only supported on i386")
 endif()
 
-# i386 is only supported on Linux and Windows
-if(${_host_arch} STREQUAL "i386")
-	if(NOT ${_host_os} STREQUAL "Linux" AND NOT ${_host_os} STREQUAL "Windows")
-		message(FATAL_ERROR "i386 is only supported on Linux and Windows")
-	endif()
-endif()
-
-# FreeBSD is only supported on x86_64
-if(${_host_os} STREQUAL "FreeBSD")
-	if(NOT ${_host_arch} STREQUAL "x86_64" AND NOT ${_host_arch} STREQUAL "amd64") 
-		message(FATAL_ERROR "FreeBSD is only supported on x86_64/amd64")
-	endif()
-endif()
-
 
 # These checks are redundant, but protect against string name changes
 if(${_host_os} STREQUAL "Linux")
