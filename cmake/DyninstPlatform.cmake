@@ -33,6 +33,12 @@ elseif(${_host_os} STREQUAL "Windows")
     set(DYNINST_OS_Windows TRUE)
 endif()
 
+# The CMake `UNIX` covers more than just Linux and FreeBSD, so make
+# a more limited version.
+if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
+		set(DYNINST_OS_UNIX TRUE)
+endif() 
+
 if(${_host_arch} STREQUAL "x86_64" OR ${_host_arch} STREQUAL "amd64")
     set(DYNINST_ARCH_x86_64 TRUE)
 elseif(${_host_arch} STREQUAL "aarch64")

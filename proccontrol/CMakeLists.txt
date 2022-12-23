@@ -25,7 +25,7 @@ set(SRC_LIST
     src/ppc_process.C
     src/arm_process.C
     src/pcmachsyscall.C)
-if(UNIX)
+if(DYNINST_OS_UNIX)
     set(SRC_LIST ${SRC_LIST} src/sysv.C src/int_thread_db.C src/mmapalloc.C)
 elseif(DYNINST_OS_Windows)
     set(SRC_LIST
@@ -72,7 +72,7 @@ target_link_private_libraries(pcontrol ${CMAKE_DL_LIBS})
 target_link_libraries(pcontrol PUBLIC Dyninst::Boost_headers)
 target_link_libraries(pcontrol PRIVATE Dyninst::Thread_DB)
 
-if(UNIX)
+if(DYNINST_OS_UNIX)
     # Boost auto-links on Windows; don't double-link
     target_link_private_libraries(pcontrol pthread)
 endif()

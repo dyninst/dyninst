@@ -49,7 +49,7 @@ file(GLOB SRC_ASSEMBLY "src/*.S")
 set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE C)
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
-if(UNIX)
+if(DYNINST_OS_UNIX)
     if(DYNINST_ARCH_x86_64)
         set(SRC_LIST_mabi ${SRC_LIST} ${SRC_LIST_i386})
         set(RT_STATIC_ONLY_SRC_LIST_mabi ${RT_STATIC_ONLY_SRC_LIST}
