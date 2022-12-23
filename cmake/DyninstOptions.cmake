@@ -22,10 +22,10 @@ option(ENABLE_STATIC_LIBS "Build static libraries as well?" NO)
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
 
-option(DYNINST_EXTRA_WARNINGS
-		"Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
-    ""
-    )
+option(
+    DYNINST_EXTRA_WARNINGS
+    "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
+    "")
 
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 
