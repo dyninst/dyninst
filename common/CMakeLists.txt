@@ -1,6 +1,6 @@
 # CMake configuration for common directory
 
-if(NOT WIN32)
+if(NOT DYNINST_OS_Windows)
     include_directories(${PROJECT_SOURCE_DIR}/common/h ${PROJECT_SOURCE_DIR}/common/src)
 else()
     include_directories(
