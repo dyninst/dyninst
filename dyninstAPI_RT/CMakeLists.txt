@@ -88,7 +88,7 @@ add_library(dyninstAPI_RT_static STATIC ${SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST})
 set_target_properties(
     dyninstAPI_RT
     PROPERTIES OUTPUT_NAME dyninstAPI_RT
-               SOVERSION ${SOVERSION}
+               SOVERSION ${DYNINST_SOVERSION}
                VERSION ${LIBVERSION})
 
 # this will not
@@ -99,7 +99,7 @@ set_target_properties(
 set_target_properties(dyninstAPI_RT PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties(dyninstAPI_RT_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
-message(STATUS "dyninstAPI RT library SOVERSION: ${SOVERSION}")
+message(STATUS "dyninstAPI RT library SOVERSION: ${DYNINST_SOVERSION}")
 message(STATUS "dyninstAPI RT library LIBVERSION: ${LIBVERSION}")
 
 file(GLOB headers "h/*.h")
@@ -184,7 +184,7 @@ if(SRC_LIST_mabi)
             PROPERTIES COMPILE_FLAGS "-DMUTATEE_32 -m32"
                        LINK_FLAGS "-m32"
                        OUTPUT_NAME dyninstAPI_RT_m32
-                       SOVERSION ${SOVERSION}
+                       SOVERSION ${DYNINST_SOVERSION}
                        VERSION ${LIBVERSION})
 
         set_target_properties(
