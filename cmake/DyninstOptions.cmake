@@ -13,26 +13,18 @@ option(ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
 option(ENABLE_DEBUGINFOD "Enable debuginfod support" OFF)
 
-set(STERILE_BUILD
-    ON
-    CACHE BOOL "Do not download/build any third-party dependencies from source")
+option(STERILE_BUILD "Do not download/build any third-party dependencies from source" OFF)
 
-set(ADD_VALGRIND_ANNOTATIONS
-    OFF
-    CACHE BOOL "Enable annotations for Valgrind analysis")
+option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis" OFF)
 
-set(ENABLE_STATIC_LIBS
-    NO
-    CACHE STRING "Build static libraries as well?")
+option(ENABLE_STATIC_LIBS "Build static libraries as well?" NO)
 
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
 
-set(DYNINST_EXTRA_WARNINGS
+option(DYNINST_EXTRA_WARNINGS
+		"Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
     ""
-    CACHE
-        STRING
-        "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
     )
 
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
