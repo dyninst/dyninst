@@ -63,7 +63,7 @@ add_definitions(-DSYMTAB_LIB)
 
 set(DEPS common)
 
-if(UNIX)
+if(DYNINST_OS_UNIX)
     list(APPEND DEPS dynElf dynDwarf)
 else()
     list(APPEND DEPS dbghelp)

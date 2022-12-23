@@ -1,6 +1,6 @@
 # CMake configuration for dynDwarf (dwarf) directory
 
-if(NOT UNIX)
+if(NOT DYNINST_OS_UNIX)
     return()
 endif()
 

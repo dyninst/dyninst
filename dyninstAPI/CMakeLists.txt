@@ -172,7 +172,7 @@ endif()
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 add_definitions(-DBPATCH_DLL_BUILD)
-if(DYNINST_ARCH_i386 AND UNIX)
+if(DYNINST_ARCH_i386 AND DYNINST_OS_UNIX)
     set(SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
     set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif()
@@ -190,14 +190,14 @@ dyninst_library(
 target_link_libraries(dyninstAPI PUBLIC Dyninst::Boost_headers)
 target_link_libraries(dyninstAPI PRIVATE Dyninst::ElfUtils)
 
-if(UNIX)
+if(DYNINST_OS_UNIX)
     # Boost auto-links on Windows; don't double-link
     target_link_private_libraries(dyninstAPI pthread)
 else()
     target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)
 endif()
 
-if(UNIX)
+if(DYNINST_OS_UNIX)
     # gcc/clang search directories
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         execute_process(COMMAND ${CMAKE_CXX_COMPILER} -print-search-dirs
