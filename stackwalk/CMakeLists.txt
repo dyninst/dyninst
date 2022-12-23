@@ -58,7 +58,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FORCE_FRAME_POINTER}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FORCE_FRAME_POINTER}")
 
 set(DEPS common instructionAPI pcontrol)
-if(UNIX)
+if(DYNINST_OS_UNIX)
     set(DEPS ${DEPS} dynDwarf dynElf)
 endif()
 
