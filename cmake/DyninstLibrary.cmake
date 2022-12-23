@@ -33,7 +33,7 @@ function(dyninst_library target)
                                                        ${CMAKE_CURRENT_BINARY_DIR})
     set_target_properties(
         ${target}
-        PROPERTIES SOVERSION ${SOVERSION}
+        PROPERTIES SOVERSION ${DYNINST_SOVERSION}
                    VERSION ${LIBVERSION}
                    CLEAN_DIRECT_OUTPUT 1)
     set(INSTALL_TARGETS ${ACTUAL_TARGETS})
