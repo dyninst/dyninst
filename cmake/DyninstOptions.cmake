@@ -13,7 +13,7 @@ option(ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
 option(ENABLE_DEBUGINFOD "Enable debuginfod support" OFF)
 
-option(STERILE_BUILD "Do not download/build any third-party dependencies from source" OFF)
+option(STERILE_BUILD "DEPRECATED -- Do not use" OFF)
 
 option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis" OFF)
 
