@@ -34,7 +34,7 @@ function(dyninst_library target)
     set_target_properties(
         ${target}
         PROPERTIES SOVERSION ${DYNINST_SOVERSION}
-                   VERSION ${LIBVERSION}
+                   VERSION ${DYNINST_LIBVERSION}
                    CLEAN_DIRECT_OUTPUT 1)
     set(INSTALL_TARGETS ${ACTUAL_TARGETS})
     foreach(dep ${ARGN})
