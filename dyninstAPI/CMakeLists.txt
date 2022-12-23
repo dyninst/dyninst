@@ -192,9 +192,9 @@ target_link_libraries(dyninstAPI PRIVATE Dyninst::ElfUtils)
 
 if(DYNINST_OS_UNIX)
     # Boost auto-links on Windows; don't double-link
-    target_link_private_libraries(dyninstAPI pthread)
+    target_link_libraries(dyninstAPI PRIVATE pthread)
 else()
-    target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)
+    target_link_libraries(dyninstAPI PRIVATE dbghelp WS2_32 imagehlp)
 endif()
 
 if(DYNINST_OS_UNIX)

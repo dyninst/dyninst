@@ -13,22 +13,13 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
-# Link libraries privately when possible
-function(target_link_private_libraries target)
-    if(${CMAKE_VERSION} VERSION_LESS "2.8.7")
-        target_link_libraries(${target} ${ARGN})
-    else()
-        target_link_libraries(${target} LINK_PRIVATE ${ARGN})
-    endif()
-endfunction()
-
 set(ALL_DYNINST_TARGETS
     ""
     CACHE INTERNAL "")
 
 function(dyninst_library target)
     add_library(${target} ${SRC_LIST})
-    target_link_private_libraries(${target} ${ARGN})
+    target_link_libraries(${target} PRIVATE ${ARGN})
     file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
     set(ACTUAL_TARGETS ${target})
     set(ALL_TARGETS "${ARGN};${target}")

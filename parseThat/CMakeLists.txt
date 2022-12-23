@@ -13,8 +13,9 @@ add_executable(
     src/dyninstCompat.v5.C)
 add_definitions(-DHAVE_BPATCH_PROCESS_H)
 
-target_link_private_libraries(
+target_link_libraries(
     parseThat
+    PRIVATE
     dyninstAPI
     patchAPI
     parseAPI
