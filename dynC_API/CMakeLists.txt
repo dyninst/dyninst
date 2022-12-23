@@ -5,7 +5,7 @@ include_directories(h src ${PROJECT_SOURCE_DIR}/dyninstAPI/src
 
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 add_definitions(-DDYNC_EXPORTS)
-if(WIN32)
+if(DYNINST_OS_Windows)
     add_definitions(-DYY_NO_UNISTD_H)
 endif()
 

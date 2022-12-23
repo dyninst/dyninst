@@ -2,7 +2,7 @@
 
 include_directories(src h ${PROJECT_SOURCE_DIR}/dwarf/h ${PROJECT_SOURCE_DIR}/elf/h)
 
-if(NOT WIN32)
+if(NOT DYNINST_OS_Windows)
     include_directories(${PROJECT_SOURCE_DIR}/common/src)
 endif()
 
