@@ -27,7 +27,7 @@ set(SRC_LIST
     src/pcmachsyscall.C)
 if(UNIX)
     set(SRC_LIST ${SRC_LIST} src/sysv.C src/int_thread_db.C src/mmapalloc.C)
-elseif(WIN32)
+elseif(DYNINST_OS_Windows)
     set(SRC_LIST
         ${SRC_LIST}
         src/GeneratorWindows.C
