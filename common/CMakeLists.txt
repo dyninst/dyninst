@@ -109,7 +109,7 @@ if(${ENABLE_STATIC_LIBS})
 endif()
 
 if(DYNINST_OS_Windows)
-    target_link_private_libraries(common Psapi WS2_32 dbghelp)
+    target_link_libraries(common PRIVATE Psapi WS2_32 dbghelp)
 endif()
 
 target_link_libraries(common PUBLIC Dyninst::TBB Dyninst::Boost)

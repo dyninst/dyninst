@@ -106,7 +106,7 @@ target_link_libraries(parseAPI PUBLIC Dyninst::Boost_headers)
 target_link_libraries(parseAPI PUBLIC symtabAPI OpenMP::OpenMP_CXX)
 
 if(DYNINST_OS_Windows)
-    target_link_private_libraries(parseAPI shlwapi)
+    target_link_libraries(parseAPI PRIVATE shlwapi)
 endif()
 message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")
 file(GLOB headers "h/*.h")
