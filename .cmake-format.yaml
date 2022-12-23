@@ -57,7 +57,7 @@ markup:
   explicit_trailing_pattern: '#<'
   hashruler_min_length: 10
   canonicalize_hashrulers: true
-  enable_markup: true
+  enable_markup: false
 lint:
   disabled_codes: []
   function_pattern: '[0-9a-z_]+'
