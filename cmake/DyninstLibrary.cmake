@@ -23,16 +23,6 @@ function(dyninst_library target)
                    VERSION ${DYNINST_LIBVERSION}
                    CLEAN_DIRECT_OUTPUT 1)
     set(INSTALL_TARGETS ${ACTUAL_TARGETS})
-    foreach(dep ${ARGN})
-        message(STATUS "Processing dependent target ${dep}...")
-        if(TARGET ${dep})
-            get_target_property(dep_dir ${dep} LIBRARY_OUTPUT_DIRECTORY)
-            if(EXISTS ${dep_dir} AND IS_DIRECTORY ${dep_dir})
-                message(STATUS "Found dependency location ${dep_dir}")
-                install(SCRIPT ${dep_dir}/cmake_install.cmake)
-            endif()
-        endif()
-    endforeach()
     install(
         TARGETS ${INSTALL_TARGETS}
         EXPORT ${target}Targets
