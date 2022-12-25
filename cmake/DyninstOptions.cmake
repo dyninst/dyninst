@@ -30,14 +30,3 @@ option(
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 
 option(ENABLE_PARSE_API_GRAPHS "Enable Boost Graph wrappers for parseAPI Functions" OFF)
-
-# Some global on/off switches
-if(LIGHTWEIGHT_SYMTAB)
-    add_definitions(-DWITHOUT_SYMTAB_API -DWITH_SYMLITE)
-else()
-    add_definitions(-DWITH_SYMTAB_API -DWITHOUT_SYMLITE)
-endif()
-
-if(SW_ANALYSIS_STEPPER)
-    add_definitions(-DUSE_PARSE_API)
-endif()
