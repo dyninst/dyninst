@@ -27,6 +27,18 @@ function(dyninst_library target)
           	${DYNINST_LIBVERSION}
         	CLEAN_DIRECT_OUTPUT 1)
 
+		if(DYNINST_OS_Windows)
+		    set(_def WIN32_LEAN_AND_MEAN)
+		    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
+		        list(APPEND _def _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
+		    else()
+		        list(APPEND _def snprintf=_snprintf)
+		    endif()
+		    foreach(t ${ACTUAL_TARGETS})
+		    	target_compile_definitions(${t} PRIVATE ${_def})
+		    endforeach()
+		endif()
+
     install(
         TARGETS ${ACTUAL_TARGETS}
         EXPORT ${target}Targets
@@ -40,12 +52,3 @@ function(dyninst_library target)
         CACHE INTERNAL "")
     install(EXPORT ${target}Targets DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}")
 endfunction()
-
-if(DYNINST_OS_Windows)
-    add_definitions(-DWIN32_LEAN_AND_MEAN)
-    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
-        add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
-    else()
-        add_definitions(-Dsnprintf=_snprintf)
-    endif()
-endif()
