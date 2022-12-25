@@ -34,11 +34,3 @@ set(INSTALL_INCLUDE_DIR
 set(INSTALL_CMAKE_DIR
     lib/cmake/${PROJECT_NAME}
     CACHE PATH "Installation directory for CMake files")
-
-# Make the above absolute paths if necessary
-foreach(p BIN LIB INCLUDE CMAKE)
-    set(var INSTALL_${p}_DIR)
-    if(NOT IS_ABSOLUTE "${${var}}")
-        set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-    endif()
-endforeach()
