@@ -13,15 +13,20 @@ function(dyninst_library target)
         add_library(${target}_static STATIC ${SRC_LIST})
     endif()
     message(STATUS "Building ${ACTUAL_TARGETS}...")
-    set_target_properties(${ACTUAL_TARGETS} PROPERTIES PUBLIC_HEADER "${headers}")
-    set_target_properties(${ACTUAL_TARGETS} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                       ${CMAKE_CURRENT_BINARY_DIR}
-                                                       INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}")
-    set_target_properties(
-        ${target}
-        PROPERTIES SOVERSION ${DYNINST_SOVERSION}
-                   VERSION ${DYNINST_LIBVERSION}
-                   CLEAN_DIRECT_OUTPUT 1)
+    set_target_properties(${ACTUAL_TARGETS}
+    		PROPERTIES
+    			PUBLIC_HEADER
+    				"${headers}"
+    			LIBRARY_OUTPUT_DIRECTORY
+    				${CMAKE_CURRENT_BINARY_DIR}
+    			INSTALL_RPATH
+    				"${DYNINST_RPATH_DIRECTORIES}"
+					SOVERSION
+						${DYNINST_SOVERSION}
+          VERSION
+          	${DYNINST_LIBVERSION}
+        	CLEAN_DIRECT_OUTPUT 1)
+
     set(INSTALL_TARGETS ${ACTUAL_TARGETS})
     install(
         TARGETS ${INSTALL_TARGETS}
