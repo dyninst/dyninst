@@ -27,9 +27,8 @@ function(dyninst_library target)
           	${DYNINST_LIBVERSION}
         	CLEAN_DIRECT_OUTPUT 1)
 
-    set(INSTALL_TARGETS ${ACTUAL_TARGETS})
     install(
-        TARGETS ${INSTALL_TARGETS}
+        TARGETS ${ACTUAL_TARGETS}
         EXPORT ${target}Targets
         COMPONENT ${target}
         RUNTIME DESTINATION ${DYNINST_INSTALL_LIBDIR}
