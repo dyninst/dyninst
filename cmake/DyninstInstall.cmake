@@ -1,15 +1,15 @@
 include(CMakePackageConfigHelpers)
 
 # Export the Find modules for thirdy-party libraries provided by us
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/cmake/Modules DESTINATION ${INSTALL_CMAKE_DIR})
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/cmake/tpls DESTINATION ${INSTALL_CMAKE_DIR})
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/cmake/Modules DESTINATION ${DYNINST_INSTALL_CMAKEDIR})
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/cmake/tpls DESTINATION ${DYNINST_INSTALL_CMAKEDIR})
 
 configure_package_config_file(
     ${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
     ${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-    INSTALL_DESTINATION ${INSTALL_CMAKE_DIR}
+    INSTALL_DESTINATION ${DYNINST_INSTALL_CMAKEDIR}
     INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}
-    PATH_VARS INSTALL_LIB_DIR INSTALL_INCLUDE_DIR)
+    PATH_VARS DYNINST_INSTALL_LIBDIR DYNINST_INSTALL_INCLUDEDIR)
 
 write_basic_package_version_file(
     ${PROJECT_BINARY_DIR}/DyninstConfigVersion.cmake
@@ -19,4 +19,4 @@ write_basic_package_version_file(
 install(
     FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
           ${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-    DESTINATION ${INSTALL_CMAKE_DIR})
+    DESTINATION ${DYNINST_INSTALL_CMAKEDIR})
