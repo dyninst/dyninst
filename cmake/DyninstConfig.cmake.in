@@ -18,10 +18,7 @@ unset(_DYNINST_module_path_save)
 
 @PACKAGE_INIT@
 
-# Library dependencies include ("${CMAKE_CURRENT_LIST_DIR}/DyninstTargets.cmake")
-foreach(TARG @ALL_DYNINST_TARGETS@)
-    include("${CMAKE_CURRENT_LIST_DIR}/${TARG}Targets.cmake" OPTIONAL)
-endforeach()
+include("${CMAKE_CURRENT_LIST_DIR}/DyninstTargets.cmake")
 
 # Other variables Dyninst mutators may depend on
 set(DYNINST_PLATFORM "@DYNINST_PLATFORM@")

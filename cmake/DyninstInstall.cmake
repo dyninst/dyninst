@@ -20,3 +20,10 @@ install(
     FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
           ${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${DYNINST_INSTALL_CMAKEDIR})
+
+# Export all of the Dyninst libraries created by `dyninst_library`
+install(
+	EXPORT dyninst-targets
+	NAMESPACE Dyninst::
+	FILE DyninstTargets.cmake
+	DESTINATION ${DYNINST_INSTALL_CMAKEDIR})
