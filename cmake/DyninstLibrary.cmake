@@ -1,7 +1,3 @@
-set(ALL_DYNINST_TARGETS
-    ""
-    CACHE INTERNAL "")
-
 function(dyninst_library target)
   add_library(${target} ${SRC_LIST})
   target_link_libraries(${target} PRIVATE ${ARGN})
@@ -51,15 +47,11 @@ function(dyninst_library target)
   endforeach()
 
   install(
-      TARGETS ${ACTUAL_TARGETS}
-      EXPORT ${target}Targets
-      COMPONENT ${target}
-      RUNTIME DESTINATION ${DYNINST_INSTALL_LIBDIR}
-      LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
-      ARCHIVE DESTINATION ${DYNINST_INSTALL_LIBDIR}
-      PUBLIC_HEADER DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
-  set(ALL_DYNINST_TARGETS
-      "${ALL_DYNINST_TARGETS};${target}"
-      CACHE INTERNAL "")
-  install(EXPORT ${target}Targets DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}")
+    TARGETS ${ACTUAL_TARGETS}
+    EXPORT dyninst-targets
+    COMPONENT ${target}
+    RUNTIME DESTINATION ${DYNINST_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${DYNINST_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
 endfunction()
