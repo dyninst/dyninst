@@ -15,8 +15,7 @@ function(dyninst_library target)
                LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
                SOVERSION ${DYNINST_SOVERSION}
-               VERSION ${DYNINST_LIBVERSION}
-               CLEAN_DIRECT_OUTPUT 1)
+               VERSION ${DYNINST_LIBVERSION})
 
   set(_defs)
   if(DYNINST_OS_Windows)
