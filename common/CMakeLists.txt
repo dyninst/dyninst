@@ -1,5 +1,7 @@
 # CMake configuration for common directory
 
+configure_file(${PROJECT_SOURCE_DIR}/cmake/version.h.in h/dyninstversion.h)
+
 if(NOT DYNINST_OS_Windows)
     include_directories(${PROJECT_SOURCE_DIR}/common/h ${PROJECT_SOURCE_DIR}/common/src)
 else()
