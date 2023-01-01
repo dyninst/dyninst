@@ -39,14 +39,14 @@ function(dyninst_library _target)
 
   cmake_parse_arguments(PARSE_ARGV 0 _target "" "" "${_keywords}")
   
-  add_library(${_target} ${SRC_LIST})
+  add_library(${_target} ${_target_SOURCE_FILES})
   target_link_libraries(${_target} PRIVATE ${ARGN})
   file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
   set(ACTUAL_TARGETS ${_target})
   set(ALL_TARGETS "${ARGN};${_target}")
   if(${ENABLE_STATIC_LIBS})
     set(ACTUAL_TARGETS ${ACTUAL_TARGETS} ${_target}_static)
-    add_library(${_target}_static STATIC ${SRC_LIST})
+    add_library(${_target}_static STATIC ${_target_SOURCE_FILES})
   endif()
   message(STATUS "Building ${ACTUAL_TARGETS}...")
   set_target_properties(
