@@ -81,7 +81,7 @@ src/Types.h
 src/vgannotations.h
 )
 
-set(SRC_LIST
+set(_sources
     src/pfq-rwlock.C
     src/concurrent.C
     src/Timer.C
@@ -108,37 +108,28 @@ set(SRC_LIST
     src/Buffer.C
     src/MachSyscall.C)
 
-set(C_SRC_LIST)
+if(DYNINST_OS_UNIX)
+    list(APPEND _sources
+    	src/addrtranslate-sysv.C
+      src/symbolDemangleWithCache.C
+      src/symbolDemangle.c)
+endif()
 
 if(DYNINST_OS_FreeBSD)
-    set(SRC_LIST ${SRC_LIST} src/freebsdKludges.C src/addrtranslate-sysv.C
-                 src/addrtranslate-freebsd.C src/symbolDemangleWithCache.C)
-    set(C_SRC_LIST ${C_SRC_LIST} src/symbolDemangle.c)
-endif()
-
-if(DYNINST_OS_Linux)
-    set(SRC_LIST
-        ${SRC_LIST}
+    list(APPEND _sources
+    	src/freebsdKludges.C
+      src/addrtranslate-freebsd.C)
+elseif(DYNINST_OS_Linux)
+    list(APPEND _sources
         src/linuxKludges.C
         src/parseauxv.C
-        src/addrtranslate-sysv.C
         src/addrtranslate-auxv.C
-        src/addrtranslate-linux.C
-        src/symbolDemangleWithCache.C)
-    set(C_SRC_LIST ${C_SRC_LIST} src/symbolDemangle.c)
+        src/addrtranslate-linux.C)
+elseif(DYNINST_OS_Windows)
+    list(APPEND _sources
+    	src/ntKludges.C
+      src/addrtranslate-win.C)
 endif()
-
-if(DYNINST_OS_Windows)
-    set(SRC_LIST
-        ${SRC_LIST} src/ntKludges.C
-        # src/dthread-win.C src/dthread.C
-        src/addrtranslate-win.C)
-    add_definitions(-DWIN32 -D_WIN32_WINNT=0x500)
-endif()
-
-set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
-set_source_files_properties(${C_SRC_LIST} PROPERTIES LANGUAGE C)
-set(SRC_LIST ${SRC_LIST} ${C_SRC_LIST})
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[789](\.|$)")
