@@ -1,3 +1,9 @@
+if(LIGHTWEIGHT_SYMTAB)
+    set(SYMREADER symLite)
+else()
+    set(SYMREADER symtabAPI)
+endif()
+
 set(_dyninst_global_defs)
 if(DYNINST_OS_Windows)
   list(APPEND _dyninst_global_defs WIN32_LEAN_AND_MEAN)
