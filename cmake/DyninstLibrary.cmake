@@ -1,3 +1,5 @@
+include_guard(DIRECTORY)
+
 if(LIGHTWEIGHT_SYMTAB)
   set(SYMREADER symLite)
 else()
