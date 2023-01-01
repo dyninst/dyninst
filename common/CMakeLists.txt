@@ -1,5 +1,7 @@
 include_guard(GLOBAL)
 
+include(DyninstLibrary)
+
 configure_file(${PROJECT_SOURCE_DIR}/cmake/version.h.in h/dyninstversion.h)
 
 if(NOT DYNINST_OS_Windows)
