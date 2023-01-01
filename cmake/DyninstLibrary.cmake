@@ -29,6 +29,16 @@ if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
 endif()
 
 function(dyninst_library _target)
+	set(_keywords
+		PRIVATE_HEADER_FILES
+		PUBLIC_HEADER_FILES
+		SOURCE_FILES		# Both public and private
+		DEFINES
+		PUBLIC_DEPS
+		PRIVATE_DEPS)
+
+  cmake_parse_arguments(PARSE_ARGV 0 _target "" "" "${_keywords}")
+  
   add_library(${_target} ${SRC_LIST})
   target_link_libraries(${_target} PRIVATE ${ARGN})
   file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
