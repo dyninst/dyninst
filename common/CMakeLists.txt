@@ -116,5 +116,5 @@ target_link_libraries(common PUBLIC Dyninst::TBB Dyninst::Boost)
 target_link_libraries(common PRIVATE Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind)
 
 # Install AMDGPU headers under subdirectory of common/h/AMDGPU
-set(AMDGPU_HEADER ${DYNINST_ROOT}/common/h/AMDGPU)
+set(AMDGPU_HEADER ${PROJECT_SOURCE_DIR}/common/h/AMDGPU)
 install(DIRECTORY ${AMDGPU_HEADER} DESTINATION ${INSTALL_INCLUDE_DIR})

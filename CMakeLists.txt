@@ -24,8 +24,6 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
-set(DYNINST_ROOT ${PROJECT_SOURCE_DIR})
-
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
      "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
@@ -81,10 +79,10 @@ if(NOT DYNINST_OS_Windows)
 endif()
 
 foreach(dir ${HEADER_DIRS})
-    include_directories(${DYNINST_ROOT}/${dir}/h)
+    include_directories(${PROJECT_SOURCE_DIR}/${dir}/h)
 endforeach()
 
-include_directories(${DYNINST_ROOT} ${DYNINST_ROOT}/external)
+include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
 
 # Component time
 add_subdirectory(common)
