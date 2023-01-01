@@ -28,9 +28,9 @@ function(dyninst_library target)
   endif()
 
   if(LIGHTWEIGHT_SYMTAB)
-    list(APPEND _defs WITHOUT_SYMTAB_API WITH_SYMLITE)
+    list(APPEND _defs WITH_SYMLITE)
   else()
-    list(APPEND _defs WITH_SYMTAB_API WITHOUT_SYMLITE)
+    list(APPEND _defs WITH_SYMTAB_API)
   endif()
 
   if(SW_ANALYSIS_STEPPER)
