@@ -1,5 +1,5 @@
-include_directories(${DYNINST_ROOT}/dyninstAPI_RT/src ${DYNINST_ROOT}/dyninstAPI_RT/h
-                    ${DYNINST_ROOT})
+include_directories(${PROJECT_SOURCE_DIR}/dyninstAPI_RT/src ${PROJECT_SOURCE_DIR}/dyninstAPI_RT/h
+                    ${PROJECT_SOURCE_DIR})
 
 set(SRC_LIST src/RTcommon.c)
 
