@@ -43,8 +43,6 @@ include(DyninstLibIberty)
 include(DyninstThread_DB)
 include(DyninstValgrind)
 
-include(DyninstLibrary)
-
 if(USE_OpenMP)
     find_package(OpenMP REQUIRED)
 else()
