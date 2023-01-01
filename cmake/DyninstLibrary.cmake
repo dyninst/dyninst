@@ -1,3 +1,27 @@
+set(_dyninst_global_defs)
+if(DYNINST_OS_Windows)
+  list(APPEND _dyninst_global_defs WIN32_LEAN_AND_MEAN)
+  if(CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
+    list(APPEND _dyninst_global_defs _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
+  else()
+    list(APPEND _dyninst_global_defs snprintf=_snprintf)
+  endif()
+endif()
+
+if(LIGHTWEIGHT_SYMTAB)
+  list(APPEND _dyninst_global_defs WITH_SYMLITE)
+else()
+  list(APPEND _dyninst_global_defs WITH_SYMTAB_API)
+endif()
+
+if(SW_ANALYSIS_STEPPER)
+  list(APPEND _dyninst_global_defs USE_PARSE_API)
+endif()
+
+if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
+    list(APPEND _dyninst_global_defs DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
+endif()
+
 function(dyninst_library target)
   add_library(${target} ${SRC_LIST})
   target_link_libraries(${target} PRIVATE ${ARGN})
@@ -17,32 +41,8 @@ function(dyninst_library target)
                SOVERSION ${DYNINST_SOVERSION}
                VERSION ${DYNINST_LIBVERSION})
 
-  set(_defs)
-  if(DYNINST_OS_Windows)
-    list(APPEND _defs WIN32_LEAN_AND_MEAN)
-    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
-      list(APPEND _defs _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
-    else()
-      list(APPEND _defs snprintf=_snprintf)
-    endif()
-  endif()
-
-  if(LIGHTWEIGHT_SYMTAB)
-    list(APPEND _defs WITH_SYMLITE)
-  else()
-    list(APPEND _defs WITH_SYMTAB_API)
-  endif()
-
-  if(SW_ANALYSIS_STEPPER)
-    list(APPEND _defs USE_PARSE_API)
-  endif()
-
-	if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-	    list(APPEND _defs DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
-	endif()
-
   foreach(t ${ACTUAL_TARGETS})
-    target_compile_definitions(${t} PRIVATE ${_defs})
+    target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs})
   endforeach()
 
   install(
