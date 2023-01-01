@@ -27,12 +27,6 @@ list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
 include(DyninstLibrarySettings)
 include(DyninstOptions)
 
-if(LIGHTWEIGHT_SYMTAB)
-    set(SYMREADER symLite)
-else()
-    set(SYMREADER symtabAPI)
-endif()
-
 # Set up Dyninst internals
 include(DyninstPlatform)
 include(DyninstCapArchDef)
