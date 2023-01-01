@@ -1,4 +1,4 @@
-# CMake configuration for common directory
+include_guard(GLOBAL)
 
 configure_file(${PROJECT_SOURCE_DIR}/cmake/version.h.in h/dyninstversion.h)
 
