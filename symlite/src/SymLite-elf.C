@@ -29,6 +29,7 @@
  */
 
 #include "SymLite-elf.h"
+#include "common/src/headers.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
