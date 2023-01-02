@@ -4,16 +4,6 @@ include(DyninstLibrary)
 
 configure_file(${PROJECT_SOURCE_DIR}/cmake/version.h.in h/dyninstversion.h)
 
-if(NOT DYNINST_OS_Windows)
-    include_directories(${PROJECT_SOURCE_DIR}/common/h ${PROJECT_SOURCE_DIR}/common/src)
-else()
-    include_directories(
-        ${PROJECT_SOURCE_DIR}/common/h # don't include common/src; anything from there can
-                                       # still collide with default includes.
-        # stupid Windows case-insensitive naming.
-        )
-endif()
-
 set(_public_headers
 	h/aarch64_sys_regs.h
 	h/AMDGPU/cdna2/amdgpu_cdna2_op_table.h
@@ -174,6 +164,14 @@ dyninst_library(
 	PRIVATE_DEPS Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind
 )
 
-if(DYNINST_OS_Windows)
-    target_link_libraries(common PRIVATE Psapi WS2_32 dbghelp)
-endif()
+foreach(t ${common_TARGETS})
+	target_include_directories(${t}
+	   PUBLIC
+	   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
+	)
+
+	if(DYNINST_OS_Windows)
+    target_compile_definitions(${t} PRIVATE "WIN32" "_WIN32_WINNT=0x500")
+    target_link_libraries(${t} PRIVATE Psapi WS2_32 dbghelp)
+	endif()
+endforeach()
