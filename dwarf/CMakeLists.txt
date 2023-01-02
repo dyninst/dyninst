@@ -1,15 +1,40 @@
-# CMake configuration for dynDwarf (dwarf) directory
+include_guard(GLOBAL)
+
+include(DyninstLibrary)
 
 if(NOT DYNINST_OS_UNIX)
-    return()
+  if(NOT TARGET dynDwarf)
+    add_library(dynDwarf INTERFACE)
+  endif()
+  return()
 endif()
 
-include_directories(src h ${PROJECT_SOURCE_DIR}/elf/h ${PROJECT_SOURCE_DIR}/common/src)
-add_definitions(-DDYNDWARF_LIB)
+set(_public_headers
+	h/dwarfExprParser.h
+	h/dwarfFrameParser.h
+	h/dwarfHandle.h
+	h/dwarfResult.h
+)
 
-set(SRC_LIST src/dwarfResult.C src/dwarfExprParser.C src/dwarfFrameParser.C
-             src/dwarfHandle.C)
+set(_sources
+	src/dwarfResult.C
+	src/dwarfExprParser.C
+	src/dwarfFrameParser.C
+	src/dwarfHandle.C)
 
-dyninst_library(dynDwarf dynElf common)
-target_link_libraries(dynDwarf PUBLIC Dyninst::Boost_headers)
-target_link_libraries(dynDwarf PRIVATE Dyninst::ElfUtils)
+# cmake-format: off
+dyninst_library(
+  dynDwarf
+  PUBLIC_HEADER_FILES ${_public_headers}
+  SOURCE_FILES ${_sources}
+  DEFINES DYNDWARF_LIB
+  PUBLIC_DEPS dynElf common Dyninst::Boost_headers
+)
+# cmake-format: on
+
+foreach(t ${dynDwarf_TARGETS})
+  target_include_directories(
+    ${t}
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
+endforeach()
