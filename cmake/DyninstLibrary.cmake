@@ -65,7 +65,7 @@ function(dyninst_library _target)
                SOVERSION ${DYNINST_SOVERSION}
                VERSION ${DYNINST_LIBVERSION})
   
-    target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs})
+    target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs} ${_target_DEFINES})
   endforeach()
 
   install(
