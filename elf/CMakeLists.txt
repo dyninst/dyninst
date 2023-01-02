@@ -1,7 +1,10 @@
 # CMake configuration for dynElf (elf) directory
 
 if(NOT DYNINST_OS_UNIX)
-    return()
+  if(NOT TARGET dynElf)
+    add_library(dynElf INTERFACE)
+  endif()
+  return()
 endif()
 
 include_directories(src h)
