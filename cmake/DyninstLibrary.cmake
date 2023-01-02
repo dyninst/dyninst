@@ -51,10 +51,16 @@ function(dyninst_library _target)
     message(STATUS "Building ${t}...")
     target_link_libraries(${t} PRIVATE ${_target_PRIVATE_DEPS})
     target_link_libraries(${t} PUBLIC ${_target_PUBLIC_DEPS})
-    file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
+
+		target_include_directories(${t}
+		   PUBLIC
+		   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
+		   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+		)
+
     set_target_properties(
       ${t}
-      PROPERTIES PUBLIC_HEADER "${headers}"
+      PROPERTIES
                LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
                SOVERSION ${DYNINST_SOVERSION}
@@ -69,5 +75,5 @@ function(dyninst_library _target)
     RUNTIME DESTINATION ${DYNINST_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${DYNINST_INSTALL_LIBDIR}
-    PUBLIC_HEADER DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
+    INCLUDES DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
 endfunction()
