@@ -39,7 +39,7 @@ function(dyninst_library _target)
 
   cmake_parse_arguments(PARSE_ARGV 0 _target "" "" "${_keywords}")
   
-  add_library(${_target} ${_target_PUBLIC_HEADER_FILES} ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+  add_library(${_target} SHARED ${_target_PUBLIC_HEADER_FILES} ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
 
   set(_all_targets ${_target})
   if(${ENABLE_STATIC_LIBS})
