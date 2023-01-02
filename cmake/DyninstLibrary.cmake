@@ -40,23 +40,25 @@ function(dyninst_library _target)
   cmake_parse_arguments(PARSE_ARGV 0 _target "" "" "${_keywords}")
   
   add_library(${_target} ${_target_PUBLIC_HEADER_FILES} ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
-  target_link_libraries(${_target} PRIVATE ${ARGN})
-  file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
+
   set(_all_targets ${_target})
   if(${ENABLE_STATIC_LIBS})
     list(APPEND _all_targets ${_target}_static)
     add_library(${_target}_static STATIC ${_target_PUBLIC_HEADER_FILES} ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
   endif()
-  message(STATUS "Building ${_all_targets}...")
-  set_target_properties(
-    ${_all_targets}
-    PROPERTIES PUBLIC_HEADER "${headers}"
+
+  foreach(t ${_all_targets})
+    message(STATUS "Building ${t}...")
+    target_link_libraries(${t} PRIVATE ${ARGN})
+    file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
+    set_target_properties(
+      ${t}
+      PROPERTIES PUBLIC_HEADER "${headers}"
                LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
                SOVERSION ${DYNINST_SOVERSION}
                VERSION ${DYNINST_LIBVERSION})
-
-  foreach(t ${_all_targets})
+  
     target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs})
   endforeach()
 
