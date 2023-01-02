@@ -83,4 +83,6 @@ function(dyninst_library _target)
 	  get_filename_component(_dir ${CMAKE_MATCH_1} DIRECTORY) 
 		install(FILES ${h} DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}/${_dir}")
 	endforeach()
+
+	set(${_target}_TARGETS ${_all_targets} PARENT_SCOPE)
 endfunction()
