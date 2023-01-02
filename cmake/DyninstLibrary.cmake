@@ -49,7 +49,8 @@ function(dyninst_library _target)
 
   foreach(t ${_all_targets})
     message(STATUS "Building ${t}...")
-    target_link_libraries(${t} PRIVATE ${ARGN})
+    target_link_libraries(${t} PRIVATE ${_target_PRIVATE_DEPS})
+    target_link_libraries(${t} PUBLIC ${_target_PUBLIC_DEPS})
     file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
     set_target_properties(
       ${t}
