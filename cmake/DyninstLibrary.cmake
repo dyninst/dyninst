@@ -48,7 +48,7 @@ function(dyninst_library _target)
   endif()
 
   foreach(t ${_all_targets})
-    message(STATUS "Building ${t}...")
+    message(STATUS "Adding library '${t}'")
     target_link_libraries(${t} PRIVATE ${_target_PRIVATE_DEPS})
     target_link_libraries(${t} PUBLIC ${_target_PUBLIC_DEPS})
 
