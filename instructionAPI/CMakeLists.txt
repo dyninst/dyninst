@@ -1,11 +1,8 @@
-# CMake configuration for instructionAPI directory
+include_guard(GLOBAL)
 
-include_directories(
-    ${PROJECT_SOURCE_DIR}/instructionAPI/src
-    ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/cdna2
-    ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/vega)
+include(DyninstLibrary)
 
-set(SRC_LIST
+set(_sources
     src/Instruction.C
     src/InstructionAST.C
     src/Operation.C
@@ -24,7 +21,38 @@ set(SRC_LIST
     src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.C
     src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C
     src/InstructionDecoderImpl.C)
-set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+set(_public_headers
+	h/ArchSpecificFormatters.h
+	h/BinaryFunction.h
+	h/Dereference.h
+	h/Expression.h
+	h/Immediate.h
+	h/InstructionAST.h
+	h/InstructionCategories.h
+	h/InstructionDecoder.h
+	h/Instruction.h
+	h/Operand.h
+	h/Operation_impl.h
+	h/Register.h
+	h/RegisterIDs.h
+	h/Result.h
+	h/Ternary.h
+	h/Visitor.h)
+
+set(_private_headers
+	src/amdgpu_branchinsn_table.h
+	src/AMDGPU/cdna2/amdgpu_cdna2_decoder_impl.h
+	src/AMDGPU/cdna2/amdgpu_cdna2_insn_entry.h
+	src/AMDGPU/cdna2/decodeOperands.h
+	src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.h
+	src/AMDGPU/vega/amdgpu_vega_decoder_impl.h
+	src/AMDGPU/vega/amdgpu_vega_insn_entry.h
+	src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.h
+	src/InstructionDecoder-aarch64.h
+	src/InstructionDecoderImpl.h
+	src/InstructionDecoder-power.h
+	src/InstructionDecoder-x86.h)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
@@ -83,8 +111,24 @@ if(NOT finalizeOperandsExtraFlags STREQUAL "")
                                 PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
-add_definitions(-DINSTRUCTION_LIB)
+# cmake-format: off
+dyninst_library(
+  instructionAPI
+  PUBLIC_HEADER_FILES ${_public_headers}
+  PRIVATE_HEADER_FILES ${_private_headers}
+  SOURCE_FILES ${_sources}
+  DEFINES INSTRUCTION_LIB
+  PUBLIC_DEPS common Dyninst::Boost_headers
+)
+# cmake-format: on
 
-dyninst_library(instructionAPI common)
+set(_inc_dirs
+	${CMAKE_CURRENT_SOURCE_DIR}/h
+	${CMAKE_CURRENT_SOURCE_DIR}/src
+	${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/cdna2
+	${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
 
-target_link_libraries(instructionAPI PUBLIC Dyninst::Boost_headers)
+foreach(t ${instructionAPI_TARGETS})
+  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")
+endforeach()
+unset(_inc_dirs)
