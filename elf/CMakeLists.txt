@@ -1,4 +1,6 @@
-# CMake configuration for dynElf (elf) directory
+include_guard(GLOBAL)
+
+include(DyninstLibrary)
 
 if(NOT DYNINST_OS_UNIX)
   if(NOT TARGET dynElf)
@@ -7,12 +9,23 @@ if(NOT DYNINST_OS_UNIX)
   return()
 endif()
 
-include_directories(src h)
+set(_public_headers h/Elf_X.h)
+set(_sources src/Elf_X.C)
 
-set(SRC_LIST src/Elf_X.C)
+# cmake-format: off
+dyninst_library(
+  dynElf
+  PUBLIC_HEADER_FILES ${_public_headers}
+  SOURCE_FILES ${_sources}
+  DEFINES DYNELF_LIB
+  PUBLIC_DEPS Dyninst::ElfUtils common
+  PRIVATE_DEPS Dyninst::Boost_headers
+)
+# cmake-format: on
 
-dyninst_library(dynElf)
-target_link_libraries(dynElf PUBLIC Dyninst::ElfUtils)
-target_link_libraries(dynElf PRIVATE Dyninst::Boost_headers)
-
-add_definitions(-DDYNELF_LIB)
+foreach(t ${dynElf_TARGETS})
+  target_include_directories(
+    ${t}
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
+endforeach()
