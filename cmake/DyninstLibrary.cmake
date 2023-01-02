@@ -61,7 +61,6 @@ function(dyninst_library _target)
     set_target_properties(
       ${t}
       PROPERTIES
-               LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
                SOVERSION ${DYNINST_SOVERSION}
                VERSION ${DYNINST_LIBVERSION})
