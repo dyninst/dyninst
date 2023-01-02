@@ -42,27 +42,26 @@ function(dyninst_library _target)
   add_library(${_target} ${_target_SOURCE_FILES})
   target_link_libraries(${_target} PRIVATE ${ARGN})
   file(GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
-  set(ACTUAL_TARGETS ${_target})
-  set(ALL_TARGETS "${ARGN};${_target}")
+  set(_all_targets ${_target})
   if(${ENABLE_STATIC_LIBS})
-    set(ACTUAL_TARGETS ${ACTUAL_TARGETS} ${_target}_static)
+    list(APPEND _all_targets ${_target}_static)
     add_library(${_target}_static STATIC ${_target_SOURCE_FILES})
   endif()
-  message(STATUS "Building ${ACTUAL_TARGETS}...")
+  message(STATUS "Building ${_all_targets}...")
   set_target_properties(
-    ${ACTUAL_TARGETS}
+    ${_all_targets}
     PROPERTIES PUBLIC_HEADER "${headers}"
                LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
                SOVERSION ${DYNINST_SOVERSION}
                VERSION ${DYNINST_LIBVERSION})
 
-  foreach(t ${ACTUAL_TARGETS})
+  foreach(t ${_all_targets})
     target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs})
   endforeach()
 
   install(
-    TARGETS ${ACTUAL_TARGETS}
+    TARGETS ${_all_targets}
     EXPORT dyninst-targets
     RUNTIME DESTINATION ${DYNINST_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
