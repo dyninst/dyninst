@@ -74,8 +74,9 @@ include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
 
 # Component time
 add_subdirectory(common)
+add_subdirectory(elf)
+
 if(NOT DYNINST_OS_Windows)
-    add_subdirectory(elf)
     add_subdirectory(dwarf)
     add_subdirectory(symlite)
 endif()
