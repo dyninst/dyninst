@@ -164,21 +164,16 @@ if(nonDebugMaxFrameSizeOverrideSyscallInformation)
         )
 endif()
 
-add_definitions(-DCOMMON_LIB)
-
-dyninst_library(common)
-
-if(${ENABLE_STATIC_LIBS})
-    target_link_libraries(common_static PRIVATE Dyninst::LibIberty)
-endif()
+dyninst_library(
+	common
+	PUBLIC_HEADER_FILES ${_public_headers}
+	PRIVATE_HEADER_FILES ${_private_headers}
+	SOURCE_FILES ${_sources}
+	DEFINES COMMON_LIB
+	PUBLIC_DEPS Dyninst::TBB Dyninst::Boost
+	PRIVATE_DEPS Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind
+)
 
 if(DYNINST_OS_Windows)
     target_link_libraries(common PRIVATE Psapi WS2_32 dbghelp)
 endif()
-
-target_link_libraries(common PUBLIC Dyninst::TBB Dyninst::Boost)
-target_link_libraries(common PRIVATE Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind)
-
-# Install AMDGPU headers under subdirectory of common/h/AMDGPU
-set(AMDGPU_HEADER ${PROJECT_SOURCE_DIR}/common/h/AMDGPU)
-install(DIRECTORY ${AMDGPU_HEADER} DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
