@@ -1,8 +1,49 @@
-# CMake configuration for proccontrol directory
+include_guard(GLOBAL)
 
-include_directories(src h)
+include(DyninstLibrary)
 
-set(SRC_LIST
+set(_public_headers
+    h/Decoder.h
+    h/Event.h
+    h/EventType.h
+    h/Handler.h
+    h/Mailbox.h
+    h/PCErrors.h
+    h/PCProcess.h
+    h/PlatFeatures.h
+    h/ProcessSet.h)
+
+set(_private_headers
+    src/arm_process.h
+    src/DecoderWindows.h
+    src/freebsd.h
+    src/GeneratorWindows.h
+    src/int_event.h
+    src/int_handler.h
+    src/int_process.h
+    src/int_thread_db.h
+    src/irpc.h
+    src/linux.h
+    src/loadLibrary/codegen.h
+    src/loadLibrary/injector.h
+    src/memcache.h
+    src/mmapalloc.h
+    src/notify_pipe.h
+    src/ppc_process.h
+    src/processplat.h
+    src/procpool.h
+    src/proc_service_wrapper.h
+    src/resp.h
+    src/response.h
+    src/snippets.h
+    src/sysv.h
+    src/unix.h
+    src/windows_handler.h
+    src/windows_process.h
+    src/windows_thread.h
+    src/x86_process.h)
+
+set(_sources
     src/event.C
     src/generator.C
     src/handler.C
@@ -25,54 +66,60 @@ set(SRC_LIST
     src/ppc_process.C
     src/arm_process.C
     src/pcmachsyscall.C)
+
 if(DYNINST_OS_UNIX)
-    set(SRC_LIST ${SRC_LIST} src/sysv.C src/int_thread_db.C src/mmapalloc.C)
+  list(APPEND _sources src/sysv.C src/int_thread_db.C src/mmapalloc.C)
 elseif(DYNINST_OS_Windows)
-    set(SRC_LIST
-        ${SRC_LIST}
-        src/GeneratorWindows.C
-        src/DecoderWindows.C
-        src/windows_handler.C
-        src/windows_process.C
-        src/windows_thread.C
-        src/loadLibrary/codegen-win.C
-        ../common/src/dthread-win.C
-        ../common/src/dthread.C)
+  list(
+    APPEND
+    _sources
+    src/GeneratorWindows.C
+    src/DecoderWindows.C
+    src/windows_handler.C
+    src/windows_process.C
+    src/windows_thread.C
+    src/loadLibrary/codegen-win.C
+    ../common/src/dthread-win.C
+    ../common/src/dthread.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)
-    set(SRC_LIST
-        ${SRC_LIST}
-        src/freebsd.C
-        src/unix.C
-        src/notify_pipe.C
-        ../common/src/dthread-unix.C
-        ../common/src/dthread.C
-        src/loadLibrary/codegen-freebsd.C)
+  list(
+    APPEND
+    _sources
+    src/freebsd.C
+    src/unix.C
+    src/notify_pipe.C
+    ../common/src/dthread-unix.C
+    ../common/src/dthread.C
+    src/loadLibrary/codegen-freebsd.C)
 elseif(DYNINST_OS_Linux)
-    set(SRC_LIST
-        ${SRC_LIST}
-        src/linux.C
-        src/unix.C
-        src/notify_pipe.C
-        ../common/src/dthread-unix.C
-        ../common/src/dthread.C
-        src/loadLibrary/codegen-linux.C)
+  list(
+    APPEND
+    _sources
+    src/linux.C
+    src/unix.C
+    src/notify_pipe.C
+    ../common/src/dthread-unix.C
+    ../common/src/dthread.C
+    src/loadLibrary/codegen-linux.C)
 endif()
 
-set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+# cmake-format: off
+dyninst_library(
+  pcontrol
+  PUBLIC_HEADER_FILES ${_public_headers}
+  PRIVATE_HEADER_FILES ${_private_headers}
+  SOURCE_FILES ${_sources}
+  DEFINES PROCCONTROL_EXPORTS
+  PUBLIC_DEPS common ${SYMREADER} Dyninst::Boost_headers
+  PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB pthread
+)
+# cmake-format: on
 
-add_definitions(-DPROCCONTROL_EXPORTS)
-
-set(DEPS common ${SYMREADER})
-
-dyninst_library(pcontrol ${DEPS})
-
-target_link_libraries(pcontrol PRIVATE ${CMAKE_DL_LIBS})
-target_link_libraries(pcontrol PUBLIC Dyninst::Boost_headers)
-target_link_libraries(pcontrol PRIVATE Dyninst::Thread_DB)
-
-if(DYNINST_OS_UNIX)
-    # Boost auto-links on Windows; don't double-link
-    target_link_libraries(pcontrol PRIVATE pthread)
-endif()
+foreach(t ${pcontrol_TARGETS})
+  target_include_directories(
+    ${t}
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
+endforeach()
