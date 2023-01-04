@@ -32,7 +32,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <util.h>
+#include <common/h/util.h>
 #include "compiler_annotations.h"
 
 namespace Dyninst {
