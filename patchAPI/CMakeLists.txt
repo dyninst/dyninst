@@ -1,28 +1,55 @@
-# CMake configuration for patchAPI directory
+include_guard(GLOBAL)
 
-include_directories(${PROJECT_SOURCE_DIR}/patchAPI/src)
+include(DyninstLibrary)
 
-set(SRC_LIST
+set(_public_headers
+    h/AddrSpace.h
+    h/CFGMaker.h
+    h/Command.h
+    h/Instrumenter.h
+    h/PatchCallback.h
+    h/PatchCFG.h
+    h/PatchCommon.h
+    h/PatchMgr.h
+    h/PatchModifier.h
+    h/PatchObject.h
+    h/Point.h
+    h/Snippet.h)
+
+set(_private_headers src/ParseCallback.h)
+
+set(_sources
     src/AddrSpace.C
+    src/CFGMaker.C
+    src/Command.C
     src/Instrumenter.C
-    src/PatchObject.C
+    src/ParseCallback.C
     src/PatchBlock.C
+    src/PatchCallback.C
     src/PatchEdge.C
     src/PatchFunction.C
-    src/PatchMgr.C
-    src/Point.C
-    src/CFGMaker.C
-    src/PointMaker.C
-    src/Command.C
-    src/PatchCallback.C
-    src/ParseCallback.C
-    src/PatchModifier.C
     src/PatchLoop.C
-    src/PatchLoopTreeNode.C)
+    src/PatchLoopTreeNode.C
+    src/PatchMgr.C
+    src/PatchModifier.C
+    src/PatchObject.C
+    src/Point.C
+    src/PointMaker.C)
 
-set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+# cmake-format: off
+dyninst_library(
+  patchAPI
+  PUBLIC_HEADER_FILES ${_public_headers}
+  PRIVATE_HEADER_FILES ${_private_headers}
+  SOURCE_FILES ${_sources}
+  DEFINES PATCHAPI_LIB
+  PUBLIC_DEPS common instructionAPI parseAPI Dyninst::TBB Dyninst::Boost
+)
+# cmake-format: on
 
-add_definitions(-DPATCHAPI_LIB)
-
-dyninst_library(patchAPI common instructionAPI parseAPI)
-target_link_libraries(patchAPI PUBLIC Dyninst::Boost_headers)
+foreach(t ${patchAPI_TARGETS})
+  target_include_directories(
+    ${t}
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
+endforeach()
