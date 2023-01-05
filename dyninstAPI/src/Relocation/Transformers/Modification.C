@@ -30,7 +30,7 @@
 
 #include "Transformer.h"
 #include "Modification.h"
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "../CFG/RelocTarget.h"
 #include "../Widgets/Widget.h"
 #include "../Widgets/CFWidget.h"

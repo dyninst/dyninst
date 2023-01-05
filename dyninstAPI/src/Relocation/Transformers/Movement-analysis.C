@@ -33,7 +33,7 @@
 #include "Transformer.h"
 #include "Movement-analysis.h"
 #include "Modification.h"
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "dyninstAPI/src/function.h"
 #include "../Widgets/CFWidget.h"

@@ -30,7 +30,7 @@
 
 #include "ASTWidget.h"
 #include "dyninstAPI/src/ast.h"
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "../CodeBuffer.h"

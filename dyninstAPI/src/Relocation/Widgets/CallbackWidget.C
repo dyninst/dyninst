@@ -29,7 +29,7 @@
  */
 
 #include "CallbackWidget.h"
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "CFG.h"
 
 #include "../CodeTracker.h"

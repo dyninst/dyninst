@@ -38,7 +38,7 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
 
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
