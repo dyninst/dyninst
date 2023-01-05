@@ -36,9 +36,3 @@
 #include "common/src/Types.h"
 #include <stdio.h>
 #include <assert.h>
-
-// verify the size of the defined Address type
-void Address_chk ()
-{
-    assert (sizeof(Address) == sizeof(void*));
-}

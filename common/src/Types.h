@@ -56,7 +56,6 @@ typedef unsigned long Address;
 #endif
 /* Note the inherent assumption that the size of a "long" integer matches
    that of an address (void*) on every supported Paradyn/Dyninst system!
-   (This can be checked with Address_chk().)
 */
 
 typedef unsigned int Word;
@@ -92,8 +91,6 @@ typedef struct maps_entries {
 #ifdef __cplusplus
 
 #include "common/h/util.h"
-
-COMMON_EXPORT void Address_chk ();
 
 // NB: this is probably inappropriate for 64-bit addresses!
 inline unsigned hash_address(const Address& addr) {
