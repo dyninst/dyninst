@@ -94,4 +94,8 @@ foreach(t ${stackwalk_TARGETS})
   # Force frame pointers in stackwalker, no matter the optimization level
   # See commit 2608333f7
   target_compile_options(${t} PRIVATE ${FORCE_FRAME_POINTER})
+
+  if(SW_ANALYSIS_STEPPER)
+    target_compile_definitions(${t} PRIVATE USE_PARSE_API)
+  endif()
 endforeach()

@@ -22,10 +22,6 @@ else()
   list(APPEND _dyninst_global_defs WITH_SYMTAB_API)
 endif()
 
-if(SW_ANALYSIS_STEPPER)
-  list(APPEND _dyninst_global_defs USE_PARSE_API)
-endif()
-
 if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   list(APPEND _dyninst_global_defs DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
 endif()
