@@ -42,9 +42,6 @@
 #  include <stdint.h>
 #endif
 
-   /*
-typedef int64_t time64;
-*/
 
 #if defined(__cplusplus)
 #include "common/h/dyntypes.h"
