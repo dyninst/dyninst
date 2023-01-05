@@ -94,7 +94,6 @@ typedef struct maps_entries {
 #include "common/h/util.h"
 
 COMMON_EXPORT void Address_chk ();
-COMMON_EXPORT char *Address_str (Address addr);
 
 // NB: this is probably inappropriate for 64-bit addresses!
 inline unsigned hash_address(const Address& addr) {

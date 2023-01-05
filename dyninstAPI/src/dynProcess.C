@@ -55,6 +55,27 @@
 
 #include <sstream>
 
+namespace {
+	// maximum number of addresses per outstanding printf!
+	const unsigned int _numaddrstrs=8;
+	char _addrstr[_numaddrstrs][19]; // "0x"+16+'\0'
+
+	// Format an address string according to the size of the Address type.
+	// Note that "%x" outputs incorrect/incomplete addresses, and that "%lx"
+	// or system-dependent "%p" (generally also requiring a typecast to (void*))
+	// must be used instead!
+	char *Address_str (Address addr)
+	{
+		static int i=0;
+		i=(i+1)%_numaddrstrs;
+		if (sizeof(Address) == sizeof(int))
+			snprintf(_addrstr[i],19,"0x%08X",(unsigned int)addr);
+		else
+			snprintf(_addrstr[i],19,"0x%016lX",(unsigned long)addr);
+		return (_addrstr[i]);
+	}
+}
+
 using namespace Dyninst::ProcControlAPI;
 using std::map;
 using std::vector;
