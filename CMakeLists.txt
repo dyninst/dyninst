@@ -50,29 +50,6 @@ else()
 	add_library(OpenMP::OpenMP_CXX INTERFACE IMPORTED)
 endif()
 
-include_directories(${PROJECT_BINARY_DIR})
-include_directories(${PROJECT_BINARY_DIR}/common/h)
-set(HEADER_DIRS
-    common
-    dataflowAPI
-    dyninstAPI
-    instructionAPI
-    parseAPI
-    patchAPI
-    proccontrol
-    stackwalk
-    symtabAPI)
-if(NOT DYNINST_OS_Windows)
-    set(HEADER_DIRS ${HEADER_DIRS} dwarf elf symlite)
-endif()
-
-foreach(dir ${HEADER_DIRS})
-    include_directories(${PROJECT_SOURCE_DIR}/${dir}/h)
-endforeach()
-
-include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
-
-# Component time
 add_subdirectory(common)
 add_subdirectory(elf)
 add_subdirectory(dwarf)
