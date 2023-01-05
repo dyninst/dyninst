@@ -30,7 +30,7 @@
 
 #include "PCWidget.h"
 #include "instructionAPI/h/Instruction.h"
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "../CFG/RelocBlock.h"
 #include "../CodeBuffer.h"
 #include "../CodeTracker.h"

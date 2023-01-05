@@ -32,7 +32,7 @@
 
 #include "Transformer.h"
 #include "Instrumenter.h"
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "../CFG/RelocTarget.h"
 #include "dyninstAPI/src/instPoint.h"
