@@ -61,7 +61,8 @@ dyninst_library(
   dyninstAPI_RT
   PUBLIC_HEADER_FILES ${_public_headers}
   PRIVATE_HEADER_FILES ${_private_headers}
-  SOURCE_FILES ${_sources} 
+  SOURCE_FILES ${_sources}
+  PUBLIC_DEPS Threads::Threads
 )
 # cmake-format: on
 
@@ -122,6 +123,7 @@ if(BUILD_RTLIB_32)
 	  PRIVATE_HEADER_FILES ${_public_headers} ${_private_headers}
 	  SOURCE_FILES ${_sources} src/RTthread-x86.c src/RTtlsgetaddr-x86.S
 	  DEFINES "MUTATEE_32"
+	  PUBLIC_DEPS Threads::Threads
 	)
 	# cmake-format: on
 

@@ -35,7 +35,7 @@ include(DyninstWarnings)
 include(DyninstOptimization)
 
 # Locate third-party libraries
-find_package(Threads)
+include(DyninstThreads)
 include(DyninstBoost)
 include(DyninstTBB)
 include(DyninstElfUtils)
