@@ -61,15 +61,3 @@ char *Address_str (Address addr)
         snprintf(_addrstr[i],19,"0x%016lX",(unsigned long)addr);
     return (_addrstr[i]);
 }
-
-
-int ThrIDToTid(Dyninst::THR_ID id)
-{
-#if defined(os_windows)
-	// This is vista-only; for the time being, we'll return the handle as a dword
-	//   return GetThreadId(id);
-	return (unsigned long) id;
-#else
-   return (int) id;
-#endif
-}

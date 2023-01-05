@@ -106,7 +106,7 @@ namespace Dyninst
 #endif
 #endif
 
-   int ThrIDToTid(Dyninst::THR_ID id);
+   inline int ThrIDToTid(Dyninst::THR_ID id) { return id; }
 }
 
 namespace Dyninst
