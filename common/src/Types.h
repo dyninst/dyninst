@@ -81,7 +81,6 @@ WindowsNT    nonexistant
 #if defined(arch_x86_64) || defined(arch_64bit)
 #define TYPE64BIT
 #endif
-typedef long double double128_t;
 
 #elif defined(os_freebsd)
 #if !defined(__STDC_CONSTANT_MACROS)
@@ -91,7 +90,6 @@ typedef long double double128_t;
 #define __STDC_LIMIT_MACROS
 #endif
 #include <stdint.h>
-typedef long double double128_t;
 
 /* FreeBSD doesn't define this */
 typedef int64_t off64_t;
