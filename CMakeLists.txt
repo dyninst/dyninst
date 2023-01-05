@@ -60,13 +60,9 @@ add_subdirectory(parseAPI)
 add_subdirectory(proccontrol)
 add_subdirectory(stackwalk)
 add_subdirectory(patchAPI)
-
-if(${SYMREADER} MATCHES symtabAPI)
-    add_subdirectory(dyninstAPI)
-    add_subdirectory(dynC_API)
-    add_subdirectory(parseThat)
-endif()
-
+add_subdirectory(dyninstAPI)
+add_subdirectory(dynC_API)
+add_subdirectory(parseThat)
 add_subdirectory(dyninstAPI_RT)
 
 include(DyninstInstall)
