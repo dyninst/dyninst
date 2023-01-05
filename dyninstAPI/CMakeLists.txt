@@ -300,7 +300,7 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DEFINES BPATCH_DLL_BUILD
-  PUBLIC_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI Dyninst::Boost_headers
+  PUBLIC_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI Dyninst::Boost_headers Threads::Threads
   PRIVATE_DEPS Dyninst::ElfUtils
 )
 # cmake-format: on

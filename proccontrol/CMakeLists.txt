@@ -113,7 +113,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES PROCCONTROL_EXPORTS
   PUBLIC_DEPS common ${SYMREADER} Dyninst::Boost_headers
-  PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB pthread
+  PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB Threads::Threads
 )
 # cmake-format: on
 
