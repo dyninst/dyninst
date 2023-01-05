@@ -92,7 +92,6 @@ set(_sources
     src/pfq-rwlock.C
     src/concurrent.C
     src/Timer.C
-    src/Types.C
     src/lprintf.C
     src/pathName.C
     src/stats.C
