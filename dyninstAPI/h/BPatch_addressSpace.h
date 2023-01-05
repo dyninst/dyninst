@@ -37,7 +37,7 @@
 #include "BPatch_enums.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_callbacks.h"
-
+#include "dyntypes.h"
 #include <vector>
 
 #include <stdio.h>

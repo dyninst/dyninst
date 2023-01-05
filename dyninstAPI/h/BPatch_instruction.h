@@ -32,7 +32,7 @@
 #define _BPatch_instruction_h_
 
 #include "BPatch_dll.h"
-
+#include "dyntypes.h"
 #include <string>
 
 class BPatch_basicBlock;
