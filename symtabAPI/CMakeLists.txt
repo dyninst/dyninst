@@ -40,7 +40,7 @@ if(DYNINST_OS_UNIX)
 
     if(DYNINST_ARCH_x86_64)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)
-    elseif(PLATFORM MATCHES i386)
+    elseif(DYNINST_ARCH_i386)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)
     elseif(DYNINST_ARCH_ppc64le)
         set(SRC_LIST ${SRC_LIST} src/emitElfStatic-ppc64.C
