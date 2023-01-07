@@ -42,13 +42,7 @@ include(DyninstElfUtils)
 include(DyninstLibIberty)
 include(DyninstThread_DB)
 include(DyninstValgrind)
-
-if(USE_OpenMP)
-    find_package(OpenMP REQUIRED)
-else()
-	# Dummy target so we don't have to check 'USE_OpenMP' everywhere
-	add_library(OpenMP::OpenMP_CXX INTERFACE IMPORTED)
-endif()
+include(DyninstOpenMP)
 
 add_subdirectory(common)
 add_subdirectory(elf)
