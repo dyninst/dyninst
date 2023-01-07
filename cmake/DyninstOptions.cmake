@@ -17,7 +17,7 @@ option(STERILE_BUILD "DEPRECATED -- Do not use" OFF)
 
 option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis" OFF)
 
-option(ENABLE_STATIC_LIBS "Build static libraries as well?" NO)
+option(ENABLE_STATIC_LIBS "Build static libraries as well?" OFF)
 
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
