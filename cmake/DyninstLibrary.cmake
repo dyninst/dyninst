@@ -33,6 +33,7 @@ function(dyninst_library _target)
       PUBLIC_HEADER_FILES
       SOURCE_FILES # Both public and private
       DEFINES
+      DYNINST_DEPS
       PUBLIC_DEPS
       PRIVATE_DEPS)
   # cmake-format: on
@@ -41,6 +42,9 @@ function(dyninst_library _target)
   add_library(${_target} SHARED ${_target_PUBLIC_HEADER_FILES}
                                 ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
 
+	# Depending on another Dyninst library is always public
+	target_link_libraries(${_target} PUBLIC ${_target_DYNINST_DEPS})
+
   set(_all_targets ${_target})
 
   if(ENABLE_STATIC_LIBS)
@@ -48,13 +52,27 @@ function(dyninst_library _target)
     add_library(
       ${_target}_static STATIC ${_target_PUBLIC_HEADER_FILES}
                                ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+
+		# Link against the corresponding static Dyninst target
+		foreach(d ${_target_DYNINST_DEPS})
+			# Depending on another Dyninst library is always public
+			target_link_libraries(${_target}_static PUBLIC "${d}_static")
+		endforeach()
   endif()
 
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
-
-    target_link_libraries(${t} PRIVATE ${_target_PRIVATE_DEPS})
-    target_link_libraries(${t} PUBLIC ${_target_PUBLIC_DEPS})
+    
+  	foreach(_v "PUBLIC" "PRIVATE")
+    	set(_d ${_target_${_v}_DEPS})
+    	if(${t} MATCHES "static")
+    		# OpenMP doesn't work with static libraries, so explicitly
+    		# remove it from link dependencies
+    		list(FILTER _d EXCLUDE REGEX "OpenMP")
+    	endif()
+    	target_link_libraries(${t} ${_v} ${_d})
+    	unset(_d)
+    endforeach()
 
     target_include_directories(
       ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"

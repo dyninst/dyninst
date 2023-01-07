@@ -19,7 +19,7 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DEFINES SYMLITE_LIB
-  PUBLIC_DEPS common dynElf
+  DYNINST_DEPS common dynElf
 )
 # cmake-format: on
 

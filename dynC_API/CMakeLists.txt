@@ -20,7 +20,7 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES DYNC_EXPORTS
-  PUBLIC_DEPS common dyninstAPI symtabAPI
+  DYNINST_DEPS common dyninstAPI symtabAPI
 )
 # cmake-format: on
 

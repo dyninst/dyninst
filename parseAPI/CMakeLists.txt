@@ -102,7 +102,8 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${parseapi_headers} ${dataflowapi_headers} 
   SOURCE_FILES ${SRC_LIST} ${ROSE_SRC}
   DEFINES PARSER_LIB DATAFLOW_LIB
-  PUBLIC_DEPS common instructionAPI ${SYMREADER} Dyninst::Boost_headers OpenMP::OpenMP_CXX
+  DYNINST_DEPS common instructionAPI ${SYMREADER}
+  PUBLIC_DEPS Dyninst::Boost_headers OpenMP::OpenMP_CXX
 )
 # cmake-format: on
 
