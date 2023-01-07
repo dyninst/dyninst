@@ -15,7 +15,8 @@ function(dyninst_library target)
     message(STATUS "Building ${ACTUAL_TARGETS}...")
     set_target_properties(${ACTUAL_TARGETS} PROPERTIES PUBLIC_HEADER "${headers}")
     set_target_properties(${ACTUAL_TARGETS} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                       ${CMAKE_CURRENT_BINARY_DIR})
+                                                       ${CMAKE_CURRENT_BINARY_DIR}
+                                                       INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}")
     set_target_properties(
         ${target}
         PROPERTIES SOVERSION ${DYNINST_SOVERSION}
