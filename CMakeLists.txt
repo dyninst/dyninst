@@ -20,14 +20,11 @@ project(
     HOMEPAGE_URL "https://github.com/dyninst/dyninst"
     LANGUAGES C CXX ASM)
 
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RelWithDebInfo)
-endif()
-
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
      "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
-# Handle user options first
+# These need to be done before anything else
+include(DyninstLibrarySettings)
 include(DyninstOptions)
 
 if(LIGHTWEIGHT_SYMTAB)
