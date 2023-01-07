@@ -1,18 +1,3 @@
-set(BUILD_SHARED_LIBS ON)
-set(CMAKE_SKIP_BUILD_RPATH FALSE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib"
-     isSystemDir)
-if("${isSystemDir}" STREQUAL "-1")
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-endif()
-
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
-
 set(ALL_DYNINST_TARGETS
     ""
     CACHE INTERNAL "")
@@ -60,27 +45,6 @@ function(dyninst_library target)
         CACHE INTERNAL "")
     install(EXPORT ${target}Targets DESTINATION "${INSTALL_CMAKE_DIR}")
 endfunction()
-
-set(INSTALL_BIN_DIR
-    bin
-    CACHE PATH "Installation directory for executables")
-set(INSTALL_LIB_DIR
-    lib
-    CACHE PATH "Installation directory for libraries")
-set(INSTALL_INCLUDE_DIR
-    include
-    CACHE PATH "Installation directory for header files")
-set(INSTALL_CMAKE_DIR
-    lib/cmake/${PROJECT_NAME}
-    CACHE PATH "Installation directory for CMake files")
-
-# Make the above absolute paths if necessary
-foreach(p BIN LIB INCLUDE CMAKE)
-    set(var INSTALL_${p}_DIR)
-    if(NOT IS_ABSOLUTE "${${var}}")
-        set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-    endif()
-endforeach()
 
 if(DYNINST_OS_Windows)
     add_definitions(-DWIN32_LEAN_AND_MEAN)
