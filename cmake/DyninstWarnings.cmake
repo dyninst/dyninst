@@ -3,7 +3,6 @@
 #
 
 if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-    add_definitions(-DDYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
     message(
         STATUS
             "DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS set: disabling all dyninst warning suppressions and frame size overrides"

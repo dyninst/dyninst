@@ -41,7 +41,11 @@ function(dyninst_library target)
   if(SW_ANALYSIS_STEPPER)
     list(APPEND _defs USE_PARSE_API)
   endif()
-  
+
+	if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
+	    list(APPEND _defs DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
+	endif()
+
   foreach(t ${ACTUAL_TARGETS})
     target_compile_definitions(${t} PRIVATE ${_defs})
   endforeach()
