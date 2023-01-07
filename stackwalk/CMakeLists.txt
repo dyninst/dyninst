@@ -70,7 +70,8 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES STACKWALKER_EXPORTS
-  PUBLIC_DEPS common dynDwarf dynElf instructionAPI pcontrol ${SYMREADER} Dyninst::Boost_headers
+  DYNINST_DEPS common dynDwarf dynElf instructionAPI pcontrol ${SYMREADER}
+  PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Dyninst::ElfUtils
 )
 # cmake-format: on

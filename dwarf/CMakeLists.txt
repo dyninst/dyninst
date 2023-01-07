@@ -28,7 +28,8 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DEFINES DYNDWARF_LIB
-  PUBLIC_DEPS dynElf common Dyninst::Boost_headers
+  DYNINST_DEPS dynElf common
+  PUBLIC_DEPS Dyninst::Boost_headers
 )
 # cmake-format: on
 

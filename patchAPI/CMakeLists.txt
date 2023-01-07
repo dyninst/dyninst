@@ -43,7 +43,8 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES PATCHAPI_LIB
-  PUBLIC_DEPS common instructionAPI parseAPI Dyninst::TBB Dyninst::Boost
+  DYNINST_DEPS common instructionAPI parseAPI
+  PUBLIC_DEPS Dyninst::TBB Dyninst::Boost
 )
 # cmake-format: on
 

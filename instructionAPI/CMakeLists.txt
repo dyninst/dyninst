@@ -118,7 +118,8 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES INSTRUCTION_LIB
-  PUBLIC_DEPS common Dyninst::Boost_headers
+  DYNINST_DEPS common
+  PUBLIC_DEPS Dyninst::Boost_headers
 )
 # cmake-format: on
 
