@@ -29,8 +29,6 @@
  */
 
 
-#if defined(WITH_SYMTAB_API)
-
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/walker.h"
@@ -102,5 +100,3 @@ void SymtabWrapper::notifyOfSymtab(Symtab *symtab, std::string name)
 
   wrapper->map[name] = symtab;
 }
-
-#endif

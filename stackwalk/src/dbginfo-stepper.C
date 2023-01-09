@@ -43,9 +43,7 @@
 #include "dwarfFrameParser.h"
 #include "dwarfHandle.h"
 
-#if defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/Symtab.h"
-#endif
 
 using namespace Dyninst;
 using namespace Stackwalker;
@@ -183,7 +181,6 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
    {
       result = getProcessState()->getRegValue(reg, cur_frame->getThread(), val);
    }
-#if defined(WITH_SYMTAB_API)
    else
    {
       Offset offset;
@@ -225,7 +222,6 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
        }
 #endif      
    }
-#endif
 
    depth_frame = prevDepthFrame;
    return result;

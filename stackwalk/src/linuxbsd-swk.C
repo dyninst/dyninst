@@ -53,11 +53,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#if defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/SymtabReader.h"
-#else
-#error "No defined symbol reader"
-#endif
 
 #include "linuxbsd-swk.h"
 
@@ -66,11 +62,7 @@ extern int P_gettid();
 
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
-#if defined(WITH_SYMTAB_API)
    return SymtabAPI::getSymtabReaderFactory();
-#else
-#error "No defined symbol reader"
-#endif
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);

@@ -31,8 +31,6 @@
 #if !defined(SYMTAB_SWK_H_)
 #define SYMTAB_SWK_H_
 
-#if defined(WITH_SYMTAB_API)
-
 #include "stackwalk/h/framestepper.h"
 #include "symtabAPI/h/Symtab.h"
 #include "common/h/dyntypes.h"
@@ -61,5 +59,4 @@ class SymtabWrapper {
 }
 }
 
-#endif
 #endif
