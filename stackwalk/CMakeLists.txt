@@ -62,7 +62,7 @@ if(UNIX)
     set(DEPS ${DEPS} dynDwarf dynElf)
 endif()
 
-set(DEPS ${DEPS} ${SYMREADER})
+set(DEPS ${DEPS} symtabAPI)
 
 if(SW_ANALYSIS_STEPPER)
     set(DEPS ${DEPS} parseAPI)

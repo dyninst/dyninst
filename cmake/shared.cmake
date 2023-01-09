@@ -16,8 +16,6 @@ if(CMAKE_CONFIGURATION_TYPES)
             FORCE)
 endif()
 
-set(SYMREADER symtabAPI)
-
 # Link libraries privately when possible
 function(target_link_private_libraries target)
     if(${CMAKE_VERSION} VERSION_LESS "2.8.7")

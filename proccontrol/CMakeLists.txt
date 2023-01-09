@@ -64,7 +64,7 @@ set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 add_definitions(-DPROCCONTROL_EXPORTS)
 
-set(DEPS common ${SYMREADER})
+set(DEPS common symtabAPI)
 
 dyninst_library(pcontrol ${DEPS})
 

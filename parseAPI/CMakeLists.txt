@@ -96,7 +96,7 @@ if(WIN32)
     add_definitions(-DROSE_UTIL_EXPORTS)
     add_definitions(-DNOMINMAX)
 endif()
-dyninst_library(parseAPI common instructionAPI ${SYMREADER})
+dyninst_library(parseAPI common instructionAPI symtabAPI)
 
 target_link_private_libraries(parseAPI ${Boost_LIBRARIES})
 
