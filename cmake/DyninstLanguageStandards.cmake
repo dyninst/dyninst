@@ -30,9 +30,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Require the standards-compliant C++11 ABI for gcc
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0")
-        message(FATAL_ERROR "Dyninst requires gcc >= 6.0")
-    endif()
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0")
+    message(FATAL_ERROR "Dyninst requires gcc >= 6.0")
+  endif()
 endif()
 
 #

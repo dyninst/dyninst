@@ -13,7 +13,7 @@ include_guard(GLOBAL)
 # Minimum supported version
 set(_min_version 2018.6)
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    set(_min_version 2019.7)
+  set(_min_version 2019.7)
 endif()
 
 set(TBB_ROOT_DIR
@@ -22,18 +22,19 @@ set(TBB_ROOT_DIR
 mark_as_advanced(TBB_ROOT_DIR)
 
 find_package(
-    TBB ${_min_version} HINTS ${TBB_ROOT_DIR}
-    COMPONENTS tbb tbbmalloc tbbmalloc_proxy
-    REQUIRED)
+  TBB ${_min_version} HINTS ${TBB_ROOT_DIR}
+  COMPONENTS tbb tbbmalloc tbbmalloc_proxy
+  REQUIRED)
 
 if(NOT TARGET Dyninst::TBB)
-	add_library(Dyninst::TBB INTERFACE IMPORTED)
-	target_link_libraries(Dyninst::TBB INTERFACE TBB::tbb TBB::tbbmalloc TBB::tbbmalloc_proxy)
-	target_include_directories(
-	    Dyninst::TBB SYSTEM
-	    INTERFACE $<TARGET_PROPERTY:TBB::tbb,INTERFACE_INCLUDE_DIRECTORIES>
-	              $<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_INCLUDE_DIRECTORIES>
-	              $<TARGET_PROPERTY:TBB::tbbmalloc_proxy,INTERFACE_INCLUDE_DIRECTORIES>)
+  add_library(Dyninst::TBB INTERFACE IMPORTED)
+  target_link_libraries(Dyninst::TBB INTERFACE TBB::tbb TBB::tbbmalloc
+                                               TBB::tbbmalloc_proxy)
+  target_include_directories(
+    Dyninst::TBB SYSTEM
+    INTERFACE $<TARGET_PROPERTY:TBB::tbb,INTERFACE_INCLUDE_DIRECTORIES>
+              $<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_INCLUDE_DIRECTORIES>
+              $<TARGET_PROPERTY:TBB::tbbmalloc_proxy,INTERFACE_INCLUDE_DIRECTORIES>)
 endif()
 
 message(STATUS "Found TBB ${TBB_VERSION}")

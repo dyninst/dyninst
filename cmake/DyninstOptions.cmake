@@ -1,9 +1,9 @@
 option(USE_OpenMP "Use OpenMP for parallel parsing" ON)
 
 option(
-    LIGHTWEIGHT_SYMTAB
-    "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker; disables DyninstAPI build"
-    OFF)
+  LIGHTWEIGHT_SYMTAB
+  "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker; disables DyninstAPI build"
+  OFF)
 
 option(SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 
@@ -23,9 +23,9 @@ option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
 
 option(
-    DYNINST_EXTRA_WARNINGS
-    "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
-    "")
+  DYNINST_EXTRA_WARNINGS
+  "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
+  "")
 
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 

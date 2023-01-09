@@ -53,7 +53,7 @@ set(DYNINST_RPATH_DIRECTORIES "\$ORIGIN")
 # system directory (e.g., /usr/lib) and CMake uses RPATH, the loader would find any
 # needed libraries there first, even if the ones linked against actually live elsewhere.
 set(_system_dirs CMAKE_C_IMPLICIT_LINK_DIRECTORIES CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES
-          CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES)
+                 CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES)
 list(SORT _system_dirs)
 list(REMOVE_DUPLICATES _system_dirs)
 

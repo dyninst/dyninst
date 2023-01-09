@@ -36,16 +36,17 @@ find_library(Thread_DB_LIBRARIES NAMES thread_db)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-    Thread_DB
-    FOUND_VAR Thread_DB_FOUND
-    REQUIRED_VARS Thread_DB_LIBRARIES Thread_DB_INCLUDE_DIRS)
+  Thread_DB
+  FOUND_VAR Thread_DB_FOUND
+  REQUIRED_VARS Thread_DB_LIBRARIES Thread_DB_INCLUDE_DIRS)
 
 if(Thread_DB_FOUND)
-    if(NOT TARGET Thread_DB::Thread_DB)
-        add_library(Thread_DB::Thread_DB UNKNOWN IMPORTED)
-        set_target_properties(Thread_DB::Thread_DB PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                      "${Thread_DB_INCLUDE_DIRS}"
-                                                      IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                                    IMPORTED_LOCATION "${Thread_DB_LIBRARIES}")
-    endif()
+  if(NOT TARGET Thread_DB::Thread_DB)
+    add_library(Thread_DB::Thread_DB UNKNOWN IMPORTED)
+    set_target_properties(
+      Thread_DB::Thread_DB
+      PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${Thread_DB_INCLUDE_DIRS}"
+                 IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                 IMPORTED_LOCATION "${Thread_DB_LIBRARIES}")
+  endif()
 endif()

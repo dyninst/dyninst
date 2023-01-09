@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13.0 FATAL_ERROR)
 
 # There is a bug in 3.19.0 that causes .S files to be treated like C files
 if(CMAKE_VERSION VERSION_EQUAL "3.19.0")
-    message(FATAL_ERROR "Dyninst cannot use CMake version 3.19.0")
+  message(FATAL_ERROR "Dyninst cannot use CMake version 3.19.0")
 endif()
 
 set(DYNINST_MAJOR_VERSION 12)
@@ -14,11 +14,11 @@ set(DYNINST_LIBVERSION "${DYNINST_SOVERSION}.${DYNINST_PATCH_VERSION}")
 set(DYNINST_VERSION "${DYNINST_LIBVERSION}")
 
 project(
-    Dyninst
-    VERSION ${DYNINST_VERSION}
-    DESCRIPTION "Tools for binary instrumentation, analysis, and modification"
-    HOMEPAGE_URL "https://github.com/dyninst/dyninst"
-    LANGUAGES C CXX ASM)
+  Dyninst
+  VERSION ${DYNINST_VERSION}
+  DESCRIPTION "Tools for binary instrumentation, analysis, and modification"
+  HOMEPAGE_URL "https://github.com/dyninst/dyninst"
+  LANGUAGES C CXX ASM)
 
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
      "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
