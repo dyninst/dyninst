@@ -10,12 +10,7 @@ option(ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
 option(ENABLE_DEBUGINFOD "Enable debuginfod support" OFF)
 
-# Some global on/off switches
-if(LIGHTWEIGHT_SYMTAB)
-    add_definitions(-DWITHOUT_SYMTAB_API -DWITH_SYMLITE)
-else()
-    add_definitions(-DWITH_SYMTAB_API -DWITHOUT_SYMLITE)
-endif()
+add_definitions(-DWITH_SYMTAB_API -DWITHOUT_SYMLITE)
 
 if(SW_ANALYSIS_STEPPER)
     add_definitions(-DUSE_PARSE_API)

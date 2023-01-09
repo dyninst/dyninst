@@ -16,11 +16,7 @@ if(CMAKE_CONFIGURATION_TYPES)
             FORCE)
 endif()
 
-if(LIGHTWEIGHT_SYMTAB)
-    set(SYMREADER symLite)
-else()
-    set(SYMREADER symtabAPI)
-endif()
+set(SYMREADER symtabAPI)
 
 # Link libraries privately when possible
 function(target_link_private_libraries target)

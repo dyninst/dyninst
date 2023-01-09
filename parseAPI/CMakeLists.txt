@@ -84,11 +84,7 @@ set(ROSE_SRC
 set_source_files_properties(${ROSE_SRC} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
 set(SRC_LIST ${SRC_LIST} ${ROSE_SRC})
 
-if(LIGHTWEIGHT_SYMTAB)
-    set(SRC_LIST ${SRC_LIST} src/SymLiteCodeSource.C)
-else()
-    set(SRC_LIST ${SRC_LIST} src/SymtabCodeSource.C)
-endif()
+set(SRC_LIST ${SRC_LIST} src/SymtabCodeSource.C)
 
 if(ENABLE_PARSE_API_GRAPHS)
     set(SRC_LIST ${SRC_LIST} src/GraphAdapter.C)
