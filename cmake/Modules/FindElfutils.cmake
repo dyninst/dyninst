@@ -36,28 +36,28 @@ Support for libdebuginfod can be added by specifying it in ``COMPONENTS``.
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
 if(${Elfutils_FIND_REQUIRED})
-    set(_required "REQUIRED")
+  set(_required "REQUIRED")
 endif()
 
 if(${Elfutils_FIND_QUIETLY})
-    set(_quiet "QUIET")
+  set(_quiet "QUIET")
 endif()
 
 if(${Elfutils_FIND_EXACT})
-    set(_exact "EXACT")
+  set(_exact "EXACT")
 endif()
 
 find_package(LibELF ${Elfutils_FIND_VERSION} ${_exact} ${_required} ${_quiet})
 find_package(LibDW ${Elfutils_FIND_VERSION} ${_exact} ${_required} ${_quiet})
 
 if(NOT "x${Elfutils_FIND_COMPONENTS}" STREQUAL "x")
-    string(TOUPPER ${Elfutils_FIND_COMPONENTS} _tmp)
-    if(NOT ${_tmp} STREQUAL "DEBUGINFOD")
-        message(FATAL "Unknown component: '${Elfutils_FIND_COMPONENTS}'")
-    endif()
-    find_package(LibDebuginfod ${Elfutils_FIND_VERSION} ${_exact} ${_required} ${_quiet})
-    set(_need_debuginfod TRUE)
-    unset(_tmp)
+  string(TOUPPER ${Elfutils_FIND_COMPONENTS} _tmp)
+  if(NOT ${_tmp} STREQUAL "DEBUGINFOD")
+    message(FATAL "Unknown component: '${Elfutils_FIND_COMPONENTS}'")
+  endif()
+  find_package(LibDebuginfod ${Elfutils_FIND_VERSION} ${_exact} ${_required} ${_quiet})
+  set(_need_debuginfod TRUE)
+  unset(_tmp)
 endif()
 
 # Ensure that each component has the same version number
@@ -65,7 +65,7 @@ set(_versions ${LibDW_VERSION} ${LibELF_VERSION} ${LibDebuginfod_VERSION})
 list(REMOVE_DUPLICATES _versions)
 list(LENGTH _versions _len)
 if(${_len} GREATER 1)
-    message(FATAL_ERROR "Elfutils: conflicting versions found: (${_versions})")
+  message(FATAL_ERROR "Elfutils: conflicting versions found: (${_versions})")
 endif()
 unset(_len)
 
@@ -74,40 +74,40 @@ unset(_versions)
 
 include(FindPackageHandleStandardArgs)
 if(${_need_debuginfod})
-    find_package_handle_standard_args(
-        Elfutils
-        FOUND_VAR Elfutils_FOUND
-        REQUIRED_VARS LibDW_INCLUDE_DIRS LibDW_LIBRARIES LibELF_INCLUDE_DIRS
-                      LibELF_LIBRARIES LibDebuginfod_INCLUDE_DIRS LibDebuginfod_LIBRARIES
-        VERSION_VAR Elfutils_VERSION)
+  find_package_handle_standard_args(
+    Elfutils
+    FOUND_VAR Elfutils_FOUND
+    REQUIRED_VARS LibDW_INCLUDE_DIRS LibDW_LIBRARIES LibELF_INCLUDE_DIRS LibELF_LIBRARIES
+                  LibDebuginfod_INCLUDE_DIRS LibDebuginfod_LIBRARIES
+    VERSION_VAR Elfutils_VERSION)
 else()
-    find_package_handle_standard_args(
-        Elfutils
-        FOUND_VAR Elfutils_FOUND
-        REQUIRED_VARS LibDW_INCLUDE_DIRS LibDW_LIBRARIES LibELF_INCLUDE_DIRS
-                      LibELF_LIBRARIES
-        VERSION_VAR Elfutils_VERSION)
+  find_package_handle_standard_args(
+    Elfutils
+    FOUND_VAR Elfutils_FOUND
+    REQUIRED_VARS LibDW_INCLUDE_DIRS LibDW_LIBRARIES LibELF_INCLUDE_DIRS LibELF_LIBRARIES
+    VERSION_VAR Elfutils_VERSION)
 endif()
 
 if(Elfutils_FOUND)
-    set(Elfutils_INCLUDE_DIRS ${LibDW_INCLUDE_DIRS} ${LibELF_INCLUDE_DIRS}
-                              ${LibDebuginfod_INCLUDE_DIRS} CACHE PATH "")
-		mark_as_advanced(Elfutils_INCLUDE_DIRS)
+  set(Elfutils_INCLUDE_DIRS
+      ${LibDW_INCLUDE_DIRS} ${LibELF_INCLUDE_DIRS} ${LibDebuginfod_INCLUDE_DIRS}
+      CACHE PATH "")
+  mark_as_advanced(Elfutils_INCLUDE_DIRS)
 
-    set(Elfutils_LIBRARIES ${LibDW_LIBRARIES} ${LibELF_LIBRARIES}
-                           ${LibDebuginfod_LIBRARIES} CACHE PATH "")
-		mark_as_advanced(Elfutils_LIBRARIES)
-		
-		mark_as_advanced(Elfutils_VERSION)
+  set(Elfutils_LIBRARIES
+      ${LibDW_LIBRARIES} ${LibELF_LIBRARIES} ${LibDebuginfod_LIBRARIES}
+      CACHE PATH "")
+  mark_as_advanced(Elfutils_LIBRARIES)
 
-    if(NOT TARGET Elfutils::Elfutils)
-        add_library(Elfutils::Elfutils INTERFACE IMPORTED)
-        target_link_libraries(Elfutils::Elfutils INTERFACE LibELF::LibELF LibDW::LibDW)
-        if(${_need_debuginfod})
-            target_link_libraries(Elfutils::Elfutils
-                                  INTERFACE LibDebuginfod::LibDebuginfod)
-        endif()
+  mark_as_advanced(Elfutils_VERSION)
+
+  if(NOT TARGET Elfutils::Elfutils)
+    add_library(Elfutils::Elfutils INTERFACE IMPORTED)
+    target_link_libraries(Elfutils::Elfutils INTERFACE LibELF::LibELF LibDW::LibDW)
+    if(${_need_debuginfod})
+      target_link_libraries(Elfutils::Elfutils INTERFACE LibDebuginfod::LibDebuginfod)
     endif()
+  endif()
 endif()
 
 unset(_exact)

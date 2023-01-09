@@ -89,7 +89,7 @@ endforeach()
 
 if(BUILD_RTLIB_32)
   include(CheckCCompilerFlag)
-  
+
   # '-m32' is really a linker option, but CMAKE_REQUIRED_LINK_OPTIONS isn't available until
   # cmake-3.14.0, so hijack the libraries argument instead.
   set(_m ${CMAKE_REQUIRED_LIBRARIES})
@@ -109,7 +109,7 @@ if(BUILD_RTLIB_32)
   if(NOT DYNINST_ARCH_x86_64 AND NOT DYNINST_ARCH_i386)
     message(FATAL_ERROR "32-bit runtime is only supported on i386 and x86_64")
   endif()
-  
+
   if(DYNINST_ARCH_x86_64)
     # We're cross-compiling, so remove the x86_64 thread stuff
     list(FILTER _sources EXCLUDE REGEX "RTthread-x86-64")
