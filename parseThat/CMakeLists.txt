@@ -21,7 +21,7 @@ add_executable(
 
 target_compile_definitions(parseThat PRIVATE HAVE_BPATCH_PROCESS_H)
 
-target_link_libraries( parseThat PRIVATE dyninstAPI)
+target_link_libraries(parseThat PRIVATE dyninstAPI)
 
 # There is both a common/h/util.h and a dyninstAPI/src/util.h, so put
 # the common/h include path first

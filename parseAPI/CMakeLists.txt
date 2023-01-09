@@ -107,34 +107,24 @@ dyninst_library(
 )
 # cmake-format: on
 
-set(_parseapi_inc_dirs
-	${CMAKE_CURRENT_SOURCE_DIR}/src
-	${CMAKE_CURRENT_SOURCE_DIR}/h
-	${PROJECT_SOURCE_DIR}/dataflowAPI/h
-)
+set(_parseapi_inc_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/h
+                       ${PROJECT_SOURCE_DIR}/dataflowAPI/h)
 
 foreach(t ${parseAPI_TARGETS})
-	# There is both a common/h/util.h and a parseAPI/h/util.h, so put
-	# the common/h include path first
-	target_include_directories(
-		${t}
-		BEFORE PRIVATE
-		"$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>")
+  # There is both a common/h/util.h and a parseAPI/h/util.h, so put
+  # the common/h include path first
+  target_include_directories(${t} BEFORE
+                             PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>")
 
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${_parseapi_inc_dirs}>")
+  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_parseapi_inc_dirs}>")
 
-	set_property(TARGET ${t} PROPERTY PUBLIC_HEADER ${parseapi_headers} ${dataflowapi_headers})
+  set_property(TARGET ${t} PROPERTY PUBLIC_HEADER ${parseapi_headers}
+                                    ${dataflowapi_headers})
 
   if(DYNINST_OS_Windows)
     target_compile_definitions(${t} PRIVATE "ROSE_UTIL_EXPORTS" "NOMINMAX")
     target_link_libraries(parseAPI PRIVATE shlwapi)
   endif()
-  
-  install(
-    TARGETS ${t}
-    PUBLIC_HEADER
-    DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
+
+  install(TARGETS ${t} PUBLIC_HEADER DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
 endforeach()
