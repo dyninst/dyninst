@@ -75,9 +75,7 @@
 #include<sys/user.h>
 #include<sys/procfs.h>
 #include<sys/uio.h>
-#if !defined(WITH_SYMLITE)
 #include<linux/elf.h>
-#endif
 #endif
 
 // Before glibc-2.7, sys/ptrace.h lacked PTRACE_O_* and PTRACE_EVENT_*, so we
@@ -89,9 +87,7 @@
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
-#if defined(WITH_SYMLITE)
-#include "symlite/h/SymLite-elf.h"
-#elif defined(WITH_SYMTAB_API)
+#if defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/SymtabReader.h"
 #else
 #error "No defined symbol reader"
@@ -1521,14 +1517,7 @@ bool linux_thread::plat_cont()
 
 SymbolReaderFactory *getElfReader()
 {
-#if defined(WITH_SYMLITE)
-  static SymbolReaderFactory *symreader_factory = NULL;
-  if (symreader_factory)
-    return symreader_factory;
-
-  symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
-  return symreader_factory;
-#elif defined(WITH_SYMTAB_API)
+#if defined(WITH_SYMTAB_API)
   return SymtabAPI::getSymtabReaderFactory();
 #else
 #error "No defined symbol reader"

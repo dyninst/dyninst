@@ -1,12 +1,6 @@
 # Use OpenMP?
 option(USE_OpenMP "Use OpenMP for parallel parsing" ON)
 
-# Use SymtabAPI or SymLite?
-option(
-    LIGHTWEIGHT_SYMTAB
-    "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker; disables DyninstAPI build"
-    OFF)
-
 # Use ParseAPI analysis in Stackwalker?
 option(SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 

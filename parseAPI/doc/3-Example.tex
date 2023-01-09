@@ -7,7 +7,7 @@ The following example uses ParseAPI and InstructionAPI to disassemble
 the basic blocks in a function. As an example, it can be built with
 G++ as follows: \code{g++ -std=c++0x -o code\_sample code\_sample.cc -L<library
   install path> -I<headers install path> -lparseAPI -linstructionAPI
-  -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -lcommon -L<libelf path>
+  -lsymtabAPI -ldynDwarf -ldynElf -lcommon -L<libelf path>
   -lelf -L<libdwarf path> -ldwarf}. Note: this example must be
 compiled with C++11x support; for G++ this is enabled with
 \code{-std=c++0x}, and it is on by default for Visual Studio.
@@ -23,7 +23,7 @@ The following complete example uses the ParseAPI to parse a binary and
 dump its control flow graph in the Graphviz file format. As an
 example, it can be built with G++ as follows: \code{g++ -std=c++0x -o example
   example.cc -L<library install path> -I<headers install path>
-  -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf
+  -lparseAPI -linstructionAPI -lsymtabAPI -ldynDwarf
   -ldynElf -lcommon -L<libelf path> -lelf -L<libdwarf path>
   -ldwarf}. Note: this example must be compiled with C++11x support;
 for G++ this is enabled with \code{-std=c++0x}, and it is on by

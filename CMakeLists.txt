@@ -60,7 +60,7 @@ set(HEADER_DIRS
     stackwalk
     symtabAPI)
 if(NOT ${PLATFORM} MATCHES nt)
-    set(HEADER_DIRS ${HEADER_DIRS} dwarf elf symlite)
+    set(HEADER_DIRS ${HEADER_DIRS} dwarf elf)
 endif()
 
 foreach(dir ${HEADER_DIRS})
@@ -83,7 +83,6 @@ add_subdirectory(common)
 if(NOT ${PLATFORM} MATCHES nt)
     add_subdirectory(elf)
     add_subdirectory(dwarf)
-    add_subdirectory(symlite)
 endif()
 add_subdirectory(instructionAPI)
 add_subdirectory(symtabAPI)

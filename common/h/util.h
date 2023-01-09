@@ -41,18 +41,6 @@
   #endif
 #endif
 
-#if !defined(SYMLITE_EXPORT)
-  #if defined(_MSC_VER)
-    #if defined SYMLITE_LIB
-      #define SYMLITE_EXPORT __declspec(dllexport)
-    #else
-      #define SYMLITE_EXPORT __declspec(dllimport)
-    #endif
-  #else
-    #define SYMLITE_EXPORT __attribute__((visibility ("default")))
-  #endif
-#endif
-
 #if !defined(DYNELF_EXPORT)
   #if defined(_MSC_VER)
     #if defined DYNELF_LIB
