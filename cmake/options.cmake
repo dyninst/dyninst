@@ -10,7 +10,7 @@ option(ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
 option(ENABLE_DEBUGINFOD "Enable debuginfod support" OFF)
 
-add_definitions(-DWITH_SYMTAB_API -DWITHOUT_SYMLITE)
+add_definitions(-DWITH_SYMTAB_API)
 
 if(SW_ANALYSIS_STEPPER)
     add_definitions(-DUSE_PARSE_API)
