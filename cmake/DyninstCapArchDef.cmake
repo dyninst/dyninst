@@ -74,10 +74,10 @@ elseif(DYNINST_OS_Windows)
   set(OLD_DEFINES -Di386_unknown_nt4_0)
 endif()
 
-set(UNIFIED_DEFINES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES} ${OS_DEFINES}
+set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES} ${OS_DEFINES}
                     ${OLD_DEFINES})
 
-foreach(def ${UNIFIED_DEFINES})
+foreach(def ${DYNINST_PLATFORM_CAPABILITIES})
   add_definitions(${def})
 endforeach()
 
