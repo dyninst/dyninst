@@ -4,6 +4,8 @@
 #  cap_32_64 - This host 64-bit platform supports modifying 32-bit binaries
 #
 
+include_guard(GLOBAL)
+
 set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
 if(DYNINST_ARCH_i386)
