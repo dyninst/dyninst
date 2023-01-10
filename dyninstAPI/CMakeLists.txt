@@ -194,7 +194,7 @@ set(_sources
     src/Relocation/Widgets/StackModWidget.C
     src/Relocation/patchapi_debug.C)
 
-list(FIND UNIFIED_DEFINES "-Dcap_stack_mods" cap_stack_mods_found)
+list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found GREATER -1)
   list(
     APPEND
