@@ -26,6 +26,8 @@ if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   list(APPEND _dyninst_global_defs DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
 endif()
 
+list(APPEND _dyninst_global_defs ${DYNINST_PLATFORM_CAPABILITIES})
+
 function(dyninst_library _target)
   # cmake-format: off
   set(_keywords

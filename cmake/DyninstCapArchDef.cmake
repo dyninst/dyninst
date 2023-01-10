@@ -78,12 +78,3 @@ endif()
 
 set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES} ${OS_DEFINES}
                     ${OLD_DEFINES})
-
-foreach(def ${DYNINST_PLATFORM_CAPABILITIES})
-  add_definitions(${def})
-endforeach()
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${UNIFIED_DEF_STRING}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${UNIFIED_DEF_STRING}")
-
-message(STATUS "Set arch and platform based definitions")
