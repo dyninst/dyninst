@@ -1159,13 +1159,13 @@ inline bool is_disp16(long disp) {
 }
 
 inline bool is_disp32(long disp) {
-  return (disp <= I32_MAX && disp >= I32_MIN);
+  return (disp <= INT32_MAX && disp >= INT32_MIN);
 }
 inline bool is_disp32(Address a1, Address a2) {
   return is_disp32(a2 - (a1 + JUMP_REL32_SZ));
 }
 inline bool is_addr32(Address addr) {
-    return (addr < UI32_MAX);
+    return (addr < UINT32_MAX);
 }
 
 COMMON_EXPORT void decode_SIB(unsigned sib, unsigned& scale, 
