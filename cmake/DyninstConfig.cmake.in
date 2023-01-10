@@ -21,7 +21,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/DyninstTargets.cmake")
 
 # Other variables Dyninst mutators may depend on
 set(DYNINST_PLATFORM "@DYNINST_PLATFORM@")
-set(DYNINST_INTERNAL_DEFINES @UNIFIED_DEFINES@)
+set(DYNINST_INTERNAL_DEFINES @DYNINST_PLATFORM_CAPABILITIES@)
 
 foreach(COMP ${Dyninst_FIND_COMPONENTS})
   if(TARGET Dyninst::${COMP})
