@@ -1,3 +1,60 @@
+#[=======================================================================[
+DyninstLibrary
+--------------
+
+This module provides a uniform interface for creating a Dyninst
+toolkit target.
+
+  dyninst_library
+
+  This command is a wrapper around `add_library` that creates a
+  SHARED and, optionally, STATIC library for a Dyninst toolkit.
+
+    dyninst_library(<TargetName>
+      [PRIVATE_HEADER_FILES <file>...]
+      [PUBLIC_HEADER_FILES <file>...]
+      [SOURCE_FILES <file>...]
+      [DEFINES <val>...]
+      [DYNINST_DEPS <target>...]
+      [PUBLIC_DEPS <target>...]
+      [PRIVATE_DEPS <target>...]
+    )
+
+  The <TargetName>_TARGETS variable will contain the names of the
+  created targets for this toolkit.
+
+  The options are:
+
+  PRIVATE_HEADER_FILES
+    A list of header files that are needed to build <TargetName>, but
+    are not part of the public interface. These files are not copied
+    into the install tree.
+
+  PUBLIC_HEADER_FILES
+    A list of header files that are part of the toolkit's public API.
+    These files are copied into the install tree.
+
+  SOURCE_FILES
+    A list of source files for building the library. They are always
+    considered PRIVATE attributes of the target as in `target_sources`.
+
+  DEFINES
+    A list of compiler definitions to attach to the target. These are
+    always PRIVATE attributes of the target.
+
+  DYNINST_DEPS
+    A list of dependent Dyninst targets. If a target for a static library
+    is created, it will link against the corresponding static target for
+    each library container here.
+
+  PUBLIC_DEPS
+    A list of targets that are PUBLIC dependencies of <TargetName>.
+
+  PRIVATE_DEPS
+    A list of targets that are PRIVATE dependencies of <TargetName>.
+
+#]=======================================================================]
+
 include_guard(DIRECTORY)
 
 if(LIGHTWEIGHT_SYMTAB)
