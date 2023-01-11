@@ -1,5 +1,10 @@
 include_guard(GLOBAL)
 
+# Make sure we don't get something like CC=gcc CXX=clang++
+if(NOT ${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID})
+	message(FATAL_ERROR "C and C++ compilers are not the same vendor")
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX
    OR ${CMAKE_C_COMPILER_ID} MATCHES Clang
    OR ${CMAKE_C_COMPILER_ID} MATCHES GNU
