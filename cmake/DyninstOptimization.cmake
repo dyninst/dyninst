@@ -5,10 +5,9 @@ if(NOT ${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID})
 	message(FATAL_ERROR "C and C++ compilers are not the same vendor")
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX
-   OR ${CMAKE_C_COMPILER_ID} MATCHES Clang
-   OR ${CMAKE_C_COMPILER_ID} MATCHES GNU
-   OR ${CMAKE_C_COMPILER_ID} MATCHES Intel)
+set(_linux_compilers "GNU" "Clang" "Intel" "IntelLLVM")
+
+if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   if(ENABLE_LTO)
     set(LTO_FLAGS "-flto")
     set(LTO_LINK_FLAGS "-fuse-ld=bfd")
