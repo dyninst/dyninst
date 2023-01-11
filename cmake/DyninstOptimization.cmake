@@ -17,20 +17,23 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   if(ENABLE_LTO)
     list(APPEND DYNINST_LINK_FLAGS "-fuse-ld=bfd")
   endif()
-	list(APPEND DYNINST_FLAGS_DEBUG   "-Og -g3")
+  
+  # Used in stackwalk
+  set(FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
+  
+	list(APPEND DYNINST_FLAGS_DEBUG   "-Og -g3 ${FORCE_FRAME_POINTER}")
 	list(APPEND DYNINST_FLAGS_RELEASE "-O2 -g3")
 	list(APPEND DYNINST_FLAGS_RELWITHDEBINFO  "-O2 -g3")
 	list(APPEND DYNINST_FLAGS_MINSIZEREL  "-Os")
 
-  set(FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
   # Ensure each library is fully linked
 	list(APPEND DYNINST_LINK_FLAGS "-Wl,--no-undefined")
 else(MSVC)
-	list(APPEND DYNINST_FLAGS_DEBUG "/MP /Od /Zi /MDd /D_DEBUG")
+  set(FORCE_FRAME_POINTER "/Oy-")
+  
+	list(APPEND DYNINST_FLAGS_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${FORCE_FRAME_POINTER}")
 	list(APPEND DYNINST_FLAGS_RELEASE "/MP /O2 /MD")
 	list(APPEND DYNINST_FLAGS_RELWITHDEBINFO "/MP /O2 /Zi /MD")
 	list(APPEND DYNINST_FLAGS_MINSIZEREL"/MP /O1 /MD")
-
-  set(FORCE_FRAME_POINTER "/Oy-")
 endif()
 message(STATUS "Set optimization flags")
