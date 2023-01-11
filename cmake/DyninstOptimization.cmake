@@ -28,12 +28,14 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
 
   # Ensure each library is fully linked
 	list(APPEND DYNINST_LINK_FLAGS "-Wl,--no-undefined")
-else(MSVC)
+elseif(MSVC)
   set(FORCE_FRAME_POINTER "/Oy-")
   
 	list(APPEND DYNINST_FLAGS_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${FORCE_FRAME_POINTER}")
 	list(APPEND DYNINST_FLAGS_RELEASE "/MP /O2 /MD")
 	list(APPEND DYNINST_FLAGS_RELWITHDEBINFO "/MP /O2 /Zi /MD")
 	list(APPEND DYNINST_FLAGS_MINSIZEREL"/MP /O1 /MD")
+else()
+	message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
 endif()
 message(STATUS "Set optimization flags")
