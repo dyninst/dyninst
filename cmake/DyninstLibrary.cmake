@@ -155,7 +155,7 @@ function(dyninst_library _target)
     INCLUDES
     DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
 
-  # Install headers, preserving the directory structure
+  # Install headers, preserving the directory structure under h/.
   # Note: By convention, headers are stored in "h/"
   foreach(h ${_public_headers})
     string(REGEX MATCH "^h\\/(.*)" _file ${h})
