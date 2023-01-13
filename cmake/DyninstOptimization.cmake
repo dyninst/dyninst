@@ -21,8 +21,14 @@ endif()
 set(_linux_compilers "GNU" "Clang" "Intel" "IntelLLVM")
 
 if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
+  if(DYNINST_LINKER)
+    list(APPEND DYNINST_LINK_FLAGS "-fuse-ld=${DYNINST_LINKER}")
+  endif()
+
   if(ENABLE_LTO)
-    list(APPEND DYNINST_LINK_FLAGS "-fuse-ld=bfd")
+    if(${DYNINST_LINKER} MATCHES "gold")
+      message(FATAL_ERROR "Cannot use the gold linker for LTO")
+    endif()
   endif()
 
   # Used in stackwalk
