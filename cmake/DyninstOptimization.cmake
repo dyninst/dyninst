@@ -26,9 +26,9 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   endif()
 
   # Used in stackwalk
-  set(FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
+  set(DYNINST_FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
 
-  set(_DEBUG "-Og -g3 ${FORCE_FRAME_POINTER}")
+  set(_DEBUG "-Og -g3 ${DYNINST_FORCE_FRAME_POINTER}")
   set(_RELEASE "-O3 -g3")
   set(_RELWITHDEBINFO "-O2 -g3")
   set(_MINSIZEREL "-Os")
@@ -36,9 +36,9 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   # Ensure each library is fully linked
   list(APPEND DYNINST_LINK_FLAGS "-Wl,--no-undefined")
 elseif(MSVC)
-  set(FORCE_FRAME_POINTER "/Oy-")
+  set(DYNINST_FORCE_FRAME_POINTER "/Oy-")
 
-  set(_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${FORCE_FRAME_POINTER}")
+  set(_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER}")
   set(_RELEASE "/MP /O3 /MD")
   set(_RELWITHDEBINFO "/MP /O2 /Zi /MD")
   set(_MINSIZEREL "/MP /O1 /MD")
