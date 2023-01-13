@@ -28,20 +28,27 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   # Used in stackwalk
   set(FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
 
-  list(APPEND DYNINST_FLAGS_DEBUG "-Og -g3 ${FORCE_FRAME_POINTER}")
-  list(APPEND DYNINST_FLAGS_RELEASE "-O3 -g3")
-  list(APPEND DYNINST_FLAGS_RELWITHDEBINFO "-O2 -g3")
-  list(APPEND DYNINST_FLAGS_MINSIZEREL "-Os")
+  set(_DEBUG "-Og -g3 ${FORCE_FRAME_POINTER}")
+  set(_RELEASE "-O3 -g3")
+  set(_RELWITHDEBINFO "-O2 -g3")
+  set(_MINSIZEREL "-Os")
 
   # Ensure each library is fully linked
   list(APPEND DYNINST_LINK_FLAGS "-Wl,--no-undefined")
 elseif(MSVC)
   set(FORCE_FRAME_POINTER "/Oy-")
 
-  list(APPEND DYNINST_FLAGS_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${FORCE_FRAME_POINTER}")
-  list(APPEND DYNINST_FLAGS_RELEASE "/MP /O3 /MD")
-  list(APPEND DYNINST_FLAGS_RELWITHDEBINFO "/MP /O2 /Zi /MD")
-  list(APPEND DYNINST_FLAGS_MINSIZEREL"/MP /O1 /MD")
+  set(_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${FORCE_FRAME_POINTER}")
+  set(_RELEASE "/MP /O3 /MD")
+  set(_RELWITHDEBINFO "/MP /O2 /Zi /MD")
+  set(_MINSIZEREL "/MP /O1 /MD")
 else()
   message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
 endif()
+
+# Set the relevant CMake globals
+foreach(bt "DEBUG" "RELWITHDEBINFO" "RELEASE" "MINSIZEREL")
+  set(CMAKE_C_FLAGS_${bt} ${_${bt}})
+  set(CMAKE_CXX_FLAGS_${bt} ${_${bt}})
+  unset(_${bt})
+endforeach()
