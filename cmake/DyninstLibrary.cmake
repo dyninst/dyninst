@@ -122,6 +122,8 @@ function(dyninst_library _target)
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
 
+    target_link_options(${t} PRIVATE ${DYNINST_LINK_FLAGS})
+
     foreach(_v "PUBLIC" "PRIVATE")
       set(_d ${_target_${_v}_DEPS})
       if(${t} MATCHES "static")
