@@ -1,3 +1,10 @@
+#[=======================================================================[
+DyninstOptimization
+-------------------
+
+This module provides the global compiler and linker flags.
+
+#]=======================================================================]
 include_guard(GLOBAL)
 
 if(ENABLE_LTO)
