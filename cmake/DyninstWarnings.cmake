@@ -100,7 +100,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
     # Previous two lines are equivalent to below, but also catches a 0 exit status
     # with a warning message output: check_c_compiler_flag("-${f}" "${v}")
     if(${v})
-      string(APPEND SUPPORTED_C_WARNING_FLAGS " -${f}")
+      list(APPEND SUPPORTED_C_WARNING_FLAGS "-${f}")
       if(f MATCHES "^(.*)=[0-9]+$")
         # set generic variable if warning is parameterized with a number
         string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_C_FLAG_${CMAKE_MATCH_1}")
@@ -118,7 +118,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
     check_cxx_source_compiles("int main(){return 0;}" "${v}" FAIL_REGEX
                               "warning: *command[- ]line option|-Wunknown-warning-option")
     if(${v})
-      string(APPEND SUPPORTED_CXX_WARNING_FLAGS " -${f}")
+      list(APPEND SUPPORTED_CXX_WARNING_FLAGS "-${f}")
       if(f MATCHES "^(.*)=[0-9]+$")
         string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_CPP_FLAG_${CMAKE_MATCH_1}")
         set("${v}" 1)
@@ -169,5 +169,3 @@ message(STATUS "Using C warning flags: ${SUPPORTED_C_WARNING_FLAGS}")
 message(STATUS "Using CXX warning flags: ${SUPPORTED_CXX_WARNING_FLAGS}")
 message(
   STATUS "Extra CXX DEBUG warning flags: -Wframe-larger-than=${defaultDebugMaxFrameSize}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SUPPORTED_C_WARNING_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SUPPORTED_CXX_WARNING_FLAGS}")

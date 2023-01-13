@@ -124,6 +124,10 @@ function(dyninst_library _target)
 
     target_link_options(${t} PRIVATE ${DYNINST_LINK_FLAGS})
 
+    target_compile_options(
+      ${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${SUPPORTED_C_WARNING_FLAGS}>
+                   $<$<COMPILE_LANGUAGE:CXX>:${SUPPORTED_CXX_WARNING_FLAGS}>)
+
     foreach(_v "PUBLIC" "PRIVATE")
       set(_d ${_target_${_v}_DEPS})
       if(${t} MATCHES "static")
