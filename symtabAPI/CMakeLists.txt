@@ -91,8 +91,8 @@ dyninst_library(
 )
 # cmake-format: on
 
-foreach(t ${symtabAPI_TARGETS})
-  if(DYNINST_OS_Windows)
+if(DYNINST_OS_Windows)
+  foreach(t ${symtabAPI_TARGETS})
     target_link_libraries(${t} PRIVATE dbghelp)
-  endif()
-endforeach()
+  endforeach()
+endif()
