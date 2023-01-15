@@ -141,7 +141,7 @@ function(dyninst_library _target)
       ${t}
       PROPERTIES INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
                  SOVERSION ${DYNINST_SOVERSION}
-                 VERSION ${DYNINST_LIBVERSION})
+                 VERSION ${DYNINST_VERSION})
 
     target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs} ${_target_DEFINES})
   endforeach()
