@@ -134,7 +134,7 @@ function(dyninst_library _target)
     endforeach()
 
     target_include_directories(
-      ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
+      ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
                   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 
     set_target_properties(

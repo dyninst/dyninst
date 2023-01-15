@@ -47,10 +47,3 @@ dyninst_library(
   PUBLIC_DEPS Dyninst::TBB Dyninst::Boost
 )
 # cmake-format: on
-
-foreach(t ${patchAPI_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-endforeach()

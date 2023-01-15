@@ -122,7 +122,6 @@ dyninst_library(
 # cmake-format: on
 
 set(_inc_dirs
-    ${CMAKE_CURRENT_SOURCE_DIR}/h ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/cdna2
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
 

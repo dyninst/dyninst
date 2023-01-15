@@ -158,11 +158,6 @@ dyninst_library(
 # cmake-format: on
 
 foreach(t ${common_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-
   if(DYNINST_OS_Windows)
     target_compile_definitions(${t} PRIVATE "WIN32" "_WIN32_WINNT=0x500")
     target_link_libraries(${t} PRIVATE Psapi WS2_32 dbghelp)

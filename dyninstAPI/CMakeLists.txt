@@ -316,11 +316,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 foreach(t ${dyninstAPI_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-
   if(DYNINST_OS_Windows)
     target_link_libraries(${t} PRIVATE dbghelp WS2_32 imagehlp)
   endif()

@@ -77,11 +77,6 @@ dyninst_library(
 # cmake-format: on
 
 foreach(t ${stackwalk_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-
   # Force frame pointers in stackwalker, no matter the optimization level
   # See commit 2608333f7
   target_compile_options(${t} PRIVATE ${FORCE_FRAME_POINTER})
