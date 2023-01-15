@@ -67,11 +67,6 @@ dyninst_library(
 # cmake-format: on
 
 foreach(t ${dyninstAPI_RT_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-
   if(DYNINST_OS_UNIX)
     target_link_libraries(${t} PRIVATE ${CMAKE_DL_LIBS})
   elseif(DYNINST_OS_Windows)
@@ -128,12 +123,6 @@ if(BUILD_RTLIB_32)
 	# cmake-format: on
 
   foreach(t ${dyninstAPI_RT_m32_TARGETS})
-    target_include_directories(
-      ${t}
-      PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
-      )
-
     target_compile_options(${t} PRIVATE "-m32")
     target_link_options(${t} PRIVATE "-m32")
 

@@ -23,10 +23,3 @@ dyninst_library(
   PRIVATE_DEPS Dyninst::Boost_headers
 )
 # cmake-format: on
-
-foreach(t ${dynElf_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-endforeach()

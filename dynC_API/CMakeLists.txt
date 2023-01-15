@@ -25,11 +25,6 @@ dyninst_library(
 # cmake-format: on
 
 foreach(t ${dynC_API_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-
   if(DYNINST_OS_Windows)
     target_compile_definitions(${t} PRIVATE "YY_NO_UNISTD_H")
   endif()
