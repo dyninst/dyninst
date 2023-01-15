@@ -157,7 +157,7 @@ function(dyninst_library _target)
 
   # Install headers, preserving the directory structure under h/.
   # Note: By convention, headers are stored in "h/"
-  foreach(h ${_public_headers})
+  foreach(h ${_target_PUBLIC_HEADER_FILES})
     string(REGEX MATCH "^h/(.*)" _file ${h})
     get_filename_component(_dir ${CMAKE_MATCH_1} DIRECTORY)
     install(FILES ${h} DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}/${_dir}")
