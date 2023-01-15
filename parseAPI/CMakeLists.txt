@@ -99,7 +99,7 @@ endif()
 # cmake-format: off
 dyninst_library(
   parseAPI
-  PUBLIC_HEADER_FILES ${parseapi_headers} ${dataflowapi_headers} 
+  PRIVATE_HEADER_FILES ${parseapi_headers} ${dataflowapi_headers} 
   SOURCE_FILES ${SRC_LIST} ${ROSE_SRC}
   DEFINES PARSER_LIB DATAFLOW_LIB
   DYNINST_DEPS common instructionAPI ${SYMREADER}
