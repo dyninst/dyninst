@@ -157,9 +157,9 @@ dyninst_library(
 )
 # cmake-format: on
 
-foreach(t ${common_TARGETS})
-  if(DYNINST_OS_Windows)
+if(DYNINST_OS_Windows)
+  foreach(t ${common_TARGETS})
     target_compile_definitions(${t} PRIVATE "WIN32" "_WIN32_WINNT=0x500")
     target_link_libraries(${t} PRIVATE Psapi WS2_32 dbghelp)
-  endif()
-endforeach()
+  endforeach()
+endif()
