@@ -2,6 +2,7 @@ include_guard(GLOBAL)
 
 # parseThat requires dyninstAPI which doesn't work with symlite
 if(LIGHTWEIGHT_SYMTAB)
+  message(STATUS "LIGHTWEIGHT_SYMTAB enabled; parseThat not built.")
   return()
 endif()
 
