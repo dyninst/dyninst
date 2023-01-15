@@ -4,6 +4,7 @@ include(DyninstLibrary)
 
 # dynC requires symtabAPI
 if(LIGHTWEIGHT_SYMTAB)
+  message(STATUS "LIGHTWEIGHT_SYMTAB enabled; dynC_API not built.")
   return()
 endif()
 
