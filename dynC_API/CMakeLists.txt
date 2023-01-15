@@ -24,8 +24,8 @@ dyninst_library(
 )
 # cmake-format: on
 
-foreach(t ${dynC_API_TARGETS})
-  if(DYNINST_OS_Windows)
+if(DYNINST_OS_Windows)
+  foreach(t ${dynC_API_TARGETS})
     target_compile_definitions(${t} PRIVATE "YY_NO_UNISTD_H")
-  endif()
-endforeach()
+  endforeach()
+endif()
