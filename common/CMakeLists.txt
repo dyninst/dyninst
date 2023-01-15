@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 include(DyninstLibrary)
 
-configure_file(${PROJECT_SOURCE_DIR}/cmake/version.h.in
+configure_file(${PROJECT_SOURCE_DIR}/cmake/dyninstversion.h.in
                ${CMAKE_CURRENT_SOURCE_DIR}/h/dyninstversion.h)
 
 set(_public_headers
