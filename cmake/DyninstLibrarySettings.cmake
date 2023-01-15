@@ -48,18 +48,3 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Always include $ORIGIN
 set(DYNINST_RPATH_DIRECTORIES "\$ORIGIN")
-
-# Sometimes CMake uses RPATH instead of RUNPATH which prevents overriding the search
-# paths when the user explicitly sets LD_LIBRARY_PATH. If Dyninst is installed into a
-# system directory (e.g., /usr/lib) and CMake uses RPATH, the loader would find any
-# needed libraries there first, even if the ones linked against actually live elsewhere.
-set(_system_dirs CMAKE_C_IMPLICIT_LINK_DIRECTORIES CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES
-                 CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES)
-list(SORT _system_dirs)
-list(REMOVE_DUPLICATES _system_dirs)
-
-set(_loc "${CMAKE_INSTALL_PREFIX}/${DYNINST_INSTALL_LIBDIR}")
-if(NOT ${_loc} IN_LIST _system_dirs)
-  list(APPEND DYNINST_RPATH_DIRECTORIES ${_loc})
-endif()
-unset(_loc)
