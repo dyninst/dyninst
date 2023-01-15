@@ -107,16 +107,13 @@ dyninst_library(
 )
 # cmake-format: on
 
-set(_parseapi_inc_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/h
-                       ${PROJECT_SOURCE_DIR}/dataflowAPI/h)
-
 foreach(t ${parseAPI_TARGETS})
   # There is both a common/h/util.h and a parseAPI/h/util.h, so put
   # the common/h include path first
   target_include_directories(${t} BEFORE
                              PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>")
 
-  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_parseapi_inc_dirs}>")
+  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>")
 
   set_property(TARGET ${t} PROPERTY PUBLIC_HEADER ${parseapi_headers}
                                     ${dataflowapi_headers})

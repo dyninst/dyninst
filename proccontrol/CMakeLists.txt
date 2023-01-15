@@ -117,10 +117,3 @@ dyninst_library(
   PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB Threads::Threads
 )
 # cmake-format: on
-
-foreach(t ${pcontrol_TARGETS})
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>")
-endforeach()
