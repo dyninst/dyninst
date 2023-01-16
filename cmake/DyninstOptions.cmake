@@ -32,3 +32,5 @@ option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 option(ENABLE_PARSE_API_GRAPHS "Enable Boost Graph wrappers for parseAPI Functions" OFF)
 
 option(DYNINST_LINKER "The linker to use" "lld")
+
+option(DYNINST_CXXSTDLIB "The C++ standard library to use; only affects LLVM-based compilers" "libstdc++")

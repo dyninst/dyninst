@@ -122,7 +122,9 @@ function(dyninst_library _target)
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
 
-    target_link_options(${t} PRIVATE ${DYNINST_LINK_FLAGS})
+    target_link_options(
+      ${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${DYNINST_LINK_FLAGS}>
+      $<$<COMPILE_LANGUAGE:CXX>:${DYNINST_CXX_LINK_FLAGS}>)
 
     target_compile_options(
       ${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${SUPPORTED_C_WARNING_FLAGS}>

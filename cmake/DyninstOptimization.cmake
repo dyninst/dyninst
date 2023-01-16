@@ -41,6 +41,13 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
 
   # Ensure each library is fully linked
   list(APPEND DYNINST_LINK_FLAGS "-Wl,--no-undefined")
+
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    if(DYNINST_CXXSTDLIB)
+      list(APPEND DYNINST_CXX_FLAGS "-stdlib=${DYNINST_CXXSTDLIB}")
+      list(APPEND DYNINST_CXX_LINK_FLAGS "-stdlib=${DYNINST_CXXSTDLIB}")
+    endif()
+  endif()
 elseif(MSVC)
   set(DYNINST_FORCE_FRAME_POINTER "/Oy-")
 
@@ -55,6 +62,9 @@ endif()
 # Set the relevant CMake globals
 foreach(bt "DEBUG" "RELWITHDEBINFO" "RELEASE" "MINSIZEREL")
   set(CMAKE_C_FLAGS_${bt} ${_${bt}})
-  set(CMAKE_CXX_FLAGS_${bt} ${_${bt}})
+  set(CMAKE_CXX_FLAGS_${bt} "${_${bt}} ${DYNINST_CXX_FLAGS}")
   unset(_${bt})
 endforeach()
+
+# Merge the link flags for C++
+list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})  
