@@ -270,7 +270,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
     func_instance *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
     if( !globalCtorHandler ) {
-        logLine("failed to find libc destructor handler\n");
+        logLine("failed to find libc constructor handler\n");
         return false;
     }
     func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
