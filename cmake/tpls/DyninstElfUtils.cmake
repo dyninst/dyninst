@@ -153,9 +153,8 @@ else()
         $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}>
         $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${INSTALL_LIB_DIR}/${TPL_INSTALL_LIB_DIR}/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}>
         )
-    set(_eu_build_byproducts
-        "${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}"
-        "${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(_eu_build_byproducts "${_eu_root}/lib/libdw${CMAKE_SHARED_LIBRARY_SUFFIX}"
+                             "${_eu_root}/lib/libelf${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
     include(ExternalProject)
     externalproject_add(
@@ -164,8 +163,8 @@ else()
         URL https://sourceware.org/elfutils/ftp/${ELFUTILS_DOWNLOAD_VERSION}/elfutils-${ELFUTILS_DOWNLOAD_VERSION}.tar.bz2
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
-            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
-            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g
+            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O3
+            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O3
             [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=] <SOURCE_DIR>/configure
             --enable-install-elfh --prefix=${TPL_STAGING_PREFIX} --disable-libdebuginfod
             --disable-debuginfod --enable-thread-safety

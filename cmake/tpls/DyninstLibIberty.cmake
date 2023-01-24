@@ -83,8 +83,8 @@ else()
         URL http://ftp.gnu.org/gnu/binutils/binutils-2.31.1.tar.gz
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
-            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O2\ -g
-            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O2\ -g <SOURCE_DIR>/configure
+            ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O3
+            CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O3 <SOURCE_DIR>/configure
             --prefix=${PROJECT_BINARY_DIR}/binutils
         BUILD_COMMAND make
         BUILD_BYPRODUCTS ${_li_build_byproducts}

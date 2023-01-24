@@ -15,8 +15,10 @@ if(CMAKE_COMPILER_IS_GNUCXX
     set(CMAKE_C_FLAGS_RELEASE "-O2 -g1 -fstack-protector-strong ${LTO_FLAGS}")
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -g1 -fstack-protector-strong ${LTO_FLAGS}")
 
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g3 -fno-omit-frame-pointer -fstack-protector-strong ${LTO_FLAGS}")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g3 -fno-omit-frame-pointer -fstack-protector-strong ${LTO_FLAGS}")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO
+        "-O2 -g3 -fno-omit-frame-pointer -fstack-protector-strong ${LTO_FLAGS}")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO
+        "-O2 -g3 -fno-omit-frame-pointer -fstack-protector-strong ${LTO_FLAGS}")
 
     set(FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
     # Ensure each library is fully linked

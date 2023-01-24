@@ -166,7 +166,8 @@ else()
 
         # Generate library filenames
         list(APPEND _tbb_libraries ${_tbb_${c}_lib})
-        list(APPEND _tbb_build_byproducts "${TPL_STAGING_PREFIX}/lib/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        list(APPEND _tbb_build_byproducts
+             "${TPL_STAGING_PREFIX}/lib/lib${c}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
         foreach(t RELEASE DEBUG)
             set(TBB_${c}_LIBRARY_${t}
@@ -227,7 +228,8 @@ else()
         POST_BUILD
         COMMAND
             ${CMAKE_COMMAND} ARGS -DLIBDIR=${TPL_STAGING_PREFIX}/lib
-            -DINCDIR=${TPL_STAGING_PREFIX}/include -DPREFIX=${_tbb_prefix_dir} -P
+            -DINCDIR=${TPL_STAGING_PREFIX}/include -DPREFIX=${_tbb_prefix_dir}
+            -DCMAKE_STRIP=${CMAKE_STRIP} -P
             ${CMAKE_CURRENT_LIST_DIR}/DyninstTBBInstall.cmake
         COMMENT "Installing TBB...")
 
