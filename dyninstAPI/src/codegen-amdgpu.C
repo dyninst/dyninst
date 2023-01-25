@@ -105,6 +105,23 @@ void amdgpuCodeGen::generate_SOP2( CodeGen & gen,  uint32_t OP, uint32_t SDST, u
 	generate(gen,insn);
 }
 
+void amdgpuCodeGen::generate_VOP2( CodeGen & gen,  uint32_t OP, uint32_t VDST, uint32_t VSRC1, uint32_t SRC0  , bool useImm ){
+	uint32_t insn_size = useImm ? 8 : 4;
+	instruction insn(insn_size);
+
+	uint32_t cmd = 0x00000000;
+	if(useImm){
+		cmd = ( cmd | (OP << 25) | ( VDST << 17) | (VSRC1 << 9)  | 0xff );
+		memcpy(insn.raw_ , &cmd, 4);
+		memcpy(insn.raw_+4, &SRC0, 4);
+	}else{
+		cmd = ( cmd | (OP << 25) | ( VDST << 17) | (VSRC1 << 9)  | SRC0 );
+		memcpy(insn.raw_ , &cmd, 4);
+		printf("VOP2 instruction generated, value = %lx\n",cmd);
+	}
+	generate(gen,insn);
+}
+
 
 
 /*

@@ -99,7 +99,7 @@ class CodeGen{
             memcpy(cur_ptr(), buf, size);
             uint32_t * cmd_ptr = (uint32_t* ) cur_ptr();
             
-            printf("copied value to ptr %lx, value = %lx",cmd_ptr, *cmd_ptr);
+            printf("copied value to ptr %lx, value = %lx\n",cmd_ptr, *cmd_ptr);
 
 
             moveIndex(size);
@@ -154,6 +154,10 @@ class __attribute__((visibility ("default")))  amdgpuCodeGen {
         S_BRANCH = 2
     };
 
+    enum VOP2_OP {
+        V_ADD_F32 = 1
+    };
+
     static void *insnPtr(CodeGen &gen);
 
     static void generate(CodeGen &gen, instruction &insn);
@@ -166,7 +170,9 @@ class __attribute__((visibility ("default")))  amdgpuCodeGen {
     static void generate_SOP2( CodeGen & gen,  uint32_t OP, uint32_t SDST, uint32_t SSRC1 , uint32_t SSRC0, bool useImm);
     static void generate_SOPC( CodeGen & gen,  uint32_t OP, uint32_t SSRC1 , uint32_t SSRC0, bool useImm);
 
+    static void generate_VOP2( CodeGen & gen,  uint32_t OP, uint32_t VDST, uint32_t VSRC1 , uint32_t SRC0, bool useImm);
 
+    static void generate_v_add_f32( CodeGen & gen,  uint32_t vdst, uint32_t vsrc1, uint32_t src0  , bool useImm ){ generate_VOP2(gen, VOP2_OP::V_ADD_F32, vdst, vsrc1 , src0, useImm); };
 };
 
 #endif
