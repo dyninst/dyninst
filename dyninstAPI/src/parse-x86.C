@@ -276,6 +276,16 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         logLine("failed to find Dyninst constructor handler\n");
         return false;
     }
+    // Wire in our handlers at libc ctor exit/dtor entry
+    vector<instPoint*> init_pts;
+    globalCtorHandler->funcExitPoints(&init_pts);
+    // convert points to instpoints
+    for(auto exit_pt = init_pts.begin();
+	exit_pt != init_pts.end();
+	++exit_pt)
+    {
+      add_handler(*exit_pt, dyninstCtorHandler);
+    }
 
     func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
     if( !globalDtorHandler ) {
@@ -288,18 +298,9 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         logLine("failed to find Dyninst destructor handler\n");
         return false;
     }
-    // Wire in our handlers at libc ctor exit/dtor entry
-    vector<instPoint*> init_pts;
+
     instPoint* fini_point;
-    globalCtorHandler->funcExitPoints(&init_pts);
     fini_point = globalDtorHandler->funcEntryPoint(true);
-    // convert points to instpoints
-    for(auto exit_pt = init_pts.begin();
-	exit_pt != init_pts.end();
-	++exit_pt)
-    {
-      add_handler(*exit_pt, dyninstCtorHandler);
-    }
     add_handler(fini_point, dyninstDtorHandler);
     AddressSpace::patch(this);
     
