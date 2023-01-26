@@ -317,10 +317,16 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     AddressSpace::patch(this);
     
 
-    /*
-     * Replace the irel handler with our extended version, since they
-     * hard-code ALL THE OFFSETS in the function
-     */
+    /* Special Case 1C: Instrument irel handlers
+     *
+     * Replace the irel handler with our extended version, since they hard-code
+     * ALL THE OFFSETS in the function.
+     *
+     * __libc_csu_irel was removed from glibc-2.19 in 2013.
+     *
+     * irel handlers are not instrumented on the other architectures. We leave this
+     * here for posterity.
+    */
     func_instance *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER);
     func_instance *dyninstIrelHandler = findOnlyOneFunction(DYNINST_IREL_HANDLER);
     int_symbol irelStart;
