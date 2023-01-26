@@ -253,19 +253,18 @@ void add_handler(instPoint* pt, func_instance* add_me)
 
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-    /* Special Case 1: Handling global constructor and destructor Regions
+    /* Special Case 1A: Handling global constructors
      *
-     * Replace global ctors function with special ctors function,
-     * and create a special relocation for the ctors list used by the special
-     * ctors function
+     * Place the Dyninst constructor handler after the global ELF ctors so it is invoked last.
      *
-     * Replace global dtors function with special dtors function,
-     * and create a special relocation for the dtors list used by the special
-     * dtors function
-     */
-
-    // First, find all the necessary symbol info.
-
+     * Prior to glibc-2.34, this was in the exit point(s) of __libc_csu_init which
+     * calls all of the initializers in preinit_array and init_array as per SystemV
+     * before __libc_start_main is invoked.
+     *
+     * In glibc-2.34, the code from the csu_* functions was moved into __libc_start_main, so
+     * now the only place where we are guaranteed that the global constructors have all been
+     * called is at the beginning of 'main'.
+    */
     func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
     if( !dyninstCtorHandler ) {
         logLine("failed to find Dyninst constructor handler\n");
