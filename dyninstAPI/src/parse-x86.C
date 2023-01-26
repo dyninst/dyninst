@@ -253,8 +253,6 @@ void add_handler(instPoint* pt, func_instance* add_me)
 
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-    Symtab *origBinary = mobj->parse_img()->getObject();
-
     /* Special Case 1: Handling global constructor and destructor Regions
      *
      * Replace global ctors function with special ctors function,
@@ -350,7 +348,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
      */
     bool isMTCapable = isMultiThreadCapable();
     bool foundPthreads = false;
-
+    Symtab *origBinary = mobj->parse_img()->getObject();
     vector<Archive *> libs;
     vector<Archive *>::iterator libIter;
     if( origBinary->getLinkingResources(libs) ) {
