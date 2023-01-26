@@ -266,28 +266,24 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
     // First, find all the necessary symbol info.
 
-    func_instance *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
-    if( !globalCtorHandler ) {
-        logLine("failed to find libc constructor handler\n");
-        return false;
-    }
     func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
     if( !dyninstCtorHandler ) {
         logLine("failed to find Dyninst constructor handler\n");
         return false;
     }
-    // Wire in our handlers at libc ctor exit/dtor entry
-    vector<instPoint*> init_pts;
-    globalCtorHandler->funcExitPoints(&init_pts);
-    // convert points to instpoints
-    for(auto *exit_pt : init_pts) {
-      add_handler(exit_pt, dyninstCtorHandler);
-    }
-
-    func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
-    if( !globalDtorHandler ) {
-        logLine("failed to find libc destructor handler\n");
-        return false;
+    if(auto *ctor = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER)) {
+        // Wire in our handler at libc ctor exits
+        vector<instPoint*> init_pts;
+        ctor->funcExitPoints(&init_pts);
+        for(auto *exit_pt : init_pts) {
+          add_handler(exit_pt, dyninstCtorHandler);
+        }
+    } else if(auto *main = findOnlyOneFunction("main")) {
+    	// Insert constructor into the beginning of 'main'
+        add_handler(main->funcEntryPoint(true), dyninstCtorHandler);
+    } else {
+   	    logLine("failed to find place to insert Dyninst constructors\n");
+   	    return false;
     }
 
     func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
