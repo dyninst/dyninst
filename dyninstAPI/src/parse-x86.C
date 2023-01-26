@@ -316,7 +316,6 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
     AddressSpace::patch(this);
     
-
     /* Special Case 1C: Instrument irel handlers
      *
      * Replace the irel handler with our extended version, since they hard-code
@@ -327,34 +326,34 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
      * irel handlers are not instrumented on the other architectures. We leave this
      * here for posterity.
     */
-    func_instance *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER);
-    func_instance *dyninstIrelHandler = findOnlyOneFunction(DYNINST_IREL_HANDLER);
-    int_symbol irelStart;
-    int_symbol irelEnd;
-    bool irs_found = false;
-    bool ire_found = false;
-    for (auto rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
-      if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_START, irelStart) ) {
-	irs_found = true;
-      }
-      
-      if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_END, irelEnd) ) {
-	ire_found = true;
-      }
-      if (irs_found && ire_found) break;
-    }
-    if (globalIrelHandler) {
-      assert(dyninstIrelHandler);
-      assert(irs_found);
-      assert(ire_found);
-      std::vector<std::pair<int_symbol *, string> > tmp;
-      tmp.push_back(make_pair(&irelStart, SYMTAB_IREL_START));
-      tmp.push_back(make_pair(&irelEnd, SYMTAB_IREL_END));
-      if (!replaceHandler(globalIrelHandler, dyninstIrelHandler, tmp)) {
-	return false;
-      }
-    }
+    if(auto *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER)) {
+      func_instance *dyninstIrelHandler = findOnlyOneFunction(DYNINST_IREL_HANDLER);
+      int_symbol irelStart;
+      int_symbol irelEnd;
+      bool irs_found = false;
+      bool ire_found = false;
+      for (auto rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
+        if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_START, irelStart) ) {
+    irs_found = true;
+        }
 
+        if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_END, irelEnd) ) {
+    ire_found = true;
+        }
+        if (irs_found && ire_found) break;
+      }
+      if (globalIrelHandler) {
+        assert(dyninstIrelHandler);
+        assert(irs_found);
+        assert(ire_found);
+        std::vector<std::pair<int_symbol *, string> > tmp;
+        tmp.push_back(make_pair(&irelStart, SYMTAB_IREL_START));
+        tmp.push_back(make_pair(&irelEnd, SYMTAB_IREL_END));
+        if (!replaceHandler(globalIrelHandler, dyninstIrelHandler, tmp)) {
+    return false;
+        }
+      }
+    }
 
     /*
      * Special Case 2: Issue a warning if attempting to link pthreads into a binary
