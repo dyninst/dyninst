@@ -280,11 +280,8 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     vector<instPoint*> init_pts;
     globalCtorHandler->funcExitPoints(&init_pts);
     // convert points to instpoints
-    for(auto exit_pt = init_pts.begin();
-	exit_pt != init_pts.end();
-	++exit_pt)
-    {
-      add_handler(*exit_pt, dyninstCtorHandler);
+    for(auto *exit_pt : init_pts) {
+      add_handler(exit_pt, dyninstCtorHandler);
     }
 
     func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
