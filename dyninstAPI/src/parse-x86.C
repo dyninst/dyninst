@@ -285,6 +285,19 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
    	    return false;
     }
 
+    /* Special Case 1B: Handling global destructors
+     *
+     * Place the Dyninst destructor handler before the global ELF dtors so it is invoked first.
+     *
+     * Prior to glibc-2.34, this was in the entry point of __libc_csu_fini.
+     *
+     * In glibc-2.34, the code in __libc_csu_fini was moved into a hidden function that is
+     * registered with atexit. To ensure the Dyninst destructors are always called first, we
+     * have to insert the handler at the beginning of `exit`.
+     *
+     * This is a fragile solution as there is no requirement that a symbol for `exit` is
+     * exported. If we can't find it, we'll just fail here.
+    */
     func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
     if( !dyninstDtorHandler ) {
         logLine("failed to find Dyninst destructor handler\n");
