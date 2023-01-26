@@ -290,10 +290,17 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         logLine("failed to find Dyninst destructor handler\n");
         return false;
     }
+    if(auto *dtor = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER)) {
+    	// Insert destructor into beginning of libc global dtor handler
+        add_handler(dtor->funcEntryPoint(true), dyninstDtorHandler);
+    } else if(auto *exit_ = findOnlyOneFunction("exit")) {
+    	// Insert destructor into beginning of `exit`
+    	add_handler(exit_->funcEntryPoint(true), dyninstDtorHandler);
+    } else {
+    	logLine("failed to find place to insert Dyninst destructors\n");
+        return false;
+    }
 
-    instPoint* fini_point;
-    fini_point = globalDtorHandler->funcEntryPoint(true);
-    add_handler(fini_point, dyninstDtorHandler);
     AddressSpace::patch(this);
     
 
