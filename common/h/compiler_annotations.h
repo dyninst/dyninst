@@ -52,15 +52,15 @@
  *    }
  */
 
-#if defined(__cpluscplus) && defined(__has_cpp_attribute)
-    #if __has_cpp_attribute(fallthrough)
+#if defined(__cplusplus) && defined(__has_cpp_attribute)
+    #if __has_cpp_attribute(fallthrough) && !(__clang__ && __cplusplus < 201703)
         #define DYNINST_FALLTHROUGH [[fallthrough]]
     #elif __has_cpp_attribute(gcc::fallthrough)
         #define DYNINST_FALLTHROUGH [[gcc::fallthrough]]
     #elif __has_cpp_attribute(clang::fallthrough)
         #define DYNINST_FALLTHROUGH [[clang::fallthrough]]
     #endif
-#elif !defined(__cpluscplus) && defined(__has_c_attribute)
+#elif !defined(__cplusplus) && defined(__has_c_attribute)
     #if __has_c_attribute(fallthrough)
         #define DYNINST_FALLTHROUGH [[fallthrough]]
     #elif __STDC_VERSION__ > 201710
@@ -71,7 +71,9 @@
 	    #define DYNINST_FALLTHROUGH [[clang::fallthrough]]
 	#endif
     #endif
-#elif defined(__has_attribute)
+#endif
+
+#if !defined(DYNINST_FALLTHROUGH) && defined(__has_attribute)
     #if __has_attribute(fallthrough)
         #define DYNINST_FALLTHROUGH __attribute__((fallthrough))
     #elif __cplusplus || __STDC_VERSION__ > 201710
