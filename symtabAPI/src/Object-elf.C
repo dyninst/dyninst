@@ -3251,6 +3251,8 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                 case DW_LANG_Fortran77:
                 case DW_LANG_Fortran90:
                 case DW_LANG_Fortran95:
+                case DW_LANG_Fortran03:
+                case DW_LANG_Fortran08:
                     (*mod_langs)[working_module] = lang_Fortran;
                     break;
                 default:
