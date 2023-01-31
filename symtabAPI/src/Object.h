@@ -98,9 +98,6 @@ public:
     SYMTAB_EXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
     SYMTAB_EXPORT std::vector<Region *> getAllRegions() const;
 
-    SYMTAB_EXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
-                                                                    supportedLanguages working_lang);
-
     SYMTAB_EXPORT Offset loader_off() const;
     SYMTAB_EXPORT unsigned loader_len() const;
     SYMTAB_EXPORT int getAddressWidth() const;
