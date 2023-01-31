@@ -58,24 +58,24 @@ class SymReaderCodeRegion : public CodeRegion {
     PARSER_EXPORT SymReaderCodeRegion(SymReader *, SymSegment *);
     PARSER_EXPORT ~SymReaderCodeRegion();
 
-    PARSER_EXPORT void names(Address, std::vector<std::string> &);
-    PARSER_EXPORT bool findCatchBlock(Address addr, Address & catchStart);
+    PARSER_EXPORT void names(Address, std::vector<std::string> &) override;
+    PARSER_EXPORT bool findCatchBlock(Address addr, Address & catchStart) override;
 
     /** InstructionSource implementation **/
-    PARSER_EXPORT bool isValidAddress(const Address) const;
-    PARSER_EXPORT void* getPtrToInstruction(const Address) const;
-    PARSER_EXPORT void* getPtrToData(const Address) const;
+    PARSER_EXPORT bool isValidAddress(const Address) const override;
+    PARSER_EXPORT void* getPtrToInstruction(const Address) const override;
+    PARSER_EXPORT void* getPtrToData(const Address) const override;
     PARSER_EXPORT unsigned int getAddressWidth() const override;
     PARSER_EXPORT bool isCode(const Address) const override;
     PARSER_EXPORT bool isData(const Address) const override;
     PARSER_EXPORT bool isReadOnly(const Address) const override;
-    PARSER_EXPORT Address offset() const;
-    PARSER_EXPORT Address length() const;
-    PARSER_EXPORT Architecture getArch() const;
+    PARSER_EXPORT Address offset() const override;
+    PARSER_EXPORT Address length() const override;
+    PARSER_EXPORT Architecture getArch() const override;
 
     /** interval **/
-    PARSER_EXPORT Address low() const { return offset(); }
-    PARSER_EXPORT Address high() const { return offset() + length(); }
+    PARSER_EXPORT Address low() const override { return offset(); }
+    PARSER_EXPORT Address high() const override { return offset() + length(); }
 
     PARSER_EXPORT SymSegment * symRegion() const { return _region; }
 };
