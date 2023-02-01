@@ -3239,23 +3239,20 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                 case DW_LANG_C:
                 case DW_LANG_C89:
                 case DW_LANG_C99:
-#ifdef DW_LANG_C11
                     case DW_LANG_C11:
-#endif
                     (*mod_langs)[working_module] = lang_C;
                     break;
                 case DW_LANG_C_plus_plus:
-#ifdef DW_LANG_C_plus_plus_03
                     case DW_LANG_C_plus_plus_03:
-#endif
-#ifdef DW_LANG_C_plus_plus_11
                     case DW_LANG_C_plus_plus_11:
-#endif
+                    case DW_LANG_C_plus_plus_14:
                     (*mod_langs)[working_module] = lang_CPlusPlus;
                     break;
                 case DW_LANG_Fortran77:
                 case DW_LANG_Fortran90:
                 case DW_LANG_Fortran95:
+                case DW_LANG_Fortran03:
+                case DW_LANG_Fortran08:
                     (*mod_langs)[working_module] = lang_Fortran;
                     break;
                 default:
