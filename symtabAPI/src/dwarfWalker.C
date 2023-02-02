@@ -2049,7 +2049,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
     auto ret_p = dwarf_attr(&e, attr, &strattr);
     if(!ret_p) return false;
     form = dwarf_whatform(&strattr);
-    if (form != 0) {
+    if (form == 0) {
         return false;
     }
 
