@@ -529,13 +529,13 @@ bool DwarfWalker::parseCallsite()
     if (!has_line)
         return true;
 
-    std::string inline_file;
-    bool result = findString(DW_AT_call_file, inline_file);
-    if (!result)
+    using opt_string = boost::optional<std::string>;
+    opt_string inline_file = find_call_file();
+    if (!inline_file)
         return false;
 
     Dyninst::Offset inline_line;
-    result = findConstant(DW_AT_call_line, inline_line, &e, dbg());
+    bool result = findConstant(DW_AT_call_line, inline_line, &e, dbg());
     if (!result)
         return false;
 
@@ -543,7 +543,7 @@ bool DwarfWalker::parseCallsite()
     //    cout << "Found inline call site in func (0x" << hex << id() << ") "
     //         << curFunc()->getName() << " at " << curFunc()->getOffset() << dec
     //         << ", file " << inline_file << ": " << inline_line << endl;
-    ifunc->setFile(inline_file);
+    ifunc->setFile(inline_file.get());
     ifunc->callsite_line = inline_line;
     return true;
 }
@@ -2023,65 +2023,20 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half /*attr*/,
     return true;
 }
 
-bool DwarfWalker::findString(Dwarf_Half attr,
-        string &str)
-{
-    Dwarf_Half form;
-    Dwarf_Attribute strattr;
-
+boost::optional<std::string> DwarfWalker::find_call_file() {
     Dwarf_Die e = entry();
-    if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
-        unsigned long line_index;
-        bool result = findConstant(attr, line_index, &e, dbg());
-        if (!result)
-            return false;
-        StringTablePtr strs = mod()->getStrings();
-        boost::unique_lock<dyn_mutex> l(strs->lock);
-        if (line_index >= strs->size()) {
-            dwarf_printf("Dwarf error reading line index %lu from srcFiles(%p) of size %lu\n",
-                    line_index, (void*)strs.get(), strs->size());
-            return false;
-        }
-        //       cout << "findString found " << (*srcFiles())[line_index].str << " at srcFiles[" << line_index << "] for " << mod()->fileName() << endl;
-        str = (*srcFiles())[line_index].str;
-        return true;
+    unsigned long line_index;
+    bool result = findConstant(DW_AT_call_file, line_index, &e, dbg());
+    if (!result)
+        return {};
+    StringTablePtr strs = mod()->getStrings();
+    boost::unique_lock<dyn_mutex> l(strs->lock);
+    if (line_index >= strs->size()) {
+        dwarf_printf("Dwarf error reading line index %lu from srcFiles(%p) of size %lu\n",
+                line_index, (void*)strs.get(), strs->size());
+        return {};
     }
-    auto ret_p = dwarf_attr(&e, attr, &strattr);
-    if(!ret_p) return false;
-    form = dwarf_whatform(&strattr);
-    if (form != 0) {
-        return false;
-    }
-
-    bool result;
-    switch (form) {
-        case DW_FORM_string:
-            {
-                const char *s = dwarf_formstring(&strattr);
-                if(!s) return false;
-                //          cout << "findString found " << s << " in DW_FORM_string" << endl;
-                str  = s;
-                result = true;
-                break;
-            }
-        case DW_FORM_block:
-        case DW_FORM_block1:
-        case DW_FORM_block2:
-        case DW_FORM_block4:
-            {
-                Dwarf_Block *block = NULL;
-                DWARF_FAIL_RET(dwarf_formblock(&strattr, block));
-                str = (char *) block->data;
-                //          cout << "findString found " << str << " in DW_FORM_block" << endl;
-                result = !str.empty();
-                break;
-            }
-        default:
-            dwarf_printf("(0x%lx) Warning: string form not used 0x%x\n", id(), (int) form);
-            result = false;
-            break;
-    }
-    return result;
+    return (*srcFiles())[line_index].str;
 }
 
 bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf * /*dbg*/) {

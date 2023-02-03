@@ -358,7 +358,7 @@ private:
             bool &constant,
             bool &expr,
             Dwarf_Half &form);
-    bool findString(Dwarf_Half attr, std::string &str);
+    boost::optional<std::string> find_call_file();
 public:
     static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf *dbg);
     static bool findConstantWithForm(Dwarf_Attribute &attr, Dwarf_Half form,
