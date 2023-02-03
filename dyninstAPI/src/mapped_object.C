@@ -467,7 +467,7 @@ mapped_object::set_short_name()
 const std::vector<func_instance*>*
 mapped_object::findFuncVectorByPretty(const std::string& funcname)
 {
-    if(funcname.c_str() == 0)
+    if(funcname.empty())
         return NULL;
     // First, check the underlying image.
     const std::vector<parse_func*>* img_funcs =
@@ -480,7 +480,7 @@ mapped_object::findFuncVectorByPretty(const std::string& funcname)
     assert(img_funcs->size());
     // Fast path:
     auto iter = allFunctionsByPrettyName.find(funcname);
-    if(iter != allFunctionsByPrettyName.end())
+    if(iter != allFunctionsByPrettyName.end() && iter->second != nullptr)
     {
         // Okay, we've pulled in some of the functions before (this can happen as a
         // side effect of adding functions). But did we get them all?
@@ -510,7 +510,7 @@ mapped_object::findFuncVectorByPretty(const std::string& funcname)
 const std::vector<func_instance*>*
 mapped_object::findFuncVectorByMangled(const std::string& funcname)
 {
-    if(funcname.c_str() == 0)
+    if(funcname.empty())
         return NULL;
 
     // First, check the underlying image.
@@ -524,7 +524,7 @@ mapped_object::findFuncVectorByMangled(const std::string& funcname)
     assert(img_funcs->size());
     // Fast path:
     auto iter = allFunctionsByMangledName.find(funcname);
-    if(iter != allFunctionsByMangledName.end())
+    if(iter != allFunctionsByMangledName.end() && iter->second != nullptr)
     {
         // Okay, we've pulled in some of the functions before (this can happen as a
         // side effect of adding functions). But did we get them all?
@@ -554,7 +554,7 @@ mapped_object::findFuncVectorByMangled(const std::string& funcname)
 const std::vector<int_variable*>*
 mapped_object::findVarVectorByPretty(const std::string& varname)
 {
-    if(varname.c_str() == 0)
+    if(varname.empty())
         return NULL;
 
     // First, check the underlying image.
@@ -566,7 +566,7 @@ mapped_object::findVarVectorByPretty(const std::string& varname)
     assert(img_vars->size());
     // Fast path:
     auto iter = allVarsByPrettyName.find(varname);
-    if(iter != allVarsByPrettyName.end())
+    if(iter != allVarsByPrettyName.end() && iter->second != nullptr)
     {
         // Okay, we've pulled in some of the variabletions before (this can happen as a
         // side effect of adding variabletions). But did we get them all?
@@ -596,7 +596,7 @@ mapped_object::findVarVectorByPretty(const std::string& varname)
 const std::vector<int_variable*>*
 mapped_object::findVarVectorByMangled(const std::string& varname)
 {
-    if(varname.c_str() == 0)
+    if(varname.empty())
         return NULL;
 
     // First, check the underlying image.
@@ -609,7 +609,7 @@ mapped_object::findVarVectorByMangled(const std::string& varname)
     // Fast path:
 
     auto iter = allVarsByMangledName.find(varname);
-    if(iter != allVarsByMangledName.end())
+    if(iter != allVarsByMangledName.end() && iter->second != nullptr)
     {
         // Okay, we've pulled in some of the variabletions before (this can happen as a
         // side effect of adding variables). But did we get them all?
