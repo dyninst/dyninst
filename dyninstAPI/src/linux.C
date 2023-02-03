@@ -42,6 +42,8 @@
 #include "mapped_module.h"
 #include "linux.h"
 #include <dlfcn.h>
+#include <string>
+#include <vector>
 
 #include "boost/shared_ptr.hpp"
 
@@ -174,40 +176,83 @@ bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
    return false;
 }
 
-bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<string> &paths) {
-    char *libPathStr, *libPath;
-    std::vector<string> libPaths;
-    struct stat dummy;
-    char buffer[512];
-    char *pos, *key, *val;
+namespace
+{
+template <typename ContainerT = std::vector<std::string>,
+          typename PredicateT = std::string (*)(const std::string&)>
+inline ContainerT
+delimit(
+    const std::string& line, const std::string& delimiters = ":",
+    PredicateT&& predicate = [](const std::string& s) -> std::string { return s; })
+{
+    size_t     _beginp = 0;  // position that is the beginning of the new string
+    size_t     _delimp = 0;  // position of the delimiter in the string
+    ContainerT _result = {};
+    while(_beginp < line.length() && _delimp < line.length())
+    {
+        // find the first character (starting at _delimp) that is not a delimiter
+        _beginp = line.find_first_not_of(delimiters, _delimp);
+        // if no a character after or at _end that is not a delimiter is not found
+        // then we are done
+        if(_beginp == std::string::npos)
+            break;
+        // starting at the position of the new string, find the next delimiter
+        _delimp = line.find_first_of(delimiters, _beginp);
+        std::string _tmp{};
+        try
+        {
+            // starting at the position of the new string, get the characters
+            // between this position and the next delimiter
+            if(_beginp < line.length())
+                _tmp = line.substr(_beginp, _delimp - _beginp);
+        } catch(std::exception& e)
+        {
+            // print the exception but don't fail, unless maybe it should?
+            fprintf(stderr, "%s\n", e.what());
+        }
+        // don't add empty strings
+        if(!_tmp.empty())
+        {
+            _result.emplace_back(std::forward<PredicateT>(predicate)(_tmp));
+        }
+    }
+    return _result;
+}
+}  // namespace
+
+bool
+BinaryEdit::getResolvedLibraryPath(const string& filename, std::vector<string>& paths)
+{
+    auto _path_exists = [](const std::string& _filename) {
+        struct stat dummy;
+        return (_filename.empty()) ? false : (stat(_filename.c_str(), &dummy) == 0);
+    };
+
+    auto _emplace_if_exists = [&paths, filename,
+                               _path_exists](const std::string& _directory) {
+        auto _filename = _directory + "/" + filename;
+        if(_path_exists(_filename))
+            paths.emplace_back(std::move(_filename));
+    };
 
     // prefer qualified file paths
-    if (stat(filename.c_str(), &dummy) == 0) {
-        paths.push_back(filename);
-    }
+    if(_path_exists(filename))
+        paths.emplace_back(filename);
 
     // For cross-rewriting
-    char *dyn_path = getenv("DYNINST_REWRITER_PATHS");
-    if (dyn_path) { 
-       libPathStr = strdup(dyn_path);
-       libPath = strtok(libPathStr, ":");
-       while (libPath != NULL) {
-          libPaths.push_back(string(libPath));
-          libPath = strtok(NULL, ":");
-       }
-       free(libPathStr);
+    char* dyn_path = getenv("DYNINST_REWRITER_PATHS");
+    if(dyn_path)
+    {
+        for(const auto& itr : delimit(dyn_path, ":"))
+            _emplace_if_exists(itr);
     }
 
     // search paths from environment variables
-    char *ld_path = getenv("LD_LIBRARY_PATH");
-    if (ld_path) { 
-       libPathStr = strdup(ld_path);
-       libPath = strtok(libPathStr, ":");
-       while (libPath != NULL) {
-          libPaths.push_back(string(libPath));
-          libPath = strtok(NULL, ":");
-       }
-       free(libPathStr);
+    char* ld_path = getenv("LD_LIBRARY_PATH");
+    if(ld_path)
+    {
+        for(const auto& itr : delimit(ld_path, ":"))
+            _emplace_if_exists(itr);
     }
 
 #ifdef DYNINST_COMPILER_SEARCH_DIRS
@@ -215,77 +260,82 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     // NB1: DYNINST_COMPILER_SEARCH_DIRS is defined at build time
     // NB2: This is explicitly done _after_ adding directories from
     //		LD_LIBRARY_PATH so that the user can override these paths.
-	{
-		#define xstr(s) str(s)
-		#define str(s) #s
+    {
+#    define xstr(s) str(s)
+#    define str(s) #    s
 
-		libPathStr = strdup(xstr(DYNINST_COMPILER_SEARCH_DIRS));
-		libPath = strtok(libPathStr, ":");
-		while (libPath != NULL) {
-			libPaths.emplace_back(libPath);
-			libPath = strtok(NULL, ":");
-		}
-		free(libPathStr);
+        for(const auto& itr : delimit(xstr(DYNINST_COMPILER_SEARCH_DIRS), ":"))
+            _emplace_if_exists(itr);
 
-		#undef str
-		#undef xstr
-	}
-#endif
-    //libPaths.push_back(string(getenv("PWD")));
-    for (unsigned int i = 0; i < libPaths.size(); i++) {
-        string str = libPaths[i] + "/" + filename;
-        if (stat(str.c_str(), &dummy) == 0) {
-            paths.push_back(str);
-        }
+#    undef str
+#    undef xstr
     }
+#endif
 
     // search ld.so.cache
     // apparently ubuntu doesn't like pclosing NULL, so a shared pointer custom
     // destructor is out. Ugh.
     FILE* ldconfig = popen("/sbin/ldconfig -p", "r");
-    if (ldconfig) {
-        if(!fgets(buffer, 512, ldconfig)) {	// ignore first line
-          return false;
-        }
-        while (fgets(buffer, 512, ldconfig) != NULL) {
-            pos = buffer;
-            while (*pos == ' ' || *pos == '\t') pos++;
-            key = pos;
-            while (*pos != ' ') pos++;
-            *pos = '\0';
-            while (*pos != '=' && *(pos + 1) != '>') pos++;
-            pos += 2;
-            while (*pos == ' ' || *pos == '\t') pos++;
-            val = pos;
-            while (*pos != '\n' && *pos != '\0') pos++;
-            *pos = '\0';
-            if (strcmp(key, filename.c_str()) == 0) {
-                paths.push_back(val);
+    if(ldconfig)
+    {
+        constexpr size_t buffer_size = 512;
+        char             buffer[buffer_size];
+        // ignore first line
+        if(fgets(buffer, buffer_size, ldconfig))
+        {
+            // each line constaining relevant info should be in form:
+            //      <LIBRARY_BASENAME> (...) => <RESOLVED_ABSOLUTE_PATH>
+            // example:
+            //      libz.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libz.so
+            auto _get_entry = [](const std::string& _inp) {
+                auto _paren_pos = _inp.find('(');
+                auto _arrow_pos = _inp.find("=>", _paren_pos);
+                if(_arrow_pos == std::string::npos || _paren_pos == std::string::npos)
+                    return std::string{};
+                if(_arrow_pos + 2 < _inp.length())
+                {
+                    auto _pos = _inp.find_first_not_of(" \t", _arrow_pos + 2);
+                    if(_pos < _inp.length())
+                        return _inp.substr(_pos);
+                }
+                return std::string{};
+            };
+
+            auto _data = std::stringstream{};
+            while(fgets(buffer, buffer_size, ldconfig) != nullptr)
+            {
+                _data << buffer;
+                auto _len = strnlen(buffer, buffer_size);
+                if(_len > 0 && buffer[_len - 1] == '\n')
+                {
+                    auto _v = _data.str();
+                    if(!_v.empty())
+                    {
+                        _v = _v.substr(_v.find_first_not_of(" \t"));
+                        if(_v.length() > 1)
+                        {
+                            auto _entry = _get_entry(_v.substr(0, _v.length() - 1));
+                            if(!_entry.empty())
+                                _emplace_if_exists(_entry);
+                        }
+                    }
+                    _data = std::stringstream{};
+                }
             }
         }
         pclose(ldconfig);
     }
 
     // search hard-coded system paths
-    libPaths.clear();
-    libPaths.push_back("/usr/local/lib");
-    libPaths.push_back("/usr/share/lib");
-    libPaths.push_back("/usr/lib");
-    libPaths.push_back("/usr/lib64");
-    libPaths.push_back("/usr/lib/x86_64-linux-gnu");
-    libPaths.push_back("/lib");
-    libPaths.push_back("/lib64");
-    libPaths.push_back("/lib/x86_64-linux-gnu");
-    libPaths.push_back("/usr/lib/i386-linux-gnu");
-    libPaths.push_back("/usr/lib32");
-    for (unsigned int i = 0; i < libPaths.size(); i++) {
-        string str = libPaths[i] + "/" + filename;
-        if (stat(str.c_str(), &dummy) == 0) {
-            paths.push_back(str);
-        }
+    for(const char* itr :
+        { "/usr/local/lib", "/usr/share/lib", "/usr/lib", "/usr/lib64",
+          "/usr/lib/x86_64-linux-gnu", "/lib", "/lib64", "/lib/x86_64-linux-gnu",
+          "/usr/lib/i386-linux-gnu", "/usr/lib32" })
+    {
+        _emplace_if_exists(itr);
     }
 
-    return ( 0 < paths.size() );
+    return (!paths.empty());
 }
 
 bool BinaryEdit::archSpecificMultithreadCapable() {
