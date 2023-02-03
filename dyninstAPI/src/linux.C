@@ -42,7 +42,11 @@
 #include "mapped_module.h"
 #include "linux.h"
 #include <dlfcn.h>
+
+#include <exception>
+#include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "boost/shared_ptr.hpp"
@@ -208,7 +212,8 @@ delimit(
         } catch(std::exception& e)
         {
             // print the exception but don't fail, unless maybe it should?
-            fprintf(stderr, "%s\n", e.what());
+            fprintf(stderr, "[%s:%i] %s (delimiters: %s) :: %s\n", __FILE__, __LINE__,
+                    line.c_str(), delimiters.c_str(), e.what());
         }
         // don't add empty strings
         if(!_tmp.empty())
