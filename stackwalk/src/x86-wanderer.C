@@ -44,6 +44,8 @@
 
 #include "common/h/SymReader.h"
 
+#include "unaligned_memory_access.h"
+
 using namespace Dyninst;
 using namespace Stackwalker;
 
@@ -249,11 +251,11 @@ WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address 
          result = proc->readMem(buffer, func_entry, MAX_PLT32_IDIOM_SIZE);
          if (buffer[0] == 0xff && buffer[1] == 0xa3) {
             //Indirect jump off of ebx
-            got_offset = *((int32_t*) (buffer+2));
+            got_offset = read_memory_as<int32_t>(buffer+2);
          }
          else if (buffer[0] == 0xff && buffer[1] == 0x25) {
             //Indirect jump through absolute
-            got_abs = *((uint32_t*) (buffer+2));
+            got_abs = read_memory_as<uint32_t>(buffer+2);
          }
          else {
             sw_printf("[%s:%d] - Unrecognized PLT idiom at %lx: ",
@@ -271,7 +273,7 @@ WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address 
          result = proc->readMem(buffer, func_entry, MAX_PLT64_IDIOM_SIZE);
          if (buffer[0] == 0xff && buffer[1] == 0x25) {
             //PC Relative jump indirect
-            got_abs = *((int32_t *) (buffer+2)) + func_entry + 6;
+            got_abs = read_memory_as<int32_t>(buffer+2) + func_entry + 6;
          }
          else {
             sw_printf("[%s:%d] - Unrecognized PLT idiom at %lx: ",

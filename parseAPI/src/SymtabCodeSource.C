@@ -43,6 +43,7 @@
 #include "CodeSource.h"
 #include "debug_parse.h"
 #include "util.h"
+#include "unaligned_memory_access.h" 
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
@@ -634,7 +635,7 @@ SymtabCodeSource::init_linkage()
 
         // Scan each PLT stub
         for (size_t off = 0; off < plt_sec->getMemSize(); off += plt_entry_size) {
-            int disp = *((const int*)(buffer + off + pc_rela_disp));
+            auto disp = read_memory_as<int32_t>(buffer + off + pc_rela_disp);
             Address rel_addr = plt_sec->getMemOffset() + off + pc_rela_disp + 4 /* four byte pc-relative displacment */ + disp;
             if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
                 Address tar = plt_sec->getMemOffset() + off;

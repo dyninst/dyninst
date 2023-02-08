@@ -42,6 +42,10 @@
 
 #include "dyninstAPI/src/emitter.h"
 
+#include "unaligned_memory_access.h"
+#include <cstdint>
+#include <limits>
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -110,12 +114,11 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   GET_PTR(newInsn, gen); 
   *newInsn = 0xE8;
   newInsn++;
-  unsigned int *temp = (uint32_t *) newInsn;
-  *temp = 0;
+  write_memory_as(newInsn, uint32_t{0});
   newInsn += sizeof(uint32_t);
   SET_PTR(newInsn, gen);
   // Compensating PC on stack to the original location
-  Address offset = addr - gen.currAddr() + insn.size();
+  int64_t offset = addr - gen.currAddr() + insn.size();
   REGET_PTR(newInsn, gen);
   *newInsn = 0x81;
   newInsn++;
@@ -123,8 +126,9 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   newInsn++;
   *newInsn = 0x24;
   newInsn++;
-  temp =  (uint32_t *) newInsn;
-  *temp = offset;
+  // offset is 64-bits, assert if the value does not fit in 32-bits
+  assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
+  write_memory_as(newInsn, int32_t(offset));
   newInsn += sizeof(uint32_t);	  
 
   if (type == Reg) {

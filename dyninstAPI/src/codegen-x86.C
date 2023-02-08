@@ -52,6 +52,8 @@
 
 #include "StackMod/StackAccess.h"
 
+#include "unaligned_memory_access.h"
+
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -270,8 +272,8 @@ void insnCodeGen::generateBranch(codeGen &gen,
    *insn++ = 0xE9;
 
    // 5 for a 5-byte branch.
-   *((int *)insn) = disp32 - 5;
-   insn += sizeof(int);
+   write_memory_as(insn, int32_t{disp32 - 5});
+   insn += sizeof(int32_t);
   
    SET_PTR(insn, gen);
    return;
@@ -297,16 +299,16 @@ void insnCodeGen::generatePush64(codeGen &gen, Address val)
 
   // push the low 4
   *insn++ = 0x68; 
-  *(unsigned int*)insn = low;
-  insn += 4;
+  write_memory_as(insn, uint32_t{low});
+  insn += sizeof(uint32_t);
 
   // move the high 4 to rsp+4
   *insn++ = 0xC7;
   *insn++ = 0x44;
   *insn++ = 0x24;
   *insn++ = 0x04;
-  *(unsigned int*)insn = high;
-  insn += 4;
+  write_memory_as(insn, uint32_t{high});
+  insn += sizeof(uint32_t);
 
   SET_PTR(insn, gen);
 }
@@ -344,8 +346,8 @@ void insnCodeGen::generateCall(codeGen &gen,
   if (is_disp32(disp)) {
     GET_PTR(insn, gen);
     *insn++ = 0xE8;
-    *((int *)insn) = (int) disp;
-    insn += sizeof(int);
+    write_memory_as(insn, int32_t(disp));
+    insn += sizeof(int32_t);
     SET_PTR(insn, gen);
   }
   else {
@@ -527,8 +529,8 @@ unsigned pcRelJCC::apply(Address addr)
       disp = target - potential;
       if (is_disp32(disp)) {
          convert_to_rel32(origInsn, newInsn);
-         *((signed int *) newInsn) = (signed int) disp;
-         newInsn += 4;
+         write_memory_as(newInsn, int32_t(disp));
+         newInsn += sizeof(int32_t);
          SET_PTR(newInsn, *gen);
          return (unsigned) gen->getIndex() - start;
       }
@@ -730,8 +732,8 @@ unsigned pcRelData::apply(Address addr)
       // Whee easy case
       *newInsn++ = *origInsn++;
       // Size doesn't change....
-      *((int *)newInsn) = (int)(newDisp - insnSz);
-      newInsn += 4;
+      write_memory_as(newInsn, int32_t(newDisp - insnSz));
+      newInsn += sizeof(int32_t);
    }
    else if (is_addr32(data_addr)) {
       assert(!is_disp32(newDisp+insnSz));
@@ -745,8 +747,8 @@ unsigned pcRelData::apply(Address addr)
       *newInsn++ = 0x25;
       
       // now throw in the displacement (the absolute 32-bit address)
-      *((int *)newInsn) = (int)(data_addr);
-      newInsn += 4;
+      write_memory_as(newInsn, int32_t(data_addr));
+      newInsn += sizeof(int32_t);
    }
    else {
       // Should never be reached...
@@ -1067,8 +1069,8 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
       disp = targetAddr - potential;
       if (is_disp32(disp)) {
          convert_to_rel32(origInsn, newInsn);
-         *((signed int *) newInsn) = (signed int) disp;
-         newInsn += 4;
+         write_memory_as(newInsn, int32_t(disp));
+         newInsn += sizeof(int32_t);
          SET_PTR(newInsn, gen);
          return true;
       }
@@ -1227,8 +1229,8 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         /* Copy the ModR/M byte */
         *newInsn++ = mod_rm;
         /* Use the new relative displacement */
-        *((int *)newInsn) = (int)(newDisp - insnSz);
-        newInsn += 4;
+        write_memory_as(newInsn, int32_t(newDisp - insnSz));
+        newInsn += sizeof(int32_t);
     } else if (is_addr32(targetAddr)) 
     {
         // change ModRM byte to use SIB addressing (r/m == 4)
@@ -1239,8 +1241,8 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         *newInsn++ = 0x25;
 
         // now throw in the displacement (the absolute 32-bit address)
-        *((int *)newInsn) = (int)(targetAddr);
-        newInsn += 4;
+        write_memory_as(newInsn, int32_t(targetAddr));
+        newInsn += sizeof(int32_t);
     } else {
         /* Impossible case */
         assert(0);
@@ -1428,9 +1430,9 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
             newInsn += sizeof(signed char);
             newInsnSz += sizeof(signed char);
         } else if (is_disp32(newDisp)) {
-            *((int *)newInsn) = (int)(newDisp);
-            newInsn += sizeof(int);
-            newInsnSz += sizeof(int);
+            write_memory_as(newInsn, int32_t(newDisp));
+            newInsn += sizeof(int32_t);
+            newInsnSz += sizeof(int32_t);
         } else {
             // Should never be reached...
             assert(0);
