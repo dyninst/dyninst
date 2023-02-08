@@ -32,6 +32,7 @@
 #include <boost/assign/list_of.hpp>
 #include "../../common/src/singleton_object_pool.h"
 #include <mutex>
+#include "unaligned_memory_access.h"
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -262,7 +263,7 @@ namespace Dyninst
       isRAWritten = false;
       isFPInsn = false;
       bcIsConditional = false;
-      insn = *((const uint32_t*)b.start);
+      insn = read_memory_as<uint32_t>(b.start);
 #if defined(DEBUG_RAW_INSN)        
         cout.width(0);
         cout << "0x";

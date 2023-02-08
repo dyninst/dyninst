@@ -56,6 +56,7 @@
 #include "ABI.h"
 #include "liveness.h"
 #include "RegisterConversion.h"
+#include "unaligned_memory_access.h"
 
 const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)
@@ -139,7 +140,7 @@ codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegContro
    
    // Jump displacements are from the end of the insn, not start. The
    // one we're emitting has a size of 6.
-   int disp = 0;
+   int32_t disp = 0;
    if (target)
       disp = target - 6;
    
@@ -149,7 +150,7 @@ codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegContro
    // je dest
    *insn++ = 0x0F;
    *insn++ = 0x84;
-   *((int *)insn) = disp;
+   write_memory_as(insn, int32_t{disp});
    if (disp == 0) {
      SET_PTR(insn, gen);
      gen.addPatch(gen.getIndex(), NULL, sizeof(int), relocPatch::pcrel, 
@@ -923,10 +924,11 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
       *insn++ = 0x04;
       *insn++ = 0x25;
 
-      *((int *)insn) = addr; //Write address
-      insn += sizeof(int);
+      assert(addr <= numeric_limits<uint32_t>::max() && "addr more than 32-bits");
+      write_memory_as(insn, uint32_t(addr)); //Write address
+      insn += sizeof(uint32_t);
 
-      *insn++ = (char) imm;
+      write_memory_as(insn++, int8_t(imm));
       SET_PTR(insn, gen);
       return;
    }
@@ -950,12 +952,13 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
       *insn++ = 0x25;
    }
 
-   *((int *)insn) = addr; //Write address
-   insn += sizeof(int);
+   assert(addr <= numeric_limits<uint32_t>::max() && "addr more than 32-bits");
+   write_memory_as(insn, uint32_t(addr)); //Write address
+   insn += sizeof(uint32_t);
 
    if (imm != 1) {
-      *((int*)insn) = imm; //Write immediate value to add
-      insn += sizeof(int);
+      write_memory_as(insn, int32_t{imm}); //Write immediate value to add
+      insn += sizeof(int32_t);
    }
 
    SET_PTR(insn, gen);
@@ -976,8 +979,8 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
    if (is_64) {
       GET_PTR(insn, gen);
       *insn++ = static_cast<unsigned char>(0xB8 + tmp_dest);
-      *((long *)insn) = imm;
-      insn += sizeof(long);
+      write_memory_as(insn, int64_t{imm});
+      insn += sizeof(int64_t);
       SET_PTR(insn, gen);
    }
    else
@@ -1048,8 +1051,8 @@ void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen, bool 
    else
       *insn++ = 0x8D;                                                  // LEA instruction
    *insn++ = static_cast<unsigned char>(((dest & 0x7) << 3) | 0x5); // ModRM byte
-   *((int *)insn) = offset-7;                                       // offset
-   insn += sizeof(int);
+   write_memory_as(insn, int32_t{offset - 7});                               // offset
+   insn += sizeof(int32_t);
    gen.markRegDefined(dest);
    SET_PTR(insn, gen);
 }
@@ -1153,8 +1156,8 @@ void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int i
     GET_PTR(insn, gen);
     *insn++ = opcode;
     *insn++ = 0xC0 | ((opcode_ext & 0x7) << 3) | tmp_rm_reg;
-    *((int *)insn) = imm;
-    insn+= sizeof(int);
+    write_memory_as(insn, int32_t{imm});
+    insn+= sizeof(int32_t);
     SET_PTR(insn, gen);
     gen.markRegDefined(rm_reg);
 }
@@ -1170,8 +1173,8 @@ static void emitOpMemImm64(unsigned opcode, unsigned opcode_ext, Register base,
     GET_PTR(insn, gen);
     *insn++ = opcode;
     *insn++ = ((opcode_ext & 0x7) << 3) | tmp_base;
-    *((int *)insn) = imm;
-    insn+= sizeof(int);
+    write_memory_as(insn, int32_t{imm});
+    insn+= sizeof(int32_t);
     SET_PTR(insn, gen);
 }
 
@@ -1180,8 +1183,8 @@ static void emitOpRegRegImm64(unsigned opcode, Register dest, Register src1, int
 {
     emitOpRegReg64(opcode, dest, src1, is_64, gen);
     GET_PTR(insn, gen);
-    *((int *)insn) = imm;
-    insn+= sizeof(int);
+    write_memory_as(insn, int32_t{imm});
+    insn+= sizeof(int32_t);
     SET_PTR(insn, gen);
     gen.markRegDefined(dest);
 }
@@ -1221,8 +1224,8 @@ void emitMovImmToRM64(Register base, int disp, int imm, bool is_64,
       *insn++ = 0xC7;
       *insn++ = 0x84;
       *insn++ = 0x25;
-      *((int*)insn) = disp;
-      insn += sizeof(int);
+      write_memory_as(insn, int32_t{disp});
+      insn += sizeof(int32_t);
    }
    else {
       emitRex(is_64, &base, NULL, NULL, gen);
@@ -1231,8 +1234,8 @@ void emitMovImmToRM64(Register base, int disp, int imm, bool is_64,
       emitAddressingMode(base, disp, 0, gen);
       REGET_PTR(insn, gen);
    }
-   *((int*)insn) = imm;
-   insn += sizeof(int);
+   write_memory_as(insn, int32_t{imm});
+   insn += sizeof(int32_t);
    SET_PTR(insn, gen);
 }
 
@@ -1290,14 +1293,14 @@ codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, RegContr
 
     // Jump displacements are from the end of the insn, not start. The
     // one we're emitting has a size of 6.
-    int disp = target - 6;
+    int32_t disp = target - 6;
 
     // je target
     GET_PTR(insn, gen);
     *insn++ = 0x0F;
     *insn++ = 0x84;
-    *((int *)insn) = disp;
-    insn += sizeof(int);
+    write_memory_as(insn, int32_t{disp});
+    insn += sizeof(int32_t);
     SET_PTR(insn, gen);
 
     return retval;
@@ -2037,8 +2040,10 @@ bool EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
    // Note: this is a combination of 00 (MOD), 100 (opcode extension), and 101
    // (disp32)
    *insn++ = 0x25;
-   *(unsigned int*)insn = dest - (gen.currAddr() + sizeof(unsigned int) + 2);
-   insn += sizeof(unsigned int);
+   int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
+   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
+   write_memory_as(insn, int32_t(offset));
+   insn += sizeof(int32_t);
    SET_PTR(insn, gen);
    return true;
 }
@@ -2049,8 +2054,10 @@ bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    GET_PTR(insn, gen);
    *insn++ = 0xFF;
    *insn++ = 0x15;
-   *(unsigned int*)insn = dest - (gen.currAddr() + sizeof(unsigned int) + 2);
-   insn += sizeof(unsigned int);
+   int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
+   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
+   write_memory_as(insn, int32_t(offset));
+   insn += sizeof(int32_t);
    SET_PTR(insn, gen);
    return true;
 }

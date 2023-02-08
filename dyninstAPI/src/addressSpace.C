@@ -64,6 +64,7 @@
 
 #include "dynThread.h"
 #include "pcEventHandler.h"
+#include "unaligned_memory_access.h"
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -1123,11 +1124,12 @@ void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
       assert(addr_width == 4);
       assert(sizeof(Address) == 8);
 #if defined(cap_32_64)
-      *((uint32_t *) buffer) = (uint32_t) val;
+      assert(val <= numeric_limits<uint32_t>::max() && "val more than 32 bits");
+      write_memory_as(buffer, uint32_t(val));
       return;
 #endif
    }
-   *((unsigned long *) buffer) = val;
+   write_memory_as(buffer, uint64_t(val));
 }
 
 void trampTrapMappings::writeTrampVariable(const int_variable *var, 

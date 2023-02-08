@@ -32,6 +32,7 @@
 #include "common/src/arch-power.h"
 #include <string.h>
 #include <iostream>
+#include "unaligned_memory_access.h"
 
 using namespace NS_power;
 using namespace std;
@@ -58,9 +59,8 @@ unsigned ppc_process::plat_breakpointSize()
 
 void ppc_process::plat_breakpointBytes(unsigned char *buffer)
 {
-   uint32_t *p = (uint32_t*)buffer;
-
-   *p = 0x7d821008;  // MJMTODO = Assumes host and target architecture match (and algnment)
+   write_memory_as(buffer, uint32_t{0x7d821008});
+   // MJMTODO = Assumes host and target architecture match (and algnment)
 }
 
 bool ppc_process::plat_breakpointAdvancesPC() const

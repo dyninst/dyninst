@@ -32,6 +32,7 @@
 #include "mmapalloc.h"
 #include <sys/mman.h>
 #include <string.h>
+#include "unaligned_memory_access.h"
 
 static const unsigned int linux_x86_64_mmap_flags_position = 26;
 static const unsigned int linux_x86_64_mmap_size_position = 43;
@@ -489,14 +490,17 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
         memcpy(buffer, buf_tmp, buffer_size);
 
         //Assuming endianess of debugger and debugee match.
-        *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-        *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
-        if (addr_size == 8)
-            *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-        else if (addr_size == 4)
-            *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-        else
+        assert(size <= std::numeric_limits<uint32_t>::max() && "size more than 32 bits");
+        write_memory_as(((char *) buffer)+size_pos, uint32_t(size));
+        write_memory_as(((char *) buffer)+flags_pos, uint32_t(flags));
+        if (addr_size == 8)  {
+            write_memory_as(((char *) buffer)+addr_pos, uint64_t{addr});
+        }  else if (addr_size == 4)  {
+            assert(addr <= std::numeric_limits<uint32_t>::max() && "addr more than 32 bits");
+            write_memory_as(((char *) buffer)+addr_pos, uint32_t(addr));
+        }  else  {
             assert(0);
+        }
    }
     else  if (getTargetArch() == Arch_ppc32) {
         unsigned int flags_hi_position;
@@ -528,12 +532,12 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
         memcpy(buffer, buf_tmp, buffer_size);
 
         // Assuming endianess of debugger and debuggee match
-        *((uint16_t *) (((char *) buffer)+size_hi_position)) = (uint16_t)(size >> 16);
-        *((uint16_t *) (((char *) buffer)+size_lo_position)) = (uint16_t)size;
-        *((uint16_t *) (((char *) buffer)+flags_hi_position)) = (uint16_t)(flags >> 16);
-        *((uint16_t *) (((char *) buffer)+flags_lo_position)) = (uint16_t)flags;
-        *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
-        *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
+        write_memory_as(((char *) buffer)+size_hi_position, uint16_t(size >> 16));
+        write_memory_as(((char *) buffer)+size_lo_position, uint16_t(size));
+        write_memory_as(((char *) buffer)+flags_hi_position, uint16_t(flags >> 16));
+        write_memory_as(((char *) buffer)+flags_lo_position, uint16_t(flags));
+        write_memory_as(((char *) buffer)+addr_hi_position, uint16_t(addr >> 16));
+        write_memory_as(((char *) buffer)+addr_lo_position, uint16_t(addr));
    }
    else if (getTargetArch() == Arch_ppc64) {
       unsigned int flags_highest_position;
@@ -654,7 +658,7 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
         pthrd_printf("flags 0x%x:\n", (unsigned int)flags);
 
         for(unsigned int i = 0; i< buffer_size ; i+=4){
-            pthrd_printf("0x%8x\n", *((unsigned int *)(((char *)buffer)+i)) );
+            pthrd_printf("0x%8x\n", read_memory_as<uint32_t>(((char *)buffer)+i)) ;
         }
 
 #endif
@@ -721,13 +725,16 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
        memcpy(buffer, buf_tmp, buffer_size);
 
        //Assuming endianess of debugger and debugee match.
-       *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-       if (addr_size == 8)
-          *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-       else if (addr_size == 4)
-          *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-       else
+        assert(size <= std::numeric_limits<uint32_t>::max() && "size more than 32 bits");
+       write_memory_as(((char *) buffer)+size_pos, uint32_t(size));
+       if (addr_size == 8)  {
+          write_memory_as(((char *) buffer)+addr_pos, uint64_t{addr});
+       }  else if (addr_size == 4)  {
+          assert(addr <= std::numeric_limits<uint32_t>::max() && "addr more than 32 bits");
+          write_memory_as(((char *) buffer)+addr_pos, uint32_t(addr));
+       }  else  {
           assert(0);
+       }
    }
    else if (getTargetArch() == Arch_ppc32) {
       unsigned int size_hi_position;
@@ -754,10 +761,10 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
        memcpy(buffer, buf_tmp, buffer_size);
 
        // Assuming endianess of debugger and debuggee match
-       *((uint16_t *) (((char *) buffer)+size_hi_position)) = (uint16_t)(size >> 16);
-       *((uint16_t *) (((char *) buffer)+size_lo_position)) = (uint16_t)size;
-       *((uint16_t *) (((char *) buffer)+addr_hi_position)) = (uint16_t)(addr >> 16);
-       *((uint16_t *) (((char *) buffer)+addr_lo_position)) = (uint16_t)addr;
+       write_memory_as(((char *) buffer)+size_hi_position, uint16_t(size >> 16));
+       write_memory_as(((char *) buffer)+size_lo_position, uint16_t(size));
+       write_memory_as(((char *) buffer)+addr_hi_position, uint16_t(addr >> 16));
+       write_memory_as(((char *) buffer)+addr_lo_position, uint16_t(addr));
    }
    else if( getTargetArch() == Arch_ppc64 ) {
       unsigned int size_highest_position;

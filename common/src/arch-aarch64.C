@@ -30,6 +30,7 @@
 
 #include "common/src/Types.h"
 #include "common/src/arch-aarch64.h"
+#include "unaligned_memory_access.h"
 
 namespace NS_aarch64 {
 
@@ -103,8 +104,7 @@ void instruction::setInstruction(codeBuf_t * /*ptr*/, Address) {
 
 void instruction::setInstruction(unsigned char *ptr, Address) {
     // We don't need the addr on this platform
-    instructUnion *insnPtr = (instructUnion *)ptr;
-    insn_ = *insnPtr;
+    insn_ = read_memory_as<instructUnion>(ptr);
 }
 
 bool instruction::isBranchReg() const{
