@@ -2290,6 +2290,23 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
       dwarf_printf("parseSubrange failed, error finding lower range bound\n");
       return nullptr;
     }
+
+    if (!lb.value) {
+      // dwarf_subrange_lower_bound will try dwarf_default_lower_bound for the
+      // current DIE. If we got here, that didn't work, so try using the one
+      // Dyninst parsed.
+      switch (mod()->language()) {
+      case lang_Fortran:
+      case lang_CMFortran:
+        lb.value = 1;
+        break;
+      default:
+        // Assume all non-Fortran languages use 0
+        lb.value = 0;
+        break;
+      }
+    }
+
     auto ub = dw::dwarf_subrange_upper_bound(entry);
     if (!ub) {
       dwarf_printf("parseSubrange failed, error finding upper range bound\n");
