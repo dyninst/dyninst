@@ -1285,13 +1285,9 @@ bool DwarfWalker::parseArray() {
 }
 
 bool DwarfWalker::parseSubrange() {
-   dwarf_printf("(0x%lx) parseSubrange entry\n", id());
-
-   std::string loBound;
-   std::string hiBound;
-   parseSubrangeAUX(entry(), loBound, hiBound);
-
-  return true;
+   Dwarf_Die e = entry();
+   parseSubrange(&e);
+   return true;
 }
 
 bool DwarfWalker::parseEnum() {
@@ -2280,7 +2276,8 @@ void DwarfWalker::removeFortranUnderscore(std::string &name) {
 }
 
 boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
-    dwarf_printf("(0x%lx) Parsing subrange /w/ auxiliary function\n", id());
+  dwarf_printf("(0x%lx) parseSubrange entry\n", id());
+
   boost::optional<long> upper_bound, lower_bound;
 
   /* An array can have DW_TAG_subrange_type or DW_TAG_enumeration_type
