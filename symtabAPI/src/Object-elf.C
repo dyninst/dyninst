@@ -1133,7 +1133,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     const unsigned int BCTR = 0x4e800420;
 
                     unsigned char *sec_data = (unsigned char *) glink->getPtrToRawData();
-                    unsigned int *insn = (unsigned int *)
+                    auto insn = alignas_cast<unsigned int>
                             (sec_data + (stub_addr - glink->getMemOffset()));
 
                     // Keep moving pointer back if more -fPIC stubs are found.

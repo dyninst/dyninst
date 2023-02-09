@@ -102,22 +102,9 @@ A million repetitions of "a"
 #include "sha1.h"
 #include <stdio.h>
 #include <string.h>
+#include "unaligned_memory_access.h"
 
-#if defined(HAVE_INTTYPES_H)
-#include <inttypes.h>
-
-#else
-#if defined(HAVE_STDINT_H)
 #include <stdint.h>
-
-#else
-typedef          long long int int64_t;
-typedef unsigned long long int uint64_t;
-typedef          int int32_t;
-typedef unsigned int uint32_t;
-
-#endif
-#endif
 
 /* #include <process.h> */	/* prototype for exit() - JHB */
 /* Using return() instead of exit() - SWR */
@@ -178,11 +165,11 @@ typedef union {
 } CHAR64LONG16;
 CHAR64LONG16* block;
 #ifdef SHA1HANDSOFF
-static unsigned char workspace[64];
+alignas(alignof(CHAR64LONG16)) static unsigned char workspace[64];
     block = (CHAR64LONG16*)workspace;
     memcpy(block, buffer, 64);
 #else
-    block = (CHAR64LONG16*)buffer;
+    block = Dyninst::alignas_cast<CHAR64LONG16>(buffer);
 #endif
     /* Copy context->state[] to working vars */
     a = state[0];
