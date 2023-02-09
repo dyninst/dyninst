@@ -2349,13 +2349,10 @@ boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range
     /* Get the (negative) typeID for this range/subarray. */
     //Dwarf_Off dieOffset = dwarf_dieoffset(&range);
 
-    /* Determine the range. */
-    std::string loBound;
-    std::string hiBound;
-    if (!parseSubrangeAUX(*range, loBound, hiBound)) {
-        dwarf_printf("parseMultiDimensionalArray failed, cannot find array range\n");
-        return NULL;
-    }
+  auto subrangeType = parseSubrange(range);
+  if (!subrangeType) {
+    return nullptr;
+  }
 
 
 
