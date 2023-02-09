@@ -2352,10 +2352,9 @@ boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range
 
   std::string name{"__array" + std::to_string(offset())};
 
-
-    Dwarf_Die nextSibling;
-    int status = dwarf_siblingof(range, &nextSibling);
-    DWARF_CHECK_RET_VAL(status == -1, NULL);
+  Dwarf_Die nextSibling;
+  int status = dwarf_siblingof(range, &nextSibling);
+  DWARF_CHECK_RET_VAL(status == -1, NULL);
 
     if ( status == 1 ) {
         // We've reached the last array dimension
