@@ -38,6 +38,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI_RT/src/RTthread.h"
 #include "dyninstAPI_RT/src/RTcommon.h"
+#include "unaligned_memory_access.h"
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -387,7 +388,7 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
       assert(hdr);
       volatile trapMapping_t *mapping = &(hdr->traps[0]);
       trap_to = dyninstTrapTranslate(orig_ip,
-                                     (unsigned long *) &hdr->num_entries,
+                                     CAST_WITHOUT_ALIGNMENT_WARNING(unsigned long *, &hdr->num_entries),
                                      &zero,
                                      &mapping,
                                      &one);

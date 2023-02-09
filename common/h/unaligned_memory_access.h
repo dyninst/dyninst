@@ -142,6 +142,16 @@ inline DataType* alignas_cast(void *addr)
  * C language - functions
  */
 
+/* CAST_WITHOUT_ALIGNMENT_WARNING(toType, addr)
+ *
+ * C language macro that casts the expression addr to type toType
+ * without producing a warning that alignment of the new pointer type is
+ * larger than the current pointer type.
+ *
+ * WARNING:  The caller is responsible to ensure that the alignment is
+ * correct or use memcpy if the pointer is dereferenced.
+ */
+#define CAST_WITHOUT_ALIGNMENT_WARNING(toType, addr) (toType)(void*)(addr)
 
 
 #endif
