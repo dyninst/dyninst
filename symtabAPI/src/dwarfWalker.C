@@ -1239,18 +1239,6 @@ bool DwarfWalker::parseTypedef() {
 
 bool DwarfWalker::parseArray() {
     dwarf_printf("(0x%lx) Parsing array\n", id());
-    /* Two words about pgf90 arrays.
-
-       Primus: the PGI extensions to DWARF are documented in
-       '/p/paradyn/doc/External/manuals/pgf90-dwarf-arrays.txt'.
-
-       Secundus: we ignore DW_AT_PGI_lbase, DW_AT_PGI_loffset, and DW_AT_PGI_lstride,
-       even though libdwarf recognizes them, because our type modelling doesn't allow
-       us to make use of this information.  Similarly, in virtually every place where
-       the Portland Group extends DWARF to allow _form_block attributes encoding location
-       lists, we ignore them.  We should, however, recognize these cases and ignore them
-       gracefully, that is, without an error. :)
-    */
 
     boost::shared_ptr<Type> elementType = NULL;
     if (!findType(elementType, false)) return false;
@@ -1258,11 +1246,6 @@ bool DwarfWalker::parseArray() {
 
     curName() = std::move(die_name());
 
-   // curName may get overridden by the subrange parsing code.
-   // TODO: make this part of the context stack.
-   //std::string nameToUse = curName();
-
-   /* Find the range(s) of the elements. */
    Dwarf_Die firstRange;
     Dwarf_Die e = entry();
    int result = dwarf_child(&e, &firstRange);
@@ -1271,12 +1254,8 @@ bool DwarfWalker::parseArray() {
         return false;
     }
 
-//   push();
-
    boost::shared_ptr<Type> baseType = parseMultiDimensionalArray(&firstRange,
                                                           elementType);
-
-//   pop();
 
    if (!baseType) {
        dwarf_printf("(0x%lx) parseArray returns false as baseArrayType is NULL\n", id());
