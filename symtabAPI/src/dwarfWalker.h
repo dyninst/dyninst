@@ -367,7 +367,7 @@ private:
             std::vector<VariableLocation> &locs);
     bool constructConstantVariableLocation(Address value,
             std::vector<VariableLocation> &locs);
-    boost::shared_ptr<Type> parseMultiDimensionalArray(Dwarf_Die *firstRange,
+    boost::shared_ptr<typeArray> parseMultiDimensionalArray(Dwarf_Die *firstRange,
                                           boost::shared_ptr<Type> elementType);
 
     bool decodeExpression(Dwarf_Attribute &attr,
