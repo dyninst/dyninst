@@ -2278,9 +2278,7 @@ void DwarfWalker::removeFortranUnderscore(std::string &name) {
    }
 }
 
-bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
-        std::string &loBound,
-        std::string &hiBound) {
+boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
     dwarf_printf("(0x%lx) Parsing subrange /w/ auxiliary function\n", id());
     loBound = "{unknown or default}";
     hiBound = "{unknown or default}";
