@@ -2327,23 +2327,15 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
   bool is_info = !dwarf_hasattr_integrate(entry, DW_TAG_type_unit);
   typeId_t type_id = get_type_id(subrangeOffset, is_info, false);
 
-    errno = 0;
-    unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
-    if (errno) {
-        low_conv = LONG_MIN;
-    }
-
-    errno = 0;
-    unsigned long hi_conv = strtoul(hiBound.c_str(), NULL, 10);
-    if (errno)  {
-        hi_conv = LONG_MAX;
-    }
+  // `typeSubrange` expects numeric values for the bounds
+  auto range = Type::make_shared<typeSubrange>(
+      type_id, 0, lower_bound.value_or(LONG_MIN),
+      upper_bound.value_or(LONG_MAX), curName());
 
     dwarf_printf("(0x%lx) Adding subrange type: id %d, low %lu, high %lu, named %s\n",
             id(), type_id,
             low_conv, hi_conv, curName().c_str());
-    boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(
-      Type::make_shared<typeSubrange>( type_id, 0, low_conv, hi_conv, curName()));
+
     dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), (void*)rangeType.get(), (void*)tc());
     return true;
 }
