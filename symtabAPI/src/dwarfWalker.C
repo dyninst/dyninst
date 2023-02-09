@@ -2345,9 +2345,6 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
 boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
                                                    boost::shared_ptr<Type> elementType)
 {
-    /* Get the (negative) typeID for this range/subarray. */
-    //Dwarf_Off dieOffset = dwarf_dieoffset(&range);
-
   auto subrangeType = parseSubrange(range);
   if (!subrangeType) {
     return nullptr;
@@ -2356,38 +2353,34 @@ boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range
   std::string name{"__array" + std::to_string(offset())};
 
 
-    /* Does the recursion continue? */
     Dwarf_Die nextSibling;
     int status = dwarf_siblingof(range, &nextSibling);
     DWARF_CHECK_RET_VAL(status == -1, NULL);
 
     if ( status == 1 ) {
-        /* Terminate the recursion by building an array type out of the elemental type.
-           Use the negative dieOffset to avoid conflicts with the range type created
-           by parseSubRangeDIE(). */
-        // N.B.  I'm going to ignore the type id, and just create an anonymous type here
+        // We've reached the last array dimension
+        // Ignore the type id and create an anonymous type
         auto innermostType = tc()->addOrUpdateType(
           Type::make_shared<typeArray>( elementType,
                 atoi(loBound.c_str()),
                 atoi(hiBound.c_str()),
                 name ));
-        /* dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 1, typ %p, innermosttype %p, lower bound %d, upper bound %d\n", id(), typ, innermostType, innermostType->asArrayType().getLow(), innermostType->asArrayType().getHigh()); */
         return innermostType;
-    } /* end base-case of recursion. */
+    }
 
-    /* If it does, build this array type out of the array type returned from the next recusion. */
+    // Parse the next dimension
     boost::shared_ptr<Type> innerType = parseMultiDimensionalArray( &nextSibling, elementType);
     if(!innerType) {
         dwarf_printf("\tparseMultiDimensionalArray return Null because innerType == NULL\n");
         return NULL;
     }
-    // same here - type id ignored    jmo
+    // Ignore the type id and create an anonymous type
     auto outerType = tc()->addOrUpdateType(
         Type::make_shared<typeArray>( innerType,
           atoi(loBound.c_str()), atoi(hiBound.c_str()), name));
     dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 0, lower bound %lu, upper bound %lu\n",id(), outerType->asArrayType().getLow(), outerType->asArrayType().getHigh());
     return outerType;
-} /* end parseMultiDimensionalArray() */
+}
 
 bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
         std::vector<VariableLocation> &locs)
