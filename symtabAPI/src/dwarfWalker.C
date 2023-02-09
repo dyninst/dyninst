@@ -1258,7 +1258,7 @@ bool DwarfWalker::parseArray() {
                                                           elementType);
 
    if (!baseType) {
-       dwarf_printf("(0x%lx) parseArray returns false as baseArrayType is NULL\n", id());
+       dwarf_printf("(0x%lx) parseArray failed, unable to determine baseType\n", id());
        return false;
    }
    auto& baseArrayType = baseType->asArrayType();
