@@ -51,6 +51,7 @@ extern int getpagesize();
 
 #include "dyninstAPI_RT/src/RTheap.h"
 #include "dyninstAPI_RT/src/RTcommon.h"
+#include "unaligned_memory_access.h"
 
 
 typedef enum {
@@ -142,7 +143,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     }
 
     /* define new heap */
-    node = (heapList_t*) (ret_heap + size);
+    node = CAST_WITHOUT_ALIGNMENT_WARNING(heapList_t*, (ret_heap + size));
     node->heap.ret_addr = (void *)ret_heap;
     node->heap.addr = heap;
     node->heap.len = size_heap;
@@ -155,7 +156,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     heap = (char*)trymmap(size + sizeof(struct heapList_t), lo, hi, psize, -1);
     if(!heap)
         return NULL;
-    node = (heapList_t*) (heap + size);
+    node = CAST_WITHOUT_ALIGNMENT_WARNING(heapList_t*, (heap + size));
 
     /* define new heap */
     node->heap.addr = heap;
