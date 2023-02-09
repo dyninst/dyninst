@@ -2332,12 +2332,17 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
       type_id, 0, lower_bound.value_or(LONG_MIN),
       upper_bound.value_or(LONG_MAX), curName());
 
-    dwarf_printf("(0x%lx) Adding subrange type: id %d, low %lu, high %lu, named %s\n",
-            id(), type_id,
-            low_conv, hi_conv, curName().c_str());
+  dwarf_printf(
+      "(0x%lx) Adding subrange type: id %d, low %lu, high %lu, named %s\n",
+      id(), type_id, range->getLow(), range->getHigh(), curName().c_str());
 
-    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), (void*)rangeType.get(), (void*)tc());
-    return true;
+  {
+    boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(range);
+    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(),
+                 (void *)rangeType.get(), (void *)tc());
+  }
+
+  return range;
 }
 
 boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
