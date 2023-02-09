@@ -44,6 +44,7 @@
 #include "debug_common.h"
 #include "Type-mem.h"
 #include <elfutils/libdw.h>
+#include <dwarf/src/dwarf_subrange.h>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -2280,45 +2281,41 @@ void DwarfWalker::removeFortranUnderscore(std::string &name) {
 
 boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
     dwarf_printf("(0x%lx) Parsing subrange /w/ auxiliary function\n", id());
-    loBound = "{unknown or default}";
-    hiBound = "{unknown or default}";
+  boost::optional<long> upper_bound, lower_bound;
 
-    /* Set the default lower bound, if we know it. */
-    switch ( mod()->language() ) {
-        case lang_Fortran:
-        case lang_CMFortran:
-            loBound = "1";
-            break;
-        case lang_C:
-        case lang_CPlusPlus:
-            loBound = "0";
-            break;
-        default:
-            break;
-    } /* end default lower bound switch */
-
-    /* Look for the lower bound. */
-    Dwarf_Attribute lowerBoundAttribute;
-    //bool is_info = dwarf_get_die_infotypes_flag(entry);
-    bool is_info = !dwarf_hasattr_integrate(&entry, DW_TAG_type_unit);
-    auto status = dwarf_attr( &entry, DW_AT_lower_bound, & lowerBoundAttribute);
-
-    if ( status != 0 ) {
-        if (!decipherBound(lowerBoundAttribute, is_info, loBound )) return false;
-    } /* end if we found a lower bound. */
-
-    /* Look for the upper bound. */
-    Dwarf_Attribute upperBoundAttribute;
-    status = dwarf_attr( &entry, DW_AT_upper_bound, & upperBoundAttribute);
-
-    if ( status == 0 ) {
-        status = dwarf_attr( &entry, DW_AT_count, & upperBoundAttribute);
+  /* An array can have DW_TAG_subrange_type or DW_TAG_enumeration_type
+   children instead that give the size of each dimension.  */
+  switch (dwarf_tag(entry)) {
+  case DW_TAG_subrange_type: {
+    namespace dw = Dyninst::DwarfDyninst;
+    auto lb = dw::dwarf_subrange_lower_bound(entry);
+    if (!lb) {
+      dwarf_printf("parseSubrange failed, error finding lower range bound\n");
+      return nullptr;
     }
-
-    if ( status != 0 ) {
-        if (!decipherBound(upperBoundAttribute, is_info, hiBound )) return false;
-    } /* end if we found an upper bound or count. */
-
+    auto ub = dw::dwarf_subrange_upper_bound(entry);
+    if (!ub) {
+      dwarf_printf("parseSubrange failed, error finding upper range bound\n");
+      return nullptr;
+    }
+    upper_bound = ub.value;
+    lower_bound = lb.value;
+  } break;
+  case DW_TAG_enumeration_type: {
+    // If there is an enum value, then it represents the total number of
+    // elements in the array. We take the bounds to be [0, upper-1)
+    auto upper = dwarf_subrange_length_from_enum(entry);
+    if (!upper) {
+      dwarf_printf("parseSubrange failed, error finding length from enum\n");
+      return nullptr;
+    }
+    if (upper) {
+      upper.value.get() -= 1;
+    }
+    lower_bound = 0;
+    upper_bound = upper.value;
+  }
+  }
     /* Construct the range type. */
     curName() = std::move(die_name());
     if (!nameDefined()) {
