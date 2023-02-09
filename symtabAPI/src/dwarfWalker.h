@@ -371,8 +371,6 @@ private:
             std::vector<VariableLocation> &locs);
     boost::shared_ptr<Type> parseMultiDimensionalArray(Dwarf_Die *firstRange,
                                           boost::shared_ptr<Type> elementType);
-    bool decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
-            std::string &name);
 
     bool decodeExpression(Dwarf_Attribute &attr,
             std::vector<VariableLocation> &locs);
