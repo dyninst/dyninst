@@ -6790,7 +6790,7 @@ ia32_entry sseMapMult[][3] =
     { e_vpminub, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_vpminub, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
   }, { /* SSEDB_66 */
-    { e_vpand, t_done, 0, true, { Vps, Hps, Wps }, 0, s1RW2R, 0 },
+    { e_vpand, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_No_Entry, t_vexw, VEXW91, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_vexw, VEXW64, false, { Zz, Zz, Zz }, 0, 0, 0 }
   }, { /* SSEDC_66 */
