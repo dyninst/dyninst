@@ -35,6 +35,7 @@
 #include "emitElfStatic.h"
 #include "common/src/pathName.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "unaligned_memory_access.h"
 
 
 #if defined(os_freebsd)
@@ -2427,7 +2428,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             if (obj->findRegion(dyninstReg, ".dyninstInst") && library_adjust) {
                 // The trap mapping header's in-memory offset is specified by the dynamic entry
                 // We now need to get raw section data, and the raw sectiond data offset of the header
-                struct trap_mapping_header* header = (struct trap_mapping_header *) ((char*)dyninstReg->getPtrToRawData() + value - dyninstReg->getMemOffset());
+                auto header = alignas_cast<trap_mapping_header>(((char*)dyninstReg->getPtrToRawData() + value - dyninstReg->getMemOffset()));
                 for (i = 0; i < header->num_entries; i++) {
                     header->traps[i].source = (void*) ((char*)header->traps[i].source + library_adjust);
                     header->traps[i].target = (void*) ((char*)header->traps[i].target + library_adjust);

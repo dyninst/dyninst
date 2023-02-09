@@ -41,6 +41,7 @@
 #include <boost/assign/std/vector.hpp>
 
 #include "common/src/headers.h"
+#include "unaligned_memory_access.h"
 #include "Elf_X.h"
 #include <iostream>
 #include <iomanip>
@@ -1869,7 +1870,7 @@ Elf_X_Nhdr::Elf_X_Nhdr(Elf_Data *data_, size_t offset)
         size_t size = data->d_size - offset;
         if (sizeof(*nhdr) <= size) {
             size -= sizeof(*nhdr);
-            nhdr = (Elf32_Nhdr *)((char *)data->d_buf + offset);
+            nhdr = alignas_cast<Elf32_Nhdr>((char *)data->d_buf + offset);
             if (n_namesz() > size || n_descsz() > size - n_namesz())
                 nhdr = NULL;
         }
