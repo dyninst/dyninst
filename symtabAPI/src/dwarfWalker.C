@@ -2360,7 +2360,7 @@ DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
     // We've reached the last array dimension
     // Ignore the type id and create an anonymous type
     auto arr_t = Type::make_shared<typeArray>(
-        elementType, subrangeType->getHigh(), subrangeType->getLow(), name);
+        elementType, subrangeType->getLow(), subrangeType->getHigh(), name);
     tc()->addOrUpdateType(arr_t);
     return arr_t;
   }
@@ -2378,8 +2378,8 @@ DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
       id(), innerType->getLow(), innerType->getHigh());
 
   // Ignore the type id and create an anonymous type
-  auto arr_t = Type::make_shared<typeArray>(elementType, innerType->getHigh(),
-                                            innerType->getLow(), name);
+  auto arr_t = Type::make_shared<typeArray>(elementType, innerType->getLow(),
+                                            innerType->getHigh(), name);
   tc()->addOrUpdateType(arr_t);
   return arr_t;
 }
