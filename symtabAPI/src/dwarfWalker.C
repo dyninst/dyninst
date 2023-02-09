@@ -2345,7 +2345,6 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
 boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
                                                    boost::shared_ptr<Type> elementType)
 {
-    char buf[32];
     /* Get the (negative) typeID for this range/subarray. */
     //Dwarf_Off dieOffset = dwarf_dieoffset(&range);
 
@@ -2354,6 +2353,7 @@ boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range
     return nullptr;
   }
 
+  std::string name{"__array" + std::to_string(offset())};
 
 
     /* Does the recursion continue? */
@@ -2361,19 +2361,16 @@ boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range
     int status = dwarf_siblingof(range, &nextSibling);
     DWARF_CHECK_RET_VAL(status == -1, NULL);
 
-    snprintf(buf, 31, "__array%d", (int) offset());
-
     if ( status == 1 ) {
         /* Terminate the recursion by building an array type out of the elemental type.
            Use the negative dieOffset to avoid conflicts with the range type created
            by parseSubRangeDIE(). */
         // N.B.  I'm going to ignore the type id, and just create an anonymous type here
-        std::string aName = buf;
         auto innermostType = tc()->addOrUpdateType(
           Type::make_shared<typeArray>( elementType,
                 atoi(loBound.c_str()),
                 atoi(hiBound.c_str()),
-                aName ));
+                name ));
         /* dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 1, typ %p, innermosttype %p, lower bound %d, upper bound %d\n", id(), typ, innermostType, innermostType->asArrayType().getLow(), innermostType->asArrayType().getHigh()); */
         return innermostType;
     } /* end base-case of recursion. */
@@ -2385,10 +2382,9 @@ boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range
         return NULL;
     }
     // same here - type id ignored    jmo
-    std::string aName = buf;
     auto outerType = tc()->addOrUpdateType(
         Type::make_shared<typeArray>( innerType,
-          atoi(loBound.c_str()), atoi(hiBound.c_str()), aName));
+          atoi(loBound.c_str()), atoi(hiBound.c_str()), name));
     dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 0, lower bound %lu, upper bound %lu\n",id(), outerType->asArrayType().getLow(), outerType->asArrayType().getHigh());
     return outerType;
 } /* end parseMultiDimensionalArray() */
