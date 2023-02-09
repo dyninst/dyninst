@@ -2316,15 +2316,16 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
     upper_bound = upper.value;
   }
   }
-    /* Construct the range type. */
-    curName() = std::move(die_name());
-    if (!nameDefined()) {
-        curName() = "{anonymousRange}";
-    }
 
-    Dwarf_Off subrangeOffset = dwarf_dieoffset(&entry);
-    //DWARF_ERROR_RET(subrangeOffset);
-    typeId_t type_id = get_type_id(subrangeOffset, is_info, false);
+  // Don't set the name until we're guaranteed a subrange was found
+  curName() = std::move(die_name());
+  if (!nameDefined()) {
+    curName() = "{anonymousRange}";
+  }
+
+  Dwarf_Off subrangeOffset = dwarf_dieoffset(entry);
+  bool is_info = !dwarf_hasattr_integrate(entry, DW_TAG_type_unit);
+  typeId_t type_id = get_type_id(subrangeOffset, is_info, false);
 
     errno = 0;
     unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
