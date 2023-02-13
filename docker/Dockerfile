@@ -110,7 +110,7 @@ COPY . /code
 WORKDIR /opt/dyninst-env
 RUN . /opt/spack/share/spack/setup-env.sh && \
     spack env create -d . && \
-    echo "  concretization: together" >> spack.yaml && \
+    echo "  concretizer:\n    unify: true" >> spack.yaml && \
     spack env activate . && \
     spack add cmake@${CMAKE_VERSION} && \
     spack add perl@${PERL_VERSION} && \
