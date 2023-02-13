@@ -175,10 +175,10 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     func_instance *mprot = funcs[0];
     
     std::vector<AstNodePtr> args;
-    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)page_start));
-    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)(intptr_t)size));
+    args.push_back(AstNode::operandNode(AstNode::operandType::Constant, (void *)page_start));
+    args.push_back(AstNode::operandNode(AstNode::operandType::Constant, (void *)(intptr_t)size));
     // prot = READ|WRITE|EXECUTE
-    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)7));
+    args.push_back(AstNode::operandNode(AstNode::operandType::Constant, (void *)7));
 
     return AstNode::funcCallNode(mprot, args);
 }

@@ -69,12 +69,12 @@ void ASTFactory::visit(Dereference* )
 {
     AstNodePtr effaddr = m_stack.back();
     m_stack.pop_back();
-	m_stack.push_back(AstNode::operandNode(AstNode::DataIndir, effaddr));
+	m_stack.push_back(AstNode::operandNode(AstNode::operandType::DataIndir, effaddr));
 }
 
 void ASTFactory::visit(Immediate* i)
 {
-    m_stack.push_back(AstNode::operandNode(AstNode::Constant,
+    m_stack.push_back(AstNode::operandNode(AstNode::operandType::Constant,
                     (void*)(i->eval().convert<long>())));
 }
 
@@ -82,7 +82,7 @@ void ASTFactory::visit(RegisterAST* r)
 {
 #if defined(arch_x86) || defined(arch_x86_64)  
     bool unused;
-    m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
+    m_stack.push_back(AstNode::operandNode(AstNode::operandType::origRegister,
                       (void*)(intptr_t)(convertRegID(r, unused))));
 #else
     MachRegister reg = r->getID();

@@ -637,10 +637,10 @@ void relocPatch::applyPatch()
 
 
    switch (ptype_) {
-      case pcrel:
+      case patch_type_t::pcrel:
 	addr = addr - (gen_->startAddr() + offset_);
 	DYNINST_FALLTHROUGH;
-      case abs:
+      case patch_type_t::abs:
 	gen_->copy(&addr, size_, dest_);
 	break;
       default:
