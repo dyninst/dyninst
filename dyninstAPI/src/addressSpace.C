@@ -1004,7 +1004,7 @@ AstNodePtr AddressSpace::trampGuardAST() {
 
    if (trampGuardAST_) return trampGuardAST_;
 
-   trampGuardAST_ = AstNode::operandNode(AstNode::variableAddr, trampGuardBase_->ivar());
+   trampGuardAST_ = AstNode::operandNode(AstNode::operandType::variableAddr, trampGuardBase_->ivar());
    return trampGuardAST_;
 }
 

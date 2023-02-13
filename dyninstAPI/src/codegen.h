@@ -196,7 +196,7 @@ class codeGen {
     //Create a patch into the codeRange
     void addPatch(codeBufIndex_t index, patchTarget *source, 
                   unsigned size = sizeof(Address),
-                  relocPatch::patch_type_t ptype = relocPatch::abs,
+                  relocPatch::patch_type_t ptype = relocPatch::patch_type_t::abs,
                   Dyninst::Offset off = 0);
 
     std::vector<relocPatch> &allPatches();

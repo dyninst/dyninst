@@ -39,7 +39,7 @@ using namespace Dyninst;
 
 class StackAccess {
     public:
-        enum StackAccessType {
+        enum class StackAccessType {
             DEBUGINFO_LOCAL,
             DEBUGINFO_PARAM,
             SAVED,

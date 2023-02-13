@@ -143,7 +143,7 @@ class dataReqNode;
 class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
    enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t, scrambleRegisters_t};
-   enum operandType { Constant, 
+   enum class operandType { Constant, 
                       ConstantString,
                       DataReg,
                       DataIndir,
@@ -391,7 +391,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
 
 	// DEBUG
-   virtual operandType getoType() const { return undefOperandType; }
+   virtual operandType getoType() const { return operandType::undefOperandType; }
 
    virtual void setConstFunc(bool) {}
 
@@ -592,7 +592,7 @@ class AstOperandNode : public AstNode {
     ~AstOperandNode() {
         //printf("at ~AstOperandNode()\n");
         //debugPrint();
-        if (oType == ConstantString) free((char *)oValue);
+        if (oType == operandType::ConstantString) free((char *)oValue);
     }
         
     // Arguably, the previous should be an operation...
@@ -616,7 +616,7 @@ class AstOperandNode : public AstNode {
         
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 
-    virtual bool accessesParam(void) { return (oType == Param || oType == ParamAtEntry || oType == ParamAtCall); }
+    virtual bool accessesParam(void) { return (oType == operandType::Param || oType == operandType::ParamAtEntry || oType == operandType::ParamAtCall); }
     virtual bool canBeKept() const;
         
     virtual void getChildren(std::vector<AstNodePtr> &children);
@@ -646,7 +646,7 @@ class AstOperandNode : public AstNode {
                                      Register &retReg);
     int_variable* lookUpVar(AddressSpace* as);
     
-    AstOperandNode(): oType(undefOperandType), oValue(NULL), oVar(NULL) {}
+    AstOperandNode(): oType(operandType::undefOperandType), oValue(NULL), oVar(NULL) {}
 
     operandType oType;
     void *oValue;

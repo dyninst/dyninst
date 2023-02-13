@@ -48,14 +48,6 @@ class PCProcess;
 class Frame {
  public:
 
-  typedef enum { unset, 
-		 instrumentation, 
-		 signalhandler, 
-		 normal, 
-		 syscall, 
-		 iRPC, 
-		 unknown } frameType_t;
-
   // default ctor (zero frame)
   Frame();
 

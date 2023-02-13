@@ -154,7 +154,7 @@ codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegContro
    write_memory_as(insn, int32_t{disp});
    if (disp == 0) {
      SET_PTR(insn, gen);
-     gen.addPatch(gen.getIndex(), NULL, sizeof(int), relocPatch::pcrel, 
+     gen.addPatch(gen.getIndex(), NULL, sizeof(int), relocPatch::patch_type_t::pcrel, 
 		  gen.used() + sizeof(int));
      REGET_PTR(insn, gen);
    }
