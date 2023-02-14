@@ -3842,9 +3842,9 @@ void Object::parseLineInfoForAddr(Offset addr_to_find) {
 
 bool Object::hasDebugInfo()
 {
-    Region *ignore;
+    Region *unused;
     std::string debug_info = ".debug_info";
-    bool hasDebugInfo = associated_symtab->findRegion(ignore, debug_info);
+    bool hasDebugInfo = associated_symtab->findRegion(unused, debug_info);
     return hasDebugInfo;
 }
 

@@ -4373,26 +4373,26 @@ bool int_thread::StateTracker::isDesynced() const {
 bool int_thread::StateTracker::setState(State to)
 {
    std::string s = int_thread::stateIDToName(id);
-   Dyninst::LWP lwp = up_thr->getLWP();
+   Dyninst::LWP thisLwp = up_thr->getLWP();
    Dyninst::PID pid = up_thr->llproc()->getPid();
 
    if (state == to) {
-      pthrd_printf("Leaving %s state for %d/%d in state %s\n", s.c_str(), pid, lwp, stateStr(to));
+      pthrd_printf("Leaving %s state for %d/%d in state %s\n", s.c_str(), pid, thisLwp, stateStr(to));
       return true;
    }
    if (state == errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from errorstate to %s\n",
-                  s.c_str(), pid, lwp, stateStr(to));
+                  s.c_str(), pid, thisLwp, stateStr(to));
       return false;
    }
    if (state == exited && to != errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from exited to %s\n",
-                  s.c_str(), pid, lwp, stateStr(to));
+                  s.c_str(), pid, thisLwp, stateStr(to));
       return false;
    }
    if (to == neonatal && state != none) {
       perr_printf("Attempted %s state reversion for %d/%d from %s to neonatal\n",
-                  s.c_str(), pid, lwp, stateStr(state));
+                  s.c_str(), pid, thisLwp, stateStr(state));
       return false;
    }
 
@@ -4440,7 +4440,7 @@ bool int_thread::StateTracker::setState(State to)
          up_thr->neonatalThreadCount().inc();
       }
    }
-   pthrd_printf("Changing %s state for %d/%d from %s to %s\n", s.c_str(), pid, lwp,
+   pthrd_printf("Changing %s state for %d/%d from %s to %s\n", s.c_str(), pid, thisLwp,
                 stateStr(state), stateStr(to));
    state = to;
 
