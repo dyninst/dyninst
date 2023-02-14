@@ -162,6 +162,8 @@ class PARSER_EXPORT EdgePredicate
 {
  public:
     virtual bool pred_impl(Edge *) const;
+    EdgePredicate() = default;
+    EdgePredicate(const EdgePredicate&) = default;
     virtual ~EdgePredicate() = default;
     bool operator()(Edge* e) const 
     {

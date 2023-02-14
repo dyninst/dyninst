@@ -103,6 +103,8 @@ class codeRange : public patchTarget {
 
     friend ostream &operator<<(ostream &s, const codeRange &c);
 
+    codeRange() = default;
+    codeRange(const codeRange&) = default;
     virtual ~codeRange() = default;
 };
 

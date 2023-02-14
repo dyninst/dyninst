@@ -44,6 +44,8 @@ class patchTarget {
    virtual Address get_address() const = 0;
    virtual unsigned get_size() const = 0;
    virtual std::string get_name() const;
+   patchTarget() = default;
+   patchTarget(const patchTarget&) = default;
    virtual ~patchTarget() = default;
 };
 
