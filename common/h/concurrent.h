@@ -233,7 +233,6 @@ public:
 };
 
 class COMMON_EXPORT dyn_thread {
-    int myid;
 public:
     dyn_thread();
     unsigned int getId();
