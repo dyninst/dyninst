@@ -45,6 +45,7 @@
 #include "Type-mem.h"
 #include <elfutils/libdw.h>
 #include <dwarf/src/dwarf_subrange.h>
+#include <stack>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -1261,33 +1262,73 @@ bool DwarfWalker::parseArray() {
     return false;
   }
 
-   boost::shared_ptr<typeArray> baseType = parseMultiDimensionalArray(&firstRange,
-                                                          elementType);
+  // Find the subranges
+  // A multidimensional array will have a subrange for each dimension
+  std::stack<boost::shared_ptr<typeSubrange>> subranges;
+  do {
+    auto subrange = parseSubrange(&child);
+    if (!subrange) {
+      return false;
+    }
+    subranges.push(std::move(subrange));
+  } while (dwarf_siblingof(&child, &child) == 0);
 
-   if (!baseType) {
-       dwarf_printf("(0x%lx) parseArray failed, unable to determine baseType\n", id());
-       return false;
-   }
+  // This should never happen, but it's good to be paranoid
+  if (subranges.size() == 0) {
+    dwarf_printf("(0x%lx) No subranges found for array\n", id());
+    return false;
+  }
 
-   /* baseType is anonymous, extract the information and add an array type for this DIE. */
-   std::string const& name = baseType->getName();
-   tc()->addOrUpdateType( Type::make_shared<typeArray>( type_id(),
-                                         baseType->getBaseType(Type::share),
-                                         baseType->getLow(),
-                                         baseType->getHigh(),
-                                         name+"[]"));
+  std::string name{"__array" + std::to_string(offset())};
 
-   dwarf_printf("(0x%lx) Creating array with base type %s, low bound %lu, high bound %lu, named %s\n",
-                id(),
-				name.c_str(),
-				baseType->getLow(),
-				baseType->getHigh(),
-                curName().c_str());
+  auto convert = [this, &name](boost::shared_ptr<typeSubrange> t,
+                               boost::shared_ptr<Type> base_t) {
+    auto arr_t =
+        Type::make_shared<typeArray>(base_t, t->getLow(), t->getHigh(), name);
+    return tc()->addOrUpdateType(arr_t);
+  };
 
-   /* Don't parse the children again. */
-   setParseChild(false);
+  auto make_base_t = [this, &name](boost::shared_ptr<typeSubrange> t,
+          	  	  	  	  	boost::shared_ptr<Type> base) {
+	    auto arr_t =
+	        Type::make_shared<typeArray>(type_id(), base, t->getLow(),
+	                                     t->getHigh(), name + "[]");
+	    return tc()->addOrUpdateType(arr_t);
+  };
 
-   return true;
+  // Convert the subranges to a Type sequence
+  boost::shared_ptr<Type> base_t;
+  if(subranges.size() == 1) {
+	  auto cur_subrange = subranges.top();
+	  subranges.pop();
+	  base_t = make_base_t(cur_subrange, elementType);
+  } else {
+    // The last subrange (i.e., the highest dimension) gets the element type as
+    // its base type
+    auto cur_subrange = subranges.top();
+    subranges.pop();
+    auto base = convert(cur_subrange, elementType);
+
+    // The rest get the subsequent dimension's type as their base types
+    while (subranges.size() > 1) {
+      cur_subrange = subranges.top();
+      subranges.pop();
+      base = convert(cur_subrange, base);
+    }
+
+    // The first subrange acts as the entry point for the array's type, so it
+    // needs an explicit `type_id` and different name.
+    cur_subrange = subranges.top();
+    subranges.pop();
+    base_t = make_base_t(cur_subrange, base);
+  }
+
+  dwarf_printf("(0x%lx) Creating array '%s'\n", id(), base_t->getName().c_str());
+
+  /* Don't parse the children again. */
+  setParseChild(false);
+
+  return true;
 }
 
 bool DwarfWalker::parseSubrange() {
