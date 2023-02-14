@@ -1246,15 +1246,7 @@ bool func_instance::createOffsetVector_Symbols()
     _hasDebugSymbols = true;
 
     // Calculate base pointer height for locals; the frame offset is relative to this
-    int width;
     Architecture arch = ifunc()->isrc()->getArch();
-    if (arch == Arch_x86) { width = 4; }
-    else if (arch == Arch_x86_64) { width = 8; }
-    else { assert(0); }
-    int base = -width;
-    if (!ifunc()->hasNoStackFrame()) {
-        base -= width; // account for BP save
-    }
 
     for (auto vIter = _vars.begin(); vIter != _vars.end(); ++vIter) {
         SymtabAPI::localVar* var = *vIter;
