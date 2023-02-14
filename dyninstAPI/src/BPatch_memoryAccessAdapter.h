@@ -41,7 +41,7 @@ class BPatch_memoryAccessAdapter : public Dyninst::InstructionAPI::Visitor
  public:
      BPatch_memoryAccessAdapter() :
         bytes(0), imm(0), ra(-1), rb(-1), sc(0),
-        leftshift(false), setImm(false) {
+        setImm(false) {
   }
   
   virtual ~BPatch_memoryAccessAdapter() {
@@ -59,7 +59,6 @@ class BPatch_memoryAccessAdapter : public Dyninst::InstructionAPI::Visitor
         int ra;
         int rb;
  		int sc;
-		bool leftshift;
         bool setImm;
 };
 

@@ -135,12 +135,12 @@ class fileDescriptor {
         code_(code),
         data_(data),
         pid_(0),
-        length_(0),
-        rawPtr_(NULL) {}
+        length_(0)
+        {}
 
     // ctor for non-files
     fileDescriptor(string file, Address code, Address data, 
-                   Address length, void* rawPtr) :
+                   Address length, void* ) :
 #if defined(os_windows)
 		procHandle_(INVALID_HANDLE_VALUE),
 		fileHandle_(INVALID_HANDLE_VALUE),
@@ -149,8 +149,8 @@ class fileDescriptor {
         code_(code),
         data_(data),
         pid_(0),
-        length_(length),
-        rawPtr_(rawPtr) {}
+        length_(length)
+        {}
 
      bool operator==(const fileDescriptor &fd) const {
          return IsEqual(fd );
@@ -207,7 +207,6 @@ private:
      Address data_;
      int pid_;
      Address length_;        // set only if this is not really a file
-     void* rawPtr_; // set only if this is not really a file
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };

@@ -102,7 +102,7 @@ char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
 
 fileDescriptor::fileDescriptor():
         code_(0), data_(0),
-        pid_(0), length_(0), rawPtr_(NULL)
+        pid_(0), length_(0)
 {
     // This shouldn't be called... must be public for std::vector, though
 }
