@@ -1247,13 +1247,19 @@ bool DwarfWalker::parseArray() {
 
     curName() = std::move(die_name());
 
-   Dwarf_Die firstRange;
-    Dwarf_Die e = entry();
-   int result = dwarf_child(&e, &firstRange);
-    if(result != 0) {
-        dwarf_printf("(0x%lx) parseArray return false as dwarf_child returns 0\n", id());
-        return false;
-    }
+  Dwarf_Die e = entry();
+
+  // The dimensions of an array are stored as subranges in the child DIE
+  Dwarf_Die child;
+  int result = dwarf_child(&e, &child);
+  if (result < 0) {
+    dwarf_printf("(0x%lx) Error calling dwarf_child\n", id());
+    return false;
+  }
+  if (result == 1) {
+    dwarf_printf("(0x%lx) dwarf_child found no subranges for array\n", id());
+    return false;
+  }
 
    boost::shared_ptr<typeArray> baseType = parseMultiDimensionalArray(&firstRange,
                                                           elementType);
