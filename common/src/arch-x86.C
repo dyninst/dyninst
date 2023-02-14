@@ -978,6 +978,8 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vdppd, "vdppd")
   (e_dpps, "dpps")
   (e_emms, "emms")
+  (e_endbr32, "endbr32")
+  (e_endbr64, "endbr64")
   (e_enter, "enter")
   (e_extractps, "extractps")
   (e_extrq, "extrq")
