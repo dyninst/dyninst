@@ -1240,13 +1240,15 @@ bool DwarfWalker::parseTypedef() {
 }
 
 bool DwarfWalker::parseArray() {
-    dwarf_printf("(0x%lx) Parsing array\n", id());
+  dwarf_printf("(0x%lx) Parsing array\n", id());
 
-    boost::shared_ptr<Type> elementType = NULL;
-    if (!findType(elementType, false)) return false;
-    if (!elementType) return false;
+  boost::shared_ptr<Type> elementType;
+  if (!findType(elementType, false))
+    return false;
+  if (!elementType)
+    return false;
 
-    curName() = std::move(die_name());
+  curName() = std::move(die_name());
 
   Dwarf_Die e = entry();
 
