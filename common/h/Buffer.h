@@ -75,6 +75,7 @@ class COMMON_EXPORT Buffer {
      public:
      iterator() : pos((storage *)-1) {}
       ~iterator() {}
+      iterator(const iterator&) = default;
       storage operator*() const {
          assert(valid);
          return *pos;

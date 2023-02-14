@@ -673,6 +673,7 @@ class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
       SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb) = default;
       SYMTAB_EXPORT ~ExceptionBlock() = default;
       SYMTAB_EXPORT ExceptionBlock() = default;
+      SYMTAB_EXPORT ExceptionBlock& operator=(const ExceptionBlock &eb) = default;
 
       bool hasTry() const;
       Offset tryStart() const;

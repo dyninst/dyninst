@@ -301,6 +301,7 @@ class SYMTAB_EXPORT rangedInterface {
 class SYMTAB_EXPORT derivedInterface{
  public:
    virtual ~derivedInterface() = default;
+   derivedInterface& operator=(const derivedInterface&) = default;
    virtual boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const = 0;
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
 };

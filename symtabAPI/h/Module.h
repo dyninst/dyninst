@@ -79,6 +79,7 @@ namespace Dyninst{
 		public:
 
 			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  {}
+			Statement(const Statement&) = default;
 			struct StatementLess {
 				bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 			};

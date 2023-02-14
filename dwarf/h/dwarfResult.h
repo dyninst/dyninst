@@ -78,6 +78,7 @@ public:
 
     DwarfResult(Architecture a) : arch(a), error(false) {}
 
+    DwarfResult(const DwarfResult &) = default;
     virtual ~DwarfResult() = default;
 
     virtual void pushReg(Dyninst::MachRegister reg) = 0;

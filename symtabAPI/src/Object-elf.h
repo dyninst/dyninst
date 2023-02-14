@@ -82,6 +82,7 @@ class InlinedFunction;
 class open_statement {
     public:
         open_statement() { reset(); }
+        open_statement(const open_statement&) = default;
         Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
         bool uninitialized() {
             return start_addr == noAddress();

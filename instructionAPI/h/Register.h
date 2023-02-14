@@ -60,6 +60,7 @@ namespace Dyninst
       RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType, uint32_t num_elements = 1);
   
       virtual ~RegisterAST();
+      RegisterAST(const RegisterAST&) = default;
       
       /// By definition, a %RegisterAST object has no children.
       /// \param children Since a %RegisterAST has no children, the \c children parameter is unchanged by this method.

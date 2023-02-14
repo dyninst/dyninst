@@ -127,6 +127,7 @@ namespace Dyninst
       Expression(MachRegister r);
     public:
       virtual ~Expression();
+      Expression(const Expression&) = default;
 
       /// \brief If the %Expression can be evaluated, returns a %Result containing its value.
       /// Otherwise returns an undefined %Result.
