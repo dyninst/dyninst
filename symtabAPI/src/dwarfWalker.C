@@ -1286,7 +1286,12 @@ bool DwarfWalker::parseArray() {
 
 bool DwarfWalker::parseSubrange() {
    Dwarf_Die e = entry();
-   parseSubrange(&e);
+   auto subrange = parseSubrange(&e);
+
+   boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(subrange);
+   dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(),
+                (void *)rangeType.get(), (void *)tc());
+
    return true;
 }
 
