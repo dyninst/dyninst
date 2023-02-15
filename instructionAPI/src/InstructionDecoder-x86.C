@@ -1797,7 +1797,17 @@ namespace Dyninst
                                     decodedInstruction->getPrefix(), locs, m_Arch);
                         return;
                 }
-            }
+            } else if (decodedInstruction->getPrefix()->getPrefix(0) == PREFIX_REP &&
+                        *(b.start+1) == (unsigned char)(0x0F) && *(b.start+2) == (unsigned char)(0x1E)) {
+                // handling ENDBR family
+                if (*(b.start+3) == (unsigned char)(0xFB)) {
+                    m_Operation = Operation(e_endbr32, entryNames_IAPI[e_endbr32], m_Arch);
+                    return;
+                } else if (*(b.start+3) == (unsigned char)(0xFA)) {
+                    m_Operation = Operation(e_endbr64, entryNames_IAPI[e_endbr64], m_Arch);
+                    return;
+                }
+            } 
             m_Operation = Operation(decodedInstruction->getEntry(),
                         decodedInstruction->getPrefix(), locs, m_Arch);
 
@@ -1834,7 +1844,12 @@ namespace Dyninst
            Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(is64BitMode ? x86_64::rsp : x86::esp),
                                                                 is64BitMode ? u64 : u32);
            insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
-	}
+	    }
+        if (insn_to_complete->getOperation().getID() == e_endbr32 ||
+            insn_to_complete->getOperation().getID() == e_endbr64) {
+            insn_to_complete->m_Operands.clear();
+            return true;
+        }
 
         for(int i = 0; i < 3; i++)
         {
