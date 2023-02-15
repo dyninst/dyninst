@@ -2408,48 +2408,6 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
   return range;
 }
 
-boost::shared_ptr<typeArray>
-DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
-                                        boost::shared_ptr<Type> elementType) {
-  auto subrangeType = parseSubrange(range);
-  if (!subrangeType) {
-    return nullptr;
-  }
-
-  std::string name{"__array" + std::to_string(offset())};
-
-  Dwarf_Die nextSibling;
-  int status = dwarf_siblingof(range, &nextSibling);
-  DWARF_CHECK_RET_VAL(status == -1, NULL);
-
-  if (status == 1) {
-    // We've reached the last array dimension
-    // Ignore the type id and create an anonymous type
-    auto arr_t = Type::make_shared<typeArray>(
-        elementType, subrangeType->getLow(), subrangeType->getHigh(), name);
-    tc()->addOrUpdateType(arr_t);
-    return arr_t;
-  }
-
-  // Parse the next dimension
-  auto innerType = parseMultiDimensionalArray(&nextSibling, elementType);
-  if (!innerType) {
-    dwarf_printf(
-        "(0x%lx)parseMultiDimensionalArray failed to parse dimension\n", id());
-    return nullptr;
-  }
-
-  dwarf_printf(
-      "(0x%lx)parseMultiDimentionalArray lower bound %lu, upper bound %lu\n",
-      id(), innerType->getLow(), innerType->getHigh());
-
-  // Ignore the type id and create an anonymous type
-  auto arr_t = Type::make_shared<typeArray>(elementType, innerType->getLow(),
-                                            innerType->getHigh(), name);
-  tc()->addOrUpdateType(arr_t);
-  return arr_t;
-}
-
 bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
         std::vector<VariableLocation> &locs)
 {
