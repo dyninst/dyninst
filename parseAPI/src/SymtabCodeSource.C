@@ -43,7 +43,7 @@
 #include "CodeSource.h"
 #include "debug_parse.h"
 #include "util.h"
-#include "unaligned_memory_access.h" 
+#include "unaligned_memory_access.h"
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"

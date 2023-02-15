@@ -112,29 +112,23 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   // Emit a call to the next instruction to get current PC
   // This is necessary for PIC code
   GET_PTR(newInsn, gen); 
-  *newInsn = 0xE8;
-  newInsn++;
-  write_memory_as(newInsn, uint32_t{0});
-  newInsn += sizeof(uint32_t);
+  append_memory_as_byte(newInsn, 0xE8);
+  append_memory_as(newInsn, uint32_t{0});
   SET_PTR(newInsn, gen);
   // Compensating PC on stack to the original location
   int64_t offset = addr - gen.currAddr() + insn.size();
   REGET_PTR(newInsn, gen);
-  *newInsn = 0x81;
-  newInsn++;
-  *newInsn = 0x04;
-  newInsn++;
-  *newInsn = 0x24;
-  newInsn++;
+  append_memory_as_byte(newInsn, 0x81);
+  append_memory_as_byte(newInsn, 0x04);
+  append_memory_as_byte(newInsn, 0x24);
   // offset is 64-bits, assert if the value does not fit in 32-bits
   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-  write_memory_as(newInsn, int32_t(offset));
-  newInsn += sizeof(uint32_t);	  
+  append_memory_as(newInsn, int32_t(offset));
 
   if (type == Reg) {
     assert(reg != (Register) -1);
     // pop...
-    *newInsn++ = static_cast<unsigned char>(0x58 + reg); // POP family
+    append_memory_as_byte(newInsn, 0x58 + reg); // POP family
   }
   SET_PTR(newInsn, gen);
   return true;
