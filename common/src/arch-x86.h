@@ -48,7 +48,8 @@
 namespace NS_x86 {
 
 /* operand types */
-typedef char byte_t;   /* a byte operand */
+/* signed char required for correct immediate value interpretation */
+typedef signed char byte_t;   /* a byte operand */
 typedef short word_t;  /* a word (16-bit) operand */
 typedef int dword_t;   /* a double word (32-bit) operand */
 

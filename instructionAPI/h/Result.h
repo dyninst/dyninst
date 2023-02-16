@@ -56,7 +56,8 @@ namespace Dyninst
         {
             unsigned char bitval : 1;
             unsigned char u8val;
-            char s8val;
+	    /* char can be signed or unsigned, must be signed for s8val */
+            signed char s8val;
             uint16_t u16val;
             int16_t s16val;
             uint32_t u24val:24;
@@ -132,7 +133,7 @@ namespace Dyninst
         };
         template < > struct Result_type2type<s8>
         {
-            typedef char type;
+            typedef signed char type;
         };
         template < > struct Result_type2type<u8>
         {
