@@ -66,7 +66,7 @@ namespace Dyninst {
                 first = start;
                 second = end;
             }
-            AddressRange(const AddressRange& other) : std::pair<Offset, Offset>(other)
+            AddressRange(const AddressRange& other) noexcept : std::pair<Offset, Offset>(other)
             {
             }
             AddressRange& operator=(const AddressRange& other)

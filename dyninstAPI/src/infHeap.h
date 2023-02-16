@@ -105,7 +105,7 @@ class heapItem {
 // (i.e. prior minitramp/basetramp code)
 class disabledItem {
  public:
-  disabledItem() : block() {}
+  disabledItem() noexcept : block() {}
 
   disabledItem(heapItem *h, const std::vector<addrVecType> &preds) :
     block(h), pointsToCheck(preds) {}
