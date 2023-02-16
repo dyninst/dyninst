@@ -450,8 +450,8 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
       iterator(int_threadSet::iterator i);
      public:
       Thread::ptr operator*();
-      bool operator==(const iterator &i);
-      bool operator!=(const iterator &i);
+      bool operator==(const iterator &i) const;
+      bool operator!=(const iterator &i) const;
       ThreadSet::iterator operator++();
       ThreadSet::iterator operator++(int);
    };
@@ -466,8 +466,8 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
       ~const_iterator();
       const_iterator(const const_iterator&) = default;
       Thread::ptr operator*();
-      bool operator==(const const_iterator &i);
-      bool operator!=(const const_iterator &i);
+      bool operator==(const const_iterator &i) const;
+      bool operator!=(const const_iterator &i) const;
       ThreadSet::const_iterator operator++();
       ThreadSet::const_iterator operator++(int);
    };

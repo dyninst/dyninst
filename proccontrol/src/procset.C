@@ -3042,12 +3042,12 @@ Thread::ptr ThreadSet::iterator::operator*()
    return *int_iter;
 }
 
-bool ThreadSet::iterator::operator==(const iterator &i)
+bool ThreadSet::iterator::operator==(const iterator &i) const
 {
    return int_iter == i.int_iter;
 }
 
-bool ThreadSet::iterator::operator!=(const iterator &i)
+bool ThreadSet::iterator::operator!=(const iterator &i) const
 {
    return int_iter != i.int_iter;
 }
@@ -3080,12 +3080,12 @@ Thread::ptr ThreadSet::const_iterator::operator*()
    return *int_iter;
 }
 
-bool ThreadSet::const_iterator::operator==(const const_iterator &i)
+bool ThreadSet::const_iterator::operator==(const const_iterator &i) const
 {
    return int_iter == i.int_iter;
 }
 
-bool ThreadSet::const_iterator::operator!=(const const_iterator &i)
+bool ThreadSet::const_iterator::operator!=(const const_iterator &i) const
 {
    return int_iter != i.int_iter;
 }
