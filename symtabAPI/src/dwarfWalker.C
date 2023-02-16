@@ -1287,7 +1287,10 @@ bool DwarfWalker::parseArray() {
                                boost::shared_ptr<Type> base_t) {
     auto arr_t =
         Type::make_shared<typeArray>(base_t, t->getLow(), t->getHigh(), name);
-    return tc()->addOrUpdateType(arr_t);
+    auto type = tc()->addOrUpdateType(arr_t);
+    dwarf_printf("(0x%lx) Creating array dimension. ID: %d, %s[%lu:%lu]\n",
+    			 id(), type->getID(), name.c_str(), t->getLow(), t->getHigh());
+    return type;
   };
 
   auto make_base_t = [this, &name](boost::shared_ptr<typeSubrange> t,
@@ -1295,7 +1298,10 @@ bool DwarfWalker::parseArray() {
 	    auto arr_t =
 	        Type::make_shared<typeArray>(type_id(), base, t->getLow(),
 	                                     t->getHigh(), name + "[]");
-	    return tc()->addOrUpdateType(arr_t);
+	    auto type = tc()->addOrUpdateType(arr_t);
+	    dwarf_printf("(0x%lx) Creating array. ID: %d, %s[%lu:%lu]\n",
+	    			 id(), type->getID(), arr_t->getName().c_str(), t->getLow(), t->getHigh());
+	    return type;
   };
 
   // Convert the subranges to a Type sequence
@@ -1325,8 +1331,6 @@ bool DwarfWalker::parseArray() {
     base_t = make_base_t(cur_subrange, base);
   }
 
-  dwarf_printf("(0x%lx) Creating array '%s'\n", id(), base_t->getName().c_str());
-
   /* Don't parse the children again. */
   setParseChild(false);
 
@@ -1338,8 +1342,8 @@ bool DwarfWalker::parseSubrange() {
    auto subrange = parseSubrange(&e);
 
    boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(subrange);
-   dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(),
-                (void *)rangeType.get(), (void *)tc());
+   dwarf_printf("(0x%lx) Created subrange type: ID 0x%d, pointer %p (tc %p)\n", id(),
+                rangeType->getID(), (void *)rangeType.get(), (void *)tc());
 
    return true;
 }
@@ -2402,7 +2406,7 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
       upper_bound.value_or(LONG_MAX), curName());
 
   dwarf_printf(
-      "(0x%lx) Found subrange: id %d, low %lu, high %lu, named %s\n",
+      "(0x%lx) Parsed subrange: id %d, low %lu, high %lu, named %s\n",
       id(), type_id, range->getLow(), range->getHigh(), curName().c_str());
 
   return range;
