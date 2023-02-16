@@ -1272,6 +1272,10 @@ bool DwarfWalker::parseArray() {
     if (!subrange) {
       return false;
     }
+
+    // Register the subrange with the type collection
+    tc()->addOrUpdateType(subrange);
+
     subranges.push(std::move(subrange));
   } while (dwarf_siblingof(&child, &child) == 0);
 
