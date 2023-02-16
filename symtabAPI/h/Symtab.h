@@ -568,8 +568,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 	   using reference = value_type&;
 
            iterator(master_t::iterator i) : m(i) {}
-           bool operator==(const iterator& x) { return m == x.m; }
-           bool operator!=(const iterator& x) { return !operator==(x); }
+           bool operator==(const iterator& x) const { return m == x.m; }
+           bool operator!=(const iterator& x) const { return !operator==(x); }
            Symbol* const& operator*() const { return m->first; }
            Symbol* const* operator->() const { return &operator*(); }
            iterator& operator++() { ++m; return *this; }

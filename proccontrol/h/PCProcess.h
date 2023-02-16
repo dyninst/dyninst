@@ -197,8 +197,8 @@ class PC_EXPORT LibraryPool
   public:
      const_iterator();
      Library::const_ptr operator*() const;
-     bool operator==(const const_iterator &i);
-     bool operator!=(const const_iterator &i);
+     bool operator==(const const_iterator &i) const;
+     bool operator!=(const const_iterator &i) const;
      LibraryPool::const_iterator operator++();
      LibraryPool::const_iterator operator++(int);
 
@@ -662,8 +662,8 @@ class PC_EXPORT ThreadPool
    public:
       iterator();
       Thread::ptr operator*() const;
-      bool operator==(const iterator &i);
-      bool operator!=(const iterator &i);
+      bool operator==(const iterator &i) const;
+      bool operator!=(const iterator &i) const;
       ThreadPool::iterator operator++();
       ThreadPool::iterator operator++(int);
    };
@@ -682,8 +682,8 @@ class PC_EXPORT ThreadPool
    public:
       const_iterator();
       Thread::const_ptr operator*() const;
-      bool operator==(const const_iterator &i);
-      bool operator!=(const const_iterator &i);
+      bool operator==(const const_iterator &i) const;
+      bool operator!=(const const_iterator &i) const;
       ThreadPool::const_iterator operator++();
       ThreadPool::const_iterator operator++(int);
 
@@ -724,8 +724,8 @@ class PC_EXPORT RegisterPool
    public:
       iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*();
-      bool operator==(const iterator &i);
-      bool operator!=(const iterator &i);
+      bool operator==(const iterator &i) const;
+      bool operator!=(const iterator &i) const;
       RegisterPool::iterator operator++();
       RegisterPool::iterator operator++(int);
    };
@@ -742,8 +742,8 @@ class PC_EXPORT RegisterPool
    public:
       const_iterator();
       std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal> operator*() const;
-      bool operator==(const const_iterator &i);
-      bool operator!=(const const_iterator &i);
+      bool operator==(const const_iterator &i) const;
+      bool operator!=(const const_iterator &i) const;
       RegisterPool::const_iterator operator++();
       RegisterPool::const_iterator operator++(int);
    };
