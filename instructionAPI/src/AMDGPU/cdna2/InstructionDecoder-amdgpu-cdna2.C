@@ -205,8 +205,6 @@ namespace Dyninst {
 			insn = insn_high = insn_long = 0;
 			useImm = false;
 			isCall = false;
-			if (!getenv("DEBUG_DECODE"))
-				cout.setstate(ios_base::badbit);
 		}
 		// here we assemble the first 64 bit (if available) as an instruction
 
@@ -220,7 +218,6 @@ namespace Dyninst {
 			imm_at_64 = get32bit(b,8);
 
 			insn_long = ( ((uint64_t) insn_high) << 32) | insn;
-            cout << " setup insn_long = " <<  std::hex << insn_long << endl;
 
 		}
 		void InstructionDecoder_amdgpu_cdna2::decodeOpcode(InstructionDecoder::buffer &b) {
@@ -230,9 +227,7 @@ namespace Dyninst {
 		}
 		
 		void InstructionDecoder_amdgpu_cdna2::debug_instr(){
-			cout << "decoded instruction " <<  insn_in_progress->getOperation().mnemonic << " " << std::hex << insn_long << " insn_family = " << instr_family 
-				<< "  length = " <<  insn_in_progress->size()<< endl << endl;
-
+		//	cout << "decoded instruction " <<  insn_in_progress->getOperation().mnemonic << " " << std::hex << insn_long << " insn_family = " << instr_family << "  length = " <<  insn_in_progress->size()<< endl << endl;
 		}
 
 		Instruction InstructionDecoder_amdgpu_cdna2::decode(InstructionDecoder::buffer &b) {
@@ -242,8 +237,6 @@ namespace Dyninst {
                 //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
 				//std::mem_fun(decode_lookup_table[instr_family])(this);
 			}
-			debug_instr();
-			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
@@ -253,8 +246,6 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
-			debug_instr();
-			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 		}
