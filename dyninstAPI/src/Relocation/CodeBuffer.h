@@ -100,7 +100,7 @@ class CodeBuffer {
 
       static const unsigned INVALID;
 
-      Label() 
+      Label() noexcept
       : type(Invalid), id(0), iteration(0), addr(0) {}
       Label(Type a, Id b, Address c)
       : type(a), id(b), iteration(0), addr(c) { assert(id != INVALID); }
