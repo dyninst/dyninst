@@ -558,9 +558,15 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
        void erase(Symbol* s);
 
        // Iterator for the symbols. Do not use in parallel.
-       class iterator : public std::iterator<std::forward_iterator_tag,Symbol*> {
+       class iterator {
            master_t::iterator m;
        public:
+	   using iterator_category = std::forward_iterator_tag;
+	   using value_type = Symbol*;
+	   using difference_type = std::ptrdiff_t;
+	   using pointer = value_type*;
+	   using reference = value_type&;
+
            iterator(master_t::iterator i) : m(i) {}
            bool operator==(const iterator& x) { return m == x.m; }
            bool operator!=(const iterator& x) { return !operator==(x); }
