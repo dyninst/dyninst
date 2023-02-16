@@ -30,6 +30,7 @@
 
 // $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp
 
+#include <random>
 #include "function.h"
 #include "instPoint.h"
 #include "debug.h"
@@ -1076,8 +1077,6 @@ bool func_instance::createOffsetVector()
     return ret;
 }
 
-static int randomNumGenerator (int i) { return std::rand()%i; }
-
 static bool matchRanges(ValidPCRange* a, ValidPCRange* b)
 {
     auto aIter = a->begin();
@@ -1210,7 +1209,9 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
         }
 
         randomizedRange = true;
-        std::random_shuffle(vec.begin(), vec.end(), randomNumGenerator);
+        std::random_device rd;
+        std::mt19937 urbg{rd()};
+        std::shuffle(vec.begin(), vec.end(), urbg);
         StackAnalysis::Height nextLoc = (*iter).first.height();
 
         for (auto viter = vec.begin(); viter != vec.end(); ++viter) {
