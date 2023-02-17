@@ -257,8 +257,6 @@ using namespace Dyninst::SymtabAPI;
  */
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-    Symtab *origBinary = mobj->parse_img()->getObject();
-
     /* Special Case 1A: Handling global constructors
      *
      * Place the Dyninst constructor handler after the global ELF ctors so it is invoked last.
@@ -338,6 +336,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
     vector<Archive *> libs;
     vector<Archive *>::iterator libIter;
+    Symtab *origBinary = mobj->parse_img()->getObject();
     if( origBinary->getLinkingResources(libs) ) {
         for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
             if( (*libIter)->name().find("libpthread") != std::string::npos ||
