@@ -181,16 +181,18 @@ using namespace Dyninst::SymtabAPI;
  * the GNU toolchain. However, it should be straightforward to extend these
  * operations to other toolchains.
  */
-static char const* LIBC_CTOR_HANDLER("__libc_csu_init");
-static char const* LIBC_DTOR_HANDLER("__libc_csu_fini");
-static char const* DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
-static char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
-static char const* LIBC_IREL_HANDLER("__libc_csu_irel");
-static char const* DYNINST_IREL_HANDLER("DYNINSTglobal_irel_handler");
-static char const* DYNINST_IREL_START("DYNINSTirel_start");
-static char const* DYNINST_IREL_END("DYNINSTirel_end");
-static char const* SYMTAB_IREL_START("__SYMTABAPI_IREL_START__");
-static char const* SYMTAB_IREL_END("__SYMTABAPI_IREL_END__");
+namespace {
+  char const* LIBC_CTOR_HANDLER("__libc_csu_init");
+  char const* LIBC_DTOR_HANDLER("__libc_csu_fini");
+  char const* DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
+  char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
+  char const* LIBC_IREL_HANDLER("__libc_csu_irel");
+  char const* DYNINST_IREL_HANDLER("DYNINSTglobal_irel_handler");
+  char const* DYNINST_IREL_START("DYNINSTirel_start");
+  char const* DYNINST_IREL_END("DYNINSTirel_end");
+  char const* SYMTAB_IREL_START("__SYMTABAPI_IREL_START__");
+  char const* SYMTAB_IREL_END("__SYMTABAPI_IREL_END__");
+}
 
 
 static bool replaceHandler(func_instance *origHandler, func_instance *newHandler, 
