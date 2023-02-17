@@ -64,11 +64,7 @@ using namespace Dyninst::SymtabAPI;
 static const std::string LIBC_CTOR_HANDLER("__libc_csu_init");
 static const std::string LIBC_DTOR_HANDLER("__libc_csu_fini");
 static const std::string DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
-static const std::string DYNINST_CTOR_LIST("DYNINSTctors_addr");
 static const std::string DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
-static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
-static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
-static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
 /*
 By parsing the function that actually sets up the parameters for the OMP
