@@ -174,56 +174,67 @@ using namespace Dyninst::SymtabAPI;
 bool BinaryEdit::doStaticBinarySpecialCases() {
     Symtab *origBinary = mobj->parse_img()->getObject();
 
-    /* Special Case 1: Handling global constructor and destructor Regions
-     * Invoke Dyninst constructor after all static constructors are called
-     * and invoke Dyninst destructor before staitc destructors
-     */
-
-    // First, find all the necessary symbol info.
-
-    func_instance *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
-    if( !globalCtorHandler ) {
-        logLine("failed to find libc constructor handler\n");
-        fprintf (stderr, "failed to find libc constructor handler\n");
-        return false;
-    }
-
+    /* Special Case 1A: Handling global constructors
+     *
+     * Place the Dyninst constructor handler after the global ELF ctors so it is invoked last.
+     *
+     * Prior to glibc-2.34, this was in the exit point(s) of __libc_csu_init which
+     * calls all of the initializers in preinit_array and init_array as per SystemV
+     * before __libc_start_main is invoked.
+     *
+     * In glibc-2.34, the code from the csu_* functions was moved into __libc_start_main, so
+     * now the only place where we are guaranteed that the global constructors have all been
+     * called is at the beginning of 'main'.
+    */
     func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
     if( !dyninstCtorHandler ) {
         logLine("failed to find Dyninst constructor handler\n");
-        fprintf (stderr,"failed to find Dyninst constructor handler\n");
         return false;
     }
-
-    func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
-    if( !globalDtorHandler ) {
-        logLine ("failed to find libc destructor handler\n");
-        fprintf (stderr,"failed to find libc destructor handler\n");
-        return false;
+    if(auto *ctor = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER)) {
+        // Wire in our handler at libc ctor exits
+        vector<instPoint*> init_pts;
+        ctor->funcExitPoints(&init_pts);
+        for(auto *exit_pt : init_pts) {
+          add_handler(exit_pt, dyninstCtorHandler);
+        }
+    } else if(auto *main = findOnlyOneFunction("main")) {
+    	// Insert constructor into the beginning of 'main'
+        add_handler(main->funcEntryPoint(true), dyninstCtorHandler);
+    } else {
+   	    logLine("failed to find place to insert Dyninst constructors\n");
+   	    return false;
     }
 
+    /* Special Case 1B: Handling global destructors
+     *
+     * Place the Dyninst destructor handler before the global ELF dtors so it is invoked first.
+     *
+     * Prior to glibc-2.34, this was in the entry point of __libc_csu_fini.
+     *
+     * In glibc-2.34, the code in __libc_csu_fini was moved into a hidden function that is
+     * registered with atexit. To ensure the Dyninst destructors are always called first, we
+     * have to insert the handler at the beginning of `exit`.
+     *
+     * This is a fragile solution as there is no requirement that a symbol for `exit` is
+     * exported. If we can't find it, we'll just fail here.
+    */
     func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
     if( !dyninstDtorHandler ) {
         logLine("failed to find Dyninst destructor handler\n");
-        fprintf (stderr,"failed to find Dyninst destructor handler\n");
+        return false;
+    }
+    if(auto *dtor = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER)) {
+    	// Insert destructor into beginning of libc global dtor handler
+        add_handler(dtor->funcEntryPoint(true), dyninstDtorHandler);
+    } else if(auto *exit_ = findOnlyOneFunction("exit")) {
+    	// Insert destructor into beginning of `exit`
+    	add_handler(exit_->funcEntryPoint(true), dyninstDtorHandler);
+    } else {
+    	logLine("failed to find place to insert Dyninst destructors\n");
         return false;
     }
 
-    // Instrument the exits of global constructor function
-    vector<instPoint*> init_pts;
-    instPoint* fini_point;
-    globalCtorHandler->funcExitPoints(&init_pts);
-
-    // Instrument the entry of global destructor function
-    fini_point = globalDtorHandler->funcEntryPoint(true);
-    // convert points to instpoints
-    for(auto exit_pt = init_pts.begin();
-	exit_pt != init_pts.end();
-	++exit_pt)
-    {
-      add_handler(*exit_pt, dyninstCtorHandler);
-    }
-    add_handler(fini_point, dyninstDtorHandler);
     AddressSpace::patch(this);
 
 
