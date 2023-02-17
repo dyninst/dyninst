@@ -75,6 +75,7 @@ dealing with */
 bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
 {
 	assert(0);
+	return false;
 }
 
 
@@ -84,6 +85,7 @@ std::string parse_func::calcParentFunc(const parse_func *,
                                     std::vector<image_parRegion *> &/*pR*/)
 {
 	assert(0);
+	return {};
 }
 
 
