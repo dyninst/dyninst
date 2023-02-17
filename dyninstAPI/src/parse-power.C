@@ -60,10 +60,10 @@
 
 
 using namespace Dyninst::SymtabAPI;
-static const std::string LIBC_CTOR_HANDLER("__libc_csu_init");
-static const std::string LIBC_DTOR_HANDLER("__libc_csu_fini");
-static const std::string DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
-static const std::string DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
+static char const* LIBC_CTOR_HANDLER("__libc_csu_init");
+static char const* LIBC_DTOR_HANDLER("__libc_csu_fini");
+static char const* DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
+static char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
 
 static void add_handler(instPoint* pt, func_instance* add_me)
 {
