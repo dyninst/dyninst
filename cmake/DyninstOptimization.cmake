@@ -21,8 +21,9 @@ This module provides the global compiler and linker flags.
   
   The global CMAKE_<LANG>_FLAGS_<BUILD_TYPE> variables are also
   populated. Values specified by the user in CMAKE_<LANG>_FLAGS
-  are passed to the compiler before CMAKE_<LANG>_FLAGS_<BUILD_TYPE>
-  so that values computed here can be overridden.
+  are forcibly passed to the compiler after CMAKE_<LANG>_FLAGS_<BUILD_TYPE>
+  so that values computed here can be overridden. By default, CMake does
+  the opposite.
 
 #]=======================================================================]
 include_guard(GLOBAL)
@@ -79,12 +80,17 @@ else()
   message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
 endif()
 
-# Set the relevant CMake globals
-foreach(bt "DEBUG" "RELWITHDEBINFO" "RELEASE" "MINSIZEREL")
-  set(CMAKE_C_FLAGS_${bt} ${_${bt}})
-  set(CMAKE_CXX_FLAGS_${bt} "${_${bt}} ${DYNINST_CXX_FLAGS}")
-  unset(_${bt})
+# Set the CMake globals, preserving user-specified values in CMAKE_<LANG>_FLAGS
+string(TOUPPER ${CMAKE_BUILD_TYPE} _build_type)
+foreach(l "C" "CXX")
+  if(CMAKE_${l}_FLAGS)
+    set(_p ${CMAKE_${l}_FLAGS})
+  endif()
+  set(CMAKE_${l}_FLAGS_${_build_type} "${_${_build_type}} ${DYNINST_${l}_FLAGS} ${_p}")
+  set(CMAKE_${l}_FLAGS "" CACHE STRING "" FORCE)
+  unset(_p)
 endforeach()
+unset(_build_type)
 
 # Merge the link flags for C++
 list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})  
