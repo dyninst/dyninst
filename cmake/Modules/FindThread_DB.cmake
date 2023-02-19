@@ -49,4 +49,7 @@ if(Thread_DB_FOUND)
                  IMPORTED_LINK_INTERFACE_LANGUAGES "C"
                  IMPORTED_LOCATION "${Thread_DB_LIBRARIES}")
   endif()
+
+  mark_as_advanced(Thread_DB_INCLUDE_DIRS)
+  mark_as_advanced(Thread_DB_LIBRARIES)
 endif()
