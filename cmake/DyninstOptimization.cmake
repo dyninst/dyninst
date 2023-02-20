@@ -5,7 +5,7 @@ DyninstOptimization
 This module provides the global compiler and linker flags.
 
   Created variables:
-  
+
   DYNINST_LINK_FLAGS
   	Generic linker flags that apply to all languages
 
@@ -16,9 +16,9 @@ This module provides the global compiler and linker flags.
 		Contains the compiler-specific flags needed to force the generation
 		of a frame pointer in code compiled into a Dyninst library. Currently,
 		this is only used in some portions of stackwalk.
-  
+
   ---
-  
+
   The global CMAKE_<LANG>_FLAGS_<BUILD_TYPE> variables are also
   populated. Values specified by the user in CMAKE_<LANG>_FLAGS
   are forcibly passed to the compiler after CMAKE_<LANG>_FLAGS_<BUILD_TYPE>
@@ -87,10 +87,12 @@ foreach(l "C" "CXX")
     set(_p ${CMAKE_${l}_FLAGS})
   endif()
   set(CMAKE_${l}_FLAGS_${_build_type} "${_${_build_type}} ${DYNINST_${l}_FLAGS} ${_p}")
-  set(CMAKE_${l}_FLAGS "" CACHE STRING "" FORCE)
+  set(CMAKE_${l}_FLAGS
+      ""
+      CACHE STRING "" FORCE)
   unset(_p)
 endforeach()
 unset(_build_type)
 
 # Merge the link flags for C++
-list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})  
+list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})

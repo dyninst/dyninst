@@ -34,5 +34,6 @@ option(ENABLE_PARSE_API_GRAPHS "Enable Boost Graph wrappers for parseAPI Functio
 option(DYNINST_LINKER "The linker to use" "lld")
 mark_as_advanced(DYNINST_LINKER)
 
-option(DYNINST_CXXSTDLIB "The C++ standard library to use; only affects LLVM-based compilers" "libstdc++")
+option(DYNINST_CXXSTDLIB
+       "The C++ standard library to use; only affects LLVM-based compilers" "libstdc++")
 mark_as_advanced(DYNINST_CXXSTDLIB)
