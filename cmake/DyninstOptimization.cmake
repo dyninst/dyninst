@@ -81,18 +81,20 @@ else()
   message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
 endif()
 
-# Set the CMake globals, preserving user-specified values in CMAKE_<LANG>_FLAGS
+# By default, CMake effectively passes compiler flags in the order
+#    
+#   ${CMAKE_<LANG>_FLAGS} ${CMAKE_<LANG>_FLAGS_<BUILD>} <options>
+#    
+# where `<options>` are the values passed to `target_compile_options`.
+# This prevents users from overriding values manually computed by us. To
+# work around this, we rearrange the values such that CMake now
+# effectively (redundantly) does
+#    
+#   ${CMAKE_<LANG>_FLAGS} ${CMAKE_<LANG>_FLAGS_<BUILD>} <options> ${CMAKE_<LANG>_FLAGS}
+#
 string(TOUPPER ${CMAKE_BUILD_TYPE} _build_type)
-foreach(l "C" "CXX")
-  if(CMAKE_${l}_FLAGS)
-    set(_p ${CMAKE_${l}_FLAGS})
-  endif()
-  set(CMAKE_${l}_FLAGS_${_build_type} "${_${_build_type}} ${DYNINST_${l}_FLAGS} ${_p}")
-  set(CMAKE_${l}_FLAGS
-      ""
-      CACHE STRING "" FORCE)
-  unset(_p)
-endforeach()
+set(DYNINST_C_FLAGS_${_build_type} ${_${_build_type}} ${CMAKE_C_FLAGS})
+set(DYNINST_CXX_FLAGS_${_build_type} ${_${_build_type}} ${DYNINST_CXX_FLAGS} ${CMAKE_CXX_FLAGS})
 unset(_build_type)
 
 # Merge the link flags for C++
