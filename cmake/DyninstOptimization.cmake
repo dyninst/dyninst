@@ -43,7 +43,7 @@ set(_linux_compilers "GNU" "Clang" "Intel" "IntelLLVM")
 
 if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   if(DYNINST_LINKER)
-    list(APPEND DYNINST_LINK_FLAGS "-fuse-ld=${DYNINST_LINKER}")
+    list(APPEND DYNINST_LINK_FLAGS -fuse-ld=${DYNINST_LINKER})
   endif()
 
   if(ENABLE_LTO)
@@ -53,30 +53,30 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   endif()
 
   # Used in stackwalk
-  set(DYNINST_FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
+  set(DYNINST_FORCE_FRAME_POINTER -fno-omit-frame-pointer)
 
   # Dyninst relies on `assert` for correctness. Never let CMake disable it
-  set(_DEBUG "-Og -g3 ${DYNINST_FORCE_FRAME_POINTER} -UNDEBUG")
-  set(_RELEASE "-O3 -g3 -UNDEBUG")
-  set(_RELWITHDEBINFO "-O2 -g3 -UNDEBUG")
-  set(_MINSIZEREL "-Os -UNDEBUG")
+  set(_DEBUG -Og -g3 ${DYNINST_FORCE_FRAME_POINTER} -UNDEBUG)
+  set(_RELEASE -O3 -g3 -UNDEBUG)
+  set(_RELWITHDEBINFO -O2 -g3 -UNDEBUG)
+  set(_MINSIZEREL -Os -UNDEBUG)
 
   # Ensure each library is fully linked
-  list(APPEND DYNINST_LINK_FLAGS "-Wl,--no-undefined")
+  list(APPEND DYNINST_LINK_FLAGS -Wl,--no-undefined)
 
   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     if(DYNINST_CXXSTDLIB)
-      list(APPEND DYNINST_CXX_FLAGS "-stdlib=${DYNINST_CXXSTDLIB}")
-      list(APPEND DYNINST_CXX_LINK_FLAGS "-stdlib=${DYNINST_CXXSTDLIB}")
+      list(APPEND DYNINST_CXX_FLAGS -stdlib=${DYNINST_CXXSTDLIB})
+      list(APPEND DYNINST_CXX_LINK_FLAGS -stdlib=${DYNINST_CXXSTDLIB})
     endif()
   endif()
 elseif(MSVC)
-  set(DYNINST_FORCE_FRAME_POINTER "/Oy-")
+  set(DYNINST_FORCE_FRAME_POINTER /Oy-)
 
-  set(_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER}")
-  set(_RELEASE "/MP /O3 /MD /D_DEBUG")
-  set(_RELWITHDEBINFO "/MP /O2 /Zi /MD /D_DEBUG")
-  set(_MINSIZEREL "/MP /O1 /MD /D_DEBUG")
+  set(_DEBUG /MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER})
+  set(_RELEASE /MP /O3 /MD /D_DEBUG)
+  set(_RELWITHDEBINFO /MP /O2 /Zi /MD /D_DEBUG)
+  set(_MINSIZEREL /MP /O1 /MD /D_DEBUG)
 else()
   message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
 endif()
