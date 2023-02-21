@@ -34,6 +34,7 @@
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
 #include "AMDGPU/vega/InstructionDecoder-amdgpu-vega.h"
+#include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.h"
 
 #include "BinaryFunction.h"
@@ -78,6 +79,8 @@ namespace Dyninst
                     return Ptr(new InstructionDecoder_aarch64(a));
                 case Arch_amdgpu_vega:
                     return Ptr(new InstructionDecoder_amdgpu_vega(a));
+                case Arch_amdgpu_gfx908:
+                    return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
                case Arch_amdgpu_cdna2:
                     return Ptr(new InstructionDecoder_amdgpu_cdna2(a));
                 default:
@@ -132,13 +135,13 @@ namespace Dyninst
         {
             return make_shared(singleton_object_pool<Dereference>::construct(addrToDereference, resultType));
         }
-        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID)
+        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, uint32_t num_elements )
         {
             int newID = registerID.val();
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
+            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8,num_elements));
         }
         
 
@@ -168,7 +171,6 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<MaskRegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
-
     }
 }
 

@@ -60,6 +60,7 @@ namespace Dyninst
         Arch_amdgpu_vega  =  0x84000000,
         Arch_cuda         =  0x88000000,
         Arch_amdgpu_cdna2 =  0x94000000, //future support for cdna2
+        Arch_amdgpu_gfx908 =  0x98000000, //future support for gfx908
         Arch_intelGen9 = 0xb6000000	//same as machine no. retrevied from eu-readelf
     } Architecture;
 
@@ -1616,6 +1617,212 @@ namespace Dyninst
 
 #include "AMDGPU/vega/amdgpu_vega_sys_regs.h"
     }
+    namespace amdgpu_gfx908{
+        //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
+        //arch        reg cat:GPR     alias&subrange  reg ID
+        const signed int SGPR           = 0x00010000;
+        const signed int SGPR_VEC2      = 0x00020000;
+        const signed int SGPR_VEC4      = 0x00030000;
+        const signed int SGPR_VEC8      = 0x00040000;
+        const signed int SGPR_VEC16     = 0x00050000;
+
+        const signed int VGPR           = 0x00060000;
+        const signed int VGPR_VEC2      = 0x00070000;
+        const signed int VGPR_VEC4      = 0x00080000;
+        const signed int VGPR_VEC8      = 0x00090000;
+        const signed int VGPR_VEC16     = 0x000A0000;
+
+        const signed int ACC_VGPR       = 0x000B0000;
+
+        const signed int HWR            = 0x000C0000;
+        const signed int TTMP_SGPR      = 0x000D0000;
+        const signed int FLAGS          = 0x000E0000;
+        const signed int PC             = 0x000F0000;
+        const signed int SYSREG         = 0x00100000;
+        const signed int TGT            = 0x00110000; // I have no idea what TGT is yet
+        const signed int ATTR           = 0x00120000;
+        const signed int PARAM          = 0x00130000; // LDS Parameter
+
+        // aliasing for flags
+        // if we found out that it is a flag, we no longer need to use the cat  0x00ff0000
+        // so we use that part to encode the low offset in the base register
+        //
+
+
+        const signed int BITS_1       = 0x00000100;
+        const signed int BITS_2       = 0x00000200;
+        const signed int BITS_3       = 0x00000300;
+        const signed int BITS_4       = 0x00000400;
+        const signed int BITS_6       = 0x00000500;
+        const signed int BITS_7       = 0x00000600;
+        const signed int BITS_8       = 0x00000700;
+        const signed int BITS_9       = 0x00000800;
+        const signed int BITS_15      = 0x00000900;
+        const signed int BITS_16      = 0x00000A00;
+        const signed int BITS_32      = 0x00000B00;
+        const signed int BITS_48      = 0x00000C00;
+        const signed int BITS_64      = 0x00000D00;
+        const signed int BITS_128     = 0x00000E00;
+        const signed int BITS_256     = 0x00000F00;
+        const signed int BITS_512     = 0x00001000;
+
+
+
+        DEF_REGISTER(tid,                      Arch_amdgpu_gfx908| SYSREG  | BITS_32 | 0 , "amdgpu_gfx908");
+
+        DEF_REGISTER(invalid,                  Arch_amdgpu_gfx908| SYSREG  | BITS_32 | 1 , "amdgpu_gfx908");
+        DEF_REGISTER(pc_all,                   Arch_amdgpu_gfx908| PC  | BITS_48 | 0 , "amdgpu_gfx908");
+
+
+        DEF_REGISTER(src_scc,                  Arch_amdgpu_gfx908| HWR | BITS_32 | 0 , "amdgpu_gfx908");
+
+
+        DEF_REGISTER(src_vccz,                 Arch_amdgpu_gfx908| HWR | BITS_1  | 1 , "amdgpu_gfx908");
+        DEF_REGISTER(vcc_lo,                   Arch_amdgpu_gfx908| HWR | BITS_32 | 2 , "amdgpu_gfx908");
+        DEF_REGISTER(vcc_hi,                   Arch_amdgpu_gfx908| HWR | BITS_32 | 3 , "amdgpu_gfx908");
+        DEF_REGISTER(vcc,                      Arch_amdgpu_gfx908| HWR | BITS_64 | 2 , "amdgpu_gfx908");
+
+
+
+        DEF_REGISTER(src_execz,                Arch_amdgpu_gfx908| HWR | BITS_1  | 4 , "amdgpu_gfx908");
+        DEF_REGISTER(exec_lo,                  Arch_amdgpu_gfx908| HWR | BITS_32 | 5 , "amdgpu_gfx908");
+        DEF_REGISTER(exec_hi,                  Arch_amdgpu_gfx908| HWR | BITS_32 | 6 , "amdgpu_gfx908");
+        DEF_REGISTER(exec,                     Arch_amdgpu_gfx908| HWR | BITS_64 | 5 , "amdgpu_gfx908");
+
+
+        DEF_REGISTER(flat_scratch_lo,          Arch_amdgpu_gfx908| HWR | BITS_64 | 7 , "amdgpu_gfx908");
+        DEF_REGISTER(flat_scratch_hi,          Arch_amdgpu_gfx908| HWR | BITS_32 | 8 , "amdgpu_gfx908");
+        DEF_REGISTER(flat_scratch_all,         Arch_amdgpu_gfx908| HWR | BITS_32 | 7 , "amdgpu_gfx908");
+
+        DEF_REGISTER(m0,                       Arch_amdgpu_gfx908| HWR | BITS_32 | 10 , "amdgpu_gfx908");
+
+        DEF_REGISTER(src_literal,              Arch_amdgpu_gfx908| HWR | BITS_32 | 11 , "amdgpu_gfx908");// TODO
+        DEF_REGISTER(src_pops_exiting_wave_id, Arch_amdgpu_gfx908| HWR | BITS_32 | 12 , "amdgpu_gfx908");// TODO
+
+        DEF_REGISTER(src_private_base,         Arch_amdgpu_gfx908| HWR | BITS_32 | 13 , "amdgpu_gfx908");
+        DEF_REGISTER(src_private_limit,        Arch_amdgpu_gfx908| HWR | BITS_32 | 14 , "amdgpu_gfx908");
+        DEF_REGISTER(src_shared_base,          Arch_amdgpu_gfx908| HWR | BITS_32 | 15 , "amdgpu_gfx908");
+        DEF_REGISTER(src_shared_limit,         Arch_amdgpu_gfx908| HWR | BITS_32 | 16, "amdgpu_gfx908");
+
+        DEF_REGISTER(xnack_mask_lo,            Arch_amdgpu_gfx908| HWR | BITS_32 | 17, "amdgpu_gfx908");
+        DEF_REGISTER(xnack_mask_hi,            Arch_amdgpu_gfx908| HWR | BITS_32 | 18, "amdgpu_gfx908");
+
+        DEF_REGISTER(src_lds_direct,           Arch_amdgpu_gfx908| HWR | BITS_32 | 19 , "amdgpu_gfx908");
+        DEF_REGISTER(vmcnt,                    Arch_amdgpu_gfx908| HWR | BITS_32 | 20 , "amdgpu_gfx908");
+        DEF_REGISTER(expcnt,                   Arch_amdgpu_gfx908| HWR | BITS_32 | 21 , "amdgpu_gfx908");
+        DEF_REGISTER(lgkmcnt,                  Arch_amdgpu_gfx908| HWR | BITS_32 | 22 , "amdgpu_gfx908");
+
+
+
+        DEF_REGISTER(ttmp0,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 0 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp1,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 1 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp2,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 2 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp3,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 3 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp4,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 4 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp5,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 5 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp6,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 6 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp7,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 7 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp8,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 8 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp9,                    Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 9 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp10,                   Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 10 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp11,                   Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 11 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp12,                   Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 12 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp13,                   Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 13 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp14,                   Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 14 , "amdgpu_gfx908");
+        DEF_REGISTER(ttmp15,                   Arch_amdgpu_gfx908| TTMP_SGPR | BITS_32 | 15 , "amdgpu_gfx908");
+
+
+
+        DEF_REGISTER(mrt0,				Arch_amdgpu_gfx908| TGT | BITS_32 | 0 , "amdgpu_gfx908");
+        DEF_REGISTER(mrt1,				Arch_amdgpu_gfx908| TGT | BITS_32 | 1 , "amdgpu_gfx908");
+        DEF_REGISTER(mrt2,				Arch_amdgpu_gfx908| TGT | BITS_32 | 2 , "amdgpu_gfx908");
+        DEF_REGISTER(mrt3,				Arch_amdgpu_gfx908| TGT | BITS_32 | 3 , "amdgpu_gfx908");
+        DEF_REGISTER(mrt4,				Arch_amdgpu_gfx908| TGT | BITS_32 | 4 , "amdgpu_gfx908");
+        DEF_REGISTER(mrt5,				Arch_amdgpu_gfx908| TGT | BITS_32 | 5 , "amdgpu_gfx908");
+        DEF_REGISTER(mrt6,				Arch_amdgpu_gfx908| TGT | BITS_32 | 6 , "amdgpu_gfx908");
+        DEF_REGISTER(mrt7,				Arch_amdgpu_gfx908| TGT | BITS_32 | 7 , "amdgpu_gfx908");
+        DEF_REGISTER(mrtz,				Arch_amdgpu_gfx908| TGT | BITS_32 | 8 , "amdgpu_gfx908");
+        DEF_REGISTER(null,				Arch_amdgpu_gfx908| TGT | BITS_32 | 9 , "amdgpu_gfx908");
+        DEF_REGISTER(pos0,				Arch_amdgpu_gfx908| TGT | BITS_32 | 12 , "amdgpu_gfx908");
+        DEF_REGISTER(pos1,				Arch_amdgpu_gfx908| TGT | BITS_32 | 13 , "amdgpu_gfx908");
+        DEF_REGISTER(pos2,				Arch_amdgpu_gfx908| TGT | BITS_32 | 14 , "amdgpu_gfx908");
+        DEF_REGISTER(pos3,				Arch_amdgpu_gfx908| TGT | BITS_32 | 15 , "amdgpu_gfx908");
+        DEF_REGISTER(param0,				Arch_amdgpu_gfx908| TGT | BITS_32 | 32 , "amdgpu_gfx908");
+        DEF_REGISTER(param1,				Arch_amdgpu_gfx908| TGT | BITS_32 | 33 , "amdgpu_gfx908");
+        DEF_REGISTER(param2,				Arch_amdgpu_gfx908| TGT | BITS_32 | 34 , "amdgpu_gfx908");
+        DEF_REGISTER(param3,				Arch_amdgpu_gfx908| TGT | BITS_32 | 35 , "amdgpu_gfx908");
+        DEF_REGISTER(param4,				Arch_amdgpu_gfx908| TGT | BITS_32 | 36 , "amdgpu_gfx908");
+        DEF_REGISTER(param5,				Arch_amdgpu_gfx908| TGT | BITS_32 | 37 , "amdgpu_gfx908");
+        DEF_REGISTER(param6,				Arch_amdgpu_gfx908| TGT | BITS_32 | 38 , "amdgpu_gfx908");
+        DEF_REGISTER(param7,				Arch_amdgpu_gfx908| TGT | BITS_32 | 39 , "amdgpu_gfx908");
+        DEF_REGISTER(param8,				Arch_amdgpu_gfx908| TGT | BITS_32 | 40 , "amdgpu_gfx908");
+        DEF_REGISTER(param9,				Arch_amdgpu_gfx908| TGT | BITS_32 | 41 , "amdgpu_gfx908");
+        DEF_REGISTER(param10,				Arch_amdgpu_gfx908| TGT | BITS_32 | 42 , "amdgpu_gfx908");
+        DEF_REGISTER(param11,				Arch_amdgpu_gfx908| TGT | BITS_32 | 43 , "amdgpu_gfx908");
+        DEF_REGISTER(param12,				Arch_amdgpu_gfx908| TGT | BITS_32 | 44 , "amdgpu_gfx908");
+        DEF_REGISTER(param13,				Arch_amdgpu_gfx908| TGT | BITS_32 | 45 , "amdgpu_gfx908");
+        DEF_REGISTER(param14,				Arch_amdgpu_gfx908| TGT | BITS_32 | 46 , "amdgpu_gfx908");
+        DEF_REGISTER(param15,				Arch_amdgpu_gfx908| TGT | BITS_32 | 47 , "amdgpu_gfx908");
+        DEF_REGISTER(param16,				Arch_amdgpu_gfx908| TGT | BITS_32 | 48 , "amdgpu_gfx908");
+        DEF_REGISTER(param17,				Arch_amdgpu_gfx908| TGT | BITS_32 | 49 , "amdgpu_gfx908");
+        DEF_REGISTER(param18,				Arch_amdgpu_gfx908| TGT | BITS_32 | 50 , "amdgpu_gfx908");
+        DEF_REGISTER(param19,				Arch_amdgpu_gfx908| TGT | BITS_32 | 51 , "amdgpu_gfx908");
+        DEF_REGISTER(param20,				Arch_amdgpu_gfx908| TGT | BITS_32 | 52 , "amdgpu_gfx908");
+        DEF_REGISTER(param21,				Arch_amdgpu_gfx908| TGT | BITS_32 | 53 , "amdgpu_gfx908");
+        DEF_REGISTER(param22,				Arch_amdgpu_gfx908| TGT | BITS_32 | 54 , "amdgpu_gfx908");
+        DEF_REGISTER(param23,				Arch_amdgpu_gfx908| TGT | BITS_32 | 55 , "amdgpu_gfx908");
+        DEF_REGISTER(param24,				Arch_amdgpu_gfx908| TGT | BITS_32 | 56 , "amdgpu_gfx908");
+        DEF_REGISTER(param25,				Arch_amdgpu_gfx908| TGT | BITS_32 | 57 , "amdgpu_gfx908");
+        DEF_REGISTER(param26,				Arch_amdgpu_gfx908| TGT | BITS_32 | 58 , "amdgpu_gfx908");
+        DEF_REGISTER(param27,				Arch_amdgpu_gfx908| TGT | BITS_32 | 59 , "amdgpu_gfx908");
+        DEF_REGISTER(param28,				Arch_amdgpu_gfx908| TGT | BITS_32 | 60 , "amdgpu_gfx908");
+        DEF_REGISTER(param29,				Arch_amdgpu_gfx908| TGT | BITS_32 | 61 , "amdgpu_gfx908");
+        DEF_REGISTER(param30,				Arch_amdgpu_gfx908| TGT | BITS_32 | 62 , "amdgpu_gfx908");
+        DEF_REGISTER(param31,				Arch_amdgpu_gfx908| TGT | BITS_32 | 63 , "amdgpu_gfx908");
+
+        DEF_REGISTER(attr0,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 0 , "amdgpu_gfx908");
+        DEF_REGISTER(attr1,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 1 , "amdgpu_gfx908");
+        DEF_REGISTER(attr2,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 2 , "amdgpu_gfx908");
+        DEF_REGISTER(attr3,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 3 , "amdgpu_gfx908");
+        DEF_REGISTER(attr4,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 4 , "amdgpu_gfx908");
+        DEF_REGISTER(attr5,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 5 , "amdgpu_gfx908");
+        DEF_REGISTER(attr6,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 6 , "amdgpu_gfx908");
+        DEF_REGISTER(attr7,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 7 , "amdgpu_gfx908");
+        DEF_REGISTER(attr8,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 8 , "amdgpu_gfx908");
+        DEF_REGISTER(attr9,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 9 , "amdgpu_gfx908");
+        DEF_REGISTER(attr10,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 10 , "amdgpu_gfx908");
+        DEF_REGISTER(attr11,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 11 , "amdgpu_gfx908");
+        DEF_REGISTER(attr12,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 12 , "amdgpu_gfx908");
+        DEF_REGISTER(attr13,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 13 , "amdgpu_gfx908");
+        DEF_REGISTER(attr14,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 14 , "amdgpu_gfx908");
+        DEF_REGISTER(attr15,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 15 , "amdgpu_gfx908");
+        DEF_REGISTER(attr16,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 16 , "amdgpu_gfx908");
+        DEF_REGISTER(attr17,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 17 , "amdgpu_gfx908");
+        DEF_REGISTER(attr18,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 18 , "amdgpu_gfx908");
+        DEF_REGISTER(attr19,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 19 , "amdgpu_gfx908");
+        DEF_REGISTER(attr20,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 20 , "amdgpu_gfx908");
+        DEF_REGISTER(attr21,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 21 , "amdgpu_gfx908");
+        DEF_REGISTER(attr22,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 22 , "amdgpu_gfx908");
+        DEF_REGISTER(attr23,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 23 , "amdgpu_gfx908");
+        DEF_REGISTER(attr24,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 24 , "amdgpu_gfx908");
+        DEF_REGISTER(attr25,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 25 , "amdgpu_gfx908");
+        DEF_REGISTER(attr26,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 26 , "amdgpu_gfx908");
+        DEF_REGISTER(attr27,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 27 , "amdgpu_gfx908");
+        DEF_REGISTER(attr28,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 28 , "amdgpu_gfx908");
+        DEF_REGISTER(attr29,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 29 , "amdgpu_gfx908");
+        DEF_REGISTER(attr30,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 30 , "amdgpu_gfx908");
+        DEF_REGISTER(attr31,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 31 , "amdgpu_gfx908");
+        DEF_REGISTER(attr32,				Arch_amdgpu_gfx908| ATTR | BITS_32 | 32 , "amdgpu_gfx908");
+
+
+
+        DEF_REGISTER(p10,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 32 , "amdgpu_gfx908");
+        DEF_REGISTER(p20,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 32 , "amdgpu_gfx908");
+        DEF_REGISTER(p0,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 32 , "amdgpu_gfx908");
+
+#include "AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h"
+    }
+
 
     namespace amdgpu_cdna2{
         //0xff000000  0x00ff0000      0x0000ff00      0x000000ff

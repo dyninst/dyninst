@@ -2,7 +2,7 @@
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/instructionAPI/src
-    ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/cdna2
+    ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/gfx908
     ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/vega)
 
 set(SRC_LIST
@@ -22,6 +22,7 @@ set(SRC_LIST
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.C
+    src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
     src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C
     src/InstructionDecoderImpl.C)
 set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
@@ -80,6 +81,8 @@ endif()
 
 if(NOT finalizeOperandsExtraFlags STREQUAL "")
     set_source_files_properties(src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C
+                                PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+    set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
                                 PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
