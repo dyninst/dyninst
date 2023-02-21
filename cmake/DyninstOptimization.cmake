@@ -55,10 +55,11 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   # Used in stackwalk
   set(DYNINST_FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
 
-  set(_DEBUG "-Og -g3 ${DYNINST_FORCE_FRAME_POINTER}")
-  set(_RELEASE "-O3 -g3")
-  set(_RELWITHDEBINFO "-O2 -g3")
-  set(_MINSIZEREL "-Os")
+  # Dyninst relies on `assert` for correctness. Never let CMake disable it
+  set(_DEBUG "-Og -g3 ${DYNINST_FORCE_FRAME_POINTER} -UNDEBUG")
+  set(_RELEASE "-O3 -g3 -UNDEBUG")
+  set(_RELWITHDEBINFO "-O2 -g3 -UNDEBUG")
+  set(_MINSIZEREL "-Os -UNDEBUG")
 
   # Ensure each library is fully linked
   list(APPEND DYNINST_LINK_FLAGS "-Wl,--no-undefined")
@@ -73,9 +74,9 @@ elseif(MSVC)
   set(DYNINST_FORCE_FRAME_POINTER "/Oy-")
 
   set(_DEBUG "/MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER}")
-  set(_RELEASE "/MP /O3 /MD")
-  set(_RELWITHDEBINFO "/MP /O2 /Zi /MD")
-  set(_MINSIZEREL "/MP /O1 /MD")
+  set(_RELEASE "/MP /O3 /MD /D_DEBUG")
+  set(_RELWITHDEBINFO "/MP /O2 /Zi /MD /D_DEBUG")
+  set(_MINSIZEREL "/MP /O1 /MD /D_DEBUG")
 else()
   message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
 endif()
