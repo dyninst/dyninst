@@ -2284,3 +2284,5 @@ insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126),false,true,true);
 break;
 }
 }
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VINTRPOperands(){
+}
