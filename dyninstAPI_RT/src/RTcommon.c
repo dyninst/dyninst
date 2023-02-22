@@ -134,13 +134,13 @@ int fakeTickCount;
 //   https://sourceware.org/bugzilla/show_bug.cgi?id=14898
 static TLS_VAR short DYNINST_tls_tramp_guard = 1;
 
-DLLEXPORT int DYNINST_lock_tramp_guard()
+DLLEXPORT int DYNINST_lock_tramp_guard(void)
 {
   if(!DYNINST_tls_tramp_guard) return 0;
   DYNINST_tls_tramp_guard = 0;
   return 1;
 }
-DLLEXPORT void DYNINST_unlock_tramp_guard()
+DLLEXPORT void DYNINST_unlock_tramp_guard(void)
 {
   DYNINST_tls_tramp_guard = 1;
 }
@@ -154,7 +154,7 @@ DECLARE_DYNINST_LOCK(DYNINST_trace_lock);
  * in initFPU
  **/
 double DYNINSTdummydouble = 4321.71;
-static void initFPU()
+static void initFPU(void)
 {
    double x = 17.1234;
    DYNINSTdummydouble *= x;
@@ -164,7 +164,7 @@ static void initFPU()
  * This function is called in both static and dynamic rewriting, on
  * all platforms that support binary rewriting, but before DYNINSTinit
  **/
-void DYNINSTBaseInit()
+void DYNINSTBaseInit(void)
 {
 #if defined(cap_mutatee_traps)
    DYNINSTinitializeTrapHandler();
@@ -185,7 +185,7 @@ void DYNINSTBaseInit()
  * This is only called in the Dynamic instrumentation case.  Static
  * libraries don't call this.
  **/
-void DYNINSTinit()
+void DYNINSTinit(void)
 {
    rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to DYNINSTinit()\n", __FILE__, __LINE__);
    initFPU();
@@ -215,13 +215,13 @@ void DYNINSTinit()
  * Does what it's called. Used by the paradyn daemon as a default in certain
  * cases (MT in particular)
  **/
-int DYNINSTreturnZero()
+int DYNINSTreturnZero(void)
 {
    return 0;
 }
 
 /* Used to by dyninst breakpoint snippet */
-void DYNINST_snippetBreakpoint() {
+void DYNINST_snippetBreakpoint(void) {
    tc_lock_lock(&DYNINST_trace_lock);
 
    /* Set the state so the mutator knows what's up */
@@ -236,7 +236,7 @@ void DYNINST_snippetBreakpoint() {
 }
 
 /* Used to instrument (and report) the entry of fork */
-DLLEXPORT void DYNINST_instForkEntry() {
+DLLEXPORT void DYNINST_instForkEntry(void) {
    tc_lock_lock(&DYNINST_trace_lock);
 
    /* Set the state so the mutator knows what's up */
@@ -740,7 +740,7 @@ void* dyninstTrapTranslate(void *source,
    return target;
 }
 
-DLLEXPORT void DYNINSTtrapFunction(){
+DLLEXPORT void DYNINSTtrapFunction(void){
    __asm__ __volatile__(
            "nop\n"
            :::);
