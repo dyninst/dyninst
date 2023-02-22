@@ -41,18 +41,18 @@ namespace Dyninst {
             printf("[%s:%u]insn_debug " format, FILE__, __LINE__, ## __VA_ARGS__); \
         }while(0)
 
-        struct amdgpu_cdna2_insn_entry;
+        struct amdgpu_gfx90a_insn_entry;
         struct amdgpu_mask_entry;
 
-        class InstructionDecoder_amdgpu_cdna2 : public InstructionDecoderImpl {
-            friend struct amdgpu_cdna2_insn_entry;
+        class InstructionDecoder_amdgpu_gfx90a : public InstructionDecoderImpl {
+            friend struct amdgpu_gfx90a_insn_entry;
             friend struct amdgpu_mask_entry;
             enum DecodeFamily {sopp};
 
             public:
-    		InstructionDecoder_amdgpu_cdna2(Architecture a) : InstructionDecoderImpl(a) {}
+    		InstructionDecoder_amdgpu_gfx90a(Architecture a) : InstructionDecoderImpl(a) {}
 
-            virtual ~InstructionDecoder_amdgpu_cdna2() = default;
+            virtual ~InstructionDecoder_amdgpu_gfx90a() = default;
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
 
@@ -64,7 +64,7 @@ namespace Dyninst {
 
             virtual bool decodeOperands(const Instruction *insn_to_complete);
 
-            bool decodeOperands(const amdgpu_cdna2_insn_entry & insn_entry);
+            bool decodeOperands(const amdgpu_gfx90a_insn_entry & insn_entry);
 
             virtual void doDelayedDecode(const Instruction *insn_to_complete);
 
@@ -211,7 +211,6 @@ namespace Dyninst {
 
 #define IS_LD_ST() (isLoad || isStore )
 
-            unsigned int num_elements{1};  // the number of elements that will be load or store by each instruction
             bool isSMEM{}; // this is set when using smem instruction
             bool isLoad{}; // this is set when a smem instruction is load, will set number of elements that are loaded at the same time
             bool isStore{}; // similar to isLoad, but for store instructions
@@ -266,12 +265,6 @@ namespace Dyninst {
 
 
 
-            template<unsigned int num_elements>
-                void setLoad(){isLoad = true; this->num_elements = num_elements; }
-
-            template<unsigned int num_elements>
-                void setStore() {isStore = true;this->num_elements = num_elements;}
-
             void setScratch() {isScratch = true;}
 
             void setBuffer() {isBuffer = true;}
@@ -309,7 +302,7 @@ namespace Dyninst {
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t num_elements = 1);
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
             void specialHandle();
-            #include "amdgpu_cdna2_decoder_impl.h"    
+            #include "amdgpu_gfx90a_decoder_impl.h"    
             #include "decodeOperands.h"    
         };
     }

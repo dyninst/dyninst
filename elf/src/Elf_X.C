@@ -1831,7 +1831,7 @@ Dyninst::Architecture Elf_X::getArch() const
                 //cerr << " dealing with amd gpu , mach = "  << std::hex << ef_amdgpu_mach << endl;
                 switch(ef_amdgpu_mach){
                     case 0x3f:
-                        return Dyninst::Arch_amdgpu_cdna2;
+                        return Dyninst::Arch_amdgpu_gfx90a;
                     case 0x30:
                         return Dyninst::Arch_amdgpu_gfx908;
                     case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x31:

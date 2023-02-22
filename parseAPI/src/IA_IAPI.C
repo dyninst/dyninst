@@ -122,7 +122,7 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
             return new IA_aarch64(dec_, where_, o, r, isrc, curBlk_);
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
 
             return new IA_amdgpu(dec_, where_, o, r, isrc, curBlk_);
  
@@ -146,7 +146,7 @@ void IA_IAPI::initASTs()
                 framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
                 framePtr[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_vega)));
                 framePtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx908)));
-                framePtr[Arch_amdgpu_cdna2] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_cdna2)));
+                framePtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx90a)));
             }
             if(stackPtr.empty())
             {
@@ -157,7 +157,7 @@ void IA_IAPI::initASTs()
                 stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
                 stackPtr[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_vega)));
                 stackPtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx908)));
-                stackPtr[Arch_amdgpu_cdna2] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_cdna2)));
+                stackPtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx90a)));
             }
             if(thePC.empty())
             {
@@ -168,7 +168,7 @@ void IA_IAPI::initASTs()
                 thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
                 thePC[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_vega)));
                 thePC[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx908)));
-                thePC[Arch_amdgpu_cdna2] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_cdna2)));
+                thePC[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx90a)));
             }
             ANNOTATE_HAPPENS_BEFORE(&IA_IAPI::ptrInit);
     });

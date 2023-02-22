@@ -92,7 +92,7 @@ namespace Dyninst
 
     std::string RegisterAST::format(Architecture arch, formatStyle f) const
     {
-        if(arch == Arch_amdgpu_vega || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_cdna2){
+        if(arch == Arch_amdgpu_vega || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a){
             return RegisterAST::format(f);
         }
         return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());
@@ -116,23 +116,23 @@ namespace Dyninst
 
 DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
 
-            if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_cdna2::SGPR || regClass == amdgpu_vega::SGPR){
+            if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || regClass == amdgpu_vega::SGPR){
                 return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
-            if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_cdna2::VGPR || regClass == amdgpu_vega::VGPR){
+            if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || regClass == amdgpu_vega::VGPR){
                 return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
-            if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_cdna2::ACC_VGPR){
+r           if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR){
                 return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
 DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
 
-            if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_cdna2::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
+            if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
                 return "VCC";
-            if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_cdna2::exec_lo || m_Reg == amdgpu_vega::exec_lo)
+            if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || m_Reg == amdgpu_vega::exec_lo)
                 return "EXEC";
 
        
@@ -148,23 +148,23 @@ DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
             // are the two *::VGPR constants
 DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
 
-            if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_cdna2::SGPR || regClass == amdgpu_vega::SGPR){
+            if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || regClass == amdgpu_vega::SGPR){
                 return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
-            if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_cdna2::VGPR || regClass == amdgpu_vega::VGPR){
+            if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || regClass == amdgpu_vega::VGPR){
                 return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
-            if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_cdna2::ACC_VGPR){
+            if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR){
                 return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
 DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
 
-            if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_cdna2::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
+            if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
                 return "VCC";
-            if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_cdna2::exec_lo || m_Reg == amdgpu_vega::exec_lo)
+            if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || m_Reg == amdgpu_vega::exec_lo)
                 return "EXEC";
 
             name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";

@@ -17,6 +17,7 @@ static bool IS_ENC_MIMG(uint64_t I);
 static bool IS_ENC_FLAT(uint64_t I);
 static bool IS_ENC_FLAT_GLBL(uint64_t I);
 static bool IS_ENC_FLAT_SCRATCH(uint64_t I);
+static bool IS_SOPK_INST_LITERAL_(uint64_t I);
 static bool IS_ENC_VOP2_LITERAL(uint64_t I);
 static bool IS_ENC_VOP3B(uint64_t I);
 static bool IS_ENC_VOP3P_MFMA(uint64_t I);
@@ -40,35 +41,37 @@ enum InstructionFamily{
 	ENC_FLAT = 16,
 	ENC_FLAT_GLBL = 17,
 	ENC_FLAT_SCRATCH = 18,
-	ENC_VOP2_LITERAL = 19,
-	ENC_VOP3B = 20,
-	ENC_VOP3P_MFMA = 21,
+	SOPK_INST_LITERAL_ = 19,
+	ENC_VOP2_LITERAL = 20,
+	ENC_VOP3B = 21,
+	ENC_VOP3P_MFMA = 22,
 };
-InstructionFamily instr_family{};
-typedef void (InstructionDecoder_amdgpu_cdna2::*func_ptr)(void);
-func_ptr decode_lookup_table [22] = {
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOP1),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOPC),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOPP),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOPK),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SOP2),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_SMEM),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP1),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOPC),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VINTRP),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3P),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_DS),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_MUBUF),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_MTBUF),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_MIMG),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_GLBL),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_SCRATCH),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2_LITERAL),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3B),
-	(&InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3P_MFMA),
+InstructionFamily instr_family;
+typedef void (InstructionDecoder_amdgpu_gfx90a::*func_ptr)(void);
+func_ptr decode_lookup_table [23] = {
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP1),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPC),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPP),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPK),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP2),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_SMEM),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP1),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOPC),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VINTRP),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_DS),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_MUBUF),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_MTBUF),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_MIMG),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_GLBL),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_SCRATCH),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeSOPK_INST_LITERAL_),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2_LITERAL),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3B),
+	(&InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P_MFMA),
 };
 typedef struct layout_ENC_SOP1{
 	uint16_t  ENCODING : 9 ;
@@ -275,6 +278,13 @@ typedef struct layout_ENC_FLAT_SCRATCH{
 	uint8_t  SLC : 1 ;
 	uint8_t  VDST : 8 ;
 }layout_ENC_FLAT_SCRATCH;
+typedef struct layout_SOPK_INST_LITERAL_{
+	uint8_t  ENCODING : 4 ;
+	uint8_t  OP : 5 ;
+	uint8_t  SDST : 7 ;
+	uint16_t  SIMM16 : 16 ;
+	uint32_t  SIMM32 : 32 ;
+}layout_SOPK_INST_LITERAL_;
 typedef struct layout_ENC_VOP2_LITERAL{
 	uint8_t  ENCODING : 1 ;
 	uint8_t  OP : 6 ;
@@ -328,6 +338,7 @@ union insn_layout{
 	layout_ENC_FLAT ENC_FLAT;
 	layout_ENC_FLAT_GLBL ENC_FLAT_GLBL;
 	layout_ENC_FLAT_SCRATCH ENC_FLAT_SCRATCH;
+	layout_SOPK_INST_LITERAL_ SOPK_INST_LITERAL_;
 	layout_ENC_VOP2_LITERAL ENC_VOP2_LITERAL;
 	layout_ENC_VOP3B ENC_VOP3B;
 	layout_ENC_VOP3P_MFMA ENC_VOP3P_MFMA;
@@ -370,6 +381,8 @@ void decodeENC_FLAT_GLBL();
 void finalizeENC_FLAT_GLBLOperands();
 void decodeENC_FLAT_SCRATCH();
 void finalizeENC_FLAT_SCRATCHOperands();
+void decodeSOPK_INST_LITERAL_();
+void finalizeSOPK_INST_LITERAL_Operands();
 void decodeENC_VOP2_LITERAL();
 void finalizeENC_VOP2_LITERALOperands();
 void decodeENC_VOP3B();

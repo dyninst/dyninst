@@ -1,4 +1,4 @@
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOP1(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOP1(uint64_t I){
 	switch( I & 4286643968 ){
 	case 3196059648:
 	case 3196059904:
@@ -59,7 +59,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOP1(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPC(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOPC(uint64_t I){
 	switch( I & 4294901760 ){
 	case 3204448256:
 	case 3204513792:
@@ -86,7 +86,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPC(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPP(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOPP(uint64_t I){
 	switch( I & 4294901760 ){
 	case 3212836864:
 	case 3212902400:
@@ -124,7 +124,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPP(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPK(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOPK(uint64_t I){
 	switch( I & 4286578688 ){
 	case 2952790016:
 	case 2961178624:
@@ -145,14 +145,13 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOPK(uint64_t I){
 	case 3103784960:
 	case 3095396352:
 	case 3128950784:
-	case 3120562176:
 	case 3087007744:
 		return true;
 	default:
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOP2(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOP2(uint64_t I){
 	switch( I & 4286578688 ){
 	case 2147483648:
 	case 2155872256:
@@ -212,7 +211,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SOP2(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SMEM(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SMEM(uint64_t I){
 	switch( I & 4294705152 ){
 	case 3221225472:
 	case 3221487616:
@@ -303,7 +302,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_SMEM(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP1(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP1(uint64_t I){
 	switch( I & 4261543424 ){
 	case 2113929216:
 	case 2113929728:
@@ -389,7 +388,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP1(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOPC(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOPC(uint64_t I){
 	switch( I & 4294836224 ){
 	case 2082471936:
 	case 2082603008:
@@ -594,7 +593,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOPC(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP2(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP2(uint64_t I){
 	switch( I & 4261412864 ){
 	case 0:
 	case 33554432:
@@ -659,13 +658,13 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP2(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VINTRP(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VINTRP(uint64_t I){
 	switch( I & 4227858432 ){
 	default:
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3P(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP3P(uint64_t I){
 	switch( I & 4294901760 ){
 	case 3548381184:
 	case 3548446720:
@@ -707,7 +706,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3P(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP3(uint64_t I){
 	switch( I & 4294901760 ){
 	case 3510632448:
 	case 3510697984:
@@ -1143,7 +1142,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_DS(uint64_t I){
 	switch( I & 4261281792 ){
 	case 3623878656:
 	case 3624009728:
@@ -1274,7 +1273,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_DS(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MUBUF(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_MUBUF(uint64_t I){
 	switch( I & 4261150720 ){
 	case 3758096384:
 	case 3758358528:
@@ -1357,7 +1356,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MUBUF(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MTBUF(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_MTBUF(uint64_t I){
 	switch( I & 4228349952 ){
 	case 3892314112:
 	case 3892346880:
@@ -1380,7 +1379,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MTBUF(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MIMG(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_MIMG(uint64_t I){
 	switch( I & 4261150720 ){
 	case 4026531840:
 	case 4026793984:
@@ -1412,7 +1411,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_MIMG(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_FLAT(uint64_t I){
 	switch( I & 4261199872 ){
 	case 3695181824:
 	case 3695443968:
@@ -1470,7 +1469,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_GLBL(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_FLAT_GLBL(uint64_t I){
 	switch( I & 4261199872 ){
 	case 3695214592:
 	case 3695476736:
@@ -1530,7 +1529,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_GLBL(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_SCRATCH(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_FLAT_SCRATCH(uint64_t I){
 	switch( I & 4261199872 ){
 	case 3695198208:
 	case 3695460352:
@@ -1559,7 +1558,15 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_FLAT_SCRATCH(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP2_LITERAL(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_SOPK_INST_LITERAL_(uint64_t I){
+	switch( I & 4286578688 ){
+	case 3120562176:
+		return true;
+	default:
+		return false;
+	}
+}
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP2_LITERAL(uint64_t I){
 	switch( I & 4261412864 ){
 	case 771751936:
 	case 805306368:
@@ -1570,7 +1577,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP2_LITERAL(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3B(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP3B(uint64_t I){
 	switch( I & 4294901760 ){
 	case 3508076544:
 	case 3508142080:
@@ -1587,7 +1594,7 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3B(uint64_t I){
 		return false;
 	}
 }
-bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3P_MFMA(uint64_t I){
+bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP3P_MFMA(uint64_t I){
 	switch( I & 4294901760 ){
 	case 3552575488:
 	case 3552641024:
@@ -1621,58 +1628,58 @@ bool InstructionDecoder_amdgpu_cdna2::IS_ENC_VOP3P_MFMA(uint64_t I){
 		return false;
 	}
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_SOP1(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP1(){
 	insn_size = 4;
 	layout_ENC_SOP1 & layout = insn_layout.ENC_SOP1;
 	layout.ENCODING = longfield<23,31>(insn_long);
 	layout.OP = longfield<8,15>(insn_long);
 	layout.SDST = longfield<16,22>(insn_long);
 	layout.SSRC0 = longfield<0,7>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_SOP1_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOP1_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOP1_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP1_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP1_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOP1_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOP1Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_SOPC(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPC(){
 	insn_size = 4;
 	layout_ENC_SOPC & layout = insn_layout.ENC_SOPC;
 	layout.ENCODING = longfield<23,31>(insn_long);
 	layout.OP = longfield<16,22>(insn_long);
 	layout.SSRC0 = longfield<0,7>(insn_long);
 	layout.SSRC1 = longfield<8,15>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_SOPC_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOPC_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOPC_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPC_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPC_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOPC_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOPCOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_SOPP(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPP(){
 	insn_size = 4;
 	layout_ENC_SOPP & layout = insn_layout.ENC_SOPP;
 	layout.ENCODING = longfield<23,31>(insn_long);
 	layout.OP = longfield<16,22>(insn_long);
 	layout.SIMM16 = longfield<0,15>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPP_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPP_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOPP_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOPPOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_SOPK(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPK(){
 	insn_size = 4;
 	layout_ENC_SOPK & layout = insn_layout.ENC_SOPK;
 	layout.ENCODING = longfield<28,31>(insn_long);
 	layout.OP = longfield<23,27>(insn_long);
 	layout.SDST = longfield<16,22>(insn_long);
 	layout.SIMM16 = longfield<0,15>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_SOPK_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOPK_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOPK_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPK_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPK_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOPK_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOPKOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_SOP2(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP2(){
 	insn_size = 4;
 	layout_ENC_SOP2 & layout = insn_layout.ENC_SOP2;
 	layout.ENCODING = longfield<30,31>(insn_long);
@@ -1680,13 +1687,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_SOP2(){
 	layout.SDST = longfield<16,22>(insn_long);
 	layout.SSRC0 = longfield<0,7>(insn_long);
 	layout.SSRC1 = longfield<8,15>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_SOP2_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOP2_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOP2_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP2_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP2_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOP2_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOP2Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_SMEM(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_SMEM(){
 	insn_size = 8;
 	layout_ENC_SMEM & layout = insn_layout.ENC_SMEM;
 	layout.ENCODING = longfield<26,31>(insn_long);
@@ -1699,39 +1706,39 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_SMEM(){
 	layout.SDATA = longfield<6,12>(insn_long);
 	layout.SOFFSET = longfield<57,63>(insn_long);
 	layout.SOFFSET_EN = longfield<14,14>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_SMEM_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SMEM_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SMEM_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_SMEM_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SMEM_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SMEM_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SMEMOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP1(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP1(){
 	insn_size = 4;
 	layout_ENC_VOP1 & layout = insn_layout.ENC_VOP1;
 	layout.ENCODING = longfield<25,31>(insn_long);
 	layout.OP = longfield<9,16>(insn_long);
 	layout.SRC0 = longfield<0,8>(insn_long);
 	layout.VDST = longfield<17,24>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP1_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP1_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP1_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP1Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOPC(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOPC(){
 	insn_size = 4;
 	layout_ENC_VOPC & layout = insn_layout.ENC_VOPC;
 	layout.ENCODING = longfield<25,31>(insn_long);
 	layout.OP = longfield<17,24>(insn_long);
 	layout.SRC0 = longfield<0,8>(insn_long);
 	layout.VSRC1 = longfield<9,16>(insn_long);
-	assert( layout.OP >= 0 && layout.OP <= (sizeof(amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table[0]) - 1) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP <= (sizeof(amdgpu_gfx90a_insn_entry::ENC_VOPC_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOPC_insn_table[0]) - 1) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOPC_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOPCOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2(){
 	insn_size = 4;
 	layout_ENC_VOP2 & layout = insn_layout.ENC_VOP2;
 	layout.ENCODING = longfield<31,31>(insn_long);
@@ -1739,13 +1746,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2(){
 	layout.SRC0 = longfield<0,8>(insn_long);
 	layout.VDST = longfield<17,24>(insn_long);
 	layout.VSRC1 = longfield<9,16>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP2_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP2Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VINTRP(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VINTRP(){
 	insn_size = 4;
 	layout_ENC_VINTRP & layout = insn_layout.ENC_VINTRP;
 	layout.ATTR = longfield<10,15>(insn_long);
@@ -1754,13 +1761,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_VINTRP(){
 	layout.OP = longfield<16,17>(insn_long);
 	layout.VDST = longfield<18,25>(insn_long);
 	layout.VSRC = longfield<0,7>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VINTRP_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VINTRP_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VINTRP_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VINTRP_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VINTRP_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VINTRP_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VINTRPOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3P(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P(){
 	insn_size = 8;
 	layout_ENC_VOP3P & layout = insn_layout.ENC_VOP3P;
 	layout.CLAMP = longfield<15,15>(insn_long);
@@ -1775,13 +1782,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3P(){
 	layout.SRC1 = longfield<41,49>(insn_long);
 	layout.SRC2 = longfield<50,58>(insn_long);
 	layout.VDST = longfield<0,7>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3P_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3P_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3POperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3(){
 	insn_size = 8;
 	layout_ENC_VOP3 & layout = insn_layout.ENC_VOP3;
 	layout.ABS = longfield<8,10>(insn_long);
@@ -1795,13 +1802,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3(){
 	layout.SRC1 = longfield<41,49>(insn_long);
 	layout.SRC2 = longfield<50,58>(insn_long);
 	layout.VDST = longfield<0,7>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_DS(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_DS(){
 	insn_size = 8;
 	layout_ENC_DS & layout = insn_layout.ENC_DS;
 	layout.ACC = longfield<25,25>(insn_long);
@@ -1814,13 +1821,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_DS(){
 	layout.OFFSET1 = longfield<8,15>(insn_long);
 	layout.OP = longfield<17,24>(insn_long);
 	layout.VDST = longfield<56,63>(insn_long);
-	assert( layout.OP >= 0 && layout.OP <= (sizeof(amdgpu_cdna2_insn_entry::ENC_DS_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_DS_insn_table[0]) - 1) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_DS_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP <= (sizeof(amdgpu_gfx90a_insn_entry::ENC_DS_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_DS_insn_table[0]) - 1) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_DS_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_DSOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_MUBUF(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_MUBUF(){
 	insn_size = 8;
 	layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
 	layout.ACC = longfield<55,55>(insn_long);
@@ -1837,13 +1844,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_MUBUF(){
 	layout.SRSRC = (longfield<48,52>(insn_long) << 2 ) | 0 ;
 	layout.VADDR = longfield<32,39>(insn_long);
 	layout.VDATA = longfield<40,47>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_MUBUF_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_MUBUF_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_MUBUF_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_MUBUFOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_MTBUF(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_MTBUF(){
 	insn_size = 8;
 	layout_ENC_MTBUF & layout = insn_layout.ENC_MTBUF;
 	layout.ACC = longfield<55,55>(insn_long);
@@ -1861,13 +1868,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_MTBUF(){
 	layout.SRSRC = (longfield<48,52>(insn_long) << 2 ) | 0 ;
 	layout.VADDR = longfield<32,39>(insn_long);
 	layout.VDATA = longfield<40,47>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_MTBUF_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_MTBUF_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_MTBUF_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_MTBUFOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_MIMG(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_MIMG(){
 	insn_size = 8;
 	layout_ENC_MIMG & layout = insn_layout.ENC_MIMG;
 	layout.A16 = longfield<15,15>(insn_long);
@@ -1887,13 +1894,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_MIMG(){
 	layout.UNORM = longfield<12,12>(insn_long);
 	layout.VADDR = longfield<32,39>(insn_long);
 	layout.VDATA = longfield<40,47>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_MIMG_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_MIMG_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_MIMG_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_MIMGOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT(){
 	insn_size = 8;
 	layout_ENC_FLAT & layout = insn_layout.ENC_FLAT;
 	layout.ACC = longfield<55,55>(insn_long);
@@ -1909,13 +1916,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT(){
 	layout.SEG = longfield<14,15>(insn_long);
 	layout.SLC = longfield<17,17>(insn_long);
 	layout.VDST = longfield<56,63>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_FLAT_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_FLATOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_GLBL(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_GLBL(){
 	insn_size = 8;
 	layout_ENC_FLAT_GLBL & layout = insn_layout.ENC_FLAT_GLBL;
 	layout.ACC = longfield<55,55>(insn_long);
@@ -1931,13 +1938,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_GLBL(){
 	layout.SEG = longfield<14,15>(insn_long);
 	layout.SLC = longfield<17,17>(insn_long);
 	layout.VDST = longfield<56,63>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_GLBL_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_GLBL_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_FLAT_GLBL_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_FLAT_GLBLOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_SCRATCH(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_SCRATCH(){
 	insn_size = 8;
 	layout_ENC_FLAT_SCRATCH & layout = insn_layout.ENC_FLAT_SCRATCH;
 	layout.ACC = longfield<55,55>(insn_long);
@@ -1953,13 +1960,27 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_FLAT_SCRATCH(){
 	layout.SEG = longfield<14,15>(insn_long);
 	layout.SLC = longfield<17,17>(insn_long);
 	layout.VDST = longfield<56,63>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_SCRATCH_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_SCRATCH_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_FLAT_SCRATCH_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_FLAT_SCRATCHOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2_LITERAL(){
+void InstructionDecoder_amdgpu_gfx90a::decodeSOPK_INST_LITERAL_(){
+	insn_size = 8;
+	layout_SOPK_INST_LITERAL_ & layout = insn_layout.SOPK_INST_LITERAL_;
+	layout.ENCODING = longfield<28,31>(insn_long);
+	layout.OP = longfield<23,27>(insn_long);
+	layout.SDST = longfield<16,22>(insn_long);
+	layout.SIMM16 = longfield<0,15>(insn_long);
+	layout.SIMM32 = longfield<32,63>(insn_long);
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::SOPK_INST_LITERAL__insn_table) / sizeof(amdgpu_gfx90a_insn_entry::SOPK_INST_LITERAL__insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::SOPK_INST_LITERAL__insn_table[layout.OP];
+	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+	finalizeSOPK_INST_LITERAL_Operands();
+	this->insn_in_progress->updateSize(insn_size + immLen);
+}
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2_LITERAL(){
 	insn_size = 8;
 	layout_ENC_VOP2_LITERAL & layout = insn_layout.ENC_VOP2_LITERAL;
 	layout.ENCODING = longfield<31,31>(insn_long);
@@ -1968,13 +1989,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP2_LITERAL(){
 	layout.SRC0 = longfield<0,8>(insn_long);
 	layout.VDST = longfield<17,24>(insn_long);
 	layout.VSRC1 = longfield<9,16>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_LITERAL_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_LITERAL_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP2_LITERAL_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_LITERAL_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_LITERAL_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP2_LITERAL_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP2_LITERALOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3B(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3B(){
 	insn_size = 8;
 	layout_ENC_VOP3B & layout = insn_layout.ENC_VOP3B;
 	layout.CLAMP = longfield<15,15>(insn_long);
@@ -1987,13 +2008,13 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3B(){
 	layout.SRC1 = longfield<41,49>(insn_long);
 	layout.SRC2 = longfield<50,58>(insn_long);
 	layout.VDST = longfield<0,7>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3B_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3B_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3B_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3B_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3B_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3B_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3BOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3P_MFMA(){
+void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P_MFMA(){
 	insn_size = 8;
 	layout_ENC_VOP3P_MFMA & layout = insn_layout.ENC_VOP3P_MFMA;
 	layout.ABID = longfield<11,14>(insn_long);
@@ -2007,191 +2028,199 @@ void InstructionDecoder_amdgpu_cdna2::decodeENC_VOP3P_MFMA(){
 	layout.SRC1 = longfield<41,49>(insn_long);
 	layout.SRC2 = longfield<50,58>(insn_long);
 	layout.VDST = longfield<0,7>(insn_long);
-	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_MFMA_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_MFMA_insn_table[0]) && "Opcode over or underflow");
-	const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3P_MFMA_insn_table[layout.OP];
+	assert( layout.OP >= 0 && layout.OP < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_MFMA_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_MFMA_insn_table[0]) && "Opcode over or underflow");
+	const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3P_MFMA_insn_table[layout.OP];
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3P_MFMAOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
 }
-void InstructionDecoder_amdgpu_cdna2::mainDecodeOpcode(){
+void InstructionDecoder_amdgpu_gfx90a::mainDecodeOpcode(){
 	if(IS_ENC_SOP1(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<8,15>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_SOP1_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOP1_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOP1_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP1_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP1_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOP1_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_SOP1;
 	}
 	else 	if(IS_ENC_SOPC(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<16,22>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_SOPC_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOPC_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOPC_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPC_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPC_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOPC_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_SOPC;
 	}
 	else 	if(IS_ENC_SOPP(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<16,22>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOPP_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPP_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPP_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOPP_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_SOPP;
 	}
 	else 	if(IS_ENC_SOPK(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<23,27>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_SOPK_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOPK_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOPK_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPK_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOPK_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOPK_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_SOPK;
 	}
 	else 	if(IS_ENC_SOP2(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<23,29>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_SOP2_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SOP2_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SOP2_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP2_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SOP2_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SOP2_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_SOP2;
 	}
 	else 	if(IS_ENC_SMEM(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<18,25>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_SMEM_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_SMEM_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_SMEM_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_SMEM_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_SMEM_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_SMEM_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_SMEM;
 	}
 	else 	if(IS_ENC_VOP1(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<9,16>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP1_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP1_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP1_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP1_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOP1;
 	}
 	else 	if(IS_ENC_VOPC(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<17,24>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOPC_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOPC_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOPC_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOPC_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOPC;
 	}
 	else 	if(IS_ENC_VOP2(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<25,30>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP2_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP2_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOP2;
 	}
 	else 	if(IS_ENC_VINTRP(insn_long)){
 		insn_size = 4;
 		uint32_t op_value = longfield<16,17>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VINTRP_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VINTRP_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VINTRP_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VINTRP_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VINTRP_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VINTRP_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VINTRP;
 	}
 	else 	if(IS_ENC_VOP3P(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<16,22>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3P_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3P_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOP3P;
 	}
 	else 	if(IS_ENC_VOP3(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<16,25>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOP3;
 	}
 	else 	if(IS_ENC_DS(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<17,24>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_DS_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_DS_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_DS_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_DS_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_DS_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_DS_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_DS;
 	}
 	else 	if(IS_ENC_MUBUF(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<18,24>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MUBUF_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_MUBUF_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_MUBUF_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_MUBUF_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_MUBUF;
 	}
 	else 	if(IS_ENC_MTBUF(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<15,18>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MTBUF_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_MTBUF_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_MTBUF_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_MTBUF_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_MTBUF;
 	}
 	else 	if(IS_ENC_MIMG(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<18,24>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_MIMG_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_MIMG_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_MIMG_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_MIMG_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_MIMG;
 	}
 	else 	if(IS_ENC_FLAT(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<18,24>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_FLAT_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_FLAT;
 	}
 	else 	if(IS_ENC_FLAT_GLBL(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<18,24>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_GLBL_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_GLBL_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_GLBL_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_FLAT_GLBL_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_FLAT_GLBL;
 	}
 	else 	if(IS_ENC_FLAT_SCRATCH(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<18,24>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_FLAT_SCRATCH_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_SCRATCH_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_FLAT_SCRATCH_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_FLAT_SCRATCH_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_FLAT_SCRATCH;
+	}
+	else 	if(IS_SOPK_INST_LITERAL_(insn_long)){
+		insn_size = 8;
+		uint32_t op_value = longfield<23,27>(insn_long);
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::SOPK_INST_LITERAL__insn_table) / sizeof(amdgpu_gfx90a_insn_entry::SOPK_INST_LITERAL__insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::SOPK_INST_LITERAL__insn_table[op];
+		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+		instr_family = SOPK_INST_LITERAL_;
 	}
 	else 	if(IS_ENC_VOP2_LITERAL(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<25,30>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_LITERAL_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP2_LITERAL_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP2_LITERAL_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_LITERAL_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP2_LITERAL_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP2_LITERAL_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOP2_LITERAL;
 	}
 	else 	if(IS_ENC_VOP3B(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<16,25>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3B_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3B_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3B_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3B_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3B_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3B_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOP3B;
 	}
 	else 	if(IS_ENC_VOP3P_MFMA(insn_long)){
 		insn_size = 8;
 		uint32_t op_value = longfield<16,22>(insn_long);
-		assert(  op_value < sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_MFMA_insn_table) / sizeof(amdgpu_cdna2_insn_entry::ENC_VOP3P_MFMA_insn_table[0]) && "Opcode over or underflow");
-		const amdgpu_cdna2_insn_entry &insn_entry = amdgpu_cdna2_insn_entry::ENC_VOP3P_MFMA_insn_table[op];
+		assert(  op_value < sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_MFMA_insn_table) / sizeof(amdgpu_gfx90a_insn_entry::ENC_VOP3P_MFMA_insn_table[0]) && "Opcode over or underflow");
+		const amdgpu_gfx90a_insn_entry &insn_entry = amdgpu_gfx90a_insn_entry::ENC_VOP3P_MFMA_insn_table[op];
 		this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 		instr_family = ENC_VOP3P_MFMA;
 	}
 }
-void InstructionDecoder_amdgpu_cdna2::mainDecode(){
+void InstructionDecoder_amdgpu_gfx90a::mainDecode(){
 	if(IS_ENC_SOP1(insn_long)){
 		decodeENC_SOP1();
 	}
@@ -2248,6 +2277,9 @@ void InstructionDecoder_amdgpu_cdna2::mainDecode(){
 	}
 	else 	if(IS_ENC_FLAT_SCRATCH(insn_long)){
 		decodeENC_FLAT_SCRATCH();
+	}
+	else 	if(IS_SOPK_INST_LITERAL_(insn_long)){
+		decodeSOPK_INST_LITERAL_();
 	}
 	else 	if(IS_ENC_VOP2_LITERAL(insn_long)){
 		decodeENC_VOP2_LITERAL();
