@@ -1,5 +1,33 @@
 # Change Log
 
+## [12.3.0](https://github.com/dyninst/dyninst/tree/v12.3.0) (2023-02-22)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v12.2.1...v12.3.0)
+
+- Add missing <array> includes ([1385](https://github.com/dyninst/dyninst/issues/1385))
+- explicitly include <array> ([1384](https://github.com/dyninst/dyninst/issues/1384))
+- remove trailing usage of cout.clear ([1383](https://github.com/dyninst/dyninst/issues/1383))
+- Fix all-through instructions for newly added AMD gpu gfx908 ([1381](https://github.com/dyninst/dyninst/issues/1381))
+- Added support for gfx908 based on the XML-ISA-DROP for MI100 ([1283](https://github.com/dyninst/dyninst/issues/1283))
+- Allow CFG analysis based on instructionAPI alone w/out semantics ([1379](https://github.com/dyninst/dyninst/issues/1379))
+- Prevent fall-through analysis of amd gpu swap/set pc instructions ([1376](https://github.com/dyninst/dyninst/issues/1376))
+- x86 8-bit immediate values were interpreted incorrectly cross-platform. ([1373](https://github.com/dyninst/dyninst/issues/1373))
+- update spack.yaml for spack v0.19.1 ([1367](https://github.com/dyninst/dyninst/issues/1367))
+- Remove use of couts in the AMDGPU instruction decoders ([1371](https://github.com/dyninst/dyninst/issues/1371))
+- handle ENDBR64 ([1368](https://github.com/dyninst/dyninst/issues/1368))
+- Fixed nullptr issues in dyninstAPI/src/mapped_object.C ([1361](https://github.com/dyninst/dyninst/issues/1361))
+- Fix sema type for vex2 encoded vpand ([1364](https://github.com/dyninst/dyninst/issues/1364))
+- Replace DwarfWalker::findString with DwarfWalker::find_call_file ([1360](https://github.com/dyninst/dyninst/issues/1360))
+- Update detection of DWARF languages ([1357](https://github.com/dyninst/dyninst/issues/1357))
+- Remove AObject::pickLanguage ([1358](https://github.com/dyninst/dyninst/issues/1358))
+- BPatch_snippet::generateArrayRef - fix possible null pointer access ([1356](https://github.com/dyninst/dyninst/issues/1356))
+- Use instrumentation logging in baseTramp::guarded ([1354](https://github.com/dyninst/dyninst/issues/1354))
+- Remove special global ctor/dtor search in ppc for static binaries ([1353](https://github.com/dyninst/dyninst/issues/1353))
+- Refactor common/src/Types.h ([1351](https://github.com/dyninst/dyninst/issues/1351))
+- add missing include file ([1344](https://github.com/dyninst/dyninst/issues/1344))
+- Remove dead implementation of IA_power::isLinkerStub ([1342](https://github.com/dyninst/dyninst/issues/1342))
+- Lookup functions in the binding table directly ([1337](https://github.com/dyninst/dyninst/issues/1337))
+- Remove outdated Boost version checks ([1329](https://github.com/dyninst/dyninst/issues/1329))
+
 ## [12.2.1](https://github.com/dyninst/dyninst/tree/v12.2.1) (2022-11-21)
 [Full Changelog](https://github.com/dyninst/dyninst/compare/v12.2.0...v12.2.1)
 
