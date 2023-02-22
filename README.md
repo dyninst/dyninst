@@ -1,12 +1,5 @@
 # Dyninst
 
-## Branch states
-
-| Branch                                  | Status        | Notes                                              |
-| --------------------------------------- |:-------------:|:--------------------------------------------------:|
-| master                                  | stable        | See below                                          |
-| aarch32                                 | experimental  | Contact Ray Chen (rchen at cs dot umd dot edu)     |
-
 ## Notes
 
 * Known issues should have open issues associated with them.
