@@ -71,6 +71,15 @@ void amdgpuCodeGen::generateTrap(CodeGen &) {
 	//instruction insn(BREAK_POINT_INSN);
 	//generate(gen,insn);
 }
+void amdgpuCodeGen::generate_SOPP( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){
+	instruction insn(4);
+
+	uint32_t cmd = 0xbf8000000;
+	cmd  = ( cmd | (OP<< 16) |  SIMM16);
+	memcpy( insn.raw_  ,&cmd,  4 );
+	generate(gen,insn);
+}
+
 
 void amdgpuCodeGen::generate_SOPC( CodeGen & gen,  uint32_t OP, uint32_t SSRC1, uint32_t SSRC0  , bool useImm ){
 	uint32_t insn_size = useImm ? 8 : 4;
@@ -122,6 +131,16 @@ void amdgpuCodeGen::generate_VOP2( CodeGen & gen,  uint32_t OP, uint32_t VDST, u
 	generate(gen,insn);
 }
 
+void amdgpuCodeGen::generate_SMEM( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){
+    instruction insn (8);
+    uint32_t cmd_low = 0xc0000000;
+    uint32_t cmd_high = 0x0;
+    cmd_low = (cmd_low | OP << 18 | IMM << 17 | GLC << 16 | NV << 15 | SOE << 14 | SDATA << 6 | SBASE);
+    cmd_high = (cmd_high | SOFFSET << 25 | OFFSET);
+    memcpy(insn.raw_ , & cmd_low, 4);
+    memcpy(insn.raw_ +4, & cmd_high, 4);
+    generate(gen,insn);
+}
 
 
 /*

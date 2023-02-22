@@ -148,14 +148,29 @@ class __attribute__((visibility ("default")))  amdgpuCodeGen {
         S_CMP_EQ_U64 = 18
     };
 
-    enum SOPP_OP{
-        S_NOP = 0,
-        S_ENDPGM = 1,
-        S_BRANCH = 2
-    };
-
     enum VOP2_OP {
         V_ADD_F32 = 1
+    };
+    
+    enum SMEM_OP {
+        S_LOAD_DWORD = 0,
+        S_LOAD_DWORDX2 = 1,
+        S_LOAD_DWORDX4 = 2,
+        S_LOAD_DWORDX8 = 3,
+        S_LOAD_DWORDX16 = 4,
+        S_STORE_DWORD = 16,
+        S_STORE_DWORDX2 = 17,
+        S_STORE_DWORDX4 = 18,
+        S_MEMTIME = 36,
+        S_MEMREALTIME = 37,
+        S_ATOMIC_ADD = 130,
+        S_ATOMIC_INC = 139
+    };
+
+    enum SOPP_OP {
+        S_NOP  =0,
+        S_BRANCH =2,
+        S_WAITCNT =12
     };
 
     static void *insnPtr(CodeGen &gen);
@@ -165,14 +180,40 @@ class __attribute__((visibility ("default")))  amdgpuCodeGen {
     static void generateTrap(CodeGen &gen);
     static void generateIllegal(CodeGen &gen);
 
+    static void generate_SOP2( CodeGen & gen,  uint32_t OP, uint32_t SDST, uint32_t SSRC1 , uint32_t SSRC0, bool useImm);
     static void generate_s_add_u32( CodeGen & gen,  uint32_t sdst, uint32_t ssrc1, uint32_t ssrc0  , bool useImm ){ generate_SOP2(gen, SOP2_OP::S_ADD_U32, sdst, ssrc1 , ssrc0, useImm); };
     static void generate_s_addc_u32( CodeGen & gen,  uint32_t sdst, uint32_t ssrc1, uint32_t ssrc0  , bool useImm ){ generate_SOP2(gen, SOP2_OP::S_ADDC_U32, sdst, ssrc1 , ssrc0, useImm); };
-    static void generate_SOP2( CodeGen & gen,  uint32_t OP, uint32_t SDST, uint32_t SSRC1 , uint32_t SSRC0, bool useImm);
+
+
+    static void generate_SOPP( CodeGen & gen,  uint32_t OP, uint32_t SIMM16);
+    static void generate_s_nop( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){generate_SOPP(gen, SOPP_OP::S_NOP, 0);};
+    static void generate_s_branch( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){generate_SOPP(gen, SOPP_OP::S_BRANCH, 0);};
+    static void generate_s_waitcnt( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){generate_SOPP(gen, SOPP_OP::S_WAITCNT, 0);};
+
+
     static void generate_SOPC( CodeGen & gen,  uint32_t OP, uint32_t SSRC1 , uint32_t SSRC0, bool useImm);
+    static void generate_cmp_eq_u64( CodeGen & gen,  uint32_t OP, uint32_t SSRC1 , uint32_t SSRC0, bool useImm){
+        generate_SOPC(gen, SOPC_OP::S_CMP_EQ_U64, SSRC1 , SSRC0, useImm );
+        };
+
 
     static void generate_VOP2( CodeGen & gen,  uint32_t OP, uint32_t VDST, uint32_t VSRC1 , uint32_t SRC0, bool useImm);
-
     static void generate_v_add_f32( CodeGen & gen,  uint32_t vdst, uint32_t vsrc1, uint32_t src0  , bool useImm ){ generate_VOP2(gen, VOP2_OP::V_ADD_F32, vdst, vsrc1 , src0, useImm); };
+
+    
+    static void generate_SMEM( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET);
+
+    static void generate_s_load_dword( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){generate_SMEM(gen,  SMEM_OP::S_LOAD_DWORD, SDATA , IMM, GLC , NV , SOE,  SBASE,  SOFFSET ,  OFFSET);};
+    static void generate_s_load_dwordx2( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){generate_SMEM(gen,  SMEM_OP::S_LOAD_DWORDX2, SDATA , IMM, GLC , NV , SOE,  SBASE,  SOFFSET ,  OFFSET);};
+    static void generate_s_load_dwordx4( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){generate_SMEM(gen,  SMEM_OP::S_LOAD_DWORDX4, SDATA , IMM, GLC , NV , SOE,  SBASE,  SOFFSET ,  OFFSET);};
+    static void generate_s_load_dwordx8( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){generate_SMEM(gen,  SMEM_OP::S_LOAD_DWORDX8, SDATA , IMM, GLC , NV , SOE,  SBASE,  SOFFSET ,  OFFSET);};
+    static void generate_s_store_dword( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){generate_SMEM(gen,  SMEM_OP::S_STORE_DWORD, SDATA , IMM, GLC , NV , SOE,  SBASE,  SOFFSET ,  OFFSET);};
+    static void generate_s_store_dwordx2( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){generate_SMEM(gen,  SMEM_OP::S_STORE_DWORDX2, SDATA , IMM, GLC , NV , SOE,  SBASE,  SOFFSET ,  OFFSET);};
+    static void generate_s_store_dwordx4( CodeGen & gen,  uint32_t OP, uint32_t SDATA ,uint32_t IMM, uint32_t GLC , uint32_t NV ,uint32_t SOE, uint32_t SBASE, uint32_t SOFFSET , uint32_t OFFSET){generate_SMEM(gen,  SMEM_OP::S_STORE_DWORDX4, SDATA , IMM, GLC , NV , SOE,  SBASE,  SOFFSET ,  OFFSET);};
+ 
+    static void generate_s_memtime( CodeGen & gen,  uint32_t OP, uint32_t SDATA ){generate_SMEM(gen,  SMEM_OP::S_MEMTIME, SDATA ,0, 0 , 0,0,0,  0 ,0);};
+    static void generate_s_memrealtime( CodeGen & gen,  uint32_t OP, uint32_t SDATA ){generate_SMEM(gen,  SMEM_OP::S_MEMREALTIME, SDATA ,0, 0 , 0,0,0,  0 ,0);};
+
 };
 
 #endif
