@@ -261,7 +261,6 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
-			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 		}
