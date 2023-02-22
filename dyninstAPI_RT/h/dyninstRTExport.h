@@ -60,7 +60,7 @@ DLLEXPORT int DYNINSTuserMessage(void *msg, unsigned int msg_size);
 
 /* Returns the number of threads DYNINST currently knows about.  (Which
    may differ at certain times from the number of threads actually present.) */
-DLLEXPORT int DYNINSTthreadCount();
+DLLEXPORT int DYNINSTthreadCount(void);
 
 /**
  * These function implement a locking mechanism that can be used by 
@@ -97,9 +97,9 @@ DLLEXPORT void dyninst_unlock(dyninst_lock_t *lock);
  * Internal functions that we export to ensure they show up.
  **/
 
-DLLEXPORT void DYNINSTsafeBreakPoint();
-DLLEXPORT void DYNINSTinit();
-DLLEXPORT void DYNINST_snippetBreakpoint();
+DLLEXPORT void DYNINSTsafeBreakPoint(void);
+DLLEXPORT void DYNINSTinit(void);
+DLLEXPORT void DYNINST_snippetBreakpoint(void);
 DLLEXPORT void DYNINST_stopThread(void *, void *, void *, void *);
 DLLEXPORT void DYNINST_stopInterProc(void *, void *, void *, void *, void *, void *);
 DLLEXPORT void *DYNINSTos_malloc(size_t, void *, void *); 

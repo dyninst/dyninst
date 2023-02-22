@@ -68,7 +68,7 @@ extern int     DYNINSTheap_mmapFlags;
  */
 
 RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi);
-int        DYNINSTheap_mmapFdOpen();
+int        DYNINSTheap_mmapFdOpen(void);
 void       DYNINSTheap_mmapFdClose(int fd);
 int        DYNINSTheap_getMemoryMap(unsigned *, dyninstmm_t **mmap);
 
