@@ -389,7 +389,6 @@ class COMMON_EXPORT AnnotatableSparse
 		  //  set up to minimize search time, not deletion time.  It could
 		  //  be changed if this becomes a significant time drain.
 
-		  unsigned int n = 0;
 		  for (unsigned int i = 0; i < getAnnos()->size(); ++i)
 		  {
 			  annos_by_type_t *abt = (*getAnnos())[i];
@@ -407,7 +406,6 @@ class COMMON_EXPORT AnnotatableSparse
 				  }
 
 				  abt->erase(iter);
-				  n++;
 
 				  //  get rid of this check...  just making sure that erase is behaving as
 				  //  expected...

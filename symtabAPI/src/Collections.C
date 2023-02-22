@@ -167,7 +167,6 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			}
 			if (!t)
 			{
-				int nfound = 0;
 				dyn_c_hash_map<void *, typeCollection *>::iterator tciter;
 				for (tciter = fileToTypesMap.begin(); tciter != fileToTypesMap.end(); tciter++)
 				{
@@ -177,7 +176,6 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 					{
 						if (localt->getDataClass() != ldc)
 							continue;
-						nfound++;
 						t = localt;
 					}
 					//if (t) break;
