@@ -2314,7 +2314,7 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
 
     Elf_Scn *scn = NULL;
     Elf_Shdr *shdr = NULL;
-    for (unsigned scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+    while ((scn = elf_nextscn(oldElf, scn))) {
         shdr = ElfTypes::elf_getshdr(scn);
         if (obj->getObject()->getElfHashAddr() != 0 &&
             obj->getObject()->getElfHashAddr() == shdr->sh_addr) {
