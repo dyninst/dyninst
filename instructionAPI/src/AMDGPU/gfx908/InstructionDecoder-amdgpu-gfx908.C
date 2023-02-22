@@ -30,6 +30,7 @@
 
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-gfx908.h"
+#include <array>
 
 namespace Dyninst {
 	namespace InstructionAPI {

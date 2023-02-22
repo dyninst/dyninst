@@ -30,6 +30,7 @@
 
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-cdna2.h"
+#include <array>
 
 namespace Dyninst {
 	namespace InstructionAPI {
