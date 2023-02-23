@@ -58,17 +58,8 @@ bool is_signed(Dwarf_Die *die) {
 namespace Dyninst {
 namespace DwarfDyninst {
 
-dwarf_result dwarf_subrange_upper_bound(Dwarf_Die *die) {
+static dwarf_result upper_bound(Dwarf_Die *die) {
   Dwarf_Attribute attr;
-
-  /* This has either DW_AT_count or DW_AT_upper_bound.  */
-  if (dwarf_attr_integrate(die, DW_AT_count, &attr)) {
-    Dwarf_Word count;
-    if (dwarf_formudata(&attr, &count) != 0)
-      return dwarf_error{};
-    return count;
-  }
-
   if (dwarf_attr_integrate(die, DW_AT_upper_bound, &attr)) {
     if (is_signed(die)) {
       Dwarf_Sword upper;
@@ -85,10 +76,9 @@ dwarf_result dwarf_subrange_upper_bound(Dwarf_Die *die) {
   // Nothing was found, but there was no error
   return dwarf_result{};
 }
-dwarf_result dwarf_subrange_lower_bound(Dwarf_Die *die) {
-  Dwarf_Attribute attr;
 
-  /* Having DW_AT_lower_bound is optional.  */
+static dwarf_result lower_bound(Dwarf_Die *die) {
+  Dwarf_Attribute attr;
   if (dwarf_attr_integrate(die, DW_AT_lower_bound, &attr)) {
     if (is_signed(die)) {
       Dwarf_Sword lower;
@@ -102,7 +92,11 @@ dwarf_result dwarf_subrange_lower_bound(Dwarf_Die *die) {
     return unsigned_lower;
   }
 
-  // Try the default provided by the language
+  // Nothing was found, but there was no error
+  return dwarf_result{};
+}
+
+static dwarf_result lower_bound_by_language(Dwarf_Die *die) {
   int lang = dwarf_srclang(die);
   if (lang != -1) {
     Dwarf_Sword lower;
@@ -112,9 +106,76 @@ dwarf_result dwarf_subrange_lower_bound(Dwarf_Die *die) {
   }
 
   // Nothing was found, but there was no error
-  // It's ok if we didn't find a srclang.
   return dwarf_result{};
 }
+
+static dwarf_result length_from_count(Dwarf_Die *die) {
+  Dwarf_Attribute attr;
+  if (dwarf_attr_integrate(die, DW_AT_count, &attr)) {
+    Dwarf_Word count;
+    if (dwarf_formudata(&attr, &count) != 0)
+      return dwarf_error{};
+    return count;
+  }
+
+  // Nothing was found, but there was no error
+  return dwarf_result{};
+}
+
+dwarf_bounds dwarf_subrange_bounds(Dwarf_Die *die) {
+  /*
+   * DWARF5 - Section 5.13 Subrange Type Entries
+   *
+   * The subrange entry may have the attributes DW_AT_lower_bound and
+   * DW_AT_upper_bound to specify, respectively, the lower and upper
+   * bound values of the subrange.
+   */
+  dwarf_bounds bounds{lower_bound(die), upper_bound(die)};
+
+  // Don't continue if we encountered an error in either lookup
+  if (!bounds.lower || !bounds.upper) {
+    return bounds;
+  }
+
+  // If the lower bound value is missing, the value is assumed to
+  // be a language-dependent default constant
+  if (!bounds.lower.value) {
+    bounds.lower = lower_bound_by_language(die);
+
+    // If there was a dwarf error, bail out
+    if (!bounds.lower) {
+      return bounds;
+    }
+  }
+
+  /*
+   * The DW_AT_upper_bound attribute may be replaced by a DW_AT_count
+   * attribute, whose value describes the number of elements in the
+   * subrange rather than the value of the last element.
+   */
+  auto count = length_from_count(die);
+
+  // If there was a dwarf error, explicitly mark the upper bound as bad
+  if (!count) {
+    bounds.upper = dwarf_error{};
+    return bounds;
+  }
+
+  if (count.value) {
+    auto const lb = [&bounds]() {
+      // If we have a lower bound, use it
+      if (bounds.lower.value) return bounds.lower.value.get();
+
+      // Otherwise, assume the array is zero-based
+      return static_cast<Dwarf_Word>(0);
+    }();
+    bounds.upper = dwarf_result{lb + count.value.get() - static_cast<Dwarf_Word>(1)};
+  }
+
+  // If the upper bound and count are missing, then the upper bound value is unknown.
+  return bounds;
+}
+
 dwarf_result dwarf_subrange_length_from_enum(Dwarf_Die *die) {
   /* We have to find the DW_TAG_enumerator child with the
      highest value to know the array's element count.  */

@@ -47,10 +47,12 @@ struct dwarf_result {
   explicit operator bool() const { return !error; }
 };
 
-DYNDWARF_EXPORT dwarf_result dwarf_subrange_upper_bound(Dwarf_Die *die);
-DYNDWARF_EXPORT dwarf_result dwarf_subrange_lower_bound(Dwarf_Die *die);
-DYNDWARF_EXPORT dwarf_result
-dwarf_subrange_length_from_enum(Dwarf_Die *die);
+struct dwarf_bounds {
+	dwarf_result lower, upper;
+};
+
+DYNDWARF_EXPORT dwarf_bounds dwarf_subrange_bounds(Dwarf_Die *die);
+DYNDWARF_EXPORT dwarf_result dwarf_subrange_length_from_enum(Dwarf_Die *die);
 
 } // namespace DwarfDyninst
 } // namespace Dyninst
