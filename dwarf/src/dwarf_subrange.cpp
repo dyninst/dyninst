@@ -58,7 +58,7 @@ bool is_signed(Dwarf_Die *die) {
 namespace Dyninst {
 namespace DwarfDyninst {
 
-dwarf_result<long> dwarf_subrange_upper_bound(Dwarf_Die *die) {
+dwarf_result dwarf_subrange_upper_bound(Dwarf_Die *die) {
   Dwarf_Attribute attr;
 
   /* This has either DW_AT_count or DW_AT_upper_bound.  */
@@ -83,9 +83,9 @@ dwarf_result<long> dwarf_subrange_upper_bound(Dwarf_Die *die) {
   }
 
   // Nothing was found, but there was no error
-  return dwarf_result<long>{};
+  return dwarf_result{};
 }
-dwarf_result<long> dwarf_subrange_lower_bound(Dwarf_Die *die) {
+dwarf_result dwarf_subrange_lower_bound(Dwarf_Die *die) {
   Dwarf_Attribute attr;
 
   /* Having DW_AT_lower_bound is optional.  */
@@ -113,9 +113,9 @@ dwarf_result<long> dwarf_subrange_lower_bound(Dwarf_Die *die) {
 
   // Nothing was found, but there was no error
   // It's ok if we didn't find a srclang.
-  return dwarf_result<long>{};
+  return dwarf_result{};
 }
-dwarf_result<long> dwarf_subrange_length_from_enum(Dwarf_Die *die) {
+dwarf_result dwarf_subrange_length_from_enum(Dwarf_Die *die) {
   /* We have to find the DW_TAG_enumerator child with the
      highest value to know the array's element count.  */
   Dwarf_Die enum_child;
@@ -139,7 +139,7 @@ dwarf_result<long> dwarf_subrange_length_from_enum(Dwarf_Die *die) {
   }
 
   // Nothing was found, but there was no error
-  return dwarf_result<long>{};
+  return dwarf_result{};
 }
 } // namespace DwarfDyninst
 } // namespace Dyninst
