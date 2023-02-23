@@ -2341,42 +2341,37 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
   const auto subrange_id = dwarf_dieoffset(entry) - this->compile_offset;
   dwarf_printf("(0x%lx) parseSubrange entry for <0x%lx>\n", id(), subrange_id);
 
-  boost::optional<long> upper_bound, lower_bound;
+  boost::optional<Dwarf_Word> upper_bound, lower_bound;
 
   /* An array can have DW_TAG_subrange_type or DW_TAG_enumeration_type
    children instead that give the size of each dimension.  */
   switch (dwarf_tag(entry)) {
   case DW_TAG_subrange_type: {
     namespace dw = Dyninst::DwarfDyninst;
-    auto lb = dw::dwarf_subrange_lower_bound(entry);
-    if (!lb) {
-      dwarf_printf("parseSubrange failed, error finding lower range bound\n");
+    auto bounds = dwarf_subrange_bounds(entry);
+    if (!bounds.lower || !bounds.upper) {
+      dwarf_printf("parseSubrange failed, error finding range bounds\n");
       return nullptr;
     }
 
-    if (!lb.value) {
-      // dwarf_subrange_lower_bound will try dwarf_default_lower_bound for the
+    if (!bounds.lower.value) {
+      // dwarf_subrange_bounds will try dwarf_default_lower_bound for the
       // current DIE. If we got here, that didn't work, so try using the one
       // Dyninst parsed.
       switch (mod()->language()) {
       case lang_Fortran:
       case lang_CMFortran:
-        lb.value = 1;
+        bounds.lower.value = 1;
         break;
       default:
         // Assume all non-Fortran languages use 0
-        lb.value = 0;
+        bounds.lower.value = 0;
         break;
       }
     }
 
-    auto ub = dw::dwarf_subrange_upper_bound(entry);
-    if (!ub) {
-      dwarf_printf("parseSubrange failed, error finding upper range bound\n");
-      return nullptr;
-    }
-    upper_bound = ub.value;
-    lower_bound = lb.value;
+    upper_bound = bounds.upper.value;
+    lower_bound = bounds.lower.value;
   } break;
   case DW_TAG_enumeration_type: {
     // If there is an enum value, then it represents the total number of
