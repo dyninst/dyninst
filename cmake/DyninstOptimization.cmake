@@ -28,7 +28,7 @@ This module provides the global compiler and linker flags.
 #]=======================================================================]
 include_guard(GLOBAL)
 
-if(ENABLE_LTO)
+if(DYNINST_ENABLE_LTO)
   include(CheckIPOSupported)
   check_ipo_supported(LANGUAGES "C" "CXX")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
@@ -46,7 +46,7 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
     list(APPEND DYNINST_LINK_FLAGS -fuse-ld=${DYNINST_LINKER})
   endif()
 
-  if(ENABLE_LTO)
+  if(DYNINST_ENABLE_LTO)
     if(${DYNINST_LINKER} MATCHES "gold")
       message(FATAL_ERROR "Cannot use the gold linker for LTO")
     endif()
