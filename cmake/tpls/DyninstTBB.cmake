@@ -26,6 +26,9 @@ find_package(
   COMPONENTS tbb tbbmalloc tbbmalloc_proxy
   REQUIRED)
 
+# Don't let TBB variables seep through
+mark_as_advanced(TBB_DIR)
+
 if(NOT TARGET Dyninst::TBB)
   add_library(Dyninst::TBB INTERFACE IMPORTED)
   target_link_libraries(Dyninst::TBB INTERFACE TBB::tbb TBB::tbbmalloc
