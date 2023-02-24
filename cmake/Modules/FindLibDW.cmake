@@ -93,7 +93,7 @@ find_package_handle_standard_args(
   VERSION_VAR LibDW_VERSION)
 
 if(LibDW_FOUND)
-  mark_as_advanced(LibDW_INCLUDE_DIR)
+  mark_as_advanced(LibDW_INCLUDE_DIRS)
   mark_as_advanced(LibDW_LIBRARIES)
   mark_as_advanced(LibDW_VERSION)
 
