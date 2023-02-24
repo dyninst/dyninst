@@ -122,6 +122,30 @@ function(dyninst_library _target)
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
 
+    target_link_options(
+      ${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${DYNINST_LINK_FLAGS}>
+      $<$<COMPILE_LANGUAGE:CXX>:${DYNINST_CXX_LINK_FLAGS}>)
+
+    target_compile_options(
+      ${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${SUPPORTED_C_WARNING_FLAGS}>
+                   $<$<COMPILE_LANGUAGE:CXX>:${SUPPORTED_CXX_WARNING_FLAGS}>)
+
+    target_compile_options(
+      ${t} PRIVATE
+      $<$<COMPILE_LANGUAGE:C>:
+        $<$<CONFIG:DEBUG>:${DYNINST_C_FLAGS_DEBUG}>
+        $<$<CONFIG:RELWITHDEBINFO>:${DYNINST_C_FLAGS_RELWITHDEBINFO}>
+        $<$<CONFIG:RELEASE>:${DYNINST_C_FLAGS_RELEASE}>
+        $<$<CONFIG:MINSIZEREL>:${DYNINST_C_FLAGS_MINSIZEREL}>
+      >
+      $<$<COMPILE_LANGUAGE:CXX>:
+        $<$<CONFIG:DEBUG>:${DYNINST_CXX_FLAGS_DEBUG}>
+        $<$<CONFIG:RELWITHDEBINFO>:${DYNINST_CXX_FLAGS_RELWITHDEBINFO}>
+        $<$<CONFIG:RELEASE>:${DYNINST_CXX_FLAGS_RELEASE}>
+        $<$<CONFIG:MINSIZEREL>:${DYNINST_CXX_FLAGS_MINSIZEREL}>
+      >
+    )
+
     foreach(_v "PUBLIC" "PRIVATE")
       set(_d ${_target_${_v}_DEPS})
       if(${t} MATCHES "static")

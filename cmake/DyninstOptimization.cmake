@@ -1,56 +1,101 @@
-if(CMAKE_COMPILER_IS_GNUCXX
-   OR ${CMAKE_C_COMPILER_ID} MATCHES Clang
-   OR ${CMAKE_C_COMPILER_ID} MATCHES GNU
-   OR ${CMAKE_C_COMPILER_ID} MATCHES Intel)
-  if(ENABLE_LTO)
-    set(LTO_FLAGS "-flto")
-    set(LTO_LINK_FLAGS "-fuse-ld=bfd")
-  else()
-    set(LTO_FLAGS "")
-    set(LTO_LINK_FLAGS "")
-  endif()
-  set(CMAKE_C_FLAGS_DEBUG "-Og -g3")
-  set(CMAKE_CXX_FLAGS_DEBUG "-Og -g3")
+#[=======================================================================[
+DyninstOptimization
+-------------------
 
-  set(CMAKE_C_FLAGS_RELEASE "-O2 ${LTO_FLAGS}")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2 ${LTO_FLAGS}")
+This module provides the global compiler and linker flags.
 
-  set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g3 ${LTO_FLAGS}")
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g3 ${LTO_FLAGS}")
+  Created variables:
 
-  set(CMAKE_C_FLAGS_MINSIZEREL "-Os ${LTO_FLAGS}")
-  set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os ${LTO_FLAGS}")
+  DYNINST_LINK_FLAGS
+  	Generic linker flags that apply to all languages
 
-  set(FORCE_FRAME_POINTER "-fno-omit-frame-pointer")
-  # Ensure each library is fully linked
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
+  DYNINST_CXX_LINK_FLAGS
+  	Linker flags that are specific to the C++ compiler
 
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LTO_LINK_FLAGS}")
-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LTO_LINK_FLAGS}")
-else(MSVC)
-  if(ENABLE_LTO)
-    set(LTO_FLAGS "/GL")
-    set(LTO_LINK_FLAGS "/LTCG")
-  else()
-    set(LTO_FLAGS "")
-    set(LTO_LINK_FLAGS "")
-  endif()
-  set(CMAKE_C_FLAGS_DEBUG "/MP /Od /Zi /MDd /D_DEBUG")
-  set(CMAKE_CXX_FLAGS_DEBUG "/MP /Od /Zi /MDd /D_DEBUG")
+	DYNINST_FORCE_FRAME_POINTER
+		Contains the compiler-specific flags needed to force the generation
+		of a frame pointer in code compiled into a Dyninst library. Currently,
+		this is only used in some portions of stackwalk.
 
-  set(CMAKE_C_FLAGS_RELEASE "/MP /O2 /MD ${LTO_FLAGS}")
-  set(CMAKE_CXX_FLAGS_RELEASE "/MP /O2 /MD ${LTO_FLAGS}")
+  ---
 
-  set(CMAKE_C_FLAGS_RELWITHDEBINFO "/MP /O2 /Zi /MD ${LTO_FLAGS}")
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MP /O2 /Zi /MD ${LTO_FLAGS}")
+  The global CMAKE_<LANG>_FLAGS_<BUILD_TYPE> variables are also
+  populated. Values specified by the user in CMAKE_<LANG>_FLAGS
+  are forcibly passed to the compiler after CMAKE_<LANG>_FLAGS_<BUILD_TYPE>
+  so that values computed here can be overridden. By default, CMake does
+  the opposite.
 
-  set(CMAKE_C_FLAGS_MINSIZEREL "/MP /O1 /MD ${LTO_FLAGS}")
-  set(CMAKE_CXX_FLAGS_MINSIZEREL "/MP /O1 /MD ${LTO_FLAGS}")
+#]=======================================================================]
+include_guard(GLOBAL)
 
-  set(FORCE_FRAME_POINTER "/Oy-")
-
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LTO_LINK_FLAGS}")
-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LTO_LINK_FLAGS}")
-  set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${LTO_LINK_FLAGS}")
+if(DYNINST_ENABLE_LTO)
+  include(CheckIPOSupported)
+  check_ipo_supported(LANGUAGES "C" "CXX")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
-message(STATUS "Set optimization flags")
+
+# Make sure we don't get something like CC=gcc CXX=clang++
+if(NOT ${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID})
+  message(FATAL_ERROR "C and C++ compilers are not the same vendor")
+endif()
+
+set(_linux_compilers "GNU" "Clang" "Intel" "IntelLLVM")
+
+if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
+  if(DYNINST_LINKER)
+    list(APPEND DYNINST_LINK_FLAGS -fuse-ld=${DYNINST_LINKER})
+  endif()
+
+  if(DYNINST_ENABLE_LTO)
+    if(${DYNINST_LINKER} MATCHES "gold")
+      message(FATAL_ERROR "Cannot use the gold linker for LTO")
+    endif()
+  endif()
+
+  # Used in stackwalk
+  set(DYNINST_FORCE_FRAME_POINTER -fno-omit-frame-pointer)
+
+  # Dyninst relies on `assert` for correctness. Never let CMake disable it
+  set(_DEBUG -Og -g3 ${DYNINST_FORCE_FRAME_POINTER} -UNDEBUG)
+  set(_RELEASE -O3 -g3 -UNDEBUG)
+  set(_RELWITHDEBINFO -O2 -g3 -UNDEBUG)
+  set(_MINSIZEREL -Os -UNDEBUG)
+
+  # Ensure each library is fully linked
+  list(APPEND DYNINST_LINK_FLAGS -Wl,--no-undefined)
+
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    if(DYNINST_CXXSTDLIB)
+      list(APPEND DYNINST_CXX_FLAGS -stdlib=${DYNINST_CXXSTDLIB})
+      list(APPEND DYNINST_CXX_LINK_FLAGS -stdlib=${DYNINST_CXXSTDLIB})
+    endif()
+  endif()
+elseif(MSVC)
+  set(DYNINST_FORCE_FRAME_POINTER /Oy-)
+
+  set(_DEBUG /MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER})
+  set(_RELEASE /MP /O3 /MD /D_DEBUG)
+  set(_RELWITHDEBINFO /MP /O2 /Zi /MD /D_DEBUG)
+  set(_MINSIZEREL /MP /O1 /MD /D_DEBUG)
+else()
+  message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
+endif()
+
+# By default, CMake effectively passes compiler flags in the order
+#    
+#   ${CMAKE_<LANG>_FLAGS} ${CMAKE_<LANG>_FLAGS_<BUILD>} <options>
+#    
+# where `<options>` are the values passed to `target_compile_options`.
+# This prevents users from overriding values manually computed by us. To
+# work around this, we rearrange the values such that CMake now
+# effectively (redundantly) does
+#    
+#   ${CMAKE_<LANG>_FLAGS} ${CMAKE_<LANG>_FLAGS_<BUILD>} <options> ${CMAKE_<LANG>_FLAGS}
+#
+string(TOUPPER ${CMAKE_BUILD_TYPE} _build_type)
+set(DYNINST_C_FLAGS_${_build_type} ${_${_build_type}} ${CMAKE_C_FLAGS})
+set(DYNINST_CXX_FLAGS_${_build_type} ${_${_build_type}} ${DYNINST_CXX_FLAGS} ${CMAKE_CXX_FLAGS})
+unset(_build_type)
+
+# Merge the link flags for C++
+list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})

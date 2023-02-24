@@ -9,7 +9,7 @@ option(SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" 
 
 option(BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" OFF)
 
-option(ENABLE_LTO "Enable Link-Time Optimization" OFF)
+option(DYNINST_ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
 option(ENABLE_DEBUGINFOD "Enable debuginfod support" OFF)
 
@@ -30,3 +30,10 @@ option(
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 
 option(ENABLE_PARSE_API_GRAPHS "Enable Boost Graph wrappers for parseAPI Functions" OFF)
+
+option(DYNINST_LINKER "The linker to use" "lld")
+mark_as_advanced(DYNINST_LINKER)
+
+option(DYNINST_CXXSTDLIB
+       "The C++ standard library to use; only affects LLVM-based compilers" "libstdc++")
+mark_as_advanced(DYNINST_CXXSTDLIB)
