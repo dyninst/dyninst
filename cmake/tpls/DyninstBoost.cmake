@@ -41,6 +41,9 @@ find_package(
   ${BOOST_ROOT}
   COMPONENTS ${_boost_components})
 
+# Don't let Boost variables seep through
+mark_as_advanced(Boost_DIR)
+
 if(NOT TARGET Dyninst::Boost)
   # Make an interface dummy target to force includes to be treated as SYSTEM
   add_library(Dyninst::Boost INTERFACE IMPORTED)
