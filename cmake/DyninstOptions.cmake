@@ -14,6 +14,7 @@ option(DYNINST_ENABLE_LTO "Enable Link-Time Optimization" OFF)
 option(ENABLE_DEBUGINFOD "Enable debuginfod support" OFF)
 
 option(STERILE_BUILD "DEPRECATED -- Do not use" OFF)
+mark_as_advanced(STERILE_BUILD)
 
 option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis" OFF)
 
