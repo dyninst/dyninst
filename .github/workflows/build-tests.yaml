@@ -14,7 +14,7 @@ jobs:
       matrix:
          container: ['ubuntu-20.04']
     runs-on: ubuntu-latest
-    container: ghcr.io/dyninst/amd64-${{ matrix.container }}:latest
+    container: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
     name: ${{ matrix.container }}
     steps:
       - name: Checkout
