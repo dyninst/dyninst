@@ -305,6 +305,7 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_SIMM16(uint64_t input);
             Expression::Ptr decodeOPR_SIMM32(uint64_t input);
             Expression::Ptr decodeOPR_WAITCNT(uint64_t input);
+            using InstructionDecoderImpl::makeRegisterExpression;
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t num_elements = 1);
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
             void specialHandle();
