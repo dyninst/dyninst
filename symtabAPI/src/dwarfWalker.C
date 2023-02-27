@@ -43,8 +43,9 @@
 #include "pathName.h"
 #include "debug_common.h"
 #include "Type-mem.h"
-#include "elfutils/libdw.h"
 #include <elfutils/libdw.h>
+#include <dwarf/src/dwarf_subrange.h>
+#include <stack>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -1240,80 +1241,116 @@ bool DwarfWalker::parseTypedef() {
 }
 
 bool DwarfWalker::parseArray() {
-    dwarf_printf("(0x%lx) Parsing array\n", id());
-    /* Two words about pgf90 arrays.
+  dwarf_printf("(0x%lx) Parsing array\n", id());
 
-       Primus: the PGI extensions to DWARF are documented in
-       '/p/paradyn/doc/External/manuals/pgf90-dwarf-arrays.txt'.
+  boost::shared_ptr<Type> elementType;
+  if (!findType(elementType, false))
+    return false;
+  if (!elementType)
+    return false;
 
-       Secundus: we ignore DW_AT_PGI_lbase, DW_AT_PGI_loffset, and DW_AT_PGI_lstride,
-       even though libdwarf recognizes them, because our type modelling doesn't allow
-       us to make use of this information.  Similarly, in virtually every place where
-       the Portland Group extends DWARF to allow _form_block attributes encoding location
-       lists, we ignore them.  We should, however, recognize these cases and ignore them
-       gracefully, that is, without an error. :)
-    */
+  curName() = std::move(die_name());
 
-    boost::shared_ptr<Type> elementType = NULL;
-    if (!findType(elementType, false)) return false;
-    if (!elementType) return false;
+  Dwarf_Die e = entry();
 
-    curName() = std::move(die_name());
+  // The dimensions of an array are stored as subranges in the child DIE
+  Dwarf_Die child;
+  int result = dwarf_child(&e, &child);
+  if (result < 0) {
+    dwarf_printf("(0x%lx) Error calling dwarf_child\n", id());
+    return false;
+  }
+  if (result == 1) {
+    dwarf_printf("(0x%lx) dwarf_child found no subranges for array\n", id());
+    return false;
+  }
 
-   // curName may get overridden by the subrange parsing code.
-   // TODO: make this part of the context stack.
-   //std::string nameToUse = curName();
-
-   /* Find the range(s) of the elements. */
-   Dwarf_Die firstRange;
-    Dwarf_Die e = entry();
-   int result = dwarf_child(&e, &firstRange);
-    if(result != 0) {
-        dwarf_printf("(0x%lx) parseArray return false as dwarf_child returns 0\n", id());
-        return false;
+  // Find the subranges
+  // A multidimensional array will have a subrange for each dimension
+  std::stack<boost::shared_ptr<typeSubrange>> subranges;
+  do {
+    auto subrange = parseSubrange(&child);
+    if (!subrange) {
+      return false;
     }
 
-//   push();
+    // Register the subrange with the type collection
+    tc()->addOrUpdateType(subrange);
 
-   boost::shared_ptr<Type> baseType = parseMultiDimensionalArray(&firstRange,
-                                                          elementType);
+    subranges.push(std::move(subrange));
+  } while (dwarf_siblingof(&child, &child) == 0);
 
-//   pop();
+  // This should never happen, but it's good to be paranoid
+  if (subranges.size() == 0) {
+    dwarf_printf("(0x%lx) No subranges found for array\n", id());
+    return false;
+  }
 
-   if (!baseType) {
-       dwarf_printf("(0x%lx) parseArray returns false as baseArrayType is NULL\n", id());
-       return false;
-   }
-   auto& baseArrayType = baseType->asArrayType();
+  std::string name{"__array" + std::to_string(offset())};
 
-   /* The baseArrayType is an anonymous type with its own typeID.  Extract
-      the information and add an array type for this DIE. */
-    std::string baseTypeName = baseArrayType.getBaseType(Type::share)->getName();
-   dwarf_printf("(0x%lx) Creating array with base type %s, low bound %lu, high bound %lu, named %s\n",
-                id(), baseTypeName.c_str(),
-                baseArrayType.getLow(),
-                baseArrayType.getHigh(),
-                curName().c_str());
-   tc()->addOrUpdateType( Type::make_shared<typeArray>( type_id(),
-                                         baseArrayType.getBaseType(Type::share),
-                                         baseArrayType.getLow(),
-                                         baseArrayType.getHigh(),
-                                         baseTypeName+"[]"));
+  auto convert = [this, &name](boost::shared_ptr<typeSubrange> t,
+                               boost::shared_ptr<Type> base_t) {
+    auto arr_t =
+        Type::make_shared<typeArray>(base_t, t->getLow(), t->getHigh(), name);
+    auto type = tc()->addOrUpdateType(arr_t);
+    dwarf_printf("(0x%lx) Creating array dimension. ID: %d, %s[%lu:%lu]\n",
+    			 id(), type->getID(), name.c_str(), t->getLow(), t->getHigh());
+    return type;
+  };
 
-   /* Don't parse the children again. */
-   setParseChild(false);
+  auto make_base_t = [this, &name](boost::shared_ptr<typeSubrange> t,
+          	  	  	  	  	boost::shared_ptr<Type> base) {
+	    auto arr_t =
+	        Type::make_shared<typeArray>(type_id(), base, t->getLow(),
+	                                     t->getHigh(), name + "[]");
+	    auto type = tc()->addOrUpdateType(arr_t);
+	    dwarf_printf("(0x%lx) Creating array. ID: %d, %s[%lu:%lu]\n",
+	    			 id(), type->getID(), arr_t->getName().c_str(), t->getLow(), t->getHigh());
+	    return type;
+  };
 
-   return true;
+  // Convert the subranges to a Type sequence
+  boost::shared_ptr<Type> base_t;
+  if(subranges.size() == 1) {
+	  auto cur_subrange = subranges.top();
+	  subranges.pop();
+	  base_t = make_base_t(cur_subrange, elementType);
+  } else {
+    // The last subrange (i.e., the highest dimension) gets the element type as
+    // its base type
+    auto cur_subrange = subranges.top();
+    subranges.pop();
+    auto base = convert(cur_subrange, elementType);
+
+    // The rest get the subsequent dimension's type as their base types
+    while (subranges.size() > 1) {
+      cur_subrange = subranges.top();
+      subranges.pop();
+      base = convert(cur_subrange, base);
+    }
+
+    // The first subrange acts as the entry point for the array's type, so it
+    // needs an explicit `type_id` and different name.
+    cur_subrange = subranges.top();
+    subranges.pop();
+    base_t = make_base_t(cur_subrange, base);
+  }
+
+  /* Don't parse the children again. */
+  setParseChild(false);
+
+  return true;
 }
 
 bool DwarfWalker::parseSubrange() {
-   dwarf_printf("(0x%lx) parseSubrange entry\n", id());
+   Dwarf_Die e = entry();
+   auto subrange = parseSubrange(&e);
 
-   std::string loBound;
-   std::string hiBound;
-   parseSubrangeAUX(entry(), loBound, hiBound);
+   boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(subrange);
+   dwarf_printf("(0x%lx) Created subrange type: ID 0x%d, pointer %p (tc %p)\n", id(),
+                rangeType->getID(), (void *)rangeType.get(), (void *)tc());
 
-  return true;
+   return true;
 }
 
 bool DwarfWalker::parseEnum() {
@@ -2287,227 +2324,79 @@ void DwarfWalker::removeFortranUnderscore(std::string &name) {
    }
 }
 
-bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
-        std::string &loBound,
-        std::string &hiBound) {
-    dwarf_printf("(0x%lx) Parsing subrange /w/ auxiliary function\n", id());
-    loBound = "{unknown or default}";
-    hiBound = "{unknown or default}";
+boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
+  const auto subrange_id = dwarf_dieoffset(entry) - this->compile_offset;
+  dwarf_printf("(0x%lx) parseSubrange entry for <0x%lx>\n", id(), subrange_id);
 
-    /* Set the default lower bound, if we know it. */
-    switch ( mod()->language() ) {
-        case lang_Fortran:
-        case lang_CMFortran:
-            loBound = "1";
-            break;
-        case lang_C:
-        case lang_CPlusPlus:
-            loBound = "0";
-            break;
-        default:
-            break;
-    } /* end default lower bound switch */
+  boost::optional<Dwarf_Word> upper_bound, lower_bound;
 
-    /* Look for the lower bound. */
-    Dwarf_Attribute lowerBoundAttribute;
-    //bool is_info = dwarf_get_die_infotypes_flag(entry);
-    bool is_info = !dwarf_hasattr_integrate(&entry, DW_TAG_type_unit);
-    auto status = dwarf_attr( &entry, DW_AT_lower_bound, & lowerBoundAttribute);
-
-    if ( status != 0 ) {
-        if (!decipherBound(lowerBoundAttribute, is_info, loBound )) return false;
-    } /* end if we found a lower bound. */
-
-    /* Look for the upper bound. */
-    Dwarf_Attribute upperBoundAttribute;
-    status = dwarf_attr( &entry, DW_AT_upper_bound, & upperBoundAttribute);
-
-    if ( status == 0 ) {
-        status = dwarf_attr( &entry, DW_AT_count, & upperBoundAttribute);
+  /* An array can have DW_TAG_subrange_type or DW_TAG_enumeration_type
+   children instead that give the size of each dimension.  */
+  switch (dwarf_tag(entry)) {
+  case DW_TAG_subrange_type: {
+    namespace dw = Dyninst::DwarfDyninst;
+    auto bounds = dwarf_subrange_bounds(entry);
+    if (!bounds.lower || !bounds.upper) {
+      dwarf_printf("parseSubrange failed, error finding range bounds\n");
+      return nullptr;
     }
 
-    if ( status != 0 ) {
-        if (!decipherBound(upperBoundAttribute, is_info, hiBound )) return false;
-    } /* end if we found an upper bound or count. */
-
-    /* Construct the range type. */
-    curName() = std::move(die_name());
-    if (!nameDefined()) {
-        curName() = "{anonymousRange}";
+    if (!bounds.lower.value) {
+      // dwarf_subrange_bounds will try dwarf_default_lower_bound for the
+      // current DIE. If we got here, that didn't work, so try using the one
+      // Dyninst parsed.
+      switch (mod()->language()) {
+      case lang_Fortran:
+      case lang_CMFortran:
+        bounds.lower.value = 1;
+        break;
+      default:
+        // Assume all non-Fortran languages use 0
+        bounds.lower.value = 0;
+        break;
+      }
     }
 
-    Dwarf_Off subrangeOffset = dwarf_dieoffset(&entry);
-    //DWARF_ERROR_RET(subrangeOffset);
-    typeId_t type_id = get_type_id(subrangeOffset, is_info, false);
-
-    errno = 0;
-    unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
-    if (errno) {
-        low_conv = LONG_MIN;
+    upper_bound = bounds.upper.value;
+    lower_bound = bounds.lower.value;
+  } break;
+  case DW_TAG_enumeration_type: {
+    // If there is an enum value, then it represents the total number of
+    // elements in the array. We take the bounds to be [0, upper-1)
+    auto upper = dwarf_subrange_length_from_enum(entry);
+    if (!upper) {
+      dwarf_printf("parseSubrange failed, error finding length from enum\n");
+      return nullptr;
     }
-
-    errno = 0;
-    unsigned long hi_conv = strtoul(hiBound.c_str(), NULL, 10);
-    if (errno)  {
-        hi_conv = LONG_MAX;
+    if (upper) {
+      upper.value.get() -= 1;
     }
+    lower_bound = 0;
+    upper_bound = upper.value;
+  }
+  }
 
-    dwarf_printf("(0x%lx) Adding subrange type: id %d, low %lu, high %lu, named %s\n",
-            id(), type_id,
-            low_conv, hi_conv, curName().c_str());
-    boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(
-      Type::make_shared<typeSubrange>( type_id, 0, low_conv, hi_conv, curName()));
-    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), (void*)rangeType.get(), (void*)tc());
-    return true;
+  // Don't set the name until we're guaranteed a subrange was found
+  curName() = std::move(die_name());
+  if (!nameDefined()) {
+    curName() = "{anonymousRange}";
+  }
+
+  Dwarf_Off subrangeOffset = dwarf_dieoffset(entry);
+  bool is_info = !dwarf_hasattr_integrate(entry, DW_TAG_type_unit);
+  typeId_t type_id = get_type_id(subrangeOffset, is_info, false);
+
+  // `typeSubrange` expects numeric values for the bounds
+  auto range = Type::make_shared<typeSubrange>(
+      type_id, 0, lower_bound.value_or(LONG_MIN),
+      upper_bound.value_or(LONG_MAX), curName());
+
+  dwarf_printf(
+      "(0x%lx) Parsed subrange: id %d, low %lu, high %lu, named %s\n",
+      id(), type_id, range->getLow(), range->getHigh(), curName().c_str());
+
+  return range;
 }
-
-boost::shared_ptr<Type> DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
-                                                   boost::shared_ptr<Type> elementType)
-{
-    char buf[32];
-    /* Get the (negative) typeID for this range/subarray. */
-    //Dwarf_Off dieOffset = dwarf_dieoffset(&range);
-
-    /* Determine the range. */
-    std::string loBound;
-    std::string hiBound;
-    if (!parseSubrangeAUX(*range, loBound, hiBound)) {
-        dwarf_printf("parseMultiDimensionalArray failed, cannot find array range\n");
-        return NULL;
-    }
-
-
-
-    /* Does the recursion continue? */
-    Dwarf_Die nextSibling;
-    int status = dwarf_siblingof(range, &nextSibling);
-    DWARF_CHECK_RET_VAL(status == -1, NULL);
-
-    snprintf(buf, 31, "__array%d", (int) offset());
-
-    if ( status == 1 ) {
-        /* Terminate the recursion by building an array type out of the elemental type.
-           Use the negative dieOffset to avoid conflicts with the range type created
-           by parseSubRangeDIE(). */
-        // N.B.  I'm going to ignore the type id, and just create an anonymous type here
-        std::string aName = buf;
-        auto innermostType = tc()->addOrUpdateType(
-          Type::make_shared<typeArray>( elementType,
-                atoi(loBound.c_str()),
-                atoi(hiBound.c_str()),
-                aName ));
-        /* dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 1, typ %p, innermosttype %p, lower bound %d, upper bound %d\n", id(), typ, innermostType, innermostType->asArrayType().getLow(), innermostType->asArrayType().getHigh()); */
-        return innermostType;
-    } /* end base-case of recursion. */
-
-    /* If it does, build this array type out of the array type returned from the next recusion. */
-    boost::shared_ptr<Type> innerType = parseMultiDimensionalArray( &nextSibling, elementType);
-    if(!innerType) {
-        dwarf_printf("\tparseMultiDimensionalArray return Null because innerType == NULL\n");
-        return NULL;
-    }
-    // same here - type id ignored    jmo
-    std::string aName = buf;
-    auto outerType = tc()->addOrUpdateType(
-        Type::make_shared<typeArray>( innerType,
-          atoi(loBound.c_str()), atoi(hiBound.c_str()), aName));
-    dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 0, lower bound %lu, upper bound %lu\n",id(), outerType->asArrayType().getLow(), outerType->asArrayType().getHigh());
-    return outerType;
-} /* end parseMultiDimensionalArray() */
-
-bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool /*is_info*/,
-        std::string &boundString )
-{
-    Dwarf_Half boundForm = dwarf_whatform(&boundAttribute);
-    if(!boundForm) return false;
-
-    switch( boundForm ) {
-        case DW_FORM_data1:
-        case DW_FORM_data2:
-        case DW_FORM_data4:
-        case DW_FORM_data8:
-        case DW_FORM_udata:
-            {
-                dwarf_printf("(0x%lx) Decoding form %d with formudata\n",
-                        id(), boundForm);
-
-                Dwarf_Word constantBound;
-                DWARF_FAIL_RET(dwarf_formudata( &boundAttribute, & constantBound));
-                char bString[40];
-                sprintf(bString, "%llu", (unsigned long long)constantBound);
-                boundString = bString;
-                return true;
-            } break;
-
-        case DW_FORM_sdata:
-            {
-                dwarf_printf("(0x%lx) Decoding form %d with formsdata\n",
-                        id(), boundForm);
-
-                Dwarf_Sword constantBound;
-                DWARF_FAIL_RET(dwarf_formsdata( &boundAttribute, & constantBound));
-                char bString[40];
-                sprintf(bString, "%lld", (long long)constantBound);
-                boundString = bString;
-                return true;
-            } break;
-
-        case DW_FORM_ref_addr:
-        case DW_FORM_ref1:
-        case DW_FORM_ref2:
-        case DW_FORM_ref4:
-        case DW_FORM_ref8:
-        case DW_FORM_ref_udata:
-            {
-                /* Acquire the referenced DIE. */
-                //Dwarf_Off boundOffset;
-                Dwarf_Die boundEntry;
-                auto ret_p = dwarf_formref_die(&boundAttribute, &boundEntry);
-                if(!ret_p) return false;
-
-                /* Does it have a name? */
-                boundString = std::move(die_name(boundEntry));
-                if (!boundString.empty())
-                    return true;
-
-                /* Does it describe a nameless constant? */
-                Dwarf_Attribute constBoundAttribute;
-                auto status = dwarf_attr(&boundEntry, DW_AT_const_value, &constBoundAttribute);
-
-                if ( status != 0 ) {
-                    Dwarf_Word constBoundValue;
-                    DWARF_FAIL_RET(dwarf_formudata( &constBoundAttribute, & constBoundValue));
-
-                    char bString[40];
-                    sprintf(bString, "%lu", (unsigned long)constBoundValue);
-                    boundString = bString;
-
-                    return true;
-                }
-
-                return false;
-            } break;
-        case DW_FORM_block:
-        case DW_FORM_block1:
-            {
-                /* PGI extends DWARF to allow some bounds to be location lists.  Since we can't
-                   do anything sane with them, ignore them. */
-                // Dwarf_Op* * locationList;
-                // Dwarf_Sword listLength;
-                // status = dwarf_loclist( boundAttribute, & locationList, & listLength, NULL );
-                boundString = "{PGI extension}";
-                return false;
-            } break;
-
-        default:
-            //bperr ( "Invalid bound form 0x%x\n", boundForm );
-            boundString = "{invalid bound form}";
-            return false;
-            break;
-    } /* end boundForm switch */
-    return true;
-}
-
 
 bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
         std::vector<VariableLocation> &locs)

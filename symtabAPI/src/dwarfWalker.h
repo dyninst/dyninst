@@ -347,9 +347,7 @@ private:
     bool fixName(std::string &name, boost::shared_ptr<Type> type);
     bool fixBitFields(std::vector<VariableLocation> &locs, long &size);
 
-    bool parseSubrangeAUX(Dwarf_Die entry,
-            std::string &lobound,
-            std::string &hibound);
+    boost::shared_ptr<typeSubrange> parseSubrange(Dwarf_Die *entry);
     bool decodeLocationList(Dwarf_Half attr,
             Address *initialVal,
             std::vector<VariableLocation> &locs);
@@ -369,10 +367,8 @@ private:
             std::vector<VariableLocation> &locs);
     bool constructConstantVariableLocation(Address value,
             std::vector<VariableLocation> &locs);
-    boost::shared_ptr<Type> parseMultiDimensionalArray(Dwarf_Die *firstRange,
+    boost::shared_ptr<typeArray> parseMultiDimensionalArray(Dwarf_Die *firstRange,
                                           boost::shared_ptr<Type> elementType);
-    bool decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
-            std::string &name);
 
     bool decodeExpression(Dwarf_Attribute &attr,
             std::vector<VariableLocation> &locs);
