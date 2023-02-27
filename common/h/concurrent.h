@@ -94,12 +94,10 @@ namespace concurrent {
 
 template<typename K, typename V>
 class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
-    concurrent::detail::hash_compare<TBB_VERSION_MAJOR >= 2021, K>,
-	std::allocator<std::pair<const K,V>>> {
+    concurrent::detail::hash_compare<TBB_VERSION_MAJOR >= 2021, K>> {
 
 	using base = tbb::concurrent_hash_map<K, V,
-			concurrent::detail::hash_compare<TBB_VERSION_MAJOR >= 2021, K>,
-			std::allocator<std::pair<const K,V>>>;
+			concurrent::detail::hash_compare<TBB_VERSION_MAJOR >= 2021, K>>;
 
 public:
     using typename base::value_type;
