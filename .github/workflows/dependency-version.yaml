@@ -1,3 +1,7 @@
+# Ensure the minimum dependency versions found in the various CMake
+# files match the expected values. This ensures we synchronize versions
+# across containers and workflows.  
+
 name: Check dependency versions
 
 on:
