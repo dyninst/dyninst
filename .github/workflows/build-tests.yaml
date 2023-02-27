@@ -33,7 +33,7 @@ jobs:
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
            cmake --build .
 
-      - name: Build Examples
+      - name: Build examples
         run: |
            git clone --depth=1 https://github.com/dyninst/examples
            cd examples
@@ -41,7 +41,7 @@ jobs:
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
            cmake --build .
 
-      - name: Build External-tests
+      - name: Build external tests
         run: |
            git clone --depth=1 https://github.com/dyninst/external-tests
            cd external-tests
