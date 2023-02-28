@@ -36,7 +36,8 @@ RUN apt-get -qq update && \
       zlib1g-dev              \
       m4                      \
       libiberty-dev						\
-      pkg-config
+      pkg-config              \
+      clang
 
 COPY docker/build_elfutils.sh .
 RUN if test x"${build_elfutils}" = xyes; then \
