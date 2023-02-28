@@ -113,7 +113,8 @@ namespace Dyninst
             uint32_t regClass = m_Reg.regClass();
  
             uint32_t  size = m_num_elements;
-             DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
+
+DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
 
             if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_cdna2::SGPR || regClass == amdgpu_vega::SGPR){
                 return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
@@ -123,11 +124,12 @@ namespace Dyninst
                 return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
-            DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
-
             if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_cdna2::ACC_VGPR){
                 return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
+
+DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
+
             if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_cdna2::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
                 return "VCC";
             if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_cdna2::exec_lo || m_Reg == amdgpu_vega::exec_lo)
@@ -144,7 +146,7 @@ namespace Dyninst
             // Suppress warning (for compilers where it is a false positive)
             // The values of the two *::SGPR constants are identical, as
             // are the two *::VGPR constants
-            DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
+DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
 
             if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_cdna2::SGPR || regClass == amdgpu_vega::SGPR){
                 return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
@@ -154,11 +156,12 @@ namespace Dyninst
                 return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
-            DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
-
             if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_cdna2::ACC_VGPR){
                 return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
+
+DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
+
             if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_cdna2::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
                 return "VCC";
             if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_cdna2::exec_lo || m_Reg == amdgpu_vega::exec_lo)
