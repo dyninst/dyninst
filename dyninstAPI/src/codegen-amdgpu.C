@@ -74,7 +74,7 @@ void amdgpuCodeGen::generateTrap(CodeGen &) {
 void amdgpuCodeGen::generate_SOPP( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){
 	instruction insn(4);
 
-	uint32_t cmd = 0xbf8000000;
+	uint32_t cmd = 0xbf800000;
 	cmd  = ( cmd | (OP<< 16) |  SIMM16);
 	memcpy( insn.raw_  ,&cmd,  4 );
 	generate(gen,insn);

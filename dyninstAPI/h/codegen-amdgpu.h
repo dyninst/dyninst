@@ -186,7 +186,7 @@ class __attribute__((visibility ("default")))  amdgpuCodeGen {
 
 
     static void generate_SOPP( CodeGen & gen,  uint32_t OP, uint32_t SIMM16);
-    static void generate_s_nop( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){generate_SOPP(gen, SOPP_OP::S_NOP, 0);};
+    static void generate_s_nop( CodeGen & gen ){generate_SOPP(gen, SOPP_OP::S_NOP, 0);};
     static void generate_s_branch( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){generate_SOPP(gen, SOPP_OP::S_BRANCH, 0);};
     static void generate_s_waitcnt( CodeGen & gen,  uint32_t OP, uint32_t SIMM16){generate_SOPP(gen, SOPP_OP::S_WAITCNT, 0);};
 
