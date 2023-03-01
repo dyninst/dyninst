@@ -11,6 +11,8 @@ set(_public_headers
     h/AMDGPU/cdna2/amdgpu_cdna2_sys_regs.h
     h/AMDGPU/vega/amdgpu_vega_op_table.h
     h/AMDGPU/vega/amdgpu_vega_sys_regs.h
+    h/AMDGPU/gfx908/amdgpu_gfx908_op_table.h
+    h/AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h
     h/Annotatable.h
     h/Buffer.h
     h/compiler_annotations.h
