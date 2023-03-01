@@ -1395,7 +1395,7 @@ BPatch_type * BPatch::createEnum( const char * name,
     }
 
     // Make the underlying type a 4-byte signed int
-    auto underlying_type = boost::make_shared<Type>(typeScalar(4, "int", true));
+    boost::shared_ptr<Type> underlying_type = boost::make_shared<typeScalar>(4, "int", true);
 
     auto *tenum = new typeEnum(underlying_type, name);
     for(auto i=0UL; i<elementNames.size(); i++) {
