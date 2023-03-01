@@ -70,9 +70,7 @@ DwarfFrameParser::DwarfFrameParser(Dwarf * dbg_, Elf * eh_frame, Architecture ar
     dbg(dbg_),
     dbg_eh_frame(eh_frame),
     arch(arch_),
-#ifndef BOOST_THREAD_PROVIDES_ONCE_CXX11
     fde_dwarf_once(BOOST_ONCE_INIT),
-#endif
     fde_dwarf_status(dwarf_status_uninitialized)
 {
 }

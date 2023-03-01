@@ -30,6 +30,7 @@
 
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-cdna2.h"
+#include <array>
 
 namespace Dyninst {
 	namespace InstructionAPI {
@@ -161,7 +162,7 @@ namespace Dyninst {
         Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_WAITCNT(uint64_t input){
 		    return Immediate::makeImmediate(Result(s16, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeRegisterExpression(MachRegister registerID){
+        Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeRegisterExpression(MachRegister registerID, uint32_t ){
             if(registerID == amdgpu_cdna2::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
             }
@@ -218,8 +219,6 @@ namespace Dyninst {
 			imm_at_64 = get32bit(b,8);
 
 			insn_long = ( ((uint64_t) insn_high) << 32) | insn;
-            //cout << " setup insn_long = " <<  std::hex << insn_long << endl;
-
 		}
 		void InstructionDecoder_amdgpu_cdna2::decodeOpcode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
@@ -228,9 +227,7 @@ namespace Dyninst {
 		}
 		
 		void InstructionDecoder_amdgpu_cdna2::debug_instr(){
-			cout << "decoded instruction " <<  insn_in_progress->getOperation().mnemonic << " " << std::hex << insn_long << " insn_family = " << instr_family 
-				<< "  length = " <<  insn_in_progress->size()<< endl << endl;
-
+		//	cout << "decoded instruction " <<  insn_in_progress->getOperation().mnemonic << " " << std::hex << insn_long << " insn_family = " << instr_family << "  length = " <<  insn_in_progress->size()<< endl << endl;
 		}
 
 		Instruction InstructionDecoder_amdgpu_cdna2::decode(InstructionDecoder::buffer &b) {
@@ -238,9 +235,8 @@ namespace Dyninst {
 			mainDecode();
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
                 //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
-				//std::mem_fun(decode_lookup_table[instr_family])(this);
+				//std::mem_fn(decode_lookup_table[instr_family])(this);
 			}
-			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
@@ -250,7 +246,6 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
-			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 		}

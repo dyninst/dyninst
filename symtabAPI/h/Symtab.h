@@ -219,6 +219,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    // Relocation entries
    bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
+   bool findPltEntryByTarget(Address target_address, relocationEntry &result) const;
    bool updateFuncBindingTable(Offset stub_addr, Offset plt_addr);
 
    /**************************************

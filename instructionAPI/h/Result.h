@@ -56,7 +56,8 @@ namespace Dyninst
         {
             unsigned char bitval : 1;
             unsigned char u8val;
-            char s8val;
+	    /* char can be signed or unsigned, must be signed for s8val */
+            signed char s8val;
             uint16_t u16val;
             int16_t s16val;
             uint32_t u24val:24;
@@ -132,7 +133,7 @@ namespace Dyninst
         };
         template < > struct Result_type2type<s8>
         {
-            typedef char type;
+            typedef signed char type;
         };
         template < > struct Result_type2type<u8>
         {
@@ -473,9 +474,10 @@ namespace Dyninst
                                 snprintf(hex, 20, "%x", (unsigned int)val.s32val);
                                 break;
                             case u64:
-                                return std::to_string(val.u64val);
+                                snprintf(hex, 20, "%lx", val.u64val);
+                                break;
                             case s64:
-                                return std::to_string(val.s64val);
+                                snprintf(hex, 20, "%lx", (uint64_t) val.s64val);
                                 break;
                             case sp_float:
                                 snprintf(hex, 20, "%f", (double)val.floatval);
@@ -487,10 +489,10 @@ namespace Dyninst
                                 snprintf(hex, 20, "%x", (unsigned int)val.bitval);
                                 break;
                             case u48:
-                                return std::to_string(val.s48val);
+                                snprintf(hex, 20, "%lx", val.u48val);
                                 break;
                             case s48:
-                                return std::to_string(val.s48val);
+                                snprintf(hex, 20, "%lx", (uint64_t ) val.s48val);
                                 break;
                             case m512:
                                 snprintf(hex, 20, "%p", val.m512val);

@@ -297,7 +297,7 @@ namespace Dyninst
         const power_entry* current = &power_entry::main_opcode_table[field<0,5>(insn)];
         while(current->next_table)
         {
-            current = &(std::mem_fun(current->next_table)(this));
+            current = &(std::mem_fn(current->next_table)(this));
         }
 	if (findRAAndRS(current)) {
 	    isRAWritten = true;
@@ -314,7 +314,7 @@ namespace Dyninst
             curFn != current->operands.end();
             ++curFn)
         {
-            std::mem_fun(*curFn)(this);
+            std::mem_fn(*curFn)(this);
         }
         if(current->op == power_op_bclr)
         {
@@ -1429,7 +1429,7 @@ using namespace boost::assign;
         const power_entry* current = &power_entry::main_opcode_table[field<0,5>(insn)];
         while(current->next_table)
         {
-            current = &(std::mem_fun(current->next_table)(this));
+            current = &(std::mem_fn(current->next_table)(this));
         }
         insn_in_progress = makeInstruction(current->op, current->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
         if(current->op == power_op_b ||

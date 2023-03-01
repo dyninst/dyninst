@@ -8,7 +8,7 @@ include_directories(src h ${PROJECT_SOURCE_DIR}/elf/h ${PROJECT_SOURCE_DIR}/comm
 add_definitions(-DDYNDWARF_LIB)
 
 set(SRC_LIST src/dwarfResult.C src/dwarfExprParser.C src/dwarfFrameParser.C
-             src/dwarfHandle.C)
+             src/dwarfHandle.C src/dwarf_subrange.cpp)
 
 dyninst_library(dynDwarf dynElf common ${LibDwarf_LIBRARIES})
 add_dependencies(dynDwarf ElfUtils)

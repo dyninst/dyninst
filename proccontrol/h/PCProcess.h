@@ -48,11 +48,7 @@
 #include "boost/enable_shared_from_this.hpp"
 #include "boost/version.hpp"
 
-#if BOOST_VERSION >= 107000
 #define CHECKED_DELETE_NOEXCEPT BOOST_NOEXCEPT
-#else
-#define CHECKED_DELETE_NOEXCEPT 
-#endif 
 
 
 

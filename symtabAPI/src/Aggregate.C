@@ -307,26 +307,26 @@ bool Aggregate::operator==(const Aggregate &a)
 
 Aggregate::name_iter Aggregate::mangled_names_begin() const
 {
-  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getMangledName));
+  return boost::make_transform_iterator(symbols_.cbegin(), std::mem_fn(&Symbol::getMangledName));
 }
 
 Aggregate::name_iter Aggregate::mangled_names_end() const
 {
-  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getMangledName));
+  return boost::make_transform_iterator(symbols_.cend(), std::mem_fn(&Symbol::getMangledName));
 }
 Aggregate::name_iter Aggregate::pretty_names_begin() const
 {
-  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getPrettyName));
+  return boost::make_transform_iterator(symbols_.cbegin(), std::mem_fn(&Symbol::getPrettyName));
 }
 Aggregate::name_iter Aggregate::pretty_names_end() const
 {
-  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getPrettyName));
+  return boost::make_transform_iterator(symbols_.cend(), std::mem_fn(&Symbol::getPrettyName));
 }
 Aggregate::name_iter Aggregate::typed_names_begin() const
 {
-  return boost::make_transform_iterator(symbols_.begin(), std::mem_fun(&Symbol::getTypedName));
+  return boost::make_transform_iterator(symbols_.cbegin(), std::mem_fn(&Symbol::getTypedName));
 }
 Aggregate::name_iter Aggregate::typed_names_end() const
 {
-  return boost::make_transform_iterator(symbols_.end(), std::mem_fun(&Symbol::getTypedName));
+  return boost::make_transform_iterator(symbols_.cend(), std::mem_fn(&Symbol::getTypedName));
 }

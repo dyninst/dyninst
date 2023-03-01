@@ -286,7 +286,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
                                    hint_filt *, 
                                    bool allLoadedRegions=false);
     SymtabCodeSource(SymtabAPI::Symtab *);
-    SymtabCodeSource(char *);
+    SymtabCodeSource(const char *);
 
     ~SymtabCodeSource();
 

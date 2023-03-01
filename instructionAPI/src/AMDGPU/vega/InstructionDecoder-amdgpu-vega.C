@@ -30,6 +30,7 @@
 
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-vega.h"
+#include <array>
 
 namespace Dyninst {
 	namespace InstructionAPI {
@@ -389,7 +390,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_vega::finalizeVOP1Operands(){
 
 			layout_vop1 & layout = insn_layout.vop1;
-			//cout << " finalizing vop1 operands , vdst = " << std::dec << layout.vdst << " src0 = " << layout.src0 <<endl;
 
 			insn_in_progress->appendOperand(decodeVDST(layout.vdst),false,true);
 			insn_in_progress->appendOperand(decodeSSRC(layout.src0),true,false);
@@ -408,11 +408,9 @@ namespace Dyninst {
 							makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.ssrc0,2)
 							);
 
-					// TODO : addSuccessors commented out to avoid jump table analysis aborts
 					if(insn_in_progress->getOperation().operationID == amdgpu_op_s_setpc_b64){
                         
                         //RegisterAST::Ptr tmpqq = boost::dynamic_pointer_cast<RegisterAST>(new_pc_ast);
-                        //std::cout << "setting pc to offset " << std::hex <<tmpqq->getID()<< std::endl; 
                         // non fall through branches are added as Successor
 						//insn_in_progress->appendOperand(new_pc_ast,true,false);
 					    insn_in_progress->addSuccessor(new_pc_ast, false, false, false, false);
@@ -452,7 +450,6 @@ namespace Dyninst {
 
 			if(isBranch){
 				if(!isModifyPC){	
-					//cout << "calling make branch target "<< endl;
 					makeBranchTarget(isCall,isConditional,layout.simm16);
 				}	
 
@@ -466,7 +463,6 @@ namespace Dyninst {
 
 			if(isBranch){
 				if(!isModifyPC){	
-					//cout << "calling make branch target "<< endl;
 
 					makeBranchTarget(isCall,isConditional,layout.simm16);
 				}	
@@ -516,9 +512,7 @@ namespace Dyninst {
 					offset_expr = layout.soe ? 
 						decodeSGPRorM0(layout.soffset) : Immediate::makeImmediate(Result(u64,0));
 				}
-				//                cout << "layout.sbase = " << std::hex << layout.sbase << endl;
 				//MachRegister mr = makeAmdgpuRegID(amdgpu_vega::sgpr0,4,2);
-				//                cout << " shouldn't it be " << amdgpu_vega::sgpr_vec2_0 << " " << mr << endl; 
 				Expression::Ptr sbase_expr = makeRegisterExpression(makeAmdgpuRegID(amdgpu_vega::sgpr0,layout.sbase << 1,2));
 				if(isScratch)
 					offset_expr = makeMultiplyExpression(offset_expr,
@@ -558,7 +552,7 @@ namespace Dyninst {
 		bool InstructionDecoder_amdgpu_vega::decodeOperands(const amdgpu_vega_insn_entry & insn_entry) {
 			if(insn_entry.operandCnt!=0){
 				for (std::size_t i =0 ; i < insn_entry.operandCnt; i++){
-					std::mem_fun(insn_entry.operands[i])(this);
+					std::mem_fn(insn_entry.operands[i])(this);
 				}
 			}
 			return true;
@@ -719,9 +713,7 @@ namespace Dyninst {
 		}
 		
 		void InstructionDecoder_amdgpu_vega::debug_instr(){
-			cout << "\ndecoded instruction " <<  insn_in_progress->getOperation().mnemonic 
-				<< "  length = " <<  insn_in_progress->size()<< endl;
-
+			//cout << "\ndecoded instruction " <<  insn_in_progress->getOperation().mnemonic << "  length = " <<  insn_in_progress->size()<< endl;
 		}
 
 
@@ -729,9 +721,8 @@ namespace Dyninst {
 			setupInsnWord(b);
 			mainDecodeOpcode(b);
 			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
-				std::mem_fun(decode_lookup_table[instr_family])(this);
+				std::mem_fn(decode_lookup_table[instr_family])(this);
 			}
-			cout.clear();
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
@@ -740,7 +731,6 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode(b);
-			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 			b.start += insn_in_progress->size();

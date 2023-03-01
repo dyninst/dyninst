@@ -30,6 +30,7 @@
 
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-gfx908.h"
+#include <array>
 
 namespace Dyninst {
 	namespace InstructionAPI {
@@ -124,6 +125,22 @@ namespace Dyninst {
 			return {};
 		}
 
+        void  InstructionDecoder_amdgpu_gfx908::processOPR_SMEM_OFFSET(layout_ENC_SMEM & layout){
+            if (layout.IMM ==0 ){
+                if( layout.SOFFSET_EN ==0 ) {
+                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.OFFSET), true , false ); 
+                }else{
+                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.SOFFSET), true , false ); 
+                }
+            }else{
+                if( layout.SOFFSET_EN ==0 ) {
+                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(s64,layout.OFFSET)),false ,false);
+                }else{
+                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(s64,layout.OFFSET)),false,false);
+                    insn_in_progress-> appendOperand( decodeSGPRorM0(layout.SOFFSET),true ,false); 
+                }
+            }
+        }
 
         uint32_t InstructionDecoder_amdgpu_gfx908::decodeOPR_LITERAL(){
             if (!useImm){
@@ -161,7 +178,7 @@ namespace Dyninst {
         Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_WAITCNT(uint64_t input){
 		    return Immediate::makeImmediate(Result(s16, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeRegisterExpression(MachRegister registerID){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeRegisterExpression(MachRegister registerID, uint32_t ){
             if(registerID == amdgpu_gfx908::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
             }
@@ -190,7 +207,6 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_gfx908::reset(){
 			immLen = 0;
 			insn_size = 0;
-			num_elements =1;
 			isBranch = false;
 			isConditional = false;
 			isModifyPC =false;
@@ -246,7 +262,6 @@ namespace Dyninst {
 			InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 			setupInsnWord(b);
 			mainDecode();
-			cout.clear();
 			Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
             *iptr = *(insn_in_progress.get());
 		}

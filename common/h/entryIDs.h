@@ -202,6 +202,8 @@ enum entryID : unsigned int {
   e_vdppd,	// SSE 4.1
   e_dpps,	// SSE 4.1
   e_emms,
+  e_endbr32,
+  e_endbr64,
   e_enter,
   e_enterq,
   e_extractps,	// SSE 4.1

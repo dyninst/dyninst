@@ -284,7 +284,7 @@ void AddressSpace::inferiorFreeCompact() {
    unsigned i, nbuf = freeList.size();
 
    /* sort buffers by address */
-    std::sort(freeList.begin(), freeList.end(), ptr_fun(heapItemLessByAddr));
+    std::sort(freeList.begin(), freeList.end(), heapItemLessByAddr);
 
    /* combine adjacent buffers */
    bool needToCompact = false;
@@ -371,7 +371,7 @@ void AddressSpace::addHeap(heapItem *h) {
    heap_.heapFree.push_back(h2);
     
    /* When we add an item to heapFree, make sure it remains in sorted order */
-   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
+   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), heapItemLessByAddr);
 
    heap_.totalFreeMemAvailable += h2->length;
 }
@@ -425,7 +425,7 @@ Address AddressSpace::inferiorMallocInternal(unsigned size,
    }
 
    /* When we update an item in heapFree, make sure it remains in sorted order */
-   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
+   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), heapItemLessByAddr);
 
    // add allocated block to active list
    h->length = size;
@@ -455,7 +455,7 @@ void AddressSpace::inferiorFreeInternal(Address block) {
    heap_.heapFree.push_back(h);
 
    /* When we add an item to heapFree, make sure it remains in sorted order */
-   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
+   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), heapItemLessByAddr);
 
    heap_.totalFreeMemAvailable += h->length;
    heap_.freed += h->length;
@@ -561,7 +561,7 @@ bool AddressSpace::inferiorShrinkBlock(heapItem *h,
       heap_.heapFree.push_back(freeEnd);
 
       /* When we add an item to heapFree, make sure it remains sorted */
-      std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
+      std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), heapItemLessByAddr);
    }
 
    heap_.totalFreeMemAvailable += shrink;

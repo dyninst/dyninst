@@ -89,8 +89,10 @@ struct comparison <BPatch_basicBlock *> {
  */
 class BPatch_flowGraph;
 
-struct BPATCH_DLL_EXPORT insnPredicate : public std::unary_function<Dyninst::InstructionAPI::Instruction, bool>
+struct BPATCH_DLL_EXPORT insnPredicate
 {
+  using result_type = bool;
+  using argument_type = Dyninst::InstructionAPI::Instruction;
   virtual result_type operator()(argument_type arg) = 0;
   virtual ~insnPredicate() {}
     

@@ -129,7 +129,7 @@ const char *pdelf_get_shnames(Elf_X *elf) {
 //
 // Compare function for use with the Vector<T> sort method.
 //
-struct SectionHeaderSortFunction : public binary_function<Elf_X_Shdr *, Elf_X_Shdr *, bool> {
+struct SectionHeaderSortFunction  {
     bool operator()(Elf_X_Shdr *hdr1, Elf_X_Shdr *hdr2) {
         return (hdr1->sh_addr() < hdr2->sh_addr());
     }
@@ -3122,7 +3122,7 @@ int read_except_table_gcc3(
 }
 
 
-struct exception_compare : public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool> {
+struct exception_compare  {
     bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) const {
         if (e1.tryStart() < e2.tryStart())
             return true;
@@ -3239,23 +3239,20 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                 case DW_LANG_C:
                 case DW_LANG_C89:
                 case DW_LANG_C99:
-#ifdef DW_LANG_C11
                     case DW_LANG_C11:
-#endif
                     (*mod_langs)[working_module] = lang_C;
                     break;
                 case DW_LANG_C_plus_plus:
-#ifdef DW_LANG_C_plus_plus_03
                     case DW_LANG_C_plus_plus_03:
-#endif
-#ifdef DW_LANG_C_plus_plus_11
                     case DW_LANG_C_plus_plus_11:
-#endif
+                    case DW_LANG_C_plus_plus_14:
                     (*mod_langs)[working_module] = lang_CPlusPlus;
                     break;
                 case DW_LANG_Fortran77:
                 case DW_LANG_Fortran90:
                 case DW_LANG_Fortran95:
+                case DW_LANG_Fortran03:
+                case DW_LANG_Fortran08:
                     (*mod_langs)[working_module] = lang_Fortran;
                     break;
                 default:

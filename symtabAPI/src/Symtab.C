@@ -1548,6 +1548,30 @@ SYMTAB_EXPORT bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt
    return true;
 }
 
+SYMTAB_EXPORT bool Symtab::findPltEntryByTarget(const Address target_address, relocationEntry &result) const
+{
+    /**
+     * Object files and static binaries will not have a function binding table
+     * because the function binding table holds relocations used by the dynamic
+     * linker
+     */
+    if(relocation_table_.empty() && !isStaticBinary() &&
+       getObjectType() != obj_RelocatableFile)
+    {
+        fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
+    }
+
+    auto it = std::find_if(relocation_table_.cbegin(), relocation_table_.cend(),
+                           [=](const relocationEntry& entry) {
+                               return entry.target_addr() == target_address;
+                           });
+    if(it == relocation_table_.cend())
+        return false;
+
+    result = *it;
+    return true;
+}
+
 SYMTAB_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_addr)
 {
     int stub_idx = -1, plt_idx = -1;

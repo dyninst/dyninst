@@ -526,8 +526,9 @@ bool baseTramp::guarded() const {
    }
 
    if (recursive && guarded) {
-      cerr << "Warning: mix of recursive and guarded snippets @ " << point_
-           << ", picking guarded" << endl;
+	  inst_printf(
+	    "Warning: mix of recursive and guarded snippets @ %p, picking guarded \n",
+		static_cast<void*>(point_));
       return true;
    }
    if (guarded) return true;

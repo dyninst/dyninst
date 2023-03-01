@@ -135,13 +135,13 @@ namespace Dyninst
         {
             return make_shared(singleton_object_pool<Dereference>::construct(addrToDereference, resultType));
         }
-        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID)
+        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, uint32_t num_elements )
         {
             int newID = registerID.val();
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
+            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8,num_elements));
         }
         
 
@@ -171,7 +171,6 @@ namespace Dyninst
             MachRegister converted(convertedID);
             return make_shared(singleton_object_pool<MaskRegisterAST>::construct(converted, 0, registerID.size() * 8));
         }
-
     }
 }
 

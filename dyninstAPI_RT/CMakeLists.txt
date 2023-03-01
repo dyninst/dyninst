@@ -1,12 +1,3 @@
-# CMake configuration for dyninstAPI_RT directory
-cmake_minimum_required(VERSION 2.6.4)
-project(DyninstRT C)
-
-set(DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
-
-include(${DYNINST_ROOT}/cmake/LanguageStandards.cmake)
-include(${DYNINST_ROOT}/cmake/shared.cmake)
-
 include_directories(${DYNINST_ROOT}/dyninstAPI_RT/src ${DYNINST_ROOT}/dyninstAPI_RT/h
                     ${DYNINST_ROOT})
 
@@ -55,11 +46,7 @@ set(RT_STATIC_ONLY_SRC_LIST_aarch64 src/RTstatic_ctors_dtors-aarch64.c)
 # that gcc can handle .S.
 enable_language(ASM)
 file(GLOB SRC_ASSEMBLY "src/*.S")
-if(NEED_NATIVE_ASSEMBER MATCHES YES)
-    set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE ASM)
-else()
-    set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE C)
-endif()
+set_source_files_properties(${SRC_ASSEMBLY} PROPERTIES LANGUAGE C)
 
 # The arch-specific files other than RTthread-x86 are Unix-only.
 if(UNIX)
@@ -88,9 +75,6 @@ if(UNIX)
 endif()
 
 add_library(dyninstAPI_RT SHARED ${SRC_LIST})
-if(TARGET TBB)
-    add_dependencies(dyninstAPI_RT TBB)
-endif()
 
 if(NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
     target_link_libraries(dyninstAPI_RT ${CMAKE_DL_LIBS})
@@ -99,9 +83,6 @@ else() # windows
 endif()
 
 add_library(dyninstAPI_RT_static STATIC ${SRC_LIST} ${RT_STATIC_ONLY_SRC_LIST})
-if(TARGET TBB)
-    add_dependencies(dyninstAPI_RT_static TBB)
-endif()
 
 # this should carry over from CMakeLists.txt
 set_target_properties(

@@ -1763,15 +1763,15 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
      if (client == NULL)
         return false;
 
-     char *filename;
+     char *path;
      int fd = debuginfod_find_debuginfo(client,
                                         (const unsigned char *)buildid.c_str(),
-                                        0, &filename);
+                                        0, &path);
      debuginfod_end(client);
 
      if (fd >= 0) {
-        string fname = string(filename);
-        free(filename);
+        string fname = string(path);
+        free(path);
         close(fd);
 
         bool result = loadDebugFileFromDisk(fname,

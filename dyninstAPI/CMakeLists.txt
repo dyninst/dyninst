@@ -209,5 +209,3 @@ if(UNIX)
     target_compile_definitions(
         dyninstAPI PRIVATE DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS})
 endif()
-
-install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")

@@ -67,15 +67,19 @@ bool LineInformation::addLine( unsigned int lineSource,
 }
    return result;
 } /* end setLineToAddressRangeMapping() */
-bool LineInformation::addLine( std::string lineSource,
+bool LineInformation::addLine( const std::string &lineSource,
                                unsigned int lineNo,
                                unsigned int lineOffset,
                                Offset lowInclusiveAddr,
                                Offset highExclusiveAddr )
 {
-    auto i = strings_->get<1>().insert(StringTableEntry(lineSource,"")).first;
+    // lookup or insert linesource in string table and get iterator
+    auto iter = strings_->get<1>().insert(StringTableEntry(lineSource,"")).first;
 
-    return addLine(i->str, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
+    // get index of string in string table
+    auto i = boost::multi_index::project<0>(*strings_, iter) - strings_->get<0>().begin();
+
+    return addLine(i, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
 }
 
 void LineInformation::addLineInfo(LineInformation *lineInfo)

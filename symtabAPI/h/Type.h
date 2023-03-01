@@ -379,21 +379,23 @@ bool Type::isDerivedType() { return dynamic_cast<derivedType*>(this) != NULL; }
 
 // Derived classes from Type
 
-class SYMTAB_EXPORT typeEnum : public Type {
+class SYMTAB_EXPORT typeEnum : public derivedType {
  private:  
    dyn_c_vector<std::pair<std::string, int> > consts;
+   bool is_scoped_{false}; // C++11 scoped enum (i.e., 'enum class')?
  public:
-   typeEnum();
-   typeEnum(typeId_t ID, std::string name = "");
-   typeEnum(std::string name);
-   static typeEnum *create(std::string &name, dyn_c_vector<std::pair<std::string, int> *>&elements,
-   								Symtab *obj = NULL);
-   static typeEnum *create(std::string &name, dyn_c_vector<std::string> &constNames, Symtab *obj);
+   struct scoped_t final {};
+   typeEnum() = default;
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name);
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID);
+   typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID, scoped_t) :
+	   typeEnum(underlying_type, std::move(name), ID) { is_scoped_=true; }
+
    bool addConstant(const std::string &fieldname,int value);
    dyn_c_vector<std::pair<std::string, int> > &getConstants();
-   bool setName(const char *name);
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
+   bool is_scoped() const noexcept { return is_scoped_; }
 };
 typeEnum& Type::asEnumType() { return dynamic_cast<typeEnum&>(*this); }
 bool Type::isEnumType() { return dynamic_cast<typeEnum*>(this) != NULL; }
@@ -638,11 +640,16 @@ class SYMTAB_EXPORT typeTypedef: public derivedType {
 };
 
 class SYMTAB_EXPORT typeRef : public derivedType {
+ private:
+	bool is_rvalue_{false};
  protected:
    void fixupUnknowns(Module *);
  public:
+   struct rvalue_t final{};
    typeRef();
    typeRef(typeId_t ID, boost::shared_ptr<Type> refType, std::string name);
+   typeRef(typeId_t ID, boost::shared_ptr<Type> refType, std::string name, rvalue_t) :
+	   typeRef(ID, refType, name) { is_rvalue_ = true; }
    typeRef(typeId_t i, Type* r, std::string n)
      : typeRef(i, r->reshare(), n) {}
    typeRef(boost::shared_ptr<Type> refType, std::string name);
@@ -655,6 +662,7 @@ class SYMTAB_EXPORT typeRef : public derivedType {
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
+   bool is_rvalue() const noexcept { return is_rvalue_; }
 };
 
 class SYMTAB_EXPORT typeSubrange : public rangedType {

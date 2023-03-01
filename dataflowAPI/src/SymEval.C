@@ -57,6 +57,9 @@
 
 #include "boost/tuple/tuple.hpp"
 
+/* once flag for the warning of unimplemented symbolic expansion */
+#include <mutex>
+
 using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -536,8 +539,14 @@ bool SymEval::expandInsn(const Instruction &insn,
                                    break;
                                }
         default:
-                               assert(0 && "Unimplemented symbolic expansion architecture");
-                               break;
+            /* once per arch would be better, but ... */
+            static std::once_flag arch_warning_flag;
+            std::call_once(arch_warning_flag, [&]{
+                cerr << "Unimplemented symbolic expansion architecture: " << insn.getArch() << endl;
+            }
+            );
+            return false;
+            break;
     }
 
     return true;

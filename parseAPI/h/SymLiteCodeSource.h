@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2022 Barton P. Miller
+ * Copyright (c) 1996-2023 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its

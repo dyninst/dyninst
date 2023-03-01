@@ -978,6 +978,8 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vdppd, "vdppd")
   (e_dpps, "dpps")
   (e_emms, "emms")
+  (e_endbr32, "endbr32")
+  (e_endbr64, "endbr64")
   (e_enter, "enter")
   (e_extractps, "extractps")
   (e_extrq, "extrq")
@@ -6790,7 +6792,7 @@ ia32_entry sseMapMult[][3] =
     { e_vpminub, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_vpminub, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
   }, { /* SSEDB_66 */
-    { e_vpand, t_done, 0, true, { Vps, Hps, Wps }, 0, s1RW2R, 0 },
+    { e_vpand, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_No_Entry, t_vexw, VEXW91, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_vexw, VEXW64, false, { Zz, Zz, Zz }, 0, 0, 0 }
   }, { /* SSEDC_66 */
@@ -10490,7 +10492,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
    addr++;
 
    /* Get displacements we're going to use */
-   const char* disp8 = (const char*)addr;
+   const signed char* disp8 = (const signed char*)addr;
    const short* disp16 = (const short*)addr;
    const int* disp32 = (const int*)addr;
 
@@ -10675,7 +10677,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
       }
 
       /* Update displacement pointers  */
-      disp8 = (const char*)addr;
+      disp8 = (const signed char*)addr;
       disp16 = (const short*)addr;
       disp32 = (const int*)addr;
 
@@ -10953,7 +10955,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                nib += wordSzB * addrSzAttr;
                if(mac)
                {
-                  int offset = 0;
+                  long offset = 0;
                   switch(addrSzAttr)
                   {
                      case 1: // 16-bit offset
@@ -11744,7 +11746,7 @@ int displacement(const unsigned char *instr, unsigned type) {
       disp = *(const int *)(instr+2);
    } else if (type & IS_JUMP) {
       if (type & REL_B) {
-         disp = *(const char *)(instr+1);
+         disp = *(const signed char *)(instr+1);
       } else if (type & REL_W) {
          disp = *(const short *)(instr+1); // skip opcode
       } else if (type & REL_D) {
@@ -11752,7 +11754,7 @@ int displacement(const unsigned char *instr, unsigned type) {
       }
    } else if (type & IS_JCC) {
       if (type & REL_B) {
-         disp = *(const char *)(instr+1);
+         disp = *(const signed char *)(instr+1);
       } else if (type & REL_W) {
          disp = *(const short *)(instr+2); // skip two byte opcode
       } else if (type & REL_D) {

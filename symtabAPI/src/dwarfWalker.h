@@ -26,30 +26,28 @@
 #include <bits/stdc++.h>
 
 namespace Dyninst {
-namespace SymtabAPI {
-    typedef struct {
-        Dwarf_Off off;
-        bool file;
-        Module * m;
-    } type_key;
-}
-}
-
-namespace tbb {
-    using namespace Dyninst::SymtabAPI;
-    template<>
-    struct tbb_hash_compare<type_key> {
-        static size_t hash(const type_key& k) {
-            size_t seed = 0;
-            boost::hash_combine(seed, k.off);
-            boost::hash_combine(seed, k.file);
-            boost::hash_combine(seed, static_cast<void *>(k.m));
-            return seed;
-        }
-        static bool equal(const type_key& k1, const type_key& k2) {
-            return (k1.off==k2.off && k1.file==k2.file && k1.m==k2.m);
-        }
-    };
+	namespace SymtabAPI {
+		typedef struct {
+			Dwarf_Off off;
+			bool file;
+			Module * m;
+		} type_key;
+		inline bool operator==(type_key const& k1, type_key const& k2) {
+			return k1.off==k2.off && k1.file==k2.file && k1.m==k2.m;
+		}
+	}
+	namespace concurrent {
+		template<>
+		struct hasher<SymtabAPI::type_key> {
+			size_t operator()(const SymtabAPI::type_key& k) const {
+				size_t seed = 0;
+				boost::hash_combine(seed, k.off);
+				boost::hash_combine(seed, k.file);
+				boost::hash_combine(seed, static_cast<void *>(k.m));
+				return seed;
+			}
+		};
+	}
 }
 
 namespace Dyninst {
@@ -218,7 +216,7 @@ public:
 
     } Error;
 
-    using ParsedFuncs = tbb::concurrent_hash_map<FunctionBase *, bool>;
+    using ParsedFuncs = Dyninst::dyn_c_hash_map<FunctionBase *, bool>;
 
     DwarfWalker(Symtab *symtab, Dwarf* dbg, std::shared_ptr<ParsedFuncs> pf = nullptr);
 
@@ -349,9 +347,7 @@ private:
     bool fixName(std::string &name, boost::shared_ptr<Type> type);
     bool fixBitFields(std::vector<VariableLocation> &locs, long &size);
 
-    bool parseSubrangeAUX(Dwarf_Die entry,
-            std::string &lobound,
-            std::string &hibound);
+    boost::shared_ptr<typeSubrange> parseSubrange(Dwarf_Die *entry);
     bool decodeLocationList(Dwarf_Half attr,
             Address *initialVal,
             std::vector<VariableLocation> &locs);
@@ -360,7 +356,7 @@ private:
             bool &constant,
             bool &expr,
             Dwarf_Half &form);
-    bool findString(Dwarf_Half attr, std::string &str);
+    boost::optional<std::string> find_call_file();
 public:
     static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf *dbg);
     static bool findConstantWithForm(Dwarf_Attribute &attr, Dwarf_Half form,
@@ -371,10 +367,8 @@ private:
             std::vector<VariableLocation> &locs);
     bool constructConstantVariableLocation(Address value,
             std::vector<VariableLocation> &locs);
-    boost::shared_ptr<Type> parseMultiDimensionalArray(Dwarf_Die *firstRange,
+    boost::shared_ptr<typeArray> parseMultiDimensionalArray(Dwarf_Die *firstRange,
                                           boost::shared_ptr<Type> elementType);
-    bool decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
-            std::string &name);
 
     bool decodeExpression(Dwarf_Attribute &attr,
             std::vector<VariableLocation> &locs);

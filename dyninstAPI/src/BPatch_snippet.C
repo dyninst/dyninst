@@ -183,23 +183,23 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
 
         //  We have to be a little forgiving of the
 
+        if (lOperand.ast_wrapper->getType() == NULL)
+        {
+                BPatch_reportError(BPatchSerious, 109,
+                                "array reference has no type information");
+                assert(0);
+                return AstNodePtr();
+        }
+
         typeArray *arrayType = lOperand.ast_wrapper->getType()->getSymtabType(Type::share)->getArrayType();
         if (!arrayType)
         {
-                if (lOperand.ast_wrapper->getType() == NULL)
-                {
-                        BPatch_reportError(BPatchSerious, 109,
-                                        "array reference has no type information");
-                }
-                else
-                {
-                        fprintf(stderr, "%s[%d]:  error here: type is %s\n", FILE__, __LINE__,
-                                        lOperand.ast_wrapper->getType()->getName());
-                        BPatch_reportError(BPatchSerious, 109,
-                                        "array reference has array reference to non-array type");
-                }
-                assert(0);
-                return AstNodePtr();
+			fprintf(stderr, "%s[%d]:  error here: type is %s\n", FILE__, __LINE__,
+							lOperand.ast_wrapper->getType()->getName());
+			BPatch_reportError(BPatchSerious, 109,
+							"array reference has array reference to non-array type");
+			assert(0);
+			return AstNodePtr();
         }
 
         auto elementType = arrayType->getBaseType(Type::share);
