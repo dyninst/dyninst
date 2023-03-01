@@ -42,22 +42,22 @@ set(_public_headers
     h/Visitor.h)
 
 set(_private_headers
-	src/amdgpu_branchinsn_table.h
-	src/AMDGPU/cdna2/amdgpu_cdna2_decoder_impl.h
-	src/AMDGPU/cdna2/amdgpu_cdna2_insn_entry.h
-	src/AMDGPU/cdna2/decodeOperands.h
-	src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.h
-	src/AMDGPU/vega/amdgpu_vega_decoder_impl.h
-  src/AMDGPU/vega/amdgpu_vega_insn_entry.h
-	src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.h
-  src/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.h
-  src/AMDGPU/gfx908/amdgpu_gfx908_insn_entry.h
-  src/AMDGPU/gfx908/decodeOperands.h
-  src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
-	src/InstructionDecoder-aarch64.h
-	src/InstructionDecoderImpl.h
-	src/InstructionDecoder-power.h
-	src/InstructionDecoder-x86.h)
+    src/amdgpu_branchinsn_table.h
+    src/AMDGPU/cdna2/amdgpu_cdna2_decoder_impl.h
+    src/AMDGPU/cdna2/amdgpu_cdna2_insn_entry.h
+    src/AMDGPU/cdna2/decodeOperands.h
+    src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.h
+    src/AMDGPU/vega/amdgpu_vega_decoder_impl.h
+    src/AMDGPU/vega/amdgpu_vega_insn_entry.h
+    src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.h
+    src/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.h
+    src/AMDGPU/gfx908/amdgpu_gfx908_insn_entry.h
+    src/AMDGPU/gfx908/decodeOperands.h
+    src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
+    src/InstructionDecoder-aarch64.h
+    src/InstructionDecoderImpl.h
+    src/InstructionDecoder-power.h
+    src/InstructionDecoder-x86.h)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
@@ -128,9 +128,8 @@ dyninst_library(
 )
 # cmake-format: on
 
-set(_inc_dirs
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/cdna2
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
+set(_inc_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/cdna2
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
 
 foreach(t ${instructionAPI_TARGETS})
   target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")

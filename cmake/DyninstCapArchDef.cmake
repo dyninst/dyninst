@@ -76,5 +76,5 @@ elseif(DYNINST_OS_Windows)
   set(OLD_DEFINES -Di386_unknown_nt4_0)
 endif()
 
-set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES} ${OS_DEFINES}
-                    ${OLD_DEFINES})
+set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES}
+                                  ${OS_DEFINES} ${OLD_DEFINES})

@@ -113,7 +113,8 @@ foreach(t ${parseAPI_TARGETS})
   target_include_directories(${t} BEFORE
                              PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>")
 
-  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>")
+  target_include_directories(
+    ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>")
 
   set_property(TARGET ${t} PROPERTY PUBLIC_HEADER ${parseapi_headers}
                                     ${dataflowapi_headers})
