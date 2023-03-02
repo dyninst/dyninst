@@ -19,22 +19,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set Organization Name
-        if: (github.event_name != 'schedule')
-        env:
-          org: ${{ github.event.repository.owner.login }}
-        run: echo "org=${org}" >> ${GITHUB_ENV}
-
-      - name: Set Organization Name
-        if: (github.event_name == 'schedule')
-        run: echo "org=dyninst" >> ${GITHUB_ENV}
-
       - name: Build Dyninst Base Container
         run: |
            cd docker/
-           docker build --build-arg base=ghcr.io/${org}/amd64-${{ matrix.os }}-base:latest
+           docker build --build-arg base=ghcr.io/dyninst/amd64-${{ matrix.os }}-base:latest
                         -f Dockerfile \
-                        -t ghcr.io/${org}/amd64-${{ matrix.os }}:latest ../
+                        -t ghcr.io/dyninst/amd64-${{ matrix.os }}:latest ../
 
       - name: GHCR Login
         if: (github.event_name != 'pull_request')
@@ -46,4 +36,4 @@ jobs:
 
       - name: Deploy
         if: (github.event_name != 'pull_request')
-        run: docker push ghcr.io/${org}/amd64-${{ matrix.os }}:latest
+        run: docker push ghcr.io/dyninst/amd64-${{ matrix.os }}:latest
