@@ -22,8 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
-      volumes:
-        - ${{ env.GITHUB_WORKSPACE }}:/dyninst
     name: ${{ matrix.container }}
     steps:
       - name: Checkout
@@ -33,7 +31,8 @@ jobs:
 
       - name: Build Dyninst
         run: |
-          pwd && ls && ls / && ls /dyninst
+          pwd && ls -la && ls -la /
+          ln -s dyninst /dyninst && ls -la /dyninst
           bash /dyninst/src/docker/build.sh $PWD
 
       - name: Build testsuite
