@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
-      volume:
+      volumes:
         - $PWD:/dyninst
     name: ${{ matrix.container }}
     steps:
