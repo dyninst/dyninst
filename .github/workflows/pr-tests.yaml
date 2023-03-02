@@ -30,7 +30,9 @@ jobs:
           path: dyninst/src
 
       - name: Build Dyninst
-        run: bash /dyninst/src/docker/build.sh /dyninst/src
+        run: |
+           ln -s $PWD/dyninst /dyninst
+           bash /dyninst/src/docker/build.sh /dyninst/src
 
       - name: Checkout Test Suite
         uses: actions/checkout@v3
