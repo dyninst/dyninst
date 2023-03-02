@@ -31,8 +31,10 @@ jobs:
 
       - name: Build Dyninst
         run: |
-          pwd && ls -la && ls -la /
-          ln -s dyninst /dyninst && ls -la /dyninst
+          ls -la /
+          pwd && ls -la && ls -la ./dyninst
+          ln -s ./dyninst /dyninst
+          ls -la /dyninst
           bash /dyninst/src/docker/build.sh $PWD
 
       - name: Build testsuite
