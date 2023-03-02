@@ -1003,6 +1003,8 @@ unsigned restoreSPRegisters(codeGen &gen,
 	fpscr_off = STK_FP_CR_64;
     }
 
+    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
+
     registerSlot *regXER = (*(gen.rs()))[registerSpace::xer];
     assert (regXER != NULL);
     if (force_save || regXER->liveState == registerSlot::spilled)
@@ -1021,7 +1023,6 @@ unsigned restoreSPRegisters(codeGen &gen,
     {
     restoreCR(gen, 10, save_off + cr_off); num_restored++;
     }
-    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
 
     return num_restored;
 }
