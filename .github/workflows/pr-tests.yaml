@@ -23,7 +23,7 @@ jobs:
     container:
       image: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
       volumes:
-        - ${{ GITHUB_WORKSPACE }}:/dyninst
+        - ${{ env.GITHUB_WORKSPACE }}:/dyninst
     name: ${{ matrix.container }}
     steps:
       - name: Checkout
