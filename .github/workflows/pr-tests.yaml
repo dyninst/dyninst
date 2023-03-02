@@ -30,12 +30,7 @@ jobs:
           path: dyninst/src
 
       - name: Build Dyninst
-        run: |
-          ls -la /
-          pwd && ls -la && ls -la ./dyninst
-          ln -s $PWD/dyninst /dyninst
-          ls -la /dyninst
-          bash /dyninst/src/docker/build.sh /dyninst/src
+        run: bash /dyninst/src/docker/build.sh /dyninst/src
 
       - name: Build testsuite
         run: |
