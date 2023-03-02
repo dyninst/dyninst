@@ -28,7 +28,9 @@ jobs:
           path: dyninst/src
 
       - name: Build Dyninst
-        run: pwd && ls && bash docker/build.sh $PWD
+        run: |
+          pwd && ls && ls / && ls /dyninst
+          bash dyninst/src/docker/build.sh $PWD
 
       - name: Build testsuite
         run: |
