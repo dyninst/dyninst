@@ -29,11 +29,11 @@ jobs:
           path: dyninst/src
 
       - name: Build Dyninst
-        run: pwd && bash docker/build.sh $PWD
+        run: pwd && ls && bash docker/build.sh $PWD
 
       - name: Build testsuite
         run: |
-           pwd && git clone --depth=1 https://github.com/dyninst/testsuite
+           pwd && ls && git clone --depth=1 https://github.com/dyninst/testsuite
            cd testsuite
            mkdir build; cd $_
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
@@ -41,7 +41,7 @@ jobs:
 
       - name: Build examples
         run: |
-           pwd && git clone --depth=1 https://github.com/dyninst/examples
+           pwd && ls && git clone --depth=1 https://github.com/dyninst/examples
            cd examples
            mkdir build; cd $_
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
@@ -49,7 +49,7 @@ jobs:
 
       - name: Build external tests
         run: |
-           pwd && git clone --depth=1 https://github.com/dyninst/external-tests
+           pwd && ls && git clone --depth=1 https://github.com/dyninst/external-tests
            cd external-tests
            mkdir build; cd $_
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
