@@ -33,7 +33,7 @@ jobs:
         run: |
           ls -la /
           pwd && ls -la && ls -la ./dyninst
-          ln -s ./dyninst /dyninst
+          ln -s $PWD/dyninst /dyninst
           ls -la /dyninst
           bash /dyninst/src/docker/build.sh $PWD
 
