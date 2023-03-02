@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Build Dyninst Base Container
+      - name: Build Dyninst Dev Container
         run: |
            cd docker/
            docker build --build-arg base=ghcr.io/dyninst/amd64-${{ matrix.os }}-base:latest
