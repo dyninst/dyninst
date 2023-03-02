@@ -23,13 +23,13 @@ jobs:
     container:
       image: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
       volumes:
-        - :/dyninst
+        - .:/dyninst
     name: ${{ matrix.container }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          path: /dyninst/src
+          path: dyninst/src
 
       - name: Build Dyninst
         run: |
