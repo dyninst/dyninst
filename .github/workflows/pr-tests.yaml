@@ -1,4 +1,10 @@
-name: Build Tests
+# On each pull request, we build Dyninst, the test suite, the examples from
+# dyninst/examples, and the external test from dyninst/external-tests
+#
+# The builds are carried out for each supported OS using the base containers
+# at https://github.com/orgs/dyninst/packages
+
+name: Pull Request Tests
 
 on:
   pull_request:
