@@ -20,7 +20,10 @@ jobs:
       matrix:
          container: ['ubuntu-20.04']
     runs-on: ubuntu-latest
-    container: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
+    container:
+      image: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
+      volume:
+        - $PWD:/dyninst
     name: ${{ matrix.container }}
     steps:
       - name: Checkout
@@ -31,7 +34,7 @@ jobs:
       - name: Build Dyninst
         run: |
           pwd && ls && ls / && ls /dyninst
-          bash dyninst/src/docker/build.sh $PWD
+          bash /dyninst/src/docker/build.sh $PWD
 
       - name: Build testsuite
         run: |
