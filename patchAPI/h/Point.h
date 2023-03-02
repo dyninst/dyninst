@@ -382,30 +382,44 @@ typedef std::map<Address, Point *> InsnPoints;
 
 
 struct BlockPoints {
-   Point *entry;
-   Point *during;
-   Point *exit;
+   Point *entry{};
+   Point *during{};
+   Point *exit{};
    InsnPoints preInsn;
    InsnPoints postInsn;
-BlockPoints() : entry(NULL), during(NULL), exit(NULL) {}
+   BlockPoints() = default;
+   BlockPoints(const BlockPoints&) = delete;
+   BlockPoints(BlockPoints&& other)
+      {
+         *this = other;
+         other.entry = nullptr;
+         other.during = nullptr;
+         other.exit = nullptr;
+      }
    bool consistency(const PatchBlock *block, const PatchFunction *func) const;
    ~BlockPoints();
+ private:
+   // used by move constructor to default copy members
+   BlockPoints& operator=(const BlockPoints&) = default;
 };
 
 struct EdgePoints {
-   Point *during;
-EdgePoints() : during(NULL) {}
+   Point *during{};
+   EdgePoints() = default;
+   EdgePoints(EdgePoints&& other) { during = other.during; other.during = nullptr; }
    ~EdgePoints() { if (during) delete during; }
    bool consistency(const PatchEdge *edge, const PatchFunction *func) const;
+   EdgePoints(const EdgePoints&) = delete;
 };
 
 struct FuncPoints {
-   Point *entry;
-   Point *during;
+   Point *entry{};
+   Point *during{};
    std::map<PatchBlock *, Point *> exits;
    std::map<PatchBlock *, Point *> preCalls;
    std::map<PatchBlock *, Point *> postCalls;
-FuncPoints() : entry(NULL), during(NULL) {}
+   FuncPoints() = default;
+   FuncPoints(const FuncPoints&) = delete;
    ~FuncPoints();
    bool consistency(const PatchFunction *func) const;
 };

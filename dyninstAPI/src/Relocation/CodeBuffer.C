@@ -47,7 +47,13 @@ using namespace InstructionAPI;
 const unsigned CodeBuffer::Label::INVALID = (unsigned) -1;
 
 
-CodeBuffer::BufferElement::BufferElement() : addr_(0), size_(0), patch_(NULL), labelID_(Label::INVALID) {}
+CodeBuffer::BufferElement::BufferElement() = default;
+
+CodeBuffer::BufferElement::BufferElement(CodeBuffer::BufferElement&& other)  {
+   *this = other;
+   other.patch_ = nullptr;
+}
+
 
 CodeBuffer::BufferElement::~BufferElement() {
    if (patch_) delete patch_;

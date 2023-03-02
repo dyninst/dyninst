@@ -189,7 +189,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
       if (iter == blockPoints_.end()) {
          if (!create) return NULL;
          BlockPoints bp;
-         iter = blockPoints_.insert(blockPoints_.begin(), std::make_pair(loc.block, bp));
+         iter = blockPoints_.insert(blockPoints_.begin(), std::make_pair(loc.block, std::move(bp)));
       }
       switch (type) {
          case Point::BlockEntry:
@@ -248,7 +248,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
       if (iter == edgePoints_.end()) {
          if (!create) return NULL;
          EdgePoints ep;
-         iter = edgePoints_.insert(edgePoints_.begin(), std::make_pair(loc.edge, ep));
+         iter = edgePoints_.insert(edgePoints_.begin(), std::make_pair(loc.edge, std::move(ep)));
       }
       if (!iter->second.during && create) {
          iter->second.during = maker->createPoint(loc, type);
