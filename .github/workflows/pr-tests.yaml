@@ -23,7 +23,7 @@ jobs:
     container:
       image: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
       volumes:
-        - $PWD:/dyninst
+        - :/dyninst
     name: ${{ matrix.container }}
     steps:
       - name: Checkout
