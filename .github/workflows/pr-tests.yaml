@@ -38,6 +38,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: dyninst/testsuite
+          path: testsuite
 
       - name: Build testsuite
         run: |
@@ -49,6 +50,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: dyninst/examples
+          path: examples
 
       - name: Build examples
         run: |
@@ -60,6 +62,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: dyninst/external-tests
+          path: external-tests
 
       - name: Build external tests
         run: |
