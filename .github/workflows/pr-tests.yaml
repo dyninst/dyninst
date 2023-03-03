@@ -43,8 +43,8 @@ jobs:
 
       - name: Build testsuite
         run: |
-           pwd && ls -la
-           cd testsuite; mkdir build; cd $_; ls -la
+           pwd; ls -la; ls -la /dyninst
+           cd testsuite; ls -la; mkdir build; cd $_; ls -la
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
            cmake --build .
 
