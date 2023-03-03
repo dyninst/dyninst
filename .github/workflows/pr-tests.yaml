@@ -44,8 +44,7 @@ jobs:
       - name: Build testsuite
         run: |
            cd testsuite; mkdir build; cd build
-           echo CXXFLAGS=$CXXFLAGS CFLAGS=$CFLAGS
-           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst -DCMAKE_CXX_FLAGS="-Wno-error" -DCMAKE_C_FLAGS="-Wno-error"
            cmake --build .
 
       - name: Checkout Examples
