@@ -55,7 +55,7 @@ jobs:
 
       - name: Build examples
         run: |
-           cd examples; mkdir build; cd $_
+           cd examples; mkdir build; cd build
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
            cmake --build .
 
@@ -67,6 +67,6 @@ jobs:
 
       - name: Build external tests
         run: |
-           cd external-tests; mkdir build; cd $_
+           cd external-tests; mkdir build; cd build
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
            cmake --build .
