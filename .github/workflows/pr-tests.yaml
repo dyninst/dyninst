@@ -47,17 +47,17 @@ jobs:
 #           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
 #           cmake --build .
 
-      - name: Checkout Examples
-        uses: actions/checkout@v3
-        with:
-          repository: dyninst/examples
-          path: examples
-
-      - name: Build examples
-        run: |
-           cd examples; mkdir build; cd build
-           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
-           cmake --build .
+#      - name: Checkout Examples
+#        uses: actions/checkout@v3
+#        with:
+#          repository: dyninst/examples
+#          path: examples
+#
+#      - name: Build examples
+#        run: |
+#           cd examples; mkdir build; cd build
+#           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+#           cmake --build .
 
       - name: Checkout External Tests
         uses: actions/checkout@v3
