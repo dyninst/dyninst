@@ -45,7 +45,7 @@ jobs:
         run: |
            pwd; ls -la; ls -la /dyninst
            cd testsuite; ls -la;
-           echo "Making build dir"; mkdir build && echo "Made" && cd $_ && echo "HEllo" && pwd; ls -la
+           echo "Making build dir"; mkdir build && echo "Made" && cd build && echo "HEllo" && pwd; ls -la
            pwd; ls -la; ls -la ..; cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
            cmake --build .
 
