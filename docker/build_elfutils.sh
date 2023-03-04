@@ -1,6 +1,6 @@
 #! /bin/bash
 
-version=0.186
+version=$(grep elfutils dependencies.versions | awk '{split($0,a,":"); print a[2]}')
 
 wget --no-check-certificate https://sourceware.org/elfutils/ftp/${version}/elfutils-${version}.tar.bz2
 bunzip2 elfutils-${version}.tar.bz2
