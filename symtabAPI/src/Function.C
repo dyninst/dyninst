@@ -149,6 +149,11 @@ bool FunctionBase::addParam(localVar *param)
 	return true;
 }
 
+void FunctionBase::addCallSite(CallSite *callSite)
+{
+    callSites.push_back(callSite);
+}
+
 FunctionBase *FunctionBase::getInlinedParent()
 {
     getModule()->exec()->parseTypesNow();
@@ -493,6 +498,37 @@ void InlinedFunction::setFile(string filename) {
     // Difference from begin == array index in string table.
     callsite_file_number = strs->project<0>(strs->get<1>().insert(StringTableEntry(filename,"")).first) - strs->begin();
 }
+
+int FunctionDescriptor::GetNumParams() const
+{
+    if (function)  {
+        std::vector<localVar*> params;
+        if (function->getParams(params))  {
+            return params.size();
+        }  else  {
+            return -1;
+        }
+    }  else  {
+        return paramTypes.size();
+    }
+}
+
+Type *FunctionDescriptor::GetParamNType(unsigned int i) const
+{
+    if (function)  {
+        std::vector<localVar*> params;
+        if (function->getParams(params))  {
+            if (i < params.size())  {
+                return params[i]->getType();
+            }
+        }
+    }  else if ( i < paramTypes.size() )  {
+        return paramTypes[i].get();
+    }
+
+    return nullptr;
+}
+
 
 Module* Function::getModule() const {
     return module_;

@@ -2,9 +2,10 @@ name: Test Dyninst
 
 on:
   pull_request: [] 
-  push: 
-    branches:
-      - master
+# ONLY COMMENTED SO TESTS CAN RUN FOR MATT
+#  push: 
+#    branches:
+#      - master
  
 jobs:
   build:

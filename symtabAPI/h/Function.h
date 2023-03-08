@@ -41,6 +41,7 @@
 #include "Variable.h"
 #include "IBSTree.h"
 #include "concurrent.h"
+#include <boost/optional.hpp>
 
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
@@ -50,7 +51,9 @@ namespace SymtabAPI{
 class Symbol;
 class Type;
 class FunctionBase;
+class FunctionDescriptor;
 class DwarfWalker;
+class CallSite;
 
 class SYMTAB_EXPORT FuncRange {
   public:
@@ -126,6 +129,9 @@ class SYMTAB_EXPORT FunctionBase
    virtual unsigned getSize() const = 0;
    virtual Module* getModule() const = 0;
 
+   void addCallSite(CallSite *callSite);
+   const std::vector<CallSite *> &getCallSites() const  { return callSites; }
+
   protected:
    FunctionBase(Symbol *);
    FunctionBase(Module *);
@@ -148,6 +154,7 @@ class SYMTAB_EXPORT FunctionBase
    dyn_mutex frameBaseLock_;
    bool frameBaseExpanded_;
    void *data;
+   std::vector<CallSite *> callSites;
    void expandLocation(const VariableLocation &loc,
                        std::vector<VariableLocation> &ret);
 };
@@ -214,6 +221,117 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    Module* module_;
    Dyninst::Offset offset_;
 };
+
+class SYMTAB_EXPORT FunctionDescriptor  {
+  public:
+    void SetFunction(Function* f)
+        { function = f; }
+    void SetDeclaration(
+                const std::string &name_,
+                boost::shared_ptr<Type> returnType_,
+                const std::vector<boost::shared_ptr<Type>> &paramTypes_
+            )
+        { name = name_; returnType = returnType_; paramTypes = paramTypes_; }
+    Function *GetFunction() const
+        { return function; }
+    std::string GetName() const
+        { return function ? function->getName() : name; }
+    void SetName(const std::string &n)          // JK
+        { name = n; }                           // JK
+    Type *GetReturnType() const
+        { return function ? function->getReturnType() : returnType.get(); }
+    int GetNumParams() const;
+    Type *GetParamNType(unsigned int i) const;
+
+  private:
+    Function                                    *function{};
+    std::string                                 name;
+    boost::shared_ptr<Type>                     returnType;
+    std::vector<boost::shared_ptr<Type>>        paramTypes;
+};
+
+class SYMTAB_EXPORT CallSiteParameter
+{
+    public:
+        bool            hasLocation;
+        bool            hasValue;
+        bool            hasDataLocation;
+        bool            hasParameter;
+        bool            hasName;
+
+        int             location;
+        int             value;
+        int             dataLocation;
+        int             parameter;
+        Type            *type;
+        std::string     name;
+};
+
+
+class SYMTAB_EXPORT CallSite
+{
+    public:
+        void SetReturnPc(Dyninst::Offset returnPc_)
+            { hasReturnPc = true; returnPc = returnPc_; }
+        boost::optional<Dyninst::Offset> GetReturnPc() const
+            { if (hasReturnPc) return returnPc; else return {}; }
+        void SetPc(Dyninst::Offset pc_)
+            { hasPc = true; pc = pc_; }
+        boost::optional<Dyninst::Offset> GetPc() const
+            { if (hasPc) return pc; else return {}; }
+        void SetFile(std::string s)
+            { hasFile = true; file = s; }
+        boost::optional<std::string> GetFile() const
+            { if (hasFile) return file; else return {}; }
+        void SetLine(Dyninst::Offset n)
+            { hasLine = true; line = n; }
+        boost::optional<Dyninst::Offset> GetLine() const
+            { if (hasLine) return line; else return {}; }
+        void SetColumn(Dyninst::Offset n)
+            { hasColumn = true; column = n; }
+        boost::optional<Dyninst::Offset> GetColumn() const
+            { if (hasColumn) return column; else return {}; }
+        void SetCalled(FunctionDescriptor *fd)
+            { called = fd; }
+        FunctionDescriptor *GetCalled() const
+            { return called; }
+        void SetType(Type *t)
+            { type = t; }
+        Type *getType() const
+            { return type; }
+        void SetIsTailCall(bool b = true)
+            { isTailCall = b; }
+        bool GetIsTailCall() const
+            { return isTailCall; }
+        void SetIsTargetClobbered(bool b = true)
+            { isTargetClobbered = b; }
+        bool GetIsTargetClobbered() const
+            { return isTargetClobbered; }
+        void AddCallSiteParameter(CallSiteParameter *csp)
+            { parameters.push_back(csp); }
+        const std::vector<CallSiteParameter*> &GetCallSiteParameters() const
+            { return parameters; }
+    private:
+        bool                    hasReturnPc{};
+        bool                    hasPc{};
+        bool                    hasTarget{};
+        bool                    hasFile{};
+        bool                    hasLine{};
+        bool                    hasColumn{};
+
+        bool                    isTailCall{};
+        bool                    isTargetClobbered{};
+        Type                    *type{};
+        Dyninst::Offset         returnPc{};
+        Dyninst::Offset         pc{};
+        FunctionDescriptor      *called{};
+        void                    *target{};
+        std::string             file;
+        Dyninst::Offset         line{};
+        Dyninst::Offset         column{};
+        std::vector<CallSiteParameter*> parameters;
+};
+
 
 }
 }

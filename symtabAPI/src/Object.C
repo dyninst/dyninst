@@ -375,6 +375,11 @@ SYMTAB_EXPORT AObject::~AObject()
             delete v[i];
         v.clear();
     }
+
+    for (std::map<std::string, ExternalSymbolInfo *>::iterator i = external_symbols.begin(); i != external_symbols.end(); i++) {
+       delete i->second;
+    }
+    external_symbols.clear();
 }
 
 // explicitly protected

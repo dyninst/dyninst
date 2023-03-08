@@ -297,6 +297,9 @@ public:
 
     SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs); 
 
+    bool populateExternalSymbolsHelper(std::vector<relocationEntry> &relocs, bool func);
+    virtual bool populateExternalSymbols();
+    
     private:
     std::vector<std::vector<boost::shared_ptr<void> > > freeList;
   static void log_elferror (void (*)(const char *), const char *);
