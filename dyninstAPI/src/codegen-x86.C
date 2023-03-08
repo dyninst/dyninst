@@ -342,7 +342,7 @@ void insnCodeGen::generateCall(codeGen &gen,
   if (is_disp32(disp)) {
     GET_PTR(insn, gen);
     append_memory_as_byte(insn, 0xE8);
-    append_memory_as(insn, int32_t(disp));
+    append_memory_as(insn, static_cast<int32_t>(disp));
     SET_PTR(insn, gen);
   }
   else {
@@ -524,7 +524,7 @@ unsigned pcRelJCC::apply(Address addr)
       disp = target - potential;
       if (is_disp32(disp)) {
          convert_to_rel32(origInsn, newInsn);
-         append_memory_as(newInsn, int32_t(disp));
+         append_memory_as(newInsn, static_cast<int32_t>(disp));
          SET_PTR(newInsn, *gen);
          return (unsigned) gen->getIndex() - start;
       }
@@ -726,7 +726,7 @@ unsigned pcRelData::apply(Address addr)
       // Whee easy case
       append_memory_as_byte(newInsn, *origInsn++);
       // Size doesn't change....
-      append_memory_as(newInsn, int32_t(newDisp - insnSz));
+      append_memory_as(newInsn, static_cast<int32_t>(newDisp - insnSz));
    }
    else if (is_addr32(data_addr)) {
       assert(!is_disp32(newDisp+insnSz));
@@ -740,7 +740,7 @@ unsigned pcRelData::apply(Address addr)
       append_memory_as_byte(newInsn, 0x25);
       
       // now throw in the displacement (the absolute 32-bit address)
-      append_memory_as(newInsn, int32_t(data_addr));
+      append_memory_as(newInsn, static_cast<int32_t>(data_addr));
    }
    else {
       // Should never be reached...
@@ -1061,7 +1061,7 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
       disp = targetAddr - potential;
       if (is_disp32(disp)) {
          convert_to_rel32(origInsn, newInsn);
-         append_memory_as(newInsn, int32_t(disp));
+         append_memory_as(newInsn, static_cast<int32_t>(disp));
          SET_PTR(newInsn, gen);
          return true;
       }
@@ -1220,7 +1220,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         /* Copy the ModR/M byte */
         append_memory_as_byte(newInsn, mod_rm);
         /* Use the new relative displacement */
-        append_memory_as(newInsn, int32_t(newDisp - insnSz));
+        append_memory_as(newInsn, static_cast<int32_t>(newDisp - insnSz));
     } else if (is_addr32(targetAddr)) 
     {
         // change ModRM byte to use SIB addressing (r/m == 4)
@@ -1231,7 +1231,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         append_memory_as_byte(newInsn, 0x25);
 
         // now throw in the displacement (the absolute 32-bit address)
-        append_memory_as(newInsn, int32_t(targetAddr));
+        append_memory_as(newInsn, static_cast<int32_t>(targetAddr));
     } else {
         /* Impossible case */
         assert(0);
@@ -1409,7 +1409,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
         if (is_disp8(newDisp)) {
             append_memory_as_byte(newInsn, newDisp);
         } else if (is_disp32(newDisp)) {
-            append_memory_as(newInsn, int32_t(newDisp));
+            append_memory_as(newInsn, static_cast<int32_t>(newDisp));
         } else {
             // Should never be reached...
             assert(0);

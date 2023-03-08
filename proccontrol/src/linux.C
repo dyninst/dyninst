@@ -2683,7 +2683,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
           if( sizeof(void *) == 8 ) {
               write_memory_as(user_area+offset, uint64_t{val});
           } else {
-              write_memory_as(user_area+offset, uint32_t(val));
+              write_memory_as(user_area+offset, static_cast<uint32_t>(val));
           }
       }
       else if (size == 8) {
