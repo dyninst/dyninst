@@ -926,9 +926,9 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
       append_memory_as_byte(insn, 0x25);
 
       assert(addr <= numeric_limits<uint32_t>::max() && "addr more than 32-bits");
-      append_memory_as(insn, uint32_t(addr)); //Write address
+      append_memory_as(insn, static_cast<uint32_t>(addr)); //Write address
 
-      append_memory_as(insn, int8_t(imm));
+      append_memory_as(insn, static_cast<int8_t>(imm));
       SET_PTR(insn, gen);
       return;
    }
@@ -953,7 +953,7 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
    }
 
    assert(addr <= numeric_limits<uint32_t>::max() && "addr more than 32-bits");
-   append_memory_as(insn, uint32_t(addr)); //Write address
+   append_memory_as(insn, static_cast<uint32_t>(addr)); //Write address
 
    if (imm != 1) {
       append_memory_as(insn, int32_t{imm}); //Write immediate value to add
@@ -1989,7 +1989,7 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
    }
    GET_PTR(insn, gen);
    append_memory_as_byte(insn, 0xFF);
-   append_memory_as_byte(insn, uint8_t(0xD0 | effective));
+   append_memory_as_byte(insn, static_cast<uint8_t>(0xD0 | effective));
    SET_PTR(insn, gen);
 
    return true;
@@ -2032,7 +2032,7 @@ bool EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
    append_memory_as_byte(insn, 0x25);
    int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
    assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-   append_memory_as(insn, int32_t(offset));
+   append_memory_as(insn, static_cast<int32_t>(offset));
    SET_PTR(insn, gen);
    return true;
 }
@@ -2045,7 +2045,7 @@ bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    append_memory_as_byte(insn, 0x15);
    int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
    assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-   append_memory_as(insn, int32_t(offset));
+   append_memory_as(insn, static_cast<int32_t>(offset));
    SET_PTR(insn, gen);
    return true;
 }

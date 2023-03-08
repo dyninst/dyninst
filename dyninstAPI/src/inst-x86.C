@@ -759,16 +759,16 @@ void emitAddressingMode(unsigned base, RegValue disp,
    if (base == Null_Register) {
       append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 5));
       assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
-      append_memory_as(insn, int32_t(disp));
+      append_memory_as(insn, static_cast<int32_t>(disp));
    } else if (disp == 0 && base != REGNUM_EBP) {
       append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, base));
    } else if (disp >= -128 && disp <= 127) {
       append_memory_as_byte(insn, makeModRMbyte(1, reg_opcode, base));
-      append_memory_as(insn, int8_t(disp));
+      append_memory_as(insn, static_cast<int8_t>(disp));
    } else {
       append_memory_as_byte(insn, makeModRMbyte(2, reg_opcode, base));
       assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
-      append_memory_as(insn, int32_t(disp));
+      append_memory_as(insn, static_cast<int32_t>(disp));
    }
    SET_PTR(insn, gen);
 }
@@ -799,7 +799,7 @@ void emitAddressingMode(unsigned base, unsigned index,
       append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 4));
       append_memory_as_byte(insn, makeSIBbyte(scale, index, 5));
       assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
-      append_memory_as(insn, int32_t(disp));
+      append_memory_as(insn, static_cast<int32_t>(disp));
    }
    else if(disp == 0 && base != REGNUM_EBP) { // EBP must have 0 disp8; emit [base+index<<scale]
        append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 4));
@@ -808,13 +808,13 @@ void emitAddressingMode(unsigned base, unsigned index,
    else if (disp >= -128 && disp <= 127) { // emit [base+index<<scale+disp8]
       append_memory_as_byte(insn, makeModRMbyte(1, reg_opcode, 4));
       append_memory_as_byte(insn, makeSIBbyte(scale, index, base));
-      append_memory_as(insn, int8_t(disp));
+      append_memory_as(insn, static_cast<int8_t>(disp));
    }
    else { // emit [base+index<<scale+disp32]
       append_memory_as_byte(insn, makeModRMbyte(2, reg_opcode, 4));
       append_memory_as_byte(insn, makeSIBbyte(scale, index, base));
       assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
-      append_memory_as(insn, int32_t(disp));
+      append_memory_as(insn, static_cast<int32_t>(disp));
    }
 
    SET_PTR(insn, gen);
@@ -824,7 +824,7 @@ void emitAddressingMode(unsigned base, unsigned index,
 /* emit a simple one-byte instruction */
 void emitSimpleInsn(unsigned op, codeGen &gen) {
     GET_PTR(insn, gen);
-    append_memory_as(insn, uint8_t(op));
+    append_memory_as(insn, static_cast<uint8_t>(op));
     SET_PTR(insn, gen);
 }
 
@@ -1172,7 +1172,7 @@ void emitMovImmToMem(Address maddr, int imm,
     append_memory_as_byte(insn, makeModRMbyte(0, 0, 4));
     append_memory_as_byte(insn, makeSIBbyte(0, 4, 5));
     assert(maddr <= numeric_limits<uint32_t>::max() && "maddr more than 32 bits");
-    append_memory_as(insn, uint32_t(maddr));
+    append_memory_as(insn, static_cast<uint32_t>(maddr));
 
     append_memory_as(insn, int32_t{imm});
     SET_PTR(insn, gen);
@@ -1185,7 +1185,7 @@ void emitAddMemImm32(Address addr, int imm, codeGen &gen)
    append_memory_as_byte(insn, 0x81);
    append_memory_as_byte(insn, 0x05);
    assert(addr <= numeric_limits<uint32_t>::max() && "addr more than 32 bits");
-   append_memory_as(insn, uint32_t(addr));
+   append_memory_as(insn, static_cast<uint32_t>(addr));
    append_memory_as(insn, int32_t{imm});
     SET_PTR(insn, gen);
 }
@@ -1197,7 +1197,7 @@ void emitAddRegImm32(RealRegister reg, int imm, codeGen &gen)
    if (imm >= -128 && imm <= 127) {
       append_memory_as_byte(insn, 0x83);
       append_memory_as_byte(insn, makeModRMbyte(3, 0, reg.reg()));
-      append_memory_as_byte(insn, int8_t(imm));
+      append_memory_as_byte(insn, static_cast<int8_t>(imm));
    }
    else {
       append_memory_as_byte(insn, 0x81);

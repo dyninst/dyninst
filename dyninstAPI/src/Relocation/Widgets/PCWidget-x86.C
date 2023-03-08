@@ -123,7 +123,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   append_memory_as_byte(newInsn, 0x24);
   // offset is 64-bits, assert if the value does not fit in 32-bits
   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-  append_memory_as(newInsn, int32_t(offset));
+  append_memory_as(newInsn, static_cast<int32_t>(offset));
 
   if (type == Reg) {
     assert(reg != (Register) -1);

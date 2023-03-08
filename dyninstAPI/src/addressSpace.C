@@ -1125,11 +1125,11 @@ void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
       assert(sizeof(Address) == 8);
 #if defined(cap_32_64)
       assert(val <= numeric_limits<uint32_t>::max() && "val more than 32 bits");
-      write_memory_as(buffer, uint32_t(val));
+      write_memory_as(buffer, static_cast<uint32_t>(val));
       return;
 #endif
    }
-   write_memory_as(buffer, uint64_t(val));
+   write_memory_as(buffer, static_cast<uint64_t>(val));
 }
 
 void trampTrapMappings::writeTrampVariable(const int_variable *var, 
