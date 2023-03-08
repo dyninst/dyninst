@@ -61,16 +61,20 @@ list(
   Wvolatile
   Wwrite-strings)
 
-# list(APPEND REQUESTED_WARNING_FLAGS Werror)
-
-# list(APPEND REQUESTED_WARNING_FLAGS Wredundant-tags) list(APPEND REQUESTED_WARNING_FLAGS
-# Wnull-dereference) list(APPEND REQUESTED_WARNING_FLAGS Wconversion) list(APPEND
-# REQUESTED_WARNING_FLAGS Wzero-as-null-pointer-constant) list(APPEND
-# REQUESTED_WARNING_FLAGS Wuseless-cast) list(APPEND REQUESTED_WARNING_FLAGS
-# Wsuggest-override) list(APPEND REQUESTED_WARNING_FLAGS Wsuggest-final-types) list(APPEND
-# REQUESTED_WARNING_FLAGS Wsuggest-final-methods) list(APPEND REQUESTED_WARNING_FLAGS
-# Wsign-promo) list(APPEND REQUESTED_WARNING_FLAGS Wold-style-cast) list(APPEND
-# REQUESTED_WARNING_FLAGS Walloc-zero)
+# cmake-format: on
+#list(APPEND REQUESTED_WARNING_FLAGS Werror)
+#list(APPEND REQUESTED_WARNING_FLAGS Wredundant-tags)
+#list(APPEND REQUESTED_WARNING_FLAGS Wnull-dereference)
+#list(APPEND REQUESTED_WARNING_FLAGS Wconversion)
+#list(APPEND REQUESTED_WARNING_FLAGS Wzero-as-null-pointer-constant)
+#list(APPEND REQUESTED_WARNING_FLAGS Wuseless-cast)
+#list(APPEND REQUESTED_WARNING_FLAGS Wsuggest-override)
+#list(APPEND REQUESTED_WARNING_FLAGS Wsuggest-final-types)
+#list(APPEND REQUESTED_WARNING_FLAGS Wsuggest-final-methods)
+#list(APPEND REQUESTED_WARNING_FLAGS Wsign-promo)
+#list(APPEND REQUESTED_WARNING_FLAGS Wold-style-cast)
+#list(APPEND REQUESTED_WARNING_FLAGS Walloc-zero)
+# cmake-format: off
 
 if(DYNINST_EXTRA_WARNINGS)
   list(APPEND REQUESTED_WARNING_FLAGS ${DYNINST_EXTRA_WARNINGS})
