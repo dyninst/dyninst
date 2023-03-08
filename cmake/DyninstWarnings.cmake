@@ -61,7 +61,7 @@ list(
   Wvolatile
   Wwrite-strings)
 
-# cmake-format: on
+# cmake-format: off
 #list(APPEND REQUESTED_WARNING_FLAGS Werror)
 #list(APPEND REQUESTED_WARNING_FLAGS Wredundant-tags)
 #list(APPEND REQUESTED_WARNING_FLAGS Wnull-dereference)
@@ -74,7 +74,7 @@ list(
 #list(APPEND REQUESTED_WARNING_FLAGS Wsign-promo)
 #list(APPEND REQUESTED_WARNING_FLAGS Wold-style-cast)
 #list(APPEND REQUESTED_WARNING_FLAGS Walloc-zero)
-# cmake-format: off
+# cmake-format: on
 
 if(DYNINST_EXTRA_WARNINGS)
   list(APPEND REQUESTED_WARNING_FLAGS ${DYNINST_EXTRA_WARNINGS})

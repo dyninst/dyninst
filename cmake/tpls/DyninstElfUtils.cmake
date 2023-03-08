@@ -40,7 +40,9 @@ if(ENABLE_DEBUGINFOD)
 endif()
 foreach(_n ${_modules})
   if(NOT Lib${_n}_ROOT AND NOT Lib${_n}_DIR)
-    set(Lib${_n}_DIR ${ElfUtils_ROOT_DIR} CACHE PATH "" FORCE)
+    set(Lib${_n}_DIR
+        ${ElfUtils_ROOT_DIR}
+        CACHE PATH "" FORCE)
     mark_as_advanced(Lib${_n}_DIR)
   endif()
 endforeach()
