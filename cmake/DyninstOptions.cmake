@@ -23,18 +23,23 @@ option(ENABLE_STATIC_LIBS "Build static libraries as well?" OFF)
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
 
-option(
-  DYNINST_EXTRA_WARNINGS
-  "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
-  "")
+set(DYNINST_EXTRA_WARNINGS
+    ""
+    CACHE
+      STRING
+      "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
+    )
 
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 
 option(ENABLE_PARSE_API_GRAPHS "Enable Boost Graph wrappers for parseAPI Functions" OFF)
 
-option(DYNINST_LINKER "The linker to use" "lld")
+set(DYNINST_LINKER
+    "lld"
+    CACHE STRING "The linker to use")
 mark_as_advanced(DYNINST_LINKER)
 
-option(DYNINST_CXXSTDLIB
-       "The C++ standard library to use; only affects LLVM-based compilers" "libstdc++")
+set(DYNINST_CXXSTDLIB
+    "libstdc++"
+    CACHE STRING "The C++ standard library to use; only affects LLVM-based compilers")
 mark_as_advanced(DYNINST_CXXSTDLIB)
