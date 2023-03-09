@@ -30,7 +30,6 @@ set(SRC_LIST
     src/BoundFactCalculator.C
     src/BoundFactData.C
     src/ThunkData.C
-    ../dataflowAPI/src/ABI.C
     src/dominator.C
     src/LoopAnalyzer.C
     src/Loop.C
@@ -38,7 +37,7 @@ set(SRC_LIST
     src/IdiomModelDesc.C
     src/ProbabilisticParser.C)
 
-set(ROSE_SRC
+set(DATAFLOW_SRC
     ../dataflowAPI/src/ABI.C
     ../dataflowAPI/src/Absloc.C
     ../dataflowAPI/src/AbslocInterface.C
@@ -56,7 +55,9 @@ set(ROSE_SRC
     ../dataflowAPI/src/SymEval.C
     ../dataflowAPI/src/SymEvalPolicy.C
     ../dataflowAPI/src/templates.C
-    ../dataflowAPI/src/Visitors.C
+    ../dataflowAPI/src/Visitors.C)
+
+set(ROSE_SRC
     ../dataflowAPI/rose/ExtentMap.C
     ../dataflowAPI/rose/rangemap.C
     ../dataflowAPI/rose/util/Assert.C
@@ -82,7 +83,7 @@ set(ROSE_SRC
 
 # FIXME: Rose needs a bunch of warning cleanup
 set_source_files_properties(${ROSE_SRC} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
-set(SRC_LIST ${SRC_LIST} ${ROSE_SRC})
+set(SRC_LIST ${SRC_LIST} ${DATAFLOW_SRC} ${ROSE_SRC})
 
 if(LIGHTWEIGHT_SYMTAB)
     set(SRC_LIST ${SRC_LIST} src/SymLiteCodeSource.C)
