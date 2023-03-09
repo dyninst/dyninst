@@ -2050,7 +2050,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
             offset = dwarf_getlocations(&locationAttribute, offset, &basep,
                     &start, &end, &exprs, &exprlen);
             if(offset==-1){
-                cerr << "err message: " << dwarf_errmsg(dwarf_errno()) << endl;
+                dwarf_printf("err message: %s\n", dwarf_errmsg(dwarf_errno()));
                 return false;
             }
             if(offset==0) break;
