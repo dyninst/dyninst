@@ -38,6 +38,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI_RT/src/RTthread.h"
 #include "dyninstAPI_RT/src/RTcommon.h"
+#include "unaligned_memory_access.h"
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -105,7 +106,7 @@ int t_kill(int pid, int sig) {
     return (result == 0);
 }
 
-void DYNINSTbreakPoint()
+void DYNINSTbreakPoint(void)
 {
    if (DYNINSTstaticMode)
       return;
@@ -121,7 +122,7 @@ void uncaught_breakpoint(int sig)
    failed_breakpoint = 1;
 }
 
-void DYNINSTsafeBreakPoint()
+void DYNINSTsafeBreakPoint(void)
 {
    if (DYNINSTstaticMode)
       return;
@@ -131,7 +132,7 @@ void DYNINSTsafeBreakPoint()
     kill(dyn_lwp_self(), SIGSTOP);
 }
 
-void mark_heaps_exec() {
+void mark_heaps_exec(void) {
 	/* Grab the page size, to align the heap pointer. */
 	long int pageSize = sysconf( _SC_PAGESIZE );
 	if( pageSize == 0 || pageSize == - 1 ) {
@@ -188,7 +189,7 @@ typedef struct dlopen_args {
 
 void *(*DYNINST_do_dlopen)(dlopen_args_t *) = NULL;
 
-static int get_dlopen_error() {
+static int get_dlopen_error(void) {
    char *err_str;
    err_str = dlerror();
    if (err_str) {
@@ -257,7 +258,7 @@ int DYNINSTloadLibrary(char *libname)
 
 #endif
 
-int dyn_lwp_self()
+int dyn_lwp_self(void)
 {
    static int gettid_not_valid = 0;
    int result;
@@ -274,14 +275,14 @@ int dyn_lwp_self()
    return result;
 }
 
-int dyn_pid_self()
+int dyn_pid_self(void)
 {
    return getpid();
 }
 
 dyntid_t (*DYNINST_pthread_self)(void);
 
-dyntid_t dyn_pthread_self()
+dyntid_t dyn_pthread_self(void)
 {
    dyntid_t me;
    if (DYNINSTstaticMode) {
@@ -387,7 +388,7 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
       assert(hdr);
       volatile trapMapping_t *mapping = &(hdr->traps[0]);
       trap_to = dyninstTrapTranslate(orig_ip,
-                                     (unsigned long *) &hdr->num_entries,
+                                     CAST_WITHOUT_ALIGNMENT_WARNING(unsigned long *, &hdr->num_entries),
                                      &zero,
                                      &mapping,
                                      &one);
@@ -408,7 +409,7 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 extern struct r_debug _r_debug;
 
 /* Verify that the r_debug variable is visible */
-void r_debugCheck() { assert(_r_debug.r_map); }
+void r_debugCheck(void) { assert(_r_debug.r_map); }
 
 #define NUM_LIBRARIES 512 //Important, max number of rewritten libraries
 
@@ -428,9 +429,9 @@ struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
 static unsigned all_headers_current[NUM_LIBRARIES_BITMASK_SIZE];
 static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
 
-static int parse_libs();
+static int parse_libs(void);
 static int parse_link_map(struct link_map *l);
-static void clear_unloaded_libs();
+static void clear_unloaded_libs(void);
 
 static void set_bit(unsigned *bit_mask, int bit, char value);
 //static char get_bit(unsigned *bit_mask, int bit);
@@ -476,7 +477,7 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 }
 
 #if !defined (arch_aarch64)
-static int parse_libs()
+static int parse_libs(void)
 {
    struct link_map *l_current;
 
@@ -551,7 +552,7 @@ static int parse_link_map(struct link_map *l)
    return PARSED;
 }
 
-static void clear_unloaded_libs()
+static void clear_unloaded_libs(void)
 {
    unsigned i;
    for (i = 0; i<NUM_LIBRARIES_BITMASK_SIZE; i++)
@@ -649,10 +650,10 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
  * the binary. Leaving this code in would create a global constructor for the
  * function runDYNINSTBaseInit(). See DYNINSTglobal_ctors_handler.
  */
-extern void r_debugCheck();
-extern void DYNINSTBaseInit();
-void runDYNINSTBaseInit() __attribute__((constructor));
-void runDYNINSTBaseInit()
+extern void r_debugCheck(void);
+extern void DYNINSTBaseInit(void);
+void runDYNINSTBaseInit(void) __attribute__((constructor));
+void runDYNINSTBaseInit(void)
 {
     r_debugCheck();
    DYNINSTBaseInit();

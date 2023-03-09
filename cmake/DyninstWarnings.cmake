@@ -151,15 +151,26 @@ if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIO
   # less than 76800, but for some environments and compiler configurations the following
   # are needed:
   #
-  set(debugMaxFrameSizeOverrideSyscallInformation 81920)
-  set(debugMaxFrameSizeOverridePowerOpcodeTable 358400)
-  if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[7](\.|$)")
-    set(nonDebugMaxFrameSizeOverridePowerOpcodeTable 38912)
-  endif()
-  # most gcc's are under the default using -Og, but rhel's requires 30000
-  set(debugMaxFrameSizeOverrideFinalizeOperands 30000)
-  if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[6](\.|$)")
-    set(nonDebugMaxFrameSizeOverrideFinalizeOperands 30000)
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    set(debugMaxFrameSizeOverrideSyscallInformation 81920)
+    set(debugMaxFrameSizeOverridePowerOpcodeTable 358400)
+    if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[7](\.|$)")
+      set(nonDebugMaxFrameSizeOverridePowerOpcodeTable 38912)
+    endif()
+    # most gcc's are under the default using -Og, but rhel's requires 30000
+    set(debugMaxFrameSizeOverrideFinalizeOperands 30000)
+    if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^[6](\.|$)")
+      set(nonDebugMaxFrameSizeOverrideFinalizeOperands 30000)
+    endif()
+  elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+      if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^14(\.|$)")
+          set(debugMaxFrameSizeOverridePowerOpcodeTable 40000)
+      else()
+          set(debugMaxFrameSizeOverridePowerOpcodeTable 30000)
+      endif()
+      set(nonDebugMaxFrameSizeOverridePowerOpcodeTable 38000)
+      set(debugMaxFrameSizeOverrideFinalizeOperands 29000)
+      set(nonDebugMaxFrameSizeOverrideFinalizeOperands 29000)
   endif()
 endif()
 

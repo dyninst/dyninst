@@ -301,6 +301,7 @@ class SYMTAB_EXPORT rangedInterface {
 class SYMTAB_EXPORT derivedInterface{
  public:
    virtual ~derivedInterface() = default;
+   derivedInterface& operator=(const derivedInterface&) = default;
    virtual boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const = 0;
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
 };
@@ -321,6 +322,7 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
    ~fieldListType();
    fieldListType& operator=(const fieldListType&) = default;
    bool operator==(const Type &) const;
+   bool operator==(const fieldListType &otype) const { return *this == static_cast<const Type&>(otype); }
    dyn_c_vector<Dyninst::SymtabAPI::Field*> *getComponents() const;
    
    dyn_c_vector<Dyninst::SymtabAPI::Field*> *getFields() const;
@@ -356,6 +358,7 @@ class SYMTAB_EXPORT rangedType : public Type, public rangedInterface {
  public:
    rangedType();
    bool operator==(const Type &) const;
+   bool operator==(const rangedType &otype) const { return *this == static_cast<const Type&>(otype); }
    unsigned long getLow() const { return low_; }
    unsigned long getHigh() const { return hi_; }
 };
@@ -371,6 +374,7 @@ class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
  public:
    derivedType();
    bool operator==(const Type &) const;
+   bool operator==(const derivedType &otype) const { return *this == static_cast<const Type&>(otype); }
    boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const;
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
 };
@@ -637,6 +641,7 @@ class SYMTAB_EXPORT typeTypedef: public derivedType {
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
+   bool operator==(const typeTypedef &otype) const { return *this == static_cast<const Type&>(otype); }
 };
 
 class SYMTAB_EXPORT typeRef : public derivedType {
@@ -662,6 +667,7 @@ class SYMTAB_EXPORT typeRef : public derivedType {
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
+   bool operator==(const typeRef &otype) const { return *this == static_cast<const Type&>(otype); }
    bool is_rvalue() const noexcept { return is_rvalue_; }
 };
 
@@ -701,6 +707,7 @@ class SYMTAB_EXPORT typeArray : public rangedType {
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); }
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
+   bool operator==(const typeArray &otype) const { return *this == static_cast<const Type&>(otype); }
    void fixupUnknowns(Module *);
 };
 typeArray& Type::asArrayType() { return dynamic_cast<typeArray&>(*this); }

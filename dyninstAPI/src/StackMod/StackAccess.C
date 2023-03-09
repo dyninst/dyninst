@@ -56,23 +56,23 @@ using namespace Dyninst;
 std::string StackAccess::printStackAccessType(StackAccess::StackAccessType t)
 {
     switch(t) {
-        case(StackAccess::READ):
+        case StackAccess::StackAccessType::READ:
             return "READ";
-        case(StackAccess::WRITE):
+        case StackAccess::StackAccessType::WRITE:
             return "WRITE";
-        case(StackAccess::SAVED):
+        case StackAccess::StackAccessType::SAVED:
             return "SAVED";
-        case(StackAccess::READWRITE):
+        case StackAccess::StackAccessType::READWRITE:
             return "READWRITE";
-        case(StackAccess::REGHEIGHT):
+        case StackAccess::StackAccessType::REGHEIGHT:
             return "REGHEIGHT";
-        case(StackAccess::DEBUGINFO_LOCAL):
+        case StackAccess::StackAccessType::DEBUGINFO_LOCAL:
             return "DEBUGINFO_LOCAL";
-        case(StackAccess::DEBUGINFO_PARAM):
+        case StackAccess::StackAccessType::DEBUGINFO_PARAM:
             return "DEBUGINFO_PARAM";
-        case(StackAccess::UNKNOWN):
+        case StackAccess::StackAccessType::UNKNOWN:
             return "UNKNOWN";
-        case (StackAccess::MISUNDERSTOOD):
+        case StackAccess::StackAccessType::MISUNDERSTOOD:
             return "MISUNDERSTOOD";
         default:
             return "NOT RECOGNIZED ACCESS TYPE";
@@ -93,8 +93,8 @@ std::string StackAccess::format()
 
 bool isDebugType(StackAccess::StackAccessType t)
 {
-    return (t==StackAccess::DEBUGINFO_LOCAL ||
-            t==StackAccess::DEBUGINFO_PARAM);
+    return (t==StackAccess::StackAccessType::DEBUGINFO_LOCAL ||
+            t==StackAccess::StackAccessType::DEBUGINFO_PARAM);
 }
 
 int getAccessSize(InstructionAPI::Instruction insn)
@@ -618,19 +618,19 @@ bool getMemoryOffset(ParseAPI::Function *func,
     bool isOffsetSet = false;
 
     // Determine how memory is accessed
-    StackAccess::StackAccessType type = StackAccess::UNKNOWN;
+    StackAccess::StackAccessType type = StackAccess::StackAccessType::UNKNOWN;
     if (analyzeDefinition) {
-        type = StackAccess::DEFINITION;
+        type = StackAccess::StackAccessType::DEFINITION;
     } else if (insn.readsMemory() && insn.writesMemory()) {
-        type = StackAccess::READWRITE;
+        type = StackAccess::StackAccessType::READWRITE;
     } else if (insn.readsMemory()) {
-        type = StackAccess::READ;
+        type = StackAccess::StackAccessType::READ;
     } else if (insn.writesMemory()) {
-        type = StackAccess::WRITE;
+        type = StackAccess::StackAccessType::WRITE;
     }
 
     // If memory is not accessed, no need to find an offset
-    if (type == StackAccess::UNKNOWN) {
+    if (type == StackAccess::StackAccessType::UNKNOWN) {
         return false;
     }
 
@@ -714,7 +714,7 @@ bool getMemoryOffset(ParseAPI::Function *func,
                 }
 
                 stackmods_printf("\t\t\t\t found offset %ld, disp = %ld, "
-                    "type = %d\n", offset, disp, type);
+                    "type = %d\n", offset, disp, static_cast<int>(type));
             }
         }
     }
@@ -750,7 +750,7 @@ bool getMemoryOffset(ParseAPI::Function *func,
             else width = 8;
             ret->setRegHeight(ret->regHeight() - width);
             ret->setReadHeight(ret->readHeight() - width);
-            ret->setType(StackAccess::SAVED);
+            ret->setType(StackAccess::StackAccessType::SAVED);
         }
     }
 

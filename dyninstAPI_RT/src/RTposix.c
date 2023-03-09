@@ -57,7 +57,7 @@
 #define SOCKLEN_T socklen_t
 
 #if !(defined(arch_power) && defined(os_linux))
-void RTmutatedBinary_init() 
+void RTmutatedBinary_init(void)
 {
     return;
 }
@@ -79,7 +79,7 @@ void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
 struct passwd *passwd_info = NULL;
 #endif
 
-void libdyninstAPI_RT_init() 
+void libdyninstAPI_RT_init(void)
 {
    static int initCalledOnce = 0;
 
@@ -191,7 +191,7 @@ int DYNINSTasyncConnect(int pid)
 #endif
 }
 
-int DYNINSTasyncDisconnect()
+int DYNINSTasyncDisconnect(void)
 {
    if (DYNINSTstaticMode)
       return 0;
@@ -266,7 +266,7 @@ int unmap_region(void *addr, int len) {
 #if defined(cap_mutatee_traps)
 extern void dyninstTrapHandler(int sig, siginfo_t *info, void *context);
 
-int DYNINSTinitializeTrapHandler()
+int DYNINSTinitializeTrapHandler(void)
 {
    int result;
    struct sigaction new_handler;

@@ -39,6 +39,7 @@
 #include "Immediate.h" 
 #include "BinaryFunction.h"
 #include "common/src/singleton_object_pool.h"
+#include "unaligned_memory_access.h"
 
 // #define VEX_DEBUG
 
@@ -300,20 +301,20 @@ namespace Dyninst
                 return Immediate::makeImmediate(Result(isSigned ? s8 : u8 ,*(const byte_t*)(immStart)));
                 break;
             case op_d:
-                return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
+                return Immediate::makeImmediate(Result(isSigned ? s32 : u32,read_memory_as<dword_t>(immStart)));
             case op_w:
-                return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(immStart)));
+                return Immediate::makeImmediate(Result(isSigned ? s16 : u16,read_memory_as<word_t>(immStart)));
                 break;
             case op_q:
-                return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
+                return Immediate::makeImmediate(Result(isSigned ? s64 : u64,read_memory_as<int64_t>(immStart)));
                 break;
             case op_v:
                 if (locs->rex_w || isDefault64Insn()) {
-                    return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(immStart)));
+                    return Immediate::makeImmediate(Result(isSigned ? s64 : u64,read_memory_as<int64_t>(immStart)));
                 }
                 //if(!sizePrefixPresent)
                 //{
-                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
+                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,read_memory_as<dword_t>(immStart)));
 		    //}
 		    //else
 		    //{
@@ -325,7 +326,7 @@ namespace Dyninst
                 // 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
                 //if(!addrSizePrefixPresent)
                 //{
-                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
+                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,read_memory_as<dword_t>(immStart)));
 		    //}
 		    //else
 		    //{
@@ -337,11 +338,11 @@ namespace Dyninst
                 // 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
                 if(!sizePrefixPresent)
                 {
-                    return Immediate::makeImmediate(Result(isSigned ? s48 : u48,*(const int64_t*)(immStart)));
+                    return Immediate::makeImmediate(Result(isSigned ? s48 : u48,read_memory_as<int64_t>(immStart)));
                 }
                 else
                 {
-                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(immStart)));
+                    return Immediate::makeImmediate(Result(isSigned ? s32 : u32,read_memory_as<dword_t>(immStart)));
                 }
 
                 break;
@@ -374,19 +375,19 @@ namespace Dyninst
         switch(locs->modrm_mod)
         {
             case 1:
-                return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, (*(const byte_t*)(b.start +
-                                        disp_pos)))));
+                return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, read_memory_as<byte_t>(b.start +
+                                        disp_pos))));
                 break;
             case 2:
                 if(0 && sizePrefixPresent)
                 {
-                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s16, *((const word_t*)(b.start +
-                                            disp_pos)))));
+                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s16, read_memory_as<word_t>(b.start +
+                                            disp_pos))));
                 }
                 else
                 {
-                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(b.start +
-                                            disp_pos)))));
+                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, read_memory_as<dword_t>(b.start +
+                                            disp_pos))));
                 }
                 break;
             case 0:
@@ -396,14 +397,14 @@ namespace Dyninst
                     if(locs->modrm_rm == 6)
                     {
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s16,
-                                        *((const dword_t*)(b.start + disp_pos)))));
+                                        read_memory_as<dword_t>(b.start + disp_pos))));
                     }
                     // TODO FIXME; this was decoding wrong, but I'm not sure
                     // why...
                     else if (locs->modrm_rm == 5) {
                         assert(b.start + disp_pos + 4 <= b.end);
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
-                                        *((const dword_t*)(b.start + disp_pos)))));
+                                        read_memory_as<dword_t>(b.start + disp_pos))));
                     } else {
                         assert(b.start + disp_pos + 1 <= b.end);
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
@@ -417,7 +418,7 @@ namespace Dyninst
                     {
                         if (b.start + disp_pos + 4 <= b.end)
                             return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
-                                            *((const dword_t*)(b.start + disp_pos)))));
+                                            read_memory_as<dword_t>(b.start + disp_pos))));
                         else
                             return make_shared(singleton_object_pool<Immediate>::construct(Result()));
                     }

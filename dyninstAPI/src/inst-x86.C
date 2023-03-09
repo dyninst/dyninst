@@ -68,6 +68,7 @@
 #include "Instruction.h"
 #include <sstream>
 #include <assert.h>
+#include "unaligned_memory_access.h"
 
 class ExpandInstruction;
 class InsertNops;
@@ -603,8 +604,8 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
 void emitJccR8(int condition_code, char jump_offset,
                codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = static_cast<unsigned char>(condition_code);
-    *insn++ = jump_offset;
+    append_memory_as_byte(insn, condition_code);
+    append_memory_as_byte(insn, jump_offset);
     SET_PTR(insn, gen);
 }
 
@@ -626,15 +627,14 @@ void emitJcc(int condition, int offset,
    
    if(!willRegen && (offset >= -128 && offset <= 127)) { // jcc rel8
       opcode = 0x70 | (unsigned char)condition;
-      *insn++ = opcode;
-      *insn++ = (unsigned char) (offset & 0xFF);
+      append_memory_as_byte(insn, opcode);
+      append_memory_as_byte(insn, offset & 0xFF);
    }
    else { // jcc near rel32
       opcode = 0x80 | (unsigned char)condition;
-      *insn++ = 0x0F;
-      *insn++ = opcode;
-      *((int*)insn) = offset;
-      insn += sizeof(int);
+      append_memory_as_byte(insn, 0x0F);
+      append_memory_as_byte(insn, opcode);
+      append_memory_as(insn, int32_t{offset});
    }
    SET_PTR(insn, gen);
 }
@@ -757,18 +757,18 @@ void emitAddressingMode(unsigned base, RegValue disp,
    }
    GET_PTR(insn, gen);
    if (base == Null_Register) {
-      *insn++ = makeModRMbyte(0, reg_opcode, 5);
-      *((int *)insn) = disp;
-      insn += sizeof(int);
+      append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 5));
+      assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
+      append_memory_as(insn, static_cast<int32_t>(disp));
    } else if (disp == 0 && base != REGNUM_EBP) {
-      *insn++ = makeModRMbyte(0, reg_opcode, base);
+      append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, base));
    } else if (disp >= -128 && disp <= 127) {
-      *insn++ = makeModRMbyte(1, reg_opcode, base);
-      *((char *)insn++) = (char) disp;
+      append_memory_as_byte(insn, makeModRMbyte(1, reg_opcode, base));
+      append_memory_as(insn, static_cast<int8_t>(disp));
    } else {
-      *insn++ = makeModRMbyte(2, reg_opcode, base);
-      *((int *)insn) = disp;
-      insn += sizeof(int);
+      append_memory_as_byte(insn, makeModRMbyte(2, reg_opcode, base));
+      assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
+      append_memory_as(insn, static_cast<int32_t>(disp));
    }
    SET_PTR(insn, gen);
 }
@@ -796,25 +796,25 @@ void emitAddressingMode(unsigned base, unsigned index,
    GET_PTR(insn, gen);
    
    if(base == Null_Register) { // we have to emit [index<<scale+disp32]
-      *insn++ = makeModRMbyte(0, reg_opcode, 4);
-      *insn++ = makeSIBbyte(scale, index, 5);
-      *((int *)insn) = disp;
-      insn += sizeof(int);
+      append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 4));
+      append_memory_as_byte(insn, makeSIBbyte(scale, index, 5));
+      assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
+      append_memory_as(insn, static_cast<int32_t>(disp));
    }
    else if(disp == 0 && base != REGNUM_EBP) { // EBP must have 0 disp8; emit [base+index<<scale]
-       *insn++ = makeModRMbyte(0, reg_opcode, 4);
-       *insn++ = makeSIBbyte(scale, index, base);
+       append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 4));
+       append_memory_as_byte(insn, makeSIBbyte(scale, index, base));
    }
    else if (disp >= -128 && disp <= 127) { // emit [base+index<<scale+disp8]
-      *insn++ = makeModRMbyte(1, reg_opcode, 4);
-      *insn++ = makeSIBbyte(scale, index, base);
-      *((char *)insn++) = (char) disp;
+      append_memory_as_byte(insn, makeModRMbyte(1, reg_opcode, 4));
+      append_memory_as_byte(insn, makeSIBbyte(scale, index, base));
+      append_memory_as(insn, static_cast<int8_t>(disp));
    }
    else { // emit [base+index<<scale+disp32]
-      *insn++ = makeModRMbyte(2, reg_opcode, 4);
-      *insn++ = makeSIBbyte(scale, index, base);
-      *((int *)insn) = disp;
-      insn += sizeof(int);
+      append_memory_as_byte(insn, makeModRMbyte(2, reg_opcode, 4));
+      append_memory_as_byte(insn, makeSIBbyte(scale, index, base));
+      assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
+      append_memory_as(insn, static_cast<int32_t>(disp));
    }
 
    SET_PTR(insn, gen);
@@ -824,16 +824,15 @@ void emitAddressingMode(unsigned base, unsigned index,
 /* emit a simple one-byte instruction */
 void emitSimpleInsn(unsigned op, codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = static_cast<unsigned char>(op);
+    append_memory_as(insn, static_cast<uint8_t>(op));
     SET_PTR(insn, gen);
 }
 
 void emitPushImm(unsigned int imm, codeGen &gen)
 {
     GET_PTR(insn, gen);
-    *insn++ = 0x68;
-    *((unsigned int *)insn) = imm;
-    insn += sizeof(unsigned int);
+    append_memory_as_byte(insn, 0x68);
+    append_memory_as(insn, uint32_t{imm});
     SET_PTR(insn, gen);
     if (gen.rs())
        gen.rs()->incStack(gen.addrSpace()->getAddressWidth());
@@ -846,34 +845,32 @@ void emitOpRegReg(unsigned opcode, RealRegister dest, RealRegister src,
 {
     GET_PTR(insn, gen);
     if (opcode <= 0xFF)
-       *insn++ = static_cast<unsigned char>(opcode);
+       append_memory_as_byte(insn,opcode);
     else {
-       *insn++ = static_cast<unsigned char>(opcode >> 8);
-       *insn++ = static_cast<unsigned char>(opcode & 0xFF);
+       append_memory_as_byte(insn, opcode >> 8);
+       append_memory_as_byte(insn, opcode & 0xFF);
     }
     // ModRM byte define the operands: Mod = 3, Reg = dest, RM = src
-    *insn++ = makeModRMbyte(3, dest.reg(), src.reg());
+    append_memory_as_byte(insn, makeModRMbyte(3, dest.reg(), src.reg()));
     SET_PTR(insn, gen);
 }
 
 void emitOpRegImm(int opcode, RealRegister dest, int imm,
                   codeGen &gen) {
    GET_PTR(insn, gen);
-   *insn++ = 0x81;
-   *insn++ = makeModRMbyte(3, opcode, dest.reg());
-   *((int *)insn) = imm;
-   insn+= sizeof(int);
+   append_memory_as_byte(insn, 0x81);
+   append_memory_as_byte(insn, makeModRMbyte(3, opcode, dest.reg()));
+   append_memory_as(insn, int32_t{imm});
    SET_PTR(insn, gen);
 }
 
 void emitOpSegRMReg(unsigned opcode, RealRegister dest, RealRegister, int disp, codeGen &gen)
 {
     GET_PTR(insn, gen);
-    *insn++ = opcode;
-    *insn++ = makeModRMbyte(0, dest.reg(), 4);
-    *insn++ = 0x25;
-    *((int*)insn) = disp;
-    insn += sizeof(int);
+    append_memory_as_byte(insn, opcode);
+    append_memory_as_byte(insn, makeModRMbyte(0, dest.reg(), 4));
+    append_memory_as_byte(insn, 0x25);
+    append_memory_as(insn, int32_t{disp});
     SET_PTR(insn, gen);
 }
 
@@ -884,10 +881,10 @@ void emitOpRegRM(unsigned opcode, RealRegister dest, RealRegister base,
 {
     GET_PTR(insn, gen);
     if (opcode <= 0xff) {
-       *insn++ = static_cast<unsigned char>(opcode);
+       append_memory_as_byte(insn, opcode);
     } else {
-       *insn++ = static_cast<unsigned char>(opcode >> 8);
-       *insn++ = static_cast<unsigned char>(opcode & 0xff);
+       append_memory_as_byte(insn, opcode >> 8);
+       append_memory_as_byte(insn, opcode & 0xff);
     }
     SET_PTR(insn, gen);
     emitAddressingMode(base.reg(), disp, dest.reg(), gen);
@@ -897,7 +894,7 @@ void emitOpRegRM(unsigned opcode, RealRegister dest, RealRegister base,
 void emitOpRMReg(unsigned opcode, RealRegister base, int disp,
                  RealRegister src, codeGen &gen) {
    GET_PTR(insn, gen);
-   *insn++ = static_cast<unsigned char>(opcode);
+   append_memory_as_byte(insn, opcode);
    SET_PTR(insn, gen);
    emitAddressingMode(base.reg(), disp, src.reg(), gen);
 }
@@ -907,10 +904,9 @@ void emitOpExtRegImm(int opcode, int ext, RealRegister dest, int imm,
                      codeGen &gen) 
 {
   GET_PTR(insn, gen);
-   *insn++ = opcode;
-   *insn++ = makeModRMbyte(3, (char) ext, dest.reg());
-   *((int *)insn) = imm;
-   insn+= sizeof(int);
+   append_memory_as_byte(insn, opcode);
+   append_memory_as_byte(insn, makeModRMbyte(3, (char) ext, dest.reg()));
+   append_memory_as(insn, int32_t{imm});
    SET_PTR(insn, gen);
 }
 
@@ -918,36 +914,34 @@ void emitOpExtRegImm8(int opcode, char ext, RealRegister dest, unsigned char imm
                      codeGen &gen) 
 {
    GET_PTR(insn, gen);
-   *insn++ = opcode;
-   *insn++ = makeModRMbyte(3, ext, dest.reg());
-   *((unsigned char *)insn) = imm;
-   insn+= sizeof(unsigned char);
+   append_memory_as_byte(insn, opcode);
+   append_memory_as_byte(insn, makeModRMbyte(3, ext, dest.reg()));
+   append_memory_as_byte(insn, imm);
    SET_PTR(insn, gen);
 }
 
 void emitOpExtReg(unsigned opcode, unsigned char ext, RealRegister reg, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = opcode;
-   *insn++ = makeModRMbyte(3, ext, reg.reg());
+   append_memory_as_byte(insn, opcode);
+   append_memory_as_byte(insn, makeModRMbyte(3, ext, reg.reg()));
    SET_PTR(insn, gen);
 }
 
 void emitMovRegToReg(RealRegister dest, RealRegister src, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x8B;
-   *insn++ = makeModRMbyte(3, dest.reg(), src.reg());
+   append_memory_as_byte(insn, 0x8B);
+   append_memory_as_byte(insn, makeModRMbyte(3, dest.reg(), src.reg()));
    SET_PTR(insn, gen);
 }
 
 void emitOpRegRegImm(unsigned opcode, RealRegister dest, RealRegister src, unsigned imm, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = opcode;
-   *insn++ = makeModRMbyte(3, dest.reg(), src.reg());
-   *((int *)insn) = imm;
-   insn += sizeof(int);
+   append_memory_as_byte(insn, opcode);
+   append_memory_as_byte(insn, makeModRMbyte(3, dest.reg(), src.reg()));
+   append_memory_as(insn, uint32_t{imm});
    SET_PTR(insn, gen);
 }
 
@@ -955,8 +949,8 @@ void emitOpRegRegImm(unsigned opcode, RealRegister dest, RealRegister src, unsig
 void emitMovIRegToReg(RealRegister dest, RealRegister src,
                       codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = 0x8B;
-    *insn++ = makeModRMbyte(0, dest.reg(), src.reg());
+    append_memory_as_byte(insn, 0x8B);
+    append_memory_as_byte(insn, makeModRMbyte(0, dest.reg(), src.reg()));
     SET_PTR(insn, gen);
     gen.markRegDefined(dest.reg());
 }
@@ -969,7 +963,7 @@ void emitLEA(RealRegister base, RealRegister index, unsigned int scale,
    if (dest.reg() != REGNUM_ESP)
       gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
-   *insn++ = 0x8D;
+   append_memory_as_byte(insn, 0x8D);
    SET_PTR(insn, gen);
    emitAddressingMode(base.reg(), index.reg(), scale, disp, (int)dest.reg(), gen);
 }
@@ -979,10 +973,9 @@ void emitLEA(RealRegister base, unsigned displacement, RealRegister dest,
 {
    gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
-   *insn++ = 0x8D;
-   *insn++ = makeModRMbyte(2, dest.reg(), base.reg());
-   *((unsigned *) insn) = displacement;
-   insn += sizeof(unsigned);
+   append_memory_as_byte(insn, 0x8D);
+   append_memory_as_byte(insn, makeModRMbyte(2, dest.reg(), base.reg()));
+   append_memory_as(insn, uint32_t{displacement});
    SET_PTR(insn, gen);
 }
 
@@ -1021,12 +1014,12 @@ void emitMovPCRMToReg(RealRegister dest, int offset, codeGen &gen, bool deref_re
          pc_reg = gen.rs()->loadVirtualForWrite(gen.rs()->pc_rel_reg, gen);
       }
       gen.rs()->pc_rel_offset() = used + 5;
-      *insn++ = 0xE8;
-      *insn++ = 0x00;
-      *insn++ = 0x00;
-      *insn++ = 0x00;
-      *insn++ = 0x00;
-      *insn++ = static_cast<unsigned char>(0x58 + pc_reg.reg());
+      append_memory_as_byte(insn, 0xE8);
+      append_memory_as_byte(insn, 0x00);
+      append_memory_as_byte(insn, 0x00);
+      append_memory_as_byte(insn, 0x00);
+      append_memory_as_byte(insn, 0x00);
+      append_memory_as_byte(insn, 0x58 + pc_reg.reg());
       SET_PTR(insn, gen);
    }
    else {
@@ -1060,7 +1053,7 @@ void emitMovRMToReg(RealRegister dest, RealRegister base, int disp,
                     codeGen &gen) 
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x8B;
+   append_memory_as_byte(insn, 0x8B);
    SET_PTR(insn, gen);
    emitAddressingMode(base.reg(), disp, dest.reg(), gen);
 }
@@ -1070,7 +1063,7 @@ void emitMovRegToRM(RealRegister base, int disp, RealRegister src,
                     codeGen &gen) 
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x89;
+   append_memory_as_byte(insn, 0x89);
    SET_PTR(insn, gen);
    emitAddressingMode(base.reg(), disp, src.reg(), gen);
 }
@@ -1079,7 +1072,7 @@ void emitMovRegToRM(RealRegister base, int disp, RealRegister src,
 void emitMovRegToM(int disp, RealRegister src, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x89;
+   append_memory_as_byte(insn, 0x89);
    SET_PTR(insn, gen);
    emitAddressingMode(Null_Register, disp, src.reg(), gen);
 }
@@ -1088,10 +1081,9 @@ void emitMovRegToM(int disp, RealRegister src, codeGen &gen)
 void emitMovRegToMB(int disp, RealRegister src, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x88;
-   *insn++ = makeModRMbyte(0, src.reg(), 5);
-   *((int *) insn) = disp;
-   insn += sizeof(int);
+   append_memory_as_byte(insn, 0x88);
+   append_memory_as_byte(insn, makeModRMbyte(0, src.reg(), 5));
+   append_memory_as(insn, int32_t{disp});
    SET_PTR(insn, gen);
 }
 
@@ -1099,11 +1091,10 @@ void emitMovRegToMB(int disp, RealRegister src, codeGen &gen)
 void emitMovRegToMW(int disp, RealRegister src, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x66;
-   *insn++ = 0x88;
-   *insn++ = makeModRMbyte(0, src.reg(), 5);
-   *((int *) insn) = disp;
-   insn += sizeof(int);
+   append_memory_as_byte(insn, 0x66);
+   append_memory_as_byte(insn, 0x88);
+   append_memory_as_byte(insn, makeModRMbyte(0, src.reg(), 5));
+   append_memory_as(insn, int32_t{disp});
    SET_PTR(insn, gen);
 }
 
@@ -1112,7 +1103,7 @@ void emitMovMToReg(RealRegister dest, int disp, codeGen &gen)
 {
    gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
-   *insn++ = 0x8B;
+   append_memory_as_byte(insn, 0x8B);
    SET_PTR(insn, gen);
    emitAddressingMode(Null_Register, disp, dest.reg(), gen);
 }
@@ -1122,8 +1113,8 @@ void emitMovMBToReg(RealRegister dest, int disp, codeGen &gen)
 {
    gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
-   *insn++ = 0x0F;
-   *insn++ = 0xBE;
+   append_memory_as_byte(insn, 0x0F);
+   append_memory_as_byte(insn, 0xBE);
    SET_PTR(insn, gen);
    emitAddressingMode(Null_Register, disp, dest.reg(), gen);
 }
@@ -1133,8 +1124,8 @@ void emitMovMWToReg(RealRegister dest, int disp, codeGen &gen)
 {
    gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
-   *insn++ = 0x0F;
-   *insn++ = 0xBF;
+   append_memory_as_byte(insn, 0x0F);
+   append_memory_as_byte(insn, 0xBF);
    SET_PTR(insn, gen);
    emitAddressingMode(Null_Register, disp, dest.reg(), gen);
 }
@@ -1143,9 +1134,8 @@ void emitMovMWToReg(RealRegister dest, int disp, codeGen &gen)
 void emitMovImmToReg(RealRegister dest, int imm, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = static_cast<unsigned char>(0xB8 + dest.reg());
-   *((int *)insn) = imm;
-   insn += sizeof(int);
+   append_memory_as_byte(insn, 0xB8 + dest.reg());
+   append_memory_as(insn, int32_t{imm});
    SET_PTR(insn, gen);
 }
 
@@ -1153,12 +1143,11 @@ void emitMovImmToReg(RealRegister dest, int imm, codeGen &gen)
 void emitMovImmToRM(RealRegister base, int disp, int imm,
                     codeGen &gen) {
    GET_PTR(insn, gen);
-   *insn++ = 0xC7;
+   append_memory_as_byte(insn, 0xC7);
    SET_PTR(insn, gen);
    emitAddressingMode(base.reg(), disp, 0, gen);
    REGET_PTR(insn, gen);
-   *((int*)insn) = imm;
-   insn += sizeof(int);
+   append_memory_as(insn, int32_t{imm});
     SET_PTR(insn, gen);
 }
 
@@ -1170,7 +1159,7 @@ void emitMovImmToMem(Address maddr, int imm,
     // address operand (in both x86 and x86_64), the full ModRM + SIB
     // syntax must be used.
     GET_PTR(insn, gen);
-    *insn++ = 0xC7;
+    append_memory_as_byte(insn, 0xC7);
 
     // FIXME: To adhere strictly to the x86 and x86_64 ISAs, we specify an
     // absolute (32-bit) address by emitting a ModRM and SIB byte of the
@@ -1180,13 +1169,12 @@ void emitMovImmToMem(Address maddr, int imm,
     // Current forms of emitAddressingMode() do not allow for this, and so
     // we do it manually here.  emitAddressingMode() should be made more
     // robust.
-    *insn++ = makeModRMbyte(0, 0, 4);
-    *insn++ = makeSIBbyte(0, 4, 5);
-    *((int *)insn) = maddr;
-    insn += sizeof(unsigned);
+    append_memory_as_byte(insn, makeModRMbyte(0, 0, 4));
+    append_memory_as_byte(insn, makeSIBbyte(0, 4, 5));
+    assert(maddr <= numeric_limits<uint32_t>::max() && "maddr more than 32 bits");
+    append_memory_as(insn, static_cast<uint32_t>(maddr));
 
-    *((int*)insn) = imm;
-    insn += sizeof(int);
+    append_memory_as(insn, int32_t{imm});
     SET_PTR(insn, gen);
 }
 
@@ -1194,12 +1182,11 @@ void emitMovImmToMem(Address maddr, int imm,
 void emitAddMemImm32(Address addr, int imm, codeGen &gen)
 {
     GET_PTR(insn, gen);
-   *insn++ = 0x81;
-   *insn++ = 0x05;
-   *((unsigned *)insn) = addr;
-   insn += sizeof(unsigned);
-   *((int *)insn) = imm;
-   insn += sizeof(int);
+   append_memory_as_byte(insn, 0x81);
+   append_memory_as_byte(insn, 0x05);
+   assert(addr <= numeric_limits<uint32_t>::max() && "addr more than 32 bits");
+   append_memory_as(insn, static_cast<uint32_t>(addr));
+   append_memory_as(insn, int32_t{imm});
     SET_PTR(insn, gen);
 }
 
@@ -1208,16 +1195,14 @@ void emitAddRegImm32(RealRegister reg, int imm, codeGen &gen)
 {
    GET_PTR(insn, gen);
    if (imm >= -128 && imm <= 127) {
-      *insn++ = 0x83;
-      *insn++ = makeModRMbyte(3, 0, reg.reg());
-      *((char *)insn) = (char) imm;
-      insn += sizeof(char);
+      append_memory_as_byte(insn, 0x83);
+      append_memory_as_byte(insn, makeModRMbyte(3, 0, reg.reg()));
+      append_memory_as_byte(insn, static_cast<int8_t>(imm));
    }
    else {
-      *insn++ = 0x81;
-      *insn++ = makeModRMbyte(3, 0, reg.reg());
-      *((int *)insn) = imm;
-      insn += sizeof(int);
+      append_memory_as_byte(insn, 0x81);
+      append_memory_as_byte(insn, makeModRMbyte(3, 0, reg.reg()));
+      append_memory_as(insn, int32_t{imm});
    }
    SET_PTR(insn, gen);
 }
@@ -1227,8 +1212,8 @@ void emitSubRegReg(RealRegister dest, RealRegister src, codeGen &gen)
 {
    gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
-   *insn++ = 0x2B;
-   *insn++ = makeModRMbyte(3, dest.reg(), src.reg());
+   append_memory_as_byte(insn, 0x2B);
+   append_memory_as_byte(insn, makeModRMbyte(3, dest.reg(), src.reg()));
    SET_PTR(insn, gen);
 }
 
@@ -1474,10 +1459,10 @@ void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen)
   //bperr( "Emiting SHL\n");
    gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
-   *insn++ = 0xC1;
-   *insn++ = makeModRMbyte(3 /* rm gives register */,
-                           4 /* opcode ext. */, dest.reg());
-   *insn++ = pos;
+   append_memory_as_byte(insn, 0xC1);
+   append_memory_as_byte(insn, makeModRMbyte(3 /* rm gives register */,
+                           4 /* opcode ext. */, dest.reg()));
+   append_memory_as_byte(insn, pos);
    SET_PTR(insn, gen);
 }
 
@@ -2230,7 +2215,7 @@ bool emitPush(RealRegister reg, codeGen &gen) {
     int r = reg.reg();
     assert(r < 8);
 
-    *insn++ = static_cast<unsigned char>(0x50 + r); // 0x50 is push EAX, and it increases from there.
+    append_memory_as_byte(insn, 0x50 + r); // 0x50 is push EAX, and it increases from there.
 
     SET_PTR(insn, gen);
     if (gen.inInstrumentation()) {
@@ -2243,7 +2228,7 @@ bool emitPop(RealRegister reg, codeGen &gen) {
     GET_PTR(insn, gen);
     int r = reg.reg();
     assert(r < 8);
-    *insn++ = static_cast<unsigned char>(0x58 + r);    
+    append_memory_as_byte(insn, 0x58 + r);
     SET_PTR(insn, gen);
     if (gen.inInstrumentation()) {
        gen.rs()->incStack(-4);
@@ -2291,7 +2276,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
    args.push_back(f.m_stack[0]);
-   args.push_back(AstNode::operandNode(AstNode::Constant,
+   args.push_back(AstNode::operandNode(AstNode::operandType::Constant,
                                        (void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
                FILE__, __LINE__, cft->format(insn.getArch()).c_str());
@@ -2472,36 +2457,34 @@ regState_t::regState_t() :
 void emitSaveO(codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x0f;
-   *insn++ = 0x90;
-   *insn++ = 0xC0;
+   append_memory_as_byte(insn, 0x0f);
+   append_memory_as_byte(insn, 0x90);
+   append_memory_as_byte(insn, 0xC0);
    SET_PTR(insn, gen);
 }
 
 void emitRestoreO(codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0x80;
-   *insn++ = 0xC0;
-   *insn++ = 0x7f;
+   append_memory_as_byte(insn, 0x80);
+   append_memory_as_byte(insn, 0xC0);
+   append_memory_as_byte(insn, 0x7f);
    SET_PTR(insn, gen);
 }
 
 void emitCallRel32(unsigned disp32, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0xE8;
-   *((int *) insn) = disp32;
-   insn += sizeof(int);
+   append_memory_as_byte(insn, 0xE8);
+   append_memory_as(insn, uint32_t{disp32});
    SET_PTR(insn, gen);
 }
 
 void emitJump(unsigned disp32, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0xE9;
-   *((int *) insn) = disp32;
-   insn += sizeof(int);
+   append_memory_as_byte(insn, 0xE9);
+   append_memory_as(insn, uint32_t{disp32});
    SET_PTR(insn, gen);
 }
 

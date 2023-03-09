@@ -48,14 +48,6 @@ class PCProcess;
 class Frame {
  public:
 
-  typedef enum { unset, 
-		 instrumentation, 
-		 signalhandler, 
-		 normal, 
-		 syscall, 
-		 iRPC, 
-		 unknown } frameType_t;
-
   // default ctor (zero frame)
   Frame();
 
@@ -79,7 +71,7 @@ class Frame {
       return *this;
   }
   
-  bool operator==(const Frame &F) {
+  bool operator==(const Frame &F) const {
     return ((uppermost_ == F.uppermost_) &&
 	    (sw_frame_ == F.sw_frame_) &&
 	    (proc_    == F.proc_) &&

@@ -322,7 +322,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
     // Optimization pass...
 
     if (op == plusOp) {
-        if (loperand->getoType() == Constant) {
+        if (loperand->getoType() == operandType::Constant) {
             // Swap left and right...
             AstNodePtr temp = loperand;
             loperand = roperand;
@@ -330,10 +330,10 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
         }
     }
     if (op == timesOp) {
-        if (roperand->getoType() == undefOperandType) {
+        if (roperand->getoType() == operandType::undefOperandType) {
             // ...
        }
-        else if (roperand->getoType() != Constant) {
+        else if (roperand->getoType() != operandType::Constant) {
             AstNodePtr temp = roperand;
             roperand = loperand;
             loperand = temp;
@@ -354,7 +354,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
        // don't actually reference their loperand--they reference
        // the child of the loperand.  Handle that here to keep
        // reference counts sane.
-       if (op == storeOp && loperand->getoType() == DataIndir)
+       if (op == storeOp && loperand->getoType() == operandType::DataIndir)
           l->operand()->referenceCount++;
        else
           l->referenceCount++;
@@ -373,7 +373,7 @@ AstOperandNode::AstOperandNode(operandType ot, void *arg) :
     operand_()
 {
 
-    if (ot == ConstantString)
+    if (ot == operandType::ConstantString)
         oValue = (void *)P_strdup((char *)arg);
     else
         oValue = (void *) arg;
@@ -568,7 +568,7 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
     static AstNodePtr preamble;
 
     if (costAst == AstNodePtr())
-        costAst = AstNode::operandNode(AstNode::Constant, (void *)0);
+        costAst = AstNode::operandNode(AstNode::operandType::Constant, (void *)0);
 
     if (preamble == AstNodePtr())
         preamble = AstNode::operatorNode(trampPreamble, costAst);
@@ -1160,7 +1160,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
     // Override: if we're trying to save to an original
     // register, make sure it's saved on the stack.
     if (op == storeOp) {
-        if (loperand->getoType() == origRegister) {
+        if (loperand->getoType() == operandType::origRegister) {
             Address origReg = (Address) loperand->getOValue();
             // Mark that register as live so we are sure to save it.
             registerSlot *r = (*(g.rs()))[origReg];
@@ -1179,13 +1179,13 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
    // generate optimized code for this case.
    Address laddr;
 
-   if (loperand->getoType() == DataAddr)
+   if (loperand->getoType() == operandType::DataAddr)
    {
       laddr = (Address) loperand->getOValue();
    }
    else
    {
-      if(loperand->getoType() == variableValue)
+      if(loperand->getoType() == operandType::variableValue)
       {
          boost::shared_ptr<AstOperandNode> lnode =
             boost::dynamic_pointer_cast<AstOperandNode>(loperand);
@@ -1203,7 +1203,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
 
    }
 
-   if (roperand->getoType() == Constant) {
+   if (roperand->getoType() == operandType::Constant) {
       //Looks like 'global = constant'
 #if defined(arch_x86_64)
      if (laddr >> 32 || ((Address) roperand->getOValue()) >> 32 || size_ == 8) {
@@ -1233,12 +1233,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
       return false;
 
    AstNode *const_oper = NULL;
-   if (arithl->getoType() == DataAddr && arithr->getoType() == Constant &&
+   if (arithl->getoType() == operandType::DataAddr && arithr->getoType() == operandType::Constant &&
        laddr == (Address) arithl->getOValue())
    {
       const_oper = arithr;
    }
-   else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
+   else if (arithl->getoType() == operandType::variableValue && arithr->getoType() == operandType::Constant)
    {
       Address addr = 0;
       int_variable* var = arithl->lookUpVar(gen.addrSpace());
@@ -1249,12 +1249,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
          const_oper = arithr;
       }
    }
-   else if (arithr->getoType() == DataAddr && arithl->getoType() == Constant &&
+   else if (arithr->getoType() == operandType::DataAddr && arithl->getoType() == operandType::Constant &&
             laddr == (Address) arithr->getOValue() && roper->op == plusOp)
    {
       const_oper = arithl;
    }
-   else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
+   else if (arithl->getoType() == operandType::variableValue && arithr->getoType() == operandType::Constant)
    {
       Address addr = 0;
       int_variable* var = arithl->lookUpVar(gen.addrSpace());
@@ -1313,7 +1313,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
    switch(op) {
       case branchOp: {
-         assert(loperand->getoType() == Constant);
+         assert(loperand->getoType() == operandType::Constant);
          unsigned offset = (Register) (long) loperand->getOValue();
          // We are not calling loperand->generateCode_phase2,
          // so we decrement its useCount by hand.
@@ -1547,7 +1547,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case getAddrOp: {
          switch(loperand->getoType()) {
-            case variableAddr:
+            case operandType::variableAddr:
                if (retReg == REG_NULL) {
                   retReg = allocateAndKeep(gen, noCost);
                }
@@ -1555,7 +1555,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, noCost, gen.rs(), size,
                                           gen.point(), gen.addrSpace());
                break;
-            case variableValue:
+            case operandType::variableValue:
                if (retReg == REG_NULL) {
                   retReg = allocateAndKeep(gen, noCost);
                }
@@ -1563,7 +1563,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                loperand->emitVariableLoad(loadOp, retReg, retReg, gen, noCost, gen.rs(), size,
                                           gen.point(), gen.addrSpace());
                break;
-            case DataAddr:
+            case operandType::DataAddr:
                {
                   addr = reinterpret_cast<Address>(loperand->getOValue());
                   if (retReg == REG_NULL) {
@@ -1574,7 +1574,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                             noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                }
                break;
-            case FrameAddr: {
+            case operandType::FrameAddr: {
                // load the address fp + addr into dest
                if (retReg == REG_NULL)
                   retReg = allocateAndKeep(gen, noCost);
@@ -1584,7 +1584,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                break;
             }
-            case RegOffset: {
+            case operandType::RegOffset: {
                assert(loperand);
                assert(loperand->operand());
 
@@ -1598,7 +1598,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                break;
             }
-            case DataIndir:
+            case operandType::DataIndir:
                // taking address of pointer de-ref returns the original
                //    expression, so we simple generate the left child's
                //    code to get the address
@@ -1608,13 +1608,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                              retReg)) ERROR_RETURN;
                // Broken refCounts?
                break;
-            case origRegister:
+            case operandType::origRegister:
                // Added 2NOV11 Bernat - some variables live in original registers,
                // and so we need to be able to dereference their contents.
                if (!loperand->generateCode_phase2(gen, noCost, addr, retReg)) ERROR_RETURN;
                break;
             default:
-               cerr << "Uh oh, unknown loperand type in getAddrOp: " << loperand->getoType() << endl;
+               cerr << "Uh oh, unknown loperand type in getAddrOp: " << static_cast<uint64_t>(loperand->getoType()) << endl;
                cerr << "\t Generating ast " << hex << this << dec << endl;
                assert(0);
          }
@@ -1640,12 +1640,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          src2 = gen.rs()->allocateRegister(gen, noCost);
          switch (loperand->getoType()) {
-            case variableValue:
+            case operandType::variableValue:
                loperand->emitVariableStore(storeOp, src1, src2, gen,
                                            noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                loperand->decUseCount(gen);
                break;
-            case DataAddr:
+            case operandType::DataAddr:
                addr = (Address) loperand->getOValue();
                assert(loperand->getOVar() == NULL);
                emitVstore(storeOp, src1, src2, addr, gen,
@@ -1654,13 +1654,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                // so need to decrement the refcount by hand
                loperand->decUseCount(gen);
                break;
-            case FrameAddr:
+            case operandType::FrameAddr:
                addr = (Address) loperand->getOValue();
                emitVstore(storeFrameRelativeOp, src1, src2, addr, gen,
                           noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                loperand->decUseCount(gen);
                break;
-            case RegOffset: {
+            case operandType::RegOffset: {
                assert(loperand->operand());
                addr = (Address) loperand->operand()->getOValue();
 
@@ -1675,7 +1675,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                loperand->decUseCount(gen);
                break;
             }
-            case DataIndir: {
+            case operandType::DataIndir: {
                // store to a an expression (e.g. an array or field use)
                // *(+ base offset) = src1
                if (!loperand->operand()->generateCode_phase2(gen,
@@ -1691,16 +1691,16 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                loperand->decUseCount(gen);
                break;
             }
-            case origRegister:
+            case operandType::origRegister:
                gen.rs()->writeProgramRegister(gen, (Register)(long)loperand->getOValue(),
                                               src1, getSize());
                //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
                //src1, gen, getSize(), noCost);
                loperand->decUseCount(gen);
                break;
-            case Param:
-            case ParamAtCall:
-            case ParamAtEntry: {
+            case operandType::Param:
+            case operandType::ParamAtCall:
+            case operandType::ParamAtEntry: {
                boost::shared_ptr<AstOperandNode> lnode =
                   boost::dynamic_pointer_cast<AstOperandNode>(loperand);
                emitR(getParamOp, (Address)lnode->oValue,
@@ -1709,13 +1709,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                loperand->decUseCount(gen);
                break;
             }
-            case ReturnVal:
+            case operandType::ReturnVal:
                emitR(getRetValOp, Null_Register,
                      src1, src2, gen, noCost, gen.point(),
                      gen.addrSpace()->multithread_capable());
                loperand->decUseCount(gen);
                break;
-            case ReturnAddr:
+            case operandType::ReturnAddr:
                 emitR(getRetAddrOp, Null_Register,
                       src1, src2, gen, noCost, gen.point(),
                       gen.addrSpace()->multithread_capable());
@@ -1782,7 +1782,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          }
 
          if (roperand &&
-             (roperand->getoType() == Constant) &&
+             (roperand->getoType() == operandType::Constant) &&
              doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
@@ -1837,7 +1837,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    logLine(errorLine);
 #endif
    // Allocate a register to return
-   if (oType != DataReg) {
+   if (oType != operandType::DataReg) {
        if (retReg == REG_NULL) {
            retReg = allocateAndKeep(gen, noCost);
        }
@@ -1847,12 +1847,12 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    int len;
    BPatch_type *Type;
    switch (oType) {
-   case Constant:
+   case operandType::Constant:
      assert(oVar == NULL);
      emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
-   case DataIndir:
+   case operandType::DataIndir:
       if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
       REGISTER_CHECK(src);
       Type = const_cast<BPatch_type *> (getType());
@@ -1865,25 +1865,25 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
       if (operand_->decRefCount())
          gen.rs()->freeRegister(src);
       break;
-   case DataReg:
+   case operandType::DataReg:
        retReg = (Register) (long) oValue;
        break;
-   case origRegister:
+   case operandType::origRegister:
       gen.rs()->readProgramRegister(gen, (Register)(long)oValue, retReg, size);
        //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
        //size, noCost);
        break;
-   case variableAddr:
+   case operandType::variableAddr:
      assert(oVar);
      emitVariableLoad(loadConstOp, retReg, retReg, gen,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
-   case variableValue:
+   case operandType::variableValue:
      assert(oVar);
      emitVariableLoad(loadOp, retReg, retReg, gen,
         noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
-   case ReturnVal:
+   case operandType::ReturnVal:
        src = emitR(getRetValOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
@@ -1893,7 +1893,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
            emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
        }
        break;
-   case ReturnAddr:
+   case operandType::ReturnAddr:
        src = emitR(getRetAddrOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
@@ -1903,18 +1903,18 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
            emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
        }
        break;
-   case Param:
-   case ParamAtCall:
-   case ParamAtEntry: {
+   case operandType::Param:
+   case operandType::ParamAtCall:
+   case operandType::ParamAtEntry: {
        opCode paramOp = undefOp;
        switch(oType) {
-           case Param:
+           case operandType::Param:
                paramOp = getParamOp;
                break;
-           case ParamAtCall:
+           case operandType::ParamAtCall:
                paramOp = getParamAtCallOp;
                break;
-           case ParamAtEntry:
+           case operandType::ParamAtEntry:
                paramOp = getParamAtEntryOp;
                break;
            default:
@@ -1932,19 +1932,19 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        }
        break;
-   case DataAddr:
+   case operandType::DataAddr:
        assert(oVar == NULL);
        addr = reinterpret_cast<Address>(oValue);
        emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
        break;
-   case FrameAddr:
+   case operandType::FrameAddr:
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
        emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(),
                size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
-   case RegOffset:
+   case operandType::RegOffset:
        // Prepare offset from value in any general register (not just fp).
        // This AstNode holds the register number, and loperand holds offset.
        assert(operand_);
@@ -1952,7 +1952,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost,
                gen.rs(), size, gen.point(), gen.addrSpace());
        break;
-   case ConstantString:
+   case operandType::ConstantString:
        // XXX This is for the std::string type.  If/when we fix the std::string type
        // to make it less of a hack, we'll need to change this.
        len = strlen((char *)oValue) + 1;
@@ -1976,7 +1976,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        break;
    default:
        fprintf(stderr, "[%s:%d] ERROR: Unknown operand type %d in AstOperandNode generation\n",
-               __FILE__, __LINE__, oType);
+               __FILE__, __LINE__, static_cast<int>(oType));
        return false;
        break;
    }
@@ -2400,16 +2400,16 @@ int AstOperatorNode::costHelper(enum CostStyleType costStyle) const {
 
 int AstOperandNode::costHelper(enum CostStyleType costStyle) const {
     int total = 0;
-    if (oType == Constant) {
+    if (oType == operandType::Constant) {
         total = getInsnCost(loadConstOp);
-    } else if (oType == DataIndir) {
+    } else if (oType == operandType::DataIndir) {
         total = getInsnCost(loadIndirOp);
         total += operand()->costHelper(costStyle);
-    } else if (oType == DataAddr) {
+    } else if (oType == operandType::DataAddr) {
         total = getInsnCost(loadOp);
-    } else if (oType == DataReg) {
+    } else if (oType == operandType::DataReg) {
         total = getInsnCost(loadIndirOp);
-    } else if (oType == Param || oType == ParamAtCall || oType == ParamAtEntry) {
+    } else if (oType == operandType::Param || oType == operandType::ParamAtCall || oType == operandType::ParamAtEntry) {
         total = getInsnCost(getParamOp);
     }
     return total;
@@ -2447,24 +2447,24 @@ void AstNode::print() const {
     bpfatal("{%d}", referenceCount) ;
 #endif
     if (type == operandNode) {
-      if (oType == Constant) {
+      if (oType == operandType::Constant) {
 	fprintf(stderr,"%d", (int)(Address) oValue);
-      } else if (oType == ConstantString) {
+      } else if (oType == operandType::ConstantString) {
         fprintf(stderr," %s", (char *)oValue);
-      } else if (oType == DataIndir) {
+      } else if (oType == operandType::DataIndir) {
 	fprintf(stderr," @[");
         loperand->print();
 	fprintf(stderr,"]");
-      } else if (oType == DataReg) {
+      } else if (oType == operandType::DataReg) {
 	fprintf(stderr," reg%d ",(int)(Address)oValue);
         loperand->print();
-      } else if (oType == Param || oType == ParamAtCall || oType == ParamAtEntry) {
+      } else if (oType == operandType::Param || oType == operandType::ParamAtCall || oType == operandType::ParamAtEntry) {
 	fprintf(stderr," param[%d]", (int)(Address) oValue);
-      } else if (oType == ReturnVal) {
+      } else if (oType == operandType::ReturnVal) {
 	fprintf(stderr,"retVal");
-      } else if (oType == ReturnAddr) {
+      } else if (oType == operandType::ReturnAddr) {
 	fprintf(stderr, "retAddr");
-      } else if (oType == DataAddr)  {
+      } else if (oType == operandType::DataAddr)  {
 	if(!oVar)
 	{
 	  fprintf(stderr," [0x%lx]", (long) oValue);
@@ -2616,18 +2616,18 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
     if (type == BPatch::bpatch->type_Error)
        errorFlag = true;
 
-    if (oType == DataIndir) {
+    if (oType == operandType::DataIndir) {
         // XXX Should really be pointer to lType -- jkh 7/23/99
         ret = BPatch::bpatch->type_Untyped;
     }
-    else if ((oType == Param) || (oType == ParamAtCall) ||
-             (oType == ParamAtEntry) || (oType == ReturnVal)
-             || (oType == ReturnAddr)) {
+    else if ((oType == operandType::Param) || (oType == operandType::ParamAtCall) ||
+             (oType == operandType::ParamAtEntry) || (oType == operandType::ReturnVal)
+             || (oType == operandType::ReturnAddr)) {
       if(func)
       {
 	switch(oType)
 	{
-	case ReturnVal:
+	case operandType::ReturnVal:
 	  {
 	    ret = func->getReturnType();
 	    if(!ret || (ret->isCompatible(BPatch::bpatch->builtInTypes->findBuiltInType("void")))) {
@@ -2649,7 +2649,7 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
         ret = BPatch::bpatch->type_Untyped;
       }
     }
-    else if (oType == origRegister) {
+    else if (oType == operandType::origRegister) {
         ret = BPatch::bpatch->type_Untyped;
     }
     else {
@@ -2870,12 +2870,12 @@ bool AstOperatorNode::canBeKept() const {
 bool AstOperandNode::canBeKept() const {
 
     switch (oType) {
-    case DataReg:
-    case DataIndir:
-    case RegOffset:
-    case origRegister:
-    case DataAddr:
-    case variableValue:
+    case operandType::DataReg:
+    case operandType::DataIndir:
+    case operandType::RegOffset:
+    case operandType::origRegister:
+    case operandType::DataAddr:
+    case operandType::variableValue:
         return false;
     default:
 		break;
@@ -3336,13 +3336,13 @@ bool AstOperatorNode::usesAppRegister() const {
 }
 
 bool AstOperandNode::usesAppRegister() const {
-   if (oType == AstNode::FrameAddr ||
-       oType == AstNode::RegOffset ||
-       oType == AstNode::origRegister ||
-       oType == AstNode::Param ||
-       oType == AstNode::ParamAtEntry ||
-       oType == AstNode::ParamAtCall ||
-       oType == AstNode::ReturnVal)
+   if (oType == AstNode::operandType::FrameAddr ||
+       oType == AstNode::operandType::RegOffset ||
+       oType == AstNode::operandType::origRegister ||
+       oType == AstNode::operandType::Param ||
+       oType == AstNode::operandType::ParamAtEntry ||
+       oType == AstNode::operandType::ParamAtCall ||
+       oType == AstNode::operandType::ReturnVal)
    {
       return true;
    }
@@ -3696,21 +3696,21 @@ std::string AstMemoryNode::format(std::string indent) {
 
 std::string AstNode::convert(operandType type) {
    switch(type) {
-      case Constant: return "Constant";
-      case ConstantString: return "ConstantString";
-      case DataReg: return "DataReg";
-      case DataIndir: return "DataIndir";
-      case Param: return "Param";
-      case ParamAtCall: return "ParamAtCall";
-      case ParamAtEntry: return "ParamAtEntry";
-      case ReturnVal: return "ReturnVal";
-      case ReturnAddr: return "ReturnAddr";
-      case DataAddr: return "DataAddr";
-      case FrameAddr: return "FrameAddr";
-      case RegOffset: return "RegOffset";
-      case origRegister: return "OrigRegister";
-      case variableAddr: return "variableAddr";
-      case variableValue: return "variableValue";
+      case operandType::Constant: return "Constant";
+      case operandType::ConstantString: return "ConstantString";
+      case operandType::DataReg: return "DataReg";
+      case operandType::DataIndir: return "DataIndir";
+      case operandType::Param: return "Param";
+      case operandType::ParamAtCall: return "ParamAtCall";
+      case operandType::ParamAtEntry: return "ParamAtEntry";
+      case operandType::ReturnVal: return "ReturnVal";
+      case operandType::ReturnAddr: return "ReturnAddr";
+      case operandType::DataAddr: return "DataAddr";
+      case operandType::FrameAddr: return "FrameAddr";
+      case operandType::RegOffset: return "RegOffset";
+      case operandType::origRegister: return "OrigRegister";
+      case operandType::variableAddr: return "variableAddr";
+      case operandType::variableValue: return "variableValue";
       default: return "UnknownOperand";
    }
 }
@@ -3777,7 +3777,7 @@ bool AstOperandNode::initRegisters(codeGen &g) {
     }
 
     // If we're an origRegister, override its state as live.
-    if (oType == origRegister) {
+    if (oType == operandType::origRegister) {
        Address origReg = (Address) oValue;
        // Mark that register as live so we are sure to save it.
        registerSlot *r = (*(g.rs()))[origReg];

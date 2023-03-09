@@ -69,8 +69,6 @@ class BPATCH_DLL_EXPORT BPatch_statement
     //  (do we guarantee contiguity of addresses here?  not sure)
     void *endAddr();
 
-    ~BPatch_statement() {}
-
   private:
 
     //  Full parameter ctor -- can only built by friend classes

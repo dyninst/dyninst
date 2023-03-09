@@ -4373,26 +4373,26 @@ bool int_thread::StateTracker::isDesynced() const {
 bool int_thread::StateTracker::setState(State to)
 {
    std::string s = int_thread::stateIDToName(id);
-   Dyninst::LWP lwp = up_thr->getLWP();
+   Dyninst::LWP thisLwp = up_thr->getLWP();
    Dyninst::PID pid = up_thr->llproc()->getPid();
 
    if (state == to) {
-      pthrd_printf("Leaving %s state for %d/%d in state %s\n", s.c_str(), pid, lwp, stateStr(to));
+      pthrd_printf("Leaving %s state for %d/%d in state %s\n", s.c_str(), pid, thisLwp, stateStr(to));
       return true;
    }
    if (state == errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from errorstate to %s\n",
-                  s.c_str(), pid, lwp, stateStr(to));
+                  s.c_str(), pid, thisLwp, stateStr(to));
       return false;
    }
    if (state == exited && to != errorstate) {
       perr_printf("Attempted %s state reversion for %d/%d from exited to %s\n",
-                  s.c_str(), pid, lwp, stateStr(to));
+                  s.c_str(), pid, thisLwp, stateStr(to));
       return false;
    }
    if (to == neonatal && state != none) {
       perr_printf("Attempted %s state reversion for %d/%d from %s to neonatal\n",
-                  s.c_str(), pid, lwp, stateStr(state));
+                  s.c_str(), pid, thisLwp, stateStr(state));
       return false;
    }
 
@@ -4440,7 +4440,7 @@ bool int_thread::StateTracker::setState(State to)
          up_thr->neonatalThreadCount().inc();
       }
    }
-   pthrd_printf("Changing %s state for %d/%d from %s to %s\n", s.c_str(), pid, lwp,
+   pthrd_printf("Changing %s state for %d/%d from %s to %s\n", s.c_str(), pid, thisLwp,
                 stateStr(state), stateStr(to));
    state = to;
 
@@ -5785,12 +5785,12 @@ RegisterPool::iterator RegisterPool::find(MachRegister r)
    return RegisterPool::iterator(llregpool->regs.find(r));
 }
 
-bool RegisterPool::iterator::operator==(const iterator &iter)
+bool RegisterPool::iterator::operator==(const iterator &iter) const
 {
     return i == iter.i;
 }
 
-bool RegisterPool::iterator::operator!=(const iterator &iter)
+bool RegisterPool::iterator::operator!=(const iterator &iter) const
 {
     return i != iter.i;
 }
@@ -5810,12 +5810,12 @@ RegisterPool::const_iterator RegisterPool::find(MachRegister r) const
 	return RegisterPool::const_iterator(llregpool->regs.find(r));
 }
 
-bool RegisterPool::const_iterator::operator==(const const_iterator &iter)
+bool RegisterPool::const_iterator::operator==(const const_iterator &iter) const
 {
     return i == iter.i;
 }
 
-bool RegisterPool::const_iterator::operator!=(const const_iterator &iter)
+bool RegisterPool::const_iterator::operator!=(const const_iterator &iter) const
 {
     return i != iter.i;
 }
@@ -6125,12 +6125,12 @@ Library::const_ptr LibraryPool::const_iterator::operator*() const
    return (*int_iter)->up_lib;
 }
 
-bool LibraryPool::const_iterator::operator==(const LibraryPool::const_iterator &i)
+bool LibraryPool::const_iterator::operator==(const LibraryPool::const_iterator &i) const
 {
    return int_iter == i.int_iter;
 }
 
-bool LibraryPool::const_iterator::operator!=(const LibraryPool::const_iterator &i)
+bool LibraryPool::const_iterator::operator!=(const LibraryPool::const_iterator &i) const
 {
    return int_iter != i.int_iter;
 }
@@ -7958,12 +7958,12 @@ ThreadPool::iterator::iterator()
    curh = Thread::ptr();
 }
 
-bool ThreadPool::iterator::operator==(const iterator &i)
+bool ThreadPool::iterator::operator==(const iterator &i) const
 {
    return (i.curh == curh);
 }
 
-bool ThreadPool::iterator::operator!=(const iterator &i)
+bool ThreadPool::iterator::operator!=(const iterator &i) const
 {
    return (i.curh != curh);
 }
@@ -8069,12 +8069,12 @@ ThreadPool::const_iterator::const_iterator()
    curh = Thread::ptr();
 }
 
-bool ThreadPool::const_iterator::operator==(const const_iterator &i)
+bool ThreadPool::const_iterator::operator==(const const_iterator &i) const
 {
    return (i.curh == curh);
 }
 
-bool ThreadPool::const_iterator::operator!=(const const_iterator &i)
+bool ThreadPool::const_iterator::operator!=(const const_iterator &i) const
 {
    return (i.curh != curh);
 }

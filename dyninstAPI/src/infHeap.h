@@ -105,7 +105,7 @@ class heapItem {
 // (i.e. prior minitramp/basetramp code)
 class disabledItem {
  public:
-  disabledItem() : block() {}
+  disabledItem() noexcept : block() {}
 
   disabledItem(heapItem *h, const std::vector<addrVecType> &preds) :
     block(h), pointsToCheck(preds) {}
@@ -144,16 +144,7 @@ class heapDescriptor {
 		 const inferiorHeapType type):
     name_(name),addr_(addr),size_(size), type_(type) {}
   heapDescriptor():
-    name_(std::string("")),addr_(0),size_(0),type_(anyHeap) {}
-  ~heapDescriptor() {}
-  heapDescriptor &operator=(const heapDescriptor& h)
-    {
-      name_ = h.name();
-      addr_ = h.addr();
-      size_ = h.size();
-      type_ = h.type();
-      return *this;
-    }
+    name_{},addr_{},size_{},type_(anyHeap) {}
   const std::string &name() const {return name_;}
   const Address &addr() const {return addr_;}
   const unsigned &size() const {return size_;}

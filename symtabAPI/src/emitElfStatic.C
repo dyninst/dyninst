@@ -49,6 +49,7 @@
 #include "emitElfStatic.h"
 #include "debug.h"
 #include "Object-elf.h"
+#include "unaligned_memory_access.h"
 
 #if defined(os_freebsd)
 #define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
@@ -1777,14 +1778,14 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
     unsigned copied = 0;
 
     char *data = lmap.allocatedData;
-    Elf64_Rela *relas = (Elf64_Rela *) &(data[lmap.relRegionOffset]);
+    auto relas = alignas_cast<Elf64_Rela>(&(data[lmap.relRegionOffset]));
 
     Region *rela = NULL;
     target->findRegion(rela, ".rela.plt");
     if (rela) {
       memcpy(relas, rela->getPtrToRawData(), rela->getDiskSize());
       copied += rela->getDiskSize();
-      relas = (Elf64_Rela *) &(data[lmap.relRegionOffset + rela->getDiskSize()]);
+      relas = alignas_cast<Elf64_Rela>(&(data[lmap.relRegionOffset + rela->getDiskSize()]));
     }
 
     unsigned index = 0;
@@ -1803,14 +1804,14 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
     unsigned copied = 0;
 
     char *data = lmap.allocatedData;
-    Elf32_Rel *rels = (Elf32_Rel *) &(data[lmap.relRegionOffset]);
+    auto *rels = alignas_cast<Elf32_Rel>(&(data[lmap.relRegionOffset]));
 
     Region *rel = NULL;
     target->findRegion(rel, ".rel.plt");
     if (rel) {
       memcpy(rels, rel->getPtrToRawData(), rel->getDiskSize());
       copied += rel->getDiskSize();
-      rels = (Elf32_Rel *) &(data[lmap.relRegionOffset + rel->getDiskSize()]);
+      rels = alignas_cast<Elf32_Rel>(&(data[lmap.relRegionOffset + rel->getDiskSize()]));
     }
 
     unsigned index = 0;
@@ -1825,7 +1826,7 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
       // and set it to iter->first->getOffset(), AKA the symbol address
 
       // We should be writing into .dyninstRELAgot; just have to figure out how.
-      long *got = (long *) &(data[rels[index].r_offset - globalOffset]);
+      auto *got = alignas_cast<long>(&(data[rels[index].r_offset - globalOffset]));
       *got = iter->first->getOffset();
 
       copied += sizeof(Elf32_Rel);

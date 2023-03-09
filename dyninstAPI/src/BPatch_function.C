@@ -954,7 +954,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRef()
   //  But since we are adding this as part of the DPCL compatibility process
   //  we use the IBM API, to eliminate one API difference.
   
-  AstNodePtr ast(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
+  AstNodePtr ast(AstNode::operandNode(AstNode::operandType::Constant, (void *) remoteAddress));
   
   // the variableExpr owns the ast now.
   return new BPatch_variableExpr(fname.c_str(), addSpace, lladdSpace, ast, 

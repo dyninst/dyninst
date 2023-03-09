@@ -69,7 +69,7 @@ class StackLocation {
     {}
 
         StackLocation(MachRegister r, int s) :
-            _type(StackAccess::UNKNOWN),
+            _type(StackAccess::StackAccessType::UNKNOWN),
             _size(s),
             _isStackMemory(false),
             _isRegister(true),

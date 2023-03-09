@@ -469,10 +469,9 @@ namespace Dyninst
             opstr += " ";
             std::list<Operand>::const_iterator currOperand;
             std::vector<std::string> formattedOperands;
-            int op = 0;
             for(currOperand = m_Operands.begin();
                     currOperand != m_Operands.end();
-                    op++, ++currOperand)
+                    ++currOperand)
             {
                 /* If this operand is implicit, don't put it in the list of operands. */
                 if(currOperand->isImplicit())

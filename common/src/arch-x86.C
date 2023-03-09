@@ -149,6 +149,8 @@
 #include "common/src/arch-x86.h"
 #include "dyn_regs.h"
 #include "compiler_annotations.h"
+#include "unaligned_memory_access.h"
+#include <cstdint>
 
 // #define VEX_DEBUG
 // #define VEX_PEDANTIC
@@ -10492,9 +10494,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
    addr++;
 
    /* Get displacements we're going to use */
-   const signed char* disp8 = (const signed char*)addr;
-   const short* disp16 = (const short*)addr;
-   const int* disp32 = (const int*)addr;
+   auto dispAddr = addr;
 
    // addrSzAttr equals 1 means the address size override prefix is 
    // not present. On 64-bit platforms, this means the default address
@@ -10528,7 +10528,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                      macadr->set16(mDI, -1, 0);
                      break;
                   case 6:
-                     macadr->set16(-1, -1, *disp16);
+                     macadr->set16(-1, -1, read_memory_as<int16_t>(dispAddr));
                      if (loc)
                      {
                         loc->disp_position = loc->modrm_position + 1;
@@ -10554,31 +10554,32 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                   loc->disp_size = 1;
                }
 
+               auto disp8 = read_memory_as<int8_t>(dispAddr);
                switch (rm)
                {
                   case 0:
-                     macadr->set16(mBX, mSI, *disp8);
+                     macadr->set16(mBX, mSI, disp8);
                      break;
                   case 1:
-                     macadr->set16(mBX, mDI, *disp8);
+                     macadr->set16(mBX, mDI, disp8);
                      break;
                   case 2:
-                     macadr->set16(mBP, mSI, *disp8);
+                     macadr->set16(mBP, mSI, disp8);
                      break;
                   case 3:
-                     macadr->set16(mBP, mDI, *disp8);
+                     macadr->set16(mBP, mDI, disp8);
                      break;
                   case 4:
-                     macadr->set16(mSI, -1, *disp8);
+                     macadr->set16(mSI, -1, disp8);
                      break;
                   case 5:
-                     macadr->set16(mDI, -1, *disp8);
+                     macadr->set16(mDI, -1, disp8);
                      break;
                   case 6:
-                     macadr->set16(mBP, -1, *disp8);
+                     macadr->set16(mBP, -1, disp8);
                      break;
                   case 7:
-                     macadr->set16(mBX, -1, *disp8);
+                     macadr->set16(mBX, -1, disp8);
                      break;
                   default:
                      assert(0);
@@ -10596,31 +10597,32 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                   loc->disp_size = 2;
                }
 
+               auto disp16 = read_memory_as<int16_t>(dispAddr);
                switch (rm)
                {
                   case 0:
-                     macadr->set16(mBX, mSI, *disp16);
+                     macadr->set16(mBX, mSI, disp16);
                      break;
                   case 1:
-                     macadr->set16(mBX, mDI, *disp16);
+                     macadr->set16(mBX, mDI, disp16);
                      break;
                   case 2:
-                     macadr->set16(mBP, mSI, *disp16);
+                     macadr->set16(mBP, mSI, disp16);
                      break;
                   case 3:
-                     macadr->set16(mBP, mDI, *disp16);
+                     macadr->set16(mBP, mDI, disp16);
                      break;
                   case 4:
-                     macadr->set16(mSI, -1, *disp16);
+                     macadr->set16(mSI, -1, disp16);
                      break;
                   case 5:
-                     macadr->set16(mDI, -1, *disp16);
+                     macadr->set16(mDI, -1, disp16);
                      break;
                   case 6:
-                     macadr->set16(mBP, -1, *disp16);
+                     macadr->set16(mBP, -1, disp16);
                      break;
                   case 7:
-                     macadr->set16(mBX, -1, *disp16);
+                     macadr->set16(mBX, -1, disp16);
                      break;
                   default:
                      assert(0);
@@ -10677,9 +10679,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
       }
 
       /* Update displacement pointers  */
-      disp8 = (const signed char*)addr;
-      disp16 = (const short*)addr;
-      disp32 = (const int*)addr;
+      dispAddr = addr;
 
       /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) hassib && base == 5 */
       unsigned char check5 = hassib ? base : rm;
@@ -10713,8 +10713,9 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                            loc->disp_size = 4;
                         }
 
+                        auto disp32 = read_memory_as<int32_t>(dispAddr);
                         macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()),
-                              *disp32, addrSzAttr);
+                              disp32, addrSzAttr);
                      } else {
                         macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale,
                               apply_rex_bit(index, pref->rexX()), 0, addrSzAttr);
@@ -10729,10 +10730,11 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                            loc->disp_size = 4;
                         }
 
+                        auto disp32 = read_memory_as<int32_t>(dispAddr);
                         if (mode_64)
-                           macadr->set(mRIP, *disp32, addrSzAttr);
+                           macadr->set(mRIP, disp32, addrSzAttr);
                         else
-                           macadr->set(-1, *disp32, addrSzAttr);
+                           macadr->set(-1, disp32, addrSzAttr);
                         break;
                      }
                   case 6:
@@ -10757,19 +10759,20 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                   loc->disp_size = 1;
                }
 
+               auto disp8 = read_memory_as<int8_t>(dispAddr);
                switch (rm)
                {
                   case 0:
-                     macadr->set(apply_rex_bit(mEAX, pref->rexB()), *disp8, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEAX, pref->rexB()), disp8, addrSzAttr);
                      break;
                   case 1:
-                     macadr->set(apply_rex_bit(mECX, pref->rexB()), *disp8, addrSzAttr);
+                     macadr->set(apply_rex_bit(mECX, pref->rexB()), disp8, addrSzAttr);
                      break;
                   case 2:
-                     macadr->set(apply_rex_bit(mEDX, pref->rexB()), *disp8, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEDX, pref->rexB()), disp8, addrSzAttr);
                      break;
                   case 3:
-                     macadr->set(apply_rex_bit(mEBX, pref->rexB()), *disp8, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEBX, pref->rexB()), disp8, addrSzAttr);
                      break;
                   case 4:
                      // disp8[EBP + index<<scale] happens naturally here when base=5
@@ -10778,16 +10781,16 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                         loc->disp_size = 1;
                      }
                      macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
-                           *disp8, addrSzAttr);
+                           disp8, addrSzAttr);
                      break;
                   case 5:
-                     macadr->set(apply_rex_bit(mEBP, pref->rexB()), *disp8, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEBP, pref->rexB()), disp8, addrSzAttr);
                      break;
                   case 6:
-                     macadr->set(apply_rex_bit(mESI, pref->rexB()), *disp8, addrSzAttr);
+                     macadr->set(apply_rex_bit(mESI, pref->rexB()), disp8, addrSzAttr);
                      break;
                   case 7:
-                     macadr->set(apply_rex_bit(mEDI, pref->rexB()), *disp8, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEDI, pref->rexB()), disp8, addrSzAttr);
                      break;
                }
             }
@@ -10802,19 +10805,20 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                   loc->disp_size = 4;
                }
 
+               auto disp32 = read_memory_as<int32_t>(dispAddr);
                switch (rm)
                {
                   case 0:
-                     macadr->set(apply_rex_bit(mEAX, pref->rexB()), *disp32, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEAX, pref->rexB()), disp32, addrSzAttr);
                      break;
                   case 1:
-                     macadr->set(apply_rex_bit(mECX, pref->rexB()), *disp32, addrSzAttr);
+                     macadr->set(apply_rex_bit(mECX, pref->rexB()), disp32, addrSzAttr);
                      break;
                   case 2:
-                     macadr->set(apply_rex_bit(mEDX, pref->rexB()), *disp32, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEDX, pref->rexB()), disp32, addrSzAttr);
                      break;
                   case 3:
-                     macadr->set(apply_rex_bit(mEBX, pref->rexB()), *disp32, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEBX, pref->rexB()), disp32, addrSzAttr);
                      break;
                   case 4:
                      // disp32[EBP + index<<scale] happens naturally here when base=5
@@ -10823,16 +10827,16 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                         loc->disp_size = 4;
                      }
                      macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
-                           *disp32, addrSzAttr);
+                           disp32, addrSzAttr);
                      break;
                   case 5:
-                     macadr->set(apply_rex_bit(mEBP, pref->rexB()), *disp32, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEBP, pref->rexB()), disp32, addrSzAttr);
                      break;
                   case 6:
-                     macadr->set(apply_rex_bit(mESI, pref->rexB()), *disp32, addrSzAttr);
+                     macadr->set(apply_rex_bit(mESI, pref->rexB()), disp32, addrSzAttr);
                      break;
                   case 7:
-                     macadr->set(apply_rex_bit(mEDI, pref->rexB()), *disp32, addrSzAttr);
+                     macadr->set(apply_rex_bit(mEDI, pref->rexB()), disp32, addrSzAttr);
                      break;
                   default:
                      assert(0);
@@ -10959,13 +10963,13 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                   switch(addrSzAttr)
                   {
                      case 1: // 16-bit offset
-                        offset = *((const short int*)addr);
+                        offset = read_memory_as<int16_t>(addr);
                         break;
                      case 2: // 32-bit offset
-                        offset = *((const int*)addr);
+                        offset = read_memory_as<int32_t>(addr);
                         break;
                      case 4: // 64-bit
-                        offset = *((const long*)addr);
+                        offset = read_memory_as<int64_t>(addr);
                         break;
                      default:
                         assert(0);
@@ -11743,28 +11747,28 @@ int displacement(const unsigned char *instr, unsigned type) {
          if(*instr == 0x38 || *instr == 0x3A)  instr++;
       }
       // Skip the instr opcode and the MOD/RM byte
-      disp = *(const int *)(instr+2);
+      disp = read_memory_as<int32_t>(instr+2);
    } else if (type & IS_JUMP) {
       if (type & REL_B) {
-         disp = *(const signed char *)(instr+1);
+         disp = read_memory_as<int8_t>(instr+1);
       } else if (type & REL_W) {
-         disp = *(const short *)(instr+1); // skip opcode
+         disp = read_memory_as<int16_t>(instr+1); // skip opcode
       } else if (type & REL_D) {
-         disp = *(const int *)(instr+1);
+         disp = read_memory_as<int32_t>(instr+1);
       }
    } else if (type & IS_JCC) {
       if (type & REL_B) {
-         disp = *(const signed char *)(instr+1);
+         disp = read_memory_as<int8_t>(instr+1);
       } else if (type & REL_W) {
-         disp = *(const short *)(instr+2); // skip two byte opcode
+         disp = read_memory_as<int16_t>(instr+2); // skip two byte opcode
       } else if (type & REL_D) {
-         disp = *(const int *)(instr+2);   // skip two byte opcode
+         disp = read_memory_as<int32_t>(instr+2);   // skip two byte opcode
       }
    } else if (type & IS_CALL) {
       if (type & REL_W) {
-         disp = *(const short *)(instr+1); // skip opcode
+         disp = read_memory_as<int16_t>(instr+1); // skip opcode
       } else if (type & REL_D) {
-         disp = *(const int *)(instr+1);
+         disp = read_memory_as<int32_t>(instr+1);
       }
    }
 

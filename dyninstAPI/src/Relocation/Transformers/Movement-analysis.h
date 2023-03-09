@@ -96,8 +96,8 @@ class PCSensitiveTransformer : public Transformer {
  public:
   virtual bool process(RelocBlock *, RelocGraph *);
 
-  PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) 
-        : aConverter(false, false), addrSpace(as), priMap(p),
+  PCSensitiveTransformer(AddressSpace *as, PriorityMap &) 
+        : aConverter(false, false), addrSpace(as),
      Sens_(0), extSens_(0), intSens_(0), thunk_(0), overApprox_(0), adhoc(as) {}
   virtual ~PCSensitiveTransformer() {}
 
@@ -144,8 +144,6 @@ class PCSensitiveTransformer : public Transformer {
 
   AddressSpace *addrSpace;
 
-  PriorityMap &priMap;  
-  
   long Sens_;
   long extSens_;
   long intSens_;

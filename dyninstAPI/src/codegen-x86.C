@@ -52,6 +52,8 @@
 
 #include "StackMod/StackAccess.h"
 
+#include "unaligned_memory_access.h"
+
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -191,22 +193,16 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
 }
 
 
-// We keep array-lets that represents various fixed insns.
-// They are larger than necessary so static analyzers don't think
-// they'll be read out of bounds.
-static const unsigned char trapRep[8] = {0xCC};
-
-
 void insnCodeGen::generateIllegal(codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = 0x0f;
-    *insn++ = 0x0b;
+    append_memory_as_byte(insn, 0x0f);
+    append_memory_as_byte(insn, 0x0b);
     SET_PTR(insn, gen);
 }
 
 void insnCodeGen::generateTrap(codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = 0xCC;
+    append_memory_as_byte(insn, 0xCC);
     SET_PTR(insn, gen);
 }
 
@@ -223,7 +219,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
 
   disp = toAddr - (fromAddr + 2);
   if (is_disp8(disp)) {
-     *insn++ = 0xEB;
+     append_memory_as_byte(insn, 0xEB);
      *((signed char*) insn) = (signed char) disp;
      insn += sizeof(signed char);
      SET_PTR(insn, gen);
@@ -232,8 +228,8 @@ void insnCodeGen::generateBranch(codeGen &gen,
   /*  
   disp = toAddr - (fromAddr + 4);
   if (is_disp16(disp) && gen.addrSpace()->getAddressWidth() != 8) {
-     *insn++ = 0x66;
-     *insn++ = 0xE9;
+     append_memory_as_byte(insn, 0x66);
+     append_memory_as_byte(insn, 0xE9);
      *((signed short*) insn) = (signed short) disp;
      insn += sizeof(signed short);
      SET_PTR(insn, gen);
@@ -267,11 +263,10 @@ void insnCodeGen::generateBranch(codeGen &gen,
       assert ((unsigned)(-disp32) < (unsigned(1)<<31));
 
    GET_PTR(insn, gen);
-   *insn++ = 0xE9;
+   append_memory_as_byte(insn, 0xE9);
 
    // 5 for a 5-byte branch.
-   *((int *)insn) = disp32 - 5;
-   insn += sizeof(int);
+   append_memory_as(insn, int32_t{disp32 - 5});
   
    SET_PTR(insn, gen);
    return;
@@ -284,11 +279,10 @@ void insnCodeGen::generatePush64(codeGen &gen, Address val)
   GET_PTR(insn, gen);
 #if 0
   for (int i = 3; i >= 0; i--) {
-    unsigned short word = static_cast<unsigned short>((val >> (16 * i)) & 0xffff);
-    *insn++ = 0x66; // operand size override
-    *insn++ = 0x68; // push immediate (16-bits b/c of prefix)
-    *(unsigned short *)insn = word;
-    insn += 2;
+    uint16_t word = static_cast<unsigned short>((val >> (16 * i)) & 0xffff);
+    append_memory_as_byte(insn, 0x66); // operand size override
+    append_memory_as_byte(insn, 0x68); // push immediate (16-bits b/c of prefix)
+    append_memory_as(insn, uint32_t{word});
   }
 #endif
   // NOTE: The size of this generated instruction(+1 for the ret) is stored in CALL_ABS64_SZ
@@ -296,17 +290,15 @@ void insnCodeGen::generatePush64(codeGen &gen, Address val)
   unsigned int low = static_cast<unsigned int>(val);
 
   // push the low 4
-  *insn++ = 0x68; 
-  *(unsigned int*)insn = low;
-  insn += 4;
+  append_memory_as_byte(insn, 0x68);
+  append_memory_as(insn, uint32_t{low});
 
   // move the high 4 to rsp+4
-  *insn++ = 0xC7;
-  *insn++ = 0x44;
-  *insn++ = 0x24;
-  *insn++ = 0x04;
-  *(unsigned int*)insn = high;
-  insn += 4;
+  append_memory_as_byte(insn, 0xC7);
+  append_memory_as_byte(insn, 0x44);
+  append_memory_as_byte(insn, 0x24);
+  append_memory_as_byte(insn, 0x04);
+  append_memory_as(insn, uint32_t{high});
 
   SET_PTR(insn, gen);
 }
@@ -319,7 +311,7 @@ void insnCodeGen::generateBranch64(codeGen &gen, Address to)
   generatePush64(gen, to);
 
   GET_PTR(insn, gen);
-  *insn++ = 0xC3; // RET
+  append_memory_as_byte(insn, 0xC3); // RET
   SET_PTR(insn, gen);
 
 }
@@ -330,7 +322,7 @@ void insnCodeGen::generateBranch32(codeGen &gen, Address to)
    emitPushImm(to, gen);
    
    GET_PTR(insn, gen);
-   *insn++ = 0xC3; // RET
+   append_memory_as_byte(insn, 0xC3); // RET
    SET_PTR(insn, gen);
 }
 
@@ -343,9 +335,8 @@ void insnCodeGen::generateCall(codeGen &gen,
   
   if (is_disp32(disp)) {
     GET_PTR(insn, gen);
-    *insn++ = 0xE8;
-    *((int *)insn) = (int) disp;
-    insn += sizeof(int);
+    append_memory_as_byte(insn, 0xE8);
+    append_memory_as(insn, static_cast<int32_t>(disp));
     SET_PTR(insn, gen);
   }
   else {
@@ -383,7 +374,7 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     // Be more efficient here...
     while (size) {
         GET_PTR(insn, gen);
-        *insn++ = NOP;
+        append_memory_as_byte(insn, NOP);
         SET_PTR(insn, gen);
         size -= sizeof(unsigned char);
     }
@@ -527,8 +518,7 @@ unsigned pcRelJCC::apply(Address addr)
       disp = target - potential;
       if (is_disp32(disp)) {
          convert_to_rel32(origInsn, newInsn);
-         *((signed int *) newInsn) = (signed int) disp;
-         newInsn += 4;
+         append_memory_as(newInsn, static_cast<int32_t>(disp));
          SET_PTR(newInsn, *gen);
          return (unsigned) gen->getIndex() - start;
       }
@@ -707,15 +697,15 @@ unsigned pcRelData::apply(Address addr)
    addr += copy_prefixes(origInsn, newInsn, insnType);
 
    if (*origInsn == 0x0F) {
-      *newInsn++ = *origInsn++;
+      append_memory_as_byte(newInsn, *origInsn++);
        // 3-byte opcode support
        if (*origInsn == 0x38 || *origInsn == 0x3A) {
-           *newInsn++ = *origInsn++;
+           append_memory_as_byte(newInsn, *origInsn++);
        }
    }
      
    // And the normal opcode
-   *newInsn++ = *origInsn++;
+   append_memory_as_byte(newInsn, *origInsn++);
    
    if (is_data_abs64) {
       // change ModRM byte to use [pointer_reg]: requires
@@ -724,14 +714,13 @@ unsigned pcRelData::apply(Address addr)
       unsigned char mod_rm = *origInsn++;
       assert(pointer_reg != (Register)-1);
       mod_rm = (mod_rm & 0xf8) + pointer_reg;
-      *newInsn++ = mod_rm;
+      append_memory_as_byte(newInsn, mod_rm);
    }
    else if (is_disp32(newDisp+insnSz)) {
       // Whee easy case
-      *newInsn++ = *origInsn++;
+      append_memory_as_byte(newInsn, *origInsn++);
       // Size doesn't change....
-      *((int *)newInsn) = (int)(newDisp - insnSz);
-      newInsn += 4;
+      append_memory_as(newInsn, static_cast<int32_t>(newDisp - insnSz));
    }
    else if (is_addr32(data_addr)) {
       assert(!is_disp32(newDisp+insnSz));
@@ -739,14 +728,13 @@ unsigned pcRelData::apply(Address addr)
       
       // change ModRM byte to use SIB addressing (r/m == 4)
       mod_rm = (mod_rm & 0xf8) + 4;
-      *newInsn++ = mod_rm;
+      append_memory_as_byte(newInsn, mod_rm);
       
       // SIB == 0x25 specifies [disp32] addressing when mod == 0
-      *newInsn++ = 0x25;
+      append_memory_as_byte(newInsn, 0x25);
       
       // now throw in the displacement (the absolute 32-bit address)
-      *((int *)newInsn) = (int)(data_addr);
-      newInsn += 4;
+      append_memory_as(newInsn, static_cast<int32_t>(data_addr));
    }
    else {
       // Should never be reached...
@@ -757,7 +745,7 @@ unsigned pcRelData::apply(Address addr)
    // so we copy over the rest of the instruction here
    origInsn += 4;
    while (origInsn - origInsnStart < (int)insnSz)
-      *newInsn++ = *origInsn++;
+      append_memory_as_byte(newInsn, *origInsn++);
    
    SET_PTR(newInsn, *gen);
    
@@ -1042,7 +1030,7 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
    disp = targetAddr - potential;
    if (is_disp8(disp)) {
       convert_to_rel8(origInsn, newInsn);
-      *newInsn++ = (signed char) disp;
+      append_memory_as_byte(newInsn, disp);
       SET_PTR(newInsn, gen);
       return true;
    }
@@ -1067,8 +1055,7 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
       disp = targetAddr - potential;
       if (is_disp32(disp)) {
          convert_to_rel32(origInsn, newInsn);
-         *((signed int *) newInsn) = (signed int) disp;
-         newInsn += 4;
+         append_memory_as(newInsn, static_cast<int32_t>(disp));
          SET_PTR(newInsn, gen);
          return true;
       }
@@ -1085,10 +1072,10 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
    // Moves as appropriate...
    convert_to_rel8(origInsn, newInsn);
    // We now want a 2-byte branch past the branch at B
-   *newInsn++ = 2;
+   append_memory_as_byte(newInsn, 2);
    
    // Now for the branch to C - <jumpSize> unconditional branch
-   *newInsn++ = 0xEB; 
+   append_memory_as_byte(newInsn, 0xEB);
    SET_PTR(newInsn, gen);
     // We now want to 1) move forward a byte (the offset we haven't filled
    // in yet) and track that we want to fill it in once we're done.
@@ -1108,7 +1095,7 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
 
    //Go back and fill in the size of the jump at B into the 'jump <C>'
    // The -1 is because 
-   *newInsn = gen.getDisplacement(jump_from_index, done);
+   append_memory_as_byte(newInsn, gen.getDisplacement(jump_from_index, done));
    SET_PTR(newInsn, gen);
    gen.setIndex(done);
    return true;
@@ -1219,28 +1206,26 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
         mod_rm = (mod_rm & 0xf8) | pointer_reg;
         /* Set the new ModR/M byte of the new instruction */
-        *newInsn++ = mod_rm;
+        append_memory_as_byte(newInsn, mod_rm);
     } else if (is_disp32(newDisp + insnSz)) 
     {
         /* Instruction can remain a 32 bit instruction */
 
         /* Copy the ModR/M byte */
-        *newInsn++ = mod_rm;
+        append_memory_as_byte(newInsn, mod_rm);
         /* Use the new relative displacement */
-        *((int *)newInsn) = (int)(newDisp - insnSz);
-        newInsn += 4;
+        append_memory_as(newInsn, static_cast<int32_t>(newDisp - insnSz));
     } else if (is_addr32(targetAddr)) 
     {
         // change ModRM byte to use SIB addressing (r/m == 4)
         mod_rm = (mod_rm & 0xf8) + 4;
-        *newInsn++ = mod_rm;
+        append_memory_as_byte(newInsn, mod_rm);
 
         // SIB == 0x25 specifies [disp32] addressing when mod == 0
-        *newInsn++ = 0x25;
+        append_memory_as_byte(newInsn, 0x25);
 
         // now throw in the displacement (the absolute 32-bit address)
-        *((int *)newInsn) = (int)(targetAddr);
-        newInsn += 4;
+        append_memory_as(newInsn, static_cast<int32_t>(targetAddr));
     } else {
         /* Impossible case */
         assert(0);
@@ -1250,7 +1235,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     // so we copy over the rest of the instruction here
     origInsn += 4;
     while (origInsn - origInsnStart < (int)insnSz)
-        *newInsn++ = *origInsn++;
+        append_memory_as_byte(newInsn, *origInsn++);
 
     SET_PTR(newInsn, gen);
 
@@ -1273,8 +1258,6 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
 
     const unsigned char* origInsn = insn.ptr();
     unsigned insnSz = insn.size();
-
-    unsigned newInsnSz = 0;
 
     InstructionAPI::InstructionDecoder d2(origInsn, insnSz, arch);
     InstructionAPI::Instruction origInsnPtr = d2.decode();
@@ -1331,9 +1314,6 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     memcpy(newInsn, origInsn, opcode_len);
     newInsn += opcode_len;
     origInsn += opcode_len;
-
-    /* Update the new instruction size */
-    newInsnSz = pref_count + opcode_len;
 
     /******************************************* modRM *************************/
     // Update displacement size (mod bits in ModRM), if necessary
@@ -1404,16 +1384,13 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
         }
 
         // Copy MODRM byte
-        *newInsn++ = modrm;
-        newInsnSz++;
+        append_memory_as_byte(newInsn, modrm);
 
         // Copy SIB byte
-        *newInsn++ = sib;
-        newInsnSz++;
+        append_memory_as_byte(newInsn, sib);
     } else {
         // Copy MODRM byte
-        *newInsn++ = modrm;
-        newInsnSz++;
+        append_memory_as_byte(newInsn, modrm);
 
         // Skip SIB byte
     }
@@ -1424,13 +1401,9 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     if (origDisp != newDisp) {
         // Replace displacement
         if (is_disp8(newDisp)) {
-            *((signed char *)newInsn) = (signed char)(newDisp);
-            newInsn += sizeof(signed char);
-            newInsnSz += sizeof(signed char);
+            append_memory_as_byte(newInsn, newDisp);
         } else if (is_disp32(newDisp)) {
-            *((int *)newInsn) = (int)(newDisp);
-            newInsn += sizeof(int);
-            newInsnSz += sizeof(int);
+            append_memory_as(newInsn, static_cast<int32_t>(newDisp));
         } else {
             // Should never be reached...
             assert(0);
@@ -1440,9 +1413,9 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     if (origDispSize == -1) {
         // Do nothing
     } else if (origDispSize == 8) {
-        origInsn += sizeof(signed char);
+        origInsn += sizeof(uint8_t);
     } else if (origDispSize == 32) {
-        origInsn += sizeof(int);
+        origInsn += sizeof(uint32_t);
     } else {
         // Should never be reached
         assert(0);
@@ -1453,13 +1426,13 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     // there may be an immediate after the displacement
     // so we copy over the rest of the instruction here
     while (origInsn - origInsnStart < (int)insnSz) {
-        unsigned char nextByte = *origInsn++;
-        *newInsn++ = nextByte;
-        newInsnSz++;
+        auto nextByte = read_memory_as<uint8_t>(origInsn);
+        append_memory_as_byte(newInsn, nextByte);
     }
 
     /******************************** done ************************************/
 
+    auto newInsnSz = newInsn - newInsnStart;
     InstructionAPI::InstructionDecoder d(newInsnStart, newInsnSz, arch);
     InstructionAPI::Instruction i = d.decode();
 

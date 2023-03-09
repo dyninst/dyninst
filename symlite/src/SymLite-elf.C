@@ -30,6 +30,7 @@
 
 #include "SymLite-elf.h"
 #include "common/src/headers.h"
+#include "unaligned_memory_access.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -401,7 +402,7 @@ unsigned long SymElf::getSymOffset(const Elf_X_Sym &symbol, unsigned idx)
       
       unsigned long sym_offset = symbol.st_value(idx);
       while (sym_offset >= odp_addr && sym_offset < odp_addr + odp_size)
-         sym_offset = *((const unsigned long *) (odp_data + sym_offset - odp_addr));
+         sym_offset = read_memory_as<uint64_t>(odp_data + sym_offset - odp_addr);
       return sym_offset;
    }
 
@@ -419,7 +420,7 @@ unsigned long SymElf::getSymTOC(const Elf_X_Sym &symbol, unsigned idx)
       if (sym_offset < odp_addr || (sym_offset >= odp_addr + odp_size)) 
          return 0;
 
-      unsigned long toc = *((const unsigned long *) (odp_data + (sym_offset - odp_addr + sizeof(long))));
+      auto toc = read_memory_as<uint64_t>(odp_data + (sym_offset - odp_addr + sizeof(long)));
       return toc;
    }
 

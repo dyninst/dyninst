@@ -162,7 +162,7 @@ namespace Dyninst {
         Expression::Ptr InstructionDecoder_amdgpu_cdna2::decodeOPR_WAITCNT(uint64_t input){
 		    return Immediate::makeImmediate(Result(s16, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeRegisterExpression(MachRegister registerID){
+        Expression::Ptr InstructionDecoder_amdgpu_cdna2::makeRegisterExpression(MachRegister registerID, uint32_t ){
             if(registerID == amdgpu_cdna2::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
             }

@@ -72,6 +72,7 @@ namespace Dyninst
       typedef boost::shared_ptr<InstructionAST> Ptr;
 
       InstructionAST();
+      InstructionAST(const InstructionAST&) = default;
       virtual ~InstructionAST();
 
       /// Compare two AST nodes for equality.  

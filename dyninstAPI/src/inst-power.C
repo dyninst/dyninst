@@ -1003,11 +1003,13 @@ unsigned restoreSPRegisters(codeGen &gen,
 	fpscr_off = STK_FP_CR_64;
     }
 
-    registerSlot *regCR = (*(gen.rs()))[registerSpace::cr]; 
-    assert (regCR != NULL); 
-    if (force_save || regCR->liveState == registerSlot::spilled) 
+    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
+
+    registerSlot *regXER = (*(gen.rs()))[registerSpace::xer];
+    assert (regXER != NULL);
+    if (force_save || regXER->liveState == registerSlot::spilled)
     {
-    restoreCR(gen, 10, save_off + cr_off); num_restored++;
+    restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
     }
     registerSlot *regCTR = (*(gen.rs()))[registerSpace::ctr]; 
     assert (regCTR != NULL); 
@@ -1015,13 +1017,12 @@ unsigned restoreSPRegisters(codeGen &gen,
     {
     restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_restored++;
     }
-    registerSlot *regXER = (*(gen.rs()))[registerSpace::xer]; 
-    assert (regXER != NULL); 
-    if (force_save || regXER->liveState == registerSlot::spilled) 
+    registerSlot *regCR = (*(gen.rs()))[registerSpace::cr];
+    assert (regCR != NULL);
+    if (force_save || regCR->liveState == registerSlot::spilled)
     {
-    restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
+    restoreCR(gen, 10, save_off + cr_off); num_restored++;
     }
-    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
 
     return num_restored;
 }
@@ -2581,11 +2582,11 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target != registerSpace::ignored)
     {
         // Where we're jumping to (link register, count register)
-        args.push_back( AstNode::operandNode(AstNode::origRegister,
+        args.push_back( AstNode::operandNode(AstNode::operandType::origRegister,
                         (void *)(long)branch_target));
 
         // Where we are now
-        args.push_back( AstNode::operandNode(AstNode::Constant,
+        args.push_back( AstNode::operandNode(AstNode::operandType::Constant,
                         (void *) addr));
 
         return true;

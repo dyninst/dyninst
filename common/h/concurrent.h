@@ -63,7 +63,7 @@ namespace concurrent {
 
   namespace detail {
     template <bool, typename Key>
-    struct hash_compare;
+    class hash_compare;
 
     // New style tbb_hash_compare concept (TBB_VERSION_MAJOR >= 2021)
     template<typename Key>
@@ -233,7 +233,6 @@ public:
 };
 
 class COMMON_EXPORT dyn_thread {
-    int myid;
 public:
     dyn_thread();
     unsigned int getId();

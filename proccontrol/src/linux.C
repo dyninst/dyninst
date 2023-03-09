@@ -70,6 +70,8 @@
 
 #include "boost/shared_ptr.hpp"
 
+#include "unaligned_memory_access.h"
+
 //needed by GETREGSET/SETREGSET
 #if defined(arch_aarch64)
 #include<sys/user.h>
@@ -2363,11 +2365,11 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
          }
          if (Dyninst::getArchAddressWidth(curplat) == 4) {
             uint32_t val = (uint32_t) result;
-            *((uint32_t *) (user_area + i->second.first)) = val;
+            write_memory_as(user_area + i->second.first, val);
          }
          else if (Dyninst::getArchAddressWidth(curplat) == 8) {
             uint64_t val = (uint64_t) result;
-            *((uint64_t *) (user_area + i->second.first)) = val;
+            write_memory_as(user_area + i->second.first, val);
          }
          else {
             assert(0);
@@ -2395,14 +2397,14 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
         if (size == 4) {
            if( sizeof(void *) == 8 ) {
               // Avoid endian issues
-              uint64_t tmpVal = *((uint64_t *) (user_area+offset));
+              auto tmpVal = read_memory_as<uint64_t>(user_area+offset);
               val = (uint32_t) tmpVal;
            }else{
-              val = *((uint32_t *) (user_area+offset));
+              val = read_memory_as<uint32_t>(user_area+offset);
            }
         }
         else if (size == 8) {
-           val = *((uint64_t *) (user_area+offset));
+           val = read_memory_as<uint64_t>(user_area+offset);
         }
         else {
            assert(0);
@@ -2679,13 +2681,13 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
 
       if (size == 4) {
           if( sizeof(void *) == 8 ) {
-              *((uint64_t *) (user_area+offset)) = (uint64_t) val;
+              write_memory_as(user_area+offset, uint64_t{val});
           } else {
-              *((uint32_t *) (user_area+offset)) = (uint32_t) val;
+              write_memory_as(user_area+offset, static_cast<uint32_t>(val));
           }
       }
       else if (size == 8) {
-         *((uint64_t *) (user_area+offset)) = (uint64_t) val;
+         write_memory_as(user_area+offset, uint64_t{val});
       }
       else {
          assert(0);

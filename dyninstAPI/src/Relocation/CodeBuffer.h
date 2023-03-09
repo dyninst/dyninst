@@ -100,7 +100,7 @@ class CodeBuffer {
 
       static const unsigned INVALID;
 
-      Label() 
+      Label() noexcept
       : type(Invalid), id(0), iteration(0), addr(0) {}
       Label(Type a, Id b, Address c)
       : type(a), id(b), iteration(0), addr(c) { assert(id != INVALID); }
@@ -111,6 +111,8 @@ class CodeBuffer {
       friend class CodeBuffer;
      public:
       BufferElement();
+      BufferElement(const BufferElement&) = delete;
+      BufferElement(BufferElement&&);
       ~BufferElement();
       void setLabelID(unsigned id);
       void addPIC(const unsigned char *input, unsigned size, TrackerElement *tracker);
@@ -126,13 +128,14 @@ class CodeBuffer {
       bool extractTrackers(CodeTracker *t);
 
      private:
+      BufferElement& operator=(BufferElement&) = default;
       void addTracker(TrackerElement *tracker);
 
-      Address addr_;
-      unsigned size_;
+      Address addr_{};
+      unsigned size_{};
       Buffer buffer_;
-      Patch *patch_;
-      unsigned labelID_;
+      Patch *patch_{};
+      unsigned labelID_{Label::INVALID};
       // Here the Offset is an offset within the buffer, starting at 0.
       typedef std::map<Offset, TrackerElement *> Trackers;
       Trackers trackers_;

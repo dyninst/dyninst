@@ -30,6 +30,7 @@
 
 // $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp
 
+#include <random>
 #include "function.h"
 #include "instPoint.h"
 #include "debug.h"
@@ -1076,8 +1077,6 @@ bool func_instance::createOffsetVector()
     return ret;
 }
 
-static int randomNumGenerator (int i) { return std::rand()%i; }
-
 static bool matchRanges(ValidPCRange* a, ValidPCRange* b)
 {
     auto aIter = a->begin();
@@ -1143,7 +1142,7 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
                 (curLoc->off() < raLoc) &&
                 (curLoc->off()+curLoc->size() < raLoc) &&
                 /* Skip non-debug */
-                ((curLoc->type() != StackAccess::DEBUGINFO_LOCAL) && (curLoc->type() != StackAccess::DEBUGINFO_PARAM))) {
+                ((curLoc->type() != StackAccess::StackAccessType::DEBUGINFO_LOCAL) && (curLoc->type() != StackAccess::StackAccessType::DEBUGINFO_PARAM))) {
             ++iter;
             if (iter == stack.end()) {
                 break;
@@ -1162,7 +1161,7 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
             break;
         }
 
-        if ((curLoc->type() != StackAccess::DEBUGINFO_LOCAL) && (curLoc->type() != StackAccess::DEBUGINFO_PARAM)) {
+        if ((curLoc->type() != StackAccess::StackAccessType::DEBUGINFO_LOCAL) && (curLoc->type() != StackAccess::StackAccessType::DEBUGINFO_PARAM)) {
             break;
         }
 
@@ -1210,7 +1209,9 @@ bool func_instance::randomize(TMap* tMap, bool seeded, int seed)
         }
 
         randomizedRange = true;
-        std::random_shuffle(vec.begin(), vec.end(), randomNumGenerator);
+        std::random_device rd;
+        std::mt19937 urbg{rd()};
+        std::shuffle(vec.begin(), vec.end(), urbg);
         StackAnalysis::Height nextLoc = (*iter).first.height();
 
         for (auto viter = vec.begin(); viter != vec.end(); ++viter) {
@@ -1246,15 +1247,7 @@ bool func_instance::createOffsetVector_Symbols()
     _hasDebugSymbols = true;
 
     // Calculate base pointer height for locals; the frame offset is relative to this
-    int width;
     Architecture arch = ifunc()->isrc()->getArch();
-    if (arch == Arch_x86) { width = 4; }
-    else if (arch == Arch_x86_64) { width = 8; }
-    else { assert(0); }
-    int base = -width;
-    if (!ifunc()->hasNoStackFrame()) {
-        base -= width; // account for BP save
-    }
 
     for (auto vIter = _vars.begin(); vIter != _vars.end(); ++vIter) {
         SymtabAPI::localVar* var = *vIter;
@@ -1290,7 +1283,7 @@ bool func_instance::createOffsetVector_Symbols()
             }
         }
 
-        StackAccess::StackAccessType sat = StackAccess::DEBUGINFO_LOCAL;
+        StackAccess::StackAccessType sat = StackAccess::StackAccessType::DEBUGINFO_LOCAL;
         if (var->getType(Type::share)->getSize() == 0) {
             _tmpObjects->insert(tmpObject(offset, 4, sat, valid));
         } else {
@@ -1333,7 +1326,7 @@ bool func_instance::createOffsetVector_Symbols()
             }
         }
 
-        StackAccess::StackAccessType sat = StackAccess::DEBUGINFO_PARAM;
+        StackAccess::StackAccessType sat = StackAccess::StackAccessType::DEBUGINFO_PARAM;
         if (var->getType(Type::share)->getSize() == 0) {
             _tmpObjects->insert(tmpObject(offset, 4, sat, valid));
         } else {
@@ -1383,7 +1376,7 @@ bool func_instance::createOffsetVector_Analysis(ParseAPI::Function *func,
 
                 assert(!access->skipReg());
                 if (!addToOffsetVector(access->regHeight(), 1,
-                    StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                    StackAccess::StackAccessType::REGHEIGHT, true, NULL, access->reg())) {
                     stackmods_printf("\t\t\t INVALID: addToOffsetVector "
                         "failed\n");
                     return false;
@@ -1450,7 +1443,7 @@ bool func_instance::addToOffsetVector(StackAnalysis::Height off, int size, Stack
         if (isDebugType(type)) {
             // Silently skip; doesn't hurt--if there's an actual access, the others will catch it.
             // Okay to skip here because getAccesses won't return this one because it came from the DWARF.
-            type = StackAccess::MISUNDERSTOOD;
+            type = StackAccess::StackAccessType::MISUNDERSTOOD;
         } else {
             return false;
         }
@@ -1496,12 +1489,12 @@ bool func_instance::addToOffsetVector(StackAnalysis::Height off, int size, Stack
                                 break;
                             } else {
                                 // We know the new one overlaps with existing
-                                existing->setType(StackAccess::MISUNDERSTOOD);
+                                existing->setType(StackAccess::StackAccessType::MISUNDERSTOOD);
 
                                 // But, it also overlaps with existing2
-                                existing2->setType(StackAccess::MISUNDERSTOOD);
+                                existing2->setType(StackAccess::StackAccessType::MISUNDERSTOOD);
 
-                                StackLocation* tmp = new StackLocation(off, size, StackAccess::MISUNDERSTOOD, isRegisterHeight, valid);
+                                StackLocation* tmp = new StackLocation(off, size, StackAccess::StackAccessType::MISUNDERSTOOD, isRegisterHeight, valid);
                                 assert(tmp);
                                 _offVec->insert(off, off+size, tmp, isRegisterHeight);
                             }
@@ -1539,16 +1532,16 @@ bool func_instance::addToOffsetVector(StackAnalysis::Height off, int size, Stack
                         if (_offVec->find(off+i, lb2, ub2, existing2)) {
                             if (existing2 != existing) {
                                 stackmods_printf("\t\t\t\t\t\t Range overlaps with another existing range %s\n", existing2->format().c_str());
-                                existing2->setType(StackAccess::MISUNDERSTOOD);
+                                existing2->setType(StackAccess::StackAccessType::MISUNDERSTOOD);
                             }
                         }
                     }
 
                     // We know we're in conflict with the existing range, since lb != off
-                    existing->setType(StackAccess::MISUNDERSTOOD);
+                    existing->setType(StackAccess::StackAccessType::MISUNDERSTOOD);
 
                     // Add new range as misunderstood
-                    StackLocation* tmp = new StackLocation(off, size, StackAccess::MISUNDERSTOOD, isRegisterHeight, valid);
+                    StackLocation* tmp = new StackLocation(off, size, StackAccess::StackAccessType::MISUNDERSTOOD, isRegisterHeight, valid);
                     assert(tmp);
                     _offVec->insert(off, off+size, tmp, isRegisterHeight);
                 }
@@ -1680,7 +1673,7 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
         StackAnalysis::Height c(insertMod->low());
         StackAnalysis::Height d(insertMod->high());
         StackLocation* tmpSrc = new StackLocation();
-        StackLocation* tmpDest = new StackLocation(c, (d-c).height(), StackAccess::UNKNOWN, false);
+        StackLocation* tmpDest = new StackLocation(c, (d-c).height(), StackAccess::StackAccessType::UNKNOWN, false);
         tMap->insert(make_pair(tmpSrc, tmpDest));
         stackmods_printf("\t\t\t Adding to tMap: %s -> %s\n", tmpSrc->format().c_str(), tmpDest->format().c_str());
     }
