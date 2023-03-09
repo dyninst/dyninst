@@ -44,6 +44,10 @@
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
 
+#include <deque>
+#include <set>
+#include <vector>
+
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 extern int df_debug_stackanalysis;
