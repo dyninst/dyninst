@@ -227,7 +227,13 @@ else()
         ${Boost_INCLUDE_DIRS}
         CACHE PATH "Boost include directory" FORCE)
 
-    set(BOOST_ARGS link=static runtime-link=${_boost_runtime_link}
+    if(BOOST_LINK_STATIC)
+        set(_BOOST_LINK static)
+    else()
+        set(_BOOST_LINK shared)
+    endif()
+
+    set(BOOST_ARGS link=${_BOOST_LINK} runtime-link=${_boost_runtime_link}
                    threading=${_boost_threading})
     if(WIN32)
         # NB: We need to build both debug/release on windows as we don't use
@@ -248,7 +254,7 @@ else()
     endif()
 
     # Join the component names together to pass to --with-libraries during bootstrap
-    set(_boost_lib_names "")
+    set(_boost_lib_names "headers,")
     foreach(c ${_boost_components})
         # list(JOIN ...) is in cmake 3.12
         string(CONCAT _boost_lib_names "${_boost_lib_names}${c},")
