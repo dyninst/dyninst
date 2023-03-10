@@ -198,7 +198,7 @@ struct Handle {
    }
     void systemCall(unsigned char value)
     {
-        fprintf(stderr, "WARNING: syscall %d detected; unhandled by semantics!\n", (unsigned int)(value));
+        fprintf(stderr, "WARNING: syscall %u detected; unhandled by semantics!\n", (unsigned int)(value));
     }
    void writeSegreg(X86SegmentRegister r, Handle<16> value) {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
@@ -718,7 +718,7 @@ struct Handle {
    }
     void systemCall(unsigned char value)
     {
-        fprintf(stderr, "WARNING: syscall %d detected; unhandled by semantics!\n", (unsigned int)(value));
+        fprintf(stderr, "WARNING: syscall %u detected; unhandled by semantics!\n", (unsigned int)(value));
     }
    void writeSegreg(X86SegmentRegister r, Handle<16> value) {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));

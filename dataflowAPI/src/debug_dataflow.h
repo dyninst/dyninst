@@ -32,6 +32,7 @@
 #define _DATAFLOW_DEBUG_H_
 
 #include <string>
+#include "compiler_annotations.h"
 
 extern int df_debug_slicing_on();
 extern int df_debug_stackanalysis_on();
@@ -45,11 +46,16 @@ extern int df_debug_liveness_on();
 #define expand_cerr        if (df_debug_expand_on()) cerr
 #define liveness_cerr      if (df_debug_liveness_on()) cerr
 
-extern int slicing_printf_int(const char *format, ...);
-extern int stackanalysis_printf_int(const char *format, ...);
-extern int convert_printf_int(const char *format, ...);
-extern int expand_printf_int(const char *format, ...);
-extern int liveness_printf_int(const char *format, ...);
+extern int slicing_printf_int(const char *format, ...)
+        DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int stackanalysis_printf_int(const char *format, ...)
+        DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int convert_printf_int(const char *format, ...)
+        DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int expand_printf_int(const char *format, ...)
+        DYNINST_PRINTF_ANNOTATION(1, 2);
+extern int liveness_printf_int(const char *format, ...)
+        DYNINST_PRINTF_ANNOTATION(1, 2);
 
 
 #define dataflow_debug_printf(debug_sys, ...) do {if (df_debug_##debug_sys##_on()) debug_sys##_printf_int(__VA_ARGS__); } while(0)
