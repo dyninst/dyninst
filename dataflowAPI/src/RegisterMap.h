@@ -44,7 +44,7 @@ RegisterMap &machRegIndex_ppc();
 RegisterMap &machRegIndex_ppc_64();
 RegisterMap &machRegIndex_aarch64();
 
-};
-};
+}
+}
 #endif //REGISTERMAP_H
 

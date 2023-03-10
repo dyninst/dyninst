@@ -1479,7 +1479,7 @@ void Slicer::pushContext(Context &context,
 	       << endl;
 
     context.push_front(ContextElement(callee, stackDepth));
-};
+}
 
 void Slicer::popContext(Context &context) {
   context.pop_front();

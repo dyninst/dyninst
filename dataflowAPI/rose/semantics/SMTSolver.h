@@ -141,7 +141,7 @@ namespace rose {
 
             /** Parses evidence of satisfiability.  Some solvers can emit information about what variable bindings satisfy the
              *  expression.  This information is parsed by this function and added to a mapping of variable to value. */
-            virtual void parse_evidence() { };
+            virtual void parse_evidence() { }
 
             /** Additional output obtained by satisfiable(). */
             std::string output_text;

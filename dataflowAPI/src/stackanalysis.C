@@ -386,7 +386,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       );
    }
 }
-};  // namespace
+}  // namespace
 
 
 // Looks for return edges in the function, following tail calls if necessary.

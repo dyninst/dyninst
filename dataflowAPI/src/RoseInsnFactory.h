@@ -83,9 +83,9 @@ namespace Dyninst {
             typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
             uint64_t _addr = 0 ;
         public:
-            DATAFLOW_EXPORT RoseInsnFactory(void) { };
+            DATAFLOW_EXPORT RoseInsnFactory(void) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnFactory(void) { };
+            DATAFLOW_EXPORT virtual ~RoseInsnFactory(void) { }
 
             DATAFLOW_EXPORT virtual SgAsmInstruction *convert(const InstructionAPI::Instruction &insn, uint64_t addr);
 
@@ -105,14 +105,14 @@ namespace Dyninst {
 
             friend class ExpressionConversionVisitor;
 
-            virtual Architecture arch() { return Arch_none; };
+            virtual Architecture arch() { return Arch_none; }
         };
 
         class RoseInsnX86Factory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnX86Factory(Architecture arch) : a(arch) { };
+            DATAFLOW_EXPORT RoseInsnX86Factory(Architecture arch) : a(arch) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnX86Factory() { };
+            DATAFLOW_EXPORT virtual ~RoseInsnX86Factory() { }
 
         private:
             Architecture a;
@@ -130,14 +130,14 @@ namespace Dyninst {
 
             X86InstructionKind convertKind(entryID opcode, prefixEntryID prefix);
 
-            virtual Architecture arch() { return a; };
+            virtual Architecture arch() { return a; }
         };
 
         class RoseInsnPPCFactory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnPPCFactory(void) { };
+            DATAFLOW_EXPORT RoseInsnPPCFactory(void) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnPPCFactory(void) { };
+            DATAFLOW_EXPORT virtual ~RoseInsnPPCFactory(void) { }
 
         private:
             virtual SgAsmInstruction *createInsn();
@@ -155,15 +155,15 @@ namespace Dyninst {
 
             PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink);
 
-            virtual Architecture arch() { return Arch_ppc32; };
+            virtual Architecture arch() { return Arch_ppc32; }
             PowerpcInstructionKind kind;
         };
 
         class RoseInsnArmv8Factory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnArmv8Factory(Architecture arch) : a(arch) { };
+            DATAFLOW_EXPORT RoseInsnArmv8Factory(Architecture arch) : a(arch) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnArmv8Factory() { };
+            DATAFLOW_EXPORT virtual ~RoseInsnArmv8Factory() { }
 
         private:
             Architecture a;
@@ -181,14 +181,14 @@ namespace Dyninst {
 
             ARMv8InstructionKind convertKind(entryID opcode);
 
-            virtual Architecture arch() { return a; };
+            virtual Architecture arch() { return a; }
         };
          
         class RoseInsnAmdgpuVegaFactory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnAmdgpuVegaFactory(Architecture arch) : a(arch) { };
+            DATAFLOW_EXPORT RoseInsnAmdgpuVegaFactory(Architecture arch) : a(arch) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnAmdgpuVegaFactory() { };
+            DATAFLOW_EXPORT virtual ~RoseInsnAmdgpuVegaFactory() { }
 
         private:
             Architecture a;
@@ -206,10 +206,10 @@ namespace Dyninst {
 
             AmdgpuVegaInstructionKind convertKind(entryID opcode);
 
-            virtual Architecture arch() { return a; };
+            virtual Architecture arch() { return a; }
         };
        
-    };
-};
+    }
+}
 
 #endif
