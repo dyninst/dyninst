@@ -305,7 +305,7 @@ void StackAnalysis::fixpoint(bool verbose) {
          }
       } else {
          if (verbose) {
-            stackanalysis_printf("\t Calculating meet with block [%x-%x]\n",
+            stackanalysis_printf("\t Calculating meet with block [%lx-%lx]\n",
                block->start(), block->lastInsnAddr());
          }
          meetInputs(block, blockInputs[block], input);

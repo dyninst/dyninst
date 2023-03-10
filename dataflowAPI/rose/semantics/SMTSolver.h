@@ -75,7 +75,7 @@ namespace rose {
             virtual SymbolicExpr::Ptr evidence_for_variable(uint64_t varno) {
                 char buf[64];
                 //FIXME
-                snprintf(buf, sizeof(buf), "v%llu"/*PRIu64*/, varno);
+                snprintf(buf, sizeof(buf), "v%" PRIu64, varno);
                 return evidence_for_name(buf);
             }
 
