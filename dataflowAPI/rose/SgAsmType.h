@@ -31,6 +31,7 @@ public:
 
 public:
     SgAsmNode();
+    SgAsmNode(const SgAsmNode &) = default;
 };
 
 //TODO: check for other members
@@ -62,6 +63,7 @@ public:
 
 public:
     SgAsmType();
+    SgAsmType(const SgAsmType &) = default;
 
 protected:
 

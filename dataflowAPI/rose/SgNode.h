@@ -11,6 +11,8 @@ class SgNode {
     virtual VariantT variantT() const = 0; // MS: new variant used in tree traversal    
     
     virtual ~SgNode() {}
+    SgNode() = default;
+    SgNode(const SgNode&) = default;
 
 };
 #endif

@@ -128,7 +128,6 @@ public:
         typedef                BidirectionalIterator<NodeIterator, Node, typename StlMap::iterator> Super;
     public:
         NodeIterator() {}
-        NodeIterator(const NodeIterator &other): Super(other) {}
         // std::map stores std::pair nodes, but we want to return Node, which must have the same layout.
         Node& operator*() const { return *(Node*)&*this->base_; }
         Node* operator->() const { return (Node*)&*this->base_; }
