@@ -63,12 +63,12 @@ namespace rose {
                         return SValuePtr(new SValue(32, nbits));
                     }
 
-                    virtual BaseSemantics::SValuePtr unspecified_(size_t nbits) const {
+                    virtual BaseSemantics::SValuePtr unspecified_(size_t /*nbits*/) const {
                         return SValuePtr(new SValue(Dyninst::DataflowAPI::BottomAST::create(false)));
                     }
 
                     //TODO
-                    virtual BaseSemantics::SValuePtr bottom_(size_t nbits) const {
+                    virtual BaseSemantics::SValuePtr bottom_(size_t /*nbits*/) const {
                         return SValuePtr(new SValue(Dyninst::DataflowAPI::BottomAST::create(true)));
                     }
 
@@ -88,7 +88,7 @@ namespace rose {
                     }
 
                     virtual Sawyer::Optional<BaseSemantics::SValuePtr>
-                            createOptionalMerge(const BaseSemantics::SValuePtr &other, const BaseSemantics::MergerPtr&, SMTSolver*) const {
+                            createOptionalMerge(const BaseSemantics::SValuePtr &/*other*/, const BaseSemantics::MergerPtr&, SMTSolver*) const {
                         ASSERT_not_implemented("SValue::createOptionalMerge not implemented for use in dyninst");
                     }
 
@@ -174,7 +174,7 @@ namespace rose {
 
                     virtual void print(std::ostream &, BaseSemantics::Formatter &) const {}
 
-                    virtual bool merge(const BaseSemantics::RegisterStatePtr &other, BaseSemantics::RiscOperators *ops) {
+                    virtual bool merge(const BaseSemantics::RegisterStatePtr &/*other*/, BaseSemantics::RiscOperators * /*ops*/) {
                         return true;
                     }
 
@@ -316,7 +316,7 @@ namespace rose {
                         //
                     }
 
-                    virtual bool merge(const BaseSemantics::MemoryStatePtr &other, BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps) {
+                    virtual bool merge(const BaseSemantics::MemoryStatePtr &/*other*/, BaseSemantics::RiscOperators * /*addrOps*/, BaseSemantics::RiscOperators * /*valOps*/) {
                         return true;
                     }
 

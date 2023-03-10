@@ -83,7 +83,7 @@ public:
 
     template<class InputIterator>
     explicit Set(const boost::iterator_range<InputIterator> &range,
-                 const Comparator &comparator = Comparator(), const Allocator &allocator = Allocator())
+                 const Comparator &/*comparator*/ = Comparator(), const Allocator &/*allocator*/ = Allocator())
         : set_(range.begin(), range.end()) {}
     /** @} */
 

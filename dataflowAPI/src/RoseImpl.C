@@ -725,12 +725,12 @@ SgAsmFloatValueExpression::~SgAsmFloatValueExpression() {
 
 }
 
-SgAsmFloatValueExpression::SgAsmFloatValueExpression(double value, SgAsmType *type) {
+SgAsmFloatValueExpression::SgAsmFloatValueExpression(double value, SgAsmType * /*type*/) {
     p_nativeValue = value;
     p_nativeValueIsValid = true;
 }
 
-SgAsmFloatValueExpression::SgAsmFloatValueExpression(const Sawyer::Container::BitVector &bv, SgAsmType *type) {
+SgAsmFloatValueExpression::SgAsmFloatValueExpression(const Sawyer::Container::BitVector &bv, SgAsmType * /*type*/) {
     p_nativeValue = 0.0;
     p_nativeValueIsValid = false;
     p_bitVector = bv;

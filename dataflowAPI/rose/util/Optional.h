@@ -300,13 +300,13 @@ public:
 //    if (x && *x == y) // what they really meant
 //    if (x.isEqual(y)) // another valid way to write it
 template<typename T, typename U>
-bool operator==(const Optional<T> &lhs, const U &rhs) {
+bool operator==(const Optional<T> &lhs, const U &/*rhs*/) {
     lhs.this_type_does_not_support_comparisons();
     return false;
 }
 
 template<typename T, typename U>
-bool operator!=(const Optional<T> &lhs, const U &rhs) {
+bool operator!=(const Optional<T> &lhs, const U &/*rhs*/) {
     lhs.this_type_does_not_support_comparisons();
     return false;
 }
