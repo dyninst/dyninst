@@ -838,7 +838,7 @@ SgAsmBinaryMultiply::SgAsmBinaryMultiply(SgAsmExpression *lhs, SgAsmExpression *
 }
 
 SgAsmType *SgAsmBinaryMultiply::get_type() const {
-    return ((SgAsmBinaryExpression *) this)->get_type();
+    return static_cast<const SgAsmBinaryExpression *>(this)->get_type();
 }
 
 std::string SgAsmBinaryMultiply::class_name() const {
