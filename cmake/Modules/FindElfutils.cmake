@@ -7,6 +7,11 @@ and modify ELF binary files, find and handle DWARF debug data,
 symbols, thread state and stacktraces for processes and core files
 on GNU/Linux.
 
+Variables that affect this module
+
+``ElfUtils_ROOT_DIR``
+  This value is used to override the default CMake search paths.
+
 Imported targets
 ^^^^^^^^^^^^^^^^
 
@@ -45,6 +50,21 @@ endif()
 
 if(${Elfutils_FIND_EXACT})
   set(_exact "EXACT")
+endif()
+
+# The individual find-modules use the <Package>_ROOT convention
+# as the first location to search for the package. If the user
+# specifies ElfUtils_ROOT_DIR, we override the <Package>_ROOT
+# values and require that each package ignores system directories.
+# In effect, this forces the package search to find only
+# candidates in <Package>_ROOT or CMAKE_PREFIX_PATH.
+if(ElfUtils_ROOT_DIR) 
+  foreach(_n "LibELF" "LibDW" "LibDebuginfod")
+    set(${_n}_NO_SYSTEM_PATHS ON)
+    mark_as_advanced(${_n}_NO_SYSTEM_PATHS)
+    set(${_n}_ROOT ${ElfUtils_ROOT_DIR})
+    mark_as_advanced(${_n}_ROOT)
+  endforeach()
 endif()
 
 find_package(LibELF ${Elfutils_FIND_VERSION} ${_exact} ${_required} ${_quiet})
