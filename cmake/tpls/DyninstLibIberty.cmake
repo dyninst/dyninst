@@ -4,7 +4,14 @@
 #
 #   ----------------------------------------
 #
-# LibIberty_ROOT_DIR - Directory hint for libiberty installation
+# LibIberty_ROOT_DIR - Location of libiberty installation
+#
+# The individual find-modules use the <Package>_ROOT convention
+# as the first location to search for the package. If the user
+# specifies LibIberty_ROOT_DIR, we override the <Package>_ROOT
+# values and require that each package ignores system directories.
+# In effect, this forces the package search to find only
+# candidates in <Package>_ROOT or CMAKE_PREFIX_PATH.
 #
 #================================================================
 
@@ -18,11 +25,12 @@ if(NOT UNIX)
   return()
 endif()
 
-# Base directory the of LibIberty installation
-set(LibIberty_ROOT_DIR
-    "/usr"
-    CACHE PATH "Base directory the of LibIberty installation")
-mark_as_advanced(LibIberty_ROOT_DIR)
+if(LibIberty_ROOT_DIR)
+  set(LibIberty_NO_SYSTEM_PATHS ON)
+  mark_as_advanced(LibIberty_NO_SYSTEM_PATHS)
+  set(LibIberty_ROOT ${LibIberty_ROOT_DIR})
+  mark_as_advanced(LibIberty_ROOT)
+endif()
 
 find_package(LibIberty REQUIRED)
 

@@ -4,6 +4,11 @@ FindLibIberty
 
 Find libiberty, a collection of subroutines used by various GNU programs.
 
+Variables that affect this module
+
+``LibIberty_NO_SYSTEM_PATHS``
+  If `True`, no system paths are searched.
+
 Imported targets
 ^^^^^^^^^^^^^^^^
 
@@ -30,16 +35,22 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
+if(LibIberty_NO_SYSTEM_PATHS)
+  set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+endif()
+
 find_path(
   LibIberty_INCLUDE_DIRS
   NAMES libiberty.h
-  PATH_SUFFIXES libiberty)
+  PATH_SUFFIXES libiberty
+  ${_find_path_args})
 mark_as_advanced(LibIberty_INCLUDE_DIRS)
 
 find_library(
   LibIberty_LIBRARIES
   NAMES libiberty iberty
-  PATH_SUFFIXES libiberty)
+  PATH_SUFFIXES libiberty
+  ${_find_path_args})
 mark_as_advanced(LibIberty_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)
