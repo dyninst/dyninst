@@ -68,7 +68,8 @@ else()
   find_path(
     Valgrind_INCLUDE_DIRS
     NAMES valgrind.h
-    PATH_SUFFIXES valgrind)
+    PATH_SUFFIXES valgrind
+    ${_find_path_args})
 
   macro(_check_valgrind_version _file)
     file(STRINGS ${_file} _version_line REGEX "^#define __VALGRIND_MAJOR__[ \t]+[0-9]+")
@@ -85,10 +86,6 @@ else()
     _check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind.h")
   elseif(EXISTS "${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
     _check_valgrind_version("${Valgrind_INCLUDE_DIRS}/valgrind/valgrind.h")
-  endif()
-
-  if("x${Valgrind_VERSION}" STREQUAL "x")
-    message(FATAL_ERROR "Unable to find version for valgrind")
   endif()
 endif()
 
