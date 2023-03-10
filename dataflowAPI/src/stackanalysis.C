@@ -588,7 +588,7 @@ void StackAnalysis::summarize() {
       Block *block = bIter->first;
       for (auto aIter = (*intervals_)[block].begin();
          aIter != (*intervals_)[block].end(); aIter++) {
-         Address addr = aIter->first;
+         //Address addr = aIter->first;
          AbslocState &as = aIter->second;
          for (auto tIter = as.begin(); tIter != as.end(); tIter++) {
             const Absloc &target = tIter->first;
@@ -3310,7 +3310,7 @@ StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
       for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
          Absloc curLoc = (*iter).first;
          long curScale = (*iter).second.first;
-         bool curTopBottom = (*iter).second.second;
+         //bool curTopBottom = (*iter).second.second;
          auto findLoc = inputs.find(curLoc);
          Height locInput;
          if (findLoc == inputs.end()) {
@@ -3347,7 +3347,7 @@ StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
       // Copy the input value from whatever we're a copy of.
       AbslocState::const_iterator iter2 = inputs.find(from);
       if (iter2 != inputs.end()) {
-         const Definition &def = iter2->second.getDefSet();
+         //const Definition &def = iter2->second.getDefSet();
          const Height &h = iter2->second.getHeightSet();
          if (!h.isBottom() && !h.isTop()) {
             if ((from.isSP() || from.isFP()) &&
