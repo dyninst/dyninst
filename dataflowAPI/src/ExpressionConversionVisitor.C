@@ -33,6 +33,7 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
+#include "compiler_annotations.h"
 
 #include <list>
 
@@ -58,6 +59,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
         switch (value.type) {
             case s8:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u8:
                 roseExpression = new SgAsmIntegerValueExpression(value.val.u8val,
                         new SgAsmIntegerType(ByteOrder::ORDER_UNSPECIFIED, 8,
@@ -65,6 +67,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
                 break;
             case s16:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u16:
                 roseExpression = new SgAsmIntegerValueExpression(value.val.u16val,
                         new SgAsmIntegerType(ByteOrder::ORDER_LSB, 16,
@@ -72,6 +75,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
                 break;
             case s32:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u32:
                 roseExpression = new SgAsmIntegerValueExpression(value.val.u32val,
                         new SgAsmIntegerType(ByteOrder::ORDER_LSB, 32,
@@ -79,6 +83,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
                 break;
             case s48:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u48:
                 roseExpression = new SgAsmIntegerValueExpression(value.val.u32val,
                         new SgAsmIntegerType(ByteOrder::ORDER_LSB, 32,
@@ -86,6 +91,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
                 break;
             case s64:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u64:
                 roseExpression = new SgAsmIntegerValueExpression(value.val.u64val,
                         new SgAsmIntegerType(ByteOrder::ORDER_LSB, 64,
@@ -172,21 +178,25 @@ void ExpressionConversionVisitor::visit(Dereference *deref) {
         switch (deref->eval().type) {
             case s8:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u8:
                 type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 8, isSigned);
                 break;
             case s16:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u16:
                 type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 16, isSigned);
                 break;
             case s32:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u32:
                 type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 32, isSigned);
                 break;
             case s64:
                 isSigned = true;
+                DYNINST_FALLTHROUGH;
             case u64:
                 type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 64, isSigned);
                 break;
