@@ -49,8 +49,8 @@ struct X86_64InstructionSemantics {
 
     Policy& policy;
 
-    X86_64InstructionSemantics(Policy& policy)
-        : policy(policy)
+    X86_64InstructionSemantics(Policy& policy_)
+        : policy(policy_)
         {}
     virtual ~X86_64InstructionSemantics() {}
 

@@ -39,8 +39,8 @@ struct X86InstructionSemantics {
 
     Policy& policy;
 
-    X86InstructionSemantics(Policy& policy)
-        : policy(policy)
+    X86InstructionSemantics(Policy& policy_)
+        : policy(policy_)
         {}
     virtual ~X86InstructionSemantics() {}
 

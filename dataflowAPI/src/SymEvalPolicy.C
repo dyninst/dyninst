@@ -49,20 +49,20 @@ SymEvalPolicy::SymEvalPolicy(Result_t &r,
   // We also need to build aaMap FTW!!!
   for (Result_t::iterator iter = r.begin();
        iter != r.end(); ++iter) {
-    Assignment::Ptr a = iter->first;
+    Assignment::Ptr ap = iter->first;
     // For a different instruction...
-    if (a->addr() != addr) continue; 
-    AbsRegion &o = a->out();
+    if (ap->addr() != addr) continue; 
+    AbsRegion &o = ap->out();
 
     if (o.containsOfType(Absloc::Register)) {
       // We're assuming this is a single register...
-      //std::cerr << "Marking register " << a << std::endl;
-      aaMap[o.absloc()] = a;
+      //std::cerr << "Marking register " << ap << std::endl;
+      aaMap[o.absloc()] = ap;
     }
     else {
       // Use sufficiently-unique (Heap,0) Absloc
       // to represent a definition to a memory absloc
-      aaMap[Absloc(0)] = a;
+      aaMap[Absloc(0)] = ap;
     }
   }
 }
@@ -259,20 +259,20 @@ SymEvalPolicy_64::SymEvalPolicy_64(Result_t &r,
   // We also need to build aaMap FTW!!!
   for (Result_t::iterator iter = r.begin();
        iter != r.end(); ++iter) {
-    Assignment::Ptr a = iter->first;
+    Assignment::Ptr ap = iter->first;
     // For a different instruction...
-    if (a->addr() != addr) continue; 
-    AbsRegion &o = a->out();
+    if (ap->addr() != addr) continue; 
+    AbsRegion &o = ap->out();
 
     if (o.containsOfType(Absloc::Register)) {
       // We're assuming this is a single register...
       //std::cerr << "Marking register " << a << std::endl;
-      aaMap[o.absloc()] = a;
+      aaMap[o.absloc()] = ap;
     }
     else {
       // Use sufficiently-unique (Heap,0) Absloc
       // to represent a definition to a memory absloc
-      aaMap[Absloc(0)] = a;
+      aaMap[Absloc(0)] = ap;
     }
   }
 }

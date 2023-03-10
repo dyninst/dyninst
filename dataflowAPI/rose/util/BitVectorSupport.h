@@ -1051,7 +1051,7 @@ void negate(Word *vec1, const BitRange &range) {
 template<class Word>
 struct AddBits {
     bool carry;
-    AddBits(bool carry): carry(carry) {}
+    AddBits(bool carry_): carry(carry_) {}
     bool operator()(const Word &w1, Word &w2, size_t nbits) {
         Word mask = bitMask<Word>(0, nbits);
         Word addend1(carry ? 1 : 0);

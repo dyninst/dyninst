@@ -25,37 +25,37 @@ struct RegisterDescriptor {
 public:
     RegisterDescriptor()
             : majr(0), minr(0), offset(0), nbits(0) {}
-    RegisterDescriptor(unsigned majr, unsigned minr, unsigned offset, unsigned nbits)
-            : majr(majr), minr(minr), offset(offset), nbits(nbits) {}
+    RegisterDescriptor(unsigned majr_, unsigned minr_, unsigned offset_, unsigned nbits_)
+            : majr(majr_), minr(minr_), offset(offset_), nbits(nbits_) {}
     unsigned get_major() const {
         return majr;
     }
     bool is_valid() const {
         return nbits!=0;
     }
-    RegisterDescriptor &set_major(unsigned majr) {
-        this->majr = majr;
+    RegisterDescriptor &set_major(unsigned majr_) {
+        this->majr = majr_;
         return *this;
     }
     unsigned get_minor() const {
         return minr;
     }
-    RegisterDescriptor &set_minor(unsigned minr) {
-        this->minr = minr;
+    RegisterDescriptor &set_minor(unsigned minr_) {
+        this->minr = minr_;
         return *this;
     }
     unsigned get_offset() const {
         return offset;
     }
-    RegisterDescriptor &set_offset(unsigned offset) {
-        this->offset = offset;
+    RegisterDescriptor &set_offset(unsigned offset_) {
+        this->offset = offset_;
         return *this;
     }
     unsigned get_nbits() const {
         return nbits;
     }
-    RegisterDescriptor &set_nbits(unsigned nbits) {
-        this->nbits = nbits;
+    RegisterDescriptor &set_nbits(unsigned nbits_) {
+        this->nbits = nbits_;
         return *this;
     }
     bool operator<(const RegisterDescriptor &other) const;

@@ -33,12 +33,12 @@ namespace rose {
                         expr = Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(num, nbits));
                     }
 
-                    SValue(Dyninst::AST::Ptr expr): BaseSemantics::SValue(64) {
-                        this->expr = expr;
+                    SValue(Dyninst::AST::Ptr expr_): BaseSemantics::SValue(64) {
+                        this->expr = expr_;
                     }
                     // Added this version to set register size according to descriptor 
-                    SValue(Dyninst::AST::Ptr expr, size_t nbits ): BaseSemantics::SValue(nbits) {
-                        this->expr = expr;
+                    SValue(Dyninst::AST::Ptr expr_, size_t nbits ): BaseSemantics::SValue(nbits) {
+                        this->expr = expr_;
                     }
                 public:
                     static SValuePtr instance(Dyninst::Absloc r, Dyninst::Address addr) {
@@ -137,7 +137,7 @@ namespace rose {
                 class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
                     RegisterStateAST(const BaseSemantics::SValuePtr &protoval,
-                                     const RegisterDictionary *regdict) : RegisterState(protoval, regdict) { }
+                                     const RegisterDictionary *regdict_) : RegisterState(protoval, regdict_) { }
 
                 public:
                     static RegisterStateASTPtr instance(const BaseSemantics::SValuePtr &protoval,
@@ -146,8 +146,8 @@ namespace rose {
                     }
 
                     virtual BaseSemantics::RegisterStatePtr create(const BaseSemantics::SValuePtr &protoval,
-                                                                   const RegisterDictionary *regdict) const {
-                        return instance(protoval, regdict);
+                                                                   const RegisterDictionary *regdict_) const {
+                        return instance(protoval, regdict_);
                     }
 
                     virtual BaseSemantics::RegisterStatePtr clone() const {
@@ -194,7 +194,7 @@ namespace rose {
 		class RegisterStateASTARM64 : public RegisterStateAST {
 		public:
 		    RegisterStateASTARM64(const BaseSemantics::SValuePtr &protoval,
-                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+                                          const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
 
                     static RegisterStateASTARM64Ptr instance(const BaseSemantics::SValuePtr &protoval,
                                                              const RegisterDictionary *regdict) {
@@ -214,7 +214,7 @@ namespace rose {
 		class RegisterStateASTPPC32 : public RegisterStateAST {
 		public:
 		    RegisterStateASTPPC32(const BaseSemantics::SValuePtr &protoval,
-                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+                                          const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
 
                     static RegisterStateASTPPC32Ptr instance(const BaseSemantics::SValuePtr &protoval,
                                                              const RegisterDictionary *regdict) {
@@ -233,7 +233,7 @@ namespace rose {
 		class RegisterStateASTPPC64 : public RegisterStateAST {
 		public:
 		    RegisterStateASTPPC64(const BaseSemantics::SValuePtr &protoval,
-                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+                                          const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
 
                     static RegisterStateASTPPC64Ptr instance(const BaseSemantics::SValuePtr &protoval,
                                                              const RegisterDictionary *regdict) {
@@ -258,7 +258,7 @@ namespace rose {
 		class RegisterStateAST_AMDGPU_VEGA : public RegisterStateAST {
 		public:
 		    RegisterStateAST_AMDGPU_VEGA(const BaseSemantics::SValuePtr &protoval,
-                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+                                          const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
 
                     static RegisterStateAST_AMDGPU_VEGA_Ptr instance(const BaseSemantics::SValuePtr &protoval,
                                                              const RegisterDictionary *regdict) {
@@ -350,21 +350,21 @@ namespace rose {
                                const BaseSemantics::MemoryStatePtr &memory): BaseSemantics::State(registers, memory), res(r), arch(ac), addr(a), insn(insn_) {
                         for (Dyninst::DataflowAPI::Result_t::iterator iter = r.begin();
                              iter != r.end(); ++iter) {
-                            Dyninst::Assignment::Ptr a = iter->first;
+                            Dyninst::Assignment::Ptr ap = iter->first;
                             // For a different instruction...
-                            if (a->addr() != addr)
+                            if (ap->addr() != addr)
                                 continue;
-                            Dyninst::AbsRegion &o = a->out();
+                            Dyninst::AbsRegion &o = ap->out();
 
                             if (o.containsOfType(Dyninst::Absloc::Register)) {
                                 // We're assuming this is a single register...
-                                //std::cerr << "Marking register " << a << std::endl;
-                                aaMap[o.absloc()] = a;
+                                //std::cerr << "Marking register " << ap << std::endl;
+                                aaMap[o.absloc()] = ap;
                             }
                             else {
                                 // Use sufficiently-unique (Heap,0) Absloc
                                 // to represent a definition to a memory absloc
-                                aaMap[Dyninst::Absloc(0)] = a;
+                                aaMap[Dyninst::Absloc(0)] = ap;
                             }
                         }
                     }

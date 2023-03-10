@@ -780,8 +780,7 @@ Slicer::getPredecessors(
       //a predicate for each active abstract region to see whether
       //we should continue
       bool cont = false;
-      SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
-      for( ; ait != cand.active.end(); ++ait) {
+      for (SliceFrame::ActiveMap::const_iterator ait = cand.active.begin(); ait != cand.active.end(); ++ait) {
         bool add = p.addPredecessor((*ait).first);
         if(add) {
           if (nf == NULL) {
@@ -799,8 +798,7 @@ Slicer::getPredecessors(
           nf->loc.addr());
         slicing_printf("\t\t\t\t Current regions are:\n");
         if(df_debug_slicing_on()) {
-          SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
-          for( ; ait != cand.active.end(); ++ait) {
+          for (SliceFrame::ActiveMap::const_iterator ait = cand.active.begin(); ait != cand.active.end(); ++ait) {
             slicing_printf("\t\t\t\t%s\n",
               (*ait).first.format().c_str());
 

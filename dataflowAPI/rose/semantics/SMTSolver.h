@@ -19,7 +19,7 @@ namespace rose {
         class SMTSolver {
         public:
             struct Exception {
-                Exception(const std::string &mesg) : mesg(mesg) { }
+                Exception(const std::string &mesg_) : mesg(mesg_) { }
 
                 friend std::ostream &operator<<(std::ostream &, const SMTSolver::Exception &);
 
