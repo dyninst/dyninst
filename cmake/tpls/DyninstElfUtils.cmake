@@ -33,7 +33,7 @@ if(ENABLE_DEBUGINFOD)
 endif()
 
 if(ElfUtils_ROOT_DIR)
-  set(ElfUtils_NO_SYSTEM_PATH ON)
+  set(ElfUtils_NO_SYSTEM_PATHS ON)
 endif()
 
 find_package(Elfutils ${_min_version} REQUIRED COMPONENTS ${_components})
