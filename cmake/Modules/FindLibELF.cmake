@@ -4,6 +4,11 @@ FindLibELF
 
 Find libelf, the elfutils library to read and write ELF files.
 
+Variables that affect this module
+
+``LibELF_NO_SYSTEM_PATHS``
+  If `True`, no system paths are searched.
+
 Imported targets
 ^^^^^^^^^^^^^^^^
 
@@ -29,18 +34,25 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
-find_package(PkgConfig QUIET)
-if(PKG_CONFIG_FOUND)
-  if(NOT "x${LibELF_FIND_VERSION}" STREQUAL "x")
-    set(_version ">=${LibELF_FIND_VERSION}")
-  endif()
-  if(LibELF_FIND_QUIETLY)
-    set(_quiet "QUIET")
-  endif()
+if(LibELF_NO_SYSTEM_PATHS)
+  set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+endif()
 
-  pkg_check_modules(PC_LIBELF ${_quiet} "libelf${_version}")
-  unset(_version)
-  unset(_quiet)
+# There is no way to tell pkg-config to ignore directories, so disable it
+if(NOT LibELF_NO_SYSTEM_PATHS)
+  find_package(PkgConfig QUIET)
+  if(PKG_CONFIG_FOUND)
+    if(NOT "x${LibELF_FIND_VERSION}" STREQUAL "x")
+      set(_version ">=${LibELF_FIND_VERSION}")
+    endif()
+    if(LibELF_FIND_QUIETLY)
+      set(_quiet "QUIET")
+    endif()
+  
+    pkg_check_modules(PC_LIBELF ${_quiet} "libelf${_version}")
+    unset(_version)
+    unset(_quiet)
+  endif()
 endif()
 
 if(PC_LIBELF_FOUND)
@@ -62,12 +74,14 @@ else()
   find_path(
     LibELF_INCLUDE_DIRS
     NAMES libelf.h
-    PATH_SUFFIXES elfutils)
-
+    PATH_SUFFIXES elfutils
+    ${_find_path_args})
+  
   find_library(
     LibELF_LIBRARIES
     NAMES libelf elf
-    PATH_SUFFIXES elfutils)
+    PATH_SUFFIXES elfutils
+    ${_find_path_args})
 
   macro(_check_libelf_version _file)
     file(STRINGS ${_file} _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")

@@ -4,6 +4,11 @@ FindLibDW
 
 Find libdw, the elfutils library for DWARF data and ELF file or process inspection.
 
+Variables that affect this module
+
+``LibDW_NO_SYSTEM_PATHS``
+  If `True`, no system paths are searched.
+
 Imported targets
 ^^^^^^^^^^^^^^^^
 
@@ -29,18 +34,25 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
-find_package(PkgConfig QUIET)
-if(PKG_CONFIG_FOUND)
-  if(NOT "x${LibDW_FIND_VERSION}" STREQUAL "x")
-    set(_version ">=${LibDW_FIND_VERSION}")
-  endif()
-  if(LibDW_FIND_QUIETLY)
-    set(_quiet "QUIET")
-  endif()
+if(LibDW_NO_SYSTEM_PATHS)
+  set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+endif()
 
-  pkg_check_modules(PC_LIBDW ${_quiet} "libdw${_version}")
-  unset(_version)
-  unset(_quiet)
+# There is no way to tell pkg-config to ignore directories, so disable it
+if(NOT LibDW_NO_SYSTEM_PATHS)
+  find_package(PkgConfig QUIET)
+  if(PKG_CONFIG_FOUND)
+    if(NOT "x${LibDW_FIND_VERSION}" STREQUAL "x")
+      set(_version ">=${LibDW_FIND_VERSION}")
+    endif()
+    if(LibDW_FIND_QUIETLY)
+      set(_quiet "QUIET")
+    endif()
+  
+    pkg_check_modules(PC_LIBDW ${_quiet} "libdw${_version}")
+    unset(_version)
+    unset(_quiet)
+  endif()
 endif()
 
 if(PC_LIBDW_FOUND)
@@ -62,12 +74,14 @@ else()
   find_path(
     LibDW_INCLUDE_DIRS
     NAMES libdw.h
-    PATH_SUFFIXES elfutils)
+    PATH_SUFFIXES elfutils
+    ${_find_path_args})
 
   find_library(
     LibDW_LIBRARIES
     NAMES libdw dw
-    PATH_SUFFIXES elfutils)
+    PATH_SUFFIXES elfutils
+    ${_find_path_args})
 
   if(EXISTS "${LibDW_INCLUDE_DIRS}/version.h")
     file(STRINGS "${LibDW_INCLUDE_DIRS}/version.h" _version_line
