@@ -1343,7 +1343,7 @@ namespace rose {
                     }
                 }
 
-                VisitAction postVisit(const Ptr &node) {
+                VisitAction postVisit(const Ptr &/*node*/) {
                     return CONTINUE;
                 }
             } visitor;

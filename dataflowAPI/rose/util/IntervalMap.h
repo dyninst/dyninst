@@ -46,7 +46,7 @@ public:
      *
      *  The @p rightValue is merged into the @p leftValue if possible, or this method returns false without changing either
      *  value.  After a successful merge, the @p rightValue will be removed from the IntervalMap and its destructor called. */
-    bool merge(const Interval &leftInterval, Value &leftValue, const Interval &rightInterval, Value &rightValue) {
+    bool merge(const Interval &/*leftInterval*/, Value &leftValue, const Interval &/*rightInterval*/, Value &rightValue) {
         return leftValue == rightValue;
     }
 
@@ -56,13 +56,13 @@ public:
      *  splitPoint argument is the split point and becomes the least value of the right interval. The @p value argument is
      *  modified in place to become the left value, and the right value is returned. This method is only invoked when the
      *  result would be two non-empty intervals. */
-    Value split(const Interval &interval, Value &value, const typename Interval::Value &splitPoint) { return value; }
+    Value split(const Interval &/*interval*/, Value &value, const typename Interval::Value &/*splitPoint*/) { return value; }
 
     /** Discard the right part of a value.
      *
      *  This method is the same as @ref split except the right part of the resulting value is discarded.  This is sometimes
      *  more efficient than calling @ref split and then destroying the return value. */
-    void truncate(const Interval &interval, Value &value, const typename Interval::Value &splitPoint) {}
+    void truncate(const Interval &/*interval*/, Value &/*value*/, const typename Interval::Value &/*splitPoint*/) {}
 };
 
 /** An associative container whose keys are non-overlapping intervals.
