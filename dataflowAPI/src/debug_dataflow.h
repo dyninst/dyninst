@@ -51,23 +51,14 @@ extern int convert_printf_int(const char *format, ...);
 extern int expand_printf_int(const char *format, ...);
 extern int liveness_printf_int(const char *format, ...);
 
-#if defined(__GNUC__)
-#define slicing_printf(format, args...) do {if (df_debug_slicing_on()) slicing_printf_int(format, ## args); } while(0)
-#define stackanalysis_printf(format, args...) do {if (df_debug_stackanalysis_on()) stackanalysis_printf_int(format, ## args); } while(0)
-#define convert_printf(format, args...) do {if (df_debug_convert_on()) convert_printf_int(format, ## args); } while(0)
-#define expand_printf(format, args...) do {if (df_debug_expand_on()) expand_printf_int(format, ## args); } while(0)
-#define liveness_printf(format, args...) do {if (df_debug_liveness_on()) liveness_printf_int(format, ## args); } while(0)
 
-#else
-// Non-GCC doesn't have the ## macro
-#define slicing_printf slicing_printf_int
-#define stackanalysis_printf stackanalysis_printf_int
-#define convert_printf convert_printf_int
-#define expand_printf expand_printf_int
-#define liveness_printf liveness_printf_int
+#define dataflow_debug_printf(debug_sys, ...) do {if (df_debug_##debug_sys##_on()) debug_sys##_printf_int(__VA_ARGS__); } while(0)
 
-
-#endif
+#define slicing_printf(...)       dataflow_debug_printf(slicing, __VA_ARGS__)
+#define stackanalysis_printf(...) dataflow_debug_printf(stackanalysis, __VA_ARGS__)
+#define convert_printf(...)       dataflow_debug_printf(convert, __VA_ARGS__)
+#define expand_printf(...)        dataflow_debug_printf(expand, __VA_ARGS__)
+#define liveness_printf(...)      dataflow_debug_printf(liveness, __VA_ARGS__)
 
 // And initialization
 
