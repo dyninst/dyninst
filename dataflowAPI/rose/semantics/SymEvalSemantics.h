@@ -379,6 +379,7 @@ namespace rose {
                         return StateASTPtr(new StateAST(r, a, ac, insn_, registers, memory));
                     }
 
+                    using BaseSemantics::State::create;
                     virtual BaseSemantics::StatePtr create(Dyninst::DataflowAPI::Result_t &r,
                                                  Dyninst::Address a,
                                                  Dyninst::Architecture ac,
@@ -397,6 +398,7 @@ namespace rose {
                 public:
                     virtual BaseSemantics::SValuePtr readRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &dflt, BaseSemantics::RiscOperators *ops);
                     virtual void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *ops);
+                    using BaseSemantics::State::readMemory;
                     virtual BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &address, const BaseSemantics::SValuePtr &dflt,
                                                                 BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps, size_t readSize = 0);
                     virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *addrOps,
