@@ -49,6 +49,8 @@ public:
 
     SgAsmExpression();
 
+    SgAsmExpression(const SgAsmExpression&) = default;
+
 protected:
     std::string p_replacement;
 
@@ -575,6 +577,8 @@ public:
 
 public:
     virtual ~SgAsmBinaryExpression();
+    SgAsmBinaryExpression& operator=(const SgAsmBinaryExpression&) = default;
+    SgAsmBinaryExpression(const SgAsmBinaryExpression&) = default;
 
 
 public:

@@ -51,9 +51,6 @@ public:
 
     RegisterDictionary(const std::string &name_)
         :name(name_) {}
-    RegisterDictionary(const RegisterDictionary& other) {
-        *this = other;
-    }
 
     /** Obtain the name of the dictionary. */
     const std::string &get_architecture_name() const {
