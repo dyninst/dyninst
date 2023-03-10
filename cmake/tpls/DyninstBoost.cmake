@@ -4,7 +4,14 @@
 #
 #   ----------------------------------------
 #
-# Boost_ROOT_DIR - Directory hint for Boost installation
+# Boost_ROOT_DIR - Location of Boost installation
+#
+# The individual find-modules use the <Package>_ROOT convention
+# as the first location to search for the package. If the user
+# specifies Boost_ROOT_DIR, we override the <Package>_ROOT
+# values and require that each package ignores system directories.
+# In effect, this forces the package search to find only
+# candidates in <Package>_ROOT or CMAKE_PREFIX_PATH.
 #
 #===========================================================
 
@@ -19,11 +26,10 @@ set(Boost_USE_MULTITHREADED ON)
 # Don't use libraries linked statically to the C++ runtime
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-# Set the default location to look for Boost
-set(Boost_ROOT_DIR
-    "/usr"
-    CACHE PATH "Boost root directory for Dyninst")
-mark_as_advanced(Boost_ROOT_DIR)
+if(Boost_ROOT_DIR)
+  set(Boost_NO_SYSTEM_PATHS ON)
+  set(Boost_ROOT ${Boost_ROOT_DIR})
+endif()
 
 # Starting in CMake 3.20, suppress "unknown version" warnings
 set(Boost_NO_WARN_NEW_VERSIONS ON)
@@ -36,7 +42,6 @@ find_package(
   QUIET
   REQUIRED
   HINTS
-  ${Boost_ROOT_DIR}
   ${PATH_BOOST}
   ${BOOST_ROOT}
   COMPONENTS ${_boost_components})
