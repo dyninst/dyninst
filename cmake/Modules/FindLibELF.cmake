@@ -98,10 +98,6 @@ else()
   elseif(EXISTS "${LibELF_INCLUDE_DIRS}/elfutils/version.h")
     _check_libelf_version("${LibELF_INCLUDE_DIRS}/elfutils/version.h")
   endif()
-
-  if("x${LibELF_VERSION}" STREQUAL "x")
-    message(FATAL_ERROR "Unable to find version for libelf")
-  endif()
 endif()
 
 include(FindPackageHandleStandardArgs)

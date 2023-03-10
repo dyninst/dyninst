@@ -93,10 +93,6 @@ else()
     unset(_version_line)
     unset(_version)
   endif()
-
-  if("x${LibDW_VERSION}" STREQUAL "x")
-    message(FATAL_ERROR "Unable to find version for libdw")
-  endif()
 endif()
 
 include(FindPackageHandleStandardArgs)
