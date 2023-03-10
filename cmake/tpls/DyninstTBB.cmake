@@ -6,6 +6,13 @@
 #
 # TBB_ROOT_DIR - Directory hint for TBB installation
 #
+# The individual find-modules use the <Package>_ROOT convention
+# as the first location to search for the package. If the user
+# specifies TBB_ROOT_DIR, we override the <Package>_ROOT
+# values and require that each package ignores system directories.
+# In effect, this forces the package search to find only
+# candidates in <Package>_ROOT or CMAKE_PREFIX_PATH.
+#
 #=====================================================
 
 include_guard(GLOBAL)
@@ -16,15 +23,16 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   set(_min_version 2019.7)
 endif()
 
-set(TBB_ROOT_DIR
-    "/usr"
-    CACHE PATH "TBB root directory for Dyninst")
-mark_as_advanced(TBB_ROOT_DIR)
+if(TBB_ROOT_DIR)
+  set(TBB_ROOT ${TBB_ROOT_DIR})
+  mark_as_advanced(TBB_ROOT)
+  set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+endif()
 
 find_package(
-  TBB ${_min_version} HINTS ${TBB_ROOT_DIR}
+  TBB ${_min_version}
   COMPONENTS tbb tbbmalloc tbbmalloc_proxy
-  REQUIRED)
+  REQUIRED ${_find_path_args})
 
 # Don't let TBB variables seep through
 mark_as_advanced(TBB_DIR)
@@ -43,3 +51,5 @@ endif()
 message(STATUS "Found TBB ${TBB_VERSION}")
 get_target_property(_tmp TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
 message(STATUS "TBB include directories: ${_tmp}")
+
+unset(_find_path_args)
