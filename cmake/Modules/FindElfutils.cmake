@@ -56,9 +56,9 @@ endif()
 foreach(_n "LibELF" "LibDW" "LibDebuginfod")
   set(${_n}_NO_SYSTEM_PATHS ${ElfUtils_NO_SYSTEM_PATHS})
   mark_as_advanced(${_n}_NO_SYSTEM_PATHS)
-  
+
   # Force the search directory
-  if(ElfUtils_NO_SYSTEM_PATHS)  
+  if(ElfUtils_NO_SYSTEM_PATHS)
     set(${_n}_ROOT ${ElfUtils_ROOT_DIR})
     mark_as_advanced(${_n}_ROOT)
   endif()

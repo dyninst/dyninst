@@ -45,7 +45,7 @@ if(NOT Valgrind_NO_SYSTEM_PATHS)
     if(Valgrind_FIND_QUIETLY)
       set(_quiet "QUIET")
     endif()
-  
+
     pkg_check_modules(PC_VALGRIND ${_quiet} "valgrind${_version}")
     unset(_version)
     unset(_quiet)
@@ -68,8 +68,7 @@ else()
   find_path(
     Valgrind_INCLUDE_DIRS
     NAMES valgrind.h
-    PATH_SUFFIXES valgrind
-    ${_find_path_args})
+    PATH_SUFFIXES valgrind ${_find_path_args})
 
   macro(_check_valgrind_version _file)
     file(STRINGS ${_file} _version_line REGEX "^#define __VALGRIND_MAJOR__[ \t]+[0-9]+")

@@ -48,7 +48,7 @@ if(NOT LibDW_NO_SYSTEM_PATHS)
     if(LibDW_FIND_QUIETLY)
       set(_quiet "QUIET")
     endif()
-  
+
     pkg_check_modules(PC_LIBDW ${_quiet} "libdw${_version}")
     unset(_version)
     unset(_quiet)
@@ -74,14 +74,12 @@ else()
   find_path(
     LibDW_INCLUDE_DIRS
     NAMES libdw.h
-    PATH_SUFFIXES elfutils
-    ${_find_path_args})
+    PATH_SUFFIXES elfutils ${_find_path_args})
 
   find_library(
     LibDW_LIBRARIES
     NAMES libdw dw
-    PATH_SUFFIXES elfutils
-    ${_find_path_args})
+    PATH_SUFFIXES elfutils ${_find_path_args})
 
   if(EXISTS "${LibDW_INCLUDE_DIRS}/version.h")
     file(STRINGS "${LibDW_INCLUDE_DIRS}/version.h" _version_line

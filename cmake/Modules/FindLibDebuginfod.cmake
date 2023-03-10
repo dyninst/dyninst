@@ -48,7 +48,7 @@ if(NOT LibDebuginfod_NO_SYSTEM_PATHS)
     if(LibDebuginfod_FIND_QUIETLY)
       set(_quiet "QUIET")
     endif()
-  
+
     pkg_check_modules(PC_LIBDEBUGINFOD ${_quiet} "libdebuginfod${_version}")
     unset(_version)
     unset(_quiet)
@@ -74,14 +74,12 @@ else()
   find_path(
     LibDebuginfod_INCLUDE_DIRS
     NAMES debuginfod.h
-    PATH_SUFFIXES elfutils
-    ${_find_path_args})
+    PATH_SUFFIXES elfutils ${_find_path_args})
 
   find_library(
     LibDebuginfod_LIBRARIES
     NAMES libdebuginfod debuginfod
-    PATH_SUFFIXES elfutils
-    ${_find_path_args})
+    PATH_SUFFIXES elfutils ${_find_path_args})
 
   if(EXISTS "${LibDebuginfod_INCLUDE_DIRS}/version.h")
     file(STRINGS "${LibDebuginfod_INCLUDE_DIRS}/version.h" _version_line

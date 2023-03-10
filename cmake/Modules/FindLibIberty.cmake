@@ -42,15 +42,13 @@ endif()
 find_path(
   LibIberty_INCLUDE_DIRS
   NAMES libiberty.h
-  PATH_SUFFIXES libiberty
-  ${_find_path_args})
+  PATH_SUFFIXES libiberty ${_find_path_args})
 mark_as_advanced(LibIberty_INCLUDE_DIRS)
 
 find_library(
   LibIberty_LIBRARIES
   NAMES libiberty iberty
-  PATH_SUFFIXES libiberty
-  ${_find_path_args})
+  PATH_SUFFIXES libiberty ${_find_path_args})
 mark_as_advanced(LibIberty_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)
