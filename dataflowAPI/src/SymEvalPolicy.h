@@ -92,11 +92,11 @@ struct Handle {
   AST::Ptr *v_;
   Handle() : v_(NULL) {
     assert(0);
-  };
+  }
   Handle(AST::Ptr v) {
     assert(v);
     v_ = new AST::Ptr(v);
-  };
+  }
   Handle(const Handle &rhs) {
     v_ = new AST::Ptr(rhs.var());
   }
@@ -105,7 +105,7 @@ struct Handle {
     v_ = new AST::Ptr(rhs.var());
     return  *this;
   }
-    ~Handle() { if (v_) delete v_; };
+    ~Handle() { if (v_) delete v_; }
   
   template <size_t Len2>
   bool operator==(const Handle<Len2> &rhs) {
@@ -129,7 +129,7 @@ struct Handle {
                    Dyninst::Architecture a,
                    InstructionAPI::Instruction insn);
 
-   ~SymEvalPolicy() {};
+   ~SymEvalPolicy() {}
 
    void undefinedInstruction(SgAsmx86Instruction *);
    void undefinedInstruction(SgAsmPowerpcInstruction *);
@@ -545,8 +545,8 @@ struct Handle {
 
    // Misc
     
-   void hlt() {};
-   void interrupt(uint8_t) {};
+   void hlt() {}
+   void interrupt(uint8_t) {}
     
    Handle<64> rdtsc() {
      return number<64>(0);
@@ -649,7 +649,7 @@ struct Handle {
 		      Dyninst::Architecture a,
 		      Dyninst::InstructionAPI::Instruction insn);
 
-   ~SymEvalPolicy_64() {};
+   ~SymEvalPolicy_64() {}
 
    void undefinedInstruction(SgAsmx86Instruction *);
    void undefinedInstruction(SgAsmPowerpcInstruction *);
@@ -1065,8 +1065,8 @@ struct Handle {
 
    // Misc
     
-   void hlt() {};
-   void interrupt(uint8_t) {};
+   void hlt() {}
+   void interrupt(uint8_t) {}
     
    Handle<64> rdtsc() {
      return number<64>(0);
@@ -1157,6 +1157,6 @@ struct Handle {
       return RoseAST::create(ROSEOperation(op, s), a, b, c);
     }    
 };
-};
-};
+}
+}
 #endif

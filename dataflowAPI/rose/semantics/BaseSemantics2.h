@@ -1641,7 +1641,7 @@ namespace rose {
                         ASSERT_not_null(insn);
                         ASSERT_require(currentInsn_ == insn);
                         currentInsn_ = NULL;
-                    };
+                    }
 
 
                     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

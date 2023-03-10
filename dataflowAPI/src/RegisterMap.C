@@ -857,5 +857,5 @@ RegisterMap &machRegIndex_aarch64() {
    return *mrmap;
 }
 
-};
-};
+}
+}

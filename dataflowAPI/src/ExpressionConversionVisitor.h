@@ -64,7 +64,7 @@ namespace Dyninst
 
     public:
     DATAFLOW_EXPORT ExpressionConversionVisitor(Architecture a, uint64_t ad, uint64_t s) :
-      roseExpression(NULL), arch(a), addr(ad), size(s) {};
+      roseExpression(NULL), arch(a), addr(ad), size(s) {}
       
       DATAFLOW_EXPORT SgAsmExpression *getRoseExpression() { return roseExpression; }
       

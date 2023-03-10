@@ -73,6 +73,6 @@ namespace Dyninst {
         };
 
 
-    };
-};
+    }
+}
 #endif
