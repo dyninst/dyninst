@@ -347,7 +347,7 @@ namespace rose {
                                Dyninst::Architecture ac,
                                Dyninst::InstructionAPI::Instruction insn_,
                                const BaseSemantics::RegisterStatePtr &registers,
-                               const BaseSemantics::MemoryStatePtr &memory): BaseSemantics::State(registers, memory), res(r), addr(a), arch(ac), insn(insn_) {
+                               const BaseSemantics::MemoryStatePtr &memory): BaseSemantics::State(registers, memory), res(r), arch(ac), addr(a), insn(insn_) {
                         for (Dyninst::DataflowAPI::Result_t::iterator iter = r.begin();
                              iter != r.end(); ++iter) {
                             Dyninst::Assignment::Ptr a = iter->first;

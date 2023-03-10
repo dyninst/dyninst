@@ -1376,11 +1376,11 @@ Slicer::Slicer(Assignment::Ptr a,
                ParseAPI::Function *func,
 	       bool cache,
 	       bool stackAnalysis) : 
+  insnCache_(new InsnCache()),
+  own_insnCache(true),
   a_(a),
   b_(block),
   f_(func),
-  insnCache_(new InsnCache()),
-  own_insnCache(true),
   converter(new AssignmentConverter(cache, stackAnalysis)),
   own_converter(true)
 {
@@ -1390,11 +1390,11 @@ Slicer::Slicer(Assignment::Ptr a,
                ParseAPI::Block *block,
                ParseAPI::Function *func,
                AssignmentConverter* ac):
+  insnCache_(new InsnCache()),
+  own_insnCache(true),
   a_(a),
   b_(block),
   f_(func),
-  insnCache_(new InsnCache()),
-  own_insnCache(true),
   converter(ac),
   own_converter(false)
 {
@@ -1405,11 +1405,11 @@ Slicer::Slicer(Assignment::Ptr a,
                ParseAPI::Function *func,
                AssignmentConverter* ac,
                InsnCache* c):
+  insnCache_(c),
+  own_insnCache(false),
   a_(a),
   b_(block),
   f_(func),
-  insnCache_(c),
-  own_insnCache(false),
   converter(ac),
   own_converter(false)
 {
