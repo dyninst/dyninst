@@ -138,3 +138,5 @@ if(LibDW_FOUND)
                                                   IMPORTED_LOCATION "${LibDW_LIBRARIES}")
   endif()
 endif()
+
+unset(_find_path_args)

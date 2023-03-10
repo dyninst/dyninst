@@ -121,3 +121,5 @@ if(LibELF_FOUND)
                  IMPORTED_LOCATION "${LibELF_LIBRARIES}")
   endif()
 endif()
+
+unset(_find_path_args)

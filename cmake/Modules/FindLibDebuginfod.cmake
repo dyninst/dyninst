@@ -116,3 +116,5 @@ if(LibDebuginfod_FOUND)
                  IMPORTED_LOCATION "${LibDebuginfod_LIBRARIES}")
   endif()
 endif()
+
+unset(_find_path_args)

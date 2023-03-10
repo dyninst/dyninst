@@ -97,3 +97,5 @@ find_package_handle_standard_args(
   VERSION_VAR Valgrind_VERSION)
 
 mark_as_advanced(Valgrind_INCLUDE_DIRS)
+
+unset(_find_path_args)

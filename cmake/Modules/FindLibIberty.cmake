@@ -69,3 +69,5 @@ if(LibIberty_FOUND)
                  IMPORTED_LOCATION "${LibIberty_LIBRARIES}")
   endif()
 endif()
+
+unset(_find_path_args)
