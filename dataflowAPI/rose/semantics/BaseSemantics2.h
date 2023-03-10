@@ -553,7 +553,7 @@ namespace rose {
                     // Normal, protected, C++ constructors
                 protected:
                     explicit SValue(size_t nbits) : width(nbits) { }  // hot
-                    SValue(const SValue &other) : width(other.width) { }
+                    SValue(const SValue &other) : SharedObject(other), width(other.width) { }
 
                 public:
                     /** Shared-ownership pointer for an @ref SValue object. See @ref heap_object_shared_ownership. */
@@ -1167,7 +1167,8 @@ namespace rose {
 
                     // deep-copy the registers and memory
                     State(const State &other)
-                            : protoval_(other.protoval_) {
+                            : boost::enable_shared_from_this<State>(other),
+                              protoval_(other.protoval_) {
                         registers_ = other.registers_->clone();
                         memory_ = other.memory_->clone();
                     }
