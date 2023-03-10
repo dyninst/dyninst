@@ -4,6 +4,11 @@ FindLibValgrind
 
 Find valgrind, a dynamic binary instrumentation framework.
 
+Variables that affect this module
+
+``Valgrind_NO_SYSTEM_PATHS``
+  If `True`, no system paths are searched.
+
 Imported targets
 ^^^^^^^^^^^^^^^^
 
@@ -27,18 +32,24 @@ This module will set the following variables in your project:
 #]=======================================================================]
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
-find_package(PkgConfig QUIET)
-if(PKG_CONFIG_FOUND)
-  if(NOT "x${Valgrind_FIND_VERSION}" STREQUAL "x")
-    set(_version ">=${Valgrind_FIND_VERSION}")
-  endif()
-  if(Valgrind_FIND_QUIETLY)
-    set(_quiet "QUIET")
-  endif()
+if(Valgrind_NO_SYSTEM_PATHS)
+  set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+endif()
 
-  pkg_check_modules(PC_VALGRIND ${_quiet} "valgrind${_version}")
-  unset(_version)
-  unset(_quiet)
+if(NOT Valgrind_NO_SYSTEM_PATHS)
+  find_package(PkgConfig QUIET)
+  if(PKG_CONFIG_FOUND)
+    if(NOT "x${Valgrind_FIND_VERSION}" STREQUAL "x")
+      set(_version ">=${Valgrind_FIND_VERSION}")
+    endif()
+    if(Valgrind_FIND_QUIETLY)
+      set(_quiet "QUIET")
+    endif()
+  
+    pkg_check_modules(PC_VALGRIND ${_quiet} "valgrind${_version}")
+    unset(_version)
+    unset(_quiet)
+  endif()
 endif()
 
 if(PC_VALGRIND_FOUND)
