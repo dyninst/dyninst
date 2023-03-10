@@ -268,7 +268,6 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                               int regNum;
                               int regPos;
 
-                              MachRegister machReg = regast->getID();
                               if (machReg.isPC()) {
                                   // ideally this would be symbolic
                                   // When ip is read, the value read is not the address of the current instruction,
