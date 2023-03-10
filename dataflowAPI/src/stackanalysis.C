@@ -1728,7 +1728,7 @@ void StackAnalysis::handleLEA(Instruction insn,
 
    if (readSet.size() == 0) {
       // op1: imm
-      STACKANALYSIS_ASSERT(typeid(*srcExpr) == typeid(Immediate));
+      STACKANALYSIS_ASSERT(dynamic_cast<Immediate*>(srcExpr.get()));
       long immVal = srcExpr->eval().convert<long>();
       xferFuncs.push_back(TransferFunc::absFunc(writeloc, immVal));
       retopBaseSubReg(written, xferFuncs);
