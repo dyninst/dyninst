@@ -464,8 +464,9 @@ SAWYER_EXPORT std::string generateSequentialName(size_t length=3);
 // causes the initialization to happen as early as possible after the C++ runtime.
 # define SAWYER_STATIC_INIT __attribute__((init_priority(101)))
 
+#include "compiler_diagnostics.h"
 # define SAWYER_VARIABLE_LENGTH_ARRAY(TYPE, NAME, SIZE) \
-    TYPE NAME[SIZE];
+    DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_ALL TYPE NAME[SIZE]; DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_ALL
 
 #endif
 

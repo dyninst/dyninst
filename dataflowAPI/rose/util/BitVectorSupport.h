@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_GCC_PRAGMA_BUG
+
 namespace Sawyer {
 namespace Container {
 
@@ -1449,4 +1451,7 @@ void fromBinary(Word *vec, const BitRange &range, const std::string &input) {
 } // namespace
 } // namespace
 } // namespace
+
+DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_GCC_PRAGMA_BUG
+
 #endif
