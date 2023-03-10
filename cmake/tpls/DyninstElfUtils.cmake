@@ -4,7 +4,14 @@
 #
 #   ----------------------------------------
 #
-# ElfUtils_ROOT_DIR - Directory hint for elfutils installation
+# ElfUtils_ROOT_DIR - Location of elfutils installation
+#
+# The individual find-modules use the <Package>_ROOT convention
+# as the first location to search for the package. If the user
+# specifies ElfUtils_ROOT_DIR, we override the <Package>_ROOT
+# values and require that each package ignores system directories.
+# In effect, this forces the package search to find only
+# candidates in <Package>_ROOT or CMAKE_PREFIX_PATH.
 #
 #================================================================
 
@@ -23,6 +30,10 @@ set(_min_version 0.186)
 
 if(ENABLE_DEBUGINFOD)
   set(_components debuginfod)
+endif()
+
+if(ElfUtils_ROOT_DIR)
+  set(ElfUtils_NO_SYSTEM_PATH ON)
 endif()
 
 find_package(Elfutils ${_min_version} REQUIRED COMPONENTS ${_components})
