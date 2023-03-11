@@ -62,6 +62,7 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
+  DYNINST_DEPS common
   PUBLIC_DEPS Threads::Threads
 )
 # cmake-format: on
