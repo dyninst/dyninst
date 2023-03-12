@@ -27,7 +27,7 @@ foreach(COMP ${Dyninst_FIND_COMPONENTS})
   if(TARGET Dyninst::${COMP})
     set(Dyninst_${COMP}_FOUND TRUE)
   else()
-    message(STATUS "Unknown Dyninst component '${COMP}'")
+    message(FATAL_ERROR "Unknown Dyninst component '${COMP}'")
   endif()
 endforeach()
 
