@@ -180,6 +180,8 @@ private:
                 delete *ci;
         }
 
+DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_UNUSED_VARIABLE
+
         bool isEmpty() const {
             SAWYER_THREAD_TRAITS::LockGuard lock(chunkMutex_);
             return chunks_.empty();
@@ -211,6 +213,8 @@ private:
             freedCell->next = freeLists_[freeListIdx];
             freeLists_[freeListIdx] = freedCell;
         }
+
+DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
 
         // Information about each chunk.
         ChunkInfoMap chunkInfoNS() const {

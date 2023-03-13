@@ -63,6 +63,8 @@
 //      DUPLICATED_BRANCHES
 //              similar to LOGICAL_OP except the expressions are the
 //              conditionals of a chain of if/then/else's. Only gcc 7-8.
+//      UNUSED_VARIABLE
+//              clang <10 warns about variables defined solely for RIAA (locks)
 //
 // Define DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS to prevents suppressions.
 
@@ -85,6 +87,9 @@
  #define DYNINST_SUPPRESS_CODE_FLEX_ARRAY                  "-Wpedantic"
  #define DYNINST_SUPPRESS_CODE_VLA                         "-Wvla"
  #define DYNINST_SUPPRESS_CODE_VLA_EXTENSION               "-Wvla-extension"
+ #if __clang_major__ < 10
+  #define DYNINST_SUPPRESS_CODE_UNUSED_VARIABLE            "-Wunused-variable"
+ #endif
 #elif defined(_MSC_VER)
  #define DYNINST_SUPPRESS_CODE_FLEX_ARRAY                  4200
 #endif
@@ -134,6 +139,14 @@
 #else
  #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_DUPLICATED_BRANCHES
  #define DYNINST_DIAGNOSTIC_END_SUPPRESS_DUPLICATED_BRANCHES
+#endif
+
+#ifdef DYNINST_SUPPRESS_CODE_UNUSED_VARIABLE
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_UNUSED_VARIABLE     DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(UNUSED_VARIABLE)
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE       DYNINST_DIAGNOSTIC_POP
+#else
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_UNUSED_VARIABLE
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
 #endif
 
 // gcc <9, 11.0 and 11.1 (there may be others) have a bug where 'pragma
