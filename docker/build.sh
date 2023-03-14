@@ -1,13 +1,13 @@
 #! /bin/bash
 
 if test "x$1" = "x"; then
-	echo "No source directory given\nUsage: $0 src [num_jobs]" >stderr
-	exit 1
+  echo "No source directory given\nUsage: $0 src [num_jobs]" >stderr
+  exit 1
 fi
 
 num_jobs=1
 if test "x$2" != "x"; then
-	num_jobs=$2
+  num_jobs=$2
 fi
 
 printf "⭐️ Preparing to build Dyninst\n"
