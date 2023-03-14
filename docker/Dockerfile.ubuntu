@@ -40,6 +40,7 @@ RUN apt-get -qq update && \
       clang
 
 COPY docker/build_elfutils.sh .
+COPY docker/dependencies.versions .
 RUN if test x"${build_elfutils}" = xyes; then \
       apt install -qq -y --no-install-recommends libcurl4-openssl-dev wget libzstd-dev libbz2-dev liblzma-dev; \
       bash build_elfutils.sh; \
