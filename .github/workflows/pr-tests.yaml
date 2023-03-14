@@ -21,7 +21,7 @@ jobs:
          os: ['ubuntu-20.04']
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/dyninst/dyninst/amd64/${{ matrix.os }}-base:latest
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
     name: ${{ matrix.os }}
     steps:
       - name: Checkout Dyninst
