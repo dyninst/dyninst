@@ -18,11 +18,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         container: ['ubuntu-20.04']
+         os: ['ubuntu-20.04']
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/dyninst/amd64-${{ matrix.container }}-base:latest
-    name: ${{ matrix.container }}
+      image: ghcr.io/dyninst/amd64-${{ matrix.os }}-base:latest
+    name: ${{ matrix.os }}
     steps:
       - name: Checkout Dyninst
         uses: actions/checkout@v3
