@@ -22,9 +22,9 @@ jobs:
       - name: Build Dyninst Dev Container
         run: |
            cd docker/
-           docker build --build-arg base=ghcr.io/dyninst/amd64-${{ matrix.os }}-base:latest
+           docker build --build-arg base=ghcr.io/dyninst/dyninst/amd64/${{ matrix.os }}-base:latest
                         -f Dockerfile \
-                        -t ghcr.io/dyninst/amd64-${{ matrix.os }}:latest ../
+                        -t ghcr.io/dyninst/dyninst/amd64/${{ matrix.os }}:latest ../
 
       - name: GHCR Login
         uses: docker/login-action@v1 
@@ -34,4 +34,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy
-        run: docker push ghcr.io/dyninst/amd64-${{ matrix.os }}:latest
+        run: docker push ghcr.io/dyninst/dyninst/amd64/${{ matrix.os }}:latest
