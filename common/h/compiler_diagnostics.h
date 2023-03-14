@@ -66,6 +66,11 @@
 //      UNUSED_VARIABLE
 //              clang <10 warns about variables defined solely for RIAA (locks)
 //
+// Macros to silence unused variable warnings
+//
+//      DYNINST_SUPPRESS_UNUSED_VARIABLE(var)
+//              indicate that variable var OK to be unused
+//
 // Define DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS to prevents suppressions.
 
 
@@ -199,5 +204,16 @@
 #define DYNINST_DIAGNOSTIC_PUSH_SUPPRESS(x)     DYNINST_DIAGNOSTIC_PUSH         \
                                                     DYNINST_DIAGNOSTIC_SUPPRESS(x)
 #define DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(x) DYNINST_DIAGNOSTIC_PUSH_SUPPRESS(DYNINST_SUPPRESS_CODE_##x)
+
+
+// use the variable in a void expression to indicate use
+#ifndef DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS
+ #define DYNINST_SUPPRESS_UNUSED_VARIABLE(var) (void)(var)
+#endif
+
+// if not defined, expand to nothing
+#ifndef DYNINST_SUPPRESS_UNUSED_VARIABLE
+ #define DYNINST_SUPPRESS_UNUSED_VARIABLE(var)
+#endif
 
 #endif /* COMPILER_DIAGNOSTICS_H */

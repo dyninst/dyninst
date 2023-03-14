@@ -45,6 +45,7 @@
 #include "instructionAPI/h/Result.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
+#include "common/h/compiler_diagnostics.h"
 
 #include "ABI.h"
 #include "Annotatable.h"
@@ -2827,6 +2828,7 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
       input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));
    }
 #else
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(input);
    STACKANALYSIS_ASSERT(0 && "Unimplemented architecture");
 #endif
 }
