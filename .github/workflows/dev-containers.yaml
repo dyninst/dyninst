@@ -36,7 +36,5 @@ jobs:
                         -f Dockerfile \
                         -t ghcr.io/dyninst/amd64/${{ matrix.os }}:latest ../
 
-
-
       - name: Deploy
         run: docker push ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
