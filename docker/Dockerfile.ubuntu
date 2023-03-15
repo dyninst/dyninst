@@ -38,7 +38,7 @@ RUN apt-get -qq update && \
       libiberty-dev						\
       pkg-config              \
       clang                   \
-      libomp5
+      libomp-dev
 
 COPY docker/build_elfutils.sh .
 COPY docker/dependencies.versions .
