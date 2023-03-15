@@ -38,6 +38,42 @@ jobs:
            export DYNINST_C_COMPILER="gcc" DYNINST_CXX_COMPILER="g++"
            bash /dyninst/src/docker/build.sh /dyninst/src
 
+      - name: Checkout Test Suite
+        uses: actions/checkout@v3
+        with:
+          repository: dyninst/testsuite
+          path: testsuite
+
+      - name: Build testsuite
+        run: |
+           cd testsuite; mkdir build; cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
+      - name: Checkout Examples
+        uses: actions/checkout@v3
+        with:
+          repository: dyninst/examples
+          path: examples
+
+      - name: Build examples
+        run: |
+           cd examples; mkdir build; cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
+      - name: Checkout External Tests
+        uses: actions/checkout@v3
+        with:
+          repository: dyninst/external-tests
+          path: external-tests
+
+      - name: Build external tests
+        run: |
+           cd external-tests; mkdir build; cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
   clang-build:
     permissions:
       packages: read

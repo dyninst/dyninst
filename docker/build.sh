@@ -26,18 +26,14 @@ if test x"${DYNINST_CXX_COMPILER}" = x; then DYNINST_CXX_COMPILER=g++; fi
 COMPILERS="-DCMAKE_C_COMPILER=${DYNINST_C_COMPILER} -DCMAKE_CXX_COMPILER=${DYNINST_CXX_COMPILER}"
 cmake $SRC_DIR -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ${FLAGS} ${COMPILERS}
 
-echo FLAGS=${FLAGS}
-echo COMPILERS=${COMPILERS}
+printf "⭐️ Building\n"
+cmake --build . --parallel $num_jobs
 
+printf "⭐️ Installing\n"
+cmake --install .
 
-#printf "⭐️ Building\n"
-#cmake --build . --parallel $num_jobs
-
-#printf "⭐️ Installing\n"
-#cmake --install .
-
-#printf "⭐️ Cleaning up\n"
-#cd /
-#rm -rf $BUILD_DIR
+printf "⭐️ Cleaning up\n"
+cd /
+rm -rf $BUILD_DIR
 
 echo "::endgroup::"
