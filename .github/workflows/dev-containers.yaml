@@ -22,7 +22,7 @@ jobs:
       - name: Build Dyninst Dev Container
         run: |
            cd docker/
-           docker build --build-arg base=ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+           docker build --build-arg base=ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest \
                         -f Dockerfile \
                         -t ghcr.io/dyninst/amd64/${{ matrix.os }}:latest ../
 
