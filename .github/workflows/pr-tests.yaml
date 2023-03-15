@@ -1,0 +1,102 @@
+# On each pull request, we build Dyninst, the test suite, the examples from
+# dyninst/examples, and the external test from dyninst/external-tests
+#
+# The builds are carried out for each supported OS using the base containers
+# at https://github.com/orgs/dyninst/packages
+
+name: Pull Request Tests
+
+on:
+  pull_request:
+     branches:
+        - master
+jobs:
+  gcc-build:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+         os: ['ubuntu-20.04']
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: gcc on ${{ matrix.os }}
+    steps:
+      - name: Checkout Dyninst
+        uses: actions/checkout@v3
+        with:
+          path: dyninst/src
+
+      - name: Build Dyninst
+        run: |
+           ln -s $PWD/dyninst /dyninst
+           export DYNINST_C_FLAGS="-Werror" DYNINST_CXX_FLAGS="-Werror"
+           export DYNINST_C_COMPILER="gcc" DYNINST_CXX_COMPILER="g++"
+           bash /dyninst/src/docker/build.sh /dyninst/src
+
+      - name: Checkout Test Suite
+        uses: actions/checkout@v3
+        with:
+          repository: dyninst/testsuite
+          path: testsuite
+
+      - name: Build testsuite
+        run: |
+           cd testsuite; mkdir build; cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
+      - name: Checkout Examples
+        uses: actions/checkout@v3
+        with:
+          repository: dyninst/examples
+          path: examples
+
+      - name: Build examples
+        run: |
+           cd examples; mkdir build; cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
+      - name: Checkout External Tests
+        uses: actions/checkout@v3
+        with:
+          repository: dyninst/external-tests
+          path: external-tests
+
+      - name: Build external tests
+        run: |
+           cd external-tests; mkdir build; cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+
+  clang-build:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+         os: ['ubuntu-20.04']
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: clang on ${{ matrix.os }}
+    steps:
+      - name: Checkout Dyninst
+        uses: actions/checkout@v3
+        with:
+          path: dyninst/src
+
+      - name: Build Dyninst
+        run: |
+           ln -s $PWD/dyninst /dyninst
+           export DYNINST_C_FLAGS="-Werror" DYNINST_CXX_FLAGS="-Werror"
+           export DYNINST_C_COMPILER="clang" DYNINST_CXX_COMPILER="clang++"
+           bash /dyninst/src/docker/build.sh /dyninst/src
