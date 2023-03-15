@@ -181,7 +181,7 @@ if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIO
         else()
             set(debugMaxFrameSizeOverridePowerOpcodeTable 30000)
         endif()
-        set(nonDebugMaxFrameSizeOverridePowerOpcodeTable 38000)
+        set(nonDebugMaxFrameSizeOverridePowerOpcodeTable 39000)
         set(debugMaxFrameSizeOverrideFinalizeOperands 29000)
         set(nonDebugMaxFrameSizeOverrideFinalizeOperands 29000)
     endif()
