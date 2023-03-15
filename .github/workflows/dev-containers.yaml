@@ -1,7 +1,7 @@
 name: Build and Deploy Development Containers
 
 on:
-  push: 
+  pull_request: 
     branches:
       - master
 
