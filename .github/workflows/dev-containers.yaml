@@ -19,6 +19,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: GHCR Login
+        uses: docker/login-action@v1 
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Dyninst Dev Container
         run: |
            cd docker/
@@ -26,12 +33,7 @@ jobs:
                         -f Dockerfile \
                         -t ghcr.io/dyninst/amd64/${{ matrix.os }}:latest ../
 
-      - name: GHCR Login
-        uses: docker/login-action@v1 
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Deploy
         run: docker push ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
