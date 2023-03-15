@@ -14,17 +14,10 @@ jobs:
       matrix:
         os: ["ubuntu-20.04"]
     runs-on: ubuntu-latest
-    name: Build
+    name: Update dev containers
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Build Dyninst Dev Container
-        run: |
-           cd docker/
-           docker build --build-arg base=ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest \
-                        -f Dockerfile \
-                        -t ghcr.io/dyninst/amd64/${{ matrix.os }}:latest ../
 
       - name: GHCR Login
         uses: docker/login-action@v1 
@@ -32,6 +25,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull base image
+        run: docker pull ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+
+      - name: Build Dyninst Dev Container
+        run: |
+           cd docker/
+           docker build --build-arg base=ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest \
+                        -f Dockerfile \
+                        -t ghcr.io/dyninst/amd64/${{ matrix.os }}:latest ../
 
       - name: Deploy
         run: docker push ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
