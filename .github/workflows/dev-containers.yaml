@@ -26,6 +26,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Pull base image
+        run: docker pull ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+
       - name: Build Dyninst Dev Container
         run: |
            cd docker/
