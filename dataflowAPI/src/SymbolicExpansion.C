@@ -70,7 +70,7 @@ bool SymbolicExpansion::expandX86_64(SgAsmInstruction *rose_insn,
 
 bool SymbolicExpansion::expandPPC32(SgAsmInstruction *rose_insn,
                                     BaseSemantics::RiscOperatorsPtr ops, 
-				    const std::string &insn_dump) {
+				    const std::string &/*insn_dump*/) {
     SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
 
     BaseSemantics::DispatcherPtr cpu = DispatcherPowerpc::instance(ops, 32);
@@ -85,7 +85,7 @@ bool SymbolicExpansion::expandPPC32(SgAsmInstruction *rose_insn,
 }
 bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
                                     BaseSemantics::RiscOperatorsPtr ops, 
-				    const std::string &insn_dump) {
+				    const std::string &/*insn_dump*/) {
     SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
 
     BaseSemantics::DispatcherPtr cpu = DispatcherPowerpc::instance(ops, 64);
@@ -100,7 +100,7 @@ bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
     return true;
 }
 
-bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &insn_dump) {
+bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &/*insn_dump*/) {
     SgAsmArmv8Instruction *insn = static_cast<SgAsmArmv8Instruction *>(rose_insn);
 
     BaseSemantics::DispatcherPtr cpu = DispatcherARM64::instance(ops, 64);
@@ -114,7 +114,7 @@ bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics
     return false;
 }
 
-bool SymbolicExpansion::expandAmdgpuVega(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &insn_dump) {
+bool SymbolicExpansion::expandAmdgpuVega(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &/*insn_dump*/) {
     SgAsmAmdgpuVegaInstruction *insn = static_cast<SgAsmAmdgpuVegaInstruction *>(rose_insn);
 
     BaseSemantics::DispatcherPtr cpu = DispatcherAmdgpuVega::instance(ops, 64);

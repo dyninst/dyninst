@@ -45,6 +45,7 @@
 #include "instructionAPI/h/Result.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
+#include "common/h/compiler_diagnostics.h"
 
 #include "ABI.h"
 #include "Annotatable.h"
@@ -305,7 +306,7 @@ void StackAnalysis::fixpoint(bool verbose) {
          }
       } else {
          if (verbose) {
-            stackanalysis_printf("\t Calculating meet with block [%x-%x]\n",
+            stackanalysis_printf("\t Calculating meet with block [%lx-%lx]\n",
                block->start(), block->lastInsnAddr());
          }
          meetInputs(block, blockInputs[block], input);
@@ -386,7 +387,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       );
    }
 }
-};  // namespace
+}  // namespace
 
 
 // Looks for return edges in the function, following tail calls if necessary.
@@ -588,7 +589,7 @@ void StackAnalysis::summarize() {
       Block *block = bIter->first;
       for (auto aIter = (*intervals_)[block].begin();
          aIter != (*intervals_)[block].end(); aIter++) {
-         Address addr = aIter->first;
+         //Address addr = aIter->first;
          AbslocState &as = aIter->second;
          for (auto tIter = as.begin(); tIter != as.end(); tIter++) {
             const Absloc &target = tIter->first;
@@ -733,24 +734,24 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
    }
 }
 
-StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
+StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func_) {
    // Cache previous work...
-   if (funcCleanAmounts.find(func) != funcCleanAmounts.end()) {
-      return funcCleanAmounts[func];
+   if (funcCleanAmounts.find(func_) != funcCleanAmounts.end()) {
+      return funcCleanAmounts[func_];
    }
 
-   if (!func->cleansOwnStack()) {
-      funcCleanAmounts[func] = 0;
-      return funcCleanAmounts[func];
+   if (!func_->cleansOwnStack()) {
+      funcCleanAmounts[func_] = 0;
+      return funcCleanAmounts[func_];
    }
 
    InstructionDecoder decoder((const unsigned char*) NULL, 0,
-      func->isrc()->getArch());
+      func_->isrc()->getArch());
    unsigned char *cur;
 
    std::set<Height> returnCleanVals;
 
-   Function::const_blocklist returnBlocks = func->returnBlocks();
+   Function::const_blocklist returnBlocks = func_->returnBlocks();
    for (auto rets = returnBlocks.begin(); rets != returnBlocks.end(); ++rets) {
       Block *ret = *rets;
       cur = (unsigned char *) ret->region()->getPtrToInstruction(
@@ -778,7 +779,7 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
       // Non-returning or tail-call exits?
       clean = Height::bottom;
    }
-   funcCleanAmounts[func] = clean;
+   funcCleanAmounts[func_] = clean;
 
    return clean;
 }
@@ -1728,7 +1729,7 @@ void StackAnalysis::handleLEA(Instruction insn,
 
    if (readSet.size() == 0) {
       // op1: imm
-      STACKANALYSIS_ASSERT(typeid(*srcExpr) == typeid(Immediate));
+      STACKANALYSIS_ASSERT(dynamic_cast<Immediate*>(srcExpr.get()));
       long immVal = srcExpr->eval().convert<long>();
       xferFuncs.push_back(TransferFunc::absFunc(writeloc, immVal));
       retopBaseSubReg(written, xferFuncs);
@@ -2827,6 +2828,7 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
       input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));
    }
 #else
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(input);
    STACKANALYSIS_ASSERT(0 && "Unimplemented architecture");
 #endif
 }
@@ -3296,9 +3298,9 @@ StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
       return inputSet;
    }
 
-   AbslocState::const_iterator iter = inputs.find(target);
-   if (iter != inputs.end()) {
-      inputSet = iter->second;
+   AbslocState::const_iterator iter_ = inputs.find(target);
+   if (iter_ != inputs.end()) {
+      inputSet = iter_->second;
    } else {
       inputSet.makeTopSet();
    }
@@ -3310,7 +3312,7 @@ StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
       for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
          Absloc curLoc = (*iter).first;
          long curScale = (*iter).second.first;
-         bool curTopBottom = (*iter).second.second;
+         //bool curTopBottom = (*iter).second.second;
          auto findLoc = inputs.find(curLoc);
          Height locInput;
          if (findLoc == inputs.end()) {
@@ -3347,7 +3349,7 @@ StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
       // Copy the input value from whatever we're a copy of.
       AbslocState::const_iterator iter2 = inputs.find(from);
       if (iter2 != inputs.end()) {
-         const Definition &def = iter2->second.getDefSet();
+         //const Definition &def = iter2->second.getDefSet();
          const Height &h = iter2->second.getHeightSet();
          if (!h.isBottom() && !h.isTop()) {
             if ((from.isSP() || from.isFP()) &&
@@ -3708,8 +3710,8 @@ void StackAnalysis::SummaryFunc::add(TransferFuncs &xferFuncs) {
    // We need to update our register->xferFunc map
    // with the effects of each of the transferFuncs.
    for (auto iter = xferFuncs.begin(); iter != xferFuncs.end(); ++iter) {
-      TransferFunc &func = *iter;
-      func.accumulate(accumFuncs);
+      TransferFunc &func_ = *iter;
+      func_.accumulate(accumFuncs);
    }
    validate();
 }
@@ -3719,8 +3721,8 @@ void StackAnalysis::SummaryFunc::addSummary(const TransferSet &summary) {
    TransferSet newAccumFuncs = accumFuncs;
    for (auto iter = summary.begin(); iter != summary.end(); ++iter) {
       const Absloc &loc = iter->first;
-      const TransferFunc &func = iter->second;
-      newAccumFuncs[loc] = func.summaryAccumulate(accumFuncs);
+      const TransferFunc &func_ = iter->second;
+      newAccumFuncs[loc] = func_.summaryAccumulate(accumFuncs);
    }
    accumFuncs = newAccumFuncs;
    validate();
@@ -3729,11 +3731,11 @@ void StackAnalysis::SummaryFunc::addSummary(const TransferSet &summary) {
 void StackAnalysis::SummaryFunc::validate() const {
    for (TransferSet::const_iterator iter = accumFuncs.begin(); 
       iter != accumFuncs.end(); ++iter) {
-      const TransferFunc &func = iter->second;
-      STACKANALYSIS_ASSERT(func.target.isValid());
-      if (func.isCopy()) STACKANALYSIS_ASSERT(!func.isAbs());
-      if (func.isAbs()) STACKANALYSIS_ASSERT(!func.isCopy());
-      if (func.isBottom()) STACKANALYSIS_ASSERT(!func.isCopy());
+      const TransferFunc &func_ = iter->second;
+      STACKANALYSIS_ASSERT(func_.target.isValid());
+      if (func_.isCopy()) STACKANALYSIS_ASSERT(!func_.isAbs());
+      if (func_.isAbs()) STACKANALYSIS_ASSERT(!func_.isCopy());
+      if (func_.isBottom()) STACKANALYSIS_ASSERT(!func_.isCopy());
    }
 }
 

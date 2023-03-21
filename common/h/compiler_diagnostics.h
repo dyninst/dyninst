@@ -47,6 +47,14 @@
 //
 //      FLEX_ARRAY
 //              warning about C flexible arrays in C++
+//      VLA
+//              warning about C VLAs (variable length arrays) in C++
+//      VLA_EXTENSION
+//              clang warning about C VLAs in C++ if VLA is suppressed
+//      VLA_ALL`
+//              both of the above
+//      VLA_GCC_PRAGMA_BUG
+//              gcc <9, 11.0, and 11.1 workaround macro
 //      LOGICAL_OP
 //              warning about duplicate subexpressions in a logical expression
 //              Is a false positive due compiler checks after macro/constant
@@ -55,6 +63,13 @@
 //      DUPLICATED_BRANCHES
 //              similar to LOGICAL_OP except the expressions are the
 //              conditionals of a chain of if/then/else's. Only gcc 7-8.
+//      UNUSED_VARIABLE
+//              clang <10 warns about variables defined solely for RIAA (locks)
+//
+// Macros to silence unused variable warnings
+//
+//      DYNINST_SUPPRESS_UNUSED_VARIABLE(var)
+//              indicate that variable var OK to be unused
 //
 // Define DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS to prevents suppressions.
 
@@ -66,6 +81,7 @@
 //
 #if defined(__GNUC__) && !defined(__clang__)
  #define DYNINST_SUPPRESS_CODE_FLEX_ARRAY                  "-Wpedantic"
+ #define DYNINST_SUPPRESS_CODE_VLA                         "-Wvla"
  #if __GNUC__ < 9
   #define DYNINST_SUPPRESS_CODE_LOGICAL_OP                 "-Wlogical-op"
  #endif
@@ -74,6 +90,11 @@
  #endif
 #elif defined(__clang__)
  #define DYNINST_SUPPRESS_CODE_FLEX_ARRAY                  "-Wpedantic"
+ #define DYNINST_SUPPRESS_CODE_VLA                         "-Wvla"
+ #define DYNINST_SUPPRESS_CODE_VLA_EXTENSION               "-Wvla-extension"
+ #if __clang_major__ < 10
+  #define DYNINST_SUPPRESS_CODE_UNUSED_VARIABLE            "-Wunused-variable"
+ #endif
 #elif defined(_MSC_VER)
  #define DYNINST_SUPPRESS_CODE_FLEX_ARRAY                  4200
 #endif
@@ -86,6 +107,28 @@
  #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_FLEX_ARRAY
  #define DYNINST_DIAGNOSTIC_END_SUPPRESS_FLEX_ARRAY
 #endif
+
+#ifdef DYNINST_SUPPRESS_CODE_VLA
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA             DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(VLA)
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA               DYNINST_DIAGNOSTIC_POP
+#else
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA
+#endif
+
+#ifdef DYNINST_SUPPRESS_CODE_VLA_EXTENSION
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_EXTENSION   DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(VLA_EXTENSION)
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_EXTENSION     DYNINST_DIAGNOSTIC_POP
+#else
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_EXTENSION
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_EXTENSION
+#endif
+
+#define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_ALL          DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_EXTENSION
+#define DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_ALL            DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_EXTENSION
+
+
+// Suppressions to work around compiler specific diagnostic bugs
 
 #ifdef DYNINST_SUPPRESS_CODE_LOGICAL_OP
  #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP      DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(LOGICAL_OP)
@@ -101,6 +144,25 @@
 #else
  #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_DUPLICATED_BRANCHES
  #define DYNINST_DIAGNOSTIC_END_SUPPRESS_DUPLICATED_BRANCHES
+#endif
+
+#ifdef DYNINST_SUPPRESS_CODE_UNUSED_VARIABLE
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_UNUSED_VARIABLE     DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(UNUSED_VARIABLE)
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE       DYNINST_DIAGNOSTIC_POP
+#else
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_UNUSED_VARIABLE
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
+#endif
+
+// gcc <9, 11.0 and 11.1 (there may be others) have a bug where 'pragma
+// diagnostic ignores' do not take affect until the next line, so this is a
+// workaround for the suppression and VLA are in the same macro
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ < 9 || __GNUC__ == 11 && __GNUC_MINOR__ < 2)
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_GCC_PRAGMA_BUG DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_GCC_PRAGMA_BUG   DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA
+#else
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA_GCC_PRAGMA_BUG
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA_GCC_PRAGMA_BUG
 #endif
 
 
@@ -142,5 +204,16 @@
 #define DYNINST_DIAGNOSTIC_PUSH_SUPPRESS(x)     DYNINST_DIAGNOSTIC_PUSH         \
                                                     DYNINST_DIAGNOSTIC_SUPPRESS(x)
 #define DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(x) DYNINST_DIAGNOSTIC_PUSH_SUPPRESS(DYNINST_SUPPRESS_CODE_##x)
+
+
+// use the variable in a void expression to indicate use
+#ifndef DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS
+ #define DYNINST_SUPPRESS_UNUSED_VARIABLE(var) (void)(var)
+#endif
+
+// if not defined, expand to nothing
+#ifndef DYNINST_SUPPRESS_UNUSED_VARIABLE
+ #define DYNINST_SUPPRESS_UNUSED_VARIABLE(var)
+#endif
 
 #endif /* COMPILER_DIAGNOSTICS_H */

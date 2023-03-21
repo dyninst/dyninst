@@ -10,7 +10,9 @@ class SgNode {
     /*! \brief returns new style SageIII enum values */
     virtual VariantT variantT() const = 0; // MS: new variant used in tree traversal    
     
-    virtual ~SgNode() {};
+    virtual ~SgNode() {}
+    SgNode() = default;
+    SgNode(const SgNode&) = default;
 
 };
 #endif

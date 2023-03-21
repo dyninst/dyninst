@@ -533,7 +533,7 @@ namespace rose {
                 Ptr node;
                 Formatter &formatter;
             public:
-                WithFormatter(const Ptr &node, Formatter &formatter) : node(node), formatter(formatter) { }
+                WithFormatter(const Ptr &node_, Formatter &formatter_) : node(node_), formatter(formatter_) { }
 
                 void print(std::ostream &stream) const { node->print(stream, formatter); }
             };
@@ -764,19 +764,19 @@ namespace rose {
         struct ShiftSimplifier : Simplifier {
             bool newbits;
 
-            ShiftSimplifier(bool newbits) : newbits(newbits) { }
+            ShiftSimplifier(bool newbits_) : newbits(newbits_) { }
 
             Ptr combine_strengths(Ptr strength1, Ptr strength2, size_t value_width) const;
         };
 
         struct ShlSimplifier : ShiftSimplifier {
-            ShlSimplifier(bool newbits) : ShiftSimplifier(newbits) { }
+            ShlSimplifier(bool newbits_) : ShiftSimplifier(newbits_) { }
 
             virtual Ptr rewrite(Interior *) const;
         };
 
         struct ShrSimplifier : ShiftSimplifier {
-            ShrSimplifier(bool newbits) : ShiftSimplifier(newbits) { }
+            ShrSimplifier(bool newbits_) : ShiftSimplifier(newbits_) { }
 
             virtual Ptr rewrite(Interior *) const;
         };
@@ -1343,7 +1343,7 @@ namespace rose {
                     }
                 }
 
-                VisitAction postVisit(const Ptr &node) {
+                VisitAction postVisit(const Ptr &/*node*/) {
                     return CONTINUE;
                 }
             } visitor;

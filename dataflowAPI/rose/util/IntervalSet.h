@@ -342,7 +342,7 @@ public:
      *
      * @{ */
     template<class Interval2>
-    bool isDistinct(const Interval2 &interval) const {
+    bool isDistinct(const Interval2 &/*interval*/) const {
         return !isOverlapping();
     }
 

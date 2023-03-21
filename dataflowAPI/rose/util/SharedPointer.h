@@ -353,6 +353,8 @@ public:
 //                                      Implementations
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_UNUSED_VARIABLE
+
 template<class T>
 inline size_t SharedPointer<T>::ownershipCount(T *rawPtr) {
     if (rawPtr) {
@@ -380,6 +382,8 @@ inline size_t SharedPointer<T>::releaseOwnership(Pointee *rawPtr) {
         return 0;
     }
 }
+
+DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
 
 } // namespace
 #endif

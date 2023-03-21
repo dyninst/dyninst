@@ -52,8 +52,8 @@ namespace InstructionAPI
         /// should not be invoked by user code ordinarily.
        
         public:
-            Visitor() {}
-            virtual ~Visitor() {}
+            virtual ~Visitor() = default;
+            Visitor& operator=(const Visitor&) = default;
             virtual void visit(BinaryFunction* b) = 0;
             virtual void visit(Immediate* i) = 0;
             virtual void visit(RegisterAST* r) = 0;

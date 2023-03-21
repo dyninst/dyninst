@@ -100,7 +100,13 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
     template<class Derived, class Value, class BaseIterator>
-    class BidirectionalIterator: public std::iterator<std::bidirectional_iterator_tag, Value> {
+    class BidirectionalIterator {
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type = Value;
+        using difference_type = std::ptrdiff_t;
+        using pointer = value_type*;
+        using reference = value_type&;
     protected:
         BaseIterator base_;
         BidirectionalIterator() {}
@@ -128,7 +134,6 @@ public:
         typedef                BidirectionalIterator<NodeIterator, Node, typename StlMap::iterator> Super;
     public:
         NodeIterator() {}
-        NodeIterator(const NodeIterator &other): Super(other) {}
         // std::map stores std::pair nodes, but we want to return Node, which must have the same layout.
         Node& operator*() const { return *(Node*)&*this->base_; }
         Node* operator->() const { return (Node*)&*this->base_; }

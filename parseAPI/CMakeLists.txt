@@ -30,7 +30,6 @@ set(SRC_LIST
     src/BoundFactCalculator.C
     src/BoundFactData.C
     src/ThunkData.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
     src/dominator.C
     src/LoopAnalyzer.C
     src/Loop.C
@@ -38,7 +37,7 @@ set(SRC_LIST
     src/IdiomModelDesc.C
     src/ProbabilisticParser.C)
 
-set(ROSE_SRC
+set(DATAFLOW_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
@@ -56,7 +55,9 @@ set(ROSE_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEval.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/templates.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C)
+
+set(ROSE_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/ExtentMap.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/rangemap.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Assert.C
@@ -82,6 +83,7 @@ set(ROSE_SRC
 
 # FIXME: Rose needs a bunch of warning cleanup
 set_source_files_properties(${ROSE_SRC} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
+set(SRC_LIST ${SRC_LIST} ${DATAFLOW_SRC} ${ROSE_SRC})
 
 if(LIGHTWEIGHT_SYMTAB)
   list(APPEND SRC_LIST src/SymLiteCodeSource.C)

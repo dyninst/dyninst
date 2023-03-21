@@ -389,7 +389,7 @@ void RoseInsnPPCFactory::massageOperands(const Instruction &insn,
   return;
 }
 
-void RoseInsnArmv8Factory::setSizes(SgAsmInstruction */*insn*/) {
+void RoseInsnArmv8Factory::setSizes(SgAsmInstruction * /*insn*/) {
 
 }
 
@@ -406,13 +406,13 @@ bool RoseInsnArmv8Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsm
   return false;
 }
 
-void RoseInsnArmv8Factory::massageOperands(const Instruction &insn,
-        std::vector<InstructionAPI::Operand> &operands) {
+void RoseInsnArmv8Factory::massageOperands(const Instruction &/*insn*/,
+        std::vector<InstructionAPI::Operand> &/*operands*/) {
 
 }
  
 
-void RoseInsnAmdgpuVegaFactory::setSizes(SgAsmInstruction */*insn*/) {
+void RoseInsnAmdgpuVegaFactory::setSizes(SgAsmInstruction * /*insn*/) {
 
 }
 

@@ -416,7 +416,7 @@ namespace rose {
                     Formatter &fmt;
                     std::string old_line_prefix;
                 public:
-                    Indent(Formatter &fmt) : fmt(fmt) {
+                    Indent(Formatter &fmt_) : fmt(fmt_) {
                         old_line_prefix = fmt.get_line_prefix();
                         fmt.set_line_prefix(old_line_prefix + fmt.get_indentation_suffix());
                     }
@@ -461,16 +461,16 @@ namespace rose {
                 public:
                     SgAsmInstruction *insn;
 
-                    Exception(const std::string &mesg, SgAsmInstruction *insn) : std::runtime_error(mesg),
-                                                                                 insn(insn) { }
+                    Exception(const std::string &mesg, SgAsmInstruction *insn_) : std::runtime_error(mesg),
+                                                                                 insn(insn_) { }
 
                     void print(std::ostream &) const;
                 };
 
                 class NotImplemented : public Exception {
                 public:
-                    NotImplemented(const std::string &mesg, SgAsmInstruction *insn)
-                            : Exception(mesg, insn) { }
+                    NotImplemented(const std::string &mesg, SgAsmInstruction *insn_)
+                            : Exception(mesg, insn_) { }
                 };
 
 
@@ -553,7 +553,7 @@ namespace rose {
                     // Normal, protected, C++ constructors
                 protected:
                     explicit SValue(size_t nbits) : width(nbits) { }  // hot
-                    SValue(const SValue &other) : width(other.width) { }
+                    SValue(const SValue &other) : SharedObject(other), width(other.width) { }
 
                 public:
                     /** Shared-ownership pointer for an @ref SValue object. See @ref heap_object_shared_ownership. */
@@ -723,7 +723,7 @@ namespace rose {
                         SValuePtr obj;
                         Formatter &fmt;
                     public:
-                        WithFormatter(const SValuePtr &svalue, Formatter &fmt) : obj(svalue), fmt(fmt) { }
+                        WithFormatter(const SValuePtr &svalue, Formatter &fmt_) : obj(svalue), fmt(fmt_) { }
 
                         void print(std::ostream &stream) const { obj->print(stream, fmt); }
                     };
@@ -774,8 +774,8 @@ namespace rose {
                     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                     // Real constructors
                 protected:
-                    RegisterState(const SValuePtr &protoval, const RegisterDictionary *regdict)
-                            : protoval_(protoval), regdict(regdict) {
+                    RegisterState(const SValuePtr &protoval, const RegisterDictionary *regdict_)
+                            : protoval_(protoval), regdict(regdict_) {
                         ASSERT_not_null(protoval_);
                     }
 
@@ -906,7 +906,7 @@ namespace rose {
                         RegisterStatePtr obj;
                         Formatter &fmt;
                     public:
-                        WithFormatter(const RegisterStatePtr &obj, Formatter &fmt) : obj(obj), fmt(fmt) { }
+                        WithFormatter(const RegisterStatePtr &obj_, Formatter &fmt_) : obj(obj_), fmt(fmt_) { }
 
                         void print(std::ostream &stream) const { obj->print(stream, fmt); }
                     };
@@ -1105,7 +1105,7 @@ namespace rose {
                         MemoryStatePtr obj;
                         Formatter &fmt;
                     public:
-                        WithFormatter(const MemoryStatePtr &obj, Formatter &fmt) : obj(obj), fmt(fmt) { }
+                        WithFormatter(const MemoryStatePtr &obj_, Formatter &fmt_) : obj(obj_), fmt(fmt_) { }
 
                         void print(std::ostream &stream) const { obj->print(stream, fmt); }
                     };
@@ -1167,7 +1167,8 @@ namespace rose {
 
                     // deep-copy the registers and memory
                     State(const State &other)
-                            : protoval_(other.protoval_) {
+                            : boost::enable_shared_from_this<State>(other),
+                              protoval_(other.protoval_) {
                         registers_ = other.registers_->clone();
                         memory_ = other.memory_->clone();
                     }
@@ -1344,7 +1345,7 @@ namespace rose {
                         StatePtr obj;
                         Formatter &fmt;
                     public:
-                        WithFormatter(const StatePtr &obj, Formatter &fmt) : obj(obj), fmt(fmt) { }
+                        WithFormatter(const StatePtr &obj_, Formatter &fmt_) : obj(obj_), fmt(fmt_) { }
 
                         void print(std::ostream &stream) const { obj->print(stream, fmt); }
                     };
@@ -1586,7 +1587,7 @@ namespace rose {
                         RiscOperatorsPtr obj;
                         Formatter &fmt;
                     public:
-                        WithFormatter(const RiscOperatorsPtr &obj, Formatter &fmt) : obj(obj), fmt(fmt) { }
+                        WithFormatter(const RiscOperatorsPtr &obj_, Formatter &fmt_) : obj(obj_), fmt(fmt_) { }
 
                         void print(std::ostream &stream) const { obj->print(stream, fmt); }
                     };
@@ -1641,7 +1642,7 @@ namespace rose {
                         ASSERT_not_null(insn);
                         ASSERT_require(currentInsn_ == insn);
                         currentInsn_ = NULL;
-                    };
+                    }
 
 
                     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2262,8 +2263,8 @@ namespace rose {
                         return regdict;
                     }
 
-                    virtual void set_register_dictionary(const RegisterDictionary *regdict) {
-                        this->regdict = regdict;
+                    virtual void set_register_dictionary(const RegisterDictionary *regdict_) {
+                        this->regdict = regdict_;
                     }
                     /** @} */
 

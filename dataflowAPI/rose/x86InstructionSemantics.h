@@ -39,8 +39,8 @@ struct X86InstructionSemantics {
 
     Policy& policy;
 
-    X86InstructionSemantics(Policy& policy)
-        : policy(policy)
+    X86InstructionSemantics(Policy& policy_)
+        : policy(policy_)
         {}
     virtual ~X86InstructionSemantics() {}
 
@@ -1350,7 +1350,6 @@ struct X86InstructionSemantics {
                     case 4: {
                         Word(32) op1 = read32(operands[0]);
                         Word(32) op2 = read32(operands[1]);
-                        Word(5) shiftCount = extract<0, 5>(read8(operands[2]));
                         Word(32) output1 = policy.shiftLeft(op1, shiftCount);
                         Word(32) output2 = policy.ite(policy.equalToZero(shiftCount),
                                                       number<32>(0),

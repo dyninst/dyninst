@@ -92,11 +92,11 @@ struct Handle {
   AST::Ptr *v_;
   Handle() : v_(NULL) {
     assert(0);
-  };
+  }
   Handle(AST::Ptr v) {
     assert(v);
     v_ = new AST::Ptr(v);
-  };
+  }
   Handle(const Handle &rhs) {
     v_ = new AST::Ptr(rhs.var());
   }
@@ -105,7 +105,7 @@ struct Handle {
     v_ = new AST::Ptr(rhs.var());
     return  *this;
   }
-    ~Handle() { if (v_) delete v_; };
+    ~Handle() { if (v_) delete v_; }
   
   template <size_t Len2>
   bool operator==(const Handle<Len2> &rhs) {
@@ -129,7 +129,7 @@ struct Handle {
                    Dyninst::Architecture a,
                    InstructionAPI::Instruction insn);
 
-   ~SymEvalPolicy() {};
+   ~SymEvalPolicy() {}
 
    void undefinedInstruction(SgAsmx86Instruction *);
    void undefinedInstruction(SgAsmPowerpcInstruction *);
@@ -198,7 +198,7 @@ struct Handle {
    }
     void systemCall(unsigned char value)
     {
-        fprintf(stderr, "WARNING: syscall %d detected; unhandled by semantics!\n", (unsigned int)(value));
+        fprintf(stderr, "WARNING: syscall %u detected; unhandled by semantics!\n", (unsigned int)(value));
     }
    void writeSegreg(X86SegmentRegister r, Handle<16> value) {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
@@ -242,32 +242,32 @@ struct Handle {
     
    template <size_t Len>
      Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
-			    Handle<32> addr,
+			    Handle<32> addr_,
 			    Handle<1> cond) {
      if (cond == true_()) {
        return Handle<Len>(getUnaryAST(ROSEOperation::derefOp,
-				      addr.var(),
+				      addr_.var(),
                                       Len));
      }
      else {
        return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
-				       addr.var(),
+				       addr_.var(),
 				       cond.var(),
                                        Len));
      }
    }
         
    template <size_t Len>
-     Handle<Len> readMemory(Handle<32> addr,
+     Handle<Len> readMemory(Handle<32> addr_,
                             Handle<1> cond) {
     return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
-                                    addr.var(),
+                                    addr_.var(),
                                     cond.var(),
                                     Len));
      }
      template <size_t Len>
      void writeMemory(X86SegmentRegister,
-		      Handle<32> addr,
+		      Handle<32> addr_,
 		      Handle<Len> data,
 		      Handle<32> repeat,
 		      Handle<1> cond) {
@@ -278,7 +278,7 @@ struct Handle {
 
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
-       i->second->out().setGenerator(addr.var());
+       i->second->out().setGenerator(addr_.var());
        i->second->out().setSize(Len);
        
        if (cond == true_()) {
@@ -296,12 +296,12 @@ struct Handle {
    }
 
    template <size_t Len>
-   void writeMemory(Handle<32> addr,
+   void writeMemory(Handle<32> addr_,
                     Handle<Len> data,
                     Handle<1> cond) {
         std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
         if (i != aaMap.end()) {
-            i->second->out().setGenerator(addr.var());
+            i->second->out().setGenerator(addr_.var());
             i->second->out().setSize(Len);
             if (cond == true_()) {
                 // Thinking about it... I think we avoid the "writeOp"
@@ -321,12 +321,12 @@ struct Handle {
    
    template <size_t Len>
      void writeMemory(X86SegmentRegister,
-		      Handle<32> addr,
+		      Handle<32> addr_,
 		      Handle<Len> data,
 		      Handle<1> cond) {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
-       i->second->out().setGenerator(addr.var());
+       i->second->out().setGenerator(addr_.var());
        i->second->out().setSize(Len);
        if (cond == true_()) {	 
 	 // Thinking about it... I think we avoid the "writeOp"
@@ -545,8 +545,8 @@ struct Handle {
 
    // Misc
     
-   void hlt() {};
-   void interrupt(uint8_t) {};
+   void hlt() {}
+   void interrupt(uint8_t) {}
     
    Handle<64> rdtsc() {
      return number<64>(0);
@@ -649,7 +649,7 @@ struct Handle {
 		      Dyninst::Architecture a,
 		      Dyninst::InstructionAPI::Instruction insn);
 
-   ~SymEvalPolicy_64() {};
+   ~SymEvalPolicy_64() {}
 
    void undefinedInstruction(SgAsmx86Instruction *);
    void undefinedInstruction(SgAsmPowerpcInstruction *);
@@ -718,7 +718,7 @@ struct Handle {
    }
     void systemCall(unsigned char value)
     {
-        fprintf(stderr, "WARNING: syscall %d detected; unhandled by semantics!\n", (unsigned int)(value));
+        fprintf(stderr, "WARNING: syscall %u detected; unhandled by semantics!\n", (unsigned int)(value));
     }
    void writeSegreg(X86SegmentRegister r, Handle<16> value) {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
@@ -762,32 +762,32 @@ struct Handle {
     
    template <size_t Len>
      Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
-			    Handle<64> addr,
+			    Handle<64> addr_,
 			    Handle<1> cond) {
      if (cond == true_()) {
        return Handle<Len>(getUnaryAST(ROSEOperation::derefOp,
-				      addr.var(),
+				      addr_.var(),
                                       Len));
      }
      else {
        return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
-				       addr.var(),
+				       addr_.var(),
 				       cond.var(),
                                        Len));
      }
    }
         
    template <size_t Len>
-     Handle<Len> readMemory(Handle<64> addr,
+     Handle<Len> readMemory(Handle<64> addr_,
                             Handle<1> cond) {
     return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
-                                    addr.var(),
+                                    addr_.var(),
                                     cond.var(),
                                     Len));
      }
      template <size_t Len>
      void writeMemory(X86SegmentRegister,
-		      Handle<64> addr,
+		      Handle<64> addr_,
 		      Handle<Len> data,
 		      Handle<64> repeat,
 		      Handle<1> cond) {
@@ -798,7 +798,7 @@ struct Handle {
 
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
-       i->second->out().setGenerator(addr.var());
+       i->second->out().setGenerator(addr_.var());
        i->second->out().setSize(Len);
        
        if (cond == true_()) {
@@ -816,12 +816,12 @@ struct Handle {
    }
 
    template <size_t Len>
-   void writeMemory(Handle<64> addr,
+   void writeMemory(Handle<64> addr_,
                     Handle<Len> data,
                     Handle<1> cond) {
         std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
         if (i != aaMap.end()) {
-            i->second->out().setGenerator(addr.var());
+            i->second->out().setGenerator(addr_.var());
             i->second->out().setSize(Len);
             if (cond == true_()) {
                 // Thinking about it... I think we avoid the "writeOp"
@@ -841,12 +841,12 @@ struct Handle {
    
    template <size_t Len>
      void writeMemory(X86SegmentRegister,
-		      Handle<64> addr,
+		      Handle<64> addr_,
 		      Handle<Len> data,
 		      Handle<1> cond) {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
-       i->second->out().setGenerator(addr.var());
+       i->second->out().setGenerator(addr_.var());
        i->second->out().setSize(Len);
        if (cond == true_()) {	 
 	 // Thinking about it... I think we avoid the "writeOp"
@@ -1065,8 +1065,8 @@ struct Handle {
 
    // Misc
     
-   void hlt() {};
-   void interrupt(uint8_t) {};
+   void hlt() {}
+   void interrupt(uint8_t) {}
     
    Handle<64> rdtsc() {
      return number<64>(0);
@@ -1157,6 +1157,6 @@ struct Handle {
       return RoseAST::create(ROSEOperation(op, s), a, b, c);
     }    
 };
-};
-};
+}
+}
 #endif

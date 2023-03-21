@@ -1,0 +1,51 @@
+ARG version
+FROM ubuntu:${version}
+
+ARG build_elfutils="no"
+
+#####################################################
+#
+# Base container for an Ubuntu environment
+#
+#   The dependencies are purposefully unversioned
+#   so that the distribution-default ones are used.
+#
+#   If the distro's elfutils is too old, it can be
+#   built by using `--build-arg build_elfutils=yes`.
+#
+#####################################################
+
+LABEL maintainer="@hainest,@vsoch"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Chicago
+
+RUN apt-get -qq update && \
+    apt-get -qq install -y --no-install-recommends \
+      build-essential         \
+      cmake                   \
+      libboost-atomic-dev     \
+      libboost-chrono-dev     \
+      libboost-date-time-dev  \
+      libboost-filesystem-dev \
+      libboost-thread-dev     \
+      libboost-timer-dev      \
+      libtbb-dev              \
+      gettext                 \
+      bzip2                   \
+      zlib1g-dev              \
+      m4                      \
+      libiberty-dev						\
+      pkg-config              \
+      clang                   \
+      libomp-dev
+
+COPY docker/build_elfutils.sh .
+COPY docker/dependencies.versions .
+RUN if test x"${build_elfutils}" = xyes; then \
+      apt install -qq -y --no-install-recommends libcurl4-openssl-dev wget libzstd-dev libbz2-dev liblzma-dev; \
+      bash build_elfutils.sh; \
+    else \
+      apt install -qq -y --no-install-recommends elfutils libelf-dev libdw-dev libdebuginfod-dev; \
+    fi \
+    && rm -f build_elfutils.sh

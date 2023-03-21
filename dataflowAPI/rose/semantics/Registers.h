@@ -49,11 +49,8 @@ public:
     static const RegisterDictionary *dictionary_amdgpu_vega();                // ARMv8-A architecture
     static const RegisterDictionary *dictionary_powerpc();
 
-    RegisterDictionary(const std::string &name)
-        :name(name) {}
-    RegisterDictionary(const RegisterDictionary& other) {
-        *this = other;
-    }
+    RegisterDictionary(const std::string &name_)
+        :name(name_) {}
 
     /** Obtain the name of the dictionary. */
     const std::string &get_architecture_name() const {
@@ -62,8 +59,8 @@ public:
 
     /** Set the name of the dictionary. Dictionary names are generally architecture names.  Dictionaries created by one of the
      *  built-in static methods of this class have the same name as the method that created it. */
-    void set_architecture_name(const std::string &name) {
-        this->name = name;
+    void set_architecture_name(const std::string &name_) {
+        this->name = name_;
     }
 
     /** Insert a definition into the dictionary.  If the name already exists in the dictionary then the new RegisterDescriptor
