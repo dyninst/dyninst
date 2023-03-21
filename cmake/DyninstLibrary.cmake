@@ -117,7 +117,7 @@ function(dyninst_library _target)
     if(NOT _target_FORCE_STATIC)
       set(_suffix "_static")
     endif()
-    
+
     # Link against the corresponding static Dyninst target
     foreach(d ${_target_DYNINST_DEPS})
       # Depending on another Dyninst library is always public
