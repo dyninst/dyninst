@@ -64,6 +64,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common
   PUBLIC_DEPS Threads::Threads
+  FORCE_STATIC
 )
 # cmake-format: on
 

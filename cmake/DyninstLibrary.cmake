@@ -96,7 +96,7 @@ function(dyninst_library _target)
       PUBLIC_DEPS
       PRIVATE_DEPS)
   # cmake-format: on
-  cmake_parse_arguments(PARSE_ARGV 0 _target "" "" "${_keywords}")
+  cmake_parse_arguments(PARSE_ARGV 0 _target "FORCE_STATIC" "" "${_keywords}")
 
   add_library(${_target} SHARED ${_target_PUBLIC_HEADER_FILES}
                                 ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
@@ -106,17 +106,24 @@ function(dyninst_library _target)
 
   set(_all_targets ${_target})
 
-  if(ENABLE_STATIC_LIBS)
+  if(_target_FORCE_STATIC OR ENABLE_STATIC_LIBS)
     list(APPEND _all_targets ${_target}_static)
     add_library(
       ${_target}_static STATIC ${_target_PUBLIC_HEADER_FILES}
                                ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
 
+    # When building all libraries as static, they have a '_static' suffix
+    # but not when FORCE_STATIC is active
+    if(NOT _target_FORCE_STATIC)
+      set(_suffix "_static")
+    endif()
+    
     # Link against the corresponding static Dyninst target
     foreach(d ${_target_DYNINST_DEPS})
       # Depending on another Dyninst library is always public
-      target_link_libraries(${_target}_static PUBLIC "${d}_static")
+      target_link_libraries(${_target}_static PUBLIC "${d}${_suffix}")
     endforeach()
+    unset(_suffix)
   endif()
 
   foreach(t ${_all_targets})
