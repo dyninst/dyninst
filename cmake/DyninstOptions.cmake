@@ -43,3 +43,5 @@ set(DYNINST_CXXSTDLIB
     "libstdc++"
     CACHE STRING "The C++ standard library to use; only affects LLVM-based compilers")
 mark_as_advanced(DYNINST_CXXSTDLIB)
+
+option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's default" OFF)
