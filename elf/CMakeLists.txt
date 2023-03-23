@@ -19,7 +19,6 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES DYNELF_LIB
   DYNINST_DEPS common
-  PUBLIC_DEPS Dyninst::ElfUtils
-  PRIVATE_DEPS Dyninst::Boost_headers
+  PRIVATE_DEPS Dyninst::Boost_headers Dyninst::ElfUtils
 )
 # cmake-format: on

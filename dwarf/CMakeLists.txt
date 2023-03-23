@@ -23,5 +23,6 @@ dyninst_library(
   DEFINES DYNDWARF_LIB
   DYNINST_DEPS dynElf common
   PUBLIC_DEPS Dyninst::Boost_headers
+  PRIVATE_DEPS Dyninst::ElfUtils
 )
 # cmake-format: on
