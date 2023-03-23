@@ -32,11 +32,10 @@
 
 namespace {
 
-Dwarf_Die *get_type(Dwarf_Die *die) {
+Dwarf_Die *get_type(Dwarf_Die *die, Dwarf_Die *result) {
   Dwarf_Attribute scratch_attr;
   dwarf_attr_integrate(die, DW_AT_type, &scratch_attr);
-  Dwarf_Die scratch_die;
-  Dwarf_Die *type = dwarf_formref_die(&scratch_attr, &scratch_die);
+  Dwarf_Die *type = dwarf_formref_die(&scratch_attr, result);
 
   if (!type || dwarf_peel_type(type, type) != 0)
     return nullptr;
@@ -46,7 +45,8 @@ Dwarf_Die *get_type(Dwarf_Die *die) {
 
 bool is_signed(Dwarf_Die *die) {
   Dwarf_Attribute attr;
-  if (dwarf_attr(get_type(die), DW_AT_encoding, &attr)) {
+  Dwarf_Die scratch;
+  if (dwarf_attr(get_type(die, &scratch), DW_AT_encoding, &attr)) {
     Dwarf_Word encoding;
     if (dwarf_formudata(&attr, &encoding) == 0)
       return encoding == DW_ATE_signed || encoding == DW_ATE_signed_char;
