@@ -86,7 +86,8 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES SYMTAB_LIB
   DYNINST_DEPS common dynElf dynDwarf
-  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::ElfUtils Dyninst::Boost
+  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost
+  PUBLIC_DEPS Dyninst::ElfUtils
 )
 # cmake-format: on
 
