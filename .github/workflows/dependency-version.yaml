@@ -22,14 +22,14 @@ jobs:
       - name: Version check
         run: |
           res=0
-          current=$(awk 'match($0,/set\(_boost_min_version (.+)\)/,a){print a[1]}' cmake/tpls/DyninstBoost.cmake)
+          current=$(awk 'match($0,/set\(_min_version (.+)\)/,a){print a[1]}' cmake/tpls/DyninstBoost.cmake)
           expected=$(awk 'match($0,/boost:(.+)/,a){print a[1]}' docker/dependencies.versions)
           if test "$current" != "$expected"; then
             echo "Boost mismatch: Found $current, expected $expected" >/dev/stderr
             res=1
           fi
           
-          current=$(awk 'match($0,/set\(_tbb_min_version (.+)\)/,a){print a[1]}' cmake/tpls/DyninstTBB.cmake)
+          current=$(awk 'match($0,/set\(_min_version (.+)\)/,a){print a[1]}' cmake/tpls/DyninstTBB.cmake)
           expected=$(awk 'match($0,/tbb:(.+)/,a){print a[1]}' docker/dependencies.versions)
           if test "$current" != "$expected"; then
             echo "TBB mismatch: Found $current, expected $expected" >/dev/stderr
