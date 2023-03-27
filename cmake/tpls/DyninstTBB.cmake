@@ -18,10 +18,7 @@
 include_guard(GLOBAL)
 
 # Minimum supported version
-set(_min_version 2018.6)
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-  set(_min_version 2019.7)
-endif()
+set(_min_version 2019.9)
 
 if(TBB_ROOT_DIR)
   set(TBB_ROOT ${TBB_ROOT_DIR})

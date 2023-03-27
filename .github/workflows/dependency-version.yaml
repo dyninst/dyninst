@@ -31,9 +31,8 @@ jobs:
           
           current=$(awk 'match($0,/set\(_tbb_min_version (.+)\)/,a){print a[1]}' cmake/ThreadingBuildingBlocks.cmake)
           expected=$(awk 'match($0,/tbb:(.+)/,a){print a[1]}' docker/dependencies.versions)
-          IFS=' ' read -a versions <<< $(echo $current)
-          if test "${versions[0]}" != "$expected" -a "${versions[1]}" != "$expected"; then
-            echo "TBB mismatch: Found ('${versions[0]}','${versions[1]}'), expected $expected" >/dev/stderr
+          if test "$current" != "$expected"; then
+            echo "TBB mismatch: Found $current, expected $expected" >/dev/stderr
             res=1
           fi
           
