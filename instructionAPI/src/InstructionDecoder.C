@@ -72,10 +72,11 @@ namespace Dyninst
     	std::copy_n(m_buf.start, size, buf.data());
     	buffer user_buf{buf.data(), buf.data()+size};
 
-    	auto user_ins = ::callback(user_buf);
-    	m_buf.start += user_ins.bytes_consumed;
+    	auto addr = reinterpret_cast<Dyninst::Address>(m_buf.start);
+    	auto user_ins = ::callback(user_buf, addr);
+    	m_buf.start += user_ins.size();
 
-    	return user_ins.i;
+    	return user_ins;
       }
       return ins;
     }
