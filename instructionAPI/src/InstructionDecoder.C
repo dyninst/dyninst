@@ -64,16 +64,9 @@ namespace Dyninst
       Instruction const& ins = m_Impl->decode(m_buf);
 
       if(!ins.isLegalInsn() && ::callback) {
-    	auto const buf_len = static_cast<unsigned int>(m_buf.end - m_buf.start);
-    	auto const size = std::min(maxInstructionLength, buf_len);
-
-    	// Don't let the user modify the real byte stream, so give them a copy
-    	std::array<unsigned char, maxInstructionLength> buf{};
-    	std::copy_n(m_buf.start, size, buf.data());
-    	buffer user_buf{buf.data(), buf.data()+size};
-
     	auto addr = reinterpret_cast<Dyninst::Address>(m_buf.start);
-    	auto user_ins = ::callback(user_buf, addr);
+
+    	auto user_ins = ::callback(m_buf, addr);
     	m_buf.start += user_ins.size();
 
     	return user_ins;
