@@ -17,7 +17,6 @@ struct amdgpu_gfx90a_insn_entry {
 	static const amdgpu_gfx90a_insn_table ENC_SOP2_insn_table ; 
 	static const amdgpu_gfx90a_insn_table ENC_SOPC_insn_table ; 
 	static const amdgpu_gfx90a_insn_table ENC_SOPK_insn_table ; 
-	static const amdgpu_gfx90a_insn_table SOPK_INST_LITERAL__insn_table ; 
 	static const amdgpu_gfx90a_insn_table ENC_SOPP_insn_table ; 
 	static const amdgpu_gfx90a_insn_table ENC_VOP1_insn_table ; 
 	static const amdgpu_gfx90a_insn_table ENC_VOP3_insn_table ; 
@@ -28,4 +27,5 @@ struct amdgpu_gfx90a_insn_entry {
 	static const amdgpu_gfx90a_insn_table ENC_VOP3P_MFMA_insn_table ; 
 	static const amdgpu_gfx90a_insn_table ENC_VOPC_insn_table ; 
 	static const amdgpu_gfx90a_insn_table ENC_VINTRP_insn_table ; 
+	static const amdgpu_gfx90a_insn_table SOPK_INST_LITERAL__insn_table ; 
 };
