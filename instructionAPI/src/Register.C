@@ -124,7 +124,7 @@ DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
                 return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
-r           if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR){
+            if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR){
                 return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
             }
 
