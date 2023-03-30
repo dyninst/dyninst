@@ -35,7 +35,7 @@
 #include "InstructionDecoder-aarch64.h"
 #include "AMDGPU/vega/InstructionDecoder-amdgpu-vega.h"
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
-#include "AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.h"
+#include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
@@ -81,8 +81,8 @@ namespace Dyninst
                     return Ptr(new InstructionDecoder_amdgpu_vega(a));
                 case Arch_amdgpu_gfx908:
                     return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
-               case Arch_amdgpu_cdna2:
-                    return Ptr(new InstructionDecoder_amdgpu_cdna2(a));
+               case Arch_amdgpu_gfx90a:
+                    return Ptr(new InstructionDecoder_amdgpu_gfx90a(a));
                 default:
                     assert(0);
                     return Ptr();

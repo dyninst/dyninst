@@ -41,18 +41,18 @@ namespace Dyninst {
             printf("[%s:%u]insn_debug " format, FILE__, __LINE__, ## __VA_ARGS__); \
         }while(0)
 
-        struct amdgpu_cdna2_insn_entry;
+        struct amdgpu_gfx90a_insn_entry;
         struct amdgpu_mask_entry;
 
-        class InstructionDecoder_amdgpu_cdna2 : public InstructionDecoderImpl {
-            friend struct amdgpu_cdna2_insn_entry;
+        class InstructionDecoder_amdgpu_gfx90a : public InstructionDecoderImpl {
+            friend struct amdgpu_gfx90a_insn_entry;
             friend struct amdgpu_mask_entry;
             enum DecodeFamily {sopp};
 
             public:
-    		InstructionDecoder_amdgpu_cdna2(Architecture a) : InstructionDecoderImpl(a) {}
+    		InstructionDecoder_amdgpu_gfx90a(Architecture a) : InstructionDecoderImpl(a) {}
 
-            virtual ~InstructionDecoder_amdgpu_cdna2() = default;
+            virtual ~InstructionDecoder_amdgpu_gfx90a() = default;
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
 
@@ -64,7 +64,7 @@ namespace Dyninst {
 
             virtual bool decodeOperands(const Instruction *insn_to_complete);
 
-            bool decodeOperands(const amdgpu_cdna2_insn_entry & insn_entry);
+            bool decodeOperands(const amdgpu_gfx90a_insn_entry & insn_entry);
 
             virtual void doDelayedDecode(const Instruction *insn_to_complete);
 
@@ -309,7 +309,7 @@ namespace Dyninst {
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t num_elements = 1);
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
             void specialHandle();
-            #include "amdgpu_cdna2_decoder_impl.h"    
+            #include "amdgpu_gfx90a_decoder_impl.h"    
             #include "decodeOperands.h"    
         };
     }

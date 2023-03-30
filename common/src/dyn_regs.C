@@ -130,21 +130,21 @@ MachRegister MachRegister::getBaseRegister() const {
                     return *this;
             }
 
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
             switch (category){
-                case amdgpu_cdna2::SGPR:
-                case amdgpu_cdna2::SGPR_VEC2:
-                case amdgpu_cdna2::SGPR_VEC4:
-                case amdgpu_cdna2::SGPR_VEC8:
-                case amdgpu_cdna2::SGPR_VEC16:
-                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::s0); 
-                case amdgpu_cdna2::VGPR:
-                case amdgpu_cdna2::VGPR_VEC2:
-                case amdgpu_cdna2::VGPR_VEC4:
-                case amdgpu_cdna2::VGPR_VEC8:
-                case amdgpu_cdna2::VGPR_VEC16:
-                    return MachRegister( (reg & 0x000000ff) | amdgpu_cdna2::v0); 
-                case amdgpu_cdna2::HWR:
+                case amdgpu_gfx90a::SGPR:
+                case amdgpu_gfx90a::SGPR_VEC2:
+                case amdgpu_gfx90a::SGPR_VEC4:
+                case amdgpu_gfx90a::SGPR_VEC8:
+                case amdgpu_gfx90a::SGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_gfx90a::s0); 
+                case amdgpu_gfx90a::VGPR:
+                case amdgpu_gfx90a::VGPR_VEC2:
+                case amdgpu_gfx90a::VGPR_VEC4:
+                case amdgpu_gfx90a::VGPR_VEC8:
+                case amdgpu_gfx90a::VGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_gfx90a::v0); 
+                case amdgpu_gfx90a::HWR:
                     return MachRegister(reg);
 
                 default:
@@ -238,7 +238,7 @@ std::string MachRegister::name() const {
                     break;
             }
             return ret;
-        }else if(getArchitecture() == Arch_amdgpu_cdna2 || getArchitecture() == Arch_amdgpu_gfx908){
+        }else if(getArchitecture() == Arch_amdgpu_gfx90a || getArchitecture() == Arch_amdgpu_gfx908){
         	return iter->second;
         }else{
             return iter->second;
@@ -408,43 +408,43 @@ unsigned int MachRegister::size() const {
                                }
 
 
-        case Arch_amdgpu_cdna2:{
+        case Arch_amdgpu_gfx90a:{
                                    int reg_class = (reg&0x00ff0000 ) ;
-                                   if ( reg_class == amdgpu_cdna2::SGPR || reg_class == amdgpu_cdna2::VGPR){
+                                   if ( reg_class == amdgpu_gfx90a::SGPR || reg_class == amdgpu_gfx90a::VGPR){
                                        return 4;
-                                   }else if (reg_class == amdgpu_cdna2::SGPR_VEC2 || reg_class == amdgpu_cdna2::VGPR_VEC2){
+                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC2 || reg_class == amdgpu_gfx90a::VGPR_VEC2){
                                        return 8;
-                                   }else if (reg_class == amdgpu_cdna2::SGPR_VEC4 || reg_class == amdgpu_cdna2::VGPR_VEC4){
+                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC4 || reg_class == amdgpu_gfx90a::VGPR_VEC4){
                                        return 16;
-                                   }else if (reg_class == amdgpu_cdna2::SGPR_VEC8 || reg_class == amdgpu_cdna2::VGPR_VEC8){
+                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC8 || reg_class == amdgpu_gfx90a::VGPR_VEC8){
                                        return 32;
-                                   }else if (reg_class == amdgpu_cdna2::SGPR_VEC16 || reg_class == amdgpu_cdna2::VGPR_VEC16){
+                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC16 || reg_class == amdgpu_gfx90a::VGPR_VEC16){
                                        return 64;
                                    }else{
                                        switch(reg & 0x00007f00){
-                                           case amdgpu_cdna2::BITS_1:
-                                           case amdgpu_cdna2::BITS_2:
-                                           case amdgpu_cdna2::BITS_3:
-                                           case amdgpu_cdna2::BITS_4:
-                                           case amdgpu_cdna2::BITS_6:
-                                           case amdgpu_cdna2::BITS_7:
-                                           case amdgpu_cdna2::BITS_8:
+                                           case amdgpu_gfx90a::BITS_1:
+                                           case amdgpu_gfx90a::BITS_2:
+                                           case amdgpu_gfx90a::BITS_3:
+                                           case amdgpu_gfx90a::BITS_4:
+                                           case amdgpu_gfx90a::BITS_6:
+                                           case amdgpu_gfx90a::BITS_7:
+                                           case amdgpu_gfx90a::BITS_8:
                                                return 1;
-                                           case amdgpu_cdna2::BITS_9:
-                                           case amdgpu_cdna2::BITS_15:
-                                           case amdgpu_cdna2::BITS_16:
+                                           case amdgpu_gfx90a::BITS_9:
+                                           case amdgpu_gfx90a::BITS_15:
+                                           case amdgpu_gfx90a::BITS_16:
                                                return 2;
-                                           case amdgpu_cdna2::BITS_32:
+                                           case amdgpu_gfx90a::BITS_32:
                                                return 4;
-                                           case amdgpu_cdna2::BITS_48:
+                                           case amdgpu_gfx90a::BITS_48:
                                                return 6;
-                                           case amdgpu_cdna2::BITS_64:
+                                           case amdgpu_gfx90a::BITS_64:
                                                return 8; 
-                                           case amdgpu_cdna2::BITS_128:
+                                           case amdgpu_gfx90a::BITS_128:
                                                return 16;
-                                           case amdgpu_cdna2::BITS_256:
+                                           case amdgpu_gfx90a::BITS_256:
                                                return 32;
-                                           case amdgpu_cdna2::BITS_512:
+                                           case amdgpu_gfx90a::BITS_512:
                                                return 64;
                                        }
                                        common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
@@ -534,8 +534,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return amdgpu_vega::pc;
         case Arch_amdgpu_gfx908:
             return amdgpu_gfx908::pc_all;
-        case Arch_amdgpu_cdna2:
-            return amdgpu_cdna2::pc_all;
+        case Arch_amdgpu_gfx90a:
+            return amdgpu_gfx90a::pc_all;
         case Arch_none:
             return InvalidReg;
     }
@@ -561,7 +561,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
         case Arch_cuda:
         case Arch_amdgpu_vega: // TODO:Since amdgpu functions are all inlined, the return address is highly likely in sgpr[30:31]
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
         case Arch_intelGen9:
             assert(0);
         case Arch_none:
@@ -587,7 +587,7 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
 
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
         case Arch_none:
             return InvalidReg;
 
@@ -618,7 +618,7 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
         case Arch_none:
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
             return InvalidReg;
         default:
             assert(0);
@@ -645,7 +645,7 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
         case Arch_cuda:
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -741,7 +741,7 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
             return ppc64::cr0e;
         case Arch_cuda:
         case Arch_amdgpu_vega:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -757,7 +757,7 @@ bool MachRegister::isPC() const
 {
     return (*this == x86_64::rip || *this == x86::eip ||
             *this == ppc32::pc || *this == ppc64::pc ||
-            *this == aarch64::pc || *this == amdgpu_gfx908::pc_all ||*this == amdgpu_cdna2::pc_all  );
+            *this == aarch64::pc || *this == amdgpu_gfx908::pc_all ||*this == amdgpu_gfx90a::pc_all  );
 }
 
 bool MachRegister::isFramePointer() const
@@ -813,7 +813,7 @@ bool MachRegister::isFlag() const
                         }
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
                         {
                             return (reg & 0x0000F000);
                         }
@@ -910,7 +910,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
     // Rose: class, number, position
     // Dyninst: category, base id, subrange
     Architecture maybe_amdgpu = getArchitecture();
-    if (maybe_amdgpu==Arch_amdgpu_vega || maybe_amdgpu == Arch_amdgpu_gfx908 || maybe_amdgpu == Arch_amdgpu_cdna2){
+    if (maybe_amdgpu==Arch_amdgpu_vega || maybe_amdgpu == Arch_amdgpu_gfx908 || maybe_amdgpu == Arch_amdgpu_gfx90a){
         getAMDGPUROSERegister(c,n,p);
         return;
     }
@@ -1905,7 +1905,7 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             return Dyninst::InvalidReg;
             break;
         case Arch_amdgpu_vega:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
             // ignore AMD register encodings for now
             return Dyninst::InvalidReg;
             break;
@@ -2362,7 +2362,7 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
         case Arch_intelGen9:
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
             return 8;
         default:
             assert(0);
