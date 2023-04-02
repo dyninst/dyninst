@@ -42,4 +42,12 @@ jobs:
             echo "Elfutils mismatch: Found $current, expected $expected" >/dev/stderr
             res=1
           fi
+          
+          current=$(awk 'match($0,/cmake_minimum_required\(VERSION (.+) FATAL_ERROR\)/,a){print a[1]}' CMakeLists.txt)
+          expected=$(awk 'match($0,/cmake:(.+)/,a){print a[1]}' docker/dependencies.versions)
+          if test "$current" != "$expected"; then
+            echo "CMake mismatch: Found $current, expected $expected" >/dev/stderr
+            res=1
+          fi
+
           exit $res
