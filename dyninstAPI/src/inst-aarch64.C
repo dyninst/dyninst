@@ -681,7 +681,7 @@ Register EmitterAARCH64::emitCall(opCode op,
 
         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
     } else {
-        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+        insnCodeGen::loadImmIntoReg(gen, scratch, callee->addr());
     }
 
     instruction branchInsn;
@@ -884,14 +884,14 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         if(ra == 32) {
 	    // Special case where the actual address is store in imm.
 	    // Need to change this for rewriting PIE or shared libraries
-	    insnCodeGen::loadImmIntoReg<long int>(gen, dest, imm);
+	    insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(imm));
 	    return;
 	}
 	else {
 	    restoreGPRtoGPR(gen, ra, dest);
 	}
     } else {
-        insnCodeGen::loadImmIntoReg<long int>(gen, dest, 0);
+        insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(0));
     }
     if(rb > -1) {
         std::vector<Register> exclude;
