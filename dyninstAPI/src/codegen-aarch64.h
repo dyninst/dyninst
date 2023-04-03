@@ -111,8 +111,6 @@ public:
 
     static inline void loadImmIntoReg(codeGen &gen, Register rt, Address value)
     {
-        assert(value >= 0);
-
         insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
         if(value > 0xFFFF)
             insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
