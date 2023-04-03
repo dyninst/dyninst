@@ -260,7 +260,7 @@ void EmitterAARCH64::emitLoadOrigRegRelative(
     {
         // load the stored register 'base' into dest
 	emitLoadOrigRegister(base, scratch, gen);
-	insnCodeGen::loadImmIntoReg<long int>(gen, dest, offset);
+	insnCodeGen::loadImmIntoReg(gen, dest, offset);
 	insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, dest, scratch, dest, true);
     }
 }
