@@ -167,6 +167,7 @@ protected:
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> framePtr;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> stackPtr;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> thePC;
+        static Dyninst::InstructionAPI::RegisterAST::Ptr         theGS;
         static std::map<Address, bool> thunkAtTarget;
         static void initASTs();
 };

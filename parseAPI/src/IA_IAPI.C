@@ -59,6 +59,7 @@ using namespace Dyninst::ParseAPI;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr;
 std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC;
+RegisterAST::Ptr                         IA_IAPI::theGS;
 
 
 IA_IAPI::IA_IAPI(const IA_IAPI &rhs) 
@@ -169,6 +170,9 @@ void IA_IAPI::initASTs()
                 thePC[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_vega)));
                 thePC[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx908)));
                 thePC[Arch_amdgpu_cdna2] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_cdna2)));
+            }
+            if (theGS == nullptr) {
+                theGS = boost::make_shared<RegisterAST>(x86::gs);
             }
             ANNOTATE_HAPPENS_BEFORE(&IA_IAPI::ptrInit);
     });
@@ -508,12 +512,10 @@ bool IA_IAPI::isInterruptOrSyscall() const
 
 bool IA_IAPI::isSyscall() const
 {
-    static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
-
     Instruction ci = curInsn();
 
     return (((ci.getOperation().getID() == e_call) &&
-                (ci.getOperation().isRead(gs)) &&
+                (ci.getOperation().isRead(theGS)) &&
                 (ci.getOperand(0).format(ci.getArch()) == "16")) ||
             (ci.getOperation().getID() == e_syscall) ||
             (ci.getOperation().getID() == e_int) ||
