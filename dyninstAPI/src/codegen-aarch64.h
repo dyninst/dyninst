@@ -109,8 +109,16 @@ public:
     static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt,
             Register rn, int immd, int size, bool is128bit, IndexMode im=Offset);
 
-    template<typename T>
-    static void loadImmIntoReg(codeGen &gen, Register rt, T value);
+    static inline void loadImmIntoReg(codeGen &gen, Register rt, Address value)
+    {
+        insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
+        if(value > 0xFFFF)
+            insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
+        if(value > 0xFFFFFFFF)
+            insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
+        if(value > 0xFFFFFFFFFFFF)
+            insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
+    }
 
     static void saveRegister(codeGen &gen, Register r, int sp_offset, IndexMode im=Offset);
 

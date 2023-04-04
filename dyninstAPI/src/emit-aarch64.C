@@ -81,7 +81,7 @@ codeBufIndex_t EmitterAARCH64::emitIf(
 
 void EmitterAARCH64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, imm);
+    insnCodeGen::loadImmIntoReg(gen, dest, imm);
 }
 
 
@@ -89,7 +89,7 @@ void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &ge
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
 
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
             scratch, 0, size, insnCodeGen::Post);
 
@@ -102,7 +102,7 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
 
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, src,
             scratch, 0, size, insnCodeGen::Pre);
 
@@ -153,14 +153,14 @@ void EmitterAARCH64::emitRelOp(
     insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
 
     // make dest = 1, meaning true
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x1);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
 
     // insert conditional jump to skip dest=0 in case the comparison resulted true
     // therefore keeping dest=1
     insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
 
     // make dest = 0, in case it fails the branch
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x0);
 }
 
 
@@ -209,14 +209,14 @@ void EmitterAARCH64::emitRelOpImm(
     insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
 
     // make dest = 1, meaning true
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x1);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
 
     // insert conditional jump to skip dest=0 in case the comparison resulted true
     // therefore keeping dest=1
     insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
 
     // make dest = 0, in case it fails the branch
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x0);
 
     gen.rs()->freeRegister(src2);
     gen.markRegDefined(dest);
@@ -260,7 +260,7 @@ void EmitterAARCH64::emitLoadOrigRegRelative(
     {
         // load the stored register 'base' into dest
 	emitLoadOrigRegister(base, scratch, gen);
-	insnCodeGen::loadImmIntoReg<long int>(gen, dest, offset);
+	insnCodeGen::loadImmIntoReg(gen, dest, offset);
 	insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, dest, scratch, dest, true);
     }
 }

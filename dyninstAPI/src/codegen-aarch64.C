@@ -159,7 +159,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         // use Link Register as scratch since it will be overwritten at return
         scratch = 30;
         //load disp to r30
-        loadImmIntoReg<Address>(gen, scratch, to);
+        loadImmIntoReg(gen, scratch, to);
         //generate call
         generateBReg(scratch);
         return;
@@ -181,7 +181,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         return;
     }
 
-    loadImmIntoReg<Address>(gen, scratch, to);
+    loadImmIntoReg(gen, scratch, to);
     generateBReg(scratch);
 }
 
@@ -481,24 +481,9 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Reg
         assert(0);
     }
 
-    loadImmIntoReg<long int>(gen, scratchReg, val);
+    loadImmIntoReg(gen, scratchReg, static_cast<Address>(val));
 
     return scratchReg;
-}
-
-
-template <typename T>
-void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
-{
-    assert(value >= 0);
-
-    insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
-    if(value > 0xFFFF)
-        insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
-    if(value > 0xFFFFFFFF)
-        insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
-    if(value > 0xFFFFFFFFFFFF)
-        insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
 }
 
 // Generate memory access through Load or Store
@@ -830,7 +815,7 @@ bool insnCodeGen::modifyData(Address target,
         //Else, generate move instructions to move the value to the same register
         else {
             //Register rd = raw & 0x1F;
-            //loadImmIntoReg<Address>(gen, rd, target);
+            //loadImmIntoReg(gen, rd, target);
             instruction newInsn;
             instruction newInsn2;
             newInsn.clear();
@@ -871,7 +856,7 @@ bool insnCodeGen::modifyData(Address target,
                         address into for a PC-relative data access using LDR/LDRSW!");
 
             // Load the target address into scratch register
-            loadImmIntoReg<Address>(gen, scratch, target);
+            loadImmIntoReg(gen, scratch, target);
 
             // Generate LDR(immediate) to load into r the the content of [scratch]
             Register r = raw & 0x1F;
