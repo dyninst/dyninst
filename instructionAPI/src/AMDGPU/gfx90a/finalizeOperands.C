@@ -1,4 +1,4 @@
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_DSOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_DSOperands(){
 layout_ENC_DS & layout = insn_layout.ENC_DS;
 switch(layout.OP){
 case 0:// DS_ADD_U32
@@ -661,7 +661,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_FLATOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_FLATOperands(){
 layout_ENC_FLAT & layout = insn_layout.ENC_FLAT;
 switch(layout.OP){
 case 16:// FLAT_LOAD_UBYTE
@@ -1102,7 +1102,7 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_FLAT_GLBLOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_FLAT_GLBLOperands(){
 layout_ENC_FLAT_GLBL & layout = insn_layout.ENC_FLAT_GLBL;
 switch(layout.OP){
 case 16:// GLOBAL_LOAD_UBYTE
@@ -1612,7 +1612,7 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_FLAT_SCRATCHOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_FLAT_SCRATCHOperands(){
 layout_ENC_FLAT_SCRATCH & layout = insn_layout.ENC_FLAT_SCRATCH;
 switch(layout.OP){
 case 16:// SCRATCH_LOAD_UBYTE
@@ -1783,7 +1783,7 @@ insn_in_progress->appendOperand(decodeOPR_SDST_M0(124,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_MIMGOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_MIMGOperands(){
 layout_ENC_MIMG & layout = insn_layout.ENC_MIMG;
 switch(layout.OP){
 case 0:// IMAGE_LOAD
@@ -2238,7 +2238,7 @@ insn_in_progress->appendOperand(decodeOPR_SREG(layout.SSAMP+3,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_MTBUFOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_MTBUFOperands(){
 layout_ENC_MTBUF & layout = insn_layout.ENC_MTBUF;
 switch(layout.OP){
 case 0:// TBUFFER_LOAD_FORMAT_X
@@ -2419,7 +2419,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,fal
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_MUBUFOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_MUBUFOperands(){
 layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
 switch(layout.OP){
 case 0:// BUFFER_LOAD_FORMAT_X
@@ -3196,7 +3196,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC_NOLIT(layout.SOFFSET,32),true,fal
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_SMEMOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SMEMOperands(){
 layout_ENC_SMEM & layout = insn_layout.ENC_SMEM;
 switch(layout.OP){
 case 0:// S_LOAD_DWORD
@@ -3853,7 +3853,7 @@ insn_in_progress->appendOperand(decodeOPR_SMEM_OFFSET(layout.SOFFSET,32),true,fa
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_SOP1Operands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOP1Operands(){
 layout_ENC_SOP1 & layout = insn_layout.ENC_SOP1;
 switch(layout.OP){
 case 0:// S_MOV_B32
@@ -4189,7 +4189,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC0,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_SOP2Operands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOP2Operands(){
 layout_ENC_SOP2 & layout = insn_layout.ENC_SOP2;
 switch(layout.OP){
 case 0:// S_ADD_U32
@@ -4545,7 +4545,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC(layout.SSRC1,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_SOPCOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOPCOperands(){
 layout_ENC_SOPC & layout = insn_layout.ENC_SOPC;
 switch(layout.OP){
 case 0:// S_CMP_EQ_I32
@@ -4656,7 +4656,7 @@ insn_in_progress->appendOperand(decodeOPR_SSRC_SPECIAL_SCC(253,1),false,true);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_SOPKOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOPKOperands(){
 layout_ENC_SOPK & layout = insn_layout.ENC_SOPK;
 switch(layout.OP){
 case 0:// S_MOVK_I32
@@ -4763,7 +4763,7 @@ insn_in_progress->appendOperand(decodeOPR_PC(0,64),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_SOPPOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOPPOperands(){
 layout_ENC_SOPP & layout = insn_layout.ENC_SOPP;
 switch(layout.OP){
 case 0:// S_NOP
@@ -4884,7 +4884,7 @@ case 30:// S_ENDPGM_ORDERED_PS_DONE
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP1Operands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP1Operands(){
 layout_ENC_VOP1 & layout = insn_layout.ENC_VOP1;
 switch(layout.OP){
 case 0:// V_NOP
@@ -5226,7 +5226,7 @@ insn_in_progress->appendOperand(decodeOPR_SRC_ACCVGPR(layout.SRC0,32),true,false
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP3Operands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3Operands(){
 layout_ENC_VOP3 & layout = insn_layout.ENC_VOP3;
 switch(layout.OP){
 case 320:// V_NOP
@@ -7866,7 +7866,7 @@ insn_in_progress->appendOperand(decodeOPR_SDST_EXEC(126,64),false,true);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP2Operands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP2Operands(){
 layout_ENC_VOP2 & layout = insn_layout.ENC_VOP2;
 switch(layout.OP){
 case 0:// V_CNDMASK_B32
@@ -8174,7 +8174,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VSRC1,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP2_LITERALOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP2_LITERALOperands(){
 layout_ENC_VOP2_LITERAL & layout = insn_layout.ENC_VOP2_LITERAL;
 switch(layout.OP){
 case 23:// V_MADMK_F32
@@ -8203,7 +8203,7 @@ insn_in_progress->appendOperand(decodeOPR_SIMM32(layout.SIMM32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP3BOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3BOperands(){
 layout_ENC_VOP3B & layout = insn_layout.ENC_VOP3B;
 switch(layout.OP){
 case 281:// V_ADD_CO_U32
@@ -8296,7 +8296,7 @@ insn_in_progress->appendOperand(decodeOPR_SRC_SIMPLE(layout.SRC2+1,32),true,fals
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP3POperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3POperands(){
 layout_ENC_VOP3P & layout = insn_layout.ENC_VOP3P;
 switch(layout.OP){
 case 0:// V_PK_MAD_I16
@@ -8491,7 +8491,7 @@ insn_in_progress->appendOperand(decodeOPR_SRC_NOLIT(layout.SRC0,32),true,false);
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOP3P_MFMAOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3P_MFMAOperands(){
 layout_ENC_VOP3P_MFMA & layout = insn_layout.ENC_VOP3P_MFMA;
 switch(layout.OP){
 case 64:// V_MFMA_F32_32X32X1F32
@@ -8658,7 +8658,7 @@ insn_in_progress->appendOperand(decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SR
 break;
 }
 }
-void InstructionDecoder_amdgpu_cdna2::finalizeENC_VOPCOperands(){
+void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOPCOperands(){
 layout_ENC_VOPC & layout = insn_layout.ENC_VOPC;
 switch(layout.OP){
 case 16:// V_CMP_CLASS_F32

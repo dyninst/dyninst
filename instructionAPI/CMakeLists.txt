@@ -20,7 +20,7 @@ set(_sources
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.C
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
-    src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C
+    src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
     src/InstructionDecoderImpl.C)
 
 set(_public_headers
@@ -110,10 +110,10 @@ if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
 endif()
 
 if(NOT finalizeOperandsExtraFlags STREQUAL "")
-  set_source_files_properties(src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C
-                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
-                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+    set_source_files_properties(src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
+                                PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+    set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
+                                PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
 # cmake-format: off

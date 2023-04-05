@@ -389,7 +389,7 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
     switch(a) {
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_cdna2:
+        case Arch_amdgpu_gfx90a:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new AmdgpuFormatter());
             break;
         case Arch_aarch32:
