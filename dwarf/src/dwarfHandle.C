@@ -201,7 +201,7 @@ bool DwarfHandle::init_dbg()
             unsigned int ef_amdgpu_mach = 0x000000ff & file->e_flags();
 			switch(ef_amdgpu_mach){
                 case 0x3f:
-					arch = Dyninst::Arch_amdgpu_cdna2;
+					arch = Dyninst::Arch_amdgpu_gfx90a;
                     break;
                 case 0x30:
                     arch = Dyninst::Arch_amdgpu_gfx908;
