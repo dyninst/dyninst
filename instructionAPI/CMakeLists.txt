@@ -43,10 +43,10 @@ set(_public_headers
 
 set(_private_headers
     src/amdgpu_branchinsn_table.h
-    src/AMDGPU/cdna2/amdgpu_cdna2_decoder_impl.h
-    src/AMDGPU/cdna2/amdgpu_cdna2_insn_entry.h
-    src/AMDGPU/cdna2/decodeOperands.h
-    src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.h
+    src/AMDGPU/gfx90a/amdgpu_gfx90a_decoder_impl.h
+    src/AMDGPU/gfx90a/amdgpu_gfx90a_insn_entry.h
+    src/AMDGPU/gfx90a/decodeOperands.h
+    src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
     src/AMDGPU/vega/amdgpu_vega_decoder_impl.h
     src/AMDGPU/vega/amdgpu_vega_insn_entry.h
     src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.h
@@ -128,7 +128,7 @@ dyninst_library(
 )
 # cmake-format: on
 
-set(_inc_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/cdna2
+set(_inc_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx90a
               ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
 
 foreach(t ${instructionAPI_TARGETS})

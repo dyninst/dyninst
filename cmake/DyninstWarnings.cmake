@@ -136,7 +136,7 @@ endif()
 # compiler version and build type for the following 3 files:
 #
 # instructionAPI/src/InstructionDecoder-power.C (includes instructionAPI/src/power-opcode-table.C)
-# instructionAPI/src/AMDGPU/cdna2/InstructionDecoder-amdgpu-cdna2.C (includes instructionAPI/src/AMDGPU/cdna2/finalizeOperands.C)
+# instructionAPI/src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C (includes instructionAPI/src/AMDGPU/gfx90a/finalizeOperands.C)
 # common/src/MachSyscall.C (includes common/src/SyscallInformation.C)
 # cmake-format: on
 #

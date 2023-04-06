@@ -7,8 +7,8 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/dyninstversion.h.in
 
 set(_public_headers
     h/aarch64_sys_regs.h
-    h/AMDGPU/cdna2/amdgpu_cdna2_op_table.h
-    h/AMDGPU/cdna2/amdgpu_cdna2_sys_regs.h
+    h/AMDGPU/gfx90a/amdgpu_gfx90a_op_table.h
+    h/AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h
     h/AMDGPU/vega/amdgpu_vega_op_table.h
     h/AMDGPU/vega/amdgpu_vega_sys_regs.h
     h/AMDGPU/gfx908/amdgpu_gfx908_op_table.h
