@@ -32,6 +32,7 @@
 #include <iostream>
 #include "Immediate.h"
 #include "dyn_regs.h"
+#include <cstddef>
 
 namespace Dyninst {
     namespace InstructionAPI {
@@ -73,6 +74,12 @@ namespace Dyninst {
             static const char* bitfieldInsnAliasMap(entryID);
             static const char* condInsnAliasMap(entryID);
 
+
+            //Check if the index (2nd arg) is valid for the array (1st arg)
+            template <typename ArrayType, std::size_t n, typename IndexType>
+            constexpr bool isArrayIndexValid(ArrayType (&)[n], const IndexType& i) {
+                return 0 <= i && i < n;
+            }
 
 
             private:
@@ -201,7 +208,7 @@ namespace Dyninst {
 
             
             bool useImm{};
-            uint32_t immLen{};
+            uint32_t immLen{}; // extra 4 bytes included for decoding instruction
             uint32_t immLiteral{};
             uint32_t imm_at_32{};
             uint32_t imm_at_64{};
