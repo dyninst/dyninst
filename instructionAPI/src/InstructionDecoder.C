@@ -64,9 +64,7 @@ namespace Dyninst
       Instruction const& ins = m_Impl->decode(m_buf);
 
       if(!ins.isLegalInsn() && ::callback) {
-    	auto addr = reinterpret_cast<Dyninst::Address>(m_buf.start);
-
-    	auto user_ins = ::callback(m_buf, addr);
+    	auto user_ins = ::callback(m_buf);
     	m_buf.start += user_ins.size();
 
     	return user_ins;

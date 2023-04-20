@@ -86,7 +86,7 @@ namespace Dyninst
       // when the InstructionDecoder encounters a byte sequence it is not able
       // to successfully convert into a known instruction
       struct unknown_instruction {
-		  using callback_t = Instruction(*)(buffer, Dyninst::Address);
+		  using callback_t = Instruction(*)(buffer);
 		  static void register_callback(callback_t);
 		  static callback_t unregister_callback();
 		  unknown_instruction() = delete;
