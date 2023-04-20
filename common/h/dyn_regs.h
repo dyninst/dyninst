@@ -1711,6 +1711,7 @@ namespace Dyninst
         DEF_REGISTER(vmcnt,                    Arch_amdgpu_gfx908| HWR | BITS_32 | 20 , "amdgpu_gfx908");
         DEF_REGISTER(expcnt,                   Arch_amdgpu_gfx908| HWR | BITS_32 | 21 , "amdgpu_gfx908");
         DEF_REGISTER(lgkmcnt,                  Arch_amdgpu_gfx908| HWR | BITS_32 | 22 , "amdgpu_gfx908");
+        DEF_REGISTER(dsmem,                    Arch_amdgpu_gfx908| HWR | BITS_32 | 23 , "amdgpu_gfx908");
 
 
 

@@ -32,6 +32,7 @@
 #include <iostream>
 #include "Immediate.h"
 #include "dyn_regs.h"
+#include <cstddef>
 
 namespace Dyninst {
     namespace InstructionAPI {
@@ -50,7 +51,7 @@ namespace Dyninst {
             enum DecodeFamily {sopp};
 
             public:
-    		InstructionDecoder_amdgpu_gfx908(Architecture a) : InstructionDecoderImpl(a) {}
+            InstructionDecoder_amdgpu_gfx908(Architecture a) : InstructionDecoderImpl(a) {}
 
             virtual ~InstructionDecoder_amdgpu_gfx908() = default;
 
@@ -73,7 +74,11 @@ namespace Dyninst {
             static const char* bitfieldInsnAliasMap(entryID);
             static const char* condInsnAliasMap(entryID);
 
-
+            //Check if the index (2nd arg) is valid for the array (1st arg)
+            template <typename ArrayType, std::size_t n, typename IndexType>
+                constexpr bool isArrayIndexValid(ArrayType (&)[n], const IndexType& i) {
+                    return 0 <= i && i < n;
+                }
 
             private:
             virtual Result_Type makeSizeType(unsigned int opType);
@@ -199,7 +204,7 @@ namespace Dyninst {
 
             Expression::Ptr decodeSGPRorM0(unsigned int offset);
 
-            
+
             bool useImm{};
             uint32_t immLen{};
             uint32_t immLiteral{};
@@ -290,7 +295,7 @@ namespace Dyninst {
             }buffer_resource_desc;
 
             void debug_instr();
-            
+
             uint32_t decodeOPR_LITERAL();
             Expression::Ptr decodeOPR_LABEL(uint64_t input);
             Expression::Ptr decodeOPR_SIMM4(uint64_t input);
@@ -302,8 +307,8 @@ namespace Dyninst {
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t num_elements = 1);
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
             void specialHandle();
-            #include "amdgpu_gfx908_decoder_impl.h"    
-            #include "decodeOperands.h"    
+#include "amdgpu_gfx908_decoder_impl.h"    
+#include "decodeOperands.h"    
         };
     }
 }

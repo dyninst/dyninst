@@ -92,7 +92,8 @@ namespace Dyninst {
 		void InstructionDecoder_amdgpu_gfx908::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
 				int immLen_ = 16) {
 			Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
-			int64_t offset = sign_extend64(immLen_, immVal * 4);
+            // immVal * 4 => 2 more bits
+			int64_t offset = sign_extend64(immLen_+2, immVal * 4);
 
 			Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
 
@@ -158,7 +159,8 @@ namespace Dyninst {
         }
         Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_LABEL(uint64_t input){
         	Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
-			int64_t offset = sign_extend64(immLen, input * 4);
+            // 16 bits * 4 => 18 bits
+			int64_t offset = sign_extend64(18, input * 4);
 			Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
 			return makeAddExpression(lhs, rhs, s64);
 	
