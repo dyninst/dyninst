@@ -65,7 +65,7 @@ namespace Dyninst
 
       if(!ins.isLegalInsn() && ::callback) {
     	auto const buf_len = static_cast<unsigned int>(m_buf.end - m_buf.start);
-    	auto const size = std::min(maxInstructionLength, buf_len);
+    	auto const size = (maxInstructionLength < buf_len) ? maxInstructionLength : buf_len;
 
     	// Don't let the user modify the real byte stream
     	std::array<unsigned char, maxInstructionLength> buf{};
