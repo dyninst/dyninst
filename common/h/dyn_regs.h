@@ -1711,6 +1711,7 @@ namespace Dyninst
         DEF_REGISTER(vmcnt,                    Arch_amdgpu_gfx908| HWR | BITS_32 | 20 , "amdgpu_gfx908");
         DEF_REGISTER(expcnt,                   Arch_amdgpu_gfx908| HWR | BITS_32 | 21 , "amdgpu_gfx908");
         DEF_REGISTER(lgkmcnt,                  Arch_amdgpu_gfx908| HWR | BITS_32 | 22 , "amdgpu_gfx908");
+        DEF_REGISTER(dsmem,                    Arch_amdgpu_gfx908| HWR | BITS_32 | 23 , "amdgpu_gfx908");
 
 
 
@@ -1913,6 +1914,12 @@ namespace Dyninst
 
         DEF_REGISTER(xnack_mask_lo,            Arch_amdgpu_gfx90a| HWR | BITS_32 | 17, "amdgpu_gfx90a");
         DEF_REGISTER(xnack_mask_hi,            Arch_amdgpu_gfx90a| HWR | BITS_32 | 18, "amdgpu_gfx90a");
+
+        DEF_REGISTER(src_lds_direct,           Arch_amdgpu_gfx90a| HWR | BITS_32 | 19 , "amdgpu_gfx90a");
+        DEF_REGISTER(vmcnt,                    Arch_amdgpu_gfx90a| HWR | BITS_32 | 20 , "amdgpu_gfx90a");
+        DEF_REGISTER(expcnt,                   Arch_amdgpu_gfx90a| HWR | BITS_32 | 21 , "amdgpu_gfx90a");
+        DEF_REGISTER(lgkmcnt,                  Arch_amdgpu_gfx90a| HWR | BITS_32 | 22 , "amdgpu_gfx90a");
+        DEF_REGISTER(dsmem,                    Arch_amdgpu_gfx90a| HWR | BITS_32 | 23 , "amdgpu_gfx90a");
 
 
         DEF_REGISTER(ttmp0,                    Arch_amdgpu_gfx90a| TTMP_SGPR | BITS_32 | 0 , "amdgpu_gfx90a");

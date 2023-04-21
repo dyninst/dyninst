@@ -5,26 +5,30 @@ case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:case 8:case 9:case 10:ca
 //DS_ADD_U32,DS_SUB_U32,DS_RSUB_U32,DS_INC_U32,DS_DEC_U32,DS_MIN_I32,DS_MAX_I32,DS_MIN_U32,DS_MAX_U32,DS_AND_B32,DS_OR_B32,DS_XOR_B32,DS_WRITE_B32,DS_MIN_F32,DS_MAX_F32,DS_ADD_F32,DS_WRITE_B8,DS_WRITE_B16,DS_WRITE_B8_D16_HI,DS_WRITE_B16_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 12:case 14:case 15:case 16:case 17:
 //DS_MSKOR_B32,DS_WRITE2_B32,DS_WRITE2ST64_B32,DS_CMPST_B32,DS_CMPST_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 20:
 //DS_NOP
 break;
-case 29:case 153:case 155:case 157:
-//DS_WRITE_ADDTID_B32,DS_GWS_INIT,DS_GWS_SEMA_BR,DS_GWS_BARRIER
+case 29:
+//DS_WRITE_ADDTID_B32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
-case 32:case 33:case 34:case 35:case 36:case 37:case 38:case 39:case 40:case 41:case 42:case 43:case 45:case 50:case 51:case 53:case 62:case 63:
-//DS_ADD_RTN_U32,DS_SUB_RTN_U32,DS_RSUB_RTN_U32,DS_INC_RTN_U32,DS_DEC_RTN_U32,DS_MIN_RTN_I32,DS_MAX_RTN_I32,DS_MIN_RTN_U32,DS_MAX_RTN_U32,DS_AND_RTN_B32,DS_OR_RTN_B32,DS_XOR_RTN_B32,DS_WRXCHG_RTN_B32,DS_MIN_RTN_F32,DS_MAX_RTN_F32,DS_ADD_RTN_F32,DS_PERMUTE_B32,DS_BPERMUTE_B32
+case 32:case 33:case 34:case 35:case 36:case 37:case 38:case 39:case 40:case 41:case 42:case 43:case 45:case 50:case 51:case 53:
+//DS_ADD_RTN_U32,DS_SUB_RTN_U32,DS_RSUB_RTN_U32,DS_INC_RTN_U32,DS_DEC_RTN_U32,DS_MIN_RTN_I32,DS_MAX_RTN_I32,DS_MIN_RTN_U32,DS_MAX_RTN_U32,DS_AND_RTN_B32,DS_OR_RTN_B32,DS_XOR_RTN_B32,DS_WRXCHG_RTN_B32,DS_MIN_RTN_F32,DS_MAX_RTN_F32,DS_ADD_RTN_F32
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 44:case 48:case 49:case 52:
 //DS_MSKOR_RTN_B32,DS_CMPST_RTN_B32,DS_CMPST_RTN_F32,DS_WRAP_RTN_B32
@@ -32,6 +36,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 46:case 47:
 //DS_WRXCHG2_RTN_B32,DS_WRXCHG2ST64_RTN_B32
@@ -40,23 +45,38 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
-case 54:case 57:case 58:case 59:case 60:case 61:case 86:case 87:case 88:case 89:case 90:case 91:
-//DS_READ_B32,DS_READ_I8,DS_READ_U8,DS_READ_I16,DS_READ_U16,DS_SWIZZLE_B32,DS_READ_U8_D16,DS_READ_U8_D16_HI,DS_READ_I8_D16,DS_READ_I8_D16_HI,DS_READ_U16_D16,DS_READ_U16_D16_HI
+case 54:case 57:case 58:case 59:case 60:case 86:case 87:case 88:case 89:case 90:case 91:
+//DS_READ_B32,DS_READ_I8,DS_READ_U8,DS_READ_I16,DS_READ_U16,DS_READ_U8_D16,DS_READ_U8_D16_HI,DS_READ_I8_D16,DS_READ_I8_D16_HI,DS_READ_U16_D16,DS_READ_U16_D16_HI
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 55:case 56:case 118:
 //DS_READ2_B32,DS_READ2ST64_B32,DS_READ_B64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,2),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
+break;
+case 61:
+//DS_SWIZZLE_B32
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
+break;
+case 62:case 63:
+//DS_PERMUTE_B32,DS_BPERMUTE_B32
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
 break;
 case 64:case 65:case 66:case 67:case 68:case 69:case 70:case 71:case 72:case 73:case 74:case 75:case 77:case 82:case 83:
 //DS_ADD_U64,DS_SUB_U64,DS_RSUB_U64,DS_INC_U64,DS_DEC_U64,DS_MIN_I64,DS_MAX_I64,DS_MIN_U64,DS_MAX_U64,DS_AND_B64,DS_OR_B64,DS_XOR_B64,DS_WRITE_B64,DS_MIN_F64,DS_MAX_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+1,0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 76:case 78:case 79:case 80:case 81:
 //DS_MSKOR_B64,DS_WRITE2_B64,DS_WRITE2ST64_B64,DS_CMPST_B64,DS_CMPST_F64
@@ -65,6 +85,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1+1,0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 96:case 97:case 98:case 99:case 100:case 101:case 102:case 103:case 104:case 105:case 106:case 107:case 109:case 114:case 115:case 126:
 //DS_ADD_RTN_U64,DS_SUB_RTN_U64,DS_RSUB_RTN_U64,DS_INC_RTN_U64,DS_DEC_RTN_U64,DS_MIN_RTN_I64,DS_MAX_RTN_I64,DS_MIN_RTN_U64,DS_MAX_RTN_U64,DS_AND_RTN_B64,DS_OR_RTN_B64,DS_XOR_RTN_B64,DS_WRXCHG_RTN_B64,DS_MIN_RTN_F64,DS_MAX_RTN_F64,DS_CONDXCHG32_RTN_B64
@@ -73,6 +94,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+1,0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 108:case 112:case 113:
 //DS_MSKOR_RTN_B64,DS_CMPST_RTN_B64,DS_CMPST_RTN_F64
@@ -83,6 +105,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1+1,0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 110:case 111:
 //DS_WRXCHG2_RTN_B64,DS_WRXCHG2ST64_RTN_B64
@@ -95,6 +118,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1+0,2),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA1+1,0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 119:case 120:case 255:
 //DS_READ2_B64,DS_READ2ST64_B64,DS_READ_B128
@@ -103,18 +127,26 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+3,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 128:case 129:case 130:case 131:case 132:case 133:case 134:case 135:case 136:case 137:case 138:case 139:case 141:case 146:case 147:case 149:case 192:case 193:case 194:case 195:case 196:case 197:case 198:case 199:case 200:case 201:case 202:case 203:case 205:case 210:case 211:
 //DS_ADD_SRC2_U32,DS_SUB_SRC2_U32,DS_RSUB_SRC2_U32,DS_INC_SRC2_U32,DS_DEC_SRC2_U32,DS_MIN_SRC2_I32,DS_MAX_SRC2_I32,DS_MIN_SRC2_U32,DS_MAX_SRC2_U32,DS_AND_SRC2_B32,DS_OR_SRC2_B32,DS_XOR_SRC2_B32,DS_WRITE_SRC2_B32,DS_MIN_SRC2_F32,DS_MAX_SRC2_F32,DS_ADD_SRC2_F32,DS_ADD_SRC2_U64,DS_SUB_SRC2_U64,DS_RSUB_SRC2_U64,DS_INC_SRC2_U64,DS_DEC_SRC2_U64,DS_MIN_SRC2_I64,DS_MAX_SRC2_I64,DS_MIN_SRC2_U64,DS_MAX_SRC2_U64,DS_AND_SRC2_B64,DS_OR_SRC2_B64,DS_XOR_SRC2_B64,DS_WRITE_SRC2_B64,DS_MIN_SRC2_F64,DS_MAX_SRC2_F64
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 152:case 154:case 156:
 //DS_GWS_SEMA_RELEASE_ALL,DS_GWS_SEMA_V,DS_GWS_SEMA_P
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
+case 153:case 155:case 157:
+//DS_GWS_INIT,DS_GWS_SEMA_BR,DS_GWS_BARRIER
+insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0),true,false);
+insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
+break;
 case 182:case 189:case 190:
 //DS_READ_ADDTID_B32,DS_CONSUME,DS_APPEND
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST),false,true);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 insn_in_progress->appendOperand(decodeOPR_SDST_M0(124),true,false,true);
 break;
 case 191:
@@ -129,6 +161,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+0,3),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+2,0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 223:
 //DS_WRITE_B128
@@ -137,6 +170,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+0,4),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+1,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+2,0),true,false);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.DATA0+3,0),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 case 254:
 //DS_READ_B96
@@ -144,6 +178,7 @@ insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+0,3),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+1,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.VDST+2,0),false,true);
 insn_in_progress->appendOperand(decodeOPR_VGPR(layout.ADDR),true,false);
+insn_in_progress->appendOperand(decodeOPR_DSMEM(0),true,false,true);
 break;
 }
 }
@@ -1892,7 +1927,7 @@ switch(layout.OP){
 case 20:
 //S_SETREG_IMM32_B32
 insn_in_progress->appendOperand(decodeOPR_SIMM16(layout.SIMM16),false,true);
-insn_in_progress->appendOperand(decodeOPR_SIMM32(decodeOPR_LITERAL()),true,false);
+insn_in_progress->appendOperand(decodeOPR_SIMM32(layout.SIMM32),true,false);
 break;
 }
 }
