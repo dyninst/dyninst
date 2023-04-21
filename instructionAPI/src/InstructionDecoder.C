@@ -31,6 +31,14 @@
 #include "InstructionDecoder.h"
 #include "InstructionDecoderImpl.h"
 #include "Instruction.h"
+#include <array>
+#include <algorithm>
+
+namespace {
+	namespace ia = Dyninst::InstructionAPI;
+	using ui = ia::InstructionDecoder::unknown_instruction;
+	ui::callback_t callback{};
+}
 
 using namespace std;
 namespace Dyninst
@@ -53,13 +61,27 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
     {
       if(m_buf.start >= m_buf.end) return Instruction();
-      return m_Impl->decode(m_buf);
+      Instruction const& ins = m_Impl->decode(m_buf);
+
+      if(!ins.isLegalInsn() && ::callback) {
+    	auto const buf_len = static_cast<unsigned int>(m_buf.end - m_buf.start);
+    	auto const size = (maxInstructionLength < buf_len) ? maxInstructionLength : buf_len;
+
+    	// Don't let the user modify the real byte stream
+    	std::array<unsigned char, maxInstructionLength> buf{};
+    	std::copy_n(m_buf.start, size, buf.data());
+    	buffer user_buf{buf.data(), buf.data()+size};
+
+    	auto user_ins = ::callback(user_buf);
+    	m_buf.start += user_ins.size();
+    	return user_ins;
+      }
+      return ins;
     }
     
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* b)
     {
       buffer tmp(b, b+maxInstructionLength);
-      
       return m_Impl->decode(tmp);
     }
     INSTRUCTION_EXPORT void InstructionDecoder::doDelayedDecode(const Instruction* i)
@@ -67,7 +89,14 @@ namespace Dyninst
         m_Impl->doDelayedDecode(i);
     }
     
-
+    using cbt = InstructionDecoder::unknown_instruction::callback_t;
+    void InstructionDecoder::unknown_instruction::register_callback(cbt cb) {
+    	::callback = cb;
+    }
+    cbt InstructionDecoder::unknown_instruction::unregister_callback() {
+    	auto c = ::callback;
+    	::callback = nullptr;
+    	return c;
+    }
   }
 }
-
