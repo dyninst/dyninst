@@ -110,10 +110,10 @@ if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
 endif()
 
 if(NOT finalizeOperandsExtraFlags STREQUAL "")
-    set_source_files_properties(src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
-                                PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-    set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
-                                PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+  set_source_files_properties(src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
+                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+  set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
+                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
 # cmake-format: off
