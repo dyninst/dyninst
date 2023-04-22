@@ -1,0 +1,68 @@
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+      os:
+        required: true
+    src-path:
+      require: true
+      default: $GITHUB_WORKSPACE
+    build-path:
+      require: true
+      default: ${{ inputs.src-path }}/build
+    install-path:
+      require: true
+      default: ${{ inputs.src-path }}/install
+    cxx-compile-flags:
+      require: false
+    c-compile-flags:
+      require: false
+    c-compiler:
+      require: true
+    cxx-compiler:
+      require: true
+jobs:
+  ${{ inputs.name }}:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+         build-type: ['DEBUG', 'RELWITHDEBINFO', 'RELEASE']
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ inputs.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: ${{ inputs.name }} on ${{ inputs.os }}
+    steps:
+      - name: Install compilers
+      - run: |
+          apt update -qq
+          apt install --qq --no-install-recommends ${{ inputs.c-compiler }} ${{ inputs.cxx-compiler }}
+
+      - name: Checkout Dyninst
+        uses: actions/checkout@v3
+      
+      - name: Configure Dyninst
+      - run: |
+          cd "${{ inputs.build-path }}"
+          cmake "${{ inputs.src-path }}" \
+            -DCMAKE_BUILD_TYPE="${{ matrix.build-type }}" \
+            -DCMAKE_INSTALL_PREFIX="${{ inputs.install-path }}" \
+            -DCMAKE_C_COMPILER="${{ inputs.c-compiler }}" \
+            -DCMAKE_C_FLAGS="${{ inputs.c-compile-flags }} -Werror" \
+            -DCMAKE_CXX_COMPILER="${{ inputs.cxx-compiler }}" \
+            -DCMAKE_CXX_FLAGS="${{ inputs.cxx-compile-flags }} -Werror"
+
+      - name: Build Dyninst
+      - run: |
+          cd "${{ inputs.build-path }}"          
+          cmake --build .
+
+      - name: Install Dyninst
+      - run: |
+          cd "${{ inputs.build-path }}"
+          cmake --install .

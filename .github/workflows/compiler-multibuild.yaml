@@ -1,0 +1,52 @@
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+
+jobs:
+  gcc-ubuntu-20.04:
+    strategy:
+    fail-fast: false
+    matrix:
+       version: [7 8 9 10]
+    uses: .github/workflows/build
+    with:
+      name: gcc-${{ matrix.version }}
+      os: "ubuntu-20.04"
+      c-compiler: "gcc-${{ matrix.version }}"
+      cxx-compiler: "g++-${{ matrix.version }}"
+
+  gcc-ubuntu-22.04:
+    strategy:
+    fail-fast: false
+    matrix:
+       version: [11 12]
+    uses: .github/workflows/build
+    with:
+      name: gcc-${{ matrix.version }}
+      os: "ubuntu-22.04"
+      c-compiler: "gcc-${{ matrix.version }}"
+      cxx-compiler: "g++-${{ matrix.version }}"
+
+  clang-ubuntu-20.04:
+    strategy:
+    fail-fast: false
+    matrix:
+       version: [7 8 9 10 11 12]
+    uses: .github/workflows/build
+    with:
+      name: clang-${{ matrix.version }}
+      os: "ubuntu-20.04"
+      c-compiler: "clang-${{ matrix.version }}"
+      cxx-compiler: "clang++-${{ matrix.version }}"
+
+  clang-ubuntu-22.04:
+    strategy:
+    fail-fast: false
+    matrix:
+       version: [13 14 15]
+    uses: .github/workflows/build
+    with:
+      name: clang-${{ matrix.version }}
+      os: "ubuntu-22.04"
+      c-compiler: "clang-${{ matrix.version }}"
+      cxx-compiler: "clang++-${{ matrix.version }}"
