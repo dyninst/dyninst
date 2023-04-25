@@ -131,7 +131,8 @@ foreach(t ${parseAPI_TARGETS})
 
   # When using symlite, we still need the symtabAPI headers
   if(LIGHTWEIGHT_SYMTAB)
-    target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
+    target_include_directories(
+      ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
   endif()
 
 endforeach()
