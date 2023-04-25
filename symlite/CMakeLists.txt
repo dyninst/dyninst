@@ -1,5 +1,9 @@
 include_guard(GLOBAL)
 
+if(NOT LIGHTWEIGHT_SYMTAB)
+  return()
+endif()
+
 include(DyninstLibrary)
 
 if(NOT DYNINST_OS_UNIX)

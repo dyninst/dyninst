@@ -117,3 +117,11 @@ dyninst_library(
   PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB Threads::Threads
 )
 # cmake-format: on
+
+# When using symlite, we still need the symtabAPI headers
+if(LIGHTWEIGHT_SYMTAB)
+  foreach(t ${pcontrol_TARGETS})
+    target_include_directories(
+      ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
+  endforeach()
+endif()

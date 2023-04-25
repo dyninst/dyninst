@@ -128,4 +128,10 @@ foreach(t ${parseAPI_TARGETS})
   endif()
 
   install(TARGETS ${t} PUBLIC_HEADER DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
+
+  # When using symlite, we still need the symtabAPI headers
+  if(LIGHTWEIGHT_SYMTAB)
+    target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
+  endif()
+
 endforeach()
