@@ -31,7 +31,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "../dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/debug.h"
 
 #include "../Widgets/Widget.h"
 #include "../Widgets/InsnWidget.h" // Default Widget in each RelocBlock

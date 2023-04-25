@@ -1,11 +1,8 @@
-# CMake configuration for instructionAPI directory
+include_guard(GLOBAL)
 
-include_directories(
-    ${PROJECT_SOURCE_DIR}/instructionAPI/src
-    ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/gfx908
-    ${PROJECT_SOURCE_DIR}/instructionAPI/src/AMDGPU/vega)
+include(DyninstLibrary)
 
-set(SRC_LIST
+set(_sources
     src/Instruction.C
     src/InstructionAST.C
     src/Operation.C
@@ -25,70 +22,116 @@ set(SRC_LIST
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
     src/InstructionDecoderImpl.C)
-set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
+
+set(_public_headers
+    h/ArchSpecificFormatters.h
+    h/BinaryFunction.h
+    h/Dereference.h
+    h/Expression.h
+    h/Immediate.h
+    h/InstructionAST.h
+    h/InstructionCategories.h
+    h/InstructionDecoder.h
+    h/Instruction.h
+    h/Operand.h
+    h/Operation_impl.h
+    h/Register.h
+    h/RegisterIDs.h
+    h/Result.h
+    h/Ternary.h
+    h/Visitor.h)
+
+set(_private_headers
+    src/amdgpu_branchinsn_table.h
+    src/AMDGPU/gfx90a/amdgpu_gfx90a_decoder_impl.h
+    src/AMDGPU/gfx90a/amdgpu_gfx90a_insn_entry.h
+    src/AMDGPU/gfx90a/decodeOperands.h
+    src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
+    src/AMDGPU/vega/amdgpu_vega_decoder_impl.h
+    src/AMDGPU/vega/amdgpu_vega_insn_entry.h
+    src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.h
+    src/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.h
+    src/AMDGPU/gfx908/amdgpu_gfx908_insn_entry.h
+    src/AMDGPU/gfx908/decodeOperands.h
+    src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
+    src/InstructionDecoder-aarch64.h
+    src/InstructionDecoderImpl.h
+    src/InstructionDecoder-power.h
+    src/InstructionDecoder-x86.h)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^([1-9]|1[01])(\.|$)")
-        # Disable var-tracking-assignments for InstructionDecoder-power.C for all known
-        # versions of gcc..  The default max size is too small so it fails, and adjusting
-        # it using
-        #
-        # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=900000000"
-        #
-        # succeeds, but the object file produced is >1GB, so disable it.
-        string(APPEND instructionDecoderPowerExtraFlags "-fno-var-tracking-assignments")
-    endif()
+  if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^([1-9]|1[01])(\.|$)")
+    # Disable var-tracking-assignments for InstructionDecoder-power.C for all known
+    # versions of gcc..  The default max size is too small so it fails, and adjusting
+    # it using
+    #
+    # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=900000000"
+    #
+    # succeeds, but the object file produced is >1GB, so disable it.
+    string(APPEND instructionDecoderPowerExtraFlags "-fno-var-tracking-assignments")
+  endif()
 endif()
 
 # adjust warning threshold if set in cmake/warnings.cmake
 if(debugMaxFrameSizeOverridePowerOpcodeTable)
-    string(
-        APPEND
-        instructionDecoderPowerExtraFlags
-        " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverridePowerOpcodeTable}>"
-        )
+  string(
+    APPEND instructionDecoderPowerExtraFlags
+    " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverridePowerOpcodeTable}>"
+    )
 endif()
 if(nonDebugMaxFrameSizeOverridePowerOpcodeTable)
-    string(
-        APPEND
-        instructionDecoderPowerExtraFlags
-        " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverridePowerOpcodeTable}>"
-        )
+  string(
+    APPEND
+    instructionDecoderPowerExtraFlags
+    " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverridePowerOpcodeTable}>"
+    )
 endif()
 
 if(NOT instructionDecoderPowerExtraFlags STREQUAL "")
-    set_source_files_properties(
-        src/InstructionDecoder-power.C PROPERTIES COMPILE_FLAGS
-                                                  "${instructionDecoderPowerExtraFlags}")
+  set_source_files_properties(
+    src/InstructionDecoder-power.C PROPERTIES COMPILE_FLAGS
+                                              "${instructionDecoderPowerExtraFlags}")
 endif()
 
 set(finalizeOperandsExtraFlags "")
 if(debugMaxFrameSizeOverrideFinalizeOperands)
-    string(
-        APPEND
-        finalizeOperandsExtraFlags
-        " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideFinalizeOperands}>"
-        )
+  string(
+    APPEND finalizeOperandsExtraFlags
+    " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideFinalizeOperands}>"
+    )
 endif()
 if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
-    string(
-        APPEND
-        finalizeOperandsExtraFlags
-        " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideFinalizeOperands}>"
-        )
+  string(
+    APPEND
+    finalizeOperandsExtraFlags
+    " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideFinalizeOperands}>"
+    )
 endif()
 
 if(NOT finalizeOperandsExtraFlags STREQUAL "")
-    set_source_files_properties(src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
-                                PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-    set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
-                                PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+  set_source_files_properties(src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
+                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+  set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
+                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
-add_definitions(-DINSTRUCTION_LIB)
+# cmake-format: off
+dyninst_library(
+  instructionAPI
+  PUBLIC_HEADER_FILES ${_public_headers}
+  PRIVATE_HEADER_FILES ${_private_headers}
+  SOURCE_FILES ${_sources}
+  DEFINES INSTRUCTION_LIB
+  DYNINST_DEPS common
+  PUBLIC_DEPS Dyninst::Boost_headers
+)
+# cmake-format: on
 
-dyninst_library(instructionAPI common)
+set(_inc_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx90a
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
 
-target_link_private_libraries(instructionAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES}
-                              tbbmalloc)
+foreach(t ${instructionAPI_TARGETS})
+  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")
+endforeach()
+unset(_inc_dirs)

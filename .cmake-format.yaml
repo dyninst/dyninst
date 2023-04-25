@@ -26,7 +26,7 @@ parse:
 format:
   disable: false
   line_width: 90
-  tab_size: 4
+  tab_size: 2
   use_tabchars: false
   fractional_tab_policy: use-space
   max_subgroups_hwrap: 2
@@ -57,7 +57,7 @@ markup:
   explicit_trailing_pattern: '#<'
   hashruler_min_length: 10
   canonicalize_hashrulers: true
-  enable_markup: true
+  enable_markup: false
 lint:
   disabled_codes: []
   function_pattern: '[0-9a-z_]+'

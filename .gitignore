@@ -111,7 +111,7 @@ CHANGELOG
 *.bak
 massif.out.*
 DyninstAPI*.tgz
-common/h/version.h
+common/h/dyninstversion.h
 Doxyfile
 doxyfiles/*
 *.dir/

@@ -1,22 +1,28 @@
-# CMake configuration for symlite directory
+include_guard(GLOBAL)
 
-if(NOT UNIX)
-    return()
+if(NOT LIGHTWEIGHT_SYMTAB)
+  return()
 endif()
 
-include_directories(src ${PROJECT_SOURCE_DIR}/elf/h)
+include(DyninstLibrary)
 
-set(SRC_LIST src/SymLite-elf.C)
-add_definitions(-DSYMLITE_LIB)
+if(NOT DYNINST_OS_UNIX)
+  if(NOT TARGET symLite)
+    add_library(symLite INTERFACE)
+  endif()
+  return()
+endif()
 
-# add_library (symLite ${SRC_LIST}) add_library (symLite_static STATIC ${SRC_LIST}) FILE
-# (GLOB headers "h/*.h") set_target_properties (symLite symLite_static PROPERTIES
-# PUBLIC_HEADER "${headers}")
+set(_public_headers h/SymLite-elf.h)
 
-# target_link_private_libraries (symLite common) target_link_private_libraries (symLite
-# dynElf)
+set(_sources src/SymLite-elf.C)
 
-# INSTALL (TARGETS symLite symLite_static EXPORT DyninstTargets RUNTIME DESTINATION
-# ${INSTALL_LIB_DIR} LIBRARY DESTINATION ${INSTALL_LIB_DIR} ARCHIVE DESTINATION
-# ${INSTALL_LIB_DIR} PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
-dyninst_library(symLite common dynElf)
+# cmake-format: off
+dyninst_library(
+  symLite
+  PUBLIC_HEADER_FILES ${_public_headers}
+  SOURCE_FILES ${_sources}
+  DEFINES SYMLITE_LIB
+  DYNINST_DEPS common dynElf
+)
+# cmake-format: on
