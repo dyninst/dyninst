@@ -53,9 +53,10 @@ jobs:
             -DCMAKE_BUILD_TYPE="${{ matrix.build-type }}" \
             -DCMAKE_INSTALL_PREFIX="${{ inputs.install-path }}" \
             -DCMAKE_C_COMPILER="${{ inputs.c-compiler }}" \
-            -DCMAKE_C_FLAGS="${{ inputs.c-compile-flags }} -Werror" \
+            -DCMAKE_C_FLAGS="${{ inputs.c-compile-flags }}" \
             -DCMAKE_CXX_COMPILER="${{ inputs.cxx-compiler }}" \
-            -DCMAKE_CXX_FLAGS="${{ inputs.cxx-compile-flags }} -Werror"
+            -DCMAKE_CXX_FLAGS="${{ inputs.cxx-compile-flags }}" \
+            -DDYNINST_WARNINGS_AS_ERRORS=ON
 
       - name: Build Dyninst
       - run: |
