@@ -41,7 +41,7 @@ jobs:
       - name: Install compilers
       - run: |
           apt update -qq
-          apt install --qq --no-install-recommends ${{ inputs.c-compiler }} ${{ inputs.cxx-compiler }}
+          apt install --qq --no-install-recommends -y ${{ inputs.c-compiler }} ${{ inputs.cxx-compiler }}
 
       - name: Checkout Dyninst
         uses: actions/checkout@v3
