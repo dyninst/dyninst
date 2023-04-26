@@ -40,16 +40,17 @@ jobs:
     steps:
       - name: Install compilers
       - run: |
-          apt update -qq
-          apt install --qq --no-install-recommends -y ${{ inputs.c-compiler }} ${{ inputs.cxx-compiler }}
+          #apt update -qq
+          #apt install --qq --no-install-recommends -y ${{ inputs.c-compiler }} ${{ inputs.cxx-compiler }}
+          echo ${{ inputs.c-compiler }} ${{ inputs.cxx-compiler }}
 
-      - name: Checkout Dyninst
-        uses: actions/checkout@v3
+#      - name: Checkout Dyninst
+#        uses: actions/checkout@v3
       
       - name: Configure Dyninst
       - run: |
           cd "${{ inputs.build-path }}"
-          cmake "${{ inputs.src-path }}" \
+          echo $PWD cmake "${{ inputs.src-path }}" \
             -DCMAKE_BUILD_TYPE="${{ matrix.build-type }}" \
             -DCMAKE_INSTALL_PREFIX="${{ inputs.install-path }}" \
             -DCMAKE_C_COMPILER="${{ inputs.c-compiler }}" \
@@ -61,9 +62,9 @@ jobs:
       - name: Build Dyninst
       - run: |
           cd "${{ inputs.build-path }}"          
-          cmake --build .
+          echo $PWD #cmake --build .
 
       - name: Install Dyninst
       - run: |
           cd "${{ inputs.build-path }}"
-          cmake --install .
+          echo $PWD #cmake --install .
