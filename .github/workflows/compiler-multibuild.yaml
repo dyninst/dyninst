@@ -1,6 +1,6 @@
 on:
   pull_request:
-    - branch: ['master']
+    branches: ['master']
 #  schedule:
 #    - cron: '0 3 * * 1'
 
