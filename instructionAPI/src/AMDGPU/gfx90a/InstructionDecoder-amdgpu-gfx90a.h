@@ -77,7 +77,7 @@ namespace Dyninst {
 
             //Check if the index (2nd arg) is valid for the array (1st arg)
             template <typename ArrayType, std::size_t n, typename IndexType>
-            constexpr bool isArrayIndexValid(ArrayType (&)[n], const IndexType& i) {
+            constexpr bool isArrayIndexValid(ArrayType (&)[n], const IndexType& i) const {
                 return 0 <= i && i < n;
             }
 
