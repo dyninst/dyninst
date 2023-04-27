@@ -40,12 +40,6 @@ RUN apt-get -qq update && \
       clang                   \
       libomp-dev
 
-COPY docker/build_elfutils.sh .
-COPY docker/dependencies.versions .
-RUN if test x"${build_elfutils}" = xyes; then \
-      apt install -qq -y --no-install-recommends libcurl4-openssl-dev wget libzstd-dev libbz2-dev liblzma-dev; \
-      bash build_elfutils.sh; \
-    else \
-      apt install -qq -y --no-install-recommends elfutils libelf-dev libdw-dev libdebuginfod-dev; \
-    fi \
-    && rm -f build_elfutils.sh
+COPY docker/build_elfutils.sh docker/dependencies.versions /
+RUN bash build_elfutils.sh ${build_elfutils}
+RUN rm build_elfutils.sh dependencies.versions
