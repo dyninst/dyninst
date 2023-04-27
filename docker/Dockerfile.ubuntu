@@ -35,7 +35,7 @@ RUN apt-get -qq update && \
       bzip2                   \
       zlib1g-dev              \
       m4                      \
-      libiberty-dev						\
+      libiberty-dev           \
       pkg-config              \
       clang                   \
       libomp-dev
