@@ -40,7 +40,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: ${{ inputs.name }} on ${{ inputs.os }}
+    name: ${{ inputs.name }} (${{ inputs.build-type }})
     steps:
       - name: Install ${{ inputs.c-compiler }} ${{ inputs.extra-libs }}
         run: |
