@@ -59,7 +59,8 @@ jobs:
       - name: Configure Dyninst (${{ matrix.build-type }})
         shell: bash
         run: |
-          cmake /dyninst -DCMAKE_BUILD_TYPE="${{ matrix.build-type }}" \
+          cmake /dyninst/src \
+            -DCMAKE_BUILD_TYPE="${{ matrix.build-type }}" \
             -DCMAKE_C_COMPILER="${{ inputs.c-compiler }}" \
             -DCMAKE_CXX_COMPILER="${{ inputs.cxx-compiler }}" \
             -DDYNINST_WARNINGS_AS_ERRORS=ON ${{ inputs.extra-cmake-flags }}
