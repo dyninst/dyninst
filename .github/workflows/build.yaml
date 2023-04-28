@@ -49,11 +49,11 @@ jobs:
 
       # There is no apt package for clang++
       - name: Install ${{ inputs.cxx-compiler }}
-        if: !inputs.is-clang
+        if: ${{ !inputs.is-clang }}
         run: apt install -qq --no-install-recommends -y ${{ inputs.cxx-compiler }}
 
       - name: Install extra libs (${{ inputs.extra-libs }})
-        if: inputs.extra-libs != ""
+        if: ${{ inputs.extra-libs != "" }}
         run: apt install -qq --no-install-recommends -y ${{ inputs.extra-libs }}
 
       - name: Configure Dyninst (${{ matrix.build-type }})
