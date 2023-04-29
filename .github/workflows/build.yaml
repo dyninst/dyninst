@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         build-type: ['DEBUG']#, 'RELWITHDEBINFO', 'RELEASE']
+         build-type: ['DEBUG', 'RELWITHDEBINFO', 'RELEASE']
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/dyninst/amd64/${{ inputs.os }}:latest
