@@ -36,7 +36,7 @@ jobs:
            ln -s $PWD/dyninst /dyninst
            export DYNINST_C_FLAGS="-Werror" DYNINST_CXX_FLAGS="-Werror"
            export DYNINST_C_COMPILER="gcc" DYNINST_CXX_COMPILER="g++"
-           bash /dyninst/src/docker/build.sh /dyninst/src
+           bash /dyninst/src/docker/build.sh /dyninst/src 2
 
       - name: Checkout Test Suite
         uses: actions/checkout@v3
@@ -48,7 +48,7 @@ jobs:
         run: |
            cd testsuite; mkdir build; cd build
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
-           cmake --build .
+           cmake --build . --parallel 2
 
       - name: Checkout Examples
         uses: actions/checkout@v3
@@ -60,7 +60,7 @@ jobs:
         run: |
            cd examples; mkdir build; cd build
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
-           cmake --build .
+           cmake --build . --parallel 2
 
       - name: Checkout External Tests
         uses: actions/checkout@v3
@@ -72,7 +72,7 @@ jobs:
         run: |
            cd external-tests; mkdir build; cd build
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
-           cmake --build .
+           cmake --build . --parallel 2
 
   clang-build:
     permissions:
@@ -99,4 +99,4 @@ jobs:
            ln -s $PWD/dyninst /dyninst
            export DYNINST_C_FLAGS="-Werror" DYNINST_CXX_FLAGS="-Werror"
            export DYNINST_C_COMPILER="clang" DYNINST_CXX_COMPILER="clang++"
-           bash /dyninst/src/docker/build.sh /dyninst/src
+           bash /dyninst/src/docker/build.sh /dyninst/src 2
