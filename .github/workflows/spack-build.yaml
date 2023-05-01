@@ -15,4 +15,4 @@ jobs:
         git clone --depth=1 --branch=develop https://github.com/spack/spack
         spack/bin/spack compiler find
         spack/bin/spack external find --not-buildable cmake
-        spack/bin/spack install dyninst@master ^intel-tbb@2018.6
+        spack/bin/spack install dyninst@master
