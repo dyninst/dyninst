@@ -33,6 +33,7 @@ jobs:
         run: |
            cd docker/
            docker build --build-arg base=ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest \
+                        --build-arg build_jobs=2 \
                         -f Dockerfile \
                         -t ghcr.io/dyninst/amd64/${{ matrix.os }}:latest ../
 
