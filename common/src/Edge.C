@@ -106,7 +106,8 @@ bool EdgeIterator::operator==(const EdgeIterator &rhs) const {
 }
 
 EdgeIterator &EdgeIterator::operator=(const EdgeIterator &rhs) {
-    if (rhs.iter_ == NULL) {
+    if(this == &rhs) return *this;
+	if (rhs.iter_ == NULL) {
         if (iter_) delete iter_; // No leaking!
         iter_ = rhs.iter_; 
         return *this;
