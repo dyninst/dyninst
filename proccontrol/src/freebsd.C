@@ -792,7 +792,7 @@ freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
 
 freebsd_process::~freebsd_process() 
 {
-    int eventQueue = getEventQueue();
+    int eventQueue = freebsd_process::getEventQueue();
     if( -1 != eventQueue ) {
         // Remove the event for this process
         struct kevent event;
