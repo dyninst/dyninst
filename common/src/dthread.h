@@ -117,6 +117,11 @@ class PC_EXPORT CondVar {
    }
    ~CondVar() { if(created_mutex) delete mutex; }
 
+   CondVar(CondVar const&) = delete;
+   CondVar& operator=(CondVar const&) = delete;
+   CondVar(CondVar &&) = delete;
+   CondVar& operator=(CondVar &&rhs) = delete;
+
    void unlock() { mutex->unlock(); }
    bool trylock() { return mutex->try_lock(); }
    void lock() { mutex->lock(); }
