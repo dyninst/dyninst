@@ -179,7 +179,7 @@ CFGFactory::free_func(Function *f) {
 
 void
 CFGFactory::destroy_block(Block *b) {
-    free_block(b);
+    CFGFactory::free_block(b);
 }
 
 void
