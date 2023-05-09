@@ -169,7 +169,7 @@ CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void CFGFactory::destroy_func(Function *f) {
-   free_func(f);
+   CFGFactory::free_func(f);
 }
 
 void
