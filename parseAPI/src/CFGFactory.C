@@ -202,7 +202,7 @@ std::string to_str(EdgeState e)
 void
 CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
     if(reason == destroyed_all) {
-        free_edge(e);
+        CFGFactory::free_edge(e);
     }
 }
 
