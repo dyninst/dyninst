@@ -165,7 +165,7 @@ AddressTranslateWin::AddressTranslateWin(PID pid, PROC_HANDLE phandle_) :
 	AddressTranslate(pid, phandle_),
    no_proc(false)
 {
-	init();
+	AddressTranslateWin::init();
 }
 
 Address AddressTranslateWin::getLibraryTrapAddrSysV()
