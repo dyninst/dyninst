@@ -1043,16 +1043,25 @@ Address AddressTranslateSysV::adjustForAddrSpaceWrap(Address base, std::string n
 
    lseek(fd, 0, SEEK_SET);
    Elf32_Ehdr e_hdr;
-   if (read(fd, &e_hdr, sizeof(e_hdr)) != sizeof(e_hdr)) return base;
+   if (read(fd, &e_hdr, sizeof(e_hdr)) != sizeof(e_hdr)) {
+     close(fd);
+     return base;
+   }
 
-   if (e_hdr.e_phoff == 0) return base;
+   if (e_hdr.e_phoff == 0) {
+     close(fd);
+     return base;
+   }
 
    lseek(fd, e_hdr.e_phoff, SEEK_SET);
 
    Address codeOffset = 0;
    while (true) {
       Elf32_Phdr p_hdr;
-      if (read(fd, &p_hdr, sizeof(p_hdr)) != sizeof(p_hdr)) return base;
+      if (read(fd, &p_hdr, sizeof(p_hdr)) != sizeof(p_hdr)) {
+        close(fd);
+        return base;
+      }
 
       Address p_vaddr = p_hdr.p_vaddr;
       unsigned type = p_hdr.p_type;
