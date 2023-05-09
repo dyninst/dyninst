@@ -141,7 +141,7 @@ namespace Dyninst
       sizePrefixPresent(false),
       addrSizePrefixPresent(false)
     {
-      if(a == Arch_x86_64) setMode(true);
+      if(a == Arch_x86_64) InstructionDecoder_x86::setMode(true);
       
     }
     INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
