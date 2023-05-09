@@ -391,7 +391,7 @@ class NodeIteratorPredicateFunc : public NodeIteratorImpl {
         // next is now a matching node. If the start wasn't,
         // then we need to increment...
         if ((cur != end) && !pred(*cur, user_arg)) {
-            inc();
+        	NodeIteratorPredicateFunc::inc();
         }
     }
     void setNext() {
