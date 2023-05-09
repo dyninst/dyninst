@@ -100,7 +100,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
                                  (DWORD64) ev.info.u.LoadDll.lpBaseOfDll, 0);
      if (!iresult) {
        printSysError(GetLastError());
-	   fprintf(stderr, "[%s:%u] - Couldn't SymLoadModule64\n", FILE__, __LINE__);
+	   fprintf(stderr, "[%s:%d] - Couldn't SymLoadModule64\n", FILE__, __LINE__);
 	   return true;
      }
 
@@ -120,7 +120,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
      mapped_object *newobj = 
          mapped_object::createMappedObject(desc, proc, mode, parseGaps);
      if (!newobj) {
-         fprintf(stderr, "[%s:%u] - Couldn't parse loaded module %s\n", 
+         fprintf(stderr, "[%s:%d] - Couldn't parse loaded module %s\n",
                  FILE__,__LINE__, imageName.c_str());
          return true;
      }
@@ -136,7 +136,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
     bool result = SymUnloadModule64(procHandle, base);
 	if (!result) {
        printSysError(GetLastError());
-	   fprintf(stderr, "[%s:%u] - Couldn't SymUnloadModule64\n", FILE__, __LINE__);
+	   fprintf(stderr, "[%s:%d] - Couldn't SymUnloadModule64\n", FILE__, __LINE__);
 	}
         
 	mapped_object *oldobj = NULL;

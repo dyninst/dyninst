@@ -400,7 +400,7 @@ bool windows_process::plat_readMem(int_thread *thr, void *local,
 	if(!::ReadProcessMemory(hproc, (unsigned char*)remote, (unsigned char*)local, size, NULL)) 
 	{
 		errcode = ::GetLastError();
-		pthrd_printf("ReadProcessMemory() failed to get %d bytes from 0x%x, error %d\n",
+		pthrd_printf("ReadProcessMemory() failed to get %zu bytes from 0x%lx, error %d\n",
 			size, remote, errcode);
 		return false;
 	}
@@ -544,7 +544,7 @@ Dyninst::Address windows_process::plat_mallocExecMemory(Dyninst::Address min, un
 {
 	Dyninst::Address alloc_result = (Dyninst::Address)::VirtualAllocEx(hproc, (LPVOID)min, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 	if(alloc_result == 0) {
-		pthrd_printf("mallocExecMemory failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
+		pthrd_printf("mallocExecMemory failed to VirtualAllocEx %u bytes, error code %d\n", size, ::GetLastError());
 	}
 	return alloc_result;
 }
@@ -597,8 +597,8 @@ Dyninst::Address windows_process::direct_infMalloc(unsigned long size, bool use_
 
 	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE));
 	if(result == 0) {
-		pthrd_printf("infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
-		fprintf(stderr, "infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
+		pthrd_printf("infMalloc failed to VirtualAllocEx %u bytes, error code %d\n", size, ::GetLastError());
+		fprintf(stderr, "infMalloc failed to VirtualAllocEx %u bytes, error code %d\n", size, ::GetLastError());
 		MEMORY_BASIC_INFORMATION info;
 		memset(&info, 0, sizeof(MEMORY_BASIC_INFORMATION));
 		VirtualQueryEx(hproc, (LPCVOID) (Address) addr,
@@ -745,7 +745,7 @@ void windows_process::findSystemLibs() {
 }
 
 int_thread *windows_process::RPCThread() {
-	pthrd_printf("Query for RPC thread: ret 0x%lx\n", 
+	pthrd_printf("Query for RPC thread: ret %p\n",
 		dummyRPCThread_);
 	return dummyRPCThread_;
 }
@@ -754,7 +754,7 @@ int_thread *windows_process::createRPCThread(int_thread* best_candidate) {
 	if(best_candidate) return best_candidate;
 	if (!dummyRPCThread_) {
 		dummyRPCThread_ = static_cast<windows_thread *>(int_thread::createRPCThread(this));
-		pthrd_printf("Creating RPC thread: 0x%lx\n", dummyRPCThread_);
+		pthrd_printf("Creating RPC thread: %p\n", dummyRPCThread_);
 	}
 	else {
 		pthrd_printf("Create RPC thread returning previous copy\n");
@@ -769,7 +769,7 @@ void windows_process::instantiateRPCThread() {
 	if (!dummyRPCThread_->isRPCpreCreate())
 		return;
 
-	pthrd_printf("Promoting dummy RPC thread 0x%lx to a real thread\n", dummyRPCThread_);
+	pthrd_printf("Promoting dummy RPC thread %p to a real thread\n", dummyRPCThread_);
 
 	// We want to:
 	// 1) Take the dummy thread

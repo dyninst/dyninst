@@ -74,7 +74,7 @@ void printSysError(unsigned errNo) {
         fprintf(stderr, "Couldn't print error message\n");
         printSysError(GetLastError());
     }
-    fprintf(stderr, "*** System error [%d]: %s\n", errNo, buf);
+    fprintf(stderr, "*** System error [%u]: %s\n", errNo, buf);
     fflush(stderr);
 }
 

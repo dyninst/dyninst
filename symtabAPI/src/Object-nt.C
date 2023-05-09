@@ -81,7 +81,7 @@ static void printSysError(unsigned errNo) {
 	fprintf(stderr, "Couldn't print error message\n");
 		printSysError(GetLastError());
     }
-    fprintf(stderr, "*** System error [%d]: %s\n", errNo, buf);
+    fprintf(stderr, "*** System error [%u]: %s\n", errNo, buf);
     fflush(stderr);
 }
 
@@ -652,7 +652,7 @@ void Object::AddTLSFunctions()
       Offset baseAddr = 0;
       Object::File *pFile = curModule->GetDefaultFile();
       char funcName [128];
-      snprintf(funcName, 128, "tls_cb_%d", tidx);
+      snprintf(funcName, 128, "tls_cb_%u", tidx);
       pFile->AddSymbol( new Object::intSymbol
                        ( funcName,
                          funcOff,
@@ -1305,7 +1305,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
    }
    else {
 	   
-      fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
+      fprintf(stderr, "[%s:%d] - Local variable of unknown type.  %s in %s\n",
               __FILE__, __LINE__, pSymInfo->Name, func->pretty_names_begin()->c_str());
       paramType = "unknown";
    }
@@ -1533,7 +1533,7 @@ static Type *getPointerType(HANDLE p, Offset base, int typeIndex, Module *mod) {
 
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseTypeIndex);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        fprintf(stderr, "[%s:%d] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
         return NULL;
     }
 
@@ -1547,7 +1547,7 @@ static Type *getPointerType(HANDLE p, Offset base, int typeIndex, Module *mod) {
 
     baseType = getType(p, base, baseTypeIndex, mod);
     if (!baseType) {
-        fprintf(stderr, "[%s:%u] - getType failed\n", __FILE__, __LINE__);
+        fprintf(stderr, "[%s:%d] - getType failed\n", __FILE__, __LINE__);
         return NULL;
     }
 
@@ -1566,7 +1566,7 @@ static Type *getArrayType(HANDLE p, Offset base, int typeIndex, Module *mod) {
     //Get the index type (usually an int of some kind).  Currently not used.
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_ARRAYINDEXTYPEID, &index);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_ARRAYINDEXTYPEID failed\n", 
+        fprintf(stderr, "[%s:%d] - TI_GET_ARRAYINDEXTYPEID failed\n",
                 __FILE__, __LINE__);
         return NULL;
     }
@@ -1575,7 +1575,7 @@ static Type *getArrayType(HANDLE p, Offset base, int typeIndex, Module *mod) {
     //Get the base type (the type of the elements in the array)
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseIndex);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        fprintf(stderr, "[%s:%d] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
         return NULL;
     }
     baseType = getType(p, base, baseIndex, mod);
@@ -1608,7 +1608,7 @@ static Type *getTypedefType(HANDLE p, Offset base, int typeIndex, Module *mod) {
 
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseTypeIndex);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        fprintf(stderr, "[%s:%d] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
         return NULL;
     }
     baseType = getType(p, base, baseTypeIndex, mod);
@@ -1762,7 +1762,7 @@ static Type *getFunctionType(HANDLE p, Offset base, int typeIndex, Module *mod) 
 
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &retTypeIndex);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - Couldn't TI_GET_TYPEID\n", __FILE__, __LINE__);
+        fprintf(stderr, "[%s:%d] - Couldn't TI_GET_TYPEID\n", __FILE__, __LINE__);
         return NULL;
     }
 
