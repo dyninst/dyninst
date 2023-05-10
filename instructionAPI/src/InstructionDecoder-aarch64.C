@@ -303,12 +303,12 @@ namespace Dyninst {
         void InstructionDecoder_aarch64::processOptionFieldLSRegOffsetInsn() {
             if (optionField == 0x3)            //option = LSL
             {
-                int sizeVal = field<30, 31>(insn), extend;
+                int sizeVal = field<30, 31>(insn);
 
                 if (field<23, 23>(insn) == 1)
                     sizeVal = 4;
 
-                extend = sField * sizeVal;
+                unsigned extend = sField * sizeVal;
                 int extendSize = 31;
                 while (extendSize >= 0 && ((extend << (31 - extendSize)) & 0x80000000) == 0)
                     extendSize--;
