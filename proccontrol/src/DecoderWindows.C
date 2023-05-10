@@ -64,16 +64,16 @@ Dyninst::Address DecoderWindows::adjustTrapAddr(Dyninst::Address addr, Dyninst::
 
 void DecoderWindows::dumpSurroundingMemory( unsigned problemArea, int_process* proc )
 {
-	fprintf(stderr, "segfault in mutatee at %p\n", problemArea);
+	fprintf(stderr, "segfault in mutatee at %ux\n", problemArea);
 	for(unsigned i = problemArea-16; i < problemArea+16; i++)
 	{
 		unsigned char tmp = 0;
 
 		if(proc->plat_readMem(NULL, &tmp, i, 1)) {
-			fprintf(stderr, "%p: %x\n", i, tmp);
+			fprintf(stderr, "%ux: %x\n", i, tmp);
 		}
 		else {
-			fprintf(stderr, "failed to read from %p\n", i);
+			fprintf(stderr, "failed to read from %ux\n", i);
 		}
 	}
 }
