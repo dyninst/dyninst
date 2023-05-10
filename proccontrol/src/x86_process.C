@@ -230,7 +230,7 @@ bool x86_thread::addHWBreakpoint(hw_breakpoint *bp,
 
       //Set bits 18-19, 22-23, 26-27, or 30-31 to size
       offset = cur*4+18;
-      new_dr7 &= ~((unsigned long) (3 << offset));
+      new_dr7 &= ~((unsigned long) (3U << offset));
       new_dr7 |= size_code << offset;
 
       //Set bit 8 to on (exact match required)
