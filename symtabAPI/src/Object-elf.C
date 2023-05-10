@@ -3272,7 +3272,7 @@ bool AObject::getSegments(vector<Segment> &segs) const {
             (regions_[i]->getRegionName() == ".fini") ||
             (regions_[i]->getRegionName() == ".rodata") || (regions_[i]->getRegionName() == ".plt") ||
             (regions_[i]->getRegionName() == ".data")) {
-            Segment seg;
+            Segment seg{};
             seg.data = regions_[i]->getPtrToRawData();
             seg.loadaddr = regions_[i]->getDiskOffset();
             seg.size = regions_[i]->getDiskSize();

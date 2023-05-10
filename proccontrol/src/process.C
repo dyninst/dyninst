@@ -6045,13 +6045,13 @@ Library::const_ptr LibraryPool::getExecutable() const
 }
 
 LibraryPool::iterator LibraryPool::find(Library::ptr lib) {
-   LibraryPool::iterator i;
+   LibraryPool::iterator i{};
    i.int_iter = proc->memory()->libs.find(lib->debug());
    return i;
 }
 
 LibraryPool::const_iterator LibraryPool::find(Library::ptr lib) const {
-   LibraryPool::const_iterator i;
+   LibraryPool::const_iterator i{};
    i.int_iter = proc->memory()->libs.find(lib->debug());
    return i;
 }
@@ -6080,14 +6080,14 @@ LibraryPool::iterator LibraryPool::iterator::operator++(int) // postfix
 
 LibraryPool::iterator LibraryPool::begin()
 {
-   LibraryPool::iterator i;
+   LibraryPool::iterator i{};
    i.int_iter = proc->memory()->libs.begin();
    return i;
 }
 
 LibraryPool::iterator LibraryPool::end()
 {
-   LibraryPool::iterator i;
+   LibraryPool::iterator i{};
    i.int_iter = proc->memory()->libs.end();
    return i;
 }
@@ -6104,14 +6104,14 @@ bool LibraryPool::iterator::operator!=(const LibraryPool::iterator &i) const
 
 LibraryPool::const_iterator LibraryPool::begin() const
 {
-   LibraryPool::const_iterator i;
+   LibraryPool::const_iterator i{};
    i.int_iter = proc->memory()->libs.begin();
    return i;
 }
 
 LibraryPool::const_iterator LibraryPool::end() const
 {
-   LibraryPool::const_iterator i;
+   LibraryPool::const_iterator i{};
    i.int_iter = proc->memory()->libs.end();
    return i;
 }
@@ -8026,7 +8026,7 @@ ThreadPool::iterator ThreadPool::iterator::operator++(int) // postfix
 ThreadPool::iterator ThreadPool::begin()
 {
    MTLock lock_this_func;
-   ThreadPool::iterator i;
+   ThreadPool::iterator i{};
    i.curp = threadpool;
    i.curi = 0;
 
@@ -8041,7 +8041,7 @@ ThreadPool::iterator ThreadPool::begin()
 ThreadPool::iterator ThreadPool::end()
 {
    MTLock lock_this_func;
-   ThreadPool::iterator i;
+   ThreadPool::iterator i{};
    i.curp = threadpool;
    i.curi = iterator::end_val;
    i.curh = Thread::ptr();
@@ -8051,7 +8051,7 @@ ThreadPool::iterator ThreadPool::end()
 ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp)
 {
     MTLock lock_this_func;
-    ThreadPool::iterator i;
+    ThreadPool::iterator i{};
     int_thread *thread = threadpool->findThreadByLWP(lwp);
     if( !thread ) return end();
 
@@ -8137,7 +8137,7 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int) // postfi
 ThreadPool::const_iterator ThreadPool::begin() const
 {
    MTLock lock_this_func;
-   ThreadPool::const_iterator i;
+   ThreadPool::const_iterator i{};
    i.curp = threadpool;
    i.curi = 0;
 
@@ -8158,7 +8158,7 @@ ThreadPool::const_iterator ThreadPool::begin() const
 ThreadPool::const_iterator ThreadPool::end() const
 {
    MTLock lock_this_func;
-   ThreadPool::const_iterator i;
+   ThreadPool::const_iterator i{};
    i.curp = threadpool;
    i.curi = const_iterator::end_val;
    i.curh = Thread::ptr();
@@ -8168,7 +8168,7 @@ ThreadPool::const_iterator ThreadPool::end() const
 ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
 {
     MTLock lock_this_func;
-    ThreadPool::const_iterator i;
+    ThreadPool::const_iterator i{};
     int_thread *thread = threadpool->findThreadByLWP(lwp);
     if( !thread ) return end();
 

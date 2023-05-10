@@ -399,7 +399,7 @@ static struct link_map *getLinkMap() {
 
     // Rewind the current link map pointer to find the
     // start of the list
-    struct link_map *last_map;
+    struct link_map *last_map = NULL;
     while( map != NULL ) {
         last_map = map;
         map = map->l_prev;
