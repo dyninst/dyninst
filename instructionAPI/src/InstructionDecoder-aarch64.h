@@ -152,23 +152,23 @@ namespace Dyninst {
         private:
             virtual Result_Type makeSizeType(unsigned int opType);
 
-            bool isPstateRead, isPstateWritten;
-            bool isFPInsn, isSIMDInsn;
-	    bool skipRn, skipRm;
-            bool is64Bit;
-            bool isValid;
+            bool isPstateRead{}, isPstateWritten{};
+            bool isFPInsn{}, isSIMDInsn{};
+	    bool skipRn{}, skipRm{};
+            bool is64Bit{};
+            bool isValid{};
 
             void mainDecode();
 
             int findInsnTableIndex(unsigned int);
 
             /*members for handling operand re-ordering, will be removed later once a generic operand ordering method is incorporated*/
-            int oprRotateAmt;
-            bool hasb5;
+            int oprRotateAmt{};
+            bool hasb5{};
 
             void reorderOperands();
 
-            unsigned int insn;
+            unsigned int insn{};
             boost::shared_ptr<Instruction> insn_in_progress;
 
             template<int start, int end>
@@ -220,42 +220,42 @@ namespace Dyninst {
                 return -1;
             }
 
-            int op1Field, op2Field, crmField;
+            int op1Field{}, op2Field{}, crmField{};
 
             void processSystemInsn();
 
-            bool hasHw;
-            int hwField;
+            bool hasHw{};
+            int hwField{};
 
             void processHwFieldInsn(int, int);
 
-            bool hasShift;
-            int shiftField;
+            bool hasShift{};
+            int shiftField{};
 
             void processShiftFieldShiftedInsn(int, int);
 
             void processShiftFieldImmInsn(int, int);
 
-            bool hasOption;
-            int optionField;
+            bool hasOption{};
+            int optionField{};
 
             void processOptionFieldLSRegOffsetInsn();
 
-            bool hasN;
-            int immr, immrLen;
-            int sField, nField, nLen;
+            bool hasN{};
+            int immr, immrLen{};
+            int sField{}, nField{}, nLen{};
 
-            int immlo, immloLen;
+            int immlo{}, immloLen{};
 
             void makeBranchTarget(bool, bool, int, int);
 
             Expression::Ptr makeFallThroughExpr();
 
-            int _szField, size;
-            int _typeField;
-            int cmode;
-            int op;
-            int simdAlphabetImm;
+            int _szField{}, size{};
+            int _typeField{};
+            int cmode{};
+            int op{};
+            int simdAlphabetImm{};
 
             void processAlphabetImm();
 
@@ -503,9 +503,9 @@ namespace Dyninst {
 
             void setFlags();
 
-            unsigned int _Q;
-            unsigned int _L;
-            unsigned int _R;
+            unsigned int _Q{};
+            unsigned int _L{};
+            unsigned int _R{};
 
             void getSIMD_MULT_RptSelem(unsigned int &rpt, unsigned int &selem);
 

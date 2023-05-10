@@ -1236,7 +1236,7 @@ public:
 
 protected:
     // Start of memberFunctionString
-    SgAsmType *p_type;
+    SgAsmType *p_type{};
 
     // End of memberFunctionString
 public:

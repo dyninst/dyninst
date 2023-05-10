@@ -100,9 +100,9 @@ class SimpleInterval
     virtual T high() const { return high_; }
     virtual U id() const { return id_; }
   protected:
-    T low_;
-    T high_;
-    U id_; // some arbitrary unique identifier
+    T low_{};
+    T high_{};
+    U id_{}; // some arbitrary unique identifier
 };
 
 template<class ITYPE>

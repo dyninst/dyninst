@@ -62,7 +62,8 @@ class syscallNotification {
     syscallNotification() :
     preForkInst(NULL), postForkInst(NULL),
     preExecInst(NULL), postExecInst(NULL),
-    preExitInst(NULL), preLwpExitInst(NULL)
+    preExitInst(NULL), preLwpExitInst(NULL),
+    proc(NULL)
        { assert(0 && "ILLEGAL USE OF DEFAULT CONSTRUCTOR"); }
 
     syscallNotification(PCProcess *p) :

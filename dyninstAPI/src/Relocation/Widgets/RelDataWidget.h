@@ -82,12 +82,12 @@ struct RelDataPatch : public Patch {
   void setBlock(block_instance *_block) { block = _block; }
   
   InstructionAPI::Instruction orig_insn;
-  Address target_addr;
-  Address orig;
+  Address target_addr{};
+  Address orig{};
 
 private:
-  func_instance *func;
-  block_instance *block;
+  func_instance *func{};
+  block_instance *block{};
 };
 
 

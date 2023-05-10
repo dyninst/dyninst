@@ -86,7 +86,7 @@ namespace hd {
 #define ARG2_MASK (((uint64_t)(1<<ARG_SIZE)-1) << ARG2_SHIFT)
 
 struct IdiomTerm {
-    unsigned short entry_id, arg1, arg2;
+    unsigned short entry_id{}, arg1{}, arg2{};
     IdiomTerm() {}
     IdiomTerm(unsigned short a, unsigned short b, unsigned short c):
         entry_id(a), arg1(b), arg2(c) {}
@@ -101,8 +101,8 @@ static IdiomTerm WILDCARD_TERM(WILDCARD_ENTRY_ID, NOARG, NOARG);
 
 struct Idiom {
     std::vector<IdiomTerm> terms;
-    double w;
-    bool prefix;
+    double w{};
+    bool prefix{};
     Idiom() {}
     Idiom(std::string f, double weight, bool pre);
     bool operator < (const Idiom& i) const;
@@ -114,9 +114,9 @@ public:
     typedef std::vector<std::pair<IdiomTerm, IdiomPrefixTree*> > ChildrenType;
     typedef dyn_hash_map<unsigned short, ChildrenType> ChildrenByEntryID;
 private:
-    ChildrenByEntryID childrenClusters;
-    double w;
-    bool feature;
+    ChildrenByEntryID childrenClusters{};
+    double w{};
+    bool feature{};
     void addIdiom(int cur, const Idiom& idiom);
 
 
@@ -133,11 +133,11 @@ public:
 };
 
 class IdiomModel {
-    IdiomPrefixTree normal;
-    IdiomPrefixTree prefix;
+    IdiomPrefixTree normal{};
+    IdiomPrefixTree prefix{};
 
-    double bias;
-    double prob_threshold;
+    double bias{};
+    double prob_threshold{};
     IdiomModel() {}
 
 public:

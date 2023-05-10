@@ -237,7 +237,7 @@ struct stackItem {
       reg_item,
       stacktop,
       framebase
-   } item;
+   } item{};
    RealRegister reg;
    stackItem(stackItem_t i) { assert(i != reg_item); item = i; }
    stackItem(RealRegister r) { item = reg_item; reg = r; }

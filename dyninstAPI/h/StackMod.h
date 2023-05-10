@@ -77,8 +77,8 @@ class BPATCH_DLL_EXPORT StackMod
         virtual std::string format() const { return ""; }
 
     protected:
-        MOrder _order;
-        MType _type;
+        MOrder _order{};
+        MType _type{};
 };
 
 /* Modification to insert stack space at [low, high) */
@@ -99,8 +99,8 @@ class BPATCH_DLL_EXPORT Insert : public StackMod
     private:
         Insert(MOrder, int, int);
 
-        int _low;
-        int _high;
+        int _low{};
+        int _high{};
 };
 
 /* Modification to remove stack space at [low, high) */
@@ -121,8 +121,8 @@ class BPATCH_DLL_EXPORT Remove : public StackMod
     private:
         Remove(MOrder, int, int);
 
-        int _low;
-        int _high;
+        int _low{};
+        int _high{};
 };
 
 /* Modification to move stack space from [srcLow, srcHigh)
@@ -144,10 +144,10 @@ class BPATCH_DLL_EXPORT Move : public StackMod
         std::string format() const;
 
     private:
-        int _srcLow;
-        int _srcHigh;
-        int _destLow;
-        int _destHigh;
+        int _srcLow{};
+        int _srcHigh{};
+        int _destLow{};
+        int _destHigh{};
 };
 
 /* Modification to insert a stack canary at function entry
@@ -180,9 +180,9 @@ class BPATCH_DLL_EXPORT Canary : public StackMod
         std::string format() const;
 
     private:
-        int _low;
-        int _high;
-        BPatch_function* _failFunc;
+        int _low{};
+        int _high{};
+        BPatch_function* _failFunc{};
 };
 
 /* Modification to randomize the locations of the DWARF-specified
@@ -201,8 +201,8 @@ class BPATCH_DLL_EXPORT Randomize : public StackMod
         std::string format() const;
 
     private:
-        bool _isSeeded;
-        int _seed;
+        bool _isSeeded{};
+        int _seed{};
 };
 
 #endif

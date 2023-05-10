@@ -163,7 +163,7 @@ private:
         Pool(const Pool&);                              // nonsense
 
     public:
-        Pool(): cellSize_(0) {}
+        Pool(): cellSize_(0), freeLists_{} {}
 
         void init(size_t cellSize) {
             assert(cellSize_ == 0);

@@ -264,12 +264,12 @@ class PATCHAPI_EXPORT Point {
 
 
     InstanceList instanceList_;
-    Address addr_;
-    Type type_;
+    Address addr_{};
+    Type type_{};
     PatchMgrPtr mgr_;
-    PatchBlock* the_block_;
-    PatchEdge* the_edge_;
-    PatchFunction* the_func_;
+    PatchBlock* the_block_{};
+    PatchEdge* the_edge_{};
+    PatchFunction* the_func_{};
     InstructionAPI::Instruction insn_;
 };
 

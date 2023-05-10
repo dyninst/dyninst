@@ -79,7 +79,7 @@ class PATCHAPI_EXPORT AddrSpace {
 
   protected:
     ObjMap obj_map_;
-    PatchObject* first_object_;
+    PatchObject* first_object_{};
     PatchMgrPtr mgr_;
 
     bool init(PatchObject*);

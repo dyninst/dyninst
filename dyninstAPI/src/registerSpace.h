@@ -150,7 +150,13 @@ class registerSlot {
         name("DEFAULT REGISTER"),
         initialState(deadAlways),
         offLimits(true),
-        type(invalid)
+        type(invalid),
+        refCount(0),
+        liveState(live),
+        keptValue(false),
+        beenUsed(false),
+        spilledState(unspilled),
+        saveOffset(-1)
         {}
 
     registerSlot(Register num,

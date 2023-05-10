@@ -129,24 +129,24 @@ class DYNELF_EXPORT Elf_X {
     Dyninst::Architecture getArch() const;
 
   protected:
-    Elf *elf;
-    Elf32_Ehdr *ehdr32;
-    Elf64_Ehdr *ehdr64;
-    Elf32_Phdr *phdr32;
-    Elf64_Phdr *phdr64;
-    int filedes;
-    bool is64;
-    bool isArchive;
-    bool isBigEndian;
+    Elf *elf{};
+    Elf32_Ehdr *ehdr32{};
+    Elf64_Ehdr *ehdr64{};
+    Elf32_Phdr *phdr32{};
+    Elf64_Phdr *phdr64{};
+    int filedes{};
+    bool is64{};
+    bool isArchive{};
+    bool isBigEndian{};
     std::vector<Elf_X_Shdr> shdrs;
     std::vector<Elf_X_Phdr> phdrs;
-    unsigned int ref_count;
+    unsigned int ref_count{};
     std::string filename;
 
-    char *cached_debug_buffer;
-    unsigned long cached_debug_size;
+    char *cached_debug_buffer{};
+    unsigned long cached_debug_size{};
     std::string cached_debug_name;
-    bool cached_debug;
+    bool cached_debug{};
 
     Elf_X();
     Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL);

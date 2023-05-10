@@ -79,8 +79,11 @@ class StackLocation {
     {}
 
         StackLocation() :
+            _type(StackAccess::StackAccessType::UNKNOWN),
+            _size{},
             _isStackMemory(false),
             _isRegister(false),
+			_reg{},
             _isNull(true),
             _valid(NULL)
     {}
@@ -122,7 +125,7 @@ class StackLocation {
 
         bool _isStackMemory;
         StackAnalysis::Height _off;
-        bool _isRegisterHeight;
+        bool _isRegisterHeight{};
 
         bool _isRegister;
         MachRegister _reg;
