@@ -631,10 +631,13 @@ void Object::AddTLSFunctions()
 
    // calculate the address of the TLS callback array and make sure it's valid
    secn = findEnclosingRegion(tlsDir->AddressOfCallBacks - imgBase);
+   if (!secn) {
+      return;
+   }
    Offset cbOffSec = tlsDir->AddressOfCallBacks 
       - secn->getMemOffset() 
       - imgBase;
-   if (!secn || cbOffSec > secn->getDiskSize()) {
+   if (cbOffSec > secn->getDiskSize()) {
       return;
    }
    Offset cbOffDisk = cbOffSec + secn->getDiskOffset();

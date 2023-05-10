@@ -506,8 +506,8 @@ void BoundFact::KillFact(const AST::Ptr ast, bool isConditionalJump) {
     for (auto rit = relation.begin(); rit != relation.end();) {
 	// If the one of them is changed,
 	// we no longer know their relationship
-	if (*((*rit)->left) == *ast || *((*rit)->right) == *ast) {
-	    if (*rit != NULL) delete *rit;
+    if (*((*rit)->left) == *ast || *((*rit)->right) == *ast) {
+	    delete *rit;
 	    rit = relation.erase(rit);
 	} else ++rit;
     }

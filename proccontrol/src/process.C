@@ -2298,11 +2298,11 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
      }
       case Event::sync_thread: {
          int_thread *thrd = ev->getThread()->llthrd();
-         int_thread::StateTracker &st = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
          if (!thrd) {
             pthrd_printf("No thread for sync thread event, assuming thread exited\n");
             return;
          }
+         int_thread::StateTracker &st = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
          int_thread::State old_state = st.getState();
          if (old_state == int_thread::exited) {
             //Silly, linux.  Giving us events on processes that have exited.
