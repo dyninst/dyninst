@@ -875,7 +875,7 @@ Parser::finalize(Function *f)
             // the edge is a tail call.
             // For example, if a jump from .text to .plt (different sections), then
             // no matter what, this edge is a tail call.
-            if (trg_func->region() != b->region()) continue;
+            if (trg_func && trg_func->region() != b->region()) continue;
 
             // Rule 2:
             // Find a tail call targeting a block within the same function.

@@ -510,6 +510,7 @@ static int_addressSet::iterator get_end(AddressSet::ptr as) {
 static void thread_err_check(int_thread *ithr, err_t *thread_error) {
    if (!ithr) {
       *thread_error = err_exited;
+      return;
    }
    if (ithr->getUserState().getState() == int_thread::running) {
       *thread_error = err_notrunning;
@@ -3343,8 +3344,7 @@ bool ThreadTrackingSet::refreshThreads() const
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       int_threadTracking *proc = (*i)->llproc()->getThreadTracking();
       if (!proc) {
-         perr_printf("Thread tracking not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No thread tracking on this platform\n");
+         perr_printf("Thread tracking not supported on process\n");
          had_error = true;
          continue;
       }
@@ -3402,8 +3402,7 @@ bool LWPTrackingSet::refreshLWPs() const
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       int_LWPTracking *proc = (*i)->llproc()->getLWPTracking();
       if (!proc) {
-         perr_printf("LWP tracking not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No LWP tracking on this platform\n");
+         perr_printf("LWP tracking not supported on process\n");
          had_error = true;
          continue;
       }
@@ -3479,8 +3478,7 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       int_followFork *proc = (*i)->llproc()->getFollowFork();
       if (!proc) {
-         perr_printf("Follow Fork not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No follow fork control on this platform\n");
+         perr_printf("Follow Fork not supported on process\n");
          had_error = true;
          continue;
       }
@@ -3608,8 +3606,7 @@ bool RemoteIOSet::getFileNames(FileSet *fset)
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       int_remoteIO *proc = (*i)->llproc()->getRemoteIO();
       if (!proc) {
-         perr_printf("getFileNames attempted on non RemoteIO process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "getFileNames not supported on this platform");
+         perr_printf("getFileNames attempted on non RemoteIO process\n");
          had_error = true;
          continue;
       }
@@ -3663,8 +3660,7 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
       fflush(stderr);
       int_remoteIO *proc = i->first->llproc()->getRemoteIO();
       if (!proc) {
-         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         perr_printf("getFileStatData attempted on non RemoteIO process\n");
          had_error = true;
          continue;
       }
@@ -3710,8 +3706,7 @@ bool RemoteIOSet::readFileContents(const FileSet *fset)
    for (FileSet::const_iterator i = fset->begin(); i != fset->end(); i++) {
       int_remoteIO *proc = i->first->llproc()->getRemoteIO();
       if (!proc) {
-         perr_printf("getFileStatData attempted on non RemoteIO process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "getFileStatData not supported on this platform");
+         perr_printf("getFileStatData attempted on non RemoteIO\n");
          had_error = true;
          continue;
       }
@@ -3782,8 +3777,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       int_memUsage *proc = (*i)->llproc()->getMemUsage();
       if (!proc) {
-         perr_printf("GetMemUsage not supported on process %d\n", proc->getPid());
-         proc->setLastError(err_unsupported, "No getMemUsage on this platform\n");
+         perr_printf("GetMemUsage not supported\n");
          had_error = true;
          continue;
       }
