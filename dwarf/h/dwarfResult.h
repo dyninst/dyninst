@@ -166,12 +166,12 @@ public:
     bool eval(MachRegisterVal &v);
 
 private:
-    ProcessReader *reader;
+    ProcessReader *reader{};
 
     // For getting access to other expressions
-    Address pc;
-    Dwarf * dbg;
-    Elf * dbg_eh_frame;
+    Address pc{};
+    Dwarf * dbg{};
+    Elf * dbg_eh_frame{};
 
     // Dwarf lets you access within the "stack", so we model 
     // it as a vector.

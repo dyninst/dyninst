@@ -90,7 +90,7 @@ namespace Dyninst
       Expression::Ptr cond;
       Expression::Ptr first;
       Expression::Ptr second;
-      Result_Type result_type;
+      Result_Type result_type{};
 
     protected:
       virtual bool isStrictEqual(const InstructionAST& rhs) const;

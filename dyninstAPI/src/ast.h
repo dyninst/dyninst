@@ -492,9 +492,9 @@ class AstStackRemoveNode : public AstNode {
     int size;
     MSpecialType type;
 
-    func_instance* func_;
-    bool canaryAfterPrologue_;
-    long canaryHeight_;
+    func_instance* func_{};
+    bool canaryAfterPrologue_{};
+    long canaryHeight_{};
 };
 
 class AstStackGenericNode : public AstNode {
@@ -570,7 +570,7 @@ class AstOperatorNode : public AstNode {
     bool generateOptimizedAssignment(codeGen &gen, int size, bool noCost);
 
     AstOperatorNode() {}
-    opCode op;
+    opCode op{};
     AstNodePtr loperand;
     AstNodePtr roperand;
     AstNodePtr eoperand;
@@ -839,8 +839,8 @@ class AstMemoryNode : public AstNode {
                                      Register &retReg);
     
     AstMemoryNode() {}
-    memoryType mem_;
-    unsigned which_;
+    memoryType mem_{};
+    unsigned which_{};
 };
 
 class AstOriginalAddrNode : public AstNode {

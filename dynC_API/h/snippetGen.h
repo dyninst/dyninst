@@ -65,7 +65,7 @@ class SnippetGenerator{
 
   private:
    std::stringstream lastError;
-   SGError lastErrorInfo;   
+   SGError lastErrorInfo{};
    BPatch_point *point;
    BPatch_addressSpace *addSpace;
    BPatch_image *image;

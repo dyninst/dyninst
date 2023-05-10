@@ -232,8 +232,8 @@ class image_variable {
     pdmodule *pdmod() const { return pdmod_; }
     SymtabAPI::Variable *svar() const { return var_; }
 
-    SymtabAPI::Variable *var_;
-    pdmodule *pdmod_;
+    SymtabAPI::Variable *var_{};
+    pdmodule *pdmod_{};
     
 };
 

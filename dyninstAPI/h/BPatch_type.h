@@ -226,7 +226,7 @@ private:
   // which functions use this list
   BPatch_Vector<BPatch_function *> functions;
 
-  Dyninst::SymtabAPI::CBlock *cBlk;
+  Dyninst::SymtabAPI::CBlock *cBlk{};
 
   void fixupUnknowns(BPatch_module *);
 public:
@@ -323,11 +323,11 @@ class BPATCH_DLL_EXPORT BPatch_localVar{
     friend class BPatch;
     friend class BPatch_function;
 
-    BPatch_type *type;
-    BPatch_storageClass storageClass;
+    BPatch_type *type{};
+    BPatch_storageClass storageClass{};
     // scope_t scope;
 
-    Dyninst::SymtabAPI::localVar *lVar;
+    Dyninst::SymtabAPI::localVar *lVar{};
 
 public:
     //  Internal use only

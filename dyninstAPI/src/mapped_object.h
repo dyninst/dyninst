@@ -98,12 +98,12 @@ class int_variable {
     //AddressSpace *as() const { return mod()->proc(); }
     const image_variable *ivar() const { return ivar_; }
 
-    Address addr_;
-    unsigned size_;
+    Address addr_{};
+    unsigned size_{};
     // type?
-    image_variable *ivar_;
+    image_variable *ivar_{};
 
-    mapped_module *mod_;
+    mapped_module *mod_{};
 };
 
 struct edgeStub {
@@ -114,7 +114,7 @@ struct edgeStub {
     block_instance* src;
     Address trg;
     EdgeTypeEnum type;
-    bool checked;
+    bool checked{};
 };
 
 

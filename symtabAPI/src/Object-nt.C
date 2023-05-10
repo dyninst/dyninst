@@ -1184,9 +1184,9 @@ void Object::parseFileLineInfo()
 }
 
 typedef struct localsStruct {
-    Function *func;
-    Offset base;
-    HANDLE p;
+    Function *func{};
+    Offset base{};
+    HANDLE p{};
     map<unsigned, unsigned> foundSyms;
     localsStruct() : foundSyms() {}
 } localsStruct;

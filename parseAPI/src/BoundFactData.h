@@ -157,7 +157,7 @@ struct BoundFact {
     } pred;
 
     struct StackTop {
-        int64_t value;
+        int64_t value{};
 	bool valid;
 
 	StackTop(): valid(false) {}

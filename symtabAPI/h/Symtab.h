@@ -714,15 +714,15 @@ class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
 
       friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
    private:
-      Offset tryStart_;
-      unsigned trySize_;
-      Offset catchStart_;
-      bool hasTry_;
-      Offset tryStart_ptr;
-      Offset tryEnd_ptr;
-      Offset catchStart_ptr;
-      Offset fdeStart_ptr;
-      Offset fdeEnd_ptr;
+      Offset tryStart_{};
+      unsigned trySize_{};
+      Offset catchStart_{};
+      bool hasTry_{};
+      Offset tryStart_ptr{};
+      Offset tryEnd_ptr{};
+      Offset catchStart_ptr{};
+      Offset fdeStart_ptr{};
+      Offset fdeEnd_ptr{};
 };
 
 // relocation information for calls to functions not in this image
