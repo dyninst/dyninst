@@ -530,11 +530,12 @@ bool PCProcess::hasPassedMain()
 bool PCProcess::startDebugger() {
     std::stringstream pidStr;
     pidStr << getPid();
+    auto tmp = pidStr.str();
 
     const char *args[4];
     args[0] = dyn_debug_crash_debugger;
     args[1] = file_.c_str();
-    args[2] = pidStr.str().c_str();
+    args[2] = tmp.c_str();
     args[3] = NULL;
 
     proccontrol_printf("%s[%d]: Launching %s %s %s\n", FILE__, __LINE__,

@@ -301,9 +301,7 @@ async_ret_t memCache::doOperation(memEntry *me, int_thread *op_thread)
       return aret_error;
    }
 
-   memEntry *me_copy = new memEntry(me, me->buffer);
-
-   mem_cache.push_back(me_copy);
+   mem_cache.push_back(new memEntry(me, me->buffer));
    last_operation = mem_cache.end();
    last_operation--;
 
