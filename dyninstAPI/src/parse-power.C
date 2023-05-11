@@ -94,7 +94,8 @@ std::string parse_func::calcParentFunc(const parse_func * imf,
   /* We need to figure out the function that called the outlined
      parallel region function.  We do this by chopping off the
      last @OL@number */
-   const char * nameStart = imf->prettyName().c_str();
+   auto const& tmp = imf->prettyName();
+   const char * nameStart = tmp.c_str();
    const char * nameEnd = strrchr(nameStart, '@');
    int strSize = nameEnd - nameStart - 3;
    
