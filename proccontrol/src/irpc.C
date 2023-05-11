@@ -142,6 +142,7 @@ void int_iRPC::setBinarySize(unsigned long s)
 
 void int_iRPC::copyBinaryBlob(void *b, unsigned long s)
 {
+   if(binary_blob && freeBinaryBlob) free(binary_blob);
    binary_blob = malloc(s);
    assert(binary_blob);
    binary_size = s;
