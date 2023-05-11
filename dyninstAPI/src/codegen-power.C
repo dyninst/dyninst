@@ -46,6 +46,7 @@
 #include <fstream>
 #include "common/src/arch-power.h"
 #include <sstream>
+#include <limits>
 
 bool shouldAssertIfInLongBranch = true;
 bool failedLongBranchLocal = false;
@@ -1021,10 +1022,7 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
       // the next op will cause the wrong effective addr to be computed.
       // so we subtract the sign ext value from the other half-words.
       // sounds odd, but works and saves an instruction - jkh 5/25/95
-      
-      // Modified to be 64-bit compatible.  Use (-1 >> 16) instead of
-      // 0xFFFF constant.
-      value = ((value >> 16) - (-1 >> 16)) << 16;
+      value = ((value >> 16) - (std::numeric_limits<unsigned int>::max() >> 16)) << 16;
    }
    
    if (MIN_IMM32 <= value && value <= MAX_IMM32) {

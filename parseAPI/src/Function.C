@@ -664,7 +664,7 @@ Function::tampersStack(bool recalculate)
                        retnAddr, FILE__,__LINE__);
             continue;
         } 
-        StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, this));
+        StackTamperVisitor vis(Absloc(-static_cast<int>(isrc()->getAddressWidth()), 0, this));
         Address curTamperAddr=0;
         StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
         mal_printf("StackTamperVisitor for func at 0x%lx block[%lx %lx) w/ "

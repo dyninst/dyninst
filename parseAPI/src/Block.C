@@ -84,7 +84,7 @@ Block::~Block()
     // nothing special
     if (_obj && _obj->cs()) {
         _obj->cs()->decrementCounter(PARSE_BLOCK_COUNT);
-        _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());
+        _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -static_cast<int>(size()));
     }
 }
 

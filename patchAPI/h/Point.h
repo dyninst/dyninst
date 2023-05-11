@@ -151,7 +151,7 @@ Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction
 };
 
 // Used in PointType definition
-#define type_val(seq) (0x00000001 << seq)
+#define type_val(seq) (0x00000001u << seq)
 
 
 /* A location on the CFG that acts as a container of inserted instances.  Points
