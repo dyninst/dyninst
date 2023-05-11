@@ -53,7 +53,8 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start, Function *f) :
     _parsed(false),
     _createdByFunc(f)
 {
-    if (_obj && _obj->cs()) {
+    assert(_obj);
+    if (_obj->cs()) {
         _obj->cs()->incrementCounter(PARSE_BLOCK_COUNT);
         _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
     }
@@ -76,13 +77,14 @@ Block::Block(
     _parsed(false),
     _createdByFunc(f)
 {
+    assert(_obj);
 }
 
 
 Block::~Block()
 {
     // nothing special
-    if (_obj && _obj->cs()) {
+    if (_obj->cs()) {
         _obj->cs()->decrementCounter(PARSE_BLOCK_COUNT);
         _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -static_cast<int>(size()));
     }
@@ -93,7 +95,7 @@ Block::consistent(Address addr, Address & prev_insn)
 {
     if (addr >= end() || addr < start()) return false;
     InstructionSource * isrc;
-    if(_obj && !_obj->cs()->regionsOverlap())
+    if(!_obj->cs()->regionsOverlap())
         isrc = _obj->cs();
     else
         isrc = region();
@@ -118,7 +120,6 @@ Block::consistent(Address addr, Address & prev_insn)
 void
 Block::getFuncs(vector<Function *> & funcs)
 {
-    if(!_obj) return; // universal sink
     set<Function *> stab;
     _obj->findFuncsByBlock(region(),this,stab);
     set<Function *>::iterator sit = stab.begin();
@@ -172,13 +173,13 @@ SingleContextOrInterproc::pred_impl(Edge * e) const
 }
 
 int Block::containingFuncs() const {
-    if(_obj) _obj->finalize();
+    _obj->finalize();
     return _func_cnt;
 }
 
 void Block::removeFunc(Function *) 
 {
-    if ((0 == _func_cnt) && _obj) {
+    if (0 == _func_cnt) {
         _obj->finalize();
     }
     assert(0 != _func_cnt);
@@ -187,7 +188,6 @@ void Block::removeFunc(Function *)
 
 void Block::updateEnd(Address addr)
 {
-    if(!_obj) return;
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());   
     _end = addr;
     high_ = addr;
