@@ -306,7 +306,7 @@ bool BPatch_addressSpace::deleteSnippet(BPatchSnippetHandle *handle)
    mal_printf("deleting snippet handle from func at %lx, point at %lx of type %d\n",
               (Address)handle->getFunc()->getBaseAddr(), 
               handle->instances_.empty() ? 0 : handle->instances_[0]->point()->addr(),
-              handle->instances_.empty() ? -1 : handle->instances_[0]->point()->type());
+              handle->instances_.empty() ? -1 : static_cast<int>(handle->instances_[0]->point()->type()));
 
    // if this is a process, check to see if the instrumentation is
    // executing on the call stack
