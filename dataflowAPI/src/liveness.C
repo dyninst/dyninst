@@ -563,7 +563,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
 	isSyscall = true;
       }
 
-      if (curInsn.getOperation().getID() == power_op_svcs) {
+      if (curInsn.getOperation().getID() == power_op_scv) {
 	isSyscall = true;
       }
       if (curInsn.getOperation().getID() == aarch64_op_svc) {
