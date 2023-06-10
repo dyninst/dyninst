@@ -116,6 +116,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   include(CheckCXXCompilerFlag)
+  include(CheckCXXSourceCompiles)
   foreach(f IN LISTS REQUESTED_WARNING_FLAGS)
     string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_CPP_FLAG_${f}")
     set(CMAKE_REQUIRED_FLAGS "-${f}")
