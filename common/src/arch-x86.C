@@ -5865,7 +5865,7 @@ static ia32_entry sseMapTer[][3] =
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSET02 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_vpblendd, t_done, 0, true, { Vpd, Hpd, Upd }, 0, s1W2R3R4R, 0 },
+        { e_vpblendd, t_done, 0, true, { Vpd, Hpd, Wpd }, 0, s1W2R3R4R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSET03 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -6644,23 +6644,23 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE79_F3 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_vcvtss2usi, t_done, 0, true, { Ev, Vps, Zz }, 0, s1W2R, 0 }
+    { e_vcvtss2usi, t_done, 0, true, { Gv, Wps, Zz }, 0, s1W2R, 0 }
   }, { /* SSE79_NO */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_vcvtpd2udq, t_done, 0, true, { Vpd, Vps, Zz }, 0, s1W2R, 0 }
+    { e_vcvtpd2udq, t_done, 0, true, { Vpd, Wps, Zz }, 0, s1W2R, 0 }
   }, { /* SSE7A_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_vcvttpd2qq, t_done, 0, true, { Vpd, Vpd, Zz }, 0, s1W2R, 0 },
+    { e_vcvttpd2qq, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R, 0 },
   }, { /* SSE7A_F2 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_vcvtudq2ps, t_done, 0, true, { Vpd, Vpd, Zz }, 0, s1W2R, 0 },
+    { e_vcvtudq2ps, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R, 0 },
   }, { /* SSE7A_F3 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_vcvtudq2pd, t_done, 0, true, { Ev, Vpd, Zz }, 0, 0, 0 }
+    { e_vcvtudq2pd, t_done, 0, true, { Vps, Wpd, Zz }, 0, 0, 0 }
   }, { /* SSE7B_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -7630,7 +7630,7 @@ ia32_entry sseMapTerMult[][3] =
     }, { /* SSET01_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_vpermpd, t_done, 0, true, { Wpd, Vpd, Ib }, 0, s1W2R3R, 0 },
-        { e_vpermpd, t_done, 0, true, { Vpd, Hpd, Ib }, 0, s1W2R3R, 0 },
+        { e_vpermpd, t_done, 0, true, { Wpd, Vpd, Ib }, 0, s1W2R3R, 0 },
     }, { /* SSET03_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
