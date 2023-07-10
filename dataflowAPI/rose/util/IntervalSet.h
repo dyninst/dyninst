@@ -12,6 +12,8 @@
 #include "Optional.h"
 #include "Sawyer.h"
 
+#include <stddef.h>
+#include <utility>
 #include <boost/integer_traits.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 

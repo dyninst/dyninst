@@ -35,6 +35,7 @@
 #include "Annotatable.h"
 #include <string>
 #include <set>
+#include <vector>
 
 class StackCallback;
 

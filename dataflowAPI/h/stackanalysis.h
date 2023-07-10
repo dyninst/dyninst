@@ -35,6 +35,10 @@
 #include <values.h>
 #endif
 
+#include <ostream>
+#include <sstream>
+#include <utility>
+#include <vector>
 #include <list>
 #include <map>
 #include <set>

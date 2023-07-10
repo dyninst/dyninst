@@ -10,6 +10,10 @@
 #include "entryIDs.h"
 
 #include <climits>
+#include <map>
+#include <stdint.h>
+#include <string>
+#include <utility>
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;

@@ -32,6 +32,11 @@
 #ifndef _PATCHAPI_DYNINST_CFG_H_
 #define _PATCHAPI_DYNINST_CFG_H_
 
+#include <assert.h>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 #include "CFG.h"
 #include "PatchCommon.h"
 #include "PatchObject.h"

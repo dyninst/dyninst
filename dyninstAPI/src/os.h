@@ -52,6 +52,7 @@
 #endif
 
 #include <string>
+#include <vector>
 #include "common/src/Types.h"
 
 class OS {

@@ -30,6 +30,8 @@
 #if !defined(RELOC_EDGE_H_)
 #define RELOC_EDGE_H_
 
+#include <list>
+
 namespace Dyninst {
 namespace Relocation {
 

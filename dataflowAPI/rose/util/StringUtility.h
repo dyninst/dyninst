@@ -2,6 +2,8 @@
 #define ROSE_StringUtility_H
 
 //#include "commandline_processing.h"
+#include <ostream>
+#include <stddef.h>
 #include <vector>
 #include <map>
 #include <list>

@@ -31,6 +31,10 @@
 #ifndef _Collections_h_
 #define _Collections_h_
 
+#include <stddef.h>
+#include <string>
+#include <utility>
+#include <vector>
 #include "concurrent.h"
 #include "Type.h"
 #include "Variable.h"

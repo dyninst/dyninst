@@ -31,6 +31,8 @@
 
 #include "InstructionDecoderImpl.h"
 #include <iostream>
+#include <stddef.h>
+#include <string>
 #include "Immediate.h"
 #include "dyn_regs.h"
 //#define DEBUG_FIELD

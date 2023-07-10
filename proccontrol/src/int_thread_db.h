@@ -56,6 +56,8 @@ extern "C" {
 #include "proc_service_wrapper.h"
 }
 
+#include <stddef.h>
+#include <utility>
 #include <map>
 #include <set>
 #include <vector>

@@ -35,6 +35,8 @@
       libraries.
   */
 
+#include <stddef.h>
+
 #if !defined(DLLEXPORT)
 #if defined (_MSC_VER)
 /* If we're on Windows, we need to explicetely export these functions: */

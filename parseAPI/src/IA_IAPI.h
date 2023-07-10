@@ -31,6 +31,12 @@
 #if !defined(IA_IAPI_H)
 #define IA_IAPI_H
 
+#include <map>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <utility>
+#include <vector>
 #include <boost/tuple/tuple.hpp>
 #include <boost/static_assert.hpp>
 

@@ -34,6 +34,9 @@
 
 #include "CFG.h"
 #include "common/src/Types.h"
+#include <set>
+#include <string>
+#include <utility>
 #include <list>
 #include <map>
 #include "dyninstAPI/src/codegen.h" // codeGen structure

@@ -36,6 +36,11 @@
 #include "Elf_X.h"
 #include <iostream>
 
+#include <map>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <utility>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

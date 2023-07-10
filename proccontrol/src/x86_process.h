@@ -32,6 +32,11 @@
 #if !defined(x86_process_h_)
 #define x86_process_h_
 
+#include <map>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "int_process.h"
 #include "common/h/dyn_regs.h"
 

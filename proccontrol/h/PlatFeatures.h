@@ -34,6 +34,8 @@
 #include <list>
 #include <vector>
 #include <string>
+#include <map>
+#include <set>
 
 #if !defined(PLATFEATURES_H_)
 #define PLATFEATURES_H_

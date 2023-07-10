@@ -1,6 +1,8 @@
 #ifndef JUMP_TABLE_INDEX_PRED_H
 #define JUMP_TABLE_INDEX_PRED_H
 
+#include <set>
+#include <vector>
 #include "CFG.h"
 #include "slicing.h"
 #include "Edge.h"

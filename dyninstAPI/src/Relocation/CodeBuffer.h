@@ -56,6 +56,9 @@
 //  of code they have provided.
 
 #include "common/h/dyntypes.h"
+#include <assert.h>
+#include <map>
+#include <vector>
 #include <list>
 #include "dyninstAPI/src/codegen.h"
 

@@ -39,6 +39,9 @@
 #include "Instruction.h"
 
 #include <string>
+#include <assert.h>
+#include <utility>
+#include <vector>
 
 namespace Dyninst{
 namespace ParseAPI{

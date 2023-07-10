@@ -31,6 +31,7 @@
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
 
+#include <memory>
 #include <vector>
 
 template <typename T, typename Alloc = std::allocator<T>>

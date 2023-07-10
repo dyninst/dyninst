@@ -4,6 +4,9 @@
 #include "DynAST.h"
 #include "Absloc.h"
 #include "CodeSource.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <utility>
 #include <map>
 using Dyninst::AST;
 using namespace Dyninst;

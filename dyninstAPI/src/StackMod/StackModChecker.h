@@ -31,6 +31,10 @@
 #ifndef _StackModChecker_h_
 #define _StackModChecker_h_
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 #include "BPatch_function.h"
 
 #include "Instruction.h"

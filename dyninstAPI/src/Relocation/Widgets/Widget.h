@@ -33,6 +33,7 @@
 
 #include "common/src/Types.h" // Address
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr
+#include <string>
 #include <list> // stl::list
 
 class baseTramp;

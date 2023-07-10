@@ -31,6 +31,12 @@
 #if !defined(PROCESSPLAT_H_)
 #define PROCESSPLAT_H_
 
+#include <map>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <utility>
+#include <vector>
 #include "int_process.h"
 #include "resp.h"
 

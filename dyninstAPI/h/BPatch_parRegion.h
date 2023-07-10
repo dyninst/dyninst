@@ -31,6 +31,7 @@
 #ifndef _BPatch_parRegion_h_
 #define _BPatch_parRegion_h_
 
+#include <vector>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 

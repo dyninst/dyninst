@@ -32,6 +32,7 @@
 #ifndef PATCHAPI_COMMAND_H_
 #define PATCHAPI_COMMAND_H_
 
+#include <list>
 #include "PatchCommon.h"
 
 namespace Dyninst {

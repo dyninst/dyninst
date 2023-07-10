@@ -31,6 +31,9 @@
 #ifndef _STACKACCESS_H_
 #define _STACKACCESS_H_
 
+#include <map>
+#include <set>
+#include <string>
 #include "dyn_regs.h"
 #include "Instruction.h"
 #include "stackanalysis.h"

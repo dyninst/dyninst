@@ -1,6 +1,11 @@
 #ifndef Rose_SMTSolver_H
 #define Rose_SMTSolver_H
 
+#include <iosfwd>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "BinarySymbolicExpr.h"
 #include <boost/thread/mutex.hpp>
 

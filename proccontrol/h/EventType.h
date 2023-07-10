@@ -30,6 +30,7 @@
 #if !defined(EVENTTYPE_H_)
 #define EVENTTYPE_H_
 
+#include <string>
 #include "util.h"
 
 namespace Dyninst {

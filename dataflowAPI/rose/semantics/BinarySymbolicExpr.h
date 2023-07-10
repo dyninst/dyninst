@@ -7,6 +7,9 @@
 
 #include "../util/Map.h"
 
+#include <iosfwd>
+#include <stddef.h>
+#include <string>
 #include <cassert>
 #include <boost/any.hpp>
 #include <inttypes.h>

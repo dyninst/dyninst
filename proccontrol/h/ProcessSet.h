@@ -33,6 +33,10 @@
 
 #include <string>
 #include <map>
+#include <set>
+#include <stddef.h>
+#include <utility>
+#include <vector>
 
 #include "dyntypes.h"
 #include "PCProcess.h"

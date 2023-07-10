@@ -31,6 +31,7 @@
 #if !defined(IRPC_H_)
 #define IRPC_H_
 
+#include <vector>
 #include <map>
 #include <list>
 #include <set>

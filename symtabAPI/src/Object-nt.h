@@ -45,6 +45,9 @@
 ************************************************************************/
 
 #include "common/src/Types.h"
+#include <map>
+#include <set>
+#include <utility>
 #include <vector>
 #include <string>
 #include <algorithm>

@@ -36,6 +36,11 @@
  * A class that encapsulates a ProcControlAPI Process for the rest of Dyninst.
  */
 
+#include <assert.h>
+#include <list>
+#include <stddef.h>
+#include <utility>
+#include <vector>
 #include <string>
 #include <map>
 #include <set>

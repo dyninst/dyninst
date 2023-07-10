@@ -38,6 +38,7 @@
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/src/syscallNotification.h"
 
+#include <map>
 #include <queue>
 /*
  * Overall design comment

@@ -1,6 +1,9 @@
 #ifndef ROSE_DispatcherAMDGPU_VEGA_H
 #define ROSE_DispatcherAMDGPU_VEGA_H
 
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "BaseSemantics2.h"
 #include "../SgAsmAmdgpuVegaInstruction.h"
 #include "external/rose/amdgpuInstructionEnum.h"

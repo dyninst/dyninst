@@ -31,6 +31,8 @@
 #ifndef _TMAP_H_
 #define _TMAP_H_
 
+#include <map>
+#include <utility>
 #include "dyn_regs.h"
 
 #include "StackLocation.h"

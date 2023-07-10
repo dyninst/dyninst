@@ -39,6 +39,8 @@
 #if !defined(_Aggregate_h_)
 #define _Aggregate_h_
 
+#include <string>
+#include <vector>
 #include <iostream>
 #include "Annotatable.h"
 #include <boost/iterator/transform_iterator.hpp>

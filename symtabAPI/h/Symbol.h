@@ -43,6 +43,9 @@
 
 #include "symutil.h"
 #include "Annotatable.h"
+#include <iosfwd>
+#include <string>
+#include <vector>
 #include <boost/shared_ptr.hpp>
 
 #ifndef CASE_RETURN_STR

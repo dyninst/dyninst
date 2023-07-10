@@ -31,6 +31,11 @@
 #ifndef __MODULE__H__
 #define __MODULE__H__
 
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <utility>
+#include <vector>
 #include "symutil.h"
 #include "Symbol.h"
 

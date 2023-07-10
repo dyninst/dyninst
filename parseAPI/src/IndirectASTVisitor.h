@@ -1,6 +1,7 @@
 #ifndef INDIRECT_AST_VISITOR_H
 #define INDIRECT_AST_VISITOR_H
 
+#include <stdint.h>
 #include <set>
 
 #include "DynAST.h"

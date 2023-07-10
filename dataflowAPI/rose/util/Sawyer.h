@@ -8,6 +8,9 @@
 #ifndef Sawyer_H
 #define Sawyer_H
 
+#include <stddef.h>
+#include <stdint.h>
+#include <vector>
 #include <boost/cstdint.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <cstdio>

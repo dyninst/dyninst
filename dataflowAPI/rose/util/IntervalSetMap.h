@@ -8,6 +8,7 @@
 #ifndef Sawyer_Container_IntervalSetMap_H
 #define Sawyer_Container_IntervalSetMap_H
 
+#include <stddef.h>
 #include <boost/foreach.hpp>
 #include "IntervalMap.h"
 #include "Sawyer.h"

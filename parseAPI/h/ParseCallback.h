@@ -38,6 +38,10 @@
     during parsing.
 **/
 
+#include <list>
+#include <stddef.h>
+#include <utility>
+#include <vector>
 #include "InstructionAdapter.h"
 #include "dyntypes.h"
 

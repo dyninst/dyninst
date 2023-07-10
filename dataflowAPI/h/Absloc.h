@@ -48,6 +48,12 @@
 #include <values.h>
 #endif
 
+#include <assert.h>
+#include <ostream>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "Instruction.h"
 #include "DynAST.h"
 

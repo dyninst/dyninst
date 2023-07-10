@@ -38,6 +38,12 @@
 #include "ast.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/trapMappings.h"
+#include <assert.h>
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 #include <list>
 
 #include "common/src/IntervalTree.h"

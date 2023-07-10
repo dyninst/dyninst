@@ -31,6 +31,8 @@
 #if !defined(FRAMECHECKER_H)
 #define FRAMECHECKER_H
 
+#include <stddef.h>
+#include <vector>
 #include "instructionAPI/h/Instruction.h"
 
 class frameChecker

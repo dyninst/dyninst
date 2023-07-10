@@ -42,6 +42,8 @@
 ************************************************************************/
 
 // trace data streams
+#include <iosfwd>
+#include <utility>
 #include <string>
 #include <vector>
 

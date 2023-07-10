@@ -31,6 +31,7 @@
 #ifndef _BPATCH_ERROR_H_
 #define _BPATCH_ERROR_H_
 
+#include <utility>
 #include "BPatch_Vector.h"
 class BPatch_process;
 class BPatch_thread;

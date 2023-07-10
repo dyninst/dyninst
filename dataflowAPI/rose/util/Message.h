@@ -15,6 +15,8 @@
 #include "SharedPointer.h"
 #include "Synchronization.h"
 
+#include <stddef.h>
+#include <utility>
 #include <boost/config.hpp>
 #include <boost/logic/tribool.hpp>
 #include <cassert>

@@ -48,6 +48,7 @@
 #ifndef Sawyer_Attribute_H
 #define Sawyer_Attribute_H
 
+#include <stddef.h>
 #include <boost/any.hpp>
 #include <boost/lexical_cast.hpp>
 #include "Exception.h"

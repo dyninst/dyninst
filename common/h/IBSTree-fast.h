@@ -40,6 +40,8 @@
 #include <boost/mpl/insert_range.hpp>
 #include <boost/mpl/inherit_linearly.hpp>
 #include <boost/mpl/inherit.hpp>
+#include <assert.h>
+#include <set>
 #include <iostream>
 
 #include "concurrent.h"

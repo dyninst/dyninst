@@ -30,6 +30,8 @@
 #if !defined(WINDOWS_THREAD_H)
 #define WINDOWS_THREAD_H
 
+#include <string>
+#include <vector>
 #include "int_process.h"
 
 #if !defined(TF_BIT)

@@ -34,6 +34,8 @@
 
 #include <set>
 #include <vector>
+#include <map>
+#include <utility>
 #include <queue>
 
 #include "dyntypes.h"

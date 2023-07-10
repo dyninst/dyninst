@@ -1,6 +1,8 @@
 #ifndef JUMP_TABLE_FORMAT_PRED_H
 #define JUMP_TABLE_FORMAT_PRED_H
 
+#include <string>
+#include <utility>
 #include "CFG.h"
 #include "slicing.h"
 #include "Edge.h"

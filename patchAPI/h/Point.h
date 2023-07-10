@@ -32,6 +32,9 @@
 #ifndef PATCHAPI_H_POINT_H_
 #define PATCHAPI_H_POINT_H_
 
+#include <list>
+#include <map>
+#include <stddef.h>
 #include "PatchCommon.h"
 #include "Snippet.h"
 #include "util.h"

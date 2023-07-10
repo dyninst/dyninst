@@ -1,6 +1,7 @@
 #ifndef ROSE_FileSystem_H
 #define ROSE_FileSystem_H
 
+#include <string>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <vector>

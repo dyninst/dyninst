@@ -31,6 +31,9 @@
 #if !defined(_DYN_BLOCK_H_)
 #define _DYN_BLOCK_H_
 
+#include <set>
+#include <string>
+#include <vector>
 #include "parse-cfg.h"
 #include "parseAPI/h/CFG.h"
 #include "instPoint.h"

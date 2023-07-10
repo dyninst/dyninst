@@ -2,6 +2,9 @@
 #define ROSE_X86_64INSTRUCTIONSEMANTICS_H
 
 //#include "rose.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
 #include "semanticsModule.h"
 #include <cassert>
 #include <cstdio>

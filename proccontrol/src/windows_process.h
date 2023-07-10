@@ -31,6 +31,12 @@
 #if !defined(WINDOWS_PROCESS_H)
 #define WINDOWS_PROCESS_H
 
+#include <assert.h>
+#include <map>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "x86_process.h"
 #include "common/src/IntervalTree.h"
 

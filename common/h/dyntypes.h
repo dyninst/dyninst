@@ -40,6 +40,7 @@
 #endif
 
 #ifndef FILE__
+#include <string.h>
 #if defined(_MSC_VER)
 #define FILE__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
@@ -47,6 +48,9 @@
 #endif
 #endif
 
+#include <functional>
+#include <memory>
+#include <utility>
 #include <unordered_set>
 #include <unordered_map>
 

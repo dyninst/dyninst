@@ -32,6 +32,8 @@
 #define IMMEDIATE_H
 
 #include "Expression.h"
+#include <map>
+#include <string>
 #include <sstream>
 
 namespace Dyninst

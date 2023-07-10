@@ -33,6 +33,7 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTthread.h"
+#include <stddef.h>
 #include <stdarg.h>
 #include "common/h/compiler_annotations.h"
 

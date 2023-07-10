@@ -34,6 +34,8 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include <string.h>	
+#include <assert.h>
+#include <map>
 
 #include "Type.h"
 #include "Variable.h"

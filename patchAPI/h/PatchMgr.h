@@ -34,6 +34,8 @@
 
 
 
+#include <utility>
+#include <vector>
 #include "PatchCommon.h"
 #include "Point.h"
 #include "Instrumenter.h"

@@ -11,6 +11,9 @@
 #include "Interval.h"
 #include "Optional.h"
 #include "Sawyer.h"
+#include <memory>
+#include <stddef.h>
+#include <utility>
 #include <boost/range/iterator_range.hpp>
 #include <map>
 #include <stdexcept>

@@ -31,6 +31,8 @@
 #if !defined(DWARF_SW_H_)
 #define DWARF_SW_H_
 
+#include <map>
+#include <utility>
 #include <stack>
 #include <vector>
 #include "dyntypes.h"

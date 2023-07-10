@@ -31,6 +31,7 @@
 #ifndef _BPatch_snippet_h_
 #define _BPatch_snippet_h_
 
+#include <string>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"

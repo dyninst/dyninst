@@ -37,6 +37,7 @@
 
 #include "common/src/Types.h"
 #include "common/h/dyn_regs.h"
+#include <assert.h>
 #include <vector>
 class AddressSpace;
 

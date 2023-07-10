@@ -30,6 +30,7 @@
 #ifndef _PARSER_DETAILS_H_
 #define _PARSER_DETAILS_H_
 
+#include <assert.h>
 #include "IA_IAPI.h"
 
 namespace Dyninst {

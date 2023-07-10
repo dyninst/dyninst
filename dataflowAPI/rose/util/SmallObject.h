@@ -8,6 +8,7 @@
 #ifndef Sawyer_SmallObject_H
 #define Sawyer_SmallObject_H
 
+#include <stddef.h>
 #include "PoolAllocator.h"
 #include "Sawyer.h"
 

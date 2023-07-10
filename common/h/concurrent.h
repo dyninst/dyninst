@@ -33,6 +33,8 @@
 
 #include "util.h"
 #include <memory>
+#include <stddef.h>
+#include <vector>
 #include <boost/atomic.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>

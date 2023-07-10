@@ -38,6 +38,7 @@
 #include "BPatch.h"
 #include <sstream>
 #include <string>
+#include <vector>
 
 
 

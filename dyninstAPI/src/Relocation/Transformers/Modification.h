@@ -34,6 +34,7 @@
 #include "Transformer.h"
 #include "../Widgets/Widget.h"
 #include "dyninstAPI/src/addressSpace.h"
+#include <string>
 #include <list>
 #include <set>
 #include <map>

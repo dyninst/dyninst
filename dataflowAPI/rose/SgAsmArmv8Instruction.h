@@ -1,6 +1,7 @@
 #ifndef SG_ASM_ARMV8_INSN_H
 #define SG_ASM_ARMV8_INSN_H
 
+#include <string>
 #include "external/rose/armv8InstructionEnum.h"
 #include "typedefs.h"
 #include "SgAsmInstruction.h"

@@ -31,6 +31,7 @@
 #if !defined (_PATCHAPI_PC_ATOM_H_)
 #define _PATCHAPI_PC_ATOM_H_
 
+#include <string>
 #include "Widget.h"
 
 // Define where the PC value is supposed to go

@@ -31,6 +31,10 @@
 #ifndef __Type_h__
 #define __Type_h__
 
+#include <assert.h>
+#include <stddef.h>
+#include <string>
+#include <utility>
 #include "Annotatable.h"
 #include "symutil.h"
 #include "concurrent.h"

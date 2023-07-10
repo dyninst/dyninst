@@ -31,6 +31,9 @@
 #ifndef CODE_OBJECT_H
 #define CODE_OBJECT_H
 
+#include <set>
+#include <string>
+#include <vector>
 #include <map>
 
 #include "Symtab.h"

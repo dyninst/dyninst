@@ -7,6 +7,8 @@
 // All methods that do not appear to be used by x86InstructionSemantics.h
 // have been commented out. 
 
+#include <stdint.h>
+#include <string>
 #include "external/rose/rose-compat.h"
 #include "typedefs.h"
 #include "SgAsmInstruction.h"

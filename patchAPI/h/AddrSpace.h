@@ -33,6 +33,9 @@
 #ifndef PATCHAPI_H_ADDRSPACE_H_
 #define PATCHAPI_H_ADDRSPACE_H_
 
+#include <map>
+#include <stddef.h>
+#include <string>
 #include "PatchCommon.h"
 
 namespace Dyninst {

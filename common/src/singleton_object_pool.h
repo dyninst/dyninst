@@ -30,6 +30,7 @@
 #if !defined(SINGLETON_OBJECT_POOL_H)
 #define SINGLETON_OBJECT_POOL_H
 
+#include <memory>
 #include "pool_allocators.h"
 #include "dthread.h"
 #include "compiler_annotations.h"

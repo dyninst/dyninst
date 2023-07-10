@@ -33,6 +33,10 @@
 #if !defined(NODE_ITERATOR_H)
 #define NODE_ITERATOR_H
 
+#include <assert.h>
+#include <deque>
+#include <set>
+#include <unordered_set>
 #include "Node.h"
 #include "Edge.h"
 

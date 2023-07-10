@@ -33,6 +33,7 @@
 #include "Event.h"
 #include "util.h"
 
+#include <string>
 #include <set>
 #include <vector>
 

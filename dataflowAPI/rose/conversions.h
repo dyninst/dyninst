@@ -1,6 +1,8 @@
 #if !defined(ROSE_CONVERSIONS_H)
 #define ROSE_CONVERSIONS_H
 
+#include <stdint.h>
+
 class SgNode;
 class SgAsmExpression;
 class SgAsmValueExpression;

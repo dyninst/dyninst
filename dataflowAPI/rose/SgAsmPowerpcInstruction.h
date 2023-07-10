@@ -13,6 +13,7 @@
 #if !defined(SG_ASM_POWERPC_INSN_H)
 #define SG_ASM_POWERPC_INSN_H
 
+#include <string>
 #include "external/rose/rose-compat.h"
 #include "typedefs.h"
 #include "external/rose/powerpcInstructionEnum.h"

@@ -30,6 +30,7 @@
 #ifndef _PARSEAPI_DEBUG_
 #define _PARSEAPI_DEBUG_
 
+#include <string>
 #include <stdlib.h>
 #include <stdio.h>
 #include <common/h/util.h>

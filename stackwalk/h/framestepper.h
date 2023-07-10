@@ -33,6 +33,7 @@
 
 #include "basetypes.h"
 #include "procstate.h"
+#include <utility>
 #include <vector>
 
 namespace Dyninst {

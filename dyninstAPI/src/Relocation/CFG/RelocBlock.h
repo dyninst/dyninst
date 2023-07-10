@@ -31,6 +31,9 @@
 #if !defined(PATCHAPI_TRACE_H_)
 #define PATCHAPI_TRACE_H_
 
+#include <list>
+#include <string>
+#include <utility>
 #include "common/src/Types.h" // Address
 #include "dyninstAPI/src/codegen.h" // codeGen
 #include "dyninstAPI/src/function.h"

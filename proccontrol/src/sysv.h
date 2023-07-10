@@ -31,6 +31,10 @@
 #if !defined(SYSV_H_)
 #define SYSV_H_
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 #include "common/h/ProcReader.h"
 #include "int_process.h"
 #include "processplat.h"

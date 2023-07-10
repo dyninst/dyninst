@@ -7,6 +7,11 @@
 #include "../conversions.h"
 #include "SMTSolver.h"
 
+#include <ostream>
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
+#include <vector>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/optional.hpp>

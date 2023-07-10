@@ -31,6 +31,8 @@
 #ifndef _CODEGEN_AARCH64_H
 #define _CODEGEN_AARCH64_H
 
+#include <vector>
+
 class AddressSpace;
 
 class codeGen;

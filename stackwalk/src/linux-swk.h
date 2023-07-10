@@ -31,6 +31,7 @@
 #ifndef LINUX_SWK_H
 #define LINUX_SWK_H
 
+#include <string>
 #include "common/h/dyntypes.h"
 #include "common/h/SymReader.h"
 

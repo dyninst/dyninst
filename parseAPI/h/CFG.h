@@ -30,6 +30,10 @@
 #ifndef _PARSER_CFG_H_
 #define _PARSER_CFG_H_
 
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <utility>
 #include <vector>
 #include <set>
 #include <map>
@@ -96,14 +100,6 @@ class PARSER_EXPORT Edge {
     bool _from_index;
 
  private:
-
-#if defined(_MSC_VER)
-	typedef unsigned __int16 uint16_t;
-	typedef unsigned __int8 uint8_t;
-#else
-	typedef unsigned short uint16_t;
-	typedef unsigned char uint8_t;
-#endif
 
     struct EdgeType {
         EdgeType(EdgeTypeEnum t, bool s) :

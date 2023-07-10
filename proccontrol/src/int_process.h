@@ -43,6 +43,8 @@
 #include "common/h/SymReader.h"
 #include "common/src/dthread.h"
 
+#include <assert.h>
+#include <string>
 #include <vector>
 #include <map>
 #include <list>

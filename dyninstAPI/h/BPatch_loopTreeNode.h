@@ -31,6 +31,8 @@
 #ifndef _BPatch_loopTreeNode_h_
 #define _BPatch_loopTreeNode_h_
 
+#include <map>
+#include <string>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_function.h"

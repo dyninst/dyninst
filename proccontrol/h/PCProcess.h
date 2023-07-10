@@ -36,6 +36,8 @@
 #include <map>
 #include <set>
 #include <iterator>
+#include <stddef.h>
+#include <utility>
 
 #include "dyntypes.h"
 #include "dyn_regs.h"

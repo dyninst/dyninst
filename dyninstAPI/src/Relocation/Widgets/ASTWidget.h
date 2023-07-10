@@ -31,6 +31,7 @@
 #if !defined (_R_E_AST_H_)
 #define _R_E_AST_H_
 
+#include <string>
 #include "Widget.h"
 
 class AstNode;

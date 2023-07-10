@@ -31,6 +31,7 @@
 #if !defined(ENTRYIDS_IA32_H)
 #define ENTRYIDS_IA32_H
 
+#include <string>
 #include "dyntypes.h"
 #include "util.h"
 

@@ -1,6 +1,7 @@
 #ifndef ROSE_LinearCongruentialGenerator_H
 #define ROSE_LinearCongruentialGenerator_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 

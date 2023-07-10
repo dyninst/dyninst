@@ -33,6 +33,7 @@
 
 #include "common/h/dyntypes.h"
 #include "response.h"
+#include <vector>
 #include <set>
 #include <map>
 

@@ -33,6 +33,7 @@
 
 #include "Event.h"
 #include "common/src/dthread.h"
+#include <string>
 #include <map>
 #include <vector>
 

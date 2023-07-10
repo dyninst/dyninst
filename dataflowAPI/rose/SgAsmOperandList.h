@@ -2,6 +2,7 @@
 #if !defined(SG_ASM_OPERAND_LIST_H)
 #define SG_ASM_OPERAND_LIST_H
 
+#include <string>
 #include "SgAsmType.h"
 #include "typedefs.h"
 

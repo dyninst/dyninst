@@ -36,6 +36,11 @@
 #if !defined(_Function_h_)
 #define _Function_h_
 
+#include <iosfwd>
+#include <stddef.h>
+#include <string>
+#include <utility>
+#include <vector>
 #include "Annotatable.h"
 #include "Aggregate.h"
 #include "Variable.h"

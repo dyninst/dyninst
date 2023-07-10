@@ -38,6 +38,8 @@
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_callbacks.h"
 #include "dyntypes.h"
+#include <string>
+#include <utility>
 #include <vector>
 #include <set>
 #include <stdio.h>

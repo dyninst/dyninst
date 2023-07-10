@@ -32,6 +32,8 @@
 #define __ELF_X_H__
 
 #include "libelf.h"
+#include <stddef.h>
+#include <utility>
 #include <string>
 #include <map>
 #include <vector>

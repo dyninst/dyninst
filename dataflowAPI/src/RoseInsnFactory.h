@@ -41,6 +41,8 @@
 #include "common/h/util.h"
 #include "boost/shared_ptr.hpp"
 #include <vector>
+#include <stddef.h>
+#include <string>
 
 #include <stdint.h>
 

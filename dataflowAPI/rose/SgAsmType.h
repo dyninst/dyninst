@@ -1,6 +1,9 @@
 #if !defined(SG_ASM_TYPE_H)
 #define SG_ASM_TYPE_H
 
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
 #include "SgNode.h"
 #include "util/Sawyer.h"
 #include "util/BitVector.h"

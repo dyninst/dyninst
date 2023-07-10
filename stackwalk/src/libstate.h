@@ -35,6 +35,10 @@
 #include "common/h/SymReader.h"
 #include "stackwalk/h/procstate.h"
 #include "common/src/addrtranslate.h"
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
 #include <set>
 
 namespace Dyninst {

@@ -31,6 +31,7 @@
 #if !defined (_R_E_CALLBACK_H_)
 #define _R_E_CALLBACK_H_
 
+#include <string>
 #include "Widget.h"
 
 

@@ -5,6 +5,8 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
+#include <iosfwd>
+#include <stddef.h>
 #include <inttypes.h>
 
 #include "../integerOps.h"

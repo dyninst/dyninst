@@ -35,6 +35,7 @@
 #include "BPatch_sourceObj.h"
 #include "BPatch_enums.h"
 #include "dyntypes.h"
+#include <stddef.h>
 #include <vector>
 #include <map>
 

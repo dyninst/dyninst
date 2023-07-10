@@ -41,6 +41,8 @@
 #include "BPatch_parRegion.h"
 #include "dyntypes.h"
 
+#include <string>
+#include <utility>
 #include <vector>
 #include <map>
 

@@ -31,6 +31,8 @@
 #if !defined (_R_E_CONTROL_FLOW_H_)
 #define _R_E_CONTROL_FLOW_H_
 
+#include <map>
+#include <string>
 #include "Widget.h"
 
 class block_instance;

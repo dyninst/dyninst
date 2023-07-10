@@ -34,6 +34,11 @@
 #define _mapped_object_h
 
 #include <string>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include "common/src/Types.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/h/BPatch_enums.h"

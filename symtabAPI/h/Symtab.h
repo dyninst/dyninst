@@ -31,6 +31,12 @@
 #ifndef __SYMTAB_H__
 #define __SYMTAB_H__
 
+#include <iosfwd>
+#include <map>
+#include <stddef.h>
+#include <utility>
+#include <string>
+#include <vector>
 #include <set>
 
 #include "Symbol.h"

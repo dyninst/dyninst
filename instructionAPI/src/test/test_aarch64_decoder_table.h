@@ -1,3 +1,6 @@
+#include <map>
+#include <vector>
+
 struct aarch64_mask_entry;
 struct aarch64_insn_entry;
 

@@ -33,6 +33,9 @@
 
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
+#include <assert.h>
+#include <string>
+#include <string.h>
 #include <utility>
 
 using namespace Dyninst;

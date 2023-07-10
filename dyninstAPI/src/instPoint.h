@@ -34,6 +34,8 @@
 #ifndef _INST_POINT_H_
 #define _INST_POINT_H_
 
+#include <string>
+#include <utility>
 #include <stdlib.h>
 #include "common/src/Types.h"
 #include "dyninstAPI/src/inst.h"

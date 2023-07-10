@@ -7,6 +7,9 @@
 #include "SgAsmType.h"
 #include "external/rose/powerpcInstructionEnum.h"
 
+#include <stddef.h>
+#include <string>
+#include <utility>
 #include <inttypes.h>
 
 

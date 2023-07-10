@@ -41,6 +41,7 @@
 #include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
 #include <set>
+#include <string>
 
 #include "dyninstversion.h"
 

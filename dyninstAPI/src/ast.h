@@ -38,6 +38,9 @@
 //
 
 
+#include <assert.h>
+#include <utility>
+#include <vector>
 #include <stdio.h>
 #include <string>
 #include <unordered_map>

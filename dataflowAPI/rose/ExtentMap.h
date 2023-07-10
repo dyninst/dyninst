@@ -5,6 +5,8 @@
 #ifndef DYNINST_EXTENTMAP_H
 #define DYNINST_EXTENTMAP_H
 
+#include <iosfwd>
+#include <string>
 #include "rangemap.h"
 #include "typedefs.h"
 #include "util/Interval.h"

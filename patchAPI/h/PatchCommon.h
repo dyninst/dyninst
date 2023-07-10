@@ -31,6 +31,10 @@
 #define PATCHAPI_H_COMMON_H_
 
 // C++
+#include <string>
+#include <string.h>
+#include <utility>
+#include <vector>
 #include <list>
 #include <set>
 #include <map>

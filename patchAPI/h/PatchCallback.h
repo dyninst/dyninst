@@ -36,6 +36,7 @@
 #if !defined(_PATCH_CALLBACK_H_)
 #define _PATCH_CALLBACK_H_
 
+#include <utility>
 #include <vector>
 #include "util.h"
 

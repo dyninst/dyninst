@@ -31,6 +31,8 @@
 #ifndef _BPatch_point_h_
 #define _BPatch_point_h_
 
+#include <string>
+#include <vector>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"

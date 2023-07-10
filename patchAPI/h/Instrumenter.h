@@ -32,6 +32,7 @@
 #ifndef PATCHAPI_H_INSTRUMENTOR_H_
 #define PATCHAPI_H_INSTRUMENTOR_H_
 
+#include <string>
 #include "PatchCommon.h"
 #include "Point.h"
 #include "AddrSpace.h"

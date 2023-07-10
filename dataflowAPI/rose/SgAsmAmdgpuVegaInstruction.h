@@ -1,6 +1,7 @@
 #ifndef SG_ASM_AMDGPU_VEGA_INSN_H
 #define SG_ASM_AMDGPU_VEGA_INSN_H
 
+#include <string>
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "typedefs.h"
 #include "SgAsmInstruction.h"

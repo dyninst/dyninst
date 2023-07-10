@@ -37,6 +37,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string>
 #include <vector>
 #include "common/src/Types.h"
 #include "common/src/std_namesp.h"

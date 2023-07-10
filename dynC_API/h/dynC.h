@@ -39,6 +39,7 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <vector>
 
 #if !defined(DYNC_EXPORT)
   #if defined(_MSC_VER)

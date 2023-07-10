@@ -1,6 +1,9 @@
 #ifndef ROSE_DispatcherARM64_H
 #define ROSE_DispatcherARM64_H
 
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "BaseSemantics2.h"
 #include "../SgAsmArmv8Instruction.h"
 #include "external/rose/armv8InstructionEnum.h"
