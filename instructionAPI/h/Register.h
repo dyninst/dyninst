@@ -32,6 +32,8 @@
 #define REGISTER_H
 
 #include "Expression.h"
+#include <stdint.h>
+#include <string>
 #include <vector>
 #include <map>
 #include <sstream>

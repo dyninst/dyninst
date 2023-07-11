@@ -43,6 +43,12 @@
 #include "dwarfHandle.h"
 #endif
 
+#include <assert.h>
+#include <ostream>
+#include <map>
+#include <stddef.h>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include "headers.h"
 #include "Types.h"

@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 static bool IS_ENC_SOP1(uint64_t I);
 static bool IS_ENC_SOPC(uint64_t I);
 static bool IS_ENC_SOPP(uint64_t I);

@@ -30,6 +30,11 @@
 #if !defined(FREEBSD_H_)
 #define FREEBSD_H_
 
+#include <map>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "Generator.h"
 #include "Event.h"
 #include "Decoder.h"

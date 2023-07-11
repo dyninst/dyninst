@@ -32,6 +32,7 @@
 #define TERNARY_H
 
 #include "Expression.h"
+#include <string>
 #include <vector>
 #include <map>
 #include <sstream>

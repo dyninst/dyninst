@@ -31,6 +31,7 @@
 #ifndef _CFG_MODIFIER_H_
 #define _CFG_MODIFIER_H_
 
+#include <vector>
 #include "dyntypes.h"
 
 // A collection of methods for user-triggered modification of a ParseAPI CFG. 

@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 struct amdgpu_gfx90a_insn_entry {
 	entryID op;
 	const char *mnemonic;

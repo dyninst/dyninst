@@ -40,6 +40,7 @@
 #include <set>
 #include <map>
 #include <string>
+#include <vector>
 
 struct GeneratorMTInternals;
 class int_process;

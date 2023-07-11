@@ -35,6 +35,8 @@
 #define _R_CODE_TRACKER_H_
 
 #include "common/h/dyntypes.h"
+#include <assert.h>
+#include <map>
 #include <vector>
 #include <set>
 #include <list>

@@ -35,6 +35,7 @@
 #include "int_process.h"
 #include <map>
 #include <string>
+#include <vector>
 
 /**
  * The Resp class is a second implementation of the response

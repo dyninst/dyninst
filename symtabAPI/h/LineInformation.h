@@ -31,6 +31,9 @@
 #if ! defined( LINE_INFORMATION_H )
 #define LINE_INFORMATION_H
 
+#include <string>
+#include <utility>
+#include <vector>
 #include "symutil.h"
 #include "RangeLookup.h"
 #include "Annotatable.h"

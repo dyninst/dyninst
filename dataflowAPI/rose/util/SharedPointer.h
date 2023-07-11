@@ -8,6 +8,8 @@
 #ifndef Sawyer_SharedPtr_H
 #define Sawyer_SharedPtr_H
 
+#include <assert.h>
+#include <stddef.h>
 #include <cstddef>
 #include <ostream>
 #include "Assert.h"

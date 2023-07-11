@@ -30,6 +30,8 @@
 #ifndef _LOCK_FREE_QUEUE_H_
 #define _LOCK_FREE_QUEUE_H_
 
+#include <assert.h>
+#include <utility>
 #include <iterator>
 #include <boost/atomic.hpp>
 

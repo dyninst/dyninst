@@ -49,6 +49,10 @@
 #include "processplat.h"
 
 #include "common/src/dthread.h"
+#include <map>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include <sys/types.h>
 #include <sys/ptrace.h>
 

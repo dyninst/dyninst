@@ -30,6 +30,8 @@
 #ifndef _CFG_FACTORY_H_
 #define _CFG_FACTORY_H_
 
+#include <string>
+
 #include "dyntypes.h"
 
 #include "LockFreeQueue.h"

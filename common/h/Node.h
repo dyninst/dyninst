@@ -33,6 +33,8 @@
 
 #include <set>
 #include <string>
+#include <stddef.h>
+#include <unordered_set>
 #include "Edge.h"
 #include "Annotatable.h"
 

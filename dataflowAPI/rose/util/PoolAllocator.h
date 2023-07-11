@@ -8,6 +8,12 @@
 #ifndef Sawyer_PoolAllocator_H
 #define Sawyer_PoolAllocator_H
 
+#include <assert.h>
+#include <ostream>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+#include <utility>
 #include <boost/version.hpp>
 #include <boost/foreach.hpp>
 #include <boost/static_assert.hpp>

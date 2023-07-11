@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 Expression::Ptr decodeOPR_ACCVGPR(uint64_t input, uint32_t _num_elements = 1 );
 Expression::Ptr decodeOPR_ATTR(uint64_t input, uint32_t _num_elements = 1 );
 Expression::Ptr decodeOPR_DSMEM(uint64_t input, uint32_t _num_elements = 1 );

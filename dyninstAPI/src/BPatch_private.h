@@ -36,6 +36,7 @@ class BPatchSnippetHandle;
 class BPatch_point;
 class BPatch_snippet;
 
+#include <vector>
 #include "BPatch_snippet.h"
 
 // TODO: this is bpatch-specific, move to BPatch_private.h?

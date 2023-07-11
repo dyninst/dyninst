@@ -5,6 +5,11 @@
 #ifndef DYNINST_SYMEVALSEMANTICS_H
 #define DYNINST_SYMEVALSEMANTICS_H
 
+#include <assert.h>
+#include <iosfwd>
+#include <map>
+#include <stddef.h>
+#include <stdint.h>
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "BaseSemantics2.h"

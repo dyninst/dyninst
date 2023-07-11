@@ -31,6 +31,7 @@
 #ifndef DYNTHREAD_H
 #define DYNTHREAD_H
 
+#include <vector>
 #include "frame.h"
 
 #include "PCProcess.h"

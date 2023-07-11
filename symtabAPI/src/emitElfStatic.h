@@ -38,6 +38,8 @@
 #include "LinkMap.h"
 #include "Object.h"
 
+#include <string>
+#include <utility>
 #include <deque>
 #include <map>
 #include <vector>

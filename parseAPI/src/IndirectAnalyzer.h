@@ -1,6 +1,10 @@
 #ifndef INDIRECT_ANALYZER_H
 #define INDIRECT_ANALYZER_H
 
+#include <map>
+#include <set>
+#include <utility>
+#include <vector>
 #include "ThunkData.h"
 #include "BoundFactData.h"
 #include "CFG.h"

@@ -32,6 +32,7 @@
 #ifndef PARREGION_H
 #define PARREGION_H
 
+#include <string.h>
 #include <string>
 #include "common/src/Types.h"
 #include "common/src/Pair.h"

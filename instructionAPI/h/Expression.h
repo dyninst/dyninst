@@ -35,6 +35,7 @@
 #include "InstructionAST.h"
 #include "Result.h"
 
+#include <string>
 #include <vector>
 #include <sstream>
 

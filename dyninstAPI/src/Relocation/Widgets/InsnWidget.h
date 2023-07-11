@@ -31,6 +31,7 @@
 #if !defined (_PATCHAPI_INSN_ATOM_H_)
 #define _PATCHAPI_INSN_ATOM_H_
 
+#include <string>
 #include "Widget.h"
 
 class block_instance;

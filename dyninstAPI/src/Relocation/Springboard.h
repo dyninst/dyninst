@@ -32,6 +32,9 @@
 
 #if !defined(_R_SPRINGBOARD_H_)
 #define _R_SPRINGBOARD_H_
+#include <assert.h>
+#include <list>
+#include <set>
 #include <map>
 #include "common/src/IntervalTree.h"
 #include "common/h/dyntypes.h"

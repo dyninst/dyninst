@@ -32,6 +32,8 @@
 #if !defined(_linux_headers_h)
 #define _linux_headers_h
 
+#include <stddef.h>
+#include <string>
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -33,6 +33,8 @@
 
 class AddressSpace;
 
+#include <map>
+#include <utility>
 #include "Transformer.h"
 
 #include "dataflowAPI/h/Absloc.h"

@@ -54,6 +54,7 @@
 #define DYNINST_BREAKPOINT_SIGNUM (SIGRTMIN+4)
 
 #include <stdio.h>
+#include <stdint.h>
 #include "dyninstRTExport.h"
 #include "common/src/Types.h"
 #include "common/h/compiler_diagnostics.h"

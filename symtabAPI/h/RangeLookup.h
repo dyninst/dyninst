@@ -31,6 +31,8 @@
 #if ! defined( RANGE_LOOKUP_H )
 #define RANGE_LOOKUP_H
 
+#include <ostream>
+#include <utility>
 #include <map>
 #include <vector>
 #include <list>

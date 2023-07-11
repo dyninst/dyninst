@@ -31,6 +31,7 @@
 #if !defined(INSTRUCTION_DECODER_IMPL_H)
 #define INSTRUCTION_DECODER_IMPL_H
 
+#include <stdint.h>
 #include "Expression.h"
 #include "dyn_regs.h"
 #include "Operation_impl.h"

@@ -33,6 +33,8 @@
 #ifndef FRAME_H
 #define FRAME_H
 
+#include <iosfwd>
+#include <vector>
 #include "common/src/std_namesp.h"
 #include "common/src/Types.h"
 

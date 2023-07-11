@@ -7,6 +7,7 @@
 #include "SymbolicExpression.h"
 #include "slicing.h"
 
+#include <vector>
 #include <unordered_set>
 #include <unordered_map>
 

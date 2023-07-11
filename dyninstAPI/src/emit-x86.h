@@ -36,6 +36,8 @@
 #ifndef _EMIT_X86_H
 #define _EMIT_X86_H
 
+#include <assert.h>
+#include <vector>
 #include "common/src/headers.h"
 #include "common/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"

@@ -9,6 +9,8 @@
 #ifndef ROSE_DispatcherPpc_H
 #define ROSE_DispatcherPpc_H
 
+#include <assert.h>
+#include <stddef.h>
 #include "BaseSemantics2.h"
 #include "../SgAsmPowerpcInstruction.h"
 #include "external/rose/powerpcInstructionEnum.h"

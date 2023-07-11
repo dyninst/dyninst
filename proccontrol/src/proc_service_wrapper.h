@@ -42,6 +42,7 @@
 
 
 /* The definitions in this file must correspond to those in the debugger.  */
+#include <stddef.h>
 #include <sys/procfs.h>
 
 /* Functions in this interface return one of these status codes.  */

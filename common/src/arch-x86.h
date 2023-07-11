@@ -35,6 +35,7 @@
 #define _ARCH_X86_H
 
 #include "common/src/Types.h"
+#include <assert.h>
 #include <stdio.h>
 #include <set>
 #include <map>

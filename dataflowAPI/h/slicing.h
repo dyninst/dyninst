@@ -42,6 +42,10 @@
 #include <unordered_map>
 #include <list>
 #include <stack>
+#include <deque>
+#include <stddef.h>
+#include <string>
+#include <utility>
 
 #include "util.h"
 #include "Node.h"

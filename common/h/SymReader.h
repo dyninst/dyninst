@@ -34,6 +34,7 @@
 #include "util.h"
 #include "dyn_regs.h"
 #include <string>
+#include <stddef.h>
 
 namespace Dyninst
 {

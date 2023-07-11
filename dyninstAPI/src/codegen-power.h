@@ -31,6 +31,8 @@
 #ifndef _CODEGEN_POWER_H
 #define _CODEGEN_POWER_H
 
+#include <vector>
+
 class AddressSpace;
 class codeGen;
 

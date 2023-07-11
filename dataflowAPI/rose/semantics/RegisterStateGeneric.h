@@ -1,6 +1,11 @@
 #ifndef ROSE_BinaryAnalysis_InstructionSemantics2_RegisterStateGeneric_H
 #define ROSE_BinaryAnalysis_InstructionSemantics2_RegisterStateGeneric_H
 
+#include <iosfwd>
+#include <set>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "BaseSemantics2.h"
 
 namespace rose {

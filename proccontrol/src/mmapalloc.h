@@ -31,6 +31,9 @@
 #if !defined(MMAPALLOC_H_)
 #define MMAPALLOC_H_
 
+#include <map>
+#include <string>
+#include <vector>
 #include "int_process.h"
 
 /**

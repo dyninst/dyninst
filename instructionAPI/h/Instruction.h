@@ -32,6 +32,9 @@
 #define INSTRUCTION_H
 
 
+#include <stddef.h>
+#include <string>
+#include <string.h>
 #include <vector>
 #include <set>
 #include <list>

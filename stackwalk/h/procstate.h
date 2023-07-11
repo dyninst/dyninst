@@ -43,6 +43,9 @@
 #include <map>
 #include <queue>
 #include <string>
+#include <set>
+#include <stddef.h>
+#include <utility>
 
 namespace Dyninst {
 namespace Stackwalker {

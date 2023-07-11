@@ -3,6 +3,8 @@
 
 //#include "rose.h"
 #include "semanticsModule.h"
+#include <stddef.h>
+#include <stdint.h>
 #include <cassert>
 #include <cstdio>
 #include <iostream>

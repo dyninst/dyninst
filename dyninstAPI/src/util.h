@@ -34,6 +34,7 @@
 #define UTIL_H
 
 #ifndef FILE__
+#include <string.h>
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 

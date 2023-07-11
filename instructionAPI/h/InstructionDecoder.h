@@ -32,6 +32,7 @@
 #define INSTRUCTION_DECODER_H
 
 #include "Instruction.h"
+#include <stddef.h>
 
 namespace Dyninst
 {

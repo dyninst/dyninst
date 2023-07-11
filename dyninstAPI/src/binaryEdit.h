@@ -33,6 +33,9 @@
 #ifndef BINARY_H
 #define BINARY_H
 
+#include <string>
+#include <string.h>
+#include <vector>
 #include <map>
 #include <memory>
 

@@ -32,6 +32,8 @@
 #ifndef PATCHAPI_H_DYNINST_DYNADDRSPACE_H_
 #define PATCHAPI_H_DYNINST_DYNADDRSPACE_H_
 
+#include <set>
+#include <stddef.h>
 #include "DynCommon.h"
 
 class AddressSpace;

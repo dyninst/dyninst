@@ -1,3 +1,5 @@
+#include <cstddef>
+
 struct amdgpu_gfx908_insn_entry {
 	entryID op;
 	const char *mnemonic;

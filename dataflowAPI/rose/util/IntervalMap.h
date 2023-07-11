@@ -8,6 +8,7 @@
 #ifndef Sawyer_IntervalMap_H
 #define Sawyer_IntervalMap_H
 
+#include <stddef.h>
 #include <boost/cstdint.hpp>
 #include "Assert.h"
 #include "Map.h"

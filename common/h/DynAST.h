@@ -31,6 +31,7 @@
 #if !defined(AST_H)
 #define AST_H
 
+#include <assert.h>
 #include <vector>
 #include <string>
 #include <sstream>

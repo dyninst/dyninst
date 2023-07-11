@@ -1,6 +1,8 @@
 #ifndef ROSE_BinaryAnalysis_RegisterParts_H
 #define ROSE_BinaryAnalysis_RegisterParts_H
 
+#include <stddef.h>
+#include <vector>
 #include "../util/IntervalSet.h"
 #include "../util/Map.h"
 #include "../RegisterDescriptor.h"

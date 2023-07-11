@@ -29,6 +29,7 @@
  */
 #include <dataflowAPI/rose/SgAsmInstruction.h>
 #include "../rose/semantics/SymEvalSemantics.h"
+#include <string>
 
 #if !defined(_SYMBOLIC_EXPANSION_H_)
 #define _SYMBOLIC_EXPANSION_H_

@@ -29,6 +29,7 @@
  */
 #if !defined(IA_AARCH64__H)
 #define IA_AARCH64__H
+#include <string>
 #include "common/h/DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/SymEval.h"

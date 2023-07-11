@@ -33,6 +33,7 @@
 
 #include "boost/shared_ptr.hpp"
 #include "boost/weak_ptr.hpp"
+#include <stddef.h>
 #include <set>
 #include "Annotatable.h"
 #include <unordered_set>

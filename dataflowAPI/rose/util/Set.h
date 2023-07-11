@@ -11,6 +11,8 @@
 #include "Interval.h"
 #include "Sawyer.h"
 
+#include <memory>
+#include <stddef.h>
 #include <boost/foreach.hpp>
 #include <boost/range/iterator_range.hpp>
 #include <set>

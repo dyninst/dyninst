@@ -30,6 +30,7 @@
 #if !defined (local_var_h_)
 #define local_var_h_
 
+#include <string.h>
 #include <vector>
 #include "Symbol.h"
 #include "Symtab.h"

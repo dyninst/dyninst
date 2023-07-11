@@ -8,6 +8,9 @@
 #ifndef Sawyer_AddressSegment_H
 #define Sawyer_AddressSegment_H
 
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
 #include <boost/cstdint.hpp>
 #include "Access.h"
 #include "AllocatingBuffer.h"

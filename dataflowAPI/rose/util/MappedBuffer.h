@@ -12,6 +12,7 @@
 #include "Buffer.h"
 #include "Sawyer.h"
 
+#include <string.h>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/lexical_cast.hpp>
 #include <string>

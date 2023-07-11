@@ -1,6 +1,11 @@
 #ifndef ROSE_MemoryMap_H
 #define ROSE_MemoryMap_H
 
+#include <iosfwd>
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
+#include <vector>
 #include "ByteOrder.h"
 
 #include "../util/Access.h"

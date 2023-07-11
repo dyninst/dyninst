@@ -31,6 +31,7 @@
 #ifndef _STACKLOCATION_H_
 #define _STACKLOCATION_H_
 
+#include <string>
 #include <functional>
 
 #include "dyn_regs.h"

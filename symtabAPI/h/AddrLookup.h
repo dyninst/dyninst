@@ -32,6 +32,8 @@
 #define __AddrLookup_H__
 
 #include "Annotatable.h"
+#include <string>
+#include <vector>
 #include <map>
 
 namespace Dyninst {

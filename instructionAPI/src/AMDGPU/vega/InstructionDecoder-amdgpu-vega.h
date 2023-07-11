@@ -28,6 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <array>
+#include <assert.h>
+#include <stdint.h>
+#include <string>
 #include "InstructionDecoderImpl.h"
 #include <iostream>
 #include "Immediate.h"

@@ -31,6 +31,8 @@
 #if !defined(arm_process_h_)
 #define arm_process_h_
 
+#include <set>
+#include <string>
 #include <map>
 #include <vector>
 #include "int_process.h"

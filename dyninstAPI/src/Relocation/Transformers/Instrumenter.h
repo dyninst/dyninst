@@ -31,6 +31,9 @@
 #if !defined(_R_T_INSTRUMENTER_H_)
 #define _R_T_INSTRUMENTER_H_
 
+#include <list>
+#include <map>
+#include <utility>
 #include "Transformer.h"
 #include "dyninstAPI/src/instPoint.h"
 

@@ -39,6 +39,8 @@
 
 #include "Parser.h"
 
+#include <stdint.h>
+#include <utility>
 #include <string>
 #include <vector>
 #include <set>

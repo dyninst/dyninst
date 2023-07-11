@@ -31,6 +31,9 @@
 #if !defined(ppc_process_h_)
 #define ppc_process_h_
 
+#include <set>
+#include <string>
+#include <vector>
 #include <map>
 #include "int_process.h"
 

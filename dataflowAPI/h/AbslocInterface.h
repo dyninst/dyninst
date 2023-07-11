@@ -32,6 +32,8 @@
 #if !defined(Absloc_Interface_H)
 #define Absloc_Interface_H
 
+#include <map>
+#include <vector>
 #include "Instruction.h"
 #include "Register.h"
 #include "Expression.h"

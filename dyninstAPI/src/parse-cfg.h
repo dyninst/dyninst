@@ -33,6 +33,12 @@
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
 
+#include <assert.h>
+#include <list>
+#include <map>
+#include <stddef.h>
+#include <utility>
+#include <vector>
 #include <string>
 #include "common/src/Types.h"
 #include "common/src/Pair.h"

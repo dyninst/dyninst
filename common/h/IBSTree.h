@@ -41,6 +41,8 @@
 #include "dyntypes.h"
 #include "concurrent.h"
 
+#include <stddef.h>
+#include <vector>
 #include <set>
 #include <limits>
 #include <iostream>

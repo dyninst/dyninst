@@ -31,6 +31,7 @@
 #include "SymReader.h"
 #include "Elf_X.h"
 
+#include <string>
 #include <map>
 
 namespace Dyninst {

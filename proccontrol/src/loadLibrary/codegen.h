@@ -6,6 +6,9 @@
 #if !defined(_INJECTOR_CODEGEN_H_)
 #define _INJECTOR_CODEGEN_H_
 
+#include <map>
+#include <string>
+#include <vector>
 #include "PCProcess.h"
 #include "Buffer.h"
 

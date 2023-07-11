@@ -32,6 +32,9 @@
 #ifndef PATCHAPI_H_DYNINST_OBJECT_H_
 #define PATCHAPI_H_DYNINST_OBJECT_H_
 
+#include <map>
+#include <string>
+#include <vector>
 #include "PatchCommon.h"
 #include "CFGMaker.h"
 

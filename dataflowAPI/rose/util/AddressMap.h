@@ -17,6 +17,12 @@
 #include "IntervalMap.h"
 #include "IntervalSet.h"
 #include "Sawyer.h"
+#include <ostream>
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
+#include <utility>
+#include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/foreach.hpp>

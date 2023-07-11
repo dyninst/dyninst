@@ -30,6 +30,9 @@
 
 #ifndef __REGION__H__ 
 #define __REGION__H__
+#include <iosfwd>
+#include <string>
+#include <vector>
 #include "symutil.h"
 #include "Annotatable.h"
 

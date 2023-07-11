@@ -31,6 +31,10 @@
 #ifndef _BPatch_function_h_
 #define _BPatch_function_h_
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 #include "Annotatable.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"

@@ -35,6 +35,8 @@
 #include "Expression.h"
 #include "entryIDs.h"
 #include "Result.h"
+#include <stddef.h>
+#include <string>
 #include <set>
 #include <mutex>
 

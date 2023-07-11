@@ -41,6 +41,10 @@
 #include "BPatch_callbacks.h"
 #include "PCProcess.h"
 
+#include <map>
+#include <set>
+#include <stddef.h>
+#include <utility>
 #include <vector>
 
 #include <cstdio>

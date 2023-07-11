@@ -33,6 +33,7 @@
 
 #include <string>
 #include <set>
+#include <map>
 #include "Annotatable.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"

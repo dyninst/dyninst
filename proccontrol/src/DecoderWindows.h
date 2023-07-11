@@ -30,6 +30,8 @@
 #if !defined(DECODER_WINDOWS_H)
 #define DECODER_WINDOWS_H
 
+#include <string>
+#include <vector>
 #include "Decoder.h"
 #include "Event.h"
 #include "int_process.h"

@@ -30,6 +30,11 @@
 
 #ifndef __ARCHIVE_H__
 #define __ARCHIVE_H__
+
+#include <map>
+#include <stddef.h>
+#include <string>
+#include <vector>
  
 class MappedFile;
 

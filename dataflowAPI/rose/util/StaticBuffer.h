@@ -8,6 +8,8 @@
 #ifndef Sawyer_StaticBuffer_H
 #define Sawyer_StaticBuffer_H
 
+#include <string>
+#include <string.h>
 #include "AllocatingBuffer.h"
 #include "Assert.h"
 #include "Buffer.h"

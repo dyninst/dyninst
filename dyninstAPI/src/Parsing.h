@@ -30,6 +30,9 @@
 #ifndef _PARSING_H_
 #define _PARSING_H_
 
+#include <assert.h>
+#include <string>
+#include <vector>
 #include "parseAPI/h/CFGFactory.h"
 #include "parseAPI/h/CodeSource.h"
 #include "parseAPI/h/InstructionSource.h"

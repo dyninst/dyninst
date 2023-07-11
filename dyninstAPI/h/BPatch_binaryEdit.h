@@ -41,6 +41,8 @@
 #include "BPatch_callbacks.h"
 
 #include <vector>
+#include <map>
+#include <string>
 
 #include <stdio.h>
 #include <signal.h>

@@ -56,6 +56,9 @@
 #include "Operation_impl.h"
 #include "../h/Absloc.h"
 
+#include <assert.h>
+#include <map>
+#include <stddef.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>

@@ -36,6 +36,8 @@
 #ifndef INST_POWER_H
 #define INST_POWER_H
 
+#include <stdint.h>
+
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with

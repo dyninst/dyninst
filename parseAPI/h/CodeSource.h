@@ -30,6 +30,7 @@
 #ifndef _CODE_SOURCE_H_
 #define _CODE_SOURCE_H_
 
+#include <set>
 #include <map>
 #include <vector>
 #include <utility>

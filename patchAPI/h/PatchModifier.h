@@ -31,6 +31,8 @@
 #ifndef _PATCH_MODIFIER_H_
 #define _PATCH_MODIFIER_H_
 
+#include <set>
+#include <vector>
 #include "dyntypes.h"
 
 // A collection of methods for user-triggered modification of a PatchAPI CFG,

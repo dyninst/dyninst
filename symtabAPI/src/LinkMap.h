@@ -36,6 +36,8 @@
 #include "Symbol.h"
 #include "Function.h"
 
+#include <string>
+#include <utility>
 #include <deque>
 #include <map>
 #include <vector>

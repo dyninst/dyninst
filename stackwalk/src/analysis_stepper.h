@@ -37,6 +37,10 @@
 #include "SymReader.h"
 
 #include <string>
+#include <map>
+#include <set>
+#include <utility>
+#include <vector>
 
 namespace Dyninst {
 namespace ParseAPI {

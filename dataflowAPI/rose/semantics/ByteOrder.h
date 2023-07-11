@@ -1,6 +1,8 @@
 #ifndef ROSE_ByteOrder_H
 #define ROSE_ByteOrder_H
 
+#include <stddef.h>
+#include <stdint.h>
 #include "../typedefs.h"
 
 namespace ByteOrder {

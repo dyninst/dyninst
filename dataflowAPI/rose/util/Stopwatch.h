@@ -8,6 +8,7 @@
 #ifndef Sawyer_Stopwatch_H
 #define Sawyer_Stopwatch_H
 
+#include <iosfwd>
 #include "Sawyer.h"
 
 #ifdef SAWYER_HAVE_BOOST_CHRONO

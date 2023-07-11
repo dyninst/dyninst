@@ -3,6 +3,7 @@
 
 #include "LinearCongruentialGenerator.h"
 
+#include <stddef.h>
 #include <algorithm>
 #include <cassert>
 #include <list>

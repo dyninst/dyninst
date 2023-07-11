@@ -31,6 +31,7 @@
 #ifndef _STACKMODWIDGET_H_
 #define _STACKMODWIDGET_H_
 
+#include <string>
 #include "Widget.h"
 class block_instance;
 

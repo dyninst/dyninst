@@ -32,6 +32,8 @@
 
 #include <string>
 #include <set>
+#include <stddef.h>
+#include <vector>
 #include "dyntypes.h"
 #include "MachSyscall.h"
 #include "EventType.h"

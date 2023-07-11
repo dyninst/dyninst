@@ -39,7 +39,8 @@
 #include "Visitor.h"
 #include "ArchSpecificFormatters.h"
 
-#include <sstream>
+#include <string>
+#include <vector>
 
 namespace Dyninst
 {

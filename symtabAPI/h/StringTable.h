@@ -5,6 +5,9 @@
 #ifndef DYNINST_STRINGTABLE_H
 #define DYNINST_STRINGTABLE_H
 
+#include <ostream>
+#include <stddef.h>
+#include <string>
 #include "concurrent.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/multi_index_container.hpp>

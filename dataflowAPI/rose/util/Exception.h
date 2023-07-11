@@ -8,6 +8,7 @@
 #ifndef Sawyer_Exception_H
 #define Sawyer_Exception_H
 
+#include <string>
 #include "Sawyer.h"
 
 namespace Sawyer {

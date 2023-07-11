@@ -32,6 +32,8 @@
 #define _HYBRIDANALYSIS_H_
 
 #include <stdio.h>
+#include <string>
+#include <utility>
 #include <set>
 #include <map>
 #include <vector>

@@ -33,6 +33,8 @@
 #define _freebsd_headers_h
 
 #include <assert.h>
+#include <stddef.h>
+#include <string>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

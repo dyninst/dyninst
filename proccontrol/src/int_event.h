@@ -35,6 +35,9 @@
 #endif
 #include "response.h"
 #include "resp.h"
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include <set>
 
 namespace Dyninst {

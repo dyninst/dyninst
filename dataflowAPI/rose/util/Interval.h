@@ -10,6 +10,7 @@
 
 #include "Assert.h"
 #include "Sawyer.h"
+#include <utility>
 #include <boost/integer_traits.hpp>
 
 namespace Sawyer {

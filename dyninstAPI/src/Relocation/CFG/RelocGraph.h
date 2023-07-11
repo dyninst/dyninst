@@ -37,6 +37,8 @@
 #include "RelocTarget.h" // Targets
 #include <vector>
 #include <map>
+#include <list>
+#include <utility>
 
 class codeGen;
 class block_instance;

@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 struct amdgpu_vega_insn_entry {
 	entryID op;
 	const char *mnemonic;

@@ -35,6 +35,7 @@
 #define DYN_DETAIL_BOOST_NO_INTRINSIC_WCHAR_T 1
 #endif
 #include "dyntypes.h"
+#include <stddef.h>
 #include <vector>
 #include <map>
 #include <typeinfo>

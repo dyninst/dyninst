@@ -34,6 +34,7 @@
 #include "basetypes.h"
 #include "PCProcess.h"
 #include <vector>
+#include <set>
 #include <list>
 #include <string>
 #include <utility>

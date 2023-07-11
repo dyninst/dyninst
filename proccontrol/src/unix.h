@@ -31,6 +31,10 @@
 #if !defined(UNIX_H_)
 #define UNIX_H_
 
+#include <map>
+#include <stddef.h>
+#include <string>
+#include <vector>
 #include "int_process.h"
 
 /**

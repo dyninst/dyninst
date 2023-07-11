@@ -8,6 +8,11 @@
 #ifndef Sawyer_BitVector_H
 #define Sawyer_BitVector_H
 
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
+#include <string.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/cstdint.hpp>
 #include "Assert.h"

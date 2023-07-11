@@ -32,6 +32,7 @@
 
 #ifndef _BITARRAY_
 #define _BITARRAY_
+#include <memory>
 #include <boost/dynamic_bitset.hpp>
 typedef boost::dynamic_bitset<unsigned long, std::allocator<unsigned long> > bitArray;
 

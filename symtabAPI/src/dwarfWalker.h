@@ -8,6 +8,9 @@
 #include "elf.h"
 #include "libelf.h"
 #include "elfutils/libdw.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <utility>
 #include <stack>
 #include <vector>
 #include <string>

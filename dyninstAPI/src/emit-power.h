@@ -36,6 +36,8 @@
 #ifndef _EMITTER_POWER_H
 #define _EMITTER_POWER_H
 
+#include <assert.h>
+#include <vector>
 #include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"

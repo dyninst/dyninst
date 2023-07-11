@@ -1,6 +1,7 @@
 #ifndef aarch64_swk_h_
 #define aarch64_swk_h_
 
+#include <map>
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/framestepper.h"
 

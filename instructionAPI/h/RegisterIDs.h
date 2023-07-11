@@ -31,6 +31,7 @@
 #if !defined(REGISTER_IDS_X86_H)
 #define REGISTER_IDS_X86_H
 
+#include <string>
 #include <vector>
 #include <map>
 #include "util.h"

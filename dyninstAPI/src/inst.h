@@ -34,6 +34,8 @@
 #define INST_HDR
 
 #include <string>
+#include <map>
+#include <vector>
 #include <unordered_map>
 #include "opcode.h" // enum opCode now defined here.
 #include "common/src/Types.h"

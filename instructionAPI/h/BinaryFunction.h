@@ -35,6 +35,10 @@
 #include "Register.h"
 #include "Result.h"
 #include "ArchSpecificFormatters.h"
+#include <assert.h>
+#include <stdint.h>
+#include <string>
+#include <vector>
 #include <sstream>
 
 namespace Dyninst

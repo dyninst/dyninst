@@ -8,6 +8,7 @@
 #ifndef Sawyer_BitVectorSupport_H
 #define Sawyer_BitVectorSupport_H
 
+#include <stddef.h>
 #include <boost/cstdint.hpp>
 #include <algorithm>
 #include <boost/foreach.hpp>

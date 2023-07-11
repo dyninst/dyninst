@@ -13,6 +13,7 @@
 #include "SgNode.h"
 
 #include "SgAsmOperandList.h"
+#include <stddef.h>
 #include <string>
 
 class SgAsmStatement : public SgAsmNode {

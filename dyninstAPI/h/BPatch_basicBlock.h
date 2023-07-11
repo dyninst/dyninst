@@ -31,6 +31,10 @@
 #ifndef _BPatch_basicBlock_h_
 #define _BPatch_basicBlock_h_
 
+#include <iosfwd>
+#include <set>
+#include <utility>
+#include <vector>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"

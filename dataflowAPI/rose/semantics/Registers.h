@@ -5,6 +5,11 @@
 #include "../util/Map.h"
 #include "RegisterParts.h"
 
+#include <iosfwd>
+#include <stddef.h>
+#include <stdint.h>
+#include <utility>
+#include <vector>
 #include <map>
 #include <queue>
 #include <string>

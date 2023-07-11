@@ -34,6 +34,9 @@
 #define SYMTAB_HDR
 #define REGEX_CHARSET "^*|?"
 
+#include <map>
+#include <utility>
+#include <vector>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>

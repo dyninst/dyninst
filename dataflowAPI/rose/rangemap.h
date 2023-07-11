@@ -18,6 +18,8 @@
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
+#include <stddef.h>
+#include <utility>
 #include <inttypes.h>
 
 #include <cassert>

@@ -31,6 +31,9 @@
 #ifndef _OFFSETVECTOR_H_
 #define _OFFSETVECTOR_H_
 
+#include <map>
+#include <set>
+#include <utility>
 #include "dyn_regs.h"
 #include "common/src/IntervalTree.h"
 #include "stackanalysis.h"
