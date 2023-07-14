@@ -498,50 +498,51 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    static boost::shared_ptr<typeCollection> setupStdTypes();
    static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
-   dyn_rwlock symbols_rwlock;
+   dyn_rwlock symbols_rwlock{};
    // boost::mutex symbols_mutex;
 
-   std::string member_name_;
-   Offset member_offset_;
-   Archive * parentArchive_;
-   MappedFile *mf;
+   std::string member_name_{};
+   Offset member_offset_{};
+   Archive * parentArchive_{};
+   MappedFile *mf{};
 
-   Offset preferedBase_;
-   Offset imageOffset_;
-   unsigned imageLen_;
-   Offset dataOffset_;
-   unsigned dataLen_;
+   Offset preferedBase_{};
+   Offset imageOffset_{};
+   unsigned imageLen_{};
+   Offset dataOffset_{};
+   unsigned dataLen_{};
 
-   bool is_a_out;
-   Offset main_call_addr_; // address of call to main()
+   bool is_a_out{false};
+   Offset main_call_addr_{}; // address of call to main()
 
-   unsigned address_width_;
-   std::string interpreter_name_;
-   Offset entry_address_;
-   Offset base_address_;
-   Offset load_address_;
-   ObjectType object_type_;
-   bool is_eel_;
-   std::vector<Segment> segments_;
+   unsigned address_width_{sizeof(int)};
+   std::string interpreter_name_{};
+   Offset entry_address_{};
+   Offset base_address_{};
+   Offset load_address_{};
+   ObjectType object_type_{obj_Unknown};
+   bool is_eel_{false};
+   std::vector<Segment> segments_{};
+
    //  make sure is_a_out is set before calling symbolsToFunctions
 
    // A std::vector of all Symtabs. Used to avoid duplicating
    // a Symtab that already exists.
    static std::vector<Symtab *> allSymtabs;
-   std::string defaultNamespacePrefix;
+   std::string defaultNamespacePrefix{};
 
    //sections
-   unsigned no_of_sections;
-   std::vector<Region *> regions_;
-   std::vector<Region *> codeRegions_;
-   std::vector<Region *> dataRegions_;
-   dyn_hash_map <Offset, Region *> regionsByEntryAddr;
+   unsigned no_of_sections{};
+   std::vector<Region *> regions_{};
+   std::vector<Region *> codeRegions_{};
+   std::vector<Region *> dataRegions_{};
+   dyn_hash_map <Offset, Region *> regionsByEntryAddr{};
 
    //Point where new loadable sections will be inserted
-   unsigned newSectionInsertPoint;
+   unsigned newSectionInsertPoint{};
 
    //symbols
-   unsigned no_of_symbols;
+   unsigned no_of_symbols{};
 
    struct indexed_symbols {
        typedef dyn_c_hash_map<Symbol*, Offset> master_t;
@@ -591,22 +592,22 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
        iterator end() { return iterator(master.end()); }
    };
 
-   indexed_symbols everyDefinedSymbol;
-   indexed_symbols undefDynSyms;
+   indexed_symbols everyDefinedSymbol{};
+   indexed_symbols undefDynSyms{};
    
    // We also need per-Aggregate indices
-   bool sorted_everyFunction;
-   std::vector<Function *> everyFunction;
+   bool sorted_everyFunction{false};
+   std::vector<Function *> everyFunction{};
    // Since Functions are unique by address we require this structure to
    // efficiently track them.
-   dyn_c_hash_map <Offset, Function *> funcsByOffset;
+   dyn_c_hash_map <Offset, Function *> funcsByOffset{};
 
    // Similar for Variables
-   std::vector<Variable *> everyVariable;
+   std::vector<Variable *> everyVariable{};
    using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *> >;
-   VarsByOffsetMap varsByOffset;
+   VarsByOffsetMap varsByOffset{};
 
-    dyn_mutex im_lock;
+    dyn_mutex im_lock{};
     boost::multi_index_container<Module*,
             boost::multi_index::indexed_by<
                     boost::multi_index::random_access<>,
@@ -617,37 +618,37 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                             boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fullName> >
                     >
             >
-            indexed_modules;
+            indexed_modules{};
 
 
-   std::vector<relocationEntry > relocation_table_;
-   std::vector<ExceptionBlock *> excpBlocks;
+   std::vector<relocationEntry > relocation_table_{};
+   std::vector<ExceptionBlock *> excpBlocks{};
 
-   std::vector<std::string> deps_;
+   std::vector<std::string> deps_{};
 
    // This set is used during static linking to satisfy dependencies
-   std::vector<Archive *> linkingResources_;
+   std::vector<Archive *> linkingResources_{};
 
    // This set represents Symtabs referenced by a new external Symbol
    bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
-   std::set<Symtab *> explicitSymtabRefs_;
+   std::set<Symtab *> explicitSymtabRefs_{};
 
    //type info valid flag
-   bool isTypeInfoValid_;
+   bool isTypeInfoValid_{false};
 
    //Relocation sections
-   bool hasRel_;
-   bool hasRela_;
-   bool hasReldyn_;
-   bool hasReladyn_;
-   bool hasRelplt_;
-   bool hasRelaplt_;
+   bool hasRel_{false};
+   bool hasRela_{false};
+   bool hasReldyn_{false};
+   bool hasReladyn_{false};
+   bool hasRelplt_{false};
+   bool hasRelaplt_{false};
 
-   bool isStaticBinary_;
-   bool isDefensiveBinary_;
+   bool isStaticBinary_{false};
+   bool isDefensiveBinary_{false};
 
-   FuncRangeLookup *func_lookup;
-    ModRangeLookup *mod_lookup_;
+   FuncRangeLookup *func_lookup{};
+    ModRangeLookup *mod_lookup_{};
 
    //Don't use obj_private, use getObject() instead.
  public:
@@ -658,17 +659,17 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    void dumpFuncRanges();
 
  private:
-   Object *obj_private;
+   Object *obj_private{};
 
    // dynamic library name substitutions
-   std::map <std::string, std::string> dynLibSubs;
+   std::map <std::string, std::string> dynLibSubs{};
 
    public:
    static boost::shared_ptr<Type>& type_Error();
    static boost::shared_ptr<Type>& type_Untyped();
 
  private:
-    unsigned _ref_cnt;
+    unsigned _ref_cnt{1};
 };
 
 /**
