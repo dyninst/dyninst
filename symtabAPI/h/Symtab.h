@@ -500,7 +500,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Offset member_offset_;
    Archive * parentArchive_;
    MappedFile *mf;
-   MappedFile *mfForDebugInfo;
 
    Offset preferedBase_;
    Offset imageOffset_;
