@@ -126,6 +126,13 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Symtab(unsigned char *mem_image, size_t image_size, 
                         const std::string &name, bool defensive_binary, bool &err);
 
+   ~Symtab();
+
+   Symtab(Symtab const&) = delete;
+   Symtab& operator=(Symtab const&) = delete;
+   Symtab(Symtab&&) = delete;
+   Symtab& operator=(Symtab&&) = delete;
+
    typedef enum {
       NotDefensive,
       Defensive} def_t; 
@@ -407,8 +414,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    static SymtabError getLastSymtabError();
    static void setSymtabError(SymtabError new_err);
    static std::string printError(SymtabError serr);
-
-   ~Symtab();
 
    bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
