@@ -315,7 +315,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    AnnotatableSparse()
 {  
     init_debug_symtabAPI();
-    create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
 }
 
 SYMTAB_EXPORT bool Symtab::isExec() const 
