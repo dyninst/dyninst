@@ -1390,69 +1390,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     return true;
 }
 
-Symtab::Symtab(const Symtab& obj) :
-   LookupInterface(),
-   AnnotatableSparse(),
-   member_name_(obj.member_name_),
-   member_offset_(obj.member_offset_),
-   parentArchive_(NULL),
-   mf(NULL), mfForDebugInfo(NULL),
-   imageOffset_(obj.imageOffset_), imageLen_(obj.imageLen_),
-   dataOffset_(obj.dataOffset_), dataLen_(obj.dataLen_),
-   is_a_out(obj.is_a_out),
-   main_call_addr_(obj.main_call_addr_),
-   address_width_(sizeof(int)),
-   entry_address_(0), base_address_(0), load_address_(0),
-   object_type_(obj_Unknown), is_eel_(false),
-   defaultNamespacePrefix(obj.defaultNamespacePrefix),
-   no_of_sections(0),
-   newSectionInsertPoint(0),
-   no_of_symbols(obj.no_of_symbols),
-   sorted_everyFunction(false),
-   isTypeInfoValid_(obj.isTypeInfoValid_),
-   hasRel_(false), hasRela_(false), hasReldyn_(false),
-   hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
-   isStaticBinary_(false), isDefensiveBinary_(obj.isDefensiveBinary_),
-   func_lookup(NULL),
-   mod_lookup_(NULL),
-   obj_private(NULL),
-   _ref_cnt(1)
-{
-    create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, (const void*)this, (const void*)&obj);
-
-   unsigned i;
-
-   for (i=0;i<obj.regions_.size();i++) {
-     regions_.push_back(new Region(*(obj.regions_[i])));
-     regions_.back()->setSymtab(this);
-   }
-
-   for (i=0;i<regions_.size();i++)
-      regionsByEntryAddr[regions_[i]->getMemOffset()] = regions_[i];
-
-   // TODO FIXME: copying symbols/Functions/Variables
-   // (and perhaps anything else initialized zero above)
-
-
-   for (i=0;i<obj.indexed_modules.size();i++)
-   {
-      Module *m = new Module(*(obj.indexed_modules[i]));
-      indexed_modules.push_back(m);
-   }
-
-   for (i=0; i<obj.relocation_table_.size();i++)
-   {
-      relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-   }
-
-   for (i=0;i<obj.excpBlocks.size();i++)
-   {
-      excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
-   }
-
-   deps_ = obj.deps_;
-}
-
 // Address must be in code or data range since some code may end up
 // in the data segment
 bool Symtab::isValidOffset(const Offset where) const

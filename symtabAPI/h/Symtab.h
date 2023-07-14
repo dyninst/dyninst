@@ -123,7 +123,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    Symtab();
 
-   Symtab(const Symtab& obj);
    Symtab(unsigned char *mem_image, size_t image_size, 
                         const std::string &name, bool defensive_binary, bool &err);
 
