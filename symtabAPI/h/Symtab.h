@@ -651,7 +651,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    FuncRangeLookup *func_lookup{};
    std::once_flag funcRangesAreParsed;
 
-    ModRangeLookup *mod_lookup_{};
+    ModRangeLookup mod_lookup_{};
+
 
    //Don't use obj_private, use getObject() instead.
  public:

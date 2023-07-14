@@ -1470,7 +1470,6 @@ Symtab::~Symtab()
    }
 
     delete func_lookup;
-    delete mod_lookup_;
 
    // Make sure to free the underlying Object as it doesn't have a factory
    // open method
@@ -2864,16 +2863,13 @@ void Symtab::rebase(Offset loadOff)
 }
 
 ModRangeLookup *Symtab::mod_lookup() {
-    if(!mod_lookup_) mod_lookup_ = new ModRangeLookup;
-    return mod_lookup_;
+    return &mod_lookup_;
 
 }
 
 
 void Symtab::dumpModRanges() {
-  if (mod_lookup_) {
-    mod_lookup_->PrintPreorder();
-  }
+    mod_lookup_.PrintPreorder();
 }
 
 void Symtab::dumpFuncRanges() {
