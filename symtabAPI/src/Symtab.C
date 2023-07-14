@@ -862,49 +862,6 @@ bool Symtab::updateIndices(Symbol * /*sym*/, std::string /*newName*/, NameType /
     return true;
 }
 
-#if 0
-/* checkPPC64DescriptorSymbols() is no longer needed.  3-word descriptor
- * symbols are properly taken care of during symbol parsing.  See
- * parse_symbols() in Object-elf.C for details.
- */
-
-#if defined(ppc64_linux)
-/* Special case for ppc64 ELF binaries. Sometimes a function has a 3-byte descriptor symbol
- * along with it in the symbol table and "." preceding its original pretty name for the correct
- * function symbol. This checks to see if we have a corresponding 3-byte descriptor symbol existing
- * and if it does we remove the preceding "." from the name of the symbol
- */
-
-void Symtab::checkPPC64DescriptorSymbols(Object *linkedFile)
-{
-   // find the real functions -- those with the correct type in the symbol table
-   for(SymbolIter symIter(*linkedFile); symIter;symIter++)
-   {
-      Symbol *lookUp = symIter.currval();
-      const char *np = lookUp->getMangledName().c_str();
-      if(!np)
-         continue;
-
-      if(np[0] == '.' && (lookUp->getType() == Symbol::ST_FUNCTION))
-      {
-         std::vector<Symbol *>syms;
-         std::string newName = np+1;
-         if(linkedFile->get_symbols(newName, syms) && (syms[0]->getSize() == 24 || syms[0]->getSize() == 0))
-         {
-            //Remove the "." from the name
-            lookUp->mangledNames[0] = newName;
-
-            //Change the type of the descriptor symbol
-            syms[0]->type_ = Symbol::ST_NOTYPE;
-         }
-      }
-   }
-
-}
-
-#endif
-#endif
-
 //  setModuleLanguages is only called after modules have been defined.
 //  it attempts to set each module's language, information which is needed
 //  before names can be demangled.

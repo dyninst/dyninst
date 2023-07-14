@@ -478,8 +478,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool addSymtabVariables();
 
-   void checkPPC64DescriptorSymbols(Object *linkedFile);
-
 
    void parseLineInformation();
    
