@@ -1025,33 +1025,9 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
 }
 
 Symtab::Symtab(unsigned char *mem_image, size_t image_size, 
-               const std::string &name, bool defensive_bin, bool &err) :
-   LookupInterface(),
-   AnnotatableSparse(),
-   member_offset_(0),
-   parentArchive_(NULL),
-   mf(NULL),
-   imageOffset_(0), imageLen_(0),
-   dataOffset_(0), dataLen_(0),
-   is_a_out(false),
-   main_call_addr_(0),
-   address_width_(sizeof(int)),
-   entry_address_(0), base_address_(0), load_address_(0),
-   object_type_(obj_Unknown), is_eel_(false),
-   no_of_sections(0),
-   newSectionInsertPoint(0),
-   no_of_symbols(0),
-   sorted_everyFunction(false),
-   isTypeInfoValid_(false),
-   hasRel_(false), hasRela_(false), hasReldyn_(false),
-   hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
-   isStaticBinary_(false),
-   isDefensiveBinary_(defensive_bin),
-   func_lookup(NULL),
-   mod_lookup_(NULL),
-   obj_private(NULL),
-   _ref_cnt(1)
+               const std::string &name, bool defensive_bin, bool &err) : Symtab()
 {
+   isDefensiveBinary_ = defensive_bin;
    // Initialize error parameter
    err = false;
   
