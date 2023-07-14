@@ -303,11 +303,9 @@ SYMTAB_EXPORT bool Symtab::isBigEndianDataEncoding() const
    return obj_private->isBigEndianDataEncoding();
 }
 
-SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
-   AnnotatableSparse(),
-   mf(mf_)
+SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) : Symtab()
 {
-    init_debug_symtabAPI();
+		mf = mf_;
 }
 
 SYMTAB_EXPORT Symtab::Symtab() :
