@@ -138,7 +138,12 @@ namespace Dyninst
                     return string(hex);
                 }
             }
-            return op_value->format(arch);
+            auto s = op_value->format(arch);
+            if (!s.compare(0, 2, "##"))  {
+                s.replace(0, 2, "0x0(");	// fix-up ##X to indirection syntax 0x0(X)
+                s += ')';
+            }
+            return s;
         }
 
         INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const

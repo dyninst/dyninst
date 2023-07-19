@@ -4,6 +4,7 @@
 
 #include "ArchSpecificFormatters.h"
 #include <algorithm>
+#include <iterator>
 #include <sstream>
 #include <iostream>
 
@@ -221,28 +222,20 @@ std::string x86Formatter::formatImmediate(std::string evalString)
 
 std::string x86Formatter::formatRegister(std::string regName) 
 {
-    for(char &c : regName) c = std::tolower(c);
+    std::string outReg{'%'};
 
-    char* orig = strdup(regName.c_str());
-
-    /* Get rid of the Arch*:: prefix */
-    int ccount = 0;
-    char* pointer = orig;
-    while(ccount < 2)
-    {
-        if(!*pointer) break;
-
-        if(*pointer == ':')
-            ccount++;
-        pointer++;
+    auto regNameOffset = regName.find("::");
+    if (regNameOffset == std::string::npos)  {
+	regNameOffset = 0;	// no "::", copy whole string
+    }  else  {
+	regNameOffset += 2;	// skip "::"
     }
+    auto sBegin = regName.cbegin() + regNameOffset;
+    auto sEnd = regName.cend();
+    auto outRegInserter = std::back_inserter(outReg);
+    std::transform(sBegin, sEnd, outRegInserter, [](unsigned char c){ return std::tolower(c);});
 
-    /* convert to a standard string */
-    regName = pointer;
-    free(orig);
-    std::string ss = "%" + regName;
-    regName = ss;
-    return ss;
+    return outReg;
 }
 
 std::string x86Formatter::formatDeref(std::string addrString) 
@@ -257,53 +250,16 @@ std::string x86Formatter::formatDeref(std::string addrString)
 
 std::string x86Formatter::getInstructionString(std::vector<std::string> operands) 
 {
-    // fprintf(stderr, "Operands: ");
-    // for(auto iter = operands.begin(); iter != operands.end(); iter++)
-    // {
-        // if(iter == operands.begin())
-            // fprintf(stderr, "%s", (*iter).c_str());
-        // else fprintf(stderr, ", %s", (*iter).c_str());
-    // }
-
-    /* We have to reorder the operands here */
-    std::string source_ops = "";
-    std::string dest_op = "";
-    std::string kmask_op = "";
-
-    /**
-     * We have to convert the Intel syntax operand ordering to AT&T because
-     * our tables are in Intel ordering
-     */
-    for(auto itr = operands.begin(); itr != operands.end(); itr++) 
-    {
-        std::string op = *itr;
-
-        /* If we still have a leading ##, it's an indirect call or SIB expression */
-        if(!op.compare(0, 2, "##"))
-        {
-            op = "0x0(" + op.substr(2) + ")";
-        }
-
-        if(itr == operands.begin())
-        {
-            dest_op = op;
-        } else if(!op.compare(0, 2, "%k"))
-        {
-            kmask_op = "{" + op + "}";
-        } else if(!source_ops.compare(""))
-        {
-            source_ops = op;
-        } else {
-            source_ops += "," + op;
-        }
+    std::string s;
+    bool oneOperandAdded{false};
+    for (auto i = operands.crbegin(); i != operands.crend(); ++i)  {
+	if (oneOperandAdded)  {
+	    s += ',';
+	}
+	s += *i;
+	oneOperandAdded = true;
     }
-
-    /* Put the instruction together */
-    std::string ret = source_ops;
-    if (ret.compare("")) ret += ",";
-    ret += dest_op;
-    ret += kmask_op;
-    return ret;
+    return s;
 }
 
 std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, std::string right)
