@@ -38,6 +38,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <mutex>
 
 #include "Symbol.h"
 #include "Module.h"
@@ -648,6 +649,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isDefensiveBinary_{false};
 
    FuncRangeLookup *func_lookup{};
+   std::once_flag funcRangesAreParsed;
+
     ModRangeLookup *mod_lookup_{};
 
    //Don't use obj_private, use getObject() instead.
