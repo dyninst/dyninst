@@ -43,7 +43,7 @@
 #include "Symbol.h"
 #include "Module.h"
 #include "Region.h"
-
+#include "Function.h"
 #include "Annotatable.h"
 #include "ProcReader.h"
 #include "IBSTree.h"
@@ -92,11 +92,8 @@ class Object;
 class localVar;
 class relocationEntry;
 class Type;
-class FunctionBase;
-class FuncRange;
 
 typedef IBSTree< ModRange > ModRangeLookup;
-typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
 class SYMTAB_EXPORT Symtab : public LookupInterface,
