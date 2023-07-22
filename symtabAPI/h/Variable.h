@@ -39,6 +39,7 @@
 #include "Aggregate.h"
 #include "dyn_regs.h"
 #include "VariableLocation.h"
+#include "Type.h"
 
 namespace Dyninst {
 namespace SymtabAPI {
