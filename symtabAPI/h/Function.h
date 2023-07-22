@@ -46,6 +46,7 @@
 #include "Variable.h"
 #include "IBSTree.h"
 #include "concurrent.h"
+#include "VariableLocation.h"
 
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
