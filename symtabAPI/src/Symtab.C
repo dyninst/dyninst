@@ -1469,8 +1469,6 @@ Symtab::~Symtab()
          allSymtabs.erase(allSymtabs.begin()+i);
    }
 
-    delete func_lookup;
-
    // Make sure to free the underlying Object as it doesn't have a factory
    // open method
    delete obj_private;
@@ -2873,7 +2871,5 @@ void Symtab::dumpModRanges() {
 }
 
 void Symtab::dumpFuncRanges() {
-  if (func_lookup) {
-    func_lookup->PrintPreorder();
-  }
+    func_lookup.PrintPreorder();
 }

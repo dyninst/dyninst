@@ -723,13 +723,13 @@ bool Symtab::addFunctionRange(FunctionBase *func, Dyninst::Offset next_start)
       FuncRange &range = *i;
       if (range.low() == sym_low && range.high() == sym_high)
          found_sym_range = true;      
-      func_lookup->insert(&range);
+      func_lookup.insert(&range);
    }
 
    //Add symbol range to func_lookup, if present and not already added
    if (!found_sym_range && sym_low && sym_high) {
       FuncRange *frange = new FuncRange(sym_low, sym_high - sym_low, func);      
-      func_lookup->insert(frange);
+      func_lookup.insert(frange);
    }
 
    //Recursively add inlined functions
@@ -743,8 +743,6 @@ bool Symtab::addFunctionRange(FunctionBase *func, Dyninst::Offset next_start)
 bool Symtab::parseFunctionRanges()
 {
    parseTypesNow();
-   assert(!func_lookup);
-   func_lookup = new FuncRangeLookup();
 
    if (everyFunction.size() && !sorted_everyFunction)
    {
@@ -830,7 +828,7 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
    std::call_once(funcRangesAreParsed, [this](){ this->parseFunctionRanges(); });
    
    set<FuncRange *> ranges;
-   int num_found = func_lookup->find(offset, ranges);
+   int num_found = func_lookup.find(offset, ranges);
    if (num_found == 0) {
       func = NULL;
       return false;
