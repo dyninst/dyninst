@@ -43,7 +43,7 @@
 #include "Symbol.h"
 #include "Module.h"
 #include "Region.h"
-
+#include "Function.h"
 #include "Annotatable.h"
 #include "ProcReader.h"
 #include "IBSTree.h"
@@ -92,11 +92,8 @@ class Object;
 class localVar;
 class relocationEntry;
 class Type;
-class FunctionBase;
-class FuncRange;
 
 typedef IBSTree< ModRange > ModRangeLookup;
-typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
 class SYMTAB_EXPORT Symtab : public LookupInterface,
@@ -648,10 +645,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isStaticBinary_{false};
    bool isDefensiveBinary_{false};
 
-   FuncRangeLookup *func_lookup{};
+   FuncRangeLookup func_lookup{};
    std::once_flag funcRangesAreParsed;
 
-    ModRangeLookup *mod_lookup_{};
+    ModRangeLookup mod_lookup_{};
+
 
    //Don't use obj_private, use getObject() instead.
  public:
