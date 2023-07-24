@@ -1855,7 +1855,7 @@ namespace Dyninst
             decodedInstruction->getEntry()->getID() == e_ret_far) {
            Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(is64BitMode ? x86_64::rsp : x86::esp),
                                                                 is64BitMode ? u64 : u32);
-           insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
+           insn_to_complete->addSuccessor(ret_addr, false, true, false, false, true);
 	    }
         if (insn_to_complete->getOperation().getID() == e_endbr32 ||
             insn_to_complete->getOperation().getID() == e_endbr64) {
