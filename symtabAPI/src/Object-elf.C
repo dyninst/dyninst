@@ -2216,45 +2216,6 @@ void pd_dwarf_handler() {
 Dwarf_Sword declFileNo = 0;
 char **declFileNoToName = NULL;
 
-bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &/*dies_seen*/) {
-    Dwarf_Aranges *ranges;
-    size_t num_ranges;
-    int status = dwarf_getaranges(dbg, &ranges, &num_ranges);
-    if (status != 0) return false;
-    dwarf_printf("dwarf_parse_aranges: Processing %zu DWARF ranges\n", num_ranges);
-    for (size_t i = 0; i < num_ranges; i++) {
-        Dwarf_Arange *range = dwarf_onearange(ranges, i);
-        if (!range) continue;
-
-        Dwarf_Addr start;
-        Dwarf_Word len;
-        Dwarf_Off some_offset;
-        status = dwarf_getarangeinfo(range, &start, &len, &some_offset);
-        assert(status == 0);
-        if (len == 0) continue;
-
-        Dwarf_Die cu_die, *cu_die_off_p;
-        cu_die_off_p = dwarf_addrdie(dbg, start, &cu_die);
-        assert(cu_die_off_p != NULL);
-        auto off_die = dwarf_dieoffset(&cu_die);
-        //if (dies_seen.find(off_die) != dies_seen.end()) continue;
-
-        std::string modname = DwarfWalker::die_name(cu_die);
-
-        Offset actual_start, actual_end;
-        convertDebugOffset(start, actual_start);
-        convertDebugOffset(start + len, actual_end);
-        Module *m = associated_symtab->getOrCreateModule(modname, actual_start);
-        m->addRange(actual_start, actual_end);
-        m->addDebugInfo(cu_die);
-        cerr << "File in module " << modname << ", DIE CU " << hex << off_die << dec << endl;
-        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
-        //dies_seen.insert(off_die);
-    }
-    dwarf_printf("end of dwarf_parse_aranges\n");
-    return true;
-}
-
 bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
@@ -2262,10 +2223,6 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 
     dwarf_printf("At fix_global_symbol_modules_static_dwarf\n");
     Dwarf *dbg = *dbg_ptr;
-    std::set<Dwarf_Off> dies_seen;
-    /*if (!dwarf_parse_aranges(dbg, dies_seen)) {
-	    return false;
-    }*/
 
     std::vector<Dwarf_Die> dies;
     size_t cu_header_size;

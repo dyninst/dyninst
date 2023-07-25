@@ -437,7 +437,6 @@ private:
     
     LineInformation* li_for_object;
     LineInformation* parseLineInfoForObject(StringTablePtr strings);
-    bool dwarf_parse_aranges(::Dwarf *dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
 
