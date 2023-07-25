@@ -145,6 +145,9 @@ namespace Dyninst
       /// in the same order that they were decoded.
       INSTRUCTION_EXPORT void getOperands(std::vector<Operand>& operands) const;
 
+      /// Returns a vector of non-implicit operands in printed order
+      INSTRUCTION_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;
+
       /// The \c getOperand method returns the operand at position \c index, or
       /// an empty operand if \c index does not correspond to a valid operand in this
       /// instruction.

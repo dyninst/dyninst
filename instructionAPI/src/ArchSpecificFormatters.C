@@ -30,6 +30,11 @@ std::string ArchSpecificFormatter::formatBinaryFunc(const std::string &left, con
     // } else retVal << "NOT VALID FOR AT&T";
 }
 
+bool ArchSpecificFormatter::operandPrintOrderReversed() const
+{
+    return false;
+}
+
 ///////////////////////////
 
 ///////// Formatter for PowerPC
@@ -302,6 +307,11 @@ std::string x86Formatter::formatBinaryFunc(const std::string &left, const std::s
 
     // fprintf(stderr, "Retval: %s\n", retval.c_str());
     return retval;
+}
+
+bool x86Formatter::operandPrintOrderReversed() const
+{
+    return true;
 }
 
 ///////////////////////////

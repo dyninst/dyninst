@@ -47,6 +47,7 @@
 #include <iomanip>
 #include <set>
 #include <functional>
+#include <algorithm>
 
 #include "common/src/arch-x86.h"
 #include "dyninstversion.h"
@@ -237,6 +238,23 @@ namespace Dyninst
 
             DECODE_OPERANDS();
             std::copy(m_Operands.begin(), m_Operands.end(), std::back_inserter(operands));
+        }
+
+        INSTRUCTION_EXPORT std::vector<Operand> Instruction::getDisplayOrderedOperands() const
+        {
+            DECODE_OPERANDS();
+
+            std::vector<Operand> operands;
+            auto operandsInserter{std::back_inserter(operands)};
+            auto isNotImplicitPred = [](const Operand & x){return !x.isImplicit();};
+
+            if (formatter->operandPrintOrderReversed())  {
+                copy_if(m_Operands.crbegin(), m_Operands.crend(), operandsInserter, isNotImplicitPred);
+            }  else  {
+                copy_if(m_Operands.cbegin(), m_Operands.cend(), operandsInserter, isNotImplicitPred);
+            }
+
+            return operands;
         }
 
         INSTRUCTION_EXPORT Operand Instruction::getOperand(int index) const
