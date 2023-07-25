@@ -624,21 +624,12 @@ namespace Dyninst
                 bool isCall, 
                 bool isIndirect, 
                 bool isConditional, 
-                bool isFallthrough) const
+                bool isFallthrough,
+		bool isImplicit) const
         {
             CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
             m_Successors.push_back(c);
-            if (!isFallthrough) appendOperand(e, true, false);
-        }
-        void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const
-        {
-            m_Operands.push_back(Operand(e, isRead, isWritten));
-        }
-
-        void Instruction::appendOperand(Expression::Ptr e, 
-                bool isRead, bool isWritten, bool isImplicit) const
-        {
-            m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit));
+            if (!isFallthrough) appendOperand(e, true, false, isImplicit);
         }
 
         void Instruction::appendOperand(Expression::Ptr e, 
