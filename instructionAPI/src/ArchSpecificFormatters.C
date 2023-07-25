@@ -252,6 +252,8 @@ std::string x86Formatter::getInstructionString(std::vector<std::string> operands
 {
     std::string s;
     bool oneOperandAdded{false};
+
+    // append the operands in reverse order to convert from Intel to AT&T syntax order
     for (auto i = operands.crbegin(); i != operands.crend(); ++i)  {
 	if (oneOperandAdded)  {
 	    s += ',';
@@ -259,6 +261,7 @@ std::string x86Formatter::getInstructionString(std::vector<std::string> operands
 	s += *i;
 	oneOperandAdded = true;
     }
+
     return s;
 }
 
