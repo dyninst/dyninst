@@ -528,8 +528,6 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_minsd;
         case e_minss:
             return x86_minss;
-        case e_mmxud:
-            return x86_unknown_instruction;
         case e_mov:
             return x86_mov;
         case e_movapd:
@@ -668,7 +666,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_pcmpeqd;
         case e_pcmpeqw:
             return x86_pcmpeqw;
-        case e_pcmpgdt:
+        case e_pcmpgtd:
             return x86_pcmpgtd;
         case e_pcmpgtb:
             return x86_pcmpgtb;
@@ -760,13 +758,13 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_punpckhbw;
         case e_punpckhdq:
             return x86_punpckhdq;
-        case e_punpckhqd:
-            return x86_punpckhdq;
+        case e_punpckhqdq:
+            return x86_punpckhqdq;
         case e_punpckhwd:
             return x86_punpckhwd;
         case e_punpcklbw:
             return x86_punpcklbw;
-        case e_punpcklqd:
+        case e_punpckldq:
             return x86_punpckldq;
         case e_punpcklqld:
             return x86_punpcklqdq;

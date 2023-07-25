@@ -887,7 +887,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_aesdeclast, "aesdeclast")
   (e_aeskeygenassist, "aeskeygenassist")
   (e_aesimc, "aesimc")
-  (e_pclmullqlqdq, "pclmullqlqdq")
+  (e_pclmulqdq, "pclmulqdq")
   (e_and, "and")
   (e_andnpd, "andnpd")
   (e_andnps, "andnps")
@@ -935,7 +935,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmpps, "cmpps")
   (e_cmpsb, "cmpsb")
   (e_cmpsd, "cmpsd")
-  (e_cmpsd_sse, "cmpsd")
   (e_cmpss, "cmpss")
   (e_cmpsw, "cmpsw")
   (e_cmpxch, "cmpxch")
@@ -1134,7 +1133,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_minps, "minps")
   (e_minsd, "minsd")
   (e_minss, "minss")
-  (e_mmxud, "mmxud")
   (e_mov, "mov")
   (e_movapd, "movapd")
   (e_movaps, "movaps")
@@ -1165,7 +1163,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movsd_sse, "movsd")
   (e_movshdup, "movshdup")
   (e_movsldup, "movsldup")
-  (e_movslq, "movslq")
   (e_movss, "movss")
   (e_movsw, "movsw")
   (e_movsx, "movsx")
@@ -1217,7 +1214,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_pcmpeqw, "pcmpeqw")
   (e_pcmpestri, "pcmpestri")
   (e_pcmpestrm, "pcmpestrm")
-  (e_pcmpgdt, "pcmpgdt")
+  (e_pcmpgtd, "pcmpgtd")
   (e_pcmpgtb, "pcmpgtb")
   (e_pcmpgtq, "pcmpgtq")
   (e_pcmpgtw, "pcmpgtw")
@@ -1233,7 +1230,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_phsubd, "phsubd")
   (e_phsubsw, "phsubsw")
   (e_phsubw, "phsubw")
-  (e_phsubsw, "phsubsw")
   (e_pinsrb, "pinsrb")
   (e_pinsrd_pinsrq, "pinsrd/pinsrq")
   (e_pinsrw, "pinsrw")
@@ -1283,7 +1279,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_prefetchT0, "prefetchT0")
   (e_prefetchT1, "prefetchT1")
   (e_prefetchT2, "prefetchT2")
-  (e_prefetch_w, "prefetch(w)")
+  (e_prefetch_w, "prefetchw")
   (e_prefetchw, "prefetchw")
   (e_prefetchwt1, "prefetchwt1")
   (e_psadbw, "psadbw")
@@ -1315,10 +1311,10 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_ptest, "ptest")
   (e_punpckhbw, "punpckhbw")
   (e_punpckhdq, "punpckhdq")
-  (e_punpckhqd, "punpckhqd")
+  (e_punpckhqdq, "punpckhqdq")
   (e_punpckhwd, "punpckhwd")
   (e_punpcklbw, "punpcklbw")
-  (e_punpcklqd, "punpcklqd")
+  (e_punpckldq, "punpckldq")
   (e_punpcklqld, "punpcklqld")
   (e_punpcklwd, "punpcklwd")
   (e_push, "push")
@@ -1384,12 +1380,9 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_sha256rnds2, "sha256rnds2")
   (e_sha256msg1, "sha256msg1")
   (e_sha256msg2, "sha256msg2")
-  (e_shlx, "shlx")
   (e_sarx, "sarx")
-  (e_prefetchwt1, "prefetchwt1")
   (e_clflushopt, "clflushopt")
   (e_clwb, "clwb")
-  (e_pcommit, "pcommit")
   (e_sidt, "sidt")
   (e_sldt, "sldt")
   (e_smsw, "smsw")
@@ -1440,14 +1433,14 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vaesdeclast, "vaesdeclast")
   (e_vaeskeygenassist, "vaeskeygenassist")
   (e_vaesimc, "vaesimc")
-  (e_vpclmullqlqdq, "vpclmullqlqdq")
-  (e_vpperm, "e_vpperm")
+  (e_vpclmulqdq, "vpclmulqdq")
+  (e_vpperm, "vpperm")
   (e_vmpsadbw, "vmpsadbw") 
   (e_vmwrite, "vmwrite") 
   (e_vmread, "vmread") 
   (e_vphaddw, "vphaddw")
   (e_vphaddd, "vphaddd")
-  (e_vphaddsw, "vpaddsw")
+  (e_vphaddsw, "vphaddsw")
   (e_vphsubw, "vphsubw")
   (e_vphsubd, "vphsubd")
   (e_vpmovb2m, "vpmovb2m")
@@ -1468,7 +1461,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_pdep, "pdep")
   (e_pext, "pext")
   (e_rorx, "rorx")
-  (e_sarx, "sarx")
   (e_shlx, "shlx")
   (e_shrx, "shrx")
   (e_tzcnt, "tzcnt")
@@ -1489,9 +1481,8 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vblendmps, "vblendmps")
   (e_vblendmpd, "vblendmpd")
   (e_vblendps, "vblendps")
-  (e_vblendvpd, "vblendpd")
-  (e_vblendvps, "vblendvps")
   (e_vblendvpd, "vblendvpd")
+  (e_vblendvps, "vblendvps")
   (e_vpblendmb, "vpblendmb")
   (e_vpblendmw, "vpblendmw")
   (e_vpblendvb, "vpblendvb")
@@ -1740,7 +1731,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpcmov, "vpcmov")
   (e_vpcmpub, "vpcmpub")
   (e_vpcmpb, "vpcmpb")
-  (e_vpcmpequd, "vpcmpequd")
   (e_vpcmpeqb, "vpcmpeqb")
   (e_vpcmpeqd, "vpcmpeqd")
   (e_vpcmpeqq, "vpcmpeqq")
@@ -1749,7 +1739,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpcmpgtd, "vpcmpgtd")
   (e_vpcmpgtq, "vpcmpgtq")
   (e_vpcmpgtw, "vpcmpgtw")
-  (e_vpcomd, "vpcmod")
+  (e_vpcomd, "vpcomd")
   (e_vpcompressd, "vpcompressd")
   (e_vpcompressq, "vpcompressq")
   (e_vpconflictd, "vpconflictd")
@@ -1792,8 +1782,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpinsrd, "vpinsrd")
   (e_vpinsrq, "vpinsrq")
   (e_vpinsrw, "vpinsrw")
-  (e_vpmaddubsw, "vpmaddubsw")
-  (e_vpmaddwd, "vpmaddwd")
   (e_vpmaskmovd, "vpmaskmovd")
   (e_vpmaskmovq, "vpmaskmovq")
   (e_vpmaxsq, "vpmaxsq")
@@ -1840,8 +1828,8 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpor, "vpor")
   (e_vpord, "vpord")
   (e_vporq, "vporq")
-  (e_vprolvd, "vporlvd")
-  (e_vprolvq, "vporlvq")
+  (e_vprolvd, "vprolvd")
+  (e_vprolvq, "vprolvq")
   (e_vprold, "vprold")
   (e_vprolq, "vprolq")
   (e_vprorvd, "vprorvd")
@@ -1879,7 +1867,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpsrld, "vpsrld")
   (e_vpsrlq, "vpsrlq")
   (e_vpsrlvd, "vpsrlvd")
-  (e_vpsrlvq, "vprlvq")
   (e_vpsrlvq, "vpsrlvq")
   (e_vpsrlw, "vpsrlw")
   (e_vpsubb, "vpsubb")
@@ -1993,10 +1980,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_ktestd, "ktestd")
   (e_ktestw, "ktestw")
   (e_ktestq, "ktestq")
-  (e_vcmppd, "vcmppd")
-  (e_vcmpps, "vcmpps")
-  (e_vcmpsd, "vcmpsd")
-  (e_vcmpss, "vcmpss")
   (e_vmovntpd, "vmovntpd")
   (e_vcvttsd2usi, "vcvttsd2usi")
   (e_vcvttss2usi, "vcvttss2usi")
@@ -2034,14 +2017,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vrndscalesd, "vrndscalesd")
   (e_vdbpsadbw, "vdbpsadbw")
   (e_vphsubsw, "vphsubsw")
-
-/* What are these? */
- (e_vpmovswb, "vpmovswb")
- (e_vpmovsdb, "vpmovsdb")
- (e_vpmovsqb, "vpmovsqb")
- (e_vpmovsdw, "vpmovsdw")
- (e_vpmovsqw, "vpmovsqw")
- (e_vpmovsqd, "vpmovsqd")
 
  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
@@ -4366,9 +4341,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE62 */
-    { e_punpcklqd, t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R, 0 },
+    { e_punpckldq, t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_punpcklqd, t_sse_mult, SSE62_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+    { e_punpckldq, t_sse_mult, SSE62_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE63 */
@@ -4390,9 +4365,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE66 */
-    { e_pcmpgdt, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R, 0 },
+    { e_pcmpgtd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_pcmpgdt, t_sse_mult, SSE66_66, true, { Vdq, Wdq, Zz }, 0, s1R2R, 0 },
+    { e_pcmpgtd, t_sse_mult, SSE66_66, true, { Vdq, Wdq, Zz }, 0, s1R2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE67 */
@@ -4434,7 +4409,7 @@ static ia32_entry sseMap[][4] = {
   { /* SSE6D */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_punpckhqd, t_sse_mult, SSE6D_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+    { e_punpckhqdq, t_sse_mult, SSE6D_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE6E */
@@ -4597,7 +4572,7 @@ static ia32_entry sseMap[][4] = {
     { e_cmpps, t_sse_mult, SSEC2_NO, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 }, // comparison writes to dest!
     { e_cmpss, t_sse_mult, SSEC2_F3, true, { Vss, Wss, Ib }, 0, s1RW2R3R, 0 },
     { e_cmppd, t_sse_mult, SSEC2_66, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R, 0 },
-    { e_cmpsd_sse, t_sse_mult, SSEC2_F2, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R, 0 },
+    { e_cmpsd, t_sse_mult, SSEC2_F2, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R, 0 },
   },
   { /* SSEC4 */
     { e_pinsrw, t_done, 0, true, { Pq, Ed, Ib }, 0, s1RW2R3R, 0 },
@@ -6041,7 +6016,7 @@ static ia32_entry sseMapTer[][3] =
         { e_mpsadbw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
     }, { /* SSET44 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_pclmullqlqdq, t_sse_ter_mult, SSET44_66, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 },
+        { e_pclmulqdq, t_sse_ter_mult, SSET44_66, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET46 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -7702,7 +7677,7 @@ ia32_entry sseMapTerMult[][3] =
     }, { /* SSET1E_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_vpcmpequd, t_done, 0, true, { Wpd, Hps, IK }, 0, s1W2R3R, 0 }
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET1F_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -7781,7 +7756,7 @@ ia32_entry sseMapTerMult[][3] =
         { e_vdbpsadbw, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R, 0 }
     }, { /* SSET44_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_vpclmullqlqdq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R, 0 },
+        { e_vpclmulqdq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET4A_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
