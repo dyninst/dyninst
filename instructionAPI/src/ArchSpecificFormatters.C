@@ -16,7 +16,7 @@ using namespace Dyninst::InstructionAPI;
 
 ///////// Base Formatter
 
-std::string ArchSpecificFormatter::getInstructionString(const std::vector<std::string> &operands)
+std::string ArchSpecificFormatter::getInstructionString(const std::vector<std::string> &operands) const
 {
     std::string s;
     bool oneOperandAdded{false};
@@ -34,7 +34,7 @@ std::string ArchSpecificFormatter::getInstructionString(const std::vector<std::s
     return s;
 }
 
-std::string ArchSpecificFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) {
+std::string ArchSpecificFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
     // if(isAdd())
     // {
     return left + " " + func + " " + right;
@@ -48,14 +48,14 @@ std::string ArchSpecificFormatter::formatBinaryFunc(const std::string &left, con
 PPCFormatter::PPCFormatter() {
 }
 
-std::string PPCFormatter::formatImmediate(const std::string &evalString) {
+std::string PPCFormatter::formatImmediate(const std::string &evalString) const  {
     size_t endPos;
     long long long_val = stoll(evalString, &endPos, 16);
     signed short val = static_cast<signed short>(long_val);
     return std::to_string(val);
 }
 
-std::string PPCFormatter::formatRegister(const std::string &regName) {
+std::string PPCFormatter::formatRegister(const std::string &regName) const  {
     if (regName == "ppc64::pc"  || 
         regName == "ppc64::ctr" || 
         regName == "ppc64::lr"  ||
@@ -73,7 +73,7 @@ std::string PPCFormatter::formatRegister(const std::string &regName) {
     return ret;
 }
 
-std::string PPCFormatter::formatDeref(const std::string &addrString) {
+std::string PPCFormatter::formatDeref(const std::string &addrString) const  {
     size_t commaPos = addrString.find(",");
     if (commaPos == std::string::npos || commaPos > addrString.length() - 2) {
         return "(" + addrString + ")";
@@ -83,7 +83,7 @@ std::string PPCFormatter::formatDeref(const std::string &addrString) {
     return offset + "(" + base + ")";
 }
 
-std::string PPCFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) {
+std::string PPCFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
     if (left == "") {
         return right;
     }
@@ -99,11 +99,11 @@ ArmFormatter::ArmFormatter() {
     binaryFuncModifier["<<"] = "lsl";
 }
 
-std::string ArmFormatter::formatImmediate(const std::string &evalString) {
+std::string ArmFormatter::formatImmediate(const std::string &evalString) const  {
     return "0x" + evalString;
 }
 
-std::string ArmFormatter::formatRegister(const std::string &regName) {
+std::string ArmFormatter::formatRegister(const std::string &regName) const  {
     std::string::size_type substr = regName.rfind(':');
     std::string ret = regName;
 
@@ -115,7 +115,7 @@ std::string ArmFormatter::formatRegister(const std::string &regName) {
     return ret;
 }
 
-std::string ArmFormatter::formatDeref(const std::string &addrString) {
+std::string ArmFormatter::formatDeref(const std::string &addrString) const  {
     std::string out;
     size_t pluspos = addrString.find("+");
 
@@ -132,9 +132,9 @@ std::string ArmFormatter::formatDeref(const std::string &addrString) {
     return out;
 }
 
-std::string ArmFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) {
+std::string ArmFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
     if(binaryFuncModifier.count(func) > 0)
-	    return left + ", " + binaryFuncModifier[func] + " " + right;
+	    return left + ", " + binaryFuncModifier.at(func) + " " + right;
     /*else if(left == "PC")
 	    return right;*/
     else
@@ -147,17 +147,17 @@ AmdgpuFormatter::AmdgpuFormatter() {
     binaryFuncModifier["<<"] = "lsl";
 }
 
-std::string AmdgpuFormatter::formatImmediate(const std::string &evalString) {
+std::string AmdgpuFormatter::formatImmediate(const std::string &evalString) const  {
     return "0x" + evalString;
 }
 
-std::string AmdgpuFormatter::formatRegister(const std::string &regName) {
+std::string AmdgpuFormatter::formatRegister(const std::string &regName) const  {
     std::string ret = regName;
     for(auto &c : ret ) c = ::toupper(c);
     return ret;
 }
 
-std::string AmdgpuFormatter::formatDeref(const std::string &addrString) {
+std::string AmdgpuFormatter::formatDeref(const std::string &addrString) const  {
     std::string out;
     size_t pluspos = addrString.find("+");
 
@@ -174,9 +174,9 @@ std::string AmdgpuFormatter::formatDeref(const std::string &addrString) {
     return out;
 }
 
-std::string AmdgpuFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) {
+std::string AmdgpuFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
     if(binaryFuncModifier.count(func) > 0)
-	    return "("+left + ", " + binaryFuncModifier[func] + " " + right+")";
+	    return "("+left + ", " + binaryFuncModifier.at(func) + " " + right+")";
     /*else if(left == "PC")
 	    return right;*/
     else
@@ -191,12 +191,12 @@ x86Formatter::x86Formatter()
 
 }
 
-std::string x86Formatter::formatImmediate(const std::string &evalString)
+std::string x86Formatter::formatImmediate(const std::string &evalString) const
 {
 	return "$0x" + evalString;
 }
 
-std::string x86Formatter::formatRegister(const std::string &regName)
+std::string x86Formatter::formatRegister(const std::string &regName) const
 {
     std::string outReg{'%'};
 
@@ -214,7 +214,7 @@ std::string x86Formatter::formatRegister(const std::string &regName)
     return outReg;
 }
 
-std::string x86Formatter::formatDeref(const std::string &addrString)
+std::string x86Formatter::formatDeref(const std::string &addrString) const
 {
     // fprintf(stderr, "Must format dereference: %s\n", addrString.c_str());
 
@@ -224,7 +224,7 @@ std::string x86Formatter::formatDeref(const std::string &addrString)
     else return addrString;
 }
 
-std::string x86Formatter::getInstructionString(const std::vector<std::string> &operands)
+std::string x86Formatter::getInstructionString(const std::vector<std::string> &operands) const
 {
     std::string s;
     bool oneOperandAdded{false};
@@ -241,7 +241,7 @@ std::string x86Formatter::getInstructionString(const std::vector<std::string> &o
     return s;
 }
 
-std::string x86Formatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right)
+std::string x86Formatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const
 {
     // fprintf(stderr, "left: %s  func: %s  right: %s\n", left.c_str(), func.c_str(), right.c_str());
 

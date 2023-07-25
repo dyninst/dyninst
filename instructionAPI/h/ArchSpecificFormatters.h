@@ -41,11 +41,11 @@ namespace Dyninst {
 
         class ArchSpecificFormatter {
         public:
-            virtual std::string getInstructionString(const std::vector <std::string>&);
-            virtual std::string formatImmediate(const std::string&) = 0;
-            virtual std::string formatDeref(const std::string&) = 0;
-            virtual std::string formatRegister(const std::string&) = 0;
-            virtual std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&);
+            virtual std::string getInstructionString(const std::vector <std::string>&) const;
+            virtual std::string formatImmediate(const std::string&) const = 0;
+            virtual std::string formatDeref(const std::string&)  const= 0;
+            virtual std::string formatRegister(const std::string&)  const= 0;
+            virtual std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const;
             virtual ~ArchSpecificFormatter() = default;
 	    ArchSpecificFormatter& operator=(const ArchSpecificFormatter&) = default;
             static INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter(Dyninst::Architecture a);
@@ -56,10 +56,10 @@ namespace Dyninst {
         public:
             PPCFormatter();
 
-            std::string formatImmediate(const std::string&) override;
-            std::string formatDeref(const std::string&) override;
-            std::string formatRegister(const std::string&) override;
-            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) override;
+            std::string formatImmediate(const std::string&) const override;
+            std::string formatDeref(const std::string&) const override;
+            std::string formatRegister(const std::string&) const override;
+            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const override;
 
         };
 
@@ -67,10 +67,10 @@ namespace Dyninst {
         public:
             ArmFormatter();
 
-            std::string formatImmediate(const std::string&) override;
-            std::string formatDeref(const std::string&) override;
-            std::string formatRegister(const std::string&) override;
-            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) override;
+            std::string formatImmediate(const std::string&) const override;
+            std::string formatDeref(const std::string&) const override;
+            std::string formatRegister(const std::string&) const override;
+            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const override;
 
         private:
             std::map<std::string, std::string> binaryFuncModifier;
@@ -80,10 +80,10 @@ namespace Dyninst {
         public:
             AmdgpuFormatter();
 
-            std::string formatImmediate(const std::string&) override;
-            std::string formatDeref(const std::string&) override;
-            std::string formatRegister(const std::string&) override;
-            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) override;
+            std::string formatImmediate(const std::string&) const override;
+            std::string formatDeref(const std::string&) const override;
+            std::string formatRegister(const std::string&) const override;
+            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const override;
 
         private:
             std::map<std::string, std::string> binaryFuncModifier;
@@ -94,11 +94,11 @@ namespace Dyninst {
         public:
             x86Formatter();
 
-            std::string getInstructionString(const std::vector <std::string>&) override;
-            std::string formatImmediate(const std::string&) override;
-            std::string formatDeref(const std::string&) override;
-            std::string formatRegister(const std::string&) override;
-            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) override;
+            std::string getInstructionString(const std::vector <std::string>&) const override;
+            std::string formatImmediate(const std::string&) const override;
+            std::string formatDeref(const std::string&) const override;
+            std::string formatRegister(const std::string&) const override;
+            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const override;
         };
 
     }
