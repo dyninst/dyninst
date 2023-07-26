@@ -46,8 +46,9 @@ namespace Dyninst {
             virtual std::string formatDeref(const std::string&)  const= 0;
             virtual std::string formatRegister(const std::string&)  const= 0;
             virtual std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const;
+            virtual bool        operandPrintOrderReversed() const;
             virtual ~ArchSpecificFormatter() = default;
-	    ArchSpecificFormatter& operator=(const ArchSpecificFormatter&) = default;
+            ArchSpecificFormatter& operator=(const ArchSpecificFormatter&) = default;
             static INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter(Dyninst::Architecture a);
 
         };
@@ -99,6 +100,7 @@ namespace Dyninst {
             std::string formatDeref(const std::string&) const override;
             std::string formatRegister(const std::string&) const override;
             std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const override;
+            bool        operandPrintOrderReversed() const override;
         };
 
     }
