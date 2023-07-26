@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <boost/algorithm/string/join.hpp>
 
 using namespace Dyninst::InstructionAPI;
 
@@ -18,20 +19,8 @@ using namespace Dyninst::InstructionAPI;
 
 std::string ArchSpecificFormatter::getInstructionString(const std::vector<std::string> &operands) const
 {
-    std::string s;
-    bool oneOperandAdded{false};
-
-    for (auto const &op: operands) {
-        if (!op.empty()) {
-	    if (oneOperandAdded)  {
-		s += ", ";
-	    }
-            s += op;
-	    oneOperandAdded = true;
-        }
-    }
-
-    return s;
+    // non-x86_64 operand formatter:  join non-empty operands strings with ", "
+    return boost::algorithm::join_if(operands, ", ", [](const std::string &op){return !op.empty();});
 }
 
 std::string ArchSpecificFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
