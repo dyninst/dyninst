@@ -1820,6 +1820,8 @@ Dyninst::Architecture Elf_X::getArch() const
             return Dyninst::Arch_cuda;
         case EM_INTEL_GEN9:
             return Dyninst::Arch_intelGen9;
+        case EM_INTELGT:
+            return Dyninst::Arch_intelGen9;
         case EM_ARM:
             return Dyninst::Arch_aarch32;
         case EM_AARCH64:
