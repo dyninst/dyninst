@@ -48,6 +48,10 @@
 #define EM_INTEL_GEN9		182	/* INTEL GEN9 */
 #endif
 
+#ifndef EM_INTELGT
+#define EM_INTELGT		205	/* INTEL Graphics Technology */
+#endif
+
 namespace Dyninst {
 
 // Forward declarations

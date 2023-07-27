@@ -223,6 +223,9 @@ bool DwarfHandle::init_dbg()
         case EM_INTEL_GEN9:
             arch = Arch_intelGen9;
             break;
+        case EM_INTELGT:
+            arch = Arch_intelGen9; // temporary for compatibility
+            break;
         default:
             assert(0 && "Unsupported archiecture in ELF file.");
             return false;
