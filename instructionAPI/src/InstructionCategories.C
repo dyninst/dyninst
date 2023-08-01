@@ -50,6 +50,7 @@ namespace Dyninst
       case e_call:
       case aarch64_op_bl:
       case aarch64_op_blr:
+#include "amdgpu_callinsn_table.h"
 	return c_CallInsn;
       case e_jmp:
       case e_jb:
