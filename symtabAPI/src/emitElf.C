@@ -2399,9 +2399,9 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
         dynamicSecData[DT_NEEDED].push_back(dynsecData + curpos);
         curpos++;
     }
-    for (unsigned i = 0; i < new_dynamic_entries.size(); i++) {
-        long name = new_dynamic_entries[i].first;
-        long value = new_dynamic_entries[i].second;
+    for (auto const& entry: new_dynamic_entries){
+        long name = entry.first;
+        long value = entry.second;
         dynsecData[curpos].d_tag = name;
         long adjust = 0;
         switch(name)
@@ -2429,7 +2429,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
                 // The trap mapping header's in-memory offset is specified by the dynamic entry
                 // We now need to get raw section data, and the raw sectiond data offset of the header
                 auto header = alignas_cast<trap_mapping_header>(((char*)dyninstReg->getPtrToRawData() + value - dyninstReg->getMemOffset()));
-                for (i = 0; i < header->num_entries; i++) {
+                for (unsigned i = 0; i < header->num_entries; i++) {
                     header->traps[i].source = (void*) ((char*)header->traps[i].source + library_adjust);
                     header->traps[i].target = (void*) ((char*)header->traps[i].target + library_adjust);
                 }
