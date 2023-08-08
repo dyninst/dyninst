@@ -159,15 +159,12 @@ class SYMTAB_EXPORT FunctionBase
 
  class SYMTAB_EXPORT Function : public FunctionBase, public Aggregate
 {
-   friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
-
- protected:
-   Function(Symbol *sym);
 
  public:
 
    Function();
+   Function(Symbol *sym);
    virtual ~Function();
 
    /* Symbol management */
