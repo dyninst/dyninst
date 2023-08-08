@@ -200,10 +200,11 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    friend class DwarfWalker;
    friend class Object;
   protected:
-   InlinedFunction(FunctionBase *parent);
    ~InlinedFunction();
    virtual Module* getModule() const { return module_; }
   public:
+   InlinedFunction(FunctionBase *parent);
+
    typedef std::vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
    virtual bool removeSymbol(Symbol *sym);
