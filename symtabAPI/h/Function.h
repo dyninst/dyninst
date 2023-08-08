@@ -157,6 +157,10 @@ class SYMTAB_EXPORT FunctionBase
                        std::vector<VariableLocation> &ret);
 };
 
+/*
+ *  `Function` can be derived from (e.g., ParseAPI::PLTFunction), but does not create an
+ *  interface separate from FunctionBase.
+ */
  class SYMTAB_EXPORT Function : public FunctionBase, public Aggregate
 {
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
@@ -178,16 +182,16 @@ class SYMTAB_EXPORT FunctionBase
    Offset getPtrOffset() const;
    Offset getTOCOffset() const;
 
-   virtual unsigned getSymbolSize() const;
-   virtual unsigned getSize() const;
-   virtual std::string getName() const;
-   virtual Offset getOffset() const { return Aggregate::getOffset(); }
-   virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false)
+   unsigned getSymbolSize() const;
+   unsigned getSize() const;
+   std::string getName() const;
+   Offset getOffset() const override { return Aggregate::getOffset(); }
+   bool addMangledName(std::string name, bool isPrimary, bool isDebug=false)
    {return Aggregate::addMangledName(name, isPrimary, isDebug);}
-   virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false)
+   bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false)
    {return Aggregate::addPrettyName(name, isPrimary, isDebug);}
 
-     virtual Module * getModule() const;
+     Module * getModule() const;
  };
 
 class SYMTAB_EXPORT InlinedFunction : public FunctionBase
