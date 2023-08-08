@@ -132,9 +132,10 @@ class SYMTAB_EXPORT FunctionBase
    virtual unsigned getSize() const = 0;
    virtual Module* getModule() const = 0;
 
+   virtual ~FunctionBase();
+
   protected:
    FunctionBase();
-   virtual ~FunctionBase();
 
    localVarCollection *locals;
    localVarCollection *params;
