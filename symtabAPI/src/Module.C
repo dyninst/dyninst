@@ -60,35 +60,6 @@ using namespace std;
 
 static SymtabError serr;
 
-string Module::getCompDir(Module::DebugInfoT& cu)
-{
-    if(!compDir_.empty()) return compDir_;
-
-#if defined(cap_dwarf)
-    if(!dwarf_hasattr(&cu, DW_AT_comp_dir))
-    {
-        return "";
-    }
-
-    Dwarf_Attribute attr;
-    auto comp_dir = dwarf_formstring( dwarf_attr(&cu, DW_AT_comp_dir, &attr) );
-    compDir_ = std::string( comp_dir ? comp_dir : "" );
-    return compDir_;
-
-#else
-    // TODO Implement this for non-dwarf format
-    return compDir_;
-#endif
-}
-
-string Module::getCompDir()
-{
-    if(!compDir_.empty()) return compDir_;
-
-    return "";
-}
-
-
 bool Module::findSymbol(std::vector<Symbol *> &found,
                         const std::string& name,
                         Symbol::SymbolType sType, 
@@ -216,9 +187,6 @@ LineInformation *Module::parseLineInformation() {
             do {
                 exec()->getObject()->parseLineInfoForCU(cu2, lineInfo_);
             } while(info_.try_pop(cu2));
-
-            // Make sure to call getCompDir so its stored and ready.
-            getCompDir(cu);
         }
 
         // Work queue has now been emptied.
@@ -343,7 +311,6 @@ Module::Module() :
    lineInfo_(NULL),
    typeInfo_(NULL),
    fileName_(""),
-   compDir_(""),
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
@@ -358,7 +325,6 @@ Module::Module(const Module &mod) :
    typeInfo_(mod.typeInfo_),
    info_(mod.info_),
    fileName_(mod.fileName_),
-   compDir_(mod.compDir_),
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_),

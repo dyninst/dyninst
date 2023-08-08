@@ -83,9 +83,6 @@ namespace Dyninst { namespace SymtabAPI {
     bool isShared() const;
     ~Module();
 
-    std::string getCompDir();
-    std::string getCompDir(Module::DebugInfoT &); // For internal use
-
     // Symbol output methods
     virtual bool findSymbol(std::vector<Symbol *> &ret, const std::string &name,
                             Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
