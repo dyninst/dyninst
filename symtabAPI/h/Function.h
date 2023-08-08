@@ -199,11 +199,11 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    friend class Symtab;
    friend class DwarfWalker;
    friend class Object;
-   virtual Module* getModule() const { return module_; }
   public:
    InlinedFunction(FunctionBase *parent);
    virtual ~InlinedFunction();
 
+   virtual Module* getModule() const { return module_; }
    typedef std::vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
    virtual bool removeSymbol(Symbol *sym);
