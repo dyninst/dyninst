@@ -183,15 +183,15 @@ class SYMTAB_EXPORT FunctionBase
    Offset getTOCOffset() const;
 
    unsigned getSymbolSize() const;
-   unsigned getSize() const;
-   std::string getName() const;
+   unsigned getSize() const override;
+   std::string getName() const override;
    Offset getOffset() const override { return Aggregate::getOffset(); }
-   bool addMangledName(std::string name, bool isPrimary, bool isDebug=false)
+   bool addMangledName(std::string name, bool isPrimary, bool isDebug=false) override
    {return Aggregate::addMangledName(name, isPrimary, isDebug);}
-   bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false)
+   bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false) override
    {return Aggregate::addPrettyName(name, isPrimary, isDebug);}
 
-     Module * getModule() const;
+     Module * getModule() const override;
  };
 
 class SYMTAB_EXPORT InlinedFunction : public FunctionBase
