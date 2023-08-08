@@ -203,15 +203,15 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    InlinedFunction(FunctionBase *parent);
    virtual ~InlinedFunction();
 
-   Module* getModule() const { return module_; }
+   Module* getModule() const override { return module_; }
    typedef std::vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
    bool removeSymbol(Symbol *sym);
-   bool addMangledName(std::string name, bool isPrimary, bool isDebug=false);
-   bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false);
-   std::string getName() const;
-   Offset getOffset() const;
-   unsigned getSize() const;
+   bool addMangledName(std::string name, bool isPrimary, bool isDebug=false) override;
+   bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false) override;
+   std::string getName() const override;
+   Offset getOffset() const override;
+   unsigned getSize() const override;
     void setFile(std::string filename);
   private:
    size_t callsite_file_number;
