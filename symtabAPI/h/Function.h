@@ -133,8 +133,6 @@ class SYMTAB_EXPORT FunctionBase
    virtual Module* getModule() const = 0;
 
   protected:
-   FunctionBase(Symbol *);
-   FunctionBase(Module *);
    FunctionBase();
    virtual ~FunctionBase();
 
