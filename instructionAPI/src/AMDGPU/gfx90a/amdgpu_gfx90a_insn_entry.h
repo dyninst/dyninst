@@ -1,4 +1,4 @@
-#include <stddef.h>
+#include <cstddef>
 
 struct amdgpu_gfx90a_insn_entry {
 	entryID op;
