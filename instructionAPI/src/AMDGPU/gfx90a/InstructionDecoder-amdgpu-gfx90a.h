@@ -218,17 +218,6 @@ namespace Dyninst {
             uint32_t imm_at_64{};
             uint32_t imm_at_96{};
 
-            bool setSCC{};
-
-#define IS_LD_ST() (isLoad || isStore )
-
-            unsigned int num_elements{1};  // the number of elements that will be load or store by each instruction
-            bool isSMEM{}; // this is set when using smem instruction
-            bool isLoad{}; // this is set when a smem instruction is load, will set number of elements that are loaded at the same time
-            bool isStore{}; // similar to isLoad, but for store instructions
-            bool isBuffer{}; //
-            bool isScratch{};
-
             bool isBranch{}; // this is set for all branch instructions,
             bool isConditional{}; // this is set for all conditional branch instruction, will set branchCond
             bool isCall{}; // this is a call function
@@ -272,20 +261,6 @@ namespace Dyninst {
                     }
 
                 }
-
-            void setSMEM() {isSMEM = true;}
-
-
-
-            template<unsigned int num_elements>
-                void setLoad(){isLoad = true; this->num_elements = num_elements; }
-
-            template<unsigned int num_elements>
-                void setStore() {isStore = true;this->num_elements = num_elements;}
-
-            void setScratch() {isScratch = true;}
-
-            void setBuffer() {isBuffer = true;}
 
             typedef struct buffer_resource_desc{
                 unsigned long long base_address;

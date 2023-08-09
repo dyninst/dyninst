@@ -181,11 +181,11 @@ namespace Dyninst {
         Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_WAITCNT(uint64_t input){
             return Immediate::makeImmediate(Result(s16, input));
         }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx90a::makeRegisterExpression(MachRegister registerID, uint32_t ){
+        Expression::Ptr InstructionDecoder_amdgpu_gfx90a::makeRegisterExpression(MachRegister registerID, uint32_t num_elements){
             if(registerID == amdgpu_gfx90a::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
             }
-            return InstructionDecoderImpl::makeRegisterExpression(registerID);
+            return InstructionDecoderImpl::makeRegisterExpression(registerID,num_elements);
         }
         Expression::Ptr InstructionDecoder_amdgpu_gfx90a::makeRegisterExpression(MachRegister registerID, uint32_t low, uint32_t high ){
             if(registerID == amdgpu_gfx90a::src_literal){
@@ -210,15 +210,9 @@ namespace Dyninst {
         void InstructionDecoder_amdgpu_gfx90a::reset(){
             immLen = 0;
             insn_size = 0;
-            num_elements =1;
             isBranch = false;
             isConditional = false;
             isModifyPC =false;
-            isSMEM = false;
-            isLoad = false ;
-            isStore =false;
-            isBuffer =false ;
-            isScratch = false;
             insn = insn_high = insn_long = 0;
             useImm = false;
             isCall = false;
