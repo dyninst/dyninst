@@ -272,7 +272,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
          unsigned int lineNo, unsigned int lineOffset = 0);
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
-   void forceFullLineInfoParse();
    
    /***** Type Information *****/
    virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
