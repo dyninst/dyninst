@@ -26,7 +26,6 @@
 
 //Concurrent Hash Map
 #include "concurrent.h"
-#include <bits/stdc++.h>
 
 namespace Dyninst {
 	namespace SymtabAPI {
