@@ -188,13 +188,6 @@ unsigned LineInformation::getSize() const
    return impl_t::size();
 }
 
-
-
-LineInformation::~LineInformation() 
-{
-    impl_t::clear_();
-}
-
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {
     const traits::line_info_index& i = impl_t::get<Statement::line_info>();
     return i.begin();

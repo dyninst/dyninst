@@ -92,7 +92,7 @@ public:
 
       void dump();
 
-      ~LineInformation();
+      ~LineInformation() = default;
         StringTablePtr strings_;
 
     StringTablePtr getStrings() ;
