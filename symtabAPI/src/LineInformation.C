@@ -48,7 +48,7 @@ using std::vector;
 
 LineInformation::LineInformation() :strings_(new StringTable)
 {
-} /* end LineInformation constructor */
+}
 
 bool LineInformation::addLine( unsigned int lineSource,
       unsigned int lineNo, 
@@ -66,7 +66,7 @@ bool LineInformation::addLine( unsigned int lineSource,
    result = insert( insert_me).second;
 }
    return result;
-} /* end setLineToAddressRangeMapping() */
+}
 bool LineInformation::addLine( const std::string &lineSource,
                                unsigned int lineNo,
                                unsigned int lineOffset,
@@ -99,7 +99,7 @@ bool LineInformation::addAddressRange( Offset lowInclusiveAddr,
       unsigned int lineOffset ) 
 {
    return addLine( lineSource, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr );
-} /* end setAddressRangeToLineMapping() */
+}
 
 
 std::string print(const Dyninst::SymtabAPI::Statement& stmt)
@@ -125,7 +125,7 @@ bool LineInformation::getSourceLines(Offset addressInRange,
         ++start_addr_valid;
     }
     return true;
-} /* end getLinesFromAddress() */
+}
 
 bool LineInformation::getSourceLines( Offset addressInRange,
                                       vector<LineNoTuple> &lines)
@@ -137,7 +137,7 @@ bool LineInformation::getSourceLines( Offset addressInRange,
         lines.push_back(**i);
     }
     return true;
-} /* end getLinesFromAddress() */
+}
 
 
 
@@ -153,17 +153,17 @@ bool LineInformation::getAddressRanges( const char * lineSource,
     }
 
     return found_statements.first != found_statements.second;
-} /* end getAddressRangesFromLine() */
+}
 
 LineInformation::const_iterator LineInformation::begin() const 
 {
    return impl_t::begin();
-} /* end begin() */
+}
 
 LineInformation::const_iterator LineInformation::end() const 
 {
    return impl_t::end();
-} /* end end() */
+}
 
 LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
 {
@@ -179,7 +179,7 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange) con
         ++start_addr_valid;
     }
     return end();
-} /* end find() */
+}
 
 
 
@@ -269,6 +269,3 @@ void LineInformation::dump()
       std::endl;
   }
 }
-
-/* end LineInformation destructor */
-

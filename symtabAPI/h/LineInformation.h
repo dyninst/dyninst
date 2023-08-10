@@ -55,7 +55,6 @@ public:
     typedef traits::value_type Statement_t;
       LineInformation();
 
-      /* You MAY freely deallocate the lineSource strings you pass in. */
       bool addLine( const std::string &lineSource,
             unsigned int lineNo, 
             unsigned int lineOffset, 
@@ -75,7 +74,6 @@ public:
             unsigned int lineNo, 
             unsigned int lineOffset = 0 );
 
-      /* You MUST NOT deallocate the strings returned. */
       bool getSourceLines(Offset addressInRange, std::vector<Statement_t> &lines);
     bool getSourceLines(Offset addressInRange, std::vector<Statement> &lines);
 
@@ -101,9 +99,6 @@ public:
 
     void setStrings(StringTablePtr strings_);
 };
-
-
-    /* end class LineInformation */
 
 }//namespace SymtabAPI
 }//namespace Dyninst
