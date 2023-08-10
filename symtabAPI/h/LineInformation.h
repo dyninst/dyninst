@@ -96,8 +96,7 @@ public:
 
       virtual ~LineInformation();
         StringTablePtr strings_;
-   protected:
-public:
+
     StringTablePtr getStrings() ;
 
     void setStrings(StringTablePtr strings_);
