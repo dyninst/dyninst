@@ -46,7 +46,7 @@ using std::vector;
 #include "LineInformation.h"
 #include <sstream>
 
-LineInformation::LineInformation() :strings_(new StringTable), wasted_compares(0), num_queries(0)
+LineInformation::LineInformation() :strings_(new StringTable)
 {
 } /* end LineInformation constructor */
 
