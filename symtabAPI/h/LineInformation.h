@@ -44,7 +44,7 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-class SYMTAB_EXPORT LineInformation : 
+class SYMTAB_EXPORT LineInformation final :
                         private RangeLookupTypes< Statement >::type
 {
 public:
@@ -92,7 +92,7 @@ public:
 
       void dump();
 
-      virtual ~LineInformation();
+      ~LineInformation();
         StringTablePtr strings_;
 
     StringTablePtr getStrings() ;
