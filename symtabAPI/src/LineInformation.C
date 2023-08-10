@@ -199,7 +199,7 @@ LineInformation::const_line_info_iterator LineInformation::end_by_source() const
 }
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
-LineInformation::range(std::string file, const unsigned int lineNo) const
+LineInformation::range(std::string const& file, const unsigned int lineNo) const
 {
     using namespace boost::filesystem;
     auto found_range = strings_->get<2>().equal_range(path(file).filename().string());
@@ -219,7 +219,7 @@ LineInformation::range(std::string file, const unsigned int lineNo) const
 }
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
-LineInformation::equal_range(std::string file) const {
+LineInformation::equal_range(std::string const& file) const {
     auto found = strings_->get<1>().find(file);
     unsigned i = strings_->project<0>(found) - strings_->begin();
     return get<Statement::line_info>().equal_range(i);
