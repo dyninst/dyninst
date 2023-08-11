@@ -44,7 +44,7 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-class SYMTAB_EXPORT LineInformation : 
+class SYMTAB_EXPORT LineInformation final :
                         private RangeLookupTypes< Statement >::type
 {
 public:
@@ -55,7 +55,6 @@ public:
     typedef traits::value_type Statement_t;
       LineInformation();
 
-      /* You MAY freely deallocate the lineSource strings you pass in. */
       bool addLine( const std::string &lineSource,
             unsigned int lineNo, 
             unsigned int lineOffset, 
@@ -75,16 +74,15 @@ public:
             unsigned int lineNo, 
             unsigned int lineOffset = 0 );
 
-      /* You MUST NOT deallocate the strings returned. */
       bool getSourceLines(Offset addressInRange, std::vector<Statement_t> &lines);
     bool getSourceLines(Offset addressInRange, std::vector<Statement> &lines);
 
       bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
       const_line_info_iterator begin_by_source() const;
       const_line_info_iterator end_by_source() const;
-      std::pair<const_line_info_iterator, const_line_info_iterator> range(std::string file,
+      std::pair<const_line_info_iterator, const_line_info_iterator> range(std::string const& file,
                                                                                 const unsigned int lineNo) const;
-      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string file) const;
+      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string const& file) const;
       const_iterator begin() const;
       const_iterator end() const;
       const_iterator find(Offset addressInRange) const;
@@ -94,21 +92,13 @@ public:
 
       void dump();
 
-      virtual ~LineInformation();
+      ~LineInformation() = default;
         StringTablePtr strings_;
-   protected:
-public:
+
     StringTablePtr getStrings() ;
 
     void setStrings(StringTablePtr strings_);
-
-protected:
-    mutable int wasted_compares;
-    mutable int num_queries;
 };
-
-
-    /* end class LineInformation */
 
 }//namespace SymtabAPI
 }//namespace Dyninst
