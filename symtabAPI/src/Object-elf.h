@@ -483,10 +483,6 @@ private:
                          std::vector<ExceptionBlock> &catch_addrs);
   // Line info: CUs to skip
   std::set<std::string> modules_parsed_for_line_info;
-#if defined(cap_dwarf)
-  std::string find_symbol(std::string name);
-
-#endif
 
  public:
   struct DbgAddrConversion_t {

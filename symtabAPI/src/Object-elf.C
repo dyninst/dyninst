@@ -2165,30 +2165,6 @@ dyn_scnp, Elf_X_Data &symdata,
 #endif
 }
 
-#if defined(cap_dwarf)
-
-string Object::find_symbol(string name) {
-    string name2;
-
-    // pass #1: unmodified
-    name2 = name;
-    if (symbols_.contains(name2)) return name2;
-
-    // pass #2: leading underscore (C)
-    name2 = "_" + name;
-    if (symbols_.contains(name2)) return name2;
-
-    // pass #3: trailing underscore (Fortran)
-    name2 = name + "_";
-    if (symbols_.contains(name2))
-        return name2;
-
-    return "";
-}
-
-#endif
-
-
 /********************************************************
  *
  * For object files only....
