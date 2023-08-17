@@ -87,9 +87,6 @@ using namespace boost::assign;
 
 bool Object::truncateLineFilenames = false;
 
-string symt_current_func_name;
-string symt_current_mangled_func_name;
-
 std::vector<Symbol *> opdsymbols_;
 
 extern void print_symbols(std::vector<Symbol *> &allsymbols);
@@ -2188,9 +2185,6 @@ void pd_dwarf_handler() {
 
     //bperr( "DWARF error: %s\n", dwarf_msg);
 }
-
-Dwarf_Sword declFileNo = 0;
-char **declFileNoToName = NULL;
 
 bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
