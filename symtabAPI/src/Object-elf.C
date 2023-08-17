@@ -87,9 +87,6 @@ using namespace boost::assign;
 
 bool Object::truncateLineFilenames = false;
 
-string symt_current_func_name;
-string symt_current_mangled_func_name;
-
 std::vector<Symbol *> opdsymbols_;
 
 extern void print_symbols(std::vector<Symbol *> &allsymbols);
