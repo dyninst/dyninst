@@ -2186,9 +2186,6 @@ void pd_dwarf_handler() {
     //bperr( "DWARF error: %s\n", dwarf_msg);
 }
 
-Dwarf_Sword declFileNo = 0;
-char **declFileNoToName = NULL;
-
 bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
