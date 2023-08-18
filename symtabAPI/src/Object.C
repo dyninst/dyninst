@@ -451,10 +451,6 @@ Symbol *SymbolIter::currval()
    return ((symbolIterator->second)[ currentPositionInVector ]);
 }
 
-void AObject::clearSymsToMods() {
-    symsToModules_.clear();
-}
-
 bool AObject::hasError() const
 {
   return has_error;

@@ -1834,7 +1834,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
     Elf_X_Sym syms = symdata.get_sym();
     const char *strs = strdata.get_string();
     if (syms.isValid()) {
-        std::vector<string> mods(syms.count());
         std::vector<Symbol*> newsyms(syms.count());
         {
         #pragma omp for schedule(dynamic)
@@ -1918,9 +1917,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                 soffset = sec->getDiskOffset();
             }
 
-            if (stype == Symbol::ST_MODULE) {
-                mods[i] = sname;
-            }
             Symbol *newsym = new Symbol(sname,
                                         stype,
                                         slinkage,
@@ -1954,16 +1950,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             if(!symsByOffset_.insert(a2, {newsym->getOffset(), {newsym}}))
                 a2->second.push_back(newsym);
             }
-        }  // Implicit barrier keeps Master from changing things too early
-        #pragma omp master
-        for(unsigned i = 0; i < syms.count(); i++) {
-            if(mods[i].empty()) mods[i] = smodule;
-            else smodule = mods[i];
         }
-        #pragma omp barrier  // Ensure no threads start running til ready
-        #pragma omp for nowait  // nowait to save a barrier
-        for(unsigned i = 0; i < syms.count(); i++)
-            symsToModules_.insert({newsyms[i], mods[i]});
         }
     } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -2147,7 +2134,6 @@ dyn_scnp, Elf_X_Data &symdata,
             if(!symsByOffset_.insert(a2, {newsym->getOffset(), {newsym}}))
                 a2->second.push_back(newsym);
             }
-            symsToModules_.insert({newsym, smodule});
         }
     }
 

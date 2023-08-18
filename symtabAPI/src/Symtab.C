@@ -1179,12 +1179,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         setSymtabError(Syms_To_Functions);
         return false;
     }
-	Object *obj = getObject();
-	if (!obj)
-	{
-		return false;
-	}
-    obj->clearSymsToMods();
 
     // wait until all modules are defined before applying languages to
     // them we want to do it this way so that module information comes
