@@ -165,7 +165,6 @@ public:
   bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
     
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
-  std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo();
   

@@ -3889,7 +3889,6 @@ void Object::insertDynamicEntry(long name, long value) {
 bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
-//fprintf(stderr, "enter parse_all_relocations for object %s\n", getFileName().c_str() );
     //const char *shnames = pdelf_get_shnames(*elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
@@ -4133,15 +4132,6 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
         segs.push_back(seg);
     }
 }
-
-std::string Object::getFileName() const {
-    if (soname_) {
-        return soname_;
-    }
-
-    return mf->filename();
-}
-
 
 // Object::isLoadable
 //   True if this object is a loadable executable or library.  This function
