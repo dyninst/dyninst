@@ -468,18 +468,3 @@ bool AObject::getTruncateLinePaths()
 {
    return false;
 }
-
-void AObject::setModuleForOffset(Offset sym_off, std::string module) {
-    dyn_c_hash_map<Offset, std::vector<Symbol*>>::const_accessor found_syms;
-    if(!symsByOffset_.find(found_syms, sym_off)) return;
-
-    for(auto s = found_syms->second.begin();
-            s != found_syms->second.end();
-            ++s)
-    {
-        if (!symsToModules_.insert({*s, module}))  {
-            assert(!"symsToModules_.insert({*s, module})");
-        }
-    }
-}
-

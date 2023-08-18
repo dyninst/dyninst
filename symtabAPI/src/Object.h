@@ -128,7 +128,6 @@ public:
                                                   Dyninst::SymtabAPI::MemRegReader * /*reader*/) {return false;}
     
     SYMTAB_EXPORT virtual Dyninst::Architecture getArch() const { return Arch_none; }
-    SYMTAB_EXPORT void setModuleForOffset(Offset sym_off, std::string module);
     SYMTAB_EXPORT void clearSymsToMods();
     SYMTAB_EXPORT bool hasError() const;
     SYMTAB_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
