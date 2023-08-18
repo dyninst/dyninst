@@ -451,14 +451,6 @@ Symbol *SymbolIter::currval()
    return ((symbolIterator->second)[ currentPositionInVector ]);
 }
 
-const std::string AObject::findModuleForSym(Symbol *sym) {
-    dyn_c_hash_map<Symbol*, std::string>::const_accessor ca;
-    if (!symsToModules_.find(ca, sym))  {
-        assert(!"symsToModules_.find(ca, sym)");
-    }
-    return ca->second;
-}
-
 void AObject::clearSymsToMods() {
     symsToModules_.clear();
 }
