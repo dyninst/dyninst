@@ -424,7 +424,6 @@ class image : public codeRange {
    bool determineImageType();
    bool addSymtabVariables();
 
-   void getModuleLanguageInfo(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
    void setModuleLanguages(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
