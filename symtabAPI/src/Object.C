@@ -451,18 +451,6 @@ Symbol *SymbolIter::currval()
    return ((symbolIterator->second)[ currentPositionInVector ]);
 }
 
-const std::string AObject::findModuleForSym(Symbol *sym) {
-    dyn_c_hash_map<Symbol*, std::string>::const_accessor ca;
-    if (!symsToModules_.find(ca, sym))  {
-        assert(!"symsToModules_.find(ca, sym)");
-    }
-    return ca->second;
-}
-
-void AObject::clearSymsToMods() {
-    symsToModules_.clear();
-}
-
 bool AObject::hasError() const
 {
   return has_error;
@@ -476,18 +464,3 @@ bool AObject::getTruncateLinePaths()
 {
    return false;
 }
-
-void AObject::setModuleForOffset(Offset sym_off, std::string module) {
-    dyn_c_hash_map<Offset, std::vector<Symbol*>>::const_accessor found_syms;
-    if(!symsByOffset_.find(found_syms, sym_off)) return;
-
-    for(auto s = found_syms->second.begin();
-            s != found_syms->second.end();
-            ++s)
-    {
-        if (!symsToModules_.insert({*s, module}))  {
-            assert(!"symsToModules_.insert({*s, module})");
-        }
-    }
-}
-
