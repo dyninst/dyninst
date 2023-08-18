@@ -2419,7 +2419,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
     dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr);
 
     if (elfHdr->e_type() == ET_DYN) {
-//        load_shared_object(alloc_syms);
         load_object(alloc_syms);
     } else if (elfHdr->e_type() == ET_REL || elfHdr->e_type() == ET_EXEC) {
         load_object(alloc_syms);
