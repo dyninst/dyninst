@@ -1518,14 +1518,12 @@ void Object::load_object(bool alloc_syms) {
 #endif
         if (alloc_syms) {
             // find symbol and string data
-            string module = "DEFAULT_MODULE";
-            string name = "DEFAULT_NAME";
             Elf_X_Data symdata, strdata;
 
             if (symscnp && strscnp) {
                 symdata = symscnp->get_data();
                 strdata = strscnp->get_data();
-                parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false, module);
+                parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false);
             }
 
             no_of_symbols_ = nsymbols();
@@ -1537,7 +1535,7 @@ void Object::load_object(bool alloc_syms) {
             if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 symdata = dynsym_scnp->get_data();
                 strdata = dynstr_scnp->get_data();
-                parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
+                parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false);
             }
 
 
@@ -1821,7 +1819,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr *bssscnp,
                            Elf_X_Shdr *symscnp,
                            Elf_X_Shdr *symtab_shndx_scnp,
-                           bool /*shared*/, string smodule) {
+                           bool /*shared*/) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -1972,8 +1970,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 void Object::parse_dynamicSymbols(Elf_X_Shdr *&
 dyn_scnp, Elf_X_Data &symdata,
                                   Elf_X_Data &strdata,
-                                  bool /*shared*/,
-                                  std::string smodule) {
+                                  bool /*shared*/) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -2076,10 +2073,6 @@ dyn_scnp, Elf_X_Data &symdata,
 
             int ind = int(i);
             int strindex = syms.st_name(i);
-
-            if (stype == Symbol::ST_MODULE) {
-                smodule = sname;
-            }
 
             Symbol *newsym = new Symbol(sname,
                                         stype,

@@ -464,12 +464,10 @@ private:
                      Elf_X_Shdr* bssscnp,
                      Elf_X_Shdr* symscnp,
                      Elf_X_Shdr* symtab_shndx_scnp,
-                     bool shared_library,
-                     std::string module);
+                     bool shared_library);
   
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
-                             Elf_X_Data &strdata, bool shared_library,
-                             std::string module);
+                             Elf_X_Data &strdata, bool shared_library);
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
