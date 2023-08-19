@@ -36,8 +36,6 @@
 #include "Types.h"
 
 class MappedFile {
-     static dyn_hash_map<std::string, MappedFile *> mapped_files;
-
    public:
       COMMON_EXPORT static MappedFile *createMappedFile(std::string fullpath_);
       COMMON_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_, const std::string &name);

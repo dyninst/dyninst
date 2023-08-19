@@ -29,23 +29,28 @@
  */
 #include "common/src/MappedFile.h"
 #include "common/src/pathName.h"
+#include "concurrent.h"
 #include <iostream>
 using namespace std;
 
-dyn_hash_map<std::string, MappedFile *> MappedFile::mapped_files;
+namespace {
+  dyn_c_hash_map<std::string, MappedFile *> mapped_files;
+}
 
 MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 {
    //fprintf(stderr, "%s[%d]:  createMappedFile %s\n", FILE__, __LINE__, fullpath_.c_str());
-   if (mapped_files.find(fullpath_) != mapped_files.end()) {
-      //fprintf(stderr, "%s[%d]:  mapped file exists for %s\n", FILE__, __LINE__, fullpath_.c_str());
-      MappedFile  *ret = mapped_files[fullpath_];
-      if (ret->can_share) {
+   {
+     decltype(mapped_files)::const_accessor a;
+     if (mapped_files.find(a, fullpath_)) {
+       //fprintf(stderr, "%s[%d]:  mapped file exists for %s\n", FILE__, __LINE__, fullpath_.c_str());
+       MappedFile  *ret = a->second;
+       if (ret->can_share) {
          ret->refCount++;
-         return ret;
-      }
+          return ret;
+       }
+     }
    }
-
    bool ok = false;
    MappedFile *mf = new MappedFile(fullpath_, ok);
    if (!mf) {
@@ -85,7 +90,11 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 #endif
    }
 
-   mapped_files[fullpath_] = mf;
+   {
+     decltype(mapped_files)::accessor a;
+     mapped_files.insert(a, fullpath_);
+     a->second = mf;
+   }
 
    //fprintf(stderr, "%s[%d]:  MMAPFILE %s: mapped_files.size() =  %d\n", FILE__, __LINE__, fullpath_.c_str(), mapped_files.size());
    return mf;
@@ -168,17 +177,7 @@ void MappedFile::closeMappedFile(MappedFile *&mf)
 
    if (mf->refCount <= 0) 
    {
-      dyn_hash_map<std::string, MappedFile *>::iterator iter;
-      iter = mapped_files.find(mf->pathname());
-
-      if (iter != mapped_files.end()) 
-      {
-         mapped_files.erase(iter);
-      }
-
-      //fprintf(stderr, "%s[%d]:  DELETING mapped file\n", FILE__, __LINE__);
-      //  dtor handles unmap and close
-
+	  mapped_files.erase(mf->pathname());
       delete mf;
       mf = NULL;
    }
