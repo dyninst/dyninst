@@ -45,6 +45,7 @@
 #include "Type-mem.h"
 #include <elfutils/libdw.h>
 #include <dwarf/src/dwarf_subrange.h>
+#include <dwarf_names.hpp>
 #include <dwarf_cu_info.hpp>
 #include <stack>
 
@@ -235,7 +236,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     }
 
     /* Extract the name of this module. */
-    std::string moduleName = die_name(moduleDIE);
+    std::string moduleName = DwarfDyninst::die_name(moduleDIE);
 
     // DIEs without name or named <artificial> will be associated to
     // the default module (whose name is ELF filename)
@@ -244,22 +245,10 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     auto moduleTag = dwarf_tag(&moduleDIE);
     if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
-        uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-        char buf[20];
-        snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)sig8);
-        moduleName = buf;
-    }
-
-    if (moduleName.empty()) {
-        moduleName = "{ANONYMOUS}";
-    }
-
-    if(moduleName=="<artificial>")
-    {
-        auto off_die = dwarf_dieoffset(&moduleDIE);
-        std::stringstream suffix;
-        suffix << std::hex << off_die;
-        moduleName = "<artificial>" + suffix.str();
+      uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
+      char buf[20];
+      snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)sig8);
+      moduleName = buf;
     }
 
     dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), (void*)moduleDIE.addr, moduleTag);
@@ -318,24 +307,14 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
         return true;
     } // already parsed, the module had better be right.
 
-    // get comp_dir in case need to make absolute paths
-    Dwarf_Attribute attr;
-    const char * comp_dir = dwarf_formstring( dwarf_attr(&entry, DW_AT_comp_dir, &attr) );
-    std::string comp_dir_str( comp_dir ? comp_dir : "" );
+    // The CU name is always an absolute path
+    auto comp_dir = Dyninst::DwarfDyninst::cu_name(entry);
 
     // store all file sources found by libdw
     for (unsigned i = 1; i < cnt; ++i) {
         auto filename = dwarf_filesrc(df, i, NULL, NULL);
         if(!filename) continue;
-
-        // change to absolute if it's relative
-        std::string s_name(filename);
-        if(filename[0]!='/')
-        {
-            s_name = comp_dir_str + "/" + s_name;
-        }
-
-        srcFiles->emplace_back(s_name,"");
+        srcFiles->emplace_back(DwarfDyninst::detail::absolute_path(filename, comp_dir),"");
     }
     //cerr << "pointer: " << srcFiles.get() << endl <<  *(srcFiles.get()) << endl;
     return true;
@@ -878,7 +857,7 @@ bool DwarfWalker::parseCatchBlock() {
 bool DwarfWalker::parseCommonBlock() {
    dwarf_printf("(0x%lx) Parsing common block\n", id());
 
-   std::string commonBlockName = die_name(entry());
+   std::string commonBlockName = die_name();
    Symbol* commonBlockVar = findSymbolForCommonBlock(commonBlockName);
    if(!commonBlockVar)
    {
@@ -1693,19 +1672,8 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
     return true;
 }
 
-std::string DwarfWalker::die_name(Dwarf_Die die)
-{
-    auto name = dwarf_diename(&die);
-
-    // You cannot construct a std::string from a null pointer
-    if (name) {
-        return name;
-    }
-    return {};
-}
-
 std::string DwarfWalker::die_name() {
-    auto name = die_name(specEntry());
+    auto name = DwarfDyninst::die_name(specEntry());
     dwarf_printf("(0x%lx) Found name %s.\n", id(), name.c_str());
     return name;
 }
@@ -1762,7 +1730,7 @@ bool DwarfWalker::findFuncName() {
     }
 
     // Assume the name is the unmangled name associated with the current DIE, if any
-    curName() = die_name(entry());
+    curName() = die_name();
     setMangledName(false);
     dwarf_printf("(0x%lx) No explicit function name found; using most-recently found name '%s'\n", id(), curName().c_str());
     return true;
