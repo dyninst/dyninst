@@ -45,6 +45,7 @@
 #include "Type-mem.h"
 #include <elfutils/libdw.h>
 #include <dwarf/src/dwarf_subrange.h>
+#include <dwarf_cu_info.hpp>
 #include <stack>
 
 using namespace Dyninst;
@@ -227,14 +228,11 @@ bool DwarfWalker::parse() {
 }
 bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
-    /* Make sure we've got the right one. */
-    Dwarf_Half moduleTag;
-    moduleTag = dwarf_tag(&moduleDIE);
-
-    if (moduleTag != DW_TAG_compile_unit
-            && moduleTag != DW_TAG_partial_unit
-            && moduleTag != DW_TAG_type_unit)
+    // Make sure `moduleDIE` is actually a compilation unit
+    if (!DwarfDyninst::dwarf_is_cudie(moduleDIE)) {
+    	dwarf_printf("(0x%lx) Attempting to parse module that isn't a compilation unit", id());
         return false;
+    }
 
     /* Extract the name of this module. */
     std::string moduleName = die_name(moduleDIE);
