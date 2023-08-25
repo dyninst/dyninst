@@ -11,7 +11,7 @@ namespace Dyninst { namespace DwarfDyninst {
   inline bool is_partialcu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_partial_unit; }
   inline bool is_typecu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_type_unit; }
 
-  inline bool dwarf_is_cudie(Dwarf_Die die) {
+  inline bool is_cudie(Dwarf_Die die) {
     // If there is an inner CU attribute, then it's not a CU
     if (die.cu)
       return false;
