@@ -2153,18 +2153,6 @@ dyn_scnp, Elf_X_Data &symdata,
 
 #if defined(cap_dwarf)
 
-void pd_dwarf_handler() {
-    const char *dwarf_msg = dwarf_errmsg(0);
-
-    if (dwarf_msg == NULL)
-        return;
-
-    string str = string("DWARF Error: ") + dwarf_msg;
-    dwarf_err_func(str.c_str());
-
-    //bperr( "DWARF error: %s\n", dwarf_msg);
-}
-
 bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
