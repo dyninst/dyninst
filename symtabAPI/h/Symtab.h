@@ -248,11 +248,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                        Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
                                      Offset addressInRange);
-   bool addLine(std::string lineSource, unsigned int lineNo,
-         unsigned int lineOffset, Offset lowInclAddr,
-         Offset highExclAddr);
-   bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
-         unsigned int lineNo, unsigned int lineOffset = 0);
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
    
