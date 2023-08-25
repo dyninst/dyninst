@@ -7,9 +7,9 @@
 
 namespace Dyninst { namespace DwarfDyninst {
 
-  inline bool dwarf_is_fullcu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_compile_unit; }
-  inline bool dwarf_is_partialcu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_partial_unit; }
-  inline bool dwarf_is_typecu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_type_unit; }
+  inline bool is_fullcu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_compile_unit; }
+  inline bool is_partialcu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_partial_unit; }
+  inline bool is_typecu(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_type_unit; }
 
   inline bool dwarf_is_cudie(Dwarf_Die die) {
     // If there is an inner CU attribute, then it's not a CU
@@ -22,7 +22,7 @@ namespace Dyninst { namespace DwarfDyninst {
     //
     // We purposefully don't include DW_TAG_skeleton_unit here as
     // libdw should merge those into a single CU for us.
-    return dwarf_is_fullcu(die) || dwarf_is_partialcu(die) || dwarf_is_typecu(die);
+    return is_fullcu(die) || is_partialcu(die) || is_typecu(die);
   }
 }}
 
