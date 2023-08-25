@@ -242,6 +242,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     setModuleFromName(moduleName);
     dwarf_printf("Mapped to Symtab module 0x%p %s\n", (void*)mod(), mod()->fileName().c_str());
 
+    auto moduleTag = dwarf_tag(&moduleDIE);
     if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
         uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
         char buf[20];
