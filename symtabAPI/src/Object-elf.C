@@ -35,6 +35,7 @@
 
 #include "common/src/vgannotations.h"
 #include "unaligned_memory_access.h"
+#include <dwarf_cu_info.hpp>
 
 #include "Type.h"
 #include "Variable.h"
@@ -2184,8 +2185,10 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         Dwarf_Die cu_die, *cu_die_p;
         cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
 
-        Dwarf_Half moduleTag = dwarf_tag(&cu_die);
-        if (moduleTag != DW_TAG_compile_unit) {
+        // As of DWARF 5, only full and partial CUs contain debug info for symbols
+        bool const is_partialcu = DwarfDyninst::is_partialcu(cu_die);
+        bool const is_fullcu = DwarfDyninst::is_fullcu(cu_die);
+        if (!(is_partialcu || is_fullcu)) {
             continue;
         }
 
@@ -3105,8 +3108,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
             cu_die_p = dwarf_offdie(dbg, cu_die_off, &moduleDIE);
             if (cu_die_p == NULL) break;
 
-            Dwarf_Half moduleTag = dwarf_tag(&moduleDIE);
-            if (moduleTag != DW_TAG_compile_unit) {
+            if (!DwarfDyninst::is_fullcu(moduleDIE)) {
                 continue;
             }
 
