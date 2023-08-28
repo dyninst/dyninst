@@ -629,8 +629,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
    std::set<Symtab *> explicitSymtabRefs_{};
 
-   //type info valid flag
-   bool isTypeInfoValid_{false};
+   std::once_flag types_parsed;
 
    //Relocation sections
    bool hasRel_{false};

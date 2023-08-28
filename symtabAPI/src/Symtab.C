@@ -2617,11 +2617,7 @@ const Object *Symtab::getObject() const
 
 void Symtab::parseTypesNow()
 {
-   if (isTypeInfoValid_)
-      return;
-   isTypeInfoValid_ = true;
-
-   parseTypes();
+   std::call_once(this->types_parsed, [this](){ this->parseTypes(); });
 }
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
