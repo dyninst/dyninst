@@ -128,9 +128,6 @@ public:
                                                   Dyninst::SymtabAPI::MemRegReader * /*reader*/) {return false;}
     
     SYMTAB_EXPORT virtual Dyninst::Architecture getArch() const { return Arch_none; }
-    SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
-    SYMTAB_EXPORT void setModuleForOffset(Offset sym_off, std::string module);
-    SYMTAB_EXPORT void clearSymsToMods();
     SYMTAB_EXPORT bool hasError() const;
     SYMTAB_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
     SYMTAB_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
@@ -158,7 +155,6 @@ friend class Module;
     //     is reclaimed from this structure
     dyn_c_hash_map< std::string, std::vector< Symbol *> > symbols_;
     dyn_hash_map< std::string, std::vector< Symbol *> > symbols_tmp_;
-	dyn_c_hash_map< Symbol *, std::string > symsToModules_;
     dyn_c_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
     std::vector<std::pair<std::string, Offset> > modules_;
 

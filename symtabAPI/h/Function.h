@@ -132,11 +132,10 @@ class SYMTAB_EXPORT FunctionBase
    virtual unsigned getSize() const = 0;
    virtual Module* getModule() const = 0;
 
-  protected:
-   FunctionBase(Symbol *);
-   FunctionBase(Module *);
-   FunctionBase();
    virtual ~FunctionBase();
+
+  protected:
+   FunctionBase();
 
    localVarCollection *locals;
    localVarCollection *params;
@@ -158,17 +157,18 @@ class SYMTAB_EXPORT FunctionBase
                        std::vector<VariableLocation> &ret);
 };
 
+/*
+ *  `Function` can be derived from (e.g., ParseAPI::PLTFunction), but does not create an
+ *  interface separate from FunctionBase.
+ */
  class SYMTAB_EXPORT Function : public FunctionBase, public Aggregate
 {
-   friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
-
- protected:
-   Function(Symbol *sym);
 
  public:
 
    Function();
+   Function(Symbol *sym);
    virtual ~Function();
 
    /* Symbol management */
@@ -182,16 +182,16 @@ class SYMTAB_EXPORT FunctionBase
    Offset getPtrOffset() const;
    Offset getTOCOffset() const;
 
-   virtual unsigned getSymbolSize() const;
-   virtual unsigned getSize() const;
-   virtual std::string getName() const;
-   virtual Offset getOffset() const { return Aggregate::getOffset(); }
-   virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false)
+   unsigned getSymbolSize() const;
+   unsigned getSize() const override;
+   std::string getName() const override;
+   Offset getOffset() const override { return Aggregate::getOffset(); }
+   bool addMangledName(std::string name, bool isPrimary, bool isDebug=false) override
    {return Aggregate::addMangledName(name, isPrimary, isDebug);}
-   virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false)
+   bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false) override
    {return Aggregate::addPrettyName(name, isPrimary, isDebug);}
 
-     virtual Module * getModule() const;
+     Module * getModule() const override;
  };
 
 class SYMTAB_EXPORT InlinedFunction : public FunctionBase
@@ -199,19 +199,19 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    friend class Symtab;
    friend class DwarfWalker;
    friend class Object;
-  protected:
-   InlinedFunction(FunctionBase *parent);
-   ~InlinedFunction();
-   virtual Module* getModule() const { return module_; }
   public:
+   InlinedFunction(FunctionBase *parent);
+   virtual ~InlinedFunction();
+
+   Module* getModule() const override { return module_; }
    typedef std::vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
-   virtual bool removeSymbol(Symbol *sym);
-   virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false);
-   virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false);
-   virtual std::string getName() const;
-   virtual Offset getOffset() const;
-   virtual unsigned getSize() const;
+   bool removeSymbol(Symbol *sym);
+   bool addMangledName(std::string name, bool isPrimary, bool isDebug=false) override;
+   bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false) override;
+   std::string getName() const override;
+   Offset getOffset() const override;
+   unsigned getSize() const override;
     void setFile(std::string filename);
   private:
    size_t callsite_file_number;

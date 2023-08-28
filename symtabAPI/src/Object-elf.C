@@ -87,9 +87,6 @@ using namespace boost::assign;
 
 bool Object::truncateLineFilenames = false;
 
-string symt_current_func_name;
-string symt_current_mangled_func_name;
-
 std::vector<Symbol *> opdsymbols_;
 
 extern void print_symbols(std::vector<Symbol *> &allsymbols);
@@ -1521,14 +1518,12 @@ void Object::load_object(bool alloc_syms) {
 #endif
         if (alloc_syms) {
             // find symbol and string data
-            string module = "DEFAULT_MODULE";
-            string name = "DEFAULT_NAME";
             Elf_X_Data symdata, strdata;
 
             if (symscnp && strscnp) {
                 symdata = symscnp->get_data();
                 strdata = strscnp->get_data();
-                parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false, module);
+                parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false);
             }
 
             no_of_symbols_ = nsymbols();
@@ -1540,7 +1535,7 @@ void Object::load_object(bool alloc_syms) {
             if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 symdata = dynsym_scnp->get_data();
                 strdata = dynstr_scnp->get_data();
-                parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
+                parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false);
             }
 
 
@@ -1824,7 +1819,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr *bssscnp,
                            Elf_X_Shdr *symscnp,
                            Elf_X_Shdr *symtab_shndx_scnp,
-                           bool /*shared*/, string smodule) {
+                           bool /*shared*/) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -1837,7 +1832,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
     Elf_X_Sym syms = symdata.get_sym();
     const char *strs = strdata.get_string();
     if (syms.isValid()) {
-        std::vector<string> mods(syms.count());
         std::vector<Symbol*> newsyms(syms.count());
         {
         #pragma omp for schedule(dynamic)
@@ -1921,9 +1915,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                 soffset = sec->getDiskOffset();
             }
 
-            if (stype == Symbol::ST_MODULE) {
-                mods[i] = sname;
-            }
             Symbol *newsym = new Symbol(sname,
                                         stype,
                                         slinkage,
@@ -1957,16 +1948,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             if(!symsByOffset_.insert(a2, {newsym->getOffset(), {newsym}}))
                 a2->second.push_back(newsym);
             }
-        }  // Implicit barrier keeps Master from changing things too early
-        #pragma omp master
-        for(unsigned i = 0; i < syms.count(); i++) {
-            if(mods[i].empty()) mods[i] = smodule;
-            else smodule = mods[i];
         }
-        #pragma omp barrier  // Ensure no threads start running til ready
-        #pragma omp for nowait  // nowait to save a barrier
-        for(unsigned i = 0; i < syms.count(); i++)
-            symsToModules_.insert({newsyms[i], mods[i]});
         }
     } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -1988,8 +1970,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 void Object::parse_dynamicSymbols(Elf_X_Shdr *&
 dyn_scnp, Elf_X_Data &symdata,
                                   Elf_X_Data &strdata,
-                                  bool /*shared*/,
-                                  std::string smodule) {
+                                  bool /*shared*/) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -2093,10 +2074,6 @@ dyn_scnp, Elf_X_Data &symdata,
             int ind = int(i);
             int strindex = syms.st_name(i);
 
-            if (stype == Symbol::ST_MODULE) {
-                smodule = sname;
-            }
-
             Symbol *newsym = new Symbol(sname,
                                         stype,
                                         slinkage,
@@ -2150,7 +2127,6 @@ dyn_scnp, Elf_X_Data &symdata,
             if(!symsByOffset_.insert(a2, {newsym->getOffset(), {newsym}}))
                 a2->second.push_back(newsym);
             }
-            symsToModules_.insert({newsym, smodule});
         }
     }
 
@@ -2164,30 +2140,6 @@ dyn_scnp, Elf_X_Data &symdata,
   cout << "parsing elf took "<<dursecs <<" secs" << endl;
 #endif
 }
-
-#if defined(cap_dwarf)
-
-string Object::find_symbol(string name) {
-    string name2;
-
-    // pass #1: unmodified
-    name2 = name;
-    if (symbols_.contains(name2)) return name2;
-
-    // pass #2: leading underscore (C)
-    name2 = "_" + name;
-    if (symbols_.contains(name2)) return name2;
-
-    // pass #3: trailing underscore (Fortran)
-    name2 = name + "_";
-    if (symbols_.contains(name2))
-        return name2;
-
-    return "";
-}
-
-#endif
-
 
 /********************************************************
  *
@@ -2212,9 +2164,6 @@ void pd_dwarf_handler() {
 
     //bperr( "DWARF error: %s\n", dwarf_msg);
 }
-
-Dwarf_Sword declFileNo = 0;
-char **declFileNoToName = NULL;
 
 bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
@@ -2449,7 +2398,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
     dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr);
 
     if (elfHdr->e_type() == ET_DYN) {
-//        load_shared_object(alloc_syms);
         load_object(alloc_syms);
     } else if (elfHdr->e_type() == ET_REL || elfHdr->e_type() == ET_EXEC) {
         load_object(alloc_syms);
@@ -3919,7 +3867,6 @@ void Object::insertDynamicEntry(long name, long value) {
 bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
-//fprintf(stderr, "enter parse_all_relocations for object %s\n", getFileName().c_str() );
     //const char *shnames = pdelf_get_shnames(*elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
@@ -4163,15 +4110,6 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
         segs.push_back(seg);
     }
 }
-
-std::string Object::getFileName() const {
-    if (soname_) {
-        return soname_;
-    }
-
-    return mf->filename();
-}
-
 
 // Object::isLoadable
 //   True if this object is a loadable executable or library.  This function

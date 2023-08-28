@@ -157,19 +157,17 @@ Object::Module::FindFile( std::string name )
 
 void
 Object::File::DefineSymbols( dyn_hash_map<std::string, std::vector< Symbol *> >& allSyms,
-                             map<Symbol *, std::string> &symsToMods,
                              const std::string& modName ) const
 {
     for( std::vector<Object::intSymbol*>::const_iterator iter = syms.begin(); iter != syms.end(); iter++ ) {
         const Object::intSymbol* curSym = * iter;
 	assert( curSym != NULL );
-	curSym->DefineSymbol( allSyms, symsToMods, modName );
+	curSym->DefineSymbol( allSyms, modName );
     }
 }
 
 void
 Object::intSymbol::DefineSymbol(dyn_hash_map<std::string,std::vector<Symbol *> >&allSyms,
-				map<Symbol *, std::string> &symsToMods,
                                 const std::string& modName ) const
 {
     Symbol *sym = new Symbol(GetName(), 
@@ -181,13 +179,11 @@ Object::intSymbol::DefineSymbol(dyn_hash_map<std::string,std::vector<Symbol *> >
                              GetRegion(),
                              GetSize());
     allSyms[GetName()].push_back(sym);
-    symsToMods[sym] = modName;
 }
 
 void
 Object::Module::DefineSymbols( const Object* obj,
-                               dyn_hash_map<std::string, std::vector< Symbol *> > & syms,
-                               map<Symbol *, std::string> &symsToMods ) const
+                               dyn_hash_map<std::string, std::vector< Symbol *> > & syms) const
 {
     // define Paradyn/dyninst modules and symbols
     if( !isDll )
@@ -211,9 +207,8 @@ Object::Module::DefineSymbols( const Object* obj,
             // TODO also pass size
             // add symbols for each of the file's symbols
             syms[curFile->GetName()].push_back(sym);
-            symsToMods[sym] = curFile->GetName();
 
-            curFile->DefineSymbols( syms, symsToMods, curFile->GetName() );
+            curFile->DefineSymbols( syms, curFile->GetName() );
         }
     }
     else
@@ -241,7 +236,7 @@ Object::Module::DefineSymbols( const Object* obj,
             const File* curFile = *iter;
             assert( curFile != NULL );
             // add symbols for each of the file's symbols
-            curFile->DefineSymbols( syms, symsToMods, name );
+            curFile->DefineSymbols( syms, name );
         }
     }
 }
@@ -585,7 +580,7 @@ void Object::ParseSymbolInfo( bool alloc_syms )
    assert( curModule != NULL );
    curModule->BuildSymbolMap( this );
    if (alloc_syms)
-      curModule->DefineSymbols( this, symbols_, symsToModules_ );
+      curModule->DefineSymbols( this, symbols_);
    no_of_symbols_ = symbols_.size();
 
    //fprintf(stderr, "%s[%d]:  removed call to parseFileLineInfo here\n", FILE__, __LINE__);
@@ -833,7 +828,6 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 				        funcAddr);
 					sym->setDynamic(true); // it's exported, equivalent to ELF dynamic syms
 					symbols_[name].push_back(sym);
-					symsToModules_[sym] = curModule->GetName();
 				}
 			}
 		}

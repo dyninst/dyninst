@@ -90,10 +90,10 @@ namespace Dyninst
       return m_Reg;
     }
 
-    std::string RegisterAST::format(Architecture arch, formatStyle f) const
+    std::string RegisterAST::format(Architecture arch, formatStyle) const
     {
         if(arch == Arch_amdgpu_vega || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a){
-            return RegisterAST::format(f);
+            return AmdgpuFormatter::formatRegister(m_Reg,m_num_elements,m_Low,m_High);
         }
         return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());
     }
@@ -105,69 +105,6 @@ namespace Dyninst
         if(substr != std::string::npos)
         {
             name = name.substr(substr + 2, name.length());
-        }
-        if( m_num_elements ==0 ){
-            return "";
-        }else if ( m_num_elements > 1){
-            uint32_t id = m_Reg & 0xff ;
-            uint32_t regClass = m_Reg.regClass();
- 
-            uint32_t  size = m_num_elements;
-
-DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
-
-            if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || regClass == amdgpu_vega::SGPR){
-                return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
-            }
-
-            if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || regClass == amdgpu_vega::VGPR){
-                return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
-            }
-
-            if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR){
-                return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
-            }
-
-DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
-
-            if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
-                return "VCC";
-            if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || m_Reg == amdgpu_vega::exec_lo)
-                return "EXEC";
-
-       
-        }else if ( m_High -m_Low > 32 && m_Reg.size()*8 != m_High - m_Low){
-
-        // Size of base register * 8 != m_High - mLow ( in bits) when we it is a register vector
-            uint32_t id = m_Reg & 0xff ;
-            uint32_t regClass = m_Reg.regClass();
-            uint32_t size = (m_High - m_Low ) / 32;
-
-            // Suppress warning (for compilers where it is a false positive)
-            // The values of the two *::SGPR constants are identical, as
-            // are the two *::VGPR constants
-DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
-
-            if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || regClass == amdgpu_vega::SGPR){
-                return "S["+to_string(id) + ":" + to_string(id+size-1)+"]";
-            }
-
-            if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || regClass == amdgpu_vega::VGPR){
-                return "V["+to_string(id) + ":" + to_string(id+size-1)+"]";
-            }
-
-            if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR){
-                return "ACC["+to_string(id) + ":" + to_string(id+size-1)+"]";
-            }
-
-DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
-
-            if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
-                return "VCC";
-            if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || m_Reg == amdgpu_vega::exec_lo)
-                return "EXEC";
-
-            name +=  "["+to_string(m_Low)+":"+to_string(m_High)+"]";
         }
         /* we have moved to AT&T syntax (lowercase registers) */
         for(char &c : name) c = std::toupper(c);

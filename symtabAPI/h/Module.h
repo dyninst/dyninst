@@ -154,7 +154,6 @@ namespace Dyninst{
 
 			const std::string &fileName() const;
 			const std::string &fullName() const;
-			bool setName(std::string newName);
 
 			supportedLanguages language() const;
 			void setLanguage(supportedLanguages lang);

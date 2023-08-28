@@ -453,13 +453,6 @@ bool Module::operator==(Module &mod)
          );
 }
 
-bool Module::setName(std::string newName)
-{
-   fullName_ = newName;
-   fileName_ = extract_pathname_tail(fullName_);
-   return true;
-}
-
 void Module::setLanguage(supportedLanguages lang)
 {
    language_ = lang;

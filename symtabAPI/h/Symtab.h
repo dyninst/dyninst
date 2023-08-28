@@ -272,7 +272,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
          unsigned int lineNo, unsigned int lineOffset = 0);
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
-   void forceFullLineInfoParse();
    
    /***** Type Information *****/
    virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
@@ -439,7 +438,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool addSymbolToIndices(Symbol *&sym, bool undefined);
    bool addSymbolToAggregates(const Symbol *sym);
    bool doNotAggregate(const Symbol *sym);
-   bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 
    void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);

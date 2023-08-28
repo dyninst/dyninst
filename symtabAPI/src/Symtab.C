@@ -795,27 +795,6 @@ bool Symtab::doNotAggregate(const Symbol* sym) {
     return false;
 }
 
-/* Add the new name to the appropriate symbol index */
-
-bool Symtab::updateIndices(Symbol * /*sym*/, std::string /*newName*/, NameType /*nameType*/) {
-
-#if 0
-     if (nameType & mangledName) {
-        // Add this symbol under the given name (as mangled)
-        symsByMangledName[newName].push_back(sym);
-    }
-    if (nameType & prettyName) {
-        // Add this symbol under the given name (as pretty)
-        symsByPrettyName[newName].push_back(sym);
-    }
-    if (nameType & typedName) {
-        // Add this symbol under the given name (as typed)
-        symsByTypedName[newName].push_back(sym);
-    }
-#endif
-    return true;
-}
-
 //  setModuleLanguages is only called after modules have been defined.
 //  it attempts to set each module's language, information which is needed
 //  before names can be demangled.
@@ -1200,12 +1179,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         setSymtabError(Syms_To_Functions);
         return false;
     }
-	Object *obj = getObject();
-	if (!obj)
-	{
-		return false;
-	}
-    obj->clearSymsToMods();
 
     // wait until all modules are defined before applying languages to
     // them we want to do it this way so that module information comes

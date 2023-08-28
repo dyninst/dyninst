@@ -165,7 +165,6 @@ public:
   bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
     
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
-  std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo();
   
@@ -441,7 +440,6 @@ private:
   void parseDwarfTypes(Symtab *obj);
 
   void load_object(bool);
-  void load_shared_object(bool);
 
   // initialize relocation_table_ from .rel[a].plt section entries 
   bool get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
@@ -464,12 +462,10 @@ private:
                      Elf_X_Shdr* bssscnp,
                      Elf_X_Shdr* symscnp,
                      Elf_X_Shdr* symtab_shndx_scnp,
-                     bool shared_library,
-                     std::string module);
+                     bool shared_library);
   
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
-                             Elf_X_Data &strdata, bool shared_library,
-                             std::string module);
+                             Elf_X_Data &strdata, bool shared_library);
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
@@ -483,10 +479,6 @@ private:
                          std::vector<ExceptionBlock> &catch_addrs);
   // Line info: CUs to skip
   std::set<std::string> modules_parsed_for_line_info;
-#if defined(cap_dwarf)
-  std::string find_symbol(std::string name);
-
-#endif
 
  public:
   struct DbgAddrConversion_t {
