@@ -55,23 +55,6 @@
 #include "concurrent.h"
 
 #include "boost/shared_ptr.hpp"
-#include "boost/multi_index_container.hpp"
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/mem_fun.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/identity.hpp>
-#include <boost/multi_index/random_access_index.hpp>
-using boost::multi_index_container;
-using boost::multi_index::indexed_by;
-using boost::multi_index::ordered_unique;
-using boost::multi_index::ordered_non_unique;
-using boost::multi_index::hashed_non_unique;
-
-using boost::multi_index::identity;
-using boost::multi_index::tag;
-using boost::multi_index::const_mem_fun;
-using boost::multi_index::member;
 
 class MappedFile;
 
@@ -555,18 +538,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Variable *> everyVariable{};
    using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *> >;
    VarsByOffsetMap varsByOffset{};
-
-    dyn_mutex im_lock{};
-    boost::multi_index_container<Module*,
-            boost::multi_index::indexed_by<
-                    boost::multi_index::random_access<>,
-                    boost::multi_index::ordered_unique<boost::multi_index::identity<Module*> >,
-                    boost::multi_index::ordered_non_unique<
-                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fileName> >
-                    >
-            >
-            indexed_modules{};
-
 
    std::vector<relocationEntry > relocation_table_{};
    std::vector<ExceptionBlock *> excpBlocks{};

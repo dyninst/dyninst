@@ -498,7 +498,7 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     if (!obj) {
        return false;
     }
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
     {
         for(auto *m : (*i)->finalizeRanges()) {
             mod_lookup_.insert(m);
@@ -738,7 +738,7 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
    Module *currmod = NULL;
    //int dump = 0;
 
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
       currmod = (*i);
       supportedLanguages currLang;
@@ -775,13 +775,13 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
 }
 
 void Symtab::createDefaultModule() {
-    assert(indexed_modules.empty());
+    assert(impl->indexed_modules.empty());
     Module *mod = new Module(lang_Unknown,
                      imageOffset_,
                      file(),
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
-    indexed_modules.push_back(mod);
+    impl->indexed_modules.push_back(mod);
     for(auto *m : mod->finalizeRanges()) {
       mod_lookup_.insert(m);
     }
@@ -792,7 +792,7 @@ void Symtab::createDefaultModule() {
 Module *Symtab::getOrCreateModule(const std::string &modName, 
                                   const Offset modAddr)
 {
-    if(indexed_modules.empty()) {
+    if(impl->indexed_modules.empty()) {
         createDefaultModule();
     }
 
@@ -840,13 +840,13 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
 
-   if (indexed_modules.get<2>().end() != indexed_modules.get<2>().find(ret->fileName()))
+    if (impl->indexed_modules.get<2>().end() != impl->indexed_modules.get<2>().find(ret->fileName()))
     {
        create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
              FILE__, __LINE__, ret->fileName().c_str());
     }
 
-    indexed_modules.push_back(ret);
+    impl->indexed_modules.push_back(ret);
     
     return (ret);
 }
@@ -1338,11 +1338,11 @@ Symtab::~Symtab()
    everyVariable.clear();
    varsByOffset.clear();
 
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
       delete (*i);
    }
-   indexed_modules.clear();
+   impl->indexed_modules.clear();
 
    for (unsigned i=0;i<excpBlocks.size();i++)
       delete excpBlocks[i];
@@ -1621,7 +1621,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    parseLineInformation();
    
    /* Iteratate over the modules, looking for ranges in each. */
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
        StringTablePtr s = (*i)->getStrings();
        boost::unique_lock<dyn_mutex> l(s->lock);
@@ -1740,7 +1740,7 @@ void Symtab::parseTypes()
 	}
     linkedFile->parseTypeInfo();
 
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
        (*i)->setModuleTypes(typeCollection::getModTypeCollection((*i)));
        for(auto *m : (*i)->finalizeRanges()) {
@@ -1779,10 +1779,10 @@ SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string n
 {
    parseTypesNow();
 
-   if (indexed_modules.empty())
+   if (impl->indexed_modules.empty())
       return false;
 
-   for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
@@ -1801,12 +1801,12 @@ SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::d
 	boost::shared_ptr<Type> t;
    parseTypesNow();
 
-   if (indexed_modules.empty())
+   if (impl->indexed_modules.empty())
    {
       return NULL;
    }
 
-   for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
@@ -1838,7 +1838,7 @@ SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::
 {
    parseTypesNow();
     type = NULL;
-   for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;

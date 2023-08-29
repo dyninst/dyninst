@@ -349,10 +349,10 @@ bool Symtab::getAllVariables(std::vector<Variable *> &ret)
 
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
-    dyn_mutex::unique_lock l(im_lock);
-    if (indexed_modules.size() >0 )
+    dyn_mutex::unique_lock l(impl->im_lock);
+    if (impl->indexed_modules.size() >0 )
     {
-        std::copy(indexed_modules.begin(), indexed_modules.end(), std::back_inserter(ret));
+        std::copy(impl->indexed_modules.begin(), impl->indexed_modules.end(), std::back_inserter(ret));
         return true;
     }	
 
@@ -362,7 +362,7 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
 
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-    dyn_mutex::unique_lock l(im_lock);
+    dyn_mutex::unique_lock l(impl->im_lock);
     std::set<ModRange*> mods;
     mod_lookup()->find(off, mods);
     if(!mods.empty())
@@ -374,7 +374,7 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
-    dyn_mutex::unique_lock l(im_lock);
+    dyn_mutex::unique_lock l(impl->im_lock);
     std::set<ModRange*> mods;
     ret.clear();
     mod_lookup()->find(off, mods);
@@ -389,10 +389,10 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
-   dyn_mutex::unique_lock l(im_lock);
-   auto loc = indexed_modules.get<2>().find(name);
+   dyn_mutex::unique_lock l(impl->im_lock);
+   auto loc = impl->indexed_modules.get<2>().find(name);
 
-   if (loc != indexed_modules.get<2>().end())
+   if (loc != impl->indexed_modules.get<2>().end())
    {
       ret = *(loc);
       return true;
@@ -854,9 +854,9 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 }
 
 Module *Symtab::getDefaultModule() {
-    dyn_mutex::unique_lock l(im_lock);
-    if(indexed_modules.empty()) createDefaultModule();
-    return indexed_modules[0];
+    dyn_mutex::unique_lock l(impl->im_lock);
+    if(impl->indexed_modules.empty()) createDefaultModule();
+    return impl->indexed_modules[0];
 }
 
 unsigned Function::getSymbolSize() const {
