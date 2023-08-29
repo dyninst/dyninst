@@ -51,8 +51,6 @@
 
 #include "dyninstversion.h"
 
-#include "concurrent.h"
-
 #include "boost/shared_ptr.hpp"
 
 class MappedFile;
