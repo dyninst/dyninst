@@ -52,6 +52,7 @@
 #include "debug.h"
 
 #include "symtabAPI/src/Object.h"
+#include "symtab_impl.hpp"
 
 
 #if !defined(os_windows)
@@ -310,7 +311,8 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) : Symtab()
 
 SYMTAB_EXPORT Symtab::Symtab() :
    LookupInterface(),
-   AnnotatableSparse()
+   AnnotatableSparse(),
+   impl{std::unique_ptr<symtab_impl>(new symtab_impl{})}
 {  
     init_debug_symtabAPI();
 }
@@ -420,78 +422,6 @@ SYMTAB_EXPORT string Symtab::getDefaultNamespacePrefix() const
     return defaultNamespacePrefix;
 }
 
-// Operations on the indexed_symbols compound table.
-bool Symtab::indexed_symbols::insert(Symbol* s) {
-    Offset o = s->getOffset();
-    master_t::accessor a;
-    if(master.insert(a, std::make_pair(s, o))) {
-        {
-            by_offset_t::accessor oa;
-            by_offset.insert(oa, o);
-            oa->second.push_back(s);
-        }
-        {
-            by_name_t::accessor ma;
-            by_mangled.insert(ma, s->getMangledName());
-            ma->second.push_back(s);
-        }
-        {
-            by_name_t::accessor pa;
-            by_pretty.insert(pa, s->getPrettyName());
-            pa->second.push_back(s);
-        }
-        {
-            by_name_t::accessor ta;
-            by_typed.insert(ta, s->getTypedName());
-            ta->second.push_back(s);
-        }
-
-        return true;
-    }
-    return false;
-}
-
-void Symtab::indexed_symbols::clear() {
-    master.clear();
-    by_offset.clear();
-    by_mangled.clear();
-    by_pretty.clear();
-    by_typed.clear();
-}
-
-void Symtab::indexed_symbols::erase(Symbol* s) {
-    if(master.erase(s)) {
-        {
-            by_offset_t::accessor oa;
-            if (!by_offset.find(oa, s->getOffset()))  {
-                assert(!"by_offset.find(oa, s->getOffset())");
-            }
-            std::remove(oa->second.begin(), oa->second.end(), s);
-        }
-        {
-            by_name_t::accessor ma;
-            if (!by_mangled.find(ma, s->getMangledName()))  {
-                assert(!"by_mangled.find(ma, s->getMangledName())");
-            }
-            std::remove(ma->second.begin(), ma->second.end(), s);
-        }
-        {
-            by_name_t::accessor pa;
-            if (!by_pretty.find(pa, s->getPrettyName()))  {
-                assert(!"by_pretty.find(pa, s->getPrettyName())");
-            }
-            std::remove(pa->second.begin(), pa->second.end(), s);
-        }
-        {
-            by_name_t::accessor ta;
-            if (!by_typed.find(ta, s->getTypedName()))  {
-                assert(!"by_typed.find(ta, s->getTypedName())");
-            }
-            std::remove(ta->second.begin(), ta->second.end(), s);
-        }
-    }
-}
-
 
 /*
  * extractSymbolsFromFile
@@ -526,7 +456,7 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
       // relocation entries have references to these undefined dynamic symbols.
       // We also have undefined symbols for the static binary case.
       if (sym->getRegion() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
-         undefDynSyms.insert(sym);
+         impl->undefDynSyms.insert(sym);
          continue;
       }
       
@@ -612,7 +542,7 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
 
 bool Symtab::createAggregates() 
 {
-  std::vector<Symbol*> syms(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
+  std::vector<Symbol*> syms(impl->everyDefinedSymbol.begin(), impl->everyDefinedSymbol.end());
 
   #pragma omp parallel for
   for(size_t i = 0; i < syms.size(); ++i)
@@ -638,11 +568,11 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
 {
    assert(sym);
    if (!undefined) {
-       everyDefinedSymbol.insert(sym);
+       impl->everyDefinedSymbol.insert(sym);
    }
    else {
        // multi-index container should handle duplication
-       undefDynSyms.insert(sym);
+       impl->undefDynSyms.insert(sym);
    }
    
     return true;
@@ -1388,8 +1318,8 @@ Symtab::~Symtab()
    }
 
    // Symbols are copied from linkedFile, and NOT deleted
-   everyDefinedSymbol.clear();
-   undefDynSyms.clear();
+   impl->everyDefinedSymbol.clear();
+   impl->undefDynSyms.clear();
 
 
    for (unsigned i = 0; i < everyFunction.size(); i++) 
@@ -1983,11 +1913,11 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
 {
     // Start with all the defined symbols
     std::set<Symbol* > allSyms;
-    allSyms.insert(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
+    allSyms.insert(impl->everyDefinedSymbol.begin(), impl->everyDefinedSymbol.end());
 
     // Add the undefined dynamic symbols
 
-    allSyms.insert(undefDynSyms.begin(), undefDynSyms.end());
+    allSyms.insert(impl->undefDynSyms.begin(), impl->undefDynSyms.end());
 
     // Write the new file
     return linkedFile->emitDriver(filename, allSyms, flag);

@@ -43,7 +43,7 @@
 #include "Collections.h"
 #include "Function.h"
 #include "Variable.h"
-
+#include "symtab_impl.hpp"
 #include "symtabAPI/src/Object.h"
 
 #include "boost/tuple/tuple.hpp"
@@ -148,8 +148,8 @@ bool Symtab::deleteAggregate(Aggregate *agg) {
 }
 
 bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
-  everyDefinedSymbol.erase(sym);
-  undefDynSyms.erase(sym);
+  impl->everyDefinedSymbol.erase(sym);
+  impl->undefDynSyms.erase(sym);
   return true;
 }
 
@@ -172,17 +172,17 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     // the aggregate, and make a new aggregate.
   {
     indexed_symbols::master_t::accessor a;
-    if (!everyDefinedSymbol.master.find(a, sym))  {
+    if (!impl->everyDefinedSymbol.master.find(a, sym))  {
         assert(!"everyDefinedSymbol.master.find(a, sym)");
     }
 
     indexed_symbols::by_offset_t::accessor oa;
-    if (!everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
+    if (!impl->everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
         assert(!"everyDefinedSymbol.by_offset.find(oa, sym->offset_)");
     }
     auto &syms = oa->second;
     syms.erase(std::remove(syms.begin(), syms.end(), sym), syms.end());
-    everyDefinedSymbol.by_offset.insert(oa, newOffset);
+    impl->everyDefinedSymbol.by_offset.insert(oa, newOffset);
     oa->second.push_back(sym);
 
     a->second = newOffset;

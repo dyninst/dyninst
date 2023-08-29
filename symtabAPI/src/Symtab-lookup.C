@@ -49,7 +49,7 @@
 #include "Function.h"
 #include "Variable.h"
 #include "annotations.h"
-
+#include "symtab_impl.hpp"
 #include "symtabAPI/src/Object.h"
 
 #include <boost/iterator/function_output_iterator.hpp>
@@ -66,8 +66,8 @@ bool pattern_match( const char *p, const char *s, bool checkCase );
 
 std::vector<Symbol *> Symtab::findSymbolByOffset(Offset o)
 {
-   indexed_symbols::by_offset_t::const_accessor oa;
-   if(everyDefinedSymbol.by_offset.find(oa, o))
+   decltype(impl->everyDefinedSymbol)::by_offset_t::const_accessor oa;
+   if(impl->everyDefinedSymbol.by_offset.find(oa, o))
        return oa->second;
    return std::vector<Symbol*>();
 }
@@ -84,37 +84,37 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
         // Easy case
         if (nameType & mangledName) {
           {
-            indexed_symbols::by_name_t::const_accessor ma;
-            if(everyDefinedSymbol.by_mangled.find(ma, name))
+            decltype(impl->everyDefinedSymbol)::by_name_t::const_accessor ma;
+            if(impl->everyDefinedSymbol.by_mangled.find(ma, name))
               candidates.insert(candidates.end(), ma->second.begin(), ma->second.end());
           }
           if(includeUndefined) {
-            indexed_symbols::by_name_t::const_accessor ma;
-            if(undefDynSyms.by_mangled.find(ma, name))
+            decltype(impl->undefDynSyms)::by_name_t::const_accessor ma;
+            if(impl->undefDynSyms.by_mangled.find(ma, name))
               candidates.insert(candidates.end(), ma->second.begin(), ma->second.end());
           }
         }
         if (nameType & prettyName) {
           {
-            indexed_symbols::by_name_t::const_accessor pa;
-            if(everyDefinedSymbol.by_pretty.find(pa, name))
+            decltype(impl->everyDefinedSymbol)::by_name_t::const_accessor pa;
+            if(impl->everyDefinedSymbol.by_pretty.find(pa, name))
               candidates.insert(candidates.end(), pa->second.begin(), pa->second.end());
           }
           if(includeUndefined) {
-            indexed_symbols::by_name_t::const_accessor pa;
-            if(undefDynSyms.by_pretty.find(pa, name))
+            decltype(impl->undefDynSyms)::by_name_t::const_accessor pa;
+            if(impl->undefDynSyms.by_pretty.find(pa, name))
               candidates.insert(candidates.end(), pa->second.begin(), pa->second.end());
           }
         }
         if (nameType & typedName) {
           {
-            indexed_symbols::by_name_t::const_accessor ta;
-            if(everyDefinedSymbol.by_typed.find(ta, name))
+            decltype(impl->everyDefinedSymbol)::by_name_t::const_accessor ta;
+            if(impl->everyDefinedSymbol.by_typed.find(ta, name))
               candidates.insert(candidates.end(), ta->second.begin(), ta->second.end());
           }
           if(includeUndefined) {
-            indexed_symbols::by_name_t::const_accessor ta;
-            if(undefDynSyms.by_typed.find(ta, name))
+            decltype(impl->undefDynSyms)::by_name_t::const_accessor ta;
+            if(impl->undefDynSyms.by_typed.find(ta, name))
               candidates.insert(candidates.end(), ta->second.begin(), ta->second.end());
           }
         }
@@ -126,7 +126,7 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
           cerr << "Warning: regex search of undefined symbols is not supported" << endl;
        }
 
-       for (auto i = everyDefinedSymbol.begin(); i != everyDefinedSymbol.end(); i++) {
+       for (auto i = impl->everyDefinedSymbol.begin(); i != impl->everyDefinedSymbol.end(); i++) {
           if (nameType & mangledName) {
 	    if (regexEquiv(name, (*i)->getMangledName(), checkCase))
                 candidates.push_back(*i);
@@ -169,8 +169,8 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 
 bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
 {
-  std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
-  std::copy(undefDynSyms.begin(), undefDynSyms.end(), back_inserter(ret));
+  std::copy(impl->everyDefinedSymbol.begin(), impl->everyDefinedSymbol.end(), back_inserter(ret));
+  std::copy(impl->undefDynSyms.begin(), impl->undefDynSyms.end(), back_inserter(ret));
   
   if(ret.size() > 0) {
     return true;
@@ -188,14 +188,14 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
     unsigned old_size = ret.size();
 
     // Filter by the given type
-    for (auto i = everyDefinedSymbol.begin(); i != everyDefinedSymbol.end(); i++) {
+    for (auto i = impl->everyDefinedSymbol.begin(); i != impl->everyDefinedSymbol.end(); i++) {
       if ((*i)->getType() == sType) 
       {
 	ret.push_back(*i);
       }
       
     }
-    for (auto j = undefDynSyms.begin(); j != undefDynSyms.end(); j++) {
+    for (auto j = impl->undefDynSyms.begin(); j != impl->undefDynSyms.end(); j++) {
       if ((*j)->getType() == sType) 
       {
 	ret.push_back(*j);
@@ -216,7 +216,7 @@ bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
 {
   ret.clear();
 
-  std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
+  std::copy(impl->everyDefinedSymbol.begin(), impl->everyDefinedSymbol.end(), back_inserter(ret));
 
     if(ret.size() > 0)
         return true;
@@ -227,7 +227,7 @@ bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
 
-    ret.insert(ret.end(), undefDynSyms.begin(), undefDynSyms.end());
+    ret.insert(ret.end(), impl->undefDynSyms.begin(), impl->undefDynSyms.end());
 
     if(ret.size()>size)
         return true;

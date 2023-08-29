@@ -39,6 +39,7 @@
 #include <vector>
 #include <set>
 #include <mutex>
+#include <memory>
 
 #include "Symbol.h"
 #include "Module.h"
@@ -92,6 +93,7 @@ class Object;
 class localVar;
 class relocationEntry;
 class Type;
+struct symtab_impl;
 
 typedef IBSTree< ModRange > ModRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
@@ -110,6 +112,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class Aggregate;
    friend class relocationEntry;
    friend class Object;
+
+   // Hide implementation details that are complex or add large dependencies
+   std::unique_ptr<symtab_impl> impl;
 
  public:
 
@@ -538,57 +543,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    //symbols
    unsigned no_of_symbols{};
-
-   struct indexed_symbols {
-       typedef dyn_c_hash_map<Symbol*, Offset> master_t;
-       typedef std::vector<Symbol*> symvec_t;
-       typedef dyn_c_hash_map<Offset, symvec_t> by_offset_t;
-       typedef dyn_c_hash_map<std::string, symvec_t> by_name_t;
-
-       master_t master;
-       by_offset_t by_offset;
-       by_name_t by_mangled;
-       by_name_t by_pretty;
-       by_name_t by_typed;
-
-       // Only inserts if not present. Returns whether it inserted.
-       bool insert(Symbol* s);
-
-       // Clears the table. Do not use in parallel.
-       void clear();
-
-       // Erases symbols from the table. Do not use in parallel.
-       void erase(Symbol* s);
-
-       // Iterator for the symbols. Do not use in parallel.
-       class iterator {
-           master_t::iterator m;
-       public:
-	   using iterator_category = std::forward_iterator_tag;
-	   using value_type = Symbol*;
-	   using difference_type = std::ptrdiff_t;
-	   using pointer = value_type*;
-	   using reference = value_type&;
-
-           iterator(master_t::iterator i) : m(i) {}
-           bool operator==(const iterator& x) const { return m == x.m; }
-           bool operator!=(const iterator& x) const { return !operator==(x); }
-           Symbol* const& operator*() const { return m->first; }
-           Symbol* const* operator->() const { return &operator*(); }
-           iterator& operator++() { ++m; return *this; }
-           iterator operator++(int) {
-               iterator old(m);
-               operator++();
-               return old;
-           }
-       };
-
-       iterator begin() { return iterator(master.begin()); }
-       iterator end() { return iterator(master.end()); }
-   };
-
-   indexed_symbols everyDefinedSymbol{};
-   indexed_symbols undefDynSyms{};
    
    // We also need per-Aggregate indices
    bool sorted_everyFunction{false};
