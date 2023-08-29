@@ -245,7 +245,7 @@ bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
      */
     {
         dyn_c_hash_map<Offset,Function*>::const_accessor ca;
-        if (funcsByOffset.find(ca, entry)) {
+        if (impl->funcsByOffset.find(ca, entry)) {
             ret = ca->second;
             return true;
         }

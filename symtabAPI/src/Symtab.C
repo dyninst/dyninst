@@ -596,7 +596,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         bool found = false;
         {
             dyn_c_hash_map<Offset,Function*>::accessor a;
-            found = !funcsByOffset.insert(a, sym->getOffset());
+            found = !impl->funcsByOffset.insert(a, sym->getOffset());
             if(found) func = a->second;
             else {
             // Create a new function
@@ -1328,7 +1328,7 @@ Symtab::~Symtab()
    }
 
    everyFunction.clear();
-   funcsByOffset.clear();
+   impl->funcsByOffset.clear();
 
    for (unsigned i = 0; i < everyVariable.size(); i++) 
    {

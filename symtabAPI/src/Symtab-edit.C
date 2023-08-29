@@ -109,7 +109,7 @@ bool Symtab::deleteFunction(Function *func) {
         }
     }
 */
-    funcsByOffset.erase(func->getOffset());
+    impl->funcsByOffset.erase(func->getOffset());
 
     // Now handle the Aggregate stuff
     return deleteAggregate(func);
@@ -198,8 +198,8 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
     Variable *var = dynamic_cast<Variable *>(agg);
 
     if (func) {
-        funcsByOffset.erase(oldOffset);
-        if (!funcsByOffset.insert({newOffset, func})) {
+        impl->funcsByOffset.erase(oldOffset);
+        if (!impl->funcsByOffset.insert({newOffset, func})) {
             // Already someone there... odd, so don't do anything.
         }
     }

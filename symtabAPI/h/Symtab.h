@@ -529,9 +529,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    // We also need per-Aggregate indices
    bool sorted_everyFunction{false};
    std::vector<Function *> everyFunction{};
-   // Since Functions are unique by address we require this structure to
-   // efficiently track them.
-   dyn_c_hash_map <Offset, Function *> funcsByOffset{};
 
    // Similar for Variables
    std::vector<Variable *> everyVariable{};
