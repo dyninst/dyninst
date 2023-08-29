@@ -29,6 +29,7 @@ namespace Dyninst { namespace SymtabAPI {
         indexed_modules{};
 
     std::once_flag funcRangesAreParsed;
+    std::once_flag types_parsed;
   };
 
 }}

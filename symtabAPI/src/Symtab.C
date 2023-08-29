@@ -2494,7 +2494,7 @@ const Object *Symtab::getObject() const
 
 void Symtab::parseTypesNow()
 {
-   std::call_once(this->types_parsed, [this](){ this->parseTypes(); });
+   std::call_once(this->impl->types_parsed, [this](){ this->parseTypes(); });
 }
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()

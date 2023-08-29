@@ -38,7 +38,6 @@
 #include <string>
 #include <vector>
 #include <set>
-#include <mutex>
 #include <memory>
 
 #include "Symbol.h"
@@ -550,8 +549,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    // This set represents Symtabs referenced by a new external Symbol
    bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
    std::set<Symtab *> explicitSymtabRefs_{};
-
-   std::once_flag types_parsed;
 
    //Relocation sections
    bool hasRel_{false};
