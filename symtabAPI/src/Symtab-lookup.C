@@ -815,7 +815,7 @@ bool Symtab::getContainingFunction(Offset offset, Function* &func)
 bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 {   
    // Lazily parse the function ranges, but ensure we only do it once.
-   std::call_once(funcRangesAreParsed, [this](){ this->parseFunctionRanges(); });
+   std::call_once(impl->funcRangesAreParsed, [this](){ this->parseFunctionRanges(); });
    
    set<FuncRange *> ranges;
    int num_found = func_lookup.find(offset, ranges);

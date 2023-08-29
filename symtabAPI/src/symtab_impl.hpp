@@ -6,6 +6,7 @@
 #include "indexed_symbols.hpp"
 
 #include <string>
+#include <mutex>
 
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -26,6 +27,8 @@ namespace Dyninst { namespace SymtabAPI {
                       boost::multi_index::ordered_non_unique<boost::multi_index::const_mem_fun<
                           Module, const std::string &, &Module::fileName>>>>
         indexed_modules{};
+
+    std::once_flag funcRangesAreParsed;
   };
 
 }}

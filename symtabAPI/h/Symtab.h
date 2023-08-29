@@ -565,7 +565,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isDefensiveBinary_{false};
 
    FuncRangeLookup func_lookup{};
-   std::once_flag funcRangesAreParsed;
 
     ModRangeLookup mod_lookup_{};
 
