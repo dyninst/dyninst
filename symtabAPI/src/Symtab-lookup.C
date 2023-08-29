@@ -303,8 +303,8 @@ bool Symtab::findVariablesByOffset(std::vector<Variable *> &ret, const Offset of
      * relocatable files -- this discrepancy applies here as well.
      */
     {
-        VarsByOffsetMap::const_accessor ca;
-        if (varsByOffset.find(ca, offset)) {
+        decltype(impl->varsByOffset)::const_accessor ca;
+        if (impl->varsByOffset.find(ca, offset)) {
             ret = ca->second;
             return true;
         }

@@ -532,8 +532,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    // Similar for Variables
    std::vector<Variable *> everyVariable{};
-   using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *> >;
-   VarsByOffsetMap varsByOffset{};
 
    std::vector<relocationEntry > relocation_table_{};
    std::vector<ExceptionBlock *> excpBlocks{};

@@ -637,9 +637,9 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         Variable *var = NULL;
         bool found = false;
         {
-            VarsByOffsetMap::accessor a;
-            found = !varsByOffset.insert(a, sym->getOffset());
-            VarsByOffsetMap::mapped_type &vars = a->second;
+            decltype(impl->varsByOffset)::accessor a;
+            found = !impl->varsByOffset.insert(a, sym->getOffset());
+            decltype(impl->varsByOffset)::mapped_type &vars = a->second;
             if (found)  {
                 found = false;
                 for (auto v: vars)  {
@@ -1336,7 +1336,7 @@ Symtab::~Symtab()
    }
 
    everyVariable.clear();
-   varsByOffset.clear();
+   impl->varsByOffset.clear();
 
     for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {

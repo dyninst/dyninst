@@ -121,13 +121,13 @@ bool Symtab::deleteVariable(Variable *var) {
 
     // remove variable from varsByOffset
     {
-        VarsByOffsetMap::accessor a;
-        bool found = !varsByOffset.find(a, var->getOffset());
+        decltype(impl->varsByOffset)::accessor a;
+        bool found = !impl->varsByOffset.find(a, var->getOffset());
         if (found)  {
-            VarsByOffsetMap::mapped_type &vars = a->second;
+            decltype(impl->varsByOffset)::mapped_type &vars = a->second;
             vars.erase(std::remove(vars.begin(), vars.end(), var), vars.end());
             if (vars.empty())  {
-                varsByOffset.erase(a);
+                impl->varsByOffset.erase(a);
             }
         }
     }
@@ -204,19 +204,19 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
         }
     }
     if (var) {
-        VarsByOffsetMap::accessor a;
-        bool found = !varsByOffset.find(a, oldOffset);
-        VarsByOffsetMap::mapped_type &vars = a->second;
+        decltype(impl->varsByOffset)::accessor a;
+        bool found = !impl->varsByOffset.find(a, oldOffset);
+        decltype(impl->varsByOffset)::mapped_type &vars = a->second;
         if (found)  {
             vars.erase(std::remove(vars.begin(), vars.end(), var), vars.end());
             if (vars.empty())  {
-                varsByOffset.erase(a);
+                impl->varsByOffset.erase(a);
             }
         }  else  {
             assert(0);
         }
 
-        found = !varsByOffset.insert(a, newOffset);
+        found = !impl->varsByOffset.insert(a, newOffset);
         if (found)  {
             found = false;
             for (auto v: vars)  {

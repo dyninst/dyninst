@@ -2,6 +2,7 @@
 #define SYMTAB_IMPL_HPP
 
 #include "Module.h"
+#include "Variable.h"
 #include "concurrent.h"
 #include "indexed_symbols.hpp"
 
@@ -34,6 +35,9 @@ namespace Dyninst { namespace SymtabAPI {
     // Since Functions are unique by address, we require this structure to
     // efficiently track them.
     dyn_c_hash_map<Offset, Function *> funcsByOffset{};
+
+    using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *> >;
+    VarsByOffsetMap varsByOffset{};
   };
 
 }}
