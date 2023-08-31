@@ -2646,8 +2646,7 @@ void DwarfWalker::findAllSig8Types()
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
 
-        Dwarf_Half moduleTag = dwarf_tag(&current_cu_die);
-        if (moduleTag == DW_TAG_partial_unit) {
+        if (DwarfDyninst::is_partialcu(current_cu_die)) {
             continue;
         }
         parseModuleSig8(false);
@@ -2662,8 +2661,7 @@ void DwarfWalker::findAllSig8Types()
     {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
-        Dwarf_Half moduleTag = dwarf_tag(&current_cu_die);
-        if (moduleTag == DW_TAG_partial_unit) {
+        if (DwarfDyninst::is_partialcu(current_cu_die)) {
             continue;
         }
         parseModuleSig8(true);
@@ -2673,14 +2671,7 @@ void DwarfWalker::findAllSig8Types()
 
 bool DwarfWalker::parseModuleSig8(bool is_info)
 {
-    /* Obtain the type DIE. */
-    Dwarf_Die typeDIE = current_cu_die;
-
-    /* Make sure we've got the right one. */
-    Dwarf_Half typeTag = dwarf_tag(&typeDIE);
-    //DWARF_FAIL_RET(typeTag);
-
-    if (typeTag != DW_TAG_type_unit)
+    if (!DwarfDyninst::is_typecu(current_cu_die))
         return false;
     /* typeoffset is relative to the type unit; we want the global offset. */
     //FIXME
