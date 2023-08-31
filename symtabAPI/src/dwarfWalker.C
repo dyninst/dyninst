@@ -95,7 +95,6 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf *dbg, std::shared_ptr<ParsedFun
    addr_size(0),
    offset_size(0),
    extension_size(0),
-   signature(),
    typeoffset(0),
    next_cu_header(0),
    compile_offset(0)
@@ -243,15 +242,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     setModuleFromName(moduleName);
     dwarf_printf("Mapped to Symtab module 0x%p %s\n", (void*)mod(), mod()->fileName().c_str());
 
-    auto moduleTag = dwarf_tag(&moduleDIE);
-    if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
-      uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-      char buf[20];
-      snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)sig8);
-      moduleName = buf;
-    }
-
-    dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), (void*)moduleDIE.addr, moduleTag);
+    dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), (void*)moduleDIE.addr, dwarf_tag(&moduleDIE));
 
     /* Set the language, if any. */
     Dwarf_Attribute languageAttribute;
@@ -1876,11 +1867,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     /* If this is a ref_sig8, look for the type elsewhere. */
     Dwarf_Half form = dwarf_whatform(&typeAttribute);
     if (form == DW_FORM_ref_sig8) {
-        Dwarf_Sig8 sig8;
-        const char * sig = dwarf_formstring(&typeAttribute);
-        if(!sig) return false;
-        memcpy(sig8.signature, sig, 8);
-        return findSig8Type(&sig8, type);
+        return findSig8Type(type);
     }
 
     Dwarf_Off typeOffset;
@@ -2638,33 +2625,33 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
     //cerr << "a) " <<  dwarf_dieoffset(&typeDIE) << endl;
     //cerr << "b) " <<  dwarf_cuoffset(&typeDIE) << endl;
 
-    uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
+    auto name = DwarfDyninst::cu_name(current_cu_die);
     typeId_t type_id = get_type_id(/*cu_off +*/ typeoffset, is_info, false);
 
     {
-      dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
-      sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
+      decltype(sig8_type_ids_)::accessor a;
+      sig8_type_ids_.insert(a, std::make_pair(name, type_id));
     }
-    dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
+    dwarf_printf("Mapped Sig8 '%s' to type id 0x%x\n", name.c_str(),(unsigned int)type_id);
     return true;
 }
 
-bool DwarfWalker::findSig8Type(Dwarf_Sig8 * s, boost::shared_ptr<Type>&returnType)
+bool DwarfWalker::findSig8Type(boost::shared_ptr<Type>&returnType)
 {
-   uint64_t sig8 = * reinterpret_cast<uint64_t*>(s);
+   auto name = DwarfDyninst::cu_name(current_cu_die);
    typeId_t type_id = 0;
    {
-     dyn_c_hash_map<uint64_t, typeId_t>::const_accessor a;
-     if(sig8_type_ids_.find(a, sig8)) type_id = a->second;
+     decltype(sig8_type_ids_)::const_accessor a;
+     if(sig8_type_ids_.find(a, name)) type_id = a->second;
    }
 
    if(type_id){
      returnType = tc()->findOrCreateType(type_id, Type::share);
-     dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
+     dwarf_printf("Found Sig8 %s' as type id 0x%x\n", name.c_str(), (unsigned int)type_id);
      return true;
    }
 
-   dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (unsigned long long) sig8);
+   dwarf_printf("Couldn't find Sig8 '%s'!\n", name.c_str());
    return false;
 }
 
