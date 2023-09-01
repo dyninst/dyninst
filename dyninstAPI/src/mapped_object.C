@@ -1037,9 +1037,6 @@ mapped_module *mapped_object::getOrCreateForkedModule(mapped_module *parMod)
 
 mapped_module* mapped_object::getDefaultModule()
 {
-  mapped_module* ret = findModule("DEFAULT_MODULE");
-  if(ret) return ret;
-
   // Make sure the everyModule vector is initialized
   getModules();
 

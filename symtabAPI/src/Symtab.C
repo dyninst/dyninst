@@ -865,14 +865,9 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
     if(indexed_modules.empty()) {
         createDefaultModule();
     }
-   std::string nameToUse;
-   if (modName.length() > 0)
-      nameToUse = modName;
-   else
-      nameToUse = "DEFAULT_MODULE";
 
    Module *fm = NULL;
-   if (findModuleByName(fm, nameToUse)) 
+   if (findModuleByName(fm, modName))
    {
        if(modAddr && (modAddr < fm->addr()))
        {
@@ -881,15 +876,15 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
       return fm;
    }
 
-    const char *str = nameToUse.c_str();
-    int len = nameToUse.length();
+    const char *str = modName.c_str();
+    int len = modName.length();
     assert(len>0);
 
     // TODO ignore directory definitions for now
     if (str[len-1] == '/') 
         return NULL;
 
-    return (newModule(nameToUse, modAddr, lang_Unknown));
+    return (newModule(modName, modAddr, lang_Unknown));
 }
  
 Module *Symtab::newModule(const std::string &name, const Offset addr, supportedLanguages lang)

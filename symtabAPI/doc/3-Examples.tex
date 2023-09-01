@@ -60,8 +60,7 @@ using namespace SymtabAPI;
 Module *mod;
 
 // obj represents a handle to a parsed object file.
-// Lookup module handle for "DEFAULT_MODULE"
-obj->findModuleByName(mod, "DEFAULT_MODULE");
+obj->findModuleByName(mod, "/path/to/foo.c");
 
 // Create a new function symbol
 Variable *newVar = mod->createVariable("newIntVar",  // Name of new variable
