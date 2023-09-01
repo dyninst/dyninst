@@ -2723,7 +2723,6 @@ Offset DwarfParseActions::convertDebugOffset(Offset from) {
 void DwarfWalker::setFuncReturnType() {
     dwarf_printf("(0x%lx) In setFuncReturnType().\n", id());
    boost::shared_ptr<Type> returnType;
-   boost::unique_lock<dyn_mutex> l(curFunc()->ret_lock);
    if (!curFunc()->getReturnType(Type::share)) {
       getReturnType(false, returnType);
       if (returnType)

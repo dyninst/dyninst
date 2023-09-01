@@ -89,7 +89,6 @@ class SYMTAB_EXPORT FunctionBase
    friend class DwarfWalker;
   public:
    /***** Return Type Information *****/
-   dyn_mutex ret_lock;
    boost::shared_ptr<Type> getReturnType(Type::do_share_t) const;
    Type* getReturnType() const {
      return getReturnType(Type::share).get();
