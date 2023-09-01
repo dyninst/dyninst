@@ -169,7 +169,7 @@ void MappedFile::closeMappedFile(MappedFile *&mf)
    if (mf->refCount <= 0) 
    {
       dyn_hash_map<std::string, MappedFile *>::iterator iter;
-      iter = mapped_files.find(mf->pathname());
+      iter = mapped_files.find(mf->filename());
 
       if (iter != mapped_files.end()) 
       {
@@ -414,14 +414,9 @@ bool MappedFile::close_file()
    return true;
 }
 
-std::string MappedFile::pathname() 
+std::string MappedFile::filename()
 {
 	return fullpath;
-}
-
-std::string MappedFile::filename() 
-{
-	return extract_pathname_tail(fullpath);
 }
 
 void MappedFile::setSharing(bool s)

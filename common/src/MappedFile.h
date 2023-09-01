@@ -43,7 +43,6 @@ class MappedFile {
       COMMON_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_, const std::string &name);
       COMMON_EXPORT static void closeMappedFile(MappedFile *&mf);
 
-      COMMON_EXPORT std::string pathname();
       COMMON_EXPORT std::string filename();
       COMMON_EXPORT void *base_addr() {return map_addr;}
 #if defined(os_windows)

@@ -46,7 +46,7 @@
 #include "Collections.h"
 #include "Function.h"
 #include "Variable.h"
-
+#include "pathName.h"
 #include "annotations.h"
 
 #include "debug.h"
@@ -1755,7 +1755,7 @@ SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
 
       if (!findModuleByName(mod, fileNm))
       {
-         if (!findModuleByName(mod, mf->pathname()))
+         if (!findModuleByName(mod, mf->filename()))
             return false;
       }    
    }
@@ -2263,12 +2263,12 @@ SYMTAB_EXPORT char *Symtab::mem_image() const
 SYMTAB_EXPORT std::string Symtab::file() const 
 {
    assert(mf);
-   return mf->pathname();
+   return mf->filename();
 }
 
 SYMTAB_EXPORT std::string Symtab::name() const 
 {
-  return mf->filename();
+  return extract_pathname_tail(mf->filename());
 }
 
 SYMTAB_EXPORT std::string Symtab::memberName() const 

@@ -2369,9 +2369,9 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 #endif
 
     if (mf->base_addr() == NULL) {
-        elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
+        elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->filename());
     } else {
-        elfHdr = Elf_X::newElf_X((char *) mf->base_addr(), mf->size(), mf_->pathname());
+        elfHdr = Elf_X::newElf_X((char *) mf->base_addr(), mf->size(), mf_->filename());
     }
 
     // ELF header: sanity check
@@ -2386,7 +2386,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         return;
     }
 
-    dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr);
+    dwarf = DwarfHandle::createDwarfHandle(mf_->filename(), elfHdr);
 
     if (elfHdr->e_type() == ET_DYN) {
         load_object(alloc_syms);
