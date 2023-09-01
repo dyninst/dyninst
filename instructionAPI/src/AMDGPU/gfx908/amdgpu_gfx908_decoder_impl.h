@@ -115,7 +115,7 @@ typedef struct layout_ENC_SMEM{
 	uint8_t  NV : 1 ;
 	uint32_t  OFFSET : 21 ;
 	uint8_t  OP : 8 ;
-	uint8_t  SBASE : 6 ;
+	uint8_t  SBASE : 7 ;
 	uint8_t  SDATA : 7 ;
 	uint8_t  SOFFSET : 7 ;
 	uint8_t  SOFFSET_EN : 1 ;
@@ -195,7 +195,7 @@ typedef struct layout_ENC_MUBUF{
 	uint8_t  OP : 7 ;
 	uint8_t  SLC : 1 ;
 	uint8_t  SOFFSET : 8 ;
-	uint8_t  SRSRC : 5 ;
+	uint8_t  SRSRC : 7 ;
 	uint8_t  TFE : 1 ;
 	uint8_t  VADDR : 8 ;
 	uint8_t  VDATA : 8 ;
@@ -211,7 +211,7 @@ typedef struct layout_ENC_MTBUF{
 	uint8_t  OP : 4 ;
 	uint8_t  SLC : 1 ;
 	uint8_t  SOFFSET : 8 ;
-	uint8_t  SRSRC : 5 ;
+	uint8_t  SRSRC : 7 ;
 	uint8_t  TFE : 1 ;
 	uint8_t  VADDR : 8 ;
 	uint8_t  VDATA : 8 ;
@@ -227,8 +227,8 @@ typedef struct layout_ENC_MIMG{
 	uint8_t  OP : 7 ;
 	uint8_t  OPM : 1 ;
 	uint8_t  SLC : 1 ;
-	uint8_t  SRSRC : 5 ;
-	uint8_t  SSAMP : 5 ;
+	uint8_t  SRSRC : 7 ;
+	uint8_t  SSAMP : 7 ;
 	uint8_t  TFE : 1 ;
 	uint8_t  UNORM : 1 ;
 	uint8_t  VADDR : 8 ;

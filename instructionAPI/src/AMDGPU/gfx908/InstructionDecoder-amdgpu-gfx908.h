@@ -162,7 +162,7 @@ namespace Dyninst {
                 return -1;
             }
 
-
+            std::string extension;
             bool hasHw{};
             int hwField{};
 
@@ -281,6 +281,7 @@ namespace Dyninst {
             void debug_instr();
 
             uint32_t decodeOPR_LITERAL();
+            Expression::Ptr decodeOPR_SDWA();
             Expression::Ptr decodeOPR_LABEL(uint64_t input);
             Expression::Ptr decodeOPR_SIMM4(uint64_t input);
             Expression::Ptr decodeOPR_SIMM8(uint64_t input);
