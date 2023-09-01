@@ -659,7 +659,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       // Since curFunc is false, we're not going back to reparse this
       // entry with a function object.
       boost::shared_ptr<Type> ftype = NULL;
-      getReturnType(false, ftype);
+      getReturnType(ftype);
       addFuncToContainer(ftype);
       dwarf_printf("(0x%lx) parseSubprogram not parsing member function's children\n", id());
 
@@ -1792,24 +1792,15 @@ bool DwarfWalker::getFrameBase() {
     return true || !funlocs.empty(); // johnmc added true
 }
 
-bool DwarfWalker::getReturnType(bool hasSpecification, boost::shared_ptr<Type>&returnType) {
+bool DwarfWalker::getReturnType(boost::shared_ptr<Type>&returnType) {
     dwarf_printf("(0x%lx) In getReturnType().\n", id());
     Dwarf_Attribute typeAttribute;
     Dwarf_Attribute* status = 0;
 
     bool is_info = true;
-    Dwarf_Die e = specEntry();
-    if (hasSpecification) {
-        //is_info = dwarf_get_die_infotypes_flag(specEntry());
-        is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-        status = dwarf_attr( &e, DW_AT_type, &typeAttribute);
-    }
-    if (!hasSpecification || (status == 0)) {
-        //is_info = dwarf_get_die_infotypes_flag(entry());
-        e = entry();
-        is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-        status = dwarf_attr(&e, DW_AT_type, &typeAttribute);
-    }
+    Dwarf_Die e = entry();
+    is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
+    status = dwarf_attr(&e, DW_AT_type, &typeAttribute);
 
     if ( status == 0) {
         dwarf_printf("(0x%lx) Return type is void\n", id());
@@ -2725,7 +2716,7 @@ void DwarfWalker::setFuncReturnType() {
    boost::shared_ptr<Type> returnType;
    boost::unique_lock<dyn_mutex> l(curFunc()->ret_lock);
    if (!curFunc()->getReturnType(Type::share)) {
-      getReturnType(false, returnType);
+      getReturnType(returnType);
       if (returnType)
          curFunc()->setReturnType(returnType);
    }
