@@ -317,7 +317,6 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     if(!srcFiles->empty()) {
         return true;
     } // already parsed, the module had better be right.
-    srcFiles->emplace_back("Unknown file","");
 
     // get comp_dir in case need to make absolute paths
     Dwarf_Attribute attr;

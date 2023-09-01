@@ -3263,7 +3263,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     };
 
     using namespace boost::filesystem;
-    strings->emplace_back("<Unknown file>","");
     for(size_t i = 0; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
@@ -3554,7 +3553,6 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     size_t offset = strings->size();
 
     using namespace boost::filesystem;
-    strings->emplace_back("<Unknown file>","");
     for(size_t i = 0; i < fileCount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
