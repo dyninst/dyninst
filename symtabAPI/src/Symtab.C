@@ -846,7 +846,7 @@ void Symtab::createDefaultModule() {
     assert(indexed_modules.empty());
     Module *mod = new Module(lang_Unknown,
                      imageOffset_,
-                     name(),
+                     file(),
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
     indexed_modules.push_back(mod);
@@ -911,23 +911,10 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
 
-    /*
-     * FIXME
-     *
-     * There are cases where the fileName can be the same, but the full name is
-     * different and the modules are actually different. This is an inherent
-     * problem with how modules are processed.
-     */
-    if (indexed_modules.get<2>().end() != indexed_modules.get<2>().find(ret->fileName()))
+   if (indexed_modules.get<2>().end() != indexed_modules.get<2>().find(ret->fileName()))
     {
        create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
              FILE__, __LINE__, ret->fileName().c_str());
-    }
-
-    if (indexed_modules.get<3>().end() != indexed_modules.get<3>().find(ret->fullName()))
-    {
-       create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
-                     FILE__, __LINE__, ret->fullName().c_str());
     }
 
     indexed_modules.push_back(ret);

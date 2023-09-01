@@ -1515,7 +1515,7 @@ image::image(fileDescriptor &desc,
        interested **/
    struct filt_heap : SymtabCodeSource::hint_filt {
         bool operator()(SymtabAPI::Function * f) {
-            return f && f->getModule() && f->getModule()->fullName() == "DYNINSTheap";
+            return f && f->getModule() && f->getModule()->fileName() == "DYNINSTheap";
         }
     } nuke_heap;
     filt = &nuke_heap;
@@ -1766,7 +1766,7 @@ const string &pdmodule::fileName() const
 
 const string &pdmodule::fullName() const
 {
-    return mod_->fullName();
+    return mod_->fileName();
 }
 
 SymtabAPI::supportedLanguages 
