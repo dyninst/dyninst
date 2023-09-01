@@ -230,7 +230,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     // Make sure `moduleDIE` is actually a compilation unit
     if (!DwarfDyninst::is_cudie(moduleDIE)) {
-    	dwarf_printf("(0x%lx) Attempting to parse module that isn't a compilation unit", id());
+    	dwarf_printf("(0x%lx) Attempting to parse module that isn't a compilation unit\n", id());
         return false;
     }
 
