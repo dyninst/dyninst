@@ -545,6 +545,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP1(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOP1Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPC(){
 	insn_size = 4;
@@ -558,6 +559,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPC(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOPCOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPP(){
 	insn_size = 4;
@@ -570,6 +572,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPP(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOPPOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPK(){
 	insn_size = 4;
@@ -583,6 +586,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPK(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOPKOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP2(){
 	insn_size = 4;
@@ -597,6 +601,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP2(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SOP2Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_SMEM(){
 	insn_size = 8;
@@ -616,6 +621,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_SMEM(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_SMEMOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP1(){
 	insn_size = 4;
@@ -629,6 +635,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP1(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP1Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOPC(){
 	insn_size = 4;
@@ -642,6 +649,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOPC(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOPCOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2(){
 	insn_size = 4;
@@ -656,6 +664,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP2Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VINTRP(){
 	insn_size = 4;
@@ -671,6 +680,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VINTRP(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VINTRPOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P(){
 	insn_size = 8;
@@ -692,6 +702,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3POperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3(){
 	insn_size = 8;
@@ -712,6 +723,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_DS(){
 	insn_size = 8;
@@ -731,6 +743,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_DS(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_DSOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_MUBUF(){
 	insn_size = 8;
@@ -754,6 +767,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_MUBUF(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_MUBUFOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_MTBUF(){
 	insn_size = 8;
@@ -778,6 +792,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_MTBUF(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_MTBUFOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_MIMG(){
 	insn_size = 8;
@@ -804,6 +819,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_MIMG(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_MIMGOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT(){
 	insn_size = 8;
@@ -826,6 +842,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_FLATOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_GLBL(){
 	insn_size = 8;
@@ -848,6 +865,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_GLBL(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_FLAT_GLBLOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_SCRATCH(){
 	insn_size = 8;
@@ -870,6 +888,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_SCRATCH(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_FLAT_SCRATCHOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeSOPK_INST_LITERAL_(){
 	insn_size = 8;
@@ -884,6 +903,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeSOPK_INST_LITERAL_(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeSOPK_INST_LITERAL_Operands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2_LITERAL(){
 	insn_size = 8;
@@ -899,6 +919,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2_LITERAL(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP2_LITERALOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3B(){
 	insn_size = 8;
@@ -918,6 +939,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3B(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3BOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P_MFMA(){
 	insn_size = 8;
@@ -938,6 +960,7 @@ void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P_MFMA(){
 	this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
 	finalizeENC_VOP3P_MFMAOperands();
 	this->insn_in_progress->updateSize(insn_size + immLen);
+	this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
 }
 void InstructionDecoder_amdgpu_gfx90a::mainDecodeOpcode(){
 	if(IS_ENC_SOP1(insn_long)){
