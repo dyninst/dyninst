@@ -235,6 +235,7 @@ public:
             addr_size(o.addr_size),
             offset_size(o.offset_size),
             extension_size(o.extension_size),
+            signature(o.signature),
             typeoffset(o.typeoffset),
             next_cu_header(o.next_cu_header),
             compile_offset(o.compile_offset),
@@ -403,6 +404,12 @@ private:
     uint8_t /*Dwarf_Half*/ offset_size;
     Dwarf_Half extension_size;
 
+    typedef struct{
+        char signature[8];
+    } Dwarf_Sig8;
+
+    Dwarf_Sig8 signature;
+
     Dwarf_Word typeoffset;
     Dwarf_Word next_cu_header;
 
@@ -421,11 +428,11 @@ private:
     typeId_t type_id(); // get_type_id() for the current entry
 
     // Map to connect DW_FORM_ref_sig8 to type IDs.
-    dyn_c_hash_map<std::string, typeId_t> sig8_type_ids_;
+    dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_;
 
     bool parseModuleSig8(bool is_info);
     void findAllSig8Types();
-    bool findSig8Type(boost::shared_ptr<Type>&type);
+    bool findSig8Type(Dwarf_Sig8 * signature, boost::shared_ptr<Type>&type);
     unsigned int getNextTypeId();
 protected:
     virtual void setFuncReturnType();
