@@ -300,6 +300,9 @@ namespace Dyninst
             }
             return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) == 0;
         }
+        INSTRUCTION_EXPORT void updateMnemonic(std::string new_mnemonic) {
+                m_InsnOp.updateMnemonic(new_mnemonic);
+            }
 
 
       typedef boost::shared_ptr<Instruction> Ptr;
