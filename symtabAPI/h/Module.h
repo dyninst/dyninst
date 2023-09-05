@@ -135,6 +135,7 @@ namespace Dyninst{
 		typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
 
+		typedef Dyninst::SimpleInterval<Offset, Module*> ModRange;
 		class SYMTAB_EXPORT Module : public LookupInterface
 		{
 			friend class Symtab;
@@ -257,10 +258,8 @@ namespace Dyninst{
 
 			bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
 			void addRange(Dyninst::Address low, Dyninst::Address high);
-			bool hasRanges() const { return !ranges.empty() || ranges_finalized; }
+			bool hasRanges() const { return !ranges.empty(); }
 			void addDebugInfo(Module::DebugInfoT info);
-
-			void finalizeRanges();
 
 		private:
             bool objectLevelLineInfo;
@@ -276,15 +275,12 @@ namespace Dyninst{
 			Offset addr_;                      // starting address of module
 			Symtab *exec_;
 			std::set<AddressRange > ranges;
+			std::vector<ModRange*> finalizeRanges();
 
 			StringTablePtr strings_;
 		public:
 			StringTablePtr & getStrings() ;
 
-		private:
-			bool ranges_finalized;
-
-			void finalizeOneRange(Address ext_s, Address ext_e) const;
 		};
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)
@@ -298,8 +294,6 @@ namespace Dyninst{
 			os << m->fileName() << ": " << m->addr();
 			return os;
 		}
-
-		typedef Dyninst::SimpleInterval<Offset, Module*> ModRange;
 
 		inline bool operator==(Offset off, const ModRange& r) {
 			return (r.low() <= off) && (off < r.high());
