@@ -2369,9 +2369,9 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 #endif
 
     if (mf->base_addr() == NULL) {
-        elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
+        elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->filename());
     } else {
-        elfHdr = Elf_X::newElf_X((char *) mf->base_addr(), mf->size(), mf_->pathname());
+        elfHdr = Elf_X::newElf_X((char *) mf->base_addr(), mf->size(), mf_->filename());
     }
 
     // ELF header: sanity check
@@ -2386,7 +2386,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         return;
     }
 
-    dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr);
+    dwarf = DwarfHandle::createDwarfHandle(mf_->filename(), elfHdr);
 
     if (elfHdr->e_type() == ET_DYN) {
         load_object(alloc_syms);
@@ -3263,7 +3263,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     };
 
     using namespace boost::filesystem;
-    strings->emplace_back("<Unknown file>","");
     for(size_t i = 0; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
@@ -3554,7 +3553,6 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     size_t offset = strings->size();
 
     using namespace boost::filesystem;
-    strings->emplace_back("<Unknown file>","");
     for(size_t i = 0; i < fileCount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);

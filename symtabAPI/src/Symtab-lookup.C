@@ -390,21 +390,11 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
    dyn_mutex::unique_lock l(im_lock);
-   auto loc = indexed_modules.get<3>().find(name);
+   auto loc = indexed_modules.get<2>().find(name);
 
-   if (loc != indexed_modules.get<3>().end())
+   if (loc != indexed_modules.get<2>().end())
    {
       ret = *(loc);
-      return true;
-   }
-
-   std::string tmp = extract_pathname_tail(name);
-
-   auto loc2 = indexed_modules.get<2>().find(tmp);
-
-   if (loc2 != indexed_modules.get<2>().end())
-   {
-      ret = *loc2;
       return true;
    }
 

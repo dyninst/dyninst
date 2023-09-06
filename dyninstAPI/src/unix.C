@@ -185,7 +185,7 @@ bool PCProcess::instrumentMTFuncs() {
         for (unsigned j=0; j<pthread_self_funcs.size(); j++) {
             func_instance *ps = pthread_self_funcs[j];
             fprintf(stderr, "[%s:%d] - %s in module %s at %lx\n", __FILE__, __LINE__,
-                    ps->prettyName().c_str(), ps->mod()->fullName().c_str(),
+                    ps->prettyName().c_str(), ps->mod()->fileName().c_str(),
                     ps->addr());
         }
         return false;

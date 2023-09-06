@@ -95,7 +95,7 @@ bool Archive::openArchive(Archive * &img, std::string filename)
     for (ar_it = allArchives.begin(); ar_it != allArchives.end(); ++ar_it) {
         assert( *ar_it != NULL );
 
-        if( (*ar_it)->mf->pathname() == filename ) {
+        if( (*ar_it)->mf->filename() == filename ) {
             img = *ar_it;
             return true;
         }

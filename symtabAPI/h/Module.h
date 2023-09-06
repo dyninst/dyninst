@@ -268,8 +268,7 @@ namespace Dyninst{
 			dyn_c_queue<Module::DebugInfoT> info_;
 
 
-			std::string fileName_;                   // short file
-			std::string fullName_;                   // full path to file
+			std::string fileName_;                   // full path to file
 			std::string compDir_;
 			supportedLanguages language_;
 			Offset addr_;                      // starting address of module
