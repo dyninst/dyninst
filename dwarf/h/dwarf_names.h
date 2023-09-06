@@ -54,6 +54,11 @@ namespace Dyninst { namespace DwarfDyninst {
      *  Unix-like platforms.
      */
     inline std::string absolute_path(std::string const &filename, std::string const &base) {
+      // If base is empty, don't make any conversion
+      if (base.empty()) {
+        return filename;
+      }
+
       if (filename.find('/') == 0UL) {
         // It starts with a leading slash, so assume it's already absolute
         return filename;
