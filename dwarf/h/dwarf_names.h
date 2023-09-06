@@ -86,7 +86,7 @@ namespace Dyninst { namespace DwarfDyninst {
       auto off_die = dwarf_dieoffset(&die);
       std::stringstream suffix;
       suffix << std::hex << off_die;
-      return suffix.str();
+      return "0x" + suffix.str();
     }
   }
 
