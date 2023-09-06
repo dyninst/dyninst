@@ -35,6 +35,7 @@
 #include <elfutils/libdw.h>
 #include <iomanip>
 #include <string>
+#include <sstream>
 
 namespace Dyninst { namespace DwarfDyninst {
 
