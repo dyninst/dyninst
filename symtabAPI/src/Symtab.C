@@ -570,7 +570,9 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     }
     for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
     {
-        (*i)->finalizeRanges();
+        for(auto *m : (*i)->finalizeRanges()) {
+            mod_lookup_.insert(m);
+        }
     }
 
 //    const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
@@ -850,7 +852,9 @@ void Symtab::createDefaultModule() {
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
     indexed_modules.push_back(mod);
-    mod->finalizeRanges();
+    for(auto *m : mod->finalizeRanges()) {
+      mod_lookup_.insert(m);
+    }
 }
 
 
@@ -1827,7 +1831,9 @@ void Symtab::parseTypes()
     for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
    {
        (*i)->setModuleTypes(typeCollection::getModTypeCollection((*i)));
-       (*i)->finalizeRanges();
+       for(auto *m : (*i)->finalizeRanges()) {
+	 mod_lookup_.insert(m);
+       }
    }
 
    //  optionally we might want to clear the static data struct in typeCollection
