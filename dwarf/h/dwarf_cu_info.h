@@ -31,7 +31,7 @@
 #ifndef DWARFDYNINST_DWARF_CU_INFO_HPP
 #define DWARFDYNINST_DWARF_CU_INFO_HPP
 
-#include "dwarf_names.hpp"
+#include "dwarf_names.h"
 #include <dwarf.h>
 #include <elfutils/libdw.h>
 #include <string>

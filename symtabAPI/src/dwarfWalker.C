@@ -45,8 +45,8 @@
 #include "Type-mem.h"
 #include <elfutils/libdw.h>
 #include <dwarf/src/dwarf_subrange.h>
-#include <dwarf_names.hpp>
-#include <dwarf_cu_info.hpp>
+#include <dwarf_names.h>
+#include <dwarf_cu_info.h>
 #include <stack>
 
 using namespace Dyninst;

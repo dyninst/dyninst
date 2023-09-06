@@ -35,7 +35,7 @@
 
 #include "common/src/vgannotations.h"
 #include "unaligned_memory_access.h"
-#include <dwarf_cu_info.hpp>
+#include <dwarf_cu_info.h>
 
 #include "Type.h"
 #include "Variable.h"
@@ -63,7 +63,7 @@ using namespace std;
 #if defined(cap_dwarf)
 
 #include "dwarf.h"
-#include <dwarf_names.hpp>
+#include <dwarf_names.h>
 
 #endif
 
