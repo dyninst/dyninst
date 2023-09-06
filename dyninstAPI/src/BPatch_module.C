@@ -114,7 +114,7 @@ const char *BPatch_module::libraryName()
       return NULL;
 
    if (isSharedLib())      
-      return mod->fullName().c_str();
+      return mod->fileName().c_str();
 
    return NULL;
 }
@@ -123,7 +123,7 @@ char *BPatch_module::getFullName(char *buffer, int length)
 {
    if (!mod)
       return NULL;
-   string str = mod->fullName();
+   string str = mod->fileName();
 
    strncpy(buffer, str.c_str(), length);
 

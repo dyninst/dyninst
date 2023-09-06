@@ -489,14 +489,7 @@ class image : public codeRange {
    // unique (by image) numbering of basic blocks
    int nextBlockID_;
 
-   // TODO -- get rid of one of these
-   // Note : as of 971001 (mcheyney), these hash tables only 
-   //  hold entries in includedMods --> this implies that
-   //  it may sometimes be necessary to do a linear sort
-   //  through excludedMods if searching for a module which
-   //  was excluded....
    dyn_hash_map <string, pdmodule *> modsByFileName;
-   dyn_hash_map <string, pdmodule*> modsByFullName;
 
    // "Function" symbol names that are PLT entries or the equivalent
    // FIXME remove
@@ -549,7 +542,6 @@ class pdmodule {
                               std::vector<parse_func *> &found);
    void dumpMangled(std::string &prefix) const;
    const string &fileName() const;
-   const string &fullName() const;
    SymtabAPI::supportedLanguages language() const;
    Address addr() const;
    bool isShared() const;

@@ -317,7 +317,6 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     if(!srcFiles->empty()) {
         return true;
     } // already parsed, the module had better be right.
-    srcFiles->emplace_back("Unknown file","");
 
     // get comp_dir in case need to make absolute paths
     Dwarf_Attribute attr;
@@ -367,7 +366,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
                 id(), stack_size(),
                 curFunc()?curFunc()->getName().c_str():"(N/A)",
                 (void*)curEnclosure().get(), (dbg()!=desc)?"sup":"not sup",
-                mod()->fullName().c_str(), (unsigned int)dwarf_tag(&e));
+                mod()->fileName().c_str(), (unsigned int)dwarf_tag(&e));
 
         bool ret = false;
         switch(dwarf_tag(&e)) {
@@ -659,7 +658,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       // Since curFunc is false, we're not going back to reparse this
       // entry with a function object.
       boost::shared_ptr<Type> ftype = NULL;
-      getReturnType(false, ftype);
+      getReturnType(ftype);
       addFuncToContainer(ftype);
       dwarf_printf("(0x%lx) parseSubprogram not parsing member function's children\n", id());
 
@@ -1234,7 +1233,7 @@ bool DwarfWalker::parseTypedef() {
     auto typeDef = tc()->addOrUpdateType( Type::make_shared<typeTypedef>( type_id(), referencedType, curName()) );
     dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
             (void*)typeDef.get(), typeDef->getName().c_str(), type_id(),
-            offset(), typeDef->getSize(), (void*)tc(), mod()->fullName().c_str());
+            offset(), typeDef->getSize(), (void*)tc(), mod()->fileName().c_str());
 
     return true;
 }
@@ -1454,7 +1453,7 @@ bool DwarfWalker::parseStructUnionClass() {
                 containingType = tc()->addOrUpdateType(ts);
                 dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                         (void*)containingType.get(), containingType->getName().c_str(), type_id(),
-                        offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
+                        offset(), containingType->getSize(), (void*)tc(), mod()->fileName().c_str());
                 break;
             }
         case DW_TAG_union_type:
@@ -1464,7 +1463,7 @@ bool DwarfWalker::parseStructUnionClass() {
                 containingType = tc()->addOrUpdateType(tu);
                 dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                         (void*)containingType.get(), containingType->getName().c_str(), type_id(),
-                        offset(), containingType->getSize(), (void*)tc(), mod()->fullName().c_str());
+                        offset(), containingType->getSize(), (void*)tc(), mod()->fileName().c_str());
                 break;
             }
         default:
@@ -1591,7 +1590,7 @@ bool DwarfWalker::parseTypeReferences() {
                             type_id(), typePointedTo, curName()));
          dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                  (void*)indirectType.get(), indirectType->getName().c_str(), type_id(),
-                 offset(), indirectType->getSize(), (void*)tc(), mod()->fullName().c_str());
+                 offset(), indirectType->getSize(), (void*)tc(), mod()->fileName().c_str());
          break;
       case DW_TAG_reference_type:
     	 if(!nameDefined()){
@@ -1792,24 +1791,15 @@ bool DwarfWalker::getFrameBase() {
     return true || !funlocs.empty(); // johnmc added true
 }
 
-bool DwarfWalker::getReturnType(bool hasSpecification, boost::shared_ptr<Type>&returnType) {
+bool DwarfWalker::getReturnType(boost::shared_ptr<Type>&returnType) {
     dwarf_printf("(0x%lx) In getReturnType().\n", id());
     Dwarf_Attribute typeAttribute;
     Dwarf_Attribute* status = 0;
 
     bool is_info = true;
-    Dwarf_Die e = specEntry();
-    if (hasSpecification) {
-        //is_info = dwarf_get_die_infotypes_flag(specEntry());
-        is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-        status = dwarf_attr( &e, DW_AT_type, &typeAttribute);
-    }
-    if (!hasSpecification || (status == 0)) {
-        //is_info = dwarf_get_die_infotypes_flag(entry());
-        e = entry();
-        is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-        status = dwarf_attr(&e, DW_AT_type, &typeAttribute);
-    }
+    Dwarf_Die e = entry();
+    is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
+    status = dwarf_attr(&e, DW_AT_type, &typeAttribute);
 
     if ( status == 0) {
         dwarf_printf("(0x%lx) Return type is void\n", id());
@@ -1960,7 +1950,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     }
 
     dwarf_printf("(0x%lx) type pointer %p / name:%s, type_id %d, tc():%p, mod: %s, specificType:%s\n",
-            id(), (void*)type.get(), type->getName().c_str(), type_id, (void*)tc(), mod()->fullName().c_str(), type->specificType().c_str());
+            id(), (void*)type.get(), type->getName().c_str(), type_id, (void*)tc(), mod()->fileName().c_str(), type->specificType().c_str());
 
     return true;
 }
@@ -2614,7 +2604,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
     type_map::accessor a;
     type_key tk{offset, is_sup, mod()};
     type_ids.insert(a, make_pair(tk, val));
-    dwarf_printf("(0x%lx) type_id %u, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fullName().c_str());
+    dwarf_printf("(0x%lx) type_id %u, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fileName().c_str());
   }
 
   return val;
@@ -2723,7 +2713,7 @@ Offset DwarfParseActions::convertDebugOffset(Offset from) {
 void DwarfWalker::setFuncReturnType() {
     dwarf_printf("(0x%lx) In setFuncReturnType().\n", id());
    boost::shared_ptr<Type> returnType;
-      getReturnType(false, returnType);
+      getReturnType(returnType);
       if (returnType)
          curFunc()->setReturnType(returnType);
 }

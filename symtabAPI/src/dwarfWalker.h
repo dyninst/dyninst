@@ -328,7 +328,7 @@ private:
     bool setFunctionFromRange(inline_t func_type);
     virtual void setEntry(Dwarf_Die e);
     bool getFrameBase();
-    bool getReturnType(bool hasSpecification, boost::shared_ptr<Type>&returnType);
+    bool getReturnType(boost::shared_ptr<Type>&returnType);
     bool addFuncToContainer(boost::shared_ptr<Type> returnType);
     bool isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic);
     virtual bool findType(boost::shared_ptr<Type>&, bool defaultToVoid);

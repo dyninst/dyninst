@@ -609,9 +609,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                     boost::multi_index::random_access<>,
                     boost::multi_index::ordered_unique<boost::multi_index::identity<Module*> >,
                     boost::multi_index::ordered_non_unique<
-                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fileName> >,
-                    boost::multi_index::ordered_non_unique<
-                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fullName> >
+                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fileName> >
                     >
             >
             indexed_modules{};

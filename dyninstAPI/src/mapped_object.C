@@ -349,10 +349,8 @@ mapped_module *mapped_object::findModule(string m_name, bool wildcard)
    std::string tmp = m_name.c_str();
    for (unsigned i = 0; i < everyModule.size(); i++) {
       if (everyModule[i]->fileName() == m_name ||
-            everyModule[i]->fullName() == m_name ||
             (wildcard &&
-             (wildcardEquiv(tmp, everyModule[i]->fileName()) ||
-              wildcardEquiv(tmp, everyModule[i]->fullName())))) {
+             (wildcardEquiv(tmp, everyModule[i]->fileName())))) {
          //parsing_printf("... found!\n");
          return everyModule[i];
       }

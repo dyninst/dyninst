@@ -161,7 +161,7 @@ const std::string &Module::fileName() const
 
 const std::string &Module::fullName() const
 {
-   return fullName_;
+   return fileName();
 }
 
  Symtab *Module::exec() const
@@ -351,22 +351,19 @@ Module::Module(supportedLanguages lang, Offset adr,
    objectLevelLineInfo(false),
    lineInfo_(NULL),
    typeInfo_(NULL),
-   fullName_(fullNm),
+   fileName_(fullNm),
    compDir_(""),
    language_(lang),
    addr_(adr),
    exec_(img),
    strings_(new StringTable)
-{
-   fileName_ = extract_pathname_tail(fullNm);
-}
+{}
 
 Module::Module() :
    objectLevelLineInfo(false),
    lineInfo_(NULL),
    typeInfo_(NULL),
    fileName_(""),
-   fullName_(""),
    compDir_(""),
    language_(lang_Unknown),
    addr_(0),
@@ -382,7 +379,6 @@ Module::Module(const Module &mod) :
    typeInfo_(mod.typeInfo_),
    info_(mod.info_),
    fileName_(mod.fileName_),
-   fullName_(mod.fullName_),
    compDir_(mod.compDir_),
    language_(mod.language_),
    addr_(mod.addr_),
@@ -446,7 +442,6 @@ bool Module::operator==(Module &mod)
    return (
          (language_==mod.language_)
          && (addr_==mod.addr_)
-         && (fullName_==mod.fullName_)
          && (fileName_==mod.fileName_)
 	 && (lineInfo_ == mod.lineInfo_)
          );

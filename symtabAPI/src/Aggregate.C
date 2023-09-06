@@ -260,7 +260,7 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
 }
 
 void Aggregate::print(std::ostream &os) const {
-  std::string modname = module_ ? module_->fullName() : std::string("no_mod");
+  std::string modname = module_ ? module_->fileName() : std::string("no_mod");
   os   << "Aggregate{"
        << " Module=" << modname
        << " MangledNames=[";
@@ -283,7 +283,7 @@ bool Aggregate::operator==(const Aggregate &a)
 	if (symbols_.size() != a.symbols_.size()) return false;
 	if (module_ && !a.module_) return false;
 	if (!module_ && a.module_) return false;
-	if (module_ && (module_->fullName() != a.module_->fullName())) return false;
+	if (module_ && (module_->fileName() != a.module_->fileName())) return false;
 
 	for (unsigned int i = 0; i < symbols_.size(); ++i)
 	{

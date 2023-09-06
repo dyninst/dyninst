@@ -309,7 +309,7 @@ bool Symbol::operator==(const Symbol& s) const
 	if (module_ && !s.module_) return false;
 	if (module_)
 	{
-		if (module_->fullName() != s.module_->fullName())
+		if (module_->fileName() != s.module_->fileName())
 			return false;
 	}
 

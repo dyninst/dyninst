@@ -1030,10 +1030,6 @@ pdmodule *image::findModule(const string &name, bool wildcard)
          //cerr << " (image::findModule) found module in modsByFileName" << endl;
          found = modsByFileName[name];
       }
-      else if (modsByFullName.find(name) != modsByFullName.end()) {
-         //cerr << " (image::findModule) found module in modsByFullName" << endl;
-         found = modsByFullName[name];
-      }
    }
    else {
       //  if we want a substring, have to iterate over all module names
@@ -1047,8 +1043,7 @@ pdmodule *image::findModule(const string &name, bool wildcard)
       {
          str = mi->first;
          mod = mi->second;
-         if (wildcardEquiv(pds, mod->fileName()) ||
-               wildcardEquiv(pds, mod->fullName())) {
+         if (wildcardEquiv(pds, mod->fileName())) {
             found = mod; 
             break;
          }
@@ -1515,7 +1510,7 @@ image::image(fileDescriptor &desc,
        interested **/
    struct filt_heap : SymtabCodeSource::hint_filt {
         bool operator()(SymtabAPI::Function * f) {
-            return f && f->getModule() && f->getModule()->fullName() == "DYNINSTheap";
+            return f && f->getModule() && f->getModule()->fileName() == "DYNINSTheap";
         }
     } nuke_heap;
     filt = &nuke_heap;
@@ -1764,11 +1759,6 @@ const string &pdmodule::fileName() const
     return mod_->fileName();
 }
 
-const string &pdmodule::fullName() const
-{
-    return mod_->fullName();
-}
-
 SymtabAPI::supportedLanguages 
 pdmodule::language() const
 {
@@ -1798,7 +1788,6 @@ pdmodule *image::getOrCreateModule(Module *mod) {
 
     mods_[mod] = pdmod;
     modsByFileName[pdmod->fileName()] = pdmod;
-    modsByFullName[pdmod->fullName()] = pdmod;
     
     return pdmod;
 }

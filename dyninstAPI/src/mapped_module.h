@@ -68,7 +68,6 @@ class mapped_module {
       pdmodule *pmod() const;
 
       const string &fileName() const;
-      const string &fullName() const;
 
       AddressSpace *proc() const;
 
