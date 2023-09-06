@@ -145,19 +145,32 @@ namespace Dyninst {
             }
         }
         uint32_t InstructionDecoder_amdgpu_gfx90a::decodeOPR_LITERAL(){
-            if (!useImm){
-                useImm = true;
-                immLen = 4;
-                if(insn_size == 4)
-                    immLiteral = imm_at_32;
-                else if(insn_size ==8)
-                    immLiteral = imm_at_64;
-                else
-                    assert(0 && "unsupported instruction size");
+            useImm = true;
+            immLen = 4;
+            if(insn_size == 4)
+                immLiteral = imm_at_32;
+            else if(insn_size ==8)
+                immLiteral = imm_at_64;
+            else
+                assert(0 && "unsupported instruction size");
 
-            } 
             return immLiteral;
         }
+        Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_SDWA(){
+            useImm = true;
+            immLen = 4;
+            if(insn_size == 4)
+                immLiteral = imm_at_32;
+            else if(insn_size ==8)
+                immLiteral = imm_at_64;
+            else
+                assert(0 && "unsupported instruction size");
+            extension = std::string("_SDWA");
+            uint8_t reg_idx = immLiteral & 0xff;
+
+            return makeRegisterExpression(makeAmdgpuRegID(amdgpu_gfx90a::v0,reg_idx),1);
+        }
+
         Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_LABEL(uint64_t input){
             Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
             // 16 bits immediate * 4 => 18 bits
@@ -216,6 +229,7 @@ namespace Dyninst {
             insn = insn_high = insn_long = 0;
             useImm = false;
             isCall = false;
+            extension = std::string("");
         }
         // here we assemble the first 64 bit (if available) as an instruction
 

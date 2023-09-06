@@ -74,6 +74,20 @@ namespace Dyninst
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
     };
 
+    class INSTRUCTION_EXPORT NamedImmediate : public Immediate
+    {
+    public:
+        NamedImmediate(std::string name, const Result &val);
+
+        static NamedImmediate::Ptr makeNamedImmediate(std::string name, const Result &val);
+        virtual std::string format(Architecture, formatStyle) const;
+        virtual std::string format(formatStyle) const;
+
+    private:
+        std::string name_;
+    };
+
+
     class INSTRUCTION_EXPORT ArmConditionImmediate : public Immediate
     {
     public:

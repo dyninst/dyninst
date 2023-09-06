@@ -230,7 +230,7 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     // Make sure `moduleDIE` is actually a compilation unit
     if (!DwarfDyninst::is_cudie(moduleDIE)) {
-    	dwarf_printf("(0x%lx) Attempting to parse module that isn't a compilation unit", id());
+    	dwarf_printf("(0x%lx) Attempting to parse module that isn't a compilation unit\n", id());
         return false;
     }
 
@@ -2723,10 +2723,8 @@ void DwarfWalker::setFuncReturnType() {
     dwarf_printf("(0x%lx) In setFuncReturnType().\n", id());
    boost::shared_ptr<Type> returnType;
    boost::unique_lock<dyn_mutex> l(curFunc()->ret_lock);
-   if (!curFunc()->getReturnType(Type::share)) {
       getReturnType(false, returnType);
       if (returnType)
          curFunc()->setReturnType(returnType);
-   }
 }
 
