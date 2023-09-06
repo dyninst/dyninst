@@ -52,6 +52,8 @@
 #include "dwarf.h"
 #endif
 
+#include <vector>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -354,8 +356,7 @@ Module::Module(supportedLanguages lang, Offset adr,
    language_(lang),
    addr_(adr),
    exec_(img),
-   strings_(new StringTable),
-   ranges_finalized(false)
+   strings_(new StringTable)
 {
    fileName_ = extract_pathname_tail(fullNm);
 }
@@ -370,8 +371,7 @@ Module::Module() :
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
-   strings_(new StringTable),
-    ranges_finalized(false)
+   strings_(new StringTable)
 {
 }
 
@@ -387,8 +387,7 @@ Module::Module(const Module &mod) :
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_),
-   strings_(mod.strings_),
-    ranges_finalized(mod.ranges_finalized)
+   strings_(mod.strings_)
 
 {
 }
@@ -528,32 +527,30 @@ void Module::addRange(Dyninst::Address low, Dyninst::Address high)
 //    exec_->mod_lookup()->insert(new ModRange(low, high, this));
 }
 
-void Module::finalizeRanges()
+std::vector<ModRange*> Module::finalizeRanges()
 {
     if(ranges.empty()) {
-        return;
+        return {};
     }
+
+    std::vector<ModRange*> mod_ranges;
+    mod_ranges.reserve(ranges.size());
+
     auto bit = ranges.begin();
     Address ext_s = bit->first;
     Address ext_e = ext_s;
 
     for( ; bit != ranges.end(); ++bit) {
         if(bit->first > ext_e) {
-            finalizeOneRange(ext_s, ext_e);
+            mod_ranges.push_back(new ModRange(ext_s, ext_e, this));
             ext_s = bit->first;
         }
         ext_e = bit->second;
     }
-    finalizeOneRange(ext_s, ext_e);
-    ranges_finalized = true;
+    mod_ranges.push_back(new ModRange(ext_s, ext_e, this));
     ranges.clear();
-}
 
-void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
-    ModRange* r = new ModRange(ext_s, ext_e, const_cast<Module*>(this));
-    ModRangeLookup* lookup = exec_->mod_lookup();
-//    cout << "Inserting range " << std::hex << (*r) << std::dec << endl;
-    lookup->insert(r);
+    return mod_ranges;
 }
 
 void Module::addDebugInfo(Module::DebugInfoT info) {

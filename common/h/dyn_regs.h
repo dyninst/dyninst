@@ -1642,6 +1642,7 @@ namespace Dyninst
         const signed int TGT            = 0x00110000; // I have no idea what TGT is yet
         const signed int ATTR           = 0x00120000;
         const signed int PARAM          = 0x00130000; // LDS Parameter
+        const signed int INFO           = 0x00140000; // Addition Info 
 
         // aliasing for flags
         // if we found out that it is a flag, we no longer need to use the cat  0x00ff0000
@@ -1817,9 +1818,14 @@ namespace Dyninst
 
 
 
-        DEF_REGISTER(p10,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 32 , "amdgpu_gfx908");
-        DEF_REGISTER(p20,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 32 , "amdgpu_gfx908");
-        DEF_REGISTER(p0,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 32 , "amdgpu_gfx908");
+        DEF_REGISTER(p10,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 0 , "amdgpu_gfx908");
+        DEF_REGISTER(p20,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 1 , "amdgpu_gfx908");
+        DEF_REGISTER(p0,				Arch_amdgpu_gfx908| PARAM | BITS_32 | 2 , "amdgpu_gfx908");
+
+        DEF_REGISTER(idxen,				Arch_amdgpu_gfx908| INFO | BITS_1 | 0 , "amdgpu_gfx908");
+        DEF_REGISTER(offen,				Arch_amdgpu_gfx908| INFO | BITS_1 | 1 , "amdgpu_gfx908");
+        DEF_REGISTER(off,				Arch_amdgpu_gfx908| INFO | BITS_1 | 2 , "amdgpu_gfx908");
+
 
 #include "AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h"
     }
@@ -1850,6 +1856,7 @@ namespace Dyninst
         const signed int TGT            = 0x00110000; // I have no idea what TGT is yet
         const signed int ATTR           = 0x00120000;
         const signed int PARAM          = 0x00130000; // LDS Parameter
+        const signed int INFO          = 0x00130000; // Additional Info
 
         // aliasing for flags
         // if we found out that it is a flag, we no longer need to use the cat  0x00ff0000
@@ -2024,9 +2031,14 @@ namespace Dyninst
 
 
 
-        DEF_REGISTER(p10,				Arch_amdgpu_gfx90a| PARAM | BITS_32 | 32 , "amdgpu_gfx90a");
-        DEF_REGISTER(p20,				Arch_amdgpu_gfx90a| PARAM | BITS_32 | 32 , "amdgpu_gfx90a");
-        DEF_REGISTER(p0,				Arch_amdgpu_gfx90a| PARAM | BITS_32 | 32 , "amdgpu_gfx90a");
+        DEF_REGISTER(p10,				Arch_amdgpu_gfx90a| PARAM | BITS_32 | 0 , "amdgpu_gfx90a");
+        DEF_REGISTER(p20,				Arch_amdgpu_gfx90a| PARAM | BITS_32 | 1 , "amdgpu_gfx90a");
+        DEF_REGISTER(p0,				Arch_amdgpu_gfx90a| PARAM | BITS_32 | 2 , "amdgpu_gfx90a");
+
+        DEF_REGISTER(idxen,				Arch_amdgpu_gfx90a| INFO | BITS_1 | 0 , "amdgpu_gfx90a");
+        DEF_REGISTER(offen,				Arch_amdgpu_gfx90a| INFO | BITS_1 | 1 , "amdgpu_gfx90a");
+        DEF_REGISTER(off,				Arch_amdgpu_gfx90a| INFO | BITS_1 | 2 , "amdgpu_gfx90a");
+
 
 #include "AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h"
     }

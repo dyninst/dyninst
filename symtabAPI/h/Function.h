@@ -125,7 +125,6 @@ class SYMTAB_EXPORT FunctionBase
    bool addLocalVar(localVar *);
    bool addParam(localVar *);
    bool	setReturnType(boost::shared_ptr<Type>);
-   bool	setReturnType(Type* t) { return setReturnType(t->reshare()); }
 
    virtual Offset getOffset() const = 0;
    virtual unsigned getSize() const = 0;

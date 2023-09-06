@@ -153,6 +153,11 @@ namespace Dyninst
       bool operator==(const Operation_impl& rhs) const {
         return hash_value(*this) == hash_value(rhs);
       }
+      void updateMnemonic(std::string new_mnemonic){
+        mnemonic = new_mnemonic;
+      }
+
+
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
       bool isVectorInsn;
 

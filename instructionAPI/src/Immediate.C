@@ -85,6 +85,21 @@ namespace Dyninst {
             v->visit(this);
         }
 
+        NamedImmediate::NamedImmediate(std::string name, const Result &val) : Immediate(val) , name_(name){
+        }
+
+        Immediate::Ptr NamedImmediate::makeNamedImmediate(std::string name, const Result &val) {
+            Immediate::Ptr ret = make_shared(singleton_object_pool<NamedImmediate>::construct(name,val));
+            return ret;
+        }
+
+        std::string NamedImmediate::format(Architecture, formatStyle f) const {
+            return format(f);
+        }
+
+        std::string NamedImmediate::format(formatStyle f) const {
+            return name_+std::string(":0x")+Immediate::format(f);
+        }
         ArmConditionImmediate::ArmConditionImmediate(const Result &val) : Immediate(val) {
             m_condLookupMap = boost::assign::map_list_of(0, "eq")(1, "ne")(2, "cs")(3, "cc")(4, "mi")(5, "pl")(6, "vs")(7, "vc")
                     (8, "hi")(9, "ls")(10, "ge")(11, "lt")(12, "gt")(13, "le")(14, "al")(15, "nv").convert_to_container<std::map<unsigned int, std::string> >();
