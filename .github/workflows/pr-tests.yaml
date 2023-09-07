@@ -75,7 +75,7 @@ jobs:
            cmake --build . --parallel 2
       - name: Run tests
         run: |
-          cd tests
+          cd external-tests
           ctest .
 
   clang-build:
