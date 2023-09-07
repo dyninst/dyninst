@@ -2629,7 +2629,7 @@ void DwarfWalker::findAllSig8Types()
 
 bool DwarfWalker::parseModuleSig8(bool is_info)
 {
-    if (!DwarfDyninst::is_typecu(current_cu_die))
+    if (!DwarfDyninst::is_type_unit(current_cu_die))
         return false;
     /* typeoffset is relative to the type unit; we want the global offset. */
     //FIXME
