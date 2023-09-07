@@ -116,16 +116,14 @@ namespace Dyninst { namespace DwarfDyninst {
 
   /* The name of the die referred to by `die`
    *
-   *   If the `die` is artificial or anonymous, a unique name
-   *   is returned. If these cases are important to the caller,
-   *   then `is_artificial` or `is_anonymous` should be checked.
+   *   If the `die` is artificial, a unique name is returned.
+   *   If this case is important to the caller, then `is_artificial`
+   *   should be checked.
+   *
+   *   Anonymous DIEs are purposefully left unnamed because of explicit
+   *   checks in DwarfWalker::nameDefined.
    */
   inline std::string die_name(Dwarf_Die die) {
-
-    if (is_anonymous_die(die)) {
-      // No name, make a unique one
-      return "{ANONYMOUS}(" + detail::die_offset(die) + ")";
-    }
 
     auto name = detail::die_name(die);
 

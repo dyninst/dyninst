@@ -71,7 +71,7 @@ namespace Dyninst { namespace DwarfDyninst {
    */
   inline std::string cu_name(Dwarf_Die cuDie) {
 
-    // This takes care of the anonymous/unnamed die and DW_AT_artificial cases for us.
+    // This takes care of the DW_AT_artificial case for us.
     auto name = DwarfDyninst::die_name(cuDie);
 
     // Make the name absolute wrt the compilation directory
