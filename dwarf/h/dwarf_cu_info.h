@@ -52,7 +52,18 @@ namespace Dyninst { namespace DwarfDyninst {
     // These are best guess. Ideally, we'd like to interrogate
     // the internals of the die, but that's not currently possible
     // with libdw. The internal function there is `is_cudie`.
-    return is_full_unit(die) || is_partial_unit(die) || is_type_unit(die);
+    return is_full_unit(die) || is_partial_unit(die);
+  }
+
+  /*
+   *  Check if `die` corresponds to a DWARF unit that should be parsed
+   *
+   *  DW_TAG_imported_unit may need to be included here, but is currently handled
+   *  separately in DwarfWalker::parse_int.
+   *
+   */
+  inline bool is_parseable_unit(Dwarf_Die die) {
+    return is_cudie(die) || is_type_unit(die);
   }
 
   /*
