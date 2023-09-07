@@ -43,6 +43,7 @@ namespace Dyninst { namespace DwarfDyninst {
   inline bool is_full_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_compile_unit; }
   inline bool is_partial_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_partial_unit; }
   inline bool is_type_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_type_unit; }
+  inline bool is_imported_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_imported_unit; }
 
   inline bool is_cudie(Dwarf_Die die) {
     // If there is not an inner CU attribute, then it's not a CU
