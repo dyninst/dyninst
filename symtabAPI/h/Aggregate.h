@@ -117,7 +117,6 @@ class SYMTAB_EXPORT Aggregate
 
       // Offset comes from a symbol
       // Module we keep here so we can have the correct "primary"
-      // (AKA 'not DEFAULT_MODULE') module
       Module *module_;
 
       mutable dyn_mutex lock_;

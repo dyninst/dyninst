@@ -103,14 +103,10 @@ Region * Aggregate::getRegion() const
 
 bool Aggregate::addSymbol(Symbol *sym) {
 
-    // We keep a "primary" module, which is defined as "anything not DEFAULT_MODULE".
+    // We keep a "primary" module.
     if (module_ == NULL) {
         module_ = sym->getModule();
     }
-    else if (module_->fileName() == "DEFAULT_MODULE") {
-        module_ = sym->getModule();
-    }
-    // else keep current module.
 
     boost::unique_lock<dyn_mutex> l(lock_);
 

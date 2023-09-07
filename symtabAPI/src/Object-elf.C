@@ -35,7 +35,7 @@
 
 #include "common/src/vgannotations.h"
 #include "unaligned_memory_access.h"
-#include <dwarf_cu_info.hpp>
+#include <dwarf_cu_info.h>
 
 #include "Type.h"
 #include "Variable.h"
@@ -63,6 +63,7 @@ using namespace std;
 #if defined(cap_dwarf)
 
 #include "dwarf.h"
+#include <dwarf_names.h>
 
 #endif
 
@@ -2191,15 +2192,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
     for (size_t i = 0; i < dies.size(); i++) {
         Dwarf_Die cu_die = dies[i];
 
-        std::string modname = DwarfWalker::die_name(cu_die);
-
-        if(modname=="<artificial>")
-        {
-            auto off_die = dwarf_dieoffset(&cu_die);
-            std::stringstream suffix;
-            suffix << std::hex << off_die;
-            modname  = "<artificial>" + suffix.str();
-        }
+        std::string modname = DwarfDyninst::die_name(cu_die);
 
         //cerr << "Processing CU DIE for " << modname << " offset: " << next_cu_off << endl;
         Address tempModLow;
@@ -3072,7 +3065,6 @@ ObjectType Object::objType() const {
 
 void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs) {
     string working_module;
-    const char *ptr;
     string mod_string;
 
 #if defined(cap_dwarf)
@@ -3101,25 +3093,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
             }
 
             /* Extract the name of this module. */
-            auto moduleName = dwarf_diename(&moduleDIE);
-            if (!moduleName) {
-                break;
-            }
-            ptr = strrchr(moduleName, '/');
-            if (ptr)
-                ptr++;
-            else
-                ptr = moduleName;
-
-            working_module = string(ptr);
-
-            if(working_module=="<artificial>")
-            {
-                auto off_die = dwarf_dieoffset(&moduleDIE);
-                std::stringstream suffix;
-                suffix << std::hex << off_die;
-                working_module  = "<artificial>" + suffix.str();
-            }
+            auto moduleName = DwarfDyninst::die_name(moduleDIE);
 
             auto attr_p = dwarf_attr(&moduleDIE, DW_AT_language, &languageAttribute);
             if (attr_p == NULL) {
@@ -3137,20 +3111,20 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                 case DW_LANG_C89:
                 case DW_LANG_C99:
                     case DW_LANG_C11:
-                    (*mod_langs)[working_module] = lang_C;
+                    (*mod_langs)[moduleName] = lang_C;
                     break;
                 case DW_LANG_C_plus_plus:
                     case DW_LANG_C_plus_plus_03:
                     case DW_LANG_C_plus_plus_11:
                     case DW_LANG_C_plus_plus_14:
-                    (*mod_langs)[working_module] = lang_CPlusPlus;
+                    (*mod_langs)[moduleName] = lang_CPlusPlus;
                     break;
                 case DW_LANG_Fortran77:
                 case DW_LANG_Fortran90:
                 case DW_LANG_Fortran95:
                 case DW_LANG_Fortran03:
                 case DW_LANG_Fortran08:
-                    (*mod_langs)[working_module] = lang_Fortran;
+                    (*mod_langs)[moduleName] = lang_Fortran;
                     break;
                 default:
                     /* We know what the language is but don't care. */

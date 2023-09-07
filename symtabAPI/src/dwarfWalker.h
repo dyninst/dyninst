@@ -338,8 +338,6 @@ private:
     bool getLineInformation(Dwarf_Word &variableLineNo,
             bool &hasLineNumber,
             std::string &filename);
-public:
-    static std::string die_name(Dwarf_Die die);
 private:
     std::string die_name();
     void removeFortranUnderscore(std::string &);
