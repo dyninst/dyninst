@@ -2604,7 +2604,7 @@ void DwarfWalker::findAllSig8Types()
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
 
-        if (DwarfDyninst::is_partialcu(current_cu_die)) {
+        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
             continue;
         }
         parseModuleSig8(false);
@@ -2619,7 +2619,7 @@ void DwarfWalker::findAllSig8Types()
     {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
-        if (DwarfDyninst::is_partialcu(current_cu_die)) {
+        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
             continue;
         }
         parseModuleSig8(true);
