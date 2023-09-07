@@ -73,6 +73,10 @@ jobs:
            cd external-tests; mkdir build; cd build
            cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
            cmake --build . --parallel 2
+      - name: Run tests
+        run: |
+          cd external-tests
+          ctest .
 
   clang-build:
     permissions:
