@@ -230,8 +230,8 @@ bool DwarfWalker::parse() {
 bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     // Make sure `moduleDIE` is actually a compilation unit
-    if (!DwarfDyninst::is_cudie(moduleDIE)) {
-    	dwarf_printf("(0x%lx) Attempting to parse module that isn't a compilation unit\n", id());
+    if (!DwarfDyninst::is_parseable_unit(moduleDIE)) {
+    	dwarf_printf("(0x%lx) Attempting to parse unit that isn't parseable.\n", id());
         return false;
     }
 
@@ -2604,7 +2604,7 @@ void DwarfWalker::findAllSig8Types()
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
 
-        if (DwarfDyninst::is_partialcu(current_cu_die)) {
+        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
             continue;
         }
         parseModuleSig8(false);
@@ -2619,7 +2619,7 @@ void DwarfWalker::findAllSig8Types()
     {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
-        if (DwarfDyninst::is_partialcu(current_cu_die)) {
+        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
             continue;
         }
         parseModuleSig8(true);
@@ -2629,7 +2629,7 @@ void DwarfWalker::findAllSig8Types()
 
 bool DwarfWalker::parseModuleSig8(bool is_info)
 {
-    if (!DwarfDyninst::is_typecu(current_cu_die))
+    if (!DwarfDyninst::is_type_unit(current_cu_die))
         return false;
     /* typeoffset is relative to the type unit; we want the global offset. */
     //FIXME

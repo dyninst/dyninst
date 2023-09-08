@@ -2175,8 +2175,8 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
 
         // As of DWARF 5, only full and partial CUs contain debug info for symbols
-        bool const is_partialcu = DwarfDyninst::is_partialcu(cu_die);
-        bool const is_fullcu = DwarfDyninst::is_fullcu(cu_die);
+        bool const is_partialcu = DwarfDyninst::is_partial_unit(cu_die);
+        bool const is_fullcu = DwarfDyninst::is_full_unit(cu_die);
         if (!(is_partialcu || is_fullcu)) {
             continue;
         }
@@ -3088,7 +3088,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
             cu_die_p = dwarf_offdie(dbg, cu_die_off, &moduleDIE);
             if (cu_die_p == NULL) break;
 
-            if (!DwarfDyninst::is_fullcu(moduleDIE)) {
+            if (!DwarfDyninst::is_full_unit(moduleDIE)) {
                 continue;
             }
 
