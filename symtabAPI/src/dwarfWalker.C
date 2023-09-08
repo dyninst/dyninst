@@ -90,7 +90,6 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf *dbg, std::shared_ptr<ParsedFun
    modLow(0),
    modHigh(0),
    cu_header_length(0),
-   version(0),
    abbrev_offset(0),
    addr_size(0),
    offset_size(0),
