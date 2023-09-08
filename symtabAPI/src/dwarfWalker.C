@@ -311,7 +311,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     auto comp_dir = Dyninst::DwarfDyninst::cu_name(entry);
 
     // store all file sources found by libdw
-    for (unsigned i = 1; i < cnt; ++i) {
+    for (unsigned i = 0; i < cnt; ++i) {
         auto filename = dwarf_filesrc(df, i, NULL, NULL);
         if(!filename) continue;
         srcFiles->emplace_back(DwarfDyninst::detail::absolute_path(filename, comp_dir),"");
