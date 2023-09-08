@@ -1734,6 +1734,10 @@ namespace rose {
                     /** One's complement. The result will be the same size as the operand. */
                     virtual SValuePtr invert(const SValuePtr &a) = 0;
 
+                    /** Logical not. The result should always be of size 1 */
+                    virtual SValuePtr logicalNot(const SValuePtr &a) = 0;
+
+
                     /** Extracts bits from a value.  The specified bits from begin_bit (inclusive) through end_bit (exclusive) are copied into
                      *  the low-order bits of the return value (other bits in the return value are cleared). The least significant bit is
                      *  number zero. The begin_bit and end_bit values must be valid for the width of @p a. */

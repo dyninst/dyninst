@@ -178,7 +178,8 @@ typedef enum {
     uDivOp,
     uModOp,
     extendOp,
-    extendMSBOp
+    extendMSBOp,
+    logicalNotOp // logical Not
 } Op;
 
 DATAFLOW_EXPORT ROSEOperation(Op o) : op(o), size(0) {}
@@ -284,6 +285,9 @@ DATAFLOW_EXPORT const std::string format() const {
     break;
     case extendMSBOp:
     ret << "extMSB";
+    break;
+    case logicalNotOp:
+    ret << "logicalNot";
     break;
     default:
     ret << " ??? ";

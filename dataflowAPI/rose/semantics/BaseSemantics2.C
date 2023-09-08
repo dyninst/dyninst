@@ -229,7 +229,7 @@ RiscOperators::isEqual(const SValuePtr &a, const SValuePtr &b) {
 
 SValuePtr
 RiscOperators::isNotEqual(const SValuePtr &a, const SValuePtr &b) {
-    return invert(isEqual(a, b));
+    return logicalNot(isEqual(a, b));
 }
 
 SValuePtr
@@ -247,12 +247,12 @@ RiscOperators::isUnsignedLessThanOrEqual(const SValuePtr &a, const SValuePtr &b)
 
 SValuePtr
 RiscOperators::isUnsignedGreaterThan(const SValuePtr &a, const SValuePtr &b) {
-    return invert(isUnsignedLessThanOrEqual(a, b));
+    return logicalNot(isUnsignedLessThanOrEqual(a, b));
 }
 
 SValuePtr
 RiscOperators::isUnsignedGreaterThanOrEqual(const SValuePtr &a, const SValuePtr &b) {
-    return invert(isUnsignedLessThan(a, b));
+    return logicalNot(isUnsignedLessThan(a, b));
 }
 
 SValuePtr
@@ -276,12 +276,12 @@ RiscOperators::isSignedLessThanOrEqual(const SValuePtr &a, const SValuePtr &b) {
 
 SValuePtr
 RiscOperators::isSignedGreaterThan(const SValuePtr &a, const SValuePtr &b) {
-    return invert(isSignedLessThanOrEqual(a, b));
+    return logicalNot(isSignedLessThanOrEqual(a, b));
 }
 
 SValuePtr
 RiscOperators::isSignedGreaterThanOrEqual(const SValuePtr &a, const SValuePtr &b) {
-    return invert(isSignedLessThan(a, b));
+    return logicalNot(isSignedLessThan(a, b));
 }
 
 SValuePtr
@@ -313,7 +313,7 @@ RiscOperators::fpIsNan(const SValuePtr &a, SgAsmFloatType *aType) {
     ASSERT_not_null(aType);
     SValuePtr exponent = extract(a, aType->exponentBits().least(), aType->exponentBits().greatest()+1);
     SValuePtr significand = extract(a, aType->significandBits().least(), aType->significandBits().greatest()+1);
-    return and_(equalToZero(invert(exponent)), invert(equalToZero(significand)));
+    return and_(equalToZero(invert(exponent)), logicalNot(equalToZero(significand)));
 }
 
 SValuePtr
@@ -325,7 +325,7 @@ RiscOperators::fpIsDenormalized(const SValuePtr &a, SgAsmFloatType *aType) {
         return boolean_(false);
     SValuePtr exponent = extract(a, aType->exponentBits().least(), aType->exponentBits().greatest()+1);
     SValuePtr significand = extract(a, aType->significandBits().least(), aType->significandBits().greatest()+1);
-    return and_(equalToZero(exponent), invert(equalToZero(significand)));
+    return and_(equalToZero(exponent), logicalNot(equalToZero(significand)));
 }
 
 SValuePtr

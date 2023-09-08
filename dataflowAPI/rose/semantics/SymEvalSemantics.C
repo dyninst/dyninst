@@ -498,6 +498,10 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::invert(const BaseSe
     return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::invertOp, a_);
 }
 
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::logicalNot(const BaseSemantics::SValuePtr &a_) {
+    return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::logicalNotOp, a_);
+}
+
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::extract(const BaseSemantics::SValuePtr &a_, uint64_t begin,
                                                                   uint64_t end) {
     BaseSemantics::SValuePtr begin_ = SymEvalSemantics::SValue::instance(64, begin);

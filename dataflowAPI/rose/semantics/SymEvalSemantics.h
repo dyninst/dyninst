@@ -490,6 +490,9 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr xor_(const BaseSemantics::SValuePtr &a_,
                                                           const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr invert(const BaseSemantics::SValuePtr &a_);
+
+                    virtual BaseSemantics::SValuePtr logicalNot(const BaseSemantics::SValuePtr &a_);
+
                     virtual BaseSemantics::SValuePtr extract(const BaseSemantics::SValuePtr &a_,
                                                              uint64_t begin, uint64_t end);
                     virtual BaseSemantics::SValuePtr ite(const BaseSemantics::SValuePtr &sel_,

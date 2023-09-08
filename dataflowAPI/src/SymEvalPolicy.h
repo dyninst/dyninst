@@ -405,6 +405,11 @@ struct Handle {
    }
 
    template <size_t Len>
+     Handle<Len> logicalNot(Handle<Len> a) {
+     return Handle<Len>(getUnaryAST(ROSEOperation::logicalNotOp, a.var()));
+   }
+
+   template <size_t Len>
      Handle<Len> negate(Handle<Len> a) {
      return Handle<Len>(getUnaryAST(ROSEOperation::negateOp, a.var()));
    }

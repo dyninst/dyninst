@@ -53,6 +53,31 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
         RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
 
         switch (roseAST->val().op) {
+	    case ROSEOperation::logicalNotOp:
+	        if (roseAST->child(0)->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr child = boost::static_pointer_cast<RoseAST>(roseAST->child(0));
+		    if (child->val().op == ROSEOperation::logicalNotOp){
+		        if(child->child(0)->getID() == AST::V_ConstantAST){
+			    ConstantAST::Ptr grandchild = boost::static_pointer_cast<ConstantAST>(child->child(0));
+			    uint64_t val = grandchild->val().val;
+                            if (val != 0)
+                                    return ConstantAST::create(Constant(1uLL,1));
+                            else
+                                    return ConstantAST::create(Constant(0uLL,1));
+
+			}
+                    }
+		}else if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+                    uint64_t val = child->val().val;
+                    if (val == 0)
+                        return ConstantAST::create(Constant(1uLL,1));
+                    else
+                        return ConstantAST::create(Constant(0uLL,1));
+		}
+           
+                break;
+
             case ROSEOperation::invertOp:
                 if (roseAST->child(0)->getID() == AST::V_RoseAST) {
                     RoseAST::Ptr child = boost::static_pointer_cast<RoseAST>(roseAST->child(0));
