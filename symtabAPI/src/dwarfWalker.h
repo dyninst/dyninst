@@ -230,7 +230,6 @@ public:
             is_mangled_name_(o.is_mangled_name_),
             modLow(o.modLow), modHigh(o.modHigh),
             cu_header_length(o.cu_header_length),
-            version(o.version),
             abbrev_offset(o.abbrev_offset),
             addr_size(o.addr_size),
             offset_size(o.offset_size),
@@ -398,7 +397,6 @@ private:
     Address modLow;
     Address modHigh;
     size_t  cu_header_length;
-    Dwarf_Half version;
     Dwarf_Word abbrev_offset;
     uint8_t /*Dwarf_Half*/ addr_size;
     uint8_t /*Dwarf_Half*/ offset_size;
