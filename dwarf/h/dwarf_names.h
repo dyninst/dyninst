@@ -128,8 +128,10 @@ namespace Dyninst { namespace DwarfDyninst {
     auto name = detail::die_name(die);
 
     // There is no standard for naming artificial DIEs, so we just
-    // append the DIE's location to it.
-    if (is_artificial_die(die)) {
+    // append the DIE's location to it. For C++ member functions,
+    // compilers will sometimes add a DW_AT_name called 'this', and
+    // we don't want to mangle that.
+    if (name.empty() && is_artificial_die(die)) {
       name += "(" + detail::die_offset(die) + ")";
       return name;
     }
