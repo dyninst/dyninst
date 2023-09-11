@@ -106,12 +106,16 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       ConstantAST::Ptr to = ConstantAST::convert(newKids[2]);
       ConstantAST::Ptr val = ConstantAST::convert(newKids[0]);
       
-      unsigned long mask = 0;
-      for (uint64_t i = from->val().val; i <= to->val().val; ++i) {
-		mask |= 1 << i;
-      }
 
-      return ConstantAST::create(Constant(val->val().val & mask, to->val().val - from->val().val));
+      auto lowBitPos{from->val().val};
+      auto highBitPos{to->val().val};
+      uint64_t newValue{val->val().val};
+      if(highBitPos < 64)
+        newValue &= ((1ULL << highBitPos) - 1);  // zero highBitPos and higher
+      newValue >>= lowBitPos;                  // shift to bit 0, eliminating unwanted low bits
+
+      return ConstantAST::create(Constant(newValue, highBitPos - lowBitPos));
+
     }
     return RoseAST::create(r->val(), newKids);
 

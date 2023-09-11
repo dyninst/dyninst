@@ -74,16 +74,24 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                              }
             case ROSEOperation::extractOp: {
                                                if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
-                                                   size_t size = roseAST->val().size;
-                                                   ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-                                                   uint64_t val = child0->val().val;
-                                                   // clip value according to size, but do not clip size 0 values
-                                                   // and size 64 values
-                                                   uint64_t clipped_value = (size ==0 ||size ==64 ) ?
-                                                       val : val & ((1ULL << size) -1);
+                                                    assert(roseAST->child(1)->getID() == AST::V_ConstantAST);
+                                                    assert(roseAST->child(2)->getID() == AST::V_ConstantAST);
 
-                                                   return ConstantAST::create(Constant(clipped_value, size));
+
+                                                    ConstantAST::Ptr from = ConstantAST::convert(roseAST->child(1));
+                                                    ConstantAST::Ptr to = ConstantAST::convert(roseAST->child(2));
+                                                    ConstantAST::Ptr val = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+
+                                                    auto lowBitPos{from->val().val};
+                                                    auto highBitPos{to->val().val};
+                                                    uint64_t newValue{val->val().val};
+                                                    if(highBitPos < 64)
+                                                        newValue &= ((1ULL << highBitPos) - 1);  // zero highBitPos and higher
+                                                    newValue >>= lowBitPos;                  // shift to bit 0, eliminating unwanted low bits
+
+                                                    return ConstantAST::create(Constant(newValue, highBitPos - lowBitPos));
                                                }
+
                                                return roseAST->child(0);
                                            }
             case ROSEOperation::signExtendOp: {
