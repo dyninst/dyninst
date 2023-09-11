@@ -242,14 +242,20 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                               ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                              return ConstantAST::create(Constant(child0->val().val & child1->val().val, 64));
+                                              auto size0{child0->val().size};
+                                              auto size1{child1->val().size};
+                                              uint64_t newSize{std::max(size0,size1)};
+                                              return ConstantAST::create(Constant(child0->val().val & child1->val().val, newSize));
                                           }
                                           break;
             case ROSEOperation::orOp:
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                               ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                              return ConstantAST::create(Constant(child0->val().val | child1->val().val, 64));
+                                              auto size0{child0->val().size};
+                                              auto size1{child1->val().size};
+                                              uint64_t newSize{std::max(size0,size1)};
+                                              return ConstantAST::create(Constant(child0->val().val | child1->val().val, newSize));
                                           }
                                           break;
             case ROSEOperation::ifOp:
@@ -281,9 +287,9 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                               if(child0->val().val == 0)
-                                                  return ConstantAST::create(Constant(1, 64));
+                                                  return ConstantAST::create(Constant(1, 1));
                                               else
-                                                  return ConstantAST::create(Constant(0, 64));
+                                                  return ConstantAST::create(Constant(0, 1));
                                           }
 
                                           break;
