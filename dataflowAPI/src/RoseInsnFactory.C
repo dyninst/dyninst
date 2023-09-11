@@ -38,6 +38,7 @@
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmAmdgpuVegaInstruction.h"
+#include "../rose/SgAsmAMDGPUInstruction.h"
 
 #include "../rose/SgAsmArmv8Instruction.h"
 #include "../rose/SgAsmx86Instruction.h"
@@ -497,5 +498,91 @@ void RoseInsnAmdgpuVegaFactory::massageOperands(const Instruction &insn,
         default:
                     break;
     }
+}
+
+void RoseInsnAMDGPUFactory::setSizes(SgAsmInstruction * /*insn*/) {
+
+}
+
+SgAsmInstruction *RoseInsnAMDGPUFactory::createInsn() {
+    return new SgAsmAMDGPUInstruction;
+}
+
+void RoseInsnAMDGPUFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
+    SgAsmAMDGPUInstruction *tmp = static_cast<SgAsmAMDGPUInstruction *>(insn);
+    tmp->set_kind(convertKind(opcode));
+}
+bool RoseInsnAMDGPUFactory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
+    return false;
+}
+
+// TODO: Turn sgpr_pair operands into individual registers
+void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
+        std::vector<InstructionAPI::Operand> &operands) {
+    switch (insn.getOperation().getID()) {
+    case amdgpu_op_s_swappc_b64: {
+        // swap pc has two operands
+        // first one is the source of new pc
+        // second one is dst for storing the pc, so we turn it into 4 registers
+        // TODO : Make this a function call
+        assert(operands.size() == 2);
+        InstructionAPI::Operand oper0,oper1,oper2,oper3;
+        std::tie(oper0,oper1) = expandSgprPair(operands[0]);
+        std::tie(oper2,oper3) = expandSgprPair(operands[1]);
+        operands.resize(4);
+        operands[0] = oper0;
+        operands[1] = oper1;
+        operands[2] = oper2;
+        operands[3] = oper3;
+        break;
+
+
+    }
+
+    case amdgpu_op_s_setpc_b64: {
+        assert(operands.size() == 1);
+
+        InstructionAPI::Operand oper0,oper1;
+        std::tie(oper0,oper1) = expandSgprPair(operands[0]);
+        operands.resize(2);
+        operands[0] = oper0;
+        operands[1] = oper1;
+
+        break;
+
+    }
+    case amdgpu_op_s_getpc_b64: {
+        assert(operands.size() == 1);
+
+        InstructionAPI::Operand oper0,oper1;
+        std::tie(oper0,oper1) = expandSgprPair(operands[0]);
+        operands.resize(3);
+        operands[0] = oper0;
+        operands[1] = oper1;
+        operands[2] = Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false);
+
+        break;
+    }
+    case amdgpu_gfx908_op_S_SWAPPC_B64:
+    case amdgpu_gfx90a_op_S_SWAPPC_B64: {
+        assert(operands.size() == 6);
+        break;
+    }
+    case amdgpu_gfx908_op_S_SETPC_B64:
+    case amdgpu_gfx90a_op_S_SETPC_B64: {
+        assert(operands.size() == 3);
+        break;
+
+    }
+    case amdgpu_gfx908_op_S_GETPC_B64:
+    case amdgpu_gfx90a_op_S_GETPC_B64: {
+        assert(operands.size() == 3);
+        operands[2] = Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false);
+        break;
+    }
+    default:
+        break;
+    }
+
 }
 

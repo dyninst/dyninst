@@ -859,7 +859,7 @@ COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
 // reg_idx needs to be set as the offset from base register
 // offset needs to be set as the offset inside the register
 
-void MachRegister::getAMDGPUROSERegister(int &reg_class, int &reg_idx, int &offset){
+static void getAmdgpuRoseRegister(int &reg_class, int &reg_idx, int &offset, const int &reg){
     signed int category = (reg & 0x00ff0000);
     //signed int subrange = (reg & 0x0000ff00); TODO:subrange is used to identify flags within the range of a single register
     signed int baseID =   (reg & 0x000000ff);
@@ -884,9 +884,90 @@ void MachRegister::getAMDGPUROSERegister(int &reg_class, int &reg_idx, int &offs
                                         reg_class = amdgpu_regclass_sgpr_vec2;
                                         break;
                                     }
+        case amdgpu_vega::HWR: {
+                                    reg_class = amdgpu_regclass_pc;
+                                    reg_idx = amdgpu_pc;
+                                    break;
+                               }
         default:{
                     assert(0 && "un suppoprted register type for amdgpu ");
                 }
+
+    }
+    return;
+}
+
+static void getAmdgpuGfx908RoseRegister(int &reg_class, int &reg_idx, int &offset, const int &reg){
+    signed int category = (reg & 0x00ff0000);
+    //signed int subrange = (reg & 0x0000ff00); TODO:subrange is used to identify flags within the range of a single register
+    signed int baseID =   (reg & 0x000000ff);
+    //std::cout << "calling " << __func__ << " category = " << category << std::endl;
+    offset = 0;
+    reg_idx = baseID;
+    switch(category){
+    case amdgpu_gfx908::SGPR: {
+        reg_class = amdgpu_regclass_sgpr;
+        break;
+    }
+
+   case amdgpu_gfx908::VGPR: {
+        reg_class = amdgpu_regclass_vgpr;
+        break;
+    }
+
+   case amdgpu_gfx908::PC: {
+        reg_class = amdgpu_regclass_pc;
+        reg_idx = amdgpu_pc;
+        break;
+    }
+
+    case amdgpu_gfx908::HWR: {
+        reg_class = amdgpu_regclass_pc;
+        reg_idx = amdgpu_pc;
+        break;
+    }
+
+    default:{
+        assert(0 && "un suppoprted register type for amdgpu ");
+    }
+
+    }
+    return;
+}
+
+static void getAmdgpuGfx90aRoseRegister(int &reg_class, int &reg_idx, int &offset, const int &reg){
+    signed int category = (reg & 0x00ff0000);
+    //signed int subrange = (reg & 0x0000ff00); TODO:subrange is used to identify flags within the range of a single register
+    signed int baseID =   (reg & 0x000000ff);
+    //std::cout << "calling " << __func__ << " category = " << category << std::endl;
+    offset = 0;
+    reg_idx = baseID;
+    switch(category){
+    case amdgpu_gfx90a::SGPR: {
+        reg_class = amdgpu_regclass_sgpr;
+        break;
+    }
+
+   case amdgpu_gfx90a::VGPR: {
+        reg_class = amdgpu_regclass_vgpr;
+        break;
+    }
+
+   case amdgpu_gfx90a::PC: {
+        reg_class = amdgpu_regclass_pc;
+        reg_idx = amdgpu_pc;
+        break;
+    }
+
+    case amdgpu_gfx90a::HWR: {
+        reg_class = amdgpu_regclass_pc;
+        reg_idx = amdgpu_pc;
+        break;
+    }
+
+    default:{
+        assert(0 && "un suppoprted register type for amdgpu ");
+    }
 
     }
     return;
@@ -909,16 +990,24 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 {
     // Rose: class, number, position
     // Dyninst: category, base id, subrange
-    Architecture maybe_amdgpu = getArchitecture();
-    if (maybe_amdgpu==Arch_amdgpu_vega || maybe_amdgpu == Arch_amdgpu_gfx908 || maybe_amdgpu == Arch_amdgpu_gfx90a){
-        getAMDGPUROSERegister(c,n,p);
-        return;
-    }
+
     signed int category = (reg & 0x00ff0000);
     signed int subrange = (reg & 0x0000ff00);
     signed int baseID =   (reg & 0x000000ff);
 
     switch (getArchitecture()) {
+        case Arch_amdgpu_vega:{
+            getAmdgpuRoseRegister(c,n,p,reg);
+            return;
+        }
+        case Arch_amdgpu_gfx908:{
+            getAmdgpuGfx908RoseRegister(c,n,p,reg);
+            return;
+        }
+        case Arch_amdgpu_gfx90a:{
+            getAmdgpuGfx90aRoseRegister(c,n,p,reg);
+            return;
+        }
         case Arch_x86:
             switch (category) {
                 case x86::GPR:
@@ -1905,6 +1994,7 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             return Dyninst::InvalidReg;
             break;
         case Arch_amdgpu_vega:
+        case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
             // ignore AMD register encodings for now
             return Dyninst::InvalidReg;

@@ -74,6 +74,7 @@ set(ROSE_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BaseSemantics2.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAmdgpuVega.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterParts.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.C

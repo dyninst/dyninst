@@ -70,6 +70,11 @@ namespace Dyninst {
                                       BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
 
+            static bool expandAMDGPU(SgAsmInstruction *rose_insn,
+                                      BaseSemantics::RiscOperatorsPtr ops,
+                                      const std::string &insn_dump);
+
+
 
         };
 

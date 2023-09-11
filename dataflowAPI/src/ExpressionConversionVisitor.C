@@ -54,7 +54,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
     // TODO rose doesn't handle large values (XMM?)
 
     // build different kind of rose value object based on type
-    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_vega) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_vega || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a) {
         bool isSigned = false;
         switch (value.type) {
             case s8:
@@ -173,7 +173,7 @@ void ExpressionConversionVisitor::visit(Dereference *deref) {
 
     // TODO fix some mismatched types?
     // pick correct type
-    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_vega) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_vega || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a) {
         bool isSigned = false;
         switch (deref->eval().type) {
             case s8:
@@ -318,7 +318,9 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                                dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
                                return dre;
                            }
-        case Arch_amdgpu_vega: {
+        case Arch_amdgpu_vega:
+        case Arch_amdgpu_gfx908:
+        case Arch_amdgpu_gfx90a: {
                                int regClass_;
                                int regNum;
                                int regPos;
