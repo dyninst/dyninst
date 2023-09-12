@@ -861,9 +861,8 @@ COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
 
 static void getAmdgpuRoseRegister(int &reg_class, int &reg_idx, int &offset, const int &reg){
     signed int category = (reg & 0x00ff0000);
-    //signed int subrange = (reg & 0x0000ff00); TODO:subrange is used to identify flags within the range of a single register
     signed int baseID =   (reg & 0x000000ff);
-    //std::cout << "calling " << __func__ << " category = " << category << std::endl;
+
     offset = 0;
     reg_idx = baseID;
     switch(category){
@@ -890,7 +889,7 @@ static void getAmdgpuRoseRegister(int &reg_class, int &reg_idx, int &offset, con
                                     break;
                                }
         default:{
-                    assert(0 && "un suppoprted register type for amdgpu ");
+                    assert(0 && "unsupported register type for amdgpu");
                 }
 
     }
@@ -899,9 +898,8 @@ static void getAmdgpuRoseRegister(int &reg_class, int &reg_idx, int &offset, con
 
 static void getAmdgpuGfx908RoseRegister(int &reg_class, int &reg_idx, int &offset, const int &reg){
     signed int category = (reg & 0x00ff0000);
-    //signed int subrange = (reg & 0x0000ff00); TODO:subrange is used to identify flags within the range of a single register
     signed int baseID =   (reg & 0x000000ff);
-    //std::cout << "calling " << __func__ << " category = " << category << std::endl;
+
     offset = 0;
     reg_idx = baseID;
     switch(category){
@@ -928,7 +926,7 @@ static void getAmdgpuGfx908RoseRegister(int &reg_class, int &reg_idx, int &offse
     }
 
     default:{
-        assert(0 && "un suppoprted register type for amdgpu ");
+        assert(0 && "unsupported register type for amdgpu gfx908");
     }
 
     }
@@ -937,9 +935,8 @@ static void getAmdgpuGfx908RoseRegister(int &reg_class, int &reg_idx, int &offse
 
 static void getAmdgpuGfx90aRoseRegister(int &reg_class, int &reg_idx, int &offset, const int &reg){
     signed int category = (reg & 0x00ff0000);
-    //signed int subrange = (reg & 0x0000ff00); TODO:subrange is used to identify flags within the range of a single register
     signed int baseID =   (reg & 0x000000ff);
-    //std::cout << "calling " << __func__ << " category = " << category << std::endl;
+
     offset = 0;
     reg_idx = baseID;
     switch(category){
@@ -966,7 +963,7 @@ static void getAmdgpuGfx90aRoseRegister(int &reg_class, int &reg_idx, int &offse
     }
 
     default:{
-        assert(0 && "un suppoprted register type for amdgpu ");
+        assert(0 && "unsupported register type for amdgpu gfx90a");
     }
 
     }
