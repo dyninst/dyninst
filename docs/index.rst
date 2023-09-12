@@ -119,6 +119,7 @@ Developed by
    :hidden:
    :maxdepth: 2
 
+   common/public/API
    dyninstAPI/public/API
    instructionAPI/public/API
    parseAPI/public/API
@@ -133,6 +134,7 @@ Developed by
    :hidden:
    :maxdepth: 3
 
+   common/developer/API
    dyninstAPI/developer/API
    instructionAPI/developer/API
    parseAPI/developer/API
