@@ -35,6 +35,7 @@
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
+#include "../rose/SgAsmAMDGPUInstruction.h"
 #include "../rose/SgAsmAmdgpuVegaInstruction.h"
 #include "external/rose/rose-compat.h"
 #include "../rose/RegisterDescriptor.h"
@@ -1365,6 +1366,11 @@ size_t SgAsmInstruction::get_size() const {
 }
 
 // defs for SgAsmAmdgpuVegaInstruction
+//
+SgAsmAmdgpuVegaInstruction *isSgAsmAmdgpuVegaInstruction(SgNode *s) {
+    return dynamic_cast<SgAsmAmdgpuVegaInstruction *>(s);
+}
+
 std::string SgAsmAmdgpuVegaInstruction::class_name() const {
     return "SgAsmAmdgpuVegaInstruction";
 }
@@ -1389,6 +1395,37 @@ void SgAsmAmdgpuVegaInstruction::set_kind(AmdgpuVegaInstructionKind kind) {
 SgAsmAmdgpuVegaInstruction::~SgAsmAmdgpuVegaInstruction() {
     p_kind = rose_amdgpu_op_INVALID;
 }
+
+// defs for SgAsmAMDGPUInstruction
+SgAsmAMDGPUInstruction *isSgAsmAMDGPUInstruction(SgNode *s) {
+    return dynamic_cast<SgAsmAMDGPUInstruction *>(s);
+}
+
+std::string SgAsmAMDGPUInstruction::class_name() const {
+    return "SgAsmAMDGPUGfx90aInstruction";
+}
+
+VariantT SgAsmAMDGPUInstruction::variantT() const {
+    return V_SgAsmAMDGPUInstruction;
+}
+
+SgAsmAMDGPUInstruction::SgAsmAMDGPUInstruction(rose_addr_t address, std::string mnemonic, AMDGPUInstructionKind kind) :
+        SgAsmInstruction(address, mnemonic) {
+    p_kind = kind;
+}
+
+AMDGPUInstructionKind SgAsmAMDGPUInstruction::get_kind() const {
+    return p_kind;
+}
+
+void SgAsmAMDGPUInstruction::set_kind(AMDGPUInstructionKind kind) {
+    p_kind = kind;
+}
+
+SgAsmAMDGPUInstruction::~SgAsmAMDGPUInstruction() {
+    p_kind = rose_amdgpu_op_INVALID;
+}
+
 
 // defs for SgAsmArmv8Instruction
 std::string SgAsmArmv8Instruction::class_name() const {
@@ -1628,10 +1665,6 @@ SgAsmFloatValueExpression *isSgAsmFloatValueExpression(SgNode *s) {
 
 SgAsmArmv8Instruction *isSgAsmArmv8Instruction(SgNode *s) {
     return dynamic_cast<SgAsmArmv8Instruction *>(s);
-}
-
-SgAsmAmdgpuVegaInstruction *isSgAsmAmdgpuVegaInstruction(SgNode *s) {
-    return dynamic_cast<SgAsmAmdgpuVegaInstruction *>(s);
 }
 
 

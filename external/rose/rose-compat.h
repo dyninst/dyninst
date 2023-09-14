@@ -845,6 +845,7 @@ enum VariantT {
     V_SgAsmDataStructureDeclaration = 933,
     V_SgAsmPEImportILTEntryList = 934,
     V_SgAsmAmdgpuVegaInstruction = 935,
+    V_SgAsmAMDGPUInstruction = 936,
 };
 
 enum X86SegmentRegister { // These must match numbering in object code

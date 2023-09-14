@@ -138,6 +138,8 @@ namespace rose {
                 typedef boost::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
                 typedef boost::shared_ptr<class RegisterStateAST_AMDGPU_VEGA> RegisterStateAST_AMDGPU_VEGA_Ptr;
+                typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx908> RegisterStateAST_amdgpu_gfx908_Ptr;
+                typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx90a> RegisterStateAST_amdgpu_gfx90a_Ptr;
 
                 class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
@@ -281,7 +283,47 @@ namespace rose {
 		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
 		};
 	
+                class RegisterStateAST_amdgpu_gfx908 : public RegisterStateAST {
+                    public:
+                        RegisterStateAST_amdgpu_gfx908(const BaseSemantics::SValuePtr &protoval,
+                                const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
 
+                        static RegisterStateAST_amdgpu_gfx908_Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                const RegisterDictionary *regdict) {
+                            return RegisterStateAST_amdgpu_gfx908_Ptr(new RegisterStateAST_amdgpu_gfx908(protoval, regdict));
+                        }
+
+                        static RegisterStateAST_amdgpu_gfx908_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                            RegisterStateAST_amdgpu_gfx908_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx908>(from);
+                            ASSERT_not_null(retval);
+                            return retval;
+                        }
+
+                    private:
+                        // Given a register decriptor of roseformat, convert it back to MachRegister and encapsulate it in Dyninst Abstract location
+                        virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+                };
+
+                 class RegisterStateAST_amdgpu_gfx90a : public RegisterStateAST {
+                    public:
+                        RegisterStateAST_amdgpu_gfx90a(const BaseSemantics::SValuePtr &protoval,
+                                const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
+
+                        static RegisterStateAST_amdgpu_gfx90a_Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                const RegisterDictionary *regdict) {
+                            return RegisterStateAST_amdgpu_gfx90a_Ptr(new RegisterStateAST_amdgpu_gfx90a(protoval, regdict));
+                        }
+
+                        static RegisterStateAST_amdgpu_gfx90a_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                            RegisterStateAST_amdgpu_gfx90a_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx90a>(from);
+                            ASSERT_not_null(retval);
+                            return retval;
+                        }
+
+                    private:
+                        // Given a register decriptor of roseformat, convert it back to MachRegister and encapsulate it in Dyninst Abstract location
+                        virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+                };
                 /***************************************************************************************************/
                 /*                                           Memory State                                          */
                 /***************************************************************************************************/

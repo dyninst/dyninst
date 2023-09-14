@@ -94,7 +94,12 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     JumpTableFormatPred jtfp(func, block, rf, thunks, se);
 
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
-    if (se.cs->getArch() == Arch_amdgpu_vega && insn.getOperation().getID() == amdgpu_op_s_swappc_b64 ) {
+    if ((se.cs->getArch() == Arch_amdgpu_vega   && insn.getOperation().getID() == amdgpu_op_s_swappc_b64) ||
+        (se.cs->getArch() == Arch_amdgpu_gfx908 && insn.getOperation().getID() == amdgpu_gfx908_op_S_SETPC_B64) ||
+        (se.cs->getArch() == Arch_amdgpu_gfx908 && insn.getOperation().getID() == amdgpu_gfx908_op_S_SWAPPC_B64) ||
+        (se.cs->getArch() == Arch_amdgpu_gfx90a && insn.getOperation().getID() == amdgpu_gfx90a_op_S_SETPC_B64 ) ||
+        (se.cs->getArch() == Arch_amdgpu_gfx90a && insn.getOperation().getID() == amdgpu_gfx90a_op_S_SWAPPC_B64 ) ){
+
         Result_t symRet;
         SymEval::expand(slice,symRet);
         

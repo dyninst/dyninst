@@ -1269,7 +1269,7 @@ enum AMDGPUVectorGeneralPurposeRegisterVector8{
 	amdgpu_vgpr_vec8_247,
 	amdgpu_vgpr_vec8_248
 };
-enum AmdgpuVegaInstructionKind{
+enum AMDGPUInstructionKind{
 	rose_amdgpu_op_INVALID		=0,
 	rose_amdgpu_op_s_cmp_ge_eq_i32,
 	rose_amdgpu_op_s_cmp_ge_eq_u32,
@@ -1595,4 +1595,5 @@ enum AmdgpuVegaInstructionKind{
 	rose_amdgpu_op_v_cvt_off_f32_i4,
 	rose_amdgpu_op_v_pk_mad_i16
 };
+typedef AMDGPUInstructionKind AmdgpuVegaInstructionKind;
 #endif
