@@ -50,6 +50,7 @@ jobs:
     steps:
       - name: build systemtap
         run: |
+          apt update
           apt install -y git python3 libjson-c-dev
           git clone https://sourceware.org/git/systemtap.git
           ln -s /dyninst/install/include /usr/include/dyninst
