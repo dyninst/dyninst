@@ -53,11 +53,14 @@ jobs:
           apt update
           apt install -y git python3 libjson-c-dev
       - name: Fetch systemtap
+        run: |
           git clone https://sourceware.org/git/systemtap.git
       - name: Make symlinks
+        run: |
           ln -s /dyninst/install/include /usr/include/dyninst
           ln -s /dyninst/install/lib /usr/lib64/dyninst
       - name: Build systemtap
+        run: |
           cd systemtap
           mkdir build
           cd build
