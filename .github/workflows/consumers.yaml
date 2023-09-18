@@ -48,13 +48,16 @@ jobs:
         password: ${{ secrets.github_token }}
     name: systemtap ${{ matrix.os }}
     steps:
-      - name: build systemtap
+      - name: Install dependencies
         run: |
           apt update
           apt install -y git python3 libjson-c-dev
+      - name: Fetch systemtap
           git clone https://sourceware.org/git/systemtap.git
+      - name: Make symlinks
           ln -s /dyninst/install/include /usr/include/dyninst
           ln -s /dyninst/install/lib /usr/lib64/dyninst
+      - name: Build systemtap
           cd systemtap
           mkdir build
           cd build
