@@ -7,18 +7,17 @@ on:
     - cron: '0 3 * * 1' # Monday at 3AM
 
 jobs:
-  build:
+  spack-build:
     strategy:
       fail-fast: false
       matrix:
         consumer: [
           "hpctoolkit"
-          # must+stackwalker  - python is broken
-          # stat              - takes >6hrs
-          # extrae+dyninst    - not yet tested, may not support dyninst >10.0.0
-          # omnitrace         - Needs updated cmake
-          # timemory          - Needs updated cmake
-          # systemtap         - No public repo?
+#           must+stackwalker  - python is broken
+#           stat              - takes >6hrs
+#           extrae+dyninst    - not yet tested, may not support dyninst >10.0.0
+#           omnitrace         - Needs updated cmake
+#           timemory          - Needs updated cmake
         ]
     runs-on: ubuntu-latest
     steps:
@@ -30,3 +29,37 @@ jobs:
         spack/bin/spack compiler find
         spack/bin/spack external find --not-buildable cmake
         spack/bin/spack install ${{ matrix.consumer }} ^dyninst@master
+
+  systemtap:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: true
+      matrix:
+         os: ['ubuntu-20.04']
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: systemtap ${{ matrix.os }}
+    steps:
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y git python3 libjson-c-dev
+      - name: Fetch systemtap
+        run: |
+          git clone https://sourceware.org/git/systemtap.git
+      - name: Make symlinks
+        run: |
+          ln -s /dyninst/install/include /usr/include/dyninst
+          ln -s /dyninst/install/lib /usr/lib64/dyninst
+      - name: Build systemtap
+        run: |
+          cd systemtap
+          mkdir build
+          cd build
+          ../configure --with-dyninst
+          make -j2
