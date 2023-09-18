@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         consumer: [
-#          "hpctoolkit"
+          "hpctoolkit"
 #           must+stackwalker  - python is broken
 #           stat              - takes >6hrs
 #           extrae+dyninst    - not yet tested, may not support dyninst >10.0.0
