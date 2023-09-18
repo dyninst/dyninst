@@ -3,35 +3,32 @@
 name: Build Consumers
 
 on:
-  pull_request:
-     branches:
-        - master
-#  schedule:
-#    - cron: '0 3 * * 1' # Monday at 3AM
+  schedule:
+    - cron: '0 3 * * 1' # Monday at 3AM
 
 jobs:
-#  spack-build:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        consumer: [
-#          "hpctoolkit",
-#           must+stackwalker  - python is broken
-#           stat              - takes >6hrs
-#           extrae+dyninst    - not yet tested, may not support dyninst >10.0.0
-#           omnitrace         - Needs updated cmake
-#           timemory          - Needs updated cmake
-#        ]
-#    runs-on: ubuntu-latest
-#    steps:
-#    - name: ${{ matrix.consumer }}
-#      run: |
-#        sudo apt update -qq
-#        sudo apt install -y -qq --no-install-recommends build-essential gcc g++ gfortran m4 cmake autoconf python3 git unzip
-#        git clone --depth=1 --branch=develop https://github.com/spack/spack
-#        spack/bin/spack compiler find
-#        spack/bin/spack external find --not-buildable cmake
-#        spack/bin/spack install ${{ matrix.consumer }} ^dyninst@master
+  spack-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        consumer: [
+          "hpctoolkit",
+           must+stackwalker  - python is broken
+           stat              - takes >6hrs
+           extrae+dyninst    - not yet tested, may not support dyninst >10.0.0
+           omnitrace         - Needs updated cmake
+           timemory          - Needs updated cmake
+        ]
+    runs-on: ubuntu-latest
+    steps:
+    - name: ${{ matrix.consumer }}
+      run: |
+        sudo apt update -qq
+        sudo apt install -y -qq --no-install-recommends build-essential gcc g++ gfortran m4 cmake autoconf python3 git unzip
+        git clone --depth=1 --branch=develop https://github.com/spack/spack
+        spack/bin/spack compiler find
+        spack/bin/spack external find --not-buildable cmake
+        spack/bin/spack install ${{ matrix.consumer }} ^dyninst@master
 
   systemtap:
     permissions:
