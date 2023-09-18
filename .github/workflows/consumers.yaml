@@ -57,5 +57,5 @@ jobs:
           ln -s /dyninst/install/lib /usr/lib64/dyninst
           cd systemtap
           mkdir build; cd $_
-          ./configure --with-dyninst
+          ../configure --with-dyninst
           make -j2
