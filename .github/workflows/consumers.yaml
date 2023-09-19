@@ -133,3 +133,36 @@ jobs:
           cd build
           ../configure --disable-gui --disable-examples --with-stackwalker=/dyninst/install --with-mrnet=/usr/local
           make -j2
+  tau:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: true
+      matrix:
+         os: ['ubuntu-20.04']
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: systemtap ${{ matrix.os }}
+    steps:
+      - name: Install dependencies
+        run: |
+          # TAU assumes Dyninst needs libdwarf instead of libdw. This has no real
+          # effect on Dyninst as we RPATH our deps. It just makes the manually-constructed
+          # link line in the TAU build work.
+          apt update
+          apt install -y git libdwarf1
+      - name: Fix libdwarf
+        run: |
+          ln -s /usr/lib/x86_64-linux-gnu/libdwarf.so.1.0.0 /usr/lib/x86_64-linux-gnu/libdwarf.so
+      - name: Fetch TAU
+        run: |
+          git clone --depth=1 https://github.com/UO-OACISS/tau2
+      - name: Build TAU
+        run: |
+          cd tau2
+          ./configure -dyninst=/dyninst/install
+          make -j2
