@@ -27,10 +27,10 @@ jobs:
     - name: ${{ matrix.consumer }}
       run: |
         sudo apt update -qq
-        sudo apt install -y -qq --no-install-recommends build-essential gcc g++ gfortran m4 cmake autoconf python3 git unzip
+        sudo apt install -y -qq --no-install-recommends build-essential gcc g++ gfortran m4 cmake autoconf python3 git unzip openmpi-bin libopenmpi-dev
         git clone --depth=1 --branch=develop https://github.com/spack/spack
         spack/bin/spack compiler find
-        spack/bin/spack external find --not-buildable cmake python git m4
+        spack/bin/spack external find --not-buildable cmake python git m4 openmpi gmake
         spack/bin/spack install ${{ matrix.consumer }} ^dyninst@master
 
 #  systemtap:
