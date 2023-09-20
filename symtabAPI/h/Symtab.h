@@ -552,9 +552,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isStaticBinary_{false};
    bool isDefensiveBinary_{false};
 
-   FuncRangeLookup func_lookup{};
-
-
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();

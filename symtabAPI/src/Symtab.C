@@ -2711,5 +2711,5 @@ void Symtab::dumpModRanges() {
 }
 
 void Symtab::dumpFuncRanges() {
-    func_lookup.PrintPreorder();
+    impl->func_lookup.PrintPreorder();
 }

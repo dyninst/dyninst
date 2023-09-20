@@ -42,6 +42,9 @@ namespace Dyninst { namespace SymtabAPI {
 
     using ModRangeLookup = IBSTree<ModRange>;
     ModRangeLookup mod_lookup_{};
+
+    using FuncRangeLookup = IBSTree<FuncRange>;
+    FuncRangeLookup func_lookup{};
   };
 
 }}
