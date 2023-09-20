@@ -46,7 +46,6 @@
 #include "Function.h"
 #include "Annotatable.h"
 #include "ProcReader.h"
-#include "IBSTree.h"
 #include "Type.h"
 
 #include "dyninstversion.h"
@@ -75,7 +74,6 @@ class relocationEntry;
 class Type;
 struct symtab_impl;
 
-typedef IBSTree< ModRange > ModRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
 class SYMTAB_EXPORT Symtab : public LookupInterface,
@@ -556,14 +554,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    FuncRangeLookup func_lookup{};
 
-    ModRangeLookup mod_lookup_{};
-
 
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
    const Object *getObject() const;
-   ModRangeLookup* mod_lookup();
    void dumpModRanges();
    void dumpFuncRanges();
 

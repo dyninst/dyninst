@@ -501,7 +501,7 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
     {
         for(auto *m : (*i)->finalizeRanges()) {
-            mod_lookup_.insert(m);
+            impl->mod_lookup_.insert(m);
         }
     }
 
@@ -783,7 +783,7 @@ void Symtab::createDefaultModule() {
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
     impl->indexed_modules.push_back(mod);
     for(auto *m : mod->finalizeRanges()) {
-      mod_lookup_.insert(m);
+	impl->mod_lookup_.insert(m);
     }
 }
 
@@ -1744,7 +1744,7 @@ void Symtab::parseTypes()
    {
        (*i)->setModuleTypes(typeCollection::getModTypeCollection((*i)));
        for(auto *m : (*i)->finalizeRanges()) {
-	 mod_lookup_.insert(m);
+	   impl->mod_lookup_.insert(m);
        }
    }
 
@@ -2706,14 +2706,8 @@ void Symtab::rebase(Offset loadOff)
 	load_address_ = loadOff;
 }
 
-ModRangeLookup *Symtab::mod_lookup() {
-    return &mod_lookup_;
-
-}
-
-
 void Symtab::dumpModRanges() {
-    mod_lookup_.PrintPreorder();
+    impl->mod_lookup_.PrintPreorder();
 }
 
 void Symtab::dumpFuncRanges() {

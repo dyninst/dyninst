@@ -364,7 +364,7 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
     dyn_mutex::unique_lock l(impl->im_lock);
     std::set<ModRange*> mods;
-    mod_lookup()->find(off, mods);
+    impl->mod_lookup_.find(off, mods);
     if(!mods.empty())
     {
         ret = (*mods.begin())->id();
@@ -377,7 +377,7 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
     dyn_mutex::unique_lock l(impl->im_lock);
     std::set<ModRange*> mods;
     ret.clear();
-    mod_lookup()->find(off, mods);
+    impl->mod_lookup_.find(off, mods);
     for(auto i = mods.begin();
             i != mods.end();
             ++i)
