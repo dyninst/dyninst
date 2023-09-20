@@ -346,7 +346,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                                           Offset newDataOffset,
                                           Offset newDataLength);
    bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
-   bool fixup_SymbolAddr(const char* name, Offset newOffset);
    bool updateRegion(const char* name, void *buffer, unsigned size);
    bool updateCode(void *buffer, unsigned size);
    bool updateData(void *buffer, unsigned size);

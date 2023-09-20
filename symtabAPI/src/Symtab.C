@@ -2102,47 +2102,6 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
     return true;
 }
 
-SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
-{
-  Symbol* sym;
-  {
-    // Find the symbol.
-    indexed_symbols::by_name_t::const_accessor ma;
-    if(!everyDefinedSymbol.by_mangled.find(ma, name)) return false;
-    if(ma->second.size() > 1)
-      create_printf("*** Found %zu symbols with name %s.  Expecting 1.\n",
-                    ma->second.size(), name);
-    sym = ma->second[0];
-
-    // Update symbol.
-    indexed_symbols::master_t::accessor a;
-    if (!everyDefinedSymbol.master.find(a, sym))  {
-        assert(!"everyDefinedSymbol.master.find(a, sym)");
-    }
-    Offset old = a->second;
-
-    sym->setOffset(newOffset);
-    a->second = newOffset;
-
-    // Update the by_offset table
-    indexed_symbols::by_offset_t::accessor oa;
-    if (!everyDefinedSymbol.by_offset.find(oa, old))  {
-        assert(!"everyDefinedSymbol.by_offset.find(oa, old)");
-    }
-    std::remove(oa->second.begin(), oa->second.end(), sym);
-
-    everyDefinedSymbol.by_offset.insert(oa, newOffset);
-    oa->second.push_back(sym);
-  }
-
-  // Update aggregates.
-  if (!doNotAggregate(sym)) {
-    addSymbolToAggregates(sym);
-  }
-
-  return true;
-}
-
 SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)
 {
    Region *sec;
