@@ -6,8 +6,8 @@
 #include "concurrent.h"
 #include "indexed_symbols.hpp"
 
-#include <string>
 #include <mutex>
+#include <string>
 
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -36,7 +36,7 @@ namespace Dyninst { namespace SymtabAPI {
     // efficiently track them.
     dyn_c_hash_map<Offset, Function *> funcsByOffset{};
 
-    using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *> >;
+    using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *>>;
     VarsByOffsetMap varsByOffset{};
   };
 
