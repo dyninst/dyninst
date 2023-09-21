@@ -3,6 +3,7 @@ name: Spack Build
 on:
   schedule:
     - cron: '0 3 * * 0' # Every Sunday at 3AM
+  workflow_dispatch:
 
 jobs:
   build:

@@ -383,8 +383,6 @@ private:
             Dwarf_Sword listLength,
             std::vector<VariableLocation>& locs,
             Address * initialStackValue = NULL);
-    void deallocateLocationList(Dwarf_Op **locationList,
-            Dwarf_Sword listLength);
 
 
     // Map of Function* to bool (indicates function parsed)

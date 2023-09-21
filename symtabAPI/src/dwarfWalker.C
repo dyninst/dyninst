@@ -2495,16 +2495,6 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
 } /* end decodeLocationListForStaticOffsetOrAddress() */
 
 
-void DwarfWalker::deallocateLocationList( Dwarf_Op ** /*locationList*/,
-                                          Dwarf_Sword listLength )
-{
-  for( int i = 0; i < listLength; i++ ) {
-     //dwarf_dealloc( dbg(), locationList[i]->ld_s, DW_DLA_LOC_BLOCK );
-     //dwarf_dealloc( dbg(), locationList[i], DW_DLA_LOCDESC );
-  }
-  //dwarf_dealloc( dbg(), locationList, DW_DLA_LIST );
-} /* end deallocateLocationList() */
-
 void DwarfWalker::setEntry(Dwarf_Die entry) {
    DwarfParseActions::setEntry(entry);
    DwarfParseActions::setSpecEntry(entry);
