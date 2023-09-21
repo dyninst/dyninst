@@ -7,13 +7,12 @@
 #include "concurrent.h"
 #include "indexed_symbols.hpp"
 
-#include <mutex>
-#include <string>
-
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/random_access_index.hpp>
 #include <boost/multi_index_container.hpp>
+#include <mutex>
+#include <string>
 
 namespace Dyninst { namespace SymtabAPI {
 
