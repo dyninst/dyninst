@@ -1498,7 +1498,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 InstructionAPI::Instruction prevInsn = prev->second;
                 bool is_nonret = false;
 
-                if (prevInsn.getOperation().getID() == e_syscall) {
+                if (InstructionAdapter_t::isSyscall(prevInsn, func->obj()->cs()->getArch())) {
                     Address src = edge->src()->lastInsnAddr();
 
 

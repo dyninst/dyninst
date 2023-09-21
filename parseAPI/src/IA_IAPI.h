@@ -117,6 +117,8 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isBranch() const;
         virtual bool isInterruptOrSyscall() const;
         virtual bool isSyscall() const;
+        static bool isSyscall(const Dyninst::InstructionAPI::Instruction &) { return false; }
+        static bool isSyscall(const Dyninst::InstructionAPI::Instruction &insn, Dyninst::Architecture arch);
         virtual bool isInterrupt() const;
         virtual bool isCall() const;
         virtual bool isReturnAddrSave(Address &ret_addr) const = 0;

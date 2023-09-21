@@ -65,6 +65,8 @@ class IA_aarch64 : public IA_IAPI {
 	virtual bool isIATcall(std::string &) const;
 	virtual bool isLinkerStub() const;
 	virtual bool isNopJump() const;
+    static bool isSyscall(const Dyninst::InstructionAPI::Instruction &insn);
+    using IA_IAPI::isSyscall;
     private:
     using IA_IAPI::isFrameSetupInsn;
 };

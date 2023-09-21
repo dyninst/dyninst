@@ -273,3 +273,8 @@ bool IA_aarch64::isNopJump() const
 {
     return false;
 }
+
+bool IA_aarch64::isSyscall(const Instruction &insn)
+{
+    return (insn.getOperation().getID() == aarch64_op_svc);
+}

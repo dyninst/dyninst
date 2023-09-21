@@ -528,4 +528,7 @@ bool IA_power::isNopJump() const
     return false;
 }
 
-
+bool IA_power::isSyscall(const Instruction &insn)
+{
+    return (insn.getOperation().getID() == power_op_sc);
+}

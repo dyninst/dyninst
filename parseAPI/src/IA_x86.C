@@ -40,6 +40,7 @@
 #include "bitArray.h"
 //#include "StackTamperVisitor.h"
 #include "instructionAPI/h/Visitor.h"
+#include "registers/x86_regs.h"
 
 #include <deque>
 #include "Register.h"
@@ -770,5 +771,36 @@ bool IA_x86::isNopJump() const
 bool IA_x86::isLinkerStub() const
 {
     // No need for linker stubs on x86 platforms.
+    return false;
+}
+
+bool IA_x86::isSyscall(const Instruction &insn_ro)
+{
+    static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
+
+    Instruction insn = insn_ro; // make a r/w copy for isRead()
+
+    switch (insn.getOperation().getID()) {
+        case e_call:
+            if (insn.getOperation().isRead(gs) &&
+               insn.getOperand(0).format(insn.getArch()) == "16") {
+                return true;
+            }
+            return false;
+        case e_syscall:
+            return true;
+        case e_int:
+            {
+                Result int_num = insn.getOperand(0).getValue()->eval();
+                if (int_num.defined && int_num.convert<int>() == 0x80) {
+                    return true;
+                }
+            }
+            return false;
+        case e_sysenter:
+            // TODO
+        default:
+            return false;
+    }
     return false;
 }

@@ -500,7 +500,7 @@ bool IA_IAPI::isCall() const
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    return (isInterrupt() && isSyscall());
+    return (isInterrupt() || isSyscall());
 }
 
 bool IA_IAPI::isSyscall() const
@@ -943,4 +943,26 @@ InstrumentableLevel IA_IAPI::getInstLevel(Function * context, unsigned int num_i
           return NORMAL;
           }*/
     return ret;
+}
+
+bool IA_IAPI::isSyscall(const Instruction &insn, Architecture arch)
+{
+    switch (arch) {
+        case Arch_x86:
+        case Arch_x86_64:
+            return IA_x86::isSyscall(insn);
+        case Arch_ppc32:
+        case Arch_ppc64:
+            return IA_power::isSyscall(insn);
+        case Arch_aarch64:
+            return IA_aarch64::isSyscall(insn);
+        case Arch_amdgpu_gfx908:
+        case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
+            return IA_amdgpu::isSyscall(insn);
+
+        default:
+            assert(!"unimplemented architecture");
+    }
+    return false;
 }
