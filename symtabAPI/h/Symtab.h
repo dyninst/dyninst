@@ -92,7 +92,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class Object;
 
    // Hide implementation details that are complex or add large dependencies
-   std::unique_ptr<symtab_impl> impl;
+   const std::unique_ptr<symtab_impl> impl;
 
  public:
 
