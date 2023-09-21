@@ -49,6 +49,7 @@
 #include "ParseContainers.h"
 #include "Annotatable.h"
 #include "DynAST.h"
+#include "CodeSource.h"
 
 #include <iostream>
 #include <boost/thread/lockable_adapter.hpp>
@@ -508,14 +509,71 @@ class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_
 
     struct less
     {
+        /**
+         * If there are more than one guest binary file loaded, multiple
+         * functions may have the same entry point address in different
+         * code regions. And regions themselves may use the same
+         * address ranges.
+         *
+         * We order functions by their regions first, by their address second.
+         *
+         * We order regions by their start first, by their end second,
+         * by the numeric value of their pointers third. We consider NULL
+         * to be less than any non-NULL region.
+         *
+         * The algorithm below is the same as ordering with per-component
+         * comparison vectors
+         *
+         *   ( Region::low(), Region::high(), Region::ptr, Function::addr(), Function::ptr )
+         *
+         * where low() and high() for NULL region are considered to be -INF.
+         *
+         * For typical shared libraries and executables this should order
+         * functions by their address. For static libraries it should group
+         * functions by their object files and order object files by their
+         * size.
+         */
         bool operator()(const Function * f1, const Function * f2) const
         {
-            if (f1->region() < f2->region()) return true;
-            else if (f1->region() == f2->region() &&
-                     f1->addr() < f2->addr()) {
-               return true;
+            CodeRegion *f1_region = f1->region();
+            CodeRegion *f2_region = f2->region();
+
+            /**
+             * Same region or both regions are NULL => order by addr()
+             * For this case we need regions to be the same object,
+             * not just have the same parameters, thus pointer comparison.
+             */
+            if (f1_region == f2_region) {
+                if (f1->addr() < f2->addr()) return true;
+                if (f1->addr() > f2->addr()) return false;
+                if (f1 == f2) return false; /* Compare to self */
+                /* Same region, same address, different functions.
+                   Realistically we should never get here, but just in case... */
+                return uintptr_t(f1) < uintptr_t(f2);
             }
-            return false;
+
+            /* Only one region can be NULL by this point */
+            if (!f1_region) return true;
+            if (!f2_region) return false;
+
+            if (f1_region->low() < f2_region->low()) return true;
+            if (f1_region->low() > f2_region->low()) return false;
+
+            /**
+             * Two functions from different binaries with relocatable code
+             * (.o, DSO, PIE, etc.) can possibly have the same low(),
+             * high(), and addr().
+             *
+             * Still, try ordering by high() first.
+             */
+            if (f1_region->high() < f2_region->high()) return true;
+            if (f1_region->high() > f2_region->high()) return false;
+
+            /**
+             * Corner case: different regions with the same address and the same size,
+             * probably from different files. Order by numeric value of their pointers.
+             */
+            return uintptr_t(f1_region) < uintptr_t(f2_region);
         }
     };
 
