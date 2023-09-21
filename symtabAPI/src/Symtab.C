@@ -689,8 +689,11 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
 
             if( func->getRegion() != sym->getRegion() ) {
                 func = new Function(sym);
+            } else {
+        	// The function has an additional name
+        	// e.g., two symbols aliasing the same code location
+                func->addSymbol(sym);
             }
-            func->addSymbol(sym);
         }
 
         {
