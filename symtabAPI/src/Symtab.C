@@ -667,14 +667,16 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         {
             dyn_c_hash_map<Offset,Function*>::accessor a;
             found = !funcsByOffset.insert(a, sym->getOffset());
-            if(found) func = a->second;
-            else {
-            // Create a new function
-            // Also, update the symbol to point to this function.
-            func = new Function(sym);
+            if(found){
+        	func = a->second;
+            } else {
+                // Create a new function
+                // Also, update the symbol to point to this function.
+                func = new Function(sym);
                 a->second = func;
+            }
         }
-        }  // Release the lock on the offset/function pair
+
         if(found) {
             /* XXX 
              * For relocatable files, the offset of a symbol is relative to the
@@ -687,16 +689,16 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
 
             if( func->getRegion() != sym->getRegion() ) {
                 func = new Function(sym);
-                boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
-                everyFunction.push_back(func);
-                sorted_everyFunction = false;
             }
             func->addSymbol(sym);
-        } else {
-            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
-            everyFunction.push_back(func);
-            sorted_everyFunction = false;
         }
+
+        {
+            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+	    everyFunction.push_back(func);
+	    sorted_everyFunction = false;
+        }
+
         sym->setFunction(func);
 
         break;
