@@ -6,6 +6,7 @@ name: Compiler multibuild
 on:
   schedule:
     - cron: '0 3 * * 1'  # 3AM on Monday
+  workflow_dispatch:
 
 jobs:
   gcc-ubuntu-20_04:
