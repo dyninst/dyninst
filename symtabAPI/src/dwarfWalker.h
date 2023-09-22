@@ -288,8 +288,6 @@ private:
     bool parseMember();
     bool parseConstPackedVolatile();
     bool parseTypeReferences();
-    static std::pair<AddressRange, bool> parseHighPCLowPC(Dwarf* dbg, Dwarf_Die entry);
-
 
     // These vary as we parse the tree
 
