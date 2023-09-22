@@ -795,7 +795,6 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf_Die die)
     {
         if(offset < 0) return std::vector<AddressRange>();
         dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", start, end);
-//        printf("Lexical block from 0x%lx to 0x%lx, offset is %p, %d entries\n", start, end, offset, newRanges.size());
         newRanges.push_back(AddressRange(start, end));
         offset = dwarf_ranges(&die, offset, &base, &start, &end);
     }
