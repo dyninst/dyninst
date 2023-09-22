@@ -766,43 +766,6 @@ void DwarfWalker::setRanges(FunctionBase *func) {
     }
 }
 
-pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf * /*dbg*/, Dwarf_Die entry)
-{
-    Dwarf_Addr low, high;
-    int low_result = dwarf_lowpc(&entry, &low);
-    int high_result = dwarf_highpc(&entry, &high);
-    bool ok = (low_result == 0) &&
-            (high_result == 0) &&
-            (low != 0) &&
-            (high != 0);
-
-    return make_pair(AddressRange(low, high), ok);
-//    Dwarf_Attribute hasLow;
-//
-//    Dwarf_Attribute hasHigh;
-//    std::pair<AddressRange, bool> result = make_pair(AddressRange(0,0), false);
-//    if(dwarf_attr(&entry, DW_AT_low_pc, &hasLow) == NULL) return result;
-//    if(dwarf_attr(&entry, DW_AT_high_pc, &hasHigh) == NULL) return result;
-//
-//    Address low, high;
-//    if (!findConstant(DW_AT_low_pc, low, entry, dbg)) return result;
-//    if (!findConstant(DW_AT_high_pc, high, entry, dbg)) return result;
-//    Dwarf_Half form = dwarf_whatform(&hasHigh);
-//    if(form==0) return result;
-//
-//    if(form != DW_FORM_addr)
-//    {
-//        high += low;
-//    }
-//    // Don't add 0,0; it's not a real range but a sign something went wrong.
-//    if(low || high)
-//    {
-//        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-//        result = make_pair(AddressRange(low, high), true);
-//    }
-//    return result;
-}
-
 bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
