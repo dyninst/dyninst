@@ -43,7 +43,7 @@
 #include "Collections.h"
 #include "Function.h"
 #include "Variable.h"
-
+#include "symtab_impl.hpp"
 #include "symtabAPI/src/Object.h"
 
 #include "boost/tuple/tuple.hpp"
@@ -109,7 +109,7 @@ bool Symtab::deleteFunction(Function *func) {
         }
     }
 */
-    funcsByOffset.erase(func->getOffset());
+    impl->funcsByOffset.erase(func->getOffset());
 
     // Now handle the Aggregate stuff
     return deleteAggregate(func);
@@ -121,13 +121,13 @@ bool Symtab::deleteVariable(Variable *var) {
 
     // remove variable from varsByOffset
     {
-        VarsByOffsetMap::accessor a;
-        bool found = !varsByOffset.find(a, var->getOffset());
+        decltype(impl->varsByOffset)::accessor a;
+        bool found = !impl->varsByOffset.find(a, var->getOffset());
         if (found)  {
-            VarsByOffsetMap::mapped_type &vars = a->second;
+            decltype(impl->varsByOffset)::mapped_type &vars = a->second;
             vars.erase(std::remove(vars.begin(), vars.end(), var), vars.end());
             if (vars.empty())  {
-                varsByOffset.erase(a);
+                impl->varsByOffset.erase(a);
             }
         }
     }
@@ -148,8 +148,8 @@ bool Symtab::deleteAggregate(Aggregate *agg) {
 }
 
 bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
-  everyDefinedSymbol.erase(sym);
-  undefDynSyms.erase(sym);
+  impl->everyDefinedSymbol.erase(sym);
+  impl->undefDynSyms.erase(sym);
   return true;
 }
 
@@ -172,17 +172,17 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     // the aggregate, and make a new aggregate.
   {
     indexed_symbols::master_t::accessor a;
-    if (!everyDefinedSymbol.master.find(a, sym))  {
+    if (!impl->everyDefinedSymbol.master.find(a, sym))  {
         assert(!"everyDefinedSymbol.master.find(a, sym)");
     }
 
     indexed_symbols::by_offset_t::accessor oa;
-    if (!everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
+    if (!impl->everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
         assert(!"everyDefinedSymbol.by_offset.find(oa, sym->offset_)");
     }
     auto &syms = oa->second;
     syms.erase(std::remove(syms.begin(), syms.end(), sym), syms.end());
-    everyDefinedSymbol.by_offset.insert(oa, newOffset);
+    impl->everyDefinedSymbol.by_offset.insert(oa, newOffset);
     oa->second.push_back(sym);
 
     a->second = newOffset;
@@ -198,25 +198,25 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
     Variable *var = dynamic_cast<Variable *>(agg);
 
     if (func) {
-        funcsByOffset.erase(oldOffset);
-        if (!funcsByOffset.insert({newOffset, func})) {
+        impl->funcsByOffset.erase(oldOffset);
+        if (!impl->funcsByOffset.insert({newOffset, func})) {
             // Already someone there... odd, so don't do anything.
         }
     }
     if (var) {
-        VarsByOffsetMap::accessor a;
-        bool found = !varsByOffset.find(a, oldOffset);
-        VarsByOffsetMap::mapped_type &vars = a->second;
+        decltype(impl->varsByOffset)::accessor a;
+        bool found = !impl->varsByOffset.find(a, oldOffset);
+        decltype(impl->varsByOffset)::mapped_type &vars = a->second;
         if (found)  {
             vars.erase(std::remove(vars.begin(), vars.end(), var), vars.end());
             if (vars.empty())  {
-                varsByOffset.erase(a);
+                impl->varsByOffset.erase(a);
             }
         }  else  {
             assert(0);
         }
 
-        found = !varsByOffset.insert(a, newOffset);
+        found = !impl->varsByOffset.insert(a, newOffset);
         if (found)  {
             found = false;
             for (auto v: vars)  {
@@ -308,7 +308,7 @@ Function *Symtab::createFunction(std::string name,
     }
 
     // Check to see if we contain this module...
-    if(indexed_modules.get<1>().find(mod) == indexed_modules.get<1>().end()) return NULL;
+    if(impl->indexed_modules.get<1>().find(mod) == impl->indexed_modules.get<1>().end()) return NULL;
 //
 //    bool found = false;
 //    for (unsigned i = 0; i < indexed_modules.size(); i++) {
@@ -356,7 +356,7 @@ Variable *Symtab::createVariable(std::string name,
         mod = getDefaultModule();
     }
     // Check to see if we contain this module...
-    if(indexed_modules.get<1>().find(mod) == indexed_modules.get<1>().end()) return NULL;
+    if(impl->indexed_modules.get<1>().find(mod) == impl->indexed_modules.get<1>().end()) return NULL;
 //
 //    bool found = false;
 //    for (unsigned i = 0; i < indexed_modules.size(); i++) {

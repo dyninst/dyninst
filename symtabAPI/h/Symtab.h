@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 #include <set>
-#include <mutex>
+#include <memory>
 
 #include "Symbol.h"
 #include "Module.h"
@@ -46,31 +46,11 @@
 #include "Function.h"
 #include "Annotatable.h"
 #include "ProcReader.h"
-#include "IBSTree.h"
 #include "Type.h"
 
 #include "dyninstversion.h"
 
-#include "concurrent.h"
-
 #include "boost/shared_ptr.hpp"
-#include "boost/multi_index_container.hpp"
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/mem_fun.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/identity.hpp>
-#include <boost/multi_index/random_access_index.hpp>
-using boost::multi_index_container;
-using boost::multi_index::indexed_by;
-using boost::multi_index::ordered_unique;
-using boost::multi_index::ordered_non_unique;
-using boost::multi_index::hashed_non_unique;
-
-using boost::multi_index::identity;
-using boost::multi_index::tag;
-using boost::multi_index::const_mem_fun;
-using boost::multi_index::member;
 
 class MappedFile;
 
@@ -92,8 +72,8 @@ class Object;
 class localVar;
 class relocationEntry;
 class Type;
+struct symtab_impl;
 
-typedef IBSTree< ModRange > ModRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
 class SYMTAB_EXPORT Symtab : public LookupInterface,
@@ -110,6 +90,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class Aggregate;
    friend class relocationEntry;
    friend class Object;
+
+   // Hide implementation details that are complex or add large dependencies
+   const std::unique_ptr<symtab_impl> impl;
 
  public:
 
@@ -538,81 +521,13 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    //symbols
    unsigned no_of_symbols{};
-
-   struct indexed_symbols {
-       typedef dyn_c_hash_map<Symbol*, Offset> master_t;
-       typedef std::vector<Symbol*> symvec_t;
-       typedef dyn_c_hash_map<Offset, symvec_t> by_offset_t;
-       typedef dyn_c_hash_map<std::string, symvec_t> by_name_t;
-
-       master_t master;
-       by_offset_t by_offset;
-       by_name_t by_mangled;
-       by_name_t by_pretty;
-       by_name_t by_typed;
-
-       // Only inserts if not present. Returns whether it inserted.
-       bool insert(Symbol* s);
-
-       // Clears the table. Do not use in parallel.
-       void clear();
-
-       // Erases symbols from the table. Do not use in parallel.
-       void erase(Symbol* s);
-
-       // Iterator for the symbols. Do not use in parallel.
-       class iterator {
-           master_t::iterator m;
-       public:
-	   using iterator_category = std::forward_iterator_tag;
-	   using value_type = Symbol*;
-	   using difference_type = std::ptrdiff_t;
-	   using pointer = value_type*;
-	   using reference = value_type&;
-
-           iterator(master_t::iterator i) : m(i) {}
-           bool operator==(const iterator& x) const { return m == x.m; }
-           bool operator!=(const iterator& x) const { return !operator==(x); }
-           Symbol* const& operator*() const { return m->first; }
-           Symbol* const* operator->() const { return &operator*(); }
-           iterator& operator++() { ++m; return *this; }
-           iterator operator++(int) {
-               iterator old(m);
-               operator++();
-               return old;
-           }
-       };
-
-       iterator begin() { return iterator(master.begin()); }
-       iterator end() { return iterator(master.end()); }
-   };
-
-   indexed_symbols everyDefinedSymbol{};
-   indexed_symbols undefDynSyms{};
    
    // We also need per-Aggregate indices
    bool sorted_everyFunction{false};
    std::vector<Function *> everyFunction{};
-   // Since Functions are unique by address we require this structure to
-   // efficiently track them.
-   dyn_c_hash_map <Offset, Function *> funcsByOffset{};
 
    // Similar for Variables
    std::vector<Variable *> everyVariable{};
-   using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *> >;
-   VarsByOffsetMap varsByOffset{};
-
-    dyn_mutex im_lock{};
-    boost::multi_index_container<Module*,
-            boost::multi_index::indexed_by<
-                    boost::multi_index::random_access<>,
-                    boost::multi_index::ordered_unique<boost::multi_index::identity<Module*> >,
-                    boost::multi_index::ordered_non_unique<
-                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fileName> >
-                    >
-            >
-            indexed_modules{};
-
 
    std::vector<relocationEntry > relocation_table_{};
    std::vector<ExceptionBlock *> excpBlocks{};
@@ -626,8 +541,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
    std::set<Symtab *> explicitSymtabRefs_{};
 
-   std::once_flag types_parsed;
-
    //Relocation sections
    bool hasRel_{false};
    bool hasRela_{false};
@@ -639,17 +552,10 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isStaticBinary_{false};
    bool isDefensiveBinary_{false};
 
-   FuncRangeLookup func_lookup{};
-   std::once_flag funcRangesAreParsed;
-
-    ModRangeLookup mod_lookup_{};
-
-
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
    const Object *getObject() const;
-   ModRangeLookup* mod_lookup();
    void dumpModRanges();
    void dumpFuncRanges();
 

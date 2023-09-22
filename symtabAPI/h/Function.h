@@ -44,7 +44,6 @@
 #include "Annotatable.h"
 #include "Aggregate.h"
 #include "Variable.h"
-#include "IBSTree.h"
 #include "concurrent.h"
 #include "VariableLocation.h"
 
@@ -77,7 +76,6 @@ class SYMTAB_EXPORT FuncRange {
    typedef Dyninst::Offset type;
 };
 
-typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef std::vector<FuncRange> FuncRangeCollection;
 typedef std::vector<FunctionBase *> InlineCollection;
 typedef std::vector<FuncRange> FuncRangeCollection;

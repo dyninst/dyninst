@@ -52,6 +52,7 @@
 #include "debug.h"
 
 #include "symtabAPI/src/Object.h"
+#include "symtab_impl.hpp"
 
 
 #if !defined(os_windows)
@@ -310,7 +311,8 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) : Symtab()
 
 SYMTAB_EXPORT Symtab::Symtab() :
    LookupInterface(),
-   AnnotatableSparse()
+   AnnotatableSparse(),
+   impl{std::unique_ptr<symtab_impl>(new symtab_impl{})}
 {  
     init_debug_symtabAPI();
 }
@@ -420,78 +422,6 @@ SYMTAB_EXPORT string Symtab::getDefaultNamespacePrefix() const
     return defaultNamespacePrefix;
 }
 
-// Operations on the indexed_symbols compound table.
-bool Symtab::indexed_symbols::insert(Symbol* s) {
-    Offset o = s->getOffset();
-    master_t::accessor a;
-    if(master.insert(a, std::make_pair(s, o))) {
-        {
-            by_offset_t::accessor oa;
-            by_offset.insert(oa, o);
-            oa->second.push_back(s);
-        }
-        {
-            by_name_t::accessor ma;
-            by_mangled.insert(ma, s->getMangledName());
-            ma->second.push_back(s);
-        }
-        {
-            by_name_t::accessor pa;
-            by_pretty.insert(pa, s->getPrettyName());
-            pa->second.push_back(s);
-        }
-        {
-            by_name_t::accessor ta;
-            by_typed.insert(ta, s->getTypedName());
-            ta->second.push_back(s);
-        }
-
-        return true;
-    }
-    return false;
-}
-
-void Symtab::indexed_symbols::clear() {
-    master.clear();
-    by_offset.clear();
-    by_mangled.clear();
-    by_pretty.clear();
-    by_typed.clear();
-}
-
-void Symtab::indexed_symbols::erase(Symbol* s) {
-    if(master.erase(s)) {
-        {
-            by_offset_t::accessor oa;
-            if (!by_offset.find(oa, s->getOffset()))  {
-                assert(!"by_offset.find(oa, s->getOffset())");
-            }
-            std::remove(oa->second.begin(), oa->second.end(), s);
-        }
-        {
-            by_name_t::accessor ma;
-            if (!by_mangled.find(ma, s->getMangledName()))  {
-                assert(!"by_mangled.find(ma, s->getMangledName())");
-            }
-            std::remove(ma->second.begin(), ma->second.end(), s);
-        }
-        {
-            by_name_t::accessor pa;
-            if (!by_pretty.find(pa, s->getPrettyName()))  {
-                assert(!"by_pretty.find(pa, s->getPrettyName())");
-            }
-            std::remove(pa->second.begin(), pa->second.end(), s);
-        }
-        {
-            by_name_t::accessor ta;
-            if (!by_typed.find(ta, s->getTypedName()))  {
-                assert(!"by_typed.find(ta, s->getTypedName())");
-            }
-            std::remove(ta->second.begin(), ta->second.end(), s);
-        }
-    }
-}
-
 
 /*
  * extractSymbolsFromFile
@@ -526,7 +456,7 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
       // relocation entries have references to these undefined dynamic symbols.
       // We also have undefined symbols for the static binary case.
       if (sym->getRegion() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
-         undefDynSyms.insert(sym);
+         impl->undefDynSyms.insert(sym);
          continue;
       }
       
@@ -568,10 +498,10 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     if (!obj) {
        return false;
     }
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
     {
         for(auto *m : (*i)->finalizeRanges()) {
-            mod_lookup_.insert(m);
+            impl->mod_lookup_.insert(m);
         }
     }
 
@@ -612,7 +542,7 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
 
 bool Symtab::createAggregates() 
 {
-  std::vector<Symbol*> syms(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
+  std::vector<Symbol*> syms(impl->everyDefinedSymbol.begin(), impl->everyDefinedSymbol.end());
 
   #pragma omp parallel for
   for(size_t i = 0; i < syms.size(); ++i)
@@ -638,11 +568,11 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
 {
    assert(sym);
    if (!undefined) {
-       everyDefinedSymbol.insert(sym);
+       impl->everyDefinedSymbol.insert(sym);
    }
    else {
        // multi-index container should handle duplication
-       undefDynSyms.insert(sym);
+       impl->undefDynSyms.insert(sym);
    }
    
     return true;
@@ -666,9 +596,9 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         bool found = false;
         {
             dyn_c_hash_map<Offset,Function*>::accessor a;
-            found = !funcsByOffset.insert(a, sym->getOffset());
+            found = !impl->funcsByOffset.insert(a, sym->getOffset());
             if(found){
-        	func = a->second;
+        	    func = a->second;
             } else {
                 // Create a new function
                 // Also, update the symbol to point to this function.
@@ -712,9 +642,9 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         Variable *var = NULL;
         bool found = false;
         {
-            VarsByOffsetMap::accessor a;
-            found = !varsByOffset.insert(a, sym->getOffset());
-            VarsByOffsetMap::mapped_type &vars = a->second;
+            decltype(impl->varsByOffset)::accessor a;
+            found = !impl->varsByOffset.insert(a, sym->getOffset());
+            decltype(impl->varsByOffset)::mapped_type &vars = a->second;
             if (found)  {
                 found = false;
                 for (auto v: vars)  {
@@ -813,7 +743,7 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
    Module *currmod = NULL;
    //int dump = 0;
 
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
       currmod = (*i);
       supportedLanguages currLang;
@@ -850,15 +780,15 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
 }
 
 void Symtab::createDefaultModule() {
-    assert(indexed_modules.empty());
+    assert(impl->indexed_modules.empty());
     Module *mod = new Module(lang_Unknown,
                      imageOffset_,
                      file(),
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
-    indexed_modules.push_back(mod);
+    impl->indexed_modules.push_back(mod);
     for(auto *m : mod->finalizeRanges()) {
-      mod_lookup_.insert(m);
+	impl->mod_lookup_.insert(m);
     }
 }
 
@@ -867,7 +797,7 @@ void Symtab::createDefaultModule() {
 Module *Symtab::getOrCreateModule(const std::string &modName, 
                                   const Offset modAddr)
 {
-    if(indexed_modules.empty()) {
+    if(impl->indexed_modules.empty()) {
         createDefaultModule();
     }
 
@@ -915,13 +845,13 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
 
-   if (indexed_modules.get<2>().end() != indexed_modules.get<2>().find(ret->fileName()))
+    if (impl->indexed_modules.get<2>().end() != impl->indexed_modules.get<2>().find(ret->fileName()))
     {
        create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
              FILE__, __LINE__, ret->fileName().c_str());
     }
 
-    indexed_modules.push_back(ret);
+    impl->indexed_modules.push_back(ret);
     
     return (ret);
 }
@@ -1393,8 +1323,8 @@ Symtab::~Symtab()
    }
 
    // Symbols are copied from linkedFile, and NOT deleted
-   everyDefinedSymbol.clear();
-   undefDynSyms.clear();
+   impl->everyDefinedSymbol.clear();
+   impl->undefDynSyms.clear();
 
 
    for (unsigned i = 0; i < everyFunction.size(); i++) 
@@ -1403,7 +1333,7 @@ Symtab::~Symtab()
    }
 
    everyFunction.clear();
-   funcsByOffset.clear();
+   impl->funcsByOffset.clear();
 
    for (unsigned i = 0; i < everyVariable.size(); i++) 
    {
@@ -1411,13 +1341,13 @@ Symtab::~Symtab()
    }
 
    everyVariable.clear();
-   varsByOffset.clear();
+   impl->varsByOffset.clear();
 
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
       delete (*i);
    }
-   indexed_modules.clear();
+   impl->indexed_modules.clear();
 
    for (unsigned i=0;i<excpBlocks.size();i++)
       delete excpBlocks[i];
@@ -1696,7 +1626,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    parseLineInformation();
    
    /* Iteratate over the modules, looking for ranges in each. */
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
        StringTablePtr s = (*i)->getStrings();
        boost::unique_lock<dyn_mutex> l(s->lock);
@@ -1815,11 +1745,11 @@ void Symtab::parseTypes()
 	}
     linkedFile->parseTypeInfo();
 
-    for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
        (*i)->setModuleTypes(typeCollection::getModTypeCollection((*i)));
        for(auto *m : (*i)->finalizeRanges()) {
-	 mod_lookup_.insert(m);
+	   impl->mod_lookup_.insert(m);
        }
    }
 
@@ -1854,10 +1784,10 @@ SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string n
 {
    parseTypesNow();
 
-   if (indexed_modules.empty())
+   if (impl->indexed_modules.empty())
       return false;
 
-   for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
@@ -1876,12 +1806,12 @@ SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::d
 	boost::shared_ptr<Type> t;
    parseTypesNow();
 
-   if (indexed_modules.empty())
+   if (impl->indexed_modules.empty())
    {
       return NULL;
    }
 
-   for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
@@ -1913,7 +1843,7 @@ SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::
 {
    parseTypesNow();
     type = NULL;
-   for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
+   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
@@ -1988,11 +1918,11 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
 {
     // Start with all the defined symbols
     std::set<Symbol* > allSyms;
-    allSyms.insert(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
+    allSyms.insert(impl->everyDefinedSymbol.begin(), impl->everyDefinedSymbol.end());
 
     // Add the undefined dynamic symbols
 
-    allSyms.insert(undefDynSyms.begin(), undefDynSyms.end());
+    allSyms.insert(impl->undefDynSyms.begin(), impl->undefDynSyms.end());
 
     // Write the new file
     return linkedFile->emitDriver(filename, allSyms, flag);
@@ -2569,7 +2499,7 @@ const Object *Symtab::getObject() const
 
 void Symtab::parseTypesNow()
 {
-   std::call_once(this->types_parsed, [this](){ this->parseTypes(); });
+   std::call_once(this->impl->types_parsed, [this](){ this->parseTypes(); });
 }
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
@@ -2781,16 +2711,10 @@ void Symtab::rebase(Offset loadOff)
 	load_address_ = loadOff;
 }
 
-ModRangeLookup *Symtab::mod_lookup() {
-    return &mod_lookup_;
-
-}
-
-
 void Symtab::dumpModRanges() {
-    mod_lookup_.PrintPreorder();
+    impl->mod_lookup_.PrintPreorder();
 }
 
 void Symtab::dumpFuncRanges() {
-    func_lookup.PrintPreorder();
+    impl->func_lookup.PrintPreorder();
 }

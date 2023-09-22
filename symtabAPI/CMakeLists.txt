@@ -31,7 +31,9 @@ set(_private_headers
     src/Object-elf.h
     src/Object.h
     src/Object-nt.h
-    src/Type-mem.h)
+    src/Type-mem.h
+    src/indexed_symbols.hpp
+    src/symtab_impl.hpp)
 
 set(_sources
     src/AddrLookup.C
