@@ -272,7 +272,7 @@ private:
     bool parseLexicalBlock();
     bool parseTryBlock();
     bool parseCatchBlock();
-    bool parseRangeTypes(Dwarf* dbg, Dwarf_Die die);
+    bool parseRangeTypes(Dwarf_Die die);
     bool parseCommonBlock();
     bool parseConstant();
     virtual bool parseVariable();
@@ -358,7 +358,7 @@ public:
     static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf *dbg);
     static bool findConstantWithForm(Dwarf_Attribute &attr, Dwarf_Half form,
             Address &value);
-    static std::vector<AddressRange> getDieRanges(Dwarf* dbg, Dwarf_Die die, Offset base);
+    static std::vector<AddressRange> getDieRanges(Dwarf_Die die);
 private:
     bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form,
             std::vector<VariableLocation> &locs);
