@@ -624,7 +624,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    bool name_result;
 
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
-   parseRangeTypes(dbg(), entry());
+   parseRangeTypes(entry());
    setFunctionFromRange(func_type);
 
    // Name first
@@ -766,11 +766,11 @@ void DwarfWalker::setRanges(FunctionBase *func) {
     }
 }
 
-bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
+bool DwarfWalker::parseRangeTypes(Dwarf_Die die) {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
-    std::vector<AddressRange> newRanges = getDieRanges(dbg, die, modLow);
+    std::vector<AddressRange> newRanges = getDieRanges(die);
 //    cerr << "parseRangeTypes generating new ranges, size is " << newRanges.size()
 //         << ", DIE offset is " << die.addr << endl;
     for(auto r = newRanges.begin();
@@ -782,7 +782,7 @@ bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
    return !newRanges.empty();
 }
 
-vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * /*dbg*/, Dwarf_Die die, Offset /*range_base*/)
+vector<AddressRange> DwarfWalker::getDieRanges(Dwarf_Die die)
 {
     std::vector<AddressRange> newRanges;
 
@@ -795,7 +795,6 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * /*dbg*/, Dwarf_Die die, O
         if(offset < 0) return std::vector<AddressRange>();
         if(offset == 0) break;
         dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", start, end);
-//        printf("Lexical block from 0x%lx to 0x%lx, offset is %p, %d entries\n", start, end, offset, newRanges.size());
         newRanges.push_back(AddressRange(start, end));
     }
     return newRanges;
@@ -803,17 +802,17 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * /*dbg*/, Dwarf_Die die, O
 
 bool DwarfWalker::parseLexicalBlock() {
    dwarf_printf("(0x%lx) Parsing lexical block\n", id());
-   return parseRangeTypes(dbg(), entry());
+   return parseRangeTypes(entry());
 }
 
 bool DwarfWalker::parseTryBlock() {
    dwarf_printf("(0x%lx) Parsing try block ranges\n", id());
-   return parseRangeTypes(dbg(), entry());
+   return parseRangeTypes(entry());
 }
 
 bool DwarfWalker::parseCatchBlock() {
    dwarf_printf("(0x%lx) Parsing catch block ranges\n", id());
-   return parseRangeTypes(dbg(), entry());
+   return parseRangeTypes(entry());
 }
 
 bool DwarfWalker::parseCommonBlock() {

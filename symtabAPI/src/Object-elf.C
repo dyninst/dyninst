@@ -2201,7 +2201,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
             #pragma omp critical
             convertDebugOffset(tempModLow, modLow);
         }
-        std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
+        std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(cu_die);
         Module *m;
         #pragma omp critical
         m = associated_symtab->getOrCreateModule(modname, modLow);
