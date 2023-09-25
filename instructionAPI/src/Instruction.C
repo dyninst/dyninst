@@ -558,13 +558,24 @@ namespace Dyninst
                 case e_sysexit:
                 case e_call:
                 case e_syscall:
-                case amdgpu_op_s_setpc_b64:
-                case amdgpu_op_s_swappc_b64:
-                case amdgpu_gfx908_op_S_SETPC_B64:
-                case amdgpu_gfx908_op_S_SWAPPC_B64:
-                case amdgpu_gfx90a_op_S_SETPC_B64:
-                case amdgpu_gfx90a_op_S_SWAPPC_B64:
                     return false;
+#if 1
+                /*
+                 * These amdgpu instructions are placed here to allow
+                 * flow control processing with the new optional lack
+                 * of Semantic Evaluation feature for amdgpu, and a few
+                 * other odd cases due to instruction classification issues.
+                 *
+                 * This temporary fix allows almost full dyninst CFG
+                 * until we have amdgpu semantic information.
+                 * Once semantic evaluation is received & implemented
+                 * for amdgpu architectures, this will no longer be needed;
+                 * then GPU instructions will be processed as e_ "instructions".
+                 */
+#include "amdgpu_callinsn_table.h"
+#include "amdgpu_returninsn_table.h"
+                    return false;
+#endif
                 case e_jnb:
                 case e_jb:
                 case e_jb_jnaej_j:
