@@ -308,7 +308,7 @@ Function *Symtab::createFunction(std::string name,
     }
 
     // Check to see if we contain this module...
-    if(impl->indexed_modules.get<1>().find(mod) == impl->indexed_modules.get<1>().end()) return NULL;
+    if(!impl->modules.contains(mod)) return NULL;
 //
 //    bool found = false;
 //    for (unsigned i = 0; i < indexed_modules.size(); i++) {
@@ -356,7 +356,7 @@ Variable *Symtab::createVariable(std::string name,
         mod = getDefaultModule();
     }
     // Check to see if we contain this module...
-    if(impl->indexed_modules.get<1>().find(mod) == impl->indexed_modules.get<1>().end()) return NULL;
+    if(!impl->modules.contains(mod)) return NULL;
 //
 //    bool found = false;
 //    for (unsigned i = 0; i < indexed_modules.size(); i++) {

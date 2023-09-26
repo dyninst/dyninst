@@ -504,10 +504,10 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
 	createDefaultModule();
     }
 
-    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+    for (auto *m : this->impl->modules)
     {
-        for(auto *m : (*i)->finalizeRanges()) {
-            impl->mod_lookup_.insert(m);
+        for(auto *mr : m->finalizeRanges()) {
+            impl->mod_lookup_.insert(mr);
         }
     }
 
@@ -749,12 +749,10 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
    if (!mod_langs->size())
       return;  // cannot do anything here
    //  this case will arise until language parsing can be introduced at this level
-   Module *currmod = NULL;
    //int dump = 0;
 
-    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+    for (auto *currmod : impl->modules)
    {
-      currmod = (*i);
       supportedLanguages currLang;
       if (currmod->isShared()) {
          continue;  // need to find some way to get shared object languages?
@@ -795,7 +793,7 @@ void Symtab::createDefaultModule() {
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
     impl->default_module = mod;
-    impl->indexed_modules.push_back(mod);
+    impl->modules.insert(mod);
     for(auto *m : mod->finalizeRanges()) {
 	impl->mod_lookup_.insert(m);
     }
@@ -850,13 +848,13 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
 
-    if (impl->indexed_modules.get<2>().end() != impl->indexed_modules.get<2>().find(ret->fileName()))
+    if (impl->modules.contains(ret))
     {
        create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
              FILE__, __LINE__, ret->fileName().c_str());
     }
 
-    impl->indexed_modules.push_back(ret);
+    impl->modules.insert(ret);
     
     return (ret);
 }
@@ -1348,11 +1346,10 @@ Symtab::~Symtab()
    everyVariable.clear();
    impl->varsByOffset.clear();
 
-    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+    for (auto *m : impl->modules)
    {
-      delete (*i);
+      delete m;
    }
-   impl->indexed_modules.clear();
 
    for (unsigned i=0;i<excpBlocks.size();i++)
       delete excpBlocks[i];
@@ -1631,15 +1628,15 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    parseLineInformation();
    
    /* Iteratate over the modules, looking for ranges in each. */
-    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+    for (auto *m : impl->modules)
    {
-       StringTablePtr s = (*i)->getStrings();
+       StringTablePtr s = m->getStrings();
        boost::unique_lock<dyn_mutex> l(s->lock);
        // Only check modules that have this filename present
        if(s->get<1>().find(lineSource) == s->get<1>().end()) {
            continue;
        }
-       LineInformation *lineInformation = (*i)->parseLineInformation();
+       LineInformation *lineInformation = m->parseLineInformation();
        if (lineInformation) {
            lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
        }
@@ -1750,11 +1747,11 @@ void Symtab::parseTypes()
 	}
     linkedFile->parseTypeInfo();
 
-    for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+    for (auto *m : impl->modules)
    {
-       (*i)->setModuleTypes(typeCollection::getModTypeCollection((*i)));
-       for(auto *m : (*i)->finalizeRanges()) {
-	   impl->mod_lookup_.insert(m);
+       m->setModuleTypes(typeCollection::getModTypeCollection(m));
+       for(auto *mr : m->finalizeRanges()) {
+	   impl->mod_lookup_.insert(mr);
        }
    }
 
@@ -1789,12 +1786,12 @@ SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string n
 {
    parseTypesNow();
 
-   if (impl->indexed_modules.empty())
+   if (impl->modules.empty())
       return false;
 
-   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+   for (auto *m : impl->modules)
    {
-	   typeCollection *tc = (*i)->getModuleTypes();
+	   typeCollection *tc = m->getModuleTypes();
 	   if (!tc) continue;
 	   type = tc->findType(name, Type::share);
 	   if (type) return true;
@@ -1811,14 +1808,14 @@ SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::d
 	boost::shared_ptr<Type> t;
    parseTypesNow();
 
-   if (impl->indexed_modules.empty())
+   if (impl->modules.empty())
    {
       return NULL;
    }
 
-   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+   for (auto *m : impl->modules)
    {
-	   typeCollection *tc = (*i)->getModuleTypes();
+	   typeCollection *tc = m->getModuleTypes();
 	   if (!tc) continue;
 	   t = tc->findType(type_id, Type::share);
 	   if (t)  break;
@@ -1848,9 +1845,9 @@ SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::
 {
    parseTypesNow();
     type = NULL;
-   for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
+   for (auto *m : impl->modules)
    {
-	   typeCollection *tc = (*i)->getModuleTypes();
+	   typeCollection *tc = m->getModuleTypes();
 	   if (!tc) continue;
 	   type = tc->findVariableType(name, Type::share);
 	   if (type) break;
