@@ -307,6 +307,7 @@ SYMTAB_EXPORT bool Symtab::isBigEndianDataEncoding() const
 SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) : Symtab()
 {
 		mf = mf_;
+  createDefaultModule();
 }
 
 SYMTAB_EXPORT Symtab::Symtab() :
@@ -498,6 +499,11 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     if (!obj) {
        return false;
     }
+
+    if(!impl->default_module) {
+	createDefaultModule();
+    }
+
     for (auto i = impl->indexed_modules.begin(); i != impl->indexed_modules.end(); ++i)
     {
         for(auto *m : (*i)->finalizeRanges()) {
@@ -783,12 +789,12 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
 }
 
 void Symtab::createDefaultModule() {
-    assert(impl->indexed_modules.empty());
     Module *mod = new Module(lang_Unknown,
                      imageOffset_,
                      file(),
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
+    impl->default_module = mod;
     impl->indexed_modules.push_back(mod);
     for(auto *m : mod->finalizeRanges()) {
 	impl->mod_lookup_.insert(m);
@@ -800,10 +806,6 @@ void Symtab::createDefaultModule() {
 Module *Symtab::getOrCreateModule(const std::string &modName, 
                                   const Offset modAddr)
 {
-    if(impl->indexed_modules.empty()) {
-        createDefaultModule();
-    }
-
    Module *fm = NULL;
    if (findModuleByName(fm, modName))
    {

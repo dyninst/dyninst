@@ -854,9 +854,7 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 }
 
 Module *Symtab::getDefaultModule() {
-    dyn_mutex::unique_lock l(impl->im_lock);
-    if(impl->indexed_modules.empty()) createDefaultModule();
-    return impl->indexed_modules[0];
+    return impl->default_module;
 }
 
 unsigned Function::getSymbolSize() const {
