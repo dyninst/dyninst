@@ -1,3 +1,6 @@
+#ifndef SYMTAB_INDEXED_MODULES
+#define SYMTAB_INDEXED_MODULES
+
 #include "Module.h"
 
 #include <boost/container_hash/hash.hpp>
@@ -57,3 +60,5 @@ namespace Dyninst { namespace SymtabAPI {
     decltype(index)::const_iterator cend() const { return index.cend(); }
   };
 }}
+
+#endif
