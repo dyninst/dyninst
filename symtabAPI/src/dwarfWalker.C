@@ -237,11 +237,6 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     /* Extract the name of this module. */
     std::string moduleName = DwarfDyninst::die_name(moduleDIE);
 
-    // DIEs without name or named <artificial> will be associated to
-    // the default module (whose name is ELF filename)
-    setModuleFromName(moduleName);
-    dwarf_printf("Mapped to Symtab module 0x%p %s\n", (void*)mod(), mod()->fileName().c_str());
-
     auto moduleTag = dwarf_tag(&moduleDIE);
     if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
       uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
@@ -273,6 +268,16 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     if (findConstant(DW_AT_high_pc, tempModHigh, &e, dbg())) {
         modHigh = convertDebugOffset(tempModHigh);
     }
+
+    // Find the Symtab Module corresponding to this CU
+    mod() = [this]() {
+      SymtabAPI::Module* m = symtab()->findModuleByOffset(modLow);
+      if(m) return m;
+      return symtab()->getDefaultModule();
+    }();
+
+    dwarf_printf("Mapped to Symtab module %p from '%s' at offset %zx\n", (void*)mod(), mod()->fileName().c_str(), modLow);
+
     if(!fixUnknownMod){
       fixUnknownMod = mod();
     }
@@ -281,18 +286,6 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
         return false;
 
     return true;
-}
-
-
-void DwarfParseActions::setModuleFromName(std::string moduleName)
-{
-   if (!symtab()->findModuleByName(mod(), moduleName))
-   {
-       moduleName = symtab()->file();
-       if (!symtab()->findModuleByName(mod(), moduleName)) {
-           mod() = (symtab()->getDefaultModule());
-       }
-   }
 }
 
 bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTablePtr srcFiles) {

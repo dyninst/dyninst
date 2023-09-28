@@ -170,7 +170,6 @@ public:
     {
         return symtab()->file();
     }
-    virtual void setModuleFromName(std::string moduleName);
     virtual Dyninst::Architecture getArchitecture() const
     {
         return symtab()->getArchitecture();
