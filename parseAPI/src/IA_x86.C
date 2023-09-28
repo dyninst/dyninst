@@ -131,24 +131,28 @@ bool isNopInsn(Instruction insn)
         return true;
     if(insn.getOperation().getID() == e_lea)
     {
-        std::set<Expression::Ptr> memReadAddr;
-        insn.getMemoryReadOperands(memReadAddr);
+        // LEA doesn't dereference memory expression
+        std::set<RegisterAST::Ptr> readRegs;
+        insn.getReadSet(readRegs);
         std::set<RegisterAST::Ptr> writtenRegs;
         insn.getWriteSet(writtenRegs);
 
-        if(memReadAddr.size() == 1 && writtenRegs.size() == 1)
+        if(readRegs.size() == 1 && writtenRegs.size() == 1)
         {
-            if(**(memReadAddr.begin()) == **(writtenRegs.begin()))
+            if(**(readRegs.begin()) == **(writtenRegs.begin()))
             {
-                return true;
+                // We read and write the same reg
+                // Check for zero displacement
+                nopVisitor visitor;
+
+                // We need to get the src operand
+                insn.getOperand(1).getValue()->apply(&visitor);
+                if (visitor.isNop) return true;
+                return false;
             }
         }
-        // Check for zero displacement
-        nopVisitor visitor;
 
-	// We need to get the src operand
-        insn.getOperand(1).getValue()->apply(&visitor);
-        if (visitor.isNop) return true; 
+        // TODO: 'lea (,%reg,1), %reg' is a nop too.
     }
     return false;
 }
