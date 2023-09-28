@@ -366,6 +366,10 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
     return !mods.empty();
 }
 
+Module* Symtab::findModuleByOffset(Offset offset) const {
+  return impl->modules.find(offset);
+}
+
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
     std::set<ModRange*> mods;

@@ -171,6 +171,13 @@ This method searches for a module that starts at offset \code{offset}. If the mo
 }
 
 \begin{apient}
+Module* findModuleByOffset(Offset offset) const
+\end{apient}
+\apidesc{
+Returns the module starting at \code{offset}; \code{nullptr}, if not found.
+}
+
+\begin{apient}
 bool getAllModules(vector<module *> &ret)
 \end{apient}
 \apidesc{
