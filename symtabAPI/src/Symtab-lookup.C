@@ -853,7 +853,7 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
    return true;
 }
 
-Module *Symtab::getDefaultModule() {
+Module *Symtab::getDefaultModule() const {
     return impl->default_module;
 }
 
