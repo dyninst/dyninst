@@ -439,6 +439,7 @@ Address SymbolicExpression::PCValue(Address cur, size_t insnSize, Architecture a
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
             return cur + insnSize;
         case Arch_aarch64:
         case Arch_ppc32:

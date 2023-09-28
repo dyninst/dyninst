@@ -574,6 +574,24 @@ bool SymEval::expandInsn(const Instruction &insn,
 
         break;
     }
+    case Arch_amdgpu_gfx940: {
+
+        RoseInsnAMDGPUFactory fac(Arch_amdgpu_gfx940);
+        auto roseInsn = std::unique_ptr<SgAsmInstruction>(fac.convert(insn, addr));
+        if (!roseInsn) return false;
+
+        SymbolicExpansion exp;
+        const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_amdgpu();
+
+        BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
+        BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateAST_amdgpu_gfx940::instance(protoval, reg_dict);
+        BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateAST::instance(protoval, protoval);
+        BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn.getArch(), insn, registerState, memoryState);
+        BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsAST::instance(state);
+        exp.expandAMDGPU(roseInsn.get(), ops, insn.format());
+
+        break;
+    }
 
         default:
             /* once per arch would be better, but ... */

@@ -60,7 +60,7 @@ using namespace NS_x86;
 
 #define DECODE_OPERANDS() \
     do { \
-        if (arch_decoded_from != Arch_cuda && arch_decoded_from != Arch_amdgpu_gfx908 && arch_decoded_from != Arch_amdgpu_gfx90a && m_Operands.empty()) { \
+        if (arch_decoded_from != Arch_cuda && arch_decoded_from != Arch_amdgpu_gfx908 && arch_decoded_from != Arch_amdgpu_gfx90a && arch_decoded_from != Arch_amdgpu_gfx940 && m_Operands.empty()) { \
             decodeOperands(); \
         }\
     }while(0) 
@@ -564,6 +564,8 @@ namespace Dyninst
                 case amdgpu_gfx908_op_S_SWAPPC_B64:
                 case amdgpu_gfx90a_op_S_SETPC_B64:
                 case amdgpu_gfx90a_op_S_SWAPPC_B64:
+                case amdgpu_gfx940_op_S_SETPC_B64:
+                case amdgpu_gfx940_op_S_SWAPPC_B64:
                     return false;
                 case e_jnb:
                 case e_jb:

@@ -123,6 +123,7 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
 
             return new IA_amdgpu(dec_, where_, o, r, isrc, curBlk_);
  
@@ -147,6 +148,7 @@ void IA_IAPI::initASTs()
                 framePtr[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_vega)));
                 framePtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx908)));
                 framePtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx90a)));
+                framePtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx940)));
             }
             if(stackPtr.empty())
             {
@@ -158,6 +160,7 @@ void IA_IAPI::initASTs()
                 stackPtr[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_vega)));
                 stackPtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx908)));
                 stackPtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx90a)));
+                stackPtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx940)));
             }
             if(thePC.empty())
             {
@@ -169,6 +172,7 @@ void IA_IAPI::initASTs()
                 thePC[Arch_amdgpu_vega] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_vega)));
                 thePC[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx908)));
                 thePC[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx90a)));
+                thePC[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx940)));
             }
             ANNOTATE_HAPPENS_BEFORE(&IA_IAPI::ptrInit);
     });

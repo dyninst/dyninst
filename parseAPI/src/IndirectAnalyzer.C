@@ -98,7 +98,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
         (se.cs->getArch() == Arch_amdgpu_gfx908 && insn.getOperation().getID() == amdgpu_gfx908_op_S_SETPC_B64) ||
         (se.cs->getArch() == Arch_amdgpu_gfx908 && insn.getOperation().getID() == amdgpu_gfx908_op_S_SWAPPC_B64) ||
         (se.cs->getArch() == Arch_amdgpu_gfx90a && insn.getOperation().getID() == amdgpu_gfx90a_op_S_SETPC_B64 ) ||
-        (se.cs->getArch() == Arch_amdgpu_gfx90a && insn.getOperation().getID() == amdgpu_gfx90a_op_S_SWAPPC_B64 ) ){
+        (se.cs->getArch() == Arch_amdgpu_gfx940 && insn.getOperation().getID() == amdgpu_gfx940_op_S_SWAPPC_B64 )){
 
         Result_t symRet;
         SymEval::expand(slice,symRet);

@@ -564,18 +564,21 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
         break;
     }
     case amdgpu_gfx908_op_S_SWAPPC_B64:
-    case amdgpu_gfx90a_op_S_SWAPPC_B64: {
+    case amdgpu_gfx90a_op_S_SWAPPC_B64: 
+    case amdgpu_gfx940_op_S_SWAPPC_B64: {
         assert(operands.size() == 6);
         break;
     }
     case amdgpu_gfx908_op_S_SETPC_B64:
-    case amdgpu_gfx90a_op_S_SETPC_B64: {
+    case amdgpu_gfx90a_op_S_SETPC_B64: 
+    case amdgpu_gfx940_op_S_SETPC_B64: {
         assert(operands.size() == 3);
         break;
 
     }
     case amdgpu_gfx908_op_S_GETPC_B64:
-    case amdgpu_gfx90a_op_S_GETPC_B64: {
+    case amdgpu_gfx90a_op_S_GETPC_B64: 
+    case amdgpu_gfx940_op_S_GETPC_B64: {
         assert(operands.size() == 3);
         operands[2] = Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false);
         break;

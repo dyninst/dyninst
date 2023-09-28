@@ -92,7 +92,8 @@ namespace Dyninst
 
     std::string RegisterAST::format(Architecture arch, formatStyle) const
     {
-        if(arch == Arch_amdgpu_vega || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a){
+        if(arch == Arch_amdgpu_vega || arch == Arch_amdgpu_gfx908 || 
+            arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940){
             return AmdgpuFormatter::formatRegister(m_Reg,m_num_elements,m_Low,m_High);
         }
         return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());

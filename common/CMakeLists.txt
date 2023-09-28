@@ -7,6 +7,8 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/dyninstversion.h.in
 
 set(_public_headers
     h/aarch64_sys_regs.h
+    h/AMDGPU/gfx940/amdgpu_gfx940_op_table.h
+    h/AMDGPU/gfx940/amdgpu_gfx940_sys_regs.h
     h/AMDGPU/gfx90a/amdgpu_gfx90a_op_table.h
     h/AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h
     h/AMDGPU/vega/amdgpu_vega_op_table.h

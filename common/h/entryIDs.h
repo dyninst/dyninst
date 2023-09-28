@@ -3009,6 +3009,7 @@ power_op_dxex,
 #include "AMDGPU/vega/amdgpu_vega_op_table.h"
 #include "AMDGPU/gfx908/amdgpu_gfx908_op_table.h"
 #include "AMDGPU/gfx90a/amdgpu_gfx90a_op_table.h"
+#include "AMDGPU/gfx940/amdgpu_gfx940_op_table.h"
   cuda_op_general,
   cuda_op_call,
   intel_gpu_op_general,
