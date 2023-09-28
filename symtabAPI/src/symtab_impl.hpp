@@ -29,8 +29,8 @@ namespace Dyninst { namespace SymtabAPI {
                           Module, const std::string &, &Module::fileName>>>>
         indexed_modules{};
 
-    std::once_flag funcRangesAreParsed;
-    std::once_flag types_parsed;
+    std::once_flag funcRangesAreParsed{};
+    std::once_flag types_parsed{};
 
     // Since Functions are unique by address, we require this structure to
     // efficiently track them.
