@@ -135,10 +135,11 @@ dyninst_library(
 )
 # cmake-format: on
 
-set(_inc_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx940
-              ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx90a
-              ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx908
-              ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
+set(_inc_dirs
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx940
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx90a
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx908
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
 
 foreach(t ${instructionAPI_TARGETS})
   target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")
