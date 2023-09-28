@@ -1697,10 +1697,9 @@ parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
      }
      region = *(regions.begin()); // XXX pick one, throwing up hands. 
 
-     std::set<Module*> st_mod;
-     linkedFile->findModuleByOffset(st_mod, functionEntryAddr);
+     auto *m = linkedFile->findModuleByOffset(functionEntryAddr);
      
-     pdmodule *mod = getOrCreateModule(*(st_mod.begin()));
+     pdmodule *mod = getOrCreateModule(m);
 
      // copy or create function name
      char funcName[32];

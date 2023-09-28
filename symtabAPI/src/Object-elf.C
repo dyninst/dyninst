@@ -3698,13 +3698,8 @@ void Object::parseLineInfoForAddr(Offset addr_to_find) {
     Dwarf **dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
-    std::set<Module *> mod_for_offset;
-    associated_symtab->findModuleByOffset(mod_for_offset, addr_to_find);
-    for (auto mod = mod_for_offset.begin();
-         mod != mod_for_offset.end();
-         ++mod) {
-        (*mod)->parseLineInformation();
-    }
+    auto *m = associated_symtab->findModuleByOffset(addr_to_find);
+    if(m) m->parseLineInformation();
     // no mod for offset means no line info for sure if we've parsed all ranges...
 }
 

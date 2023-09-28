@@ -1651,14 +1651,11 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
-    std::set<Module*> mods_for_offset;
-    findModuleByOffset(mods_for_offset, addressInRange);
-    for(auto i = mods_for_offset.begin();
-            i != mods_for_offset.end();
-            ++i)
-    {
-        (*i)->getSourceLines(lines, addressInRange);
-    }
+    Module* m = findModuleByOffset(addressInRange);
+
+    if(!m) return false;
+
+    m->getSourceLines(lines, addressInRange);
 
    if ( lines.size() != originalSize )
       return true;
