@@ -163,14 +163,6 @@ This method searches for a module with name \code{name}. If the module exists re
 }
 
 \begin{apient}
-bool findModuleByOffset(Module *&ret,
-                        Offset offset)
-\end{apient}
-\apidesc{
-This method searches for a module that starts at offset \code{offset}. If the module exists returns \code{true} with \code{ret} set to the module handle; otherwise returns \code{false} with \code{ret} set to \code{NULL}.
-}
-
-\begin{apient}
 Module* findModuleByOffset(Offset offset) const
 \end{apient}
 \apidesc{

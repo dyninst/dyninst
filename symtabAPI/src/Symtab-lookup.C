@@ -357,13 +357,8 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
 
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-    std::set<ModRange*> mods;
-    impl->mod_lookup_.find(off, mods);
-    if(!mods.empty())
-    {
-        ret = (*mods.begin())->id();
-    }
-    return !mods.empty();
+   ret = findModuleByOffset(off);
+   return ret != nullptr;
 }
 
 Module* Symtab::findModuleByOffset(Offset offset) const {
