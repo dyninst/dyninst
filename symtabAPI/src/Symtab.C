@@ -590,7 +590,13 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         // If no function exists, create and add. 
         // Combine this information
         //   Add this symbol's names to the function.
-        //   Keep module information 
+        //   Keep module information
+
+        auto add_func = [this](Function *f) {
+	  boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+	  everyFunction.push_back(f);
+	  sorted_everyFunction = false;
+        };
 
         Function *func = NULL;
         bool found = false;
@@ -619,17 +625,14 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
 
             if( func->getRegion() != sym->getRegion() ) {
                 func = new Function(sym);
+                add_func(func);
             } else {
         	// The function has an additional name
         	// e.g., two symbols aliasing the same code location
                 func->addSymbol(sym);
             }
-        }
-
-        {
-            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
-	    everyFunction.push_back(func);
-	    sorted_everyFunction = false;
+        } else {
+            add_func(func);
         }
 
         sym->setFunction(func);
