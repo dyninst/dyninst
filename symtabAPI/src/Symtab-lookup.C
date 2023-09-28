@@ -365,16 +365,6 @@ Module* Symtab::findModuleByOffset(Offset offset) const {
   return impl->modules.find(offset);
 }
 
-bool Symtab::findModuleByName(Module *&ret, const std::string name)
-{
-   auto const& mods = impl->modules.find(name);
-   if(mods.size()) {
-       ret = mods[0];
-       return true;
-   }
-   return false;
-}
-
 std::vector<Module*> Symtab::findModulesByName(std::string const& name) const {
   return impl->modules.find(name);
 }

@@ -56,16 +56,14 @@ New symbols, functions, and variables can be created and added to the library at
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-//Module for the symbol
-Module *mod;
-
 // obj represents a handle to a parsed object file.
-obj->findModuleByName(mod, "/path/to/foo.c");
+for(auto *m : obj->findModulesByName("/path/to/foo.c")) {
 
-// Create a new function symbol
-Variable *newVar = mod->createVariable("newIntVar",  // Name of new variable
+  // Create a new function symbol
+  Variable *newVar = m->createVariable("newIntVar",  // Name of new variable
                                        0x12345,      // Offset from data section
                                        sizeof(int)); // Size of symbol 
+}
 \end{lstlisting}
 
 SymtabAPI gives the ability to query type information present in the object file. Also, new user defined types can be added to SymtabAPI. The following example shows both how to query type information after an object file is successfully parsed and also add a new structure type.

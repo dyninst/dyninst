@@ -155,14 +155,6 @@ Returns the default module, a collection of all functions, variables, and symbol
 }
 
 \begin{apient}
-bool findModuleByName(Module *&ret,
-                      const string name)
-\end{apient}
-\apidesc{
-This method searches for a module with name \code{name}. If the module exists returns \code{true} with \code{ret} set to the module handle; otherwise returns \code{false} with \code{ret} set to \code{NULL}.
-}
-
-\begin{apient}
 std::vector<Module*> findModulesByName(std::string const& name) const
 \end{apient}
 \apidesc{

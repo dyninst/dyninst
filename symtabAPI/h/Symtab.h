@@ -189,7 +189,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getAllModules(std::vector<Module *>&ret);
    DYNINST_DEPRECATED("Use findModulesByOffset(Offset)") bool findModuleByOffset(Module *& ret, Offset off);
    Module* findModuleByOffset(Offset offset) const;
-   bool findModuleByName(Module *&ret, const std::string name);
    std::vector<Module*> findModulesByName(std::string const& name) const;
    Module *getDefaultModule() const;
 
