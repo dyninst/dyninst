@@ -504,7 +504,7 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
 	createDefaultModule();
     }
 
-    for (auto *m : this->impl->modules)
+    for (auto *m : impl->modules)
     {
         for(auto *mr : m->finalizeRanges()) {
             impl->mod_lookup_.insert(mr);
