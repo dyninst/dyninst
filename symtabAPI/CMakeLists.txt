@@ -33,7 +33,8 @@ set(_private_headers
     src/Object-nt.h
     src/Type-mem.h
     src/indexed_symbols.hpp
-    src/symtab_impl.hpp)
+    src/symtab_impl.hpp
+    src/indexed_modules.h)
 
 set(_sources
     src/AddrLookup.C

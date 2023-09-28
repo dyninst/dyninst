@@ -349,20 +349,14 @@ bool Symtab::getAllVariables(std::vector<Variable *> &ret)
 
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
-    dyn_mutex::unique_lock l(impl->im_lock);
-    if (impl->indexed_modules.size() >0 )
-    {
-        std::copy(impl->indexed_modules.begin(), impl->indexed_modules.end(), std::back_inserter(ret));
-        return true;
-    }	
-
-    return false;
+  auto const size = ret.size();
+  std::copy(impl->modules.begin(), impl->modules.end(), std::back_inserter(ret));
+  return ret.size() != size;
 }
 
 
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-    dyn_mutex::unique_lock l(impl->im_lock);
     std::set<ModRange*> mods;
     impl->mod_lookup_.find(off, mods);
     if(!mods.empty())
@@ -374,7 +368,6 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
-    dyn_mutex::unique_lock l(impl->im_lock);
     std::set<ModRange*> mods;
     ret.clear();
     impl->mod_lookup_.find(off, mods);
@@ -389,16 +382,11 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
-   dyn_mutex::unique_lock l(impl->im_lock);
-   auto loc = impl->indexed_modules.get<2>().find(name);
-
-   if (loc != impl->indexed_modules.get<2>().end())
-   {
-      ret = *(loc);
-      return true;
+   auto const& mods = impl->modules.find(name);
+   if(mods.size()) {
+       ret = mods[0];
+       return true;
    }
-
-   ret = NULL;
    return false;
 }
 
