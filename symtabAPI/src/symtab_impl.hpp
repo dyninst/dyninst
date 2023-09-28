@@ -6,7 +6,7 @@
 #include "Variable.h"
 #include "concurrent.h"
 #include "indexed_symbols.hpp"
-#include "indexed_modules.hpp"
+#include "indexed_modules.h"
 
 #include <mutex>
 #include <string>
