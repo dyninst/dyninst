@@ -375,6 +375,10 @@ bool Symtab::findModuleByName(Module *&ret, const std::string name)
    return false;
 }
 
+std::vector<Module*> Symtab::findModulesByName(std::string const& name) const {
+  return impl->modules.find(name);
+}
+
 bool Symtab::getAllRegions(std::vector<Region *>&ret)
 {
    if (regions_.size() > 0)
