@@ -168,7 +168,7 @@ class SYMTAB_EXPORT FunctionBase
    virtual ~Function();
 
    /* Symbol management */
-   bool removeSymbol(Symbol *sym);
+   bool removeSymbol(Symbol *sym) override;
 
    /***** IA64-Specific Frame Pointer Information *****/
    bool  setFramePtrRegnum(int regnum);
