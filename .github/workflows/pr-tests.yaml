@@ -84,7 +84,7 @@ jobs:
     permissions:
       packages: read
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
          os: ['ubuntu-20.04']
     runs-on: ubuntu-latest
