@@ -94,6 +94,41 @@
 
 /***********************************************************************
  *
+ * DYNINST_DEPRECATED(msg)
+ *
+ * Adds an annotation to a function, method, variable or type that it is
+ * deprecated, and will produce a warning if it used.  The parameter msg
+ * must be a quoted string.
+ *
+ * The annotation should be placed before the definition or declaration.
+ * For example:
+ *
+ *   DYNINST_DEPRECRATED("Use NewFoo") int Foo();
+ */
+
+#if defined(__cplusplus) && defined(__has_cpp_attribute)
+    #if __has_cpp_attribute(deprecated)
+        #define DYNINST_DEPRECATED(msg) [[deprecated(msg)]]
+    #endif
+#elif !defined(__cplusplus) && defined(__has_c_attribute)
+    #if __has_c_attribute(deprecated)
+        #define DYNINST_DEPRECATED(msg) [[deprecated(msg)]]
+    #endif
+#endif
+#if !defined(DYNINST_DEPRECATED) && defined(__has_attribute)
+    #if __has_attribute(deprecated)
+        #define DYNINST_DEPRECATED(msg) __attribute__((deprecated(msg)))
+    #endif
+#endif
+
+#if !defined(DYNINST_DEPRECATED)
+    #define DYNINST_DEPRECATED(msg)
+#endif
+
+
+
+/***********************************************************************
+ *
  * DYNINST_PRINTF_ANNOTATION(fmtIndex, argIndex)
  * DYNINST_SCANF_ANNOTATION(fmtIndex, argIndex)
  * DYNINST_FORMAT_ANNOTATION(fmtType, fmtIndex, argIndex)
