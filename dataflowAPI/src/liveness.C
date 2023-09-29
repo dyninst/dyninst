@@ -57,6 +57,16 @@ LivenessAnalyzer::LivenessAnalyzer(int w): errorno((ErrorType)-1) {
     abi = ABI::getABI(width);
 }
 
+LivenessAnalyzer::LivenessAnalyzer(Architecture arch, int w): errorno((ErrorType)-1) {
+    if (arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a){
+        width = 8;
+        abi = ABI::getABI(arch);
+    }else{
+        width = w;
+        abi = ABI::getABI(width);
+    }
+}
+
 int LivenessAnalyzer::getIndex(MachRegister machReg){
    return abi->getIndex(machReg);
 }
@@ -156,9 +166,11 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
+#if defined(arch_x86) || defined(arch_x86_64)
      liveness_cerr << "        " << regs1 << endl;
      liveness_cerr << "        " << regs2 << endl;
      liveness_cerr << "        " << regs3 << endl;
+#endif
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << data.use << endl;
@@ -169,9 +181,11 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
    }
 
    liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
+#if defined(arch_x86) || defined(arch_x86_64)
    liveness_cerr << "     " << regs1 << endl;
    liveness_cerr << "     " << regs2 << endl;
    liveness_cerr << "     " << regs3 << endl;
+#endif
    liveness_cerr << "Used " << data.in << endl;
    liveness_cerr << "Def  " << data.def << endl;
    liveness_cerr << "Use  " << data.use << endl;
@@ -200,9 +214,11 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDe
 
   // IN(X) = USE(X) + (OUT(X) - DEF(X))
   liveness_cerr << "Updating block info for block " << hex << block->start() << dec << endl;
+#if defined(arch_x86) || defined(arch_x86_64)
   liveness_cerr << "     " << regs1 << endl;
   liveness_cerr << "     " << regs2 << endl;
   liveness_cerr << "     " << regs3 << endl;
+#endif
   liveness_cerr << "Out: " << data.out << endl;
   liveness_cerr << "Def: " << data.def << endl;
   liveness_cerr << "Use: " << data.use << endl;
