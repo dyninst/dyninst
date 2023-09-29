@@ -163,6 +163,13 @@ This method searches for a module with name \code{name}. If the module exists re
 }
 
 \begin{apient}
+std::vector<Module*> findModulesByName(std::string const& name) const
+\end{apient}
+\apidesc{
+Retrieve all modules with name \code{name}.
+}
+
+\begin{apient}
 Module* findModuleByOffset(Offset offset) const
 \end{apient}
 \apidesc{
