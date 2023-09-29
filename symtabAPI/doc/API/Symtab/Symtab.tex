@@ -163,11 +163,10 @@ This method searches for a module with name \code{name}. If the module exists re
 }
 
 \begin{apient}
-bool findModuleByOffset(Module *&ret,
-                        Offset offset)
+Module* findModuleByOffset(Offset offset) const
 \end{apient}
 \apidesc{
-This method searches for a module that starts at offset \code{offset}. If the module exists returns \code{true} with \code{ret} set to the module handle; otherwise returns \code{false} with \code{ret} set to \code{NULL}.
+Returns the module starting at \code{offset}; \code{nullptr}, if not found.
 }
 
 \begin{apient}
@@ -553,29 +552,6 @@ bool getSourceLines(vector<LineNoTuple> &lines,
 This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches all modules for the given source. 
 Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found.
 }
-
-\begin{apient}
-bool addLine(string lineSource,
-             unsigned int lineNo, 
-             unsigned int lineOffset,
-             Offset lowInclusiveAddr, 
-             Offset highExclusiveAddr)
-\end{apient}
-\apidesc{
-This method adds a new line to the line map. \code{lineSource} represents the source file name. \code{lineNo} represents the line number.
-Returns \code{true} on success and \code{false} on error.
-}
-
-\begin{apient}
-bool addAddressRange(Offset lowInclusiveAddr,
-                     Offset highExclusiveAddr,
-                     string lineSource,
-                     unsigned int lineNo, 
-                     unsigned int lineOffset = 0);
-\end{apient}
-\apidesc{
-This method adds an address range \code{[lowInclusiveAddr, highExclusiveAddr)} for the line with line number \code{lineNo} in source file \code{lineSource} at offset \code{lineOffset}. 
-Returns \code{true} on success and \code{false} on error.}
 
 \subsubsection{Type information}
 

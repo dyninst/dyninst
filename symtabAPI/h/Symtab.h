@@ -187,8 +187,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    // Module
 
    bool getAllModules(std::vector<Module *>&ret);
-   bool findModuleByOffset(std::set<Module *>& ret, Offset off);
-   bool findModuleByOffset(Module *& ret, Offset off);
+   /*[[deprecated]]*/ bool findModuleByOffset(Module *& ret, Offset off);
+   Module* findModuleByOffset(Offset offset) const;
    bool findModuleByName(Module *&ret, const std::string name);
    Module *getDefaultModule() const;
 
@@ -248,11 +248,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                        Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
                                      Offset addressInRange);
-   bool addLine(std::string lineSource, unsigned int lineNo,
-         unsigned int lineOffset, Offset lowInclAddr,
-         Offset highExclAddr);
-   bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
-         unsigned int lineNo, unsigned int lineOffset = 0);
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
    
