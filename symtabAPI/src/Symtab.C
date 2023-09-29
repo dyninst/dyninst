@@ -1676,55 +1676,6 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offse
     return true;
 }
 
-SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
-      unsigned int lineOffset, Offset lowInclAddr,
-      Offset highExclAddr)
-{
-   Module *mod;
-
-   if (!findModuleByName(mod, lineSource))
-   {
-      std::string fileNm = extract_pathname_tail(lineSource);
-
-      if (!findModuleByName(mod, fileNm))
-      {
-         if (!findModuleByName(mod, mf->filename()))
-            return false;
-      }    
-   }
-
-   LineInformation *lineInfo = mod->getLineInformation();
-
-   if (!lineInfo)
-      return false;
-
-   return (lineInfo->addLine(lineSource.c_str(), lineNo, lineOffset, 
-            lowInclAddr, highExclAddr));
-}
-
-SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExclusiveAddr,
-      std::string lineSource, unsigned int lineNo,
-      unsigned int lineOffset)
-{
-   Module *mod;
-
-   if (!findModuleByName(mod, lineSource))
-   {
-      std::string fileNm = extract_pathname_tail(lineSource);
-
-      if (!findModuleByName(mod, fileNm))
-         return false;
-   }
-
-   LineInformation *lineInfo = mod->getLineInformation();
-
-   if (!lineInfo)
-      return false;
-
-   return (lineInfo->addAddressRange(lowInclusiveAddr, highExclusiveAddr, 
-            lineSource.c_str(), lineNo, lineOffset));
-}
-
 void Symtab::setTruncateLinePaths(bool value)
 {
    getObject()->setTruncateLinePaths(value);
