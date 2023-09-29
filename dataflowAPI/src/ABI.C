@@ -65,6 +65,17 @@ std::map<MachRegister,int>* ABI::getIndexMap(){
 	return index;
 }
 
+ABI* ABI::getABI(Architecture arch){
+    if(globalABI_ == NULL){
+        globalABI_ = new ABI();
+	globalABI64_ = new ABI();
+        globalABI_->addr_width = 4;
+        globalABI64_->addr_width = 8;
+        initialize64(arch);
+    }
+    return globalABI64_;
+}
+
 ABI* ABI::getABI(int addr_width){
     if (globalABI_ == NULL){
         globalABI_ = new ABI();
@@ -654,3 +665,33 @@ void ABI::initialize64(){
 	allRegs64_ = &getBitArray(sz)->set();
 }
 #endif
+void ABI::initialize64(Architecture arch){
+    int sz;
+    switch(arch){
+        case Arch_amdgpu_gfx908:{
+            RegisterMap amdgpu_gfx908_map = machRegIndex_amdgpu_gfx908();
+            sz = amdgpu_gfx908_map.size();
+            globalABI_->index = &machRegIndex_amdgpu_gfx908();
+            globalABI64_->index = &machRegIndex_amdgpu_gfx908();
+            break;
+        }
+        case Arch_amdgpu_gfx90a:{
+            RegisterMap amdgpu_gfx90a_map = machRegIndex_amdgpu_gfx90a();
+            sz = amdgpu_gfx90a_map.size();
+            globalABI_->index = &machRegIndex_amdgpu_gfx90a();
+            globalABI64_->index = &machRegIndex_amdgpu_gfx90a();
+            break;
+        }
+        default:
+        assert(0 && "This call is currently implemented for AMDGPU gfx908 and gfx90a only");
+    }
+    returnRegs64_ = getBitArray(sz);
+    returnRead64_ = getBitArray(sz);
+    callParam64_ = getBitArray(sz);
+    callRead64_ = getBitArray(sz);
+    callWritten64_ = callRead64_;
+    syscallRead64_ = &getBitArray(sz)->set();
+    syscallWritten64_ = &getBitArray(sz)->set();
+    allRegs64_ = &getBitArray(sz)->set();
+}
+

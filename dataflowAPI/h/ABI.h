@@ -61,8 +61,10 @@ class ABI{
 
     DATAFLOW_EXPORT static void initialize32();
     DATAFLOW_EXPORT static void initialize64();
+    DATAFLOW_EXPORT static void initialize64(Architecture arch);
 
     DATAFLOW_EXPORT static ABI* getABI(int addr_width);
+    DATAFLOW_EXPORT static ABI* getABI(Architecture arch);
     DATAFLOW_EXPORT bitArray getBitArray();
  private:
     static dyn_tls bitArray* callRead_;
