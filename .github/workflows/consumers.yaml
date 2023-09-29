@@ -77,7 +77,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: systemtap ${{ matrix.os }}
+    name: llnl-stat ${{ matrix.os }}
     steps:
       - name: Install dependencies
         run: |
@@ -147,7 +147,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: systemtap ${{ matrix.os }}
+    name: TAU ${{ matrix.os }}
     steps:
       - name: Install dependencies
         run: |
