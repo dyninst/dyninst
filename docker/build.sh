@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -e
+
 if test "x$1" = "x"; then
   echo "No source directory given\nUsage: $0 src [num_jobs]" >stderr
   exit 1
