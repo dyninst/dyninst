@@ -33,7 +33,6 @@
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
-#include "AMDGPU/vega/InstructionDecoder-amdgpu-vega.h"
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
@@ -78,8 +77,6 @@ namespace Dyninst
                 case Arch_aarch32:
                 case Arch_aarch64:
                     return Ptr(new InstructionDecoder_aarch64(a));
-                case Arch_amdgpu_vega:
-                    return Ptr(new InstructionDecoder_amdgpu_vega(a));
                 case Arch_amdgpu_gfx908:
                     return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
                case Arch_amdgpu_gfx90a:

@@ -51,7 +51,6 @@ public:
     static const RegisterDictionary *dictionary_pentium4();             // Intel Pentium 4
     static const RegisterDictionary *dictionary_amd64();                // AMD Athlon 64*/
     static const RegisterDictionary *dictionary_armv8();                // ARMv8-A architecture
-    static const RegisterDictionary *dictionary_amdgpu_vega();                // AMDGPU_VEGA architecture
     static const RegisterDictionary *dictionary_amdgpu();                // AMDGPU architecture
     static const RegisterDictionary *dictionary_powerpc();
 

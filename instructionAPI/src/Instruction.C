@@ -558,8 +558,6 @@ namespace Dyninst
                 case e_sysexit:
                 case e_call:
                 case e_syscall:
-                case amdgpu_op_s_setpc_b64:
-                case amdgpu_op_s_swappc_b64:
                 case amdgpu_gfx908_op_S_SETPC_B64:
                 case amdgpu_gfx908_op_S_SWAPPC_B64:
                 case amdgpu_gfx90a_op_S_SETPC_B64:

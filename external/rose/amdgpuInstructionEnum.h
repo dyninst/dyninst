@@ -1595,5 +1595,4 @@ enum AMDGPUInstructionKind{
 	rose_amdgpu_op_v_cvt_off_f32_i4,
 	rose_amdgpu_op_v_pk_mad_i16
 };
-typedef AMDGPUInstructionKind AmdgpuVegaInstructionKind;
 #endif

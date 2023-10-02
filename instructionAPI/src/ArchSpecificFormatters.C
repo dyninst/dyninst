@@ -195,12 +195,12 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
         DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
 
         if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || 
-            regClass == amdgpu_gfx940::SGPR || regClass == amdgpu_vega::SGPR){
+            regClass == amdgpu_gfx940::SGPR){
             return "S["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
         if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || 
-            regClass == amdgpu_gfx940::VGPR || regClass == amdgpu_vega::VGPR){
+            regClass == amdgpu_gfx940::VGPR){
             return "V["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
@@ -212,10 +212,10 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
         DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
 
         if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo ||
-            m_Reg == amdgpu_gfx940::vcc_lo || m_Reg == amdgpu_vega::vcc_lo )
+            m_Reg == amdgpu_gfx940::vcc_lo)
             return "VCC";
         if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || 
-            m_Reg == amdgpu_gfx940::exec_lo || m_Reg == amdgpu_vega::exec_lo)
+            m_Reg == amdgpu_gfx940::exec_lo)
             return "EXEC";
 
 
@@ -232,12 +232,12 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
         DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
 
         if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR ||
-            regClass == amdgpu_gfx940::SGPR || regClass == amdgpu_vega::SGPR){
+            regClass == amdgpu_gfx940::SGPR){
             return "S["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
         if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || 
-            regClass == amdgpu_gfx940::VGPR || regClass == amdgpu_vega::VGPR){
+            regClass == amdgpu_gfx940::VGPR){
             return "V["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
@@ -249,11 +249,11 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
         DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
 
         if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo || 
-            m_Reg == amdgpu_gfx940::vcc_lo || m_Reg == amdgpu_vega::vcc_lo)
+            m_Reg == amdgpu_gfx940::vcc_lo)
             return "VCC";
 
         if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || 
-            m_Reg == amdgpu_gfx940::exec_lo || m_Reg == amdgpu_vega::exec_lo)
+            m_Reg == amdgpu_gfx940::exec_lo)
             return "EXEC";
 
         name +=  "["+std::to_string(m_Low)+":"+std::to_string(m_High)+"]";
@@ -406,7 +406,6 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
     auto found = theFormatters.find(a);
     if(found != theFormatters.end()) return *found->second;
     switch(a) {
-        case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
         case Arch_amdgpu_gfx940:

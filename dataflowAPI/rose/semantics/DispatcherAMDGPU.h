@@ -18,7 +18,7 @@ namespace rose {
 //                                      Dispatcher
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** Shared-ownership pointer to an AMDGPU VEGA instruction dispatcher. See @ref heap_object_shared_ownership. */
+/** Shared-ownership pointer to an AMDGPU instruction dispatcher. See @ref heap_object_shared_ownership. */
             typedef boost::shared_ptr<class DispatcherAMDGPU> DispatcherAMDGPUPtr;
 
             class DispatcherAMDGPU : public BaseSemantics::Dispatcher {

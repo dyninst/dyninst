@@ -436,7 +436,6 @@ Address SymbolicExpression::PCValue(Address cur, size_t insnSize, Architecture a
     switch (a) {
         case Arch_x86:
         case Arch_x86_64:
-        case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
         case Arch_amdgpu_gfx940:
