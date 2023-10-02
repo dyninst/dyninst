@@ -1571,17 +1571,7 @@ namespace Dyninst
         //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
         //arch        reg cat:GPR     alias&subrange  reg ID
         const signed int SGPR           = 0x00010000;
-        const signed int SGPR_VEC2      = 0x00020000;
-        const signed int SGPR_VEC4      = 0x00030000;
-        const signed int SGPR_VEC8      = 0x00040000;
-        const signed int SGPR_VEC16     = 0x00050000;
-
         const signed int VGPR           = 0x00060000;
-        const signed int VGPR_VEC2      = 0x00070000;
-        const signed int VGPR_VEC4      = 0x00080000;
-        const signed int VGPR_VEC8      = 0x00090000;
-        const signed int VGPR_VEC16     = 0x000A0000;
-
         const signed int ACC_VGPR       = 0x000B0000;
 
         const signed int HWR            = 0x000C0000;
@@ -1785,17 +1775,7 @@ namespace Dyninst
         //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
         //arch        reg cat:GPR     alias&subrange  reg ID
         const signed int SGPR           = 0x00010000;
-        const signed int SGPR_VEC2      = 0x00020000;
-        const signed int SGPR_VEC4      = 0x00030000;
-        const signed int SGPR_VEC8      = 0x00040000;
-        const signed int SGPR_VEC16     = 0x00050000;
-
         const signed int VGPR           = 0x00060000;
-        const signed int VGPR_VEC2      = 0x00070000;
-        const signed int VGPR_VEC4      = 0x00080000;
-        const signed int VGPR_VEC8      = 0x00090000;
-        const signed int VGPR_VEC16     = 0x000A0000;
-
         const signed int ACC_VGPR       = 0x000B0000;
 
         const signed int HWR            = 0x000C0000;
@@ -1997,17 +1977,7 @@ namespace Dyninst
         //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
         //arch        reg cat:GPR     alias&subrange  reg ID
         const signed int SGPR           = 0x00010000;
-        const signed int SGPR_VEC2      = 0x00020000;
-        const signed int SGPR_VEC4      = 0x00030000;
-        const signed int SGPR_VEC8      = 0x00040000;
-        const signed int SGPR_VEC16     = 0x00050000;
-
         const signed int VGPR           = 0x00060000;
-        const signed int VGPR_VEC2      = 0x00070000;
-        const signed int VGPR_VEC4      = 0x00080000;
-        const signed int VGPR_VEC8      = 0x00090000;
-        const signed int VGPR_VEC16     = 0x000A0000;
-
         const signed int ACC_VGPR       = 0x000B0000;
 
         const signed int HWR            = 0x000C0000;

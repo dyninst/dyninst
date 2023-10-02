@@ -92,16 +92,8 @@ MachRegister MachRegister::getBaseRegister() const {
         case Arch_amdgpu_gfx908:
             switch (category){
                 case amdgpu_gfx908::SGPR:
-                case amdgpu_gfx908::SGPR_VEC2:
-                case amdgpu_gfx908::SGPR_VEC4:
-                case amdgpu_gfx908::SGPR_VEC8:
-                case amdgpu_gfx908::SGPR_VEC16:
                     return MachRegister( (reg & 0x000000ff) | amdgpu_gfx908::s0); 
                 case amdgpu_gfx908::VGPR:
-                case amdgpu_gfx908::VGPR_VEC2:
-                case amdgpu_gfx908::VGPR_VEC4:
-                case amdgpu_gfx908::VGPR_VEC8:
-                case amdgpu_gfx908::VGPR_VEC16:
                     return MachRegister( (reg & 0x000000ff) | amdgpu_gfx908::v0); 
                 case amdgpu_gfx908::HWR:
                     return MachRegister(reg);
@@ -113,16 +105,8 @@ MachRegister MachRegister::getBaseRegister() const {
         case Arch_amdgpu_gfx90a:
             switch (category){
                 case amdgpu_gfx90a::SGPR:
-                case amdgpu_gfx90a::SGPR_VEC2:
-                case amdgpu_gfx90a::SGPR_VEC4:
-                case amdgpu_gfx90a::SGPR_VEC8:
-                case amdgpu_gfx90a::SGPR_VEC16:
                     return MachRegister( (reg & 0x000000ff) | amdgpu_gfx90a::s0); 
                 case amdgpu_gfx90a::VGPR:
-                case amdgpu_gfx90a::VGPR_VEC2:
-                case amdgpu_gfx90a::VGPR_VEC4:
-                case amdgpu_gfx90a::VGPR_VEC8:
-                case amdgpu_gfx90a::VGPR_VEC16:
                     return MachRegister( (reg & 0x000000ff) | amdgpu_gfx90a::v0); 
                 case amdgpu_gfx90a::HWR:
                     return MachRegister(reg);
@@ -133,17 +117,9 @@ MachRegister MachRegister::getBaseRegister() const {
         case Arch_amdgpu_gfx940:
             switch (category){
                 case amdgpu_gfx940::SGPR:
-                case amdgpu_gfx940::SGPR_VEC2:
-                case amdgpu_gfx940::SGPR_VEC4:
-                case amdgpu_gfx940::SGPR_VEC8:
-                case amdgpu_gfx940::SGPR_VEC16:
                     return MachRegister( (reg & 0x000000ff) | amdgpu_gfx940::s0); 
                 case amdgpu_gfx940::VGPR:
-                case amdgpu_gfx940::VGPR_VEC2:
-                case amdgpu_gfx940::VGPR_VEC4:
-                case amdgpu_gfx940::VGPR_VEC8:
-                case amdgpu_gfx940::VGPR_VEC16:
-                    return MachRegister( (reg & 0x000000ff) | amdgpu_gfx940::v0); 
+                   return MachRegister( (reg & 0x000000ff) | amdgpu_gfx940::v0); 
                 case amdgpu_gfx940::HWR:
                     return MachRegister(reg);
 
@@ -280,14 +256,6 @@ unsigned int MachRegister::size() const {
                                    int reg_class = (reg&0x00ff0000 ) ;
                                    if ( reg_class == amdgpu_gfx908::SGPR || reg_class == amdgpu_gfx908::VGPR){
                                        return 4;
-                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC2 || reg_class == amdgpu_gfx908::VGPR_VEC2){
-                                       return 8;
-                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC4 || reg_class == amdgpu_gfx908::VGPR_VEC4){
-                                       return 16;
-                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC8 || reg_class == amdgpu_gfx908::VGPR_VEC8){
-                                       return 32;
-                                   }else if (reg_class == amdgpu_gfx908::SGPR_VEC16 || reg_class == amdgpu_gfx908::VGPR_VEC16){
-                                       return 64;
                                    }else{
                                        switch(reg & 0x00007f00){
                                            case amdgpu_gfx908::BITS_1:
@@ -323,14 +291,6 @@ unsigned int MachRegister::size() const {
                                    int reg_class = (reg&0x00ff0000 ) ;
                                    if ( reg_class == amdgpu_gfx90a::SGPR || reg_class == amdgpu_gfx90a::VGPR){
                                        return 4;
-                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC2 || reg_class == amdgpu_gfx90a::VGPR_VEC2){
-                                       return 8;
-                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC4 || reg_class == amdgpu_gfx90a::VGPR_VEC4){
-                                       return 16;
-                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC8 || reg_class == amdgpu_gfx90a::VGPR_VEC8){
-                                       return 32;
-                                   }else if (reg_class == amdgpu_gfx90a::SGPR_VEC16 || reg_class == amdgpu_gfx90a::VGPR_VEC16){
-                                       return 64;
                                    }else{
                                        switch(reg & 0x00007f00){
                                            case amdgpu_gfx90a::BITS_1:
@@ -366,14 +326,6 @@ unsigned int MachRegister::size() const {
                                    int reg_class = (reg&0x00ff0000 ) ;
                                    if ( reg_class == amdgpu_gfx940::SGPR || reg_class == amdgpu_gfx940::VGPR){
                                        return 4;
-                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC2 || reg_class == amdgpu_gfx940::VGPR_VEC2){
-                                       return 8;
-                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC4 || reg_class == amdgpu_gfx940::VGPR_VEC4){
-                                       return 16;
-                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC8 || reg_class == amdgpu_gfx940::VGPR_VEC8){
-                                       return 32;
-                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC16 || reg_class == amdgpu_gfx940::VGPR_VEC16){
-                                       return 64;
                                    }else{
                                        switch(reg & 0x00007f00){
                                            case amdgpu_gfx940::BITS_1:
