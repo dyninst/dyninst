@@ -562,8 +562,7 @@ bool Symtab::createAggregates()
  
 bool Symtab::fixSymModule(Symbol *&sym) 
 {
-    Module* mod = NULL;
-    findModuleByOffset(mod, sym->getOffset());
+    Module* mod = findModuleByOffset(sym->getOffset());
     if(!mod) mod = getDefaultModule();
     sym->setModule(mod);
     return true;

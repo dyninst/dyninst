@@ -47,7 +47,7 @@
 #include "Annotatable.h"
 #include "ProcReader.h"
 #include "Type.h"
-
+#include "compiler_annotations.h"
 #include "dyninstversion.h"
 
 #include "boost/shared_ptr.hpp"
@@ -187,7 +187,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    // Module
 
    bool getAllModules(std::vector<Module *>&ret);
-   /*[[deprecated]]*/ bool findModuleByOffset(Module *& ret, Offset off);
+   DYNINST_DEPRECATED("Use findModulesByOffset(Offset)") bool findModuleByOffset(Module *& ret, Offset off);
    Module* findModuleByOffset(Offset offset) const;
    bool findModuleByName(Module *&ret, const std::string name);
    std::vector<Module*> findModulesByName(std::string const& name) const;
