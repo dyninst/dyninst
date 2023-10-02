@@ -200,6 +200,9 @@ bool DwarfHandle::init_dbg()
         case EM_AMDGPU: { // TODO: This part of logic needs to be updated to reflect the table on the llvm website
             unsigned int ef_amdgpu_mach = 0x000000ff & file->e_flags();
 			switch(ef_amdgpu_mach){
+                case 0x40:
+                    arch = Dyninst::Arch_amdgpu_gfx940;
+                    break;
                 case 0x3f:
 					arch = Dyninst::Arch_amdgpu_gfx90a;
                     break;

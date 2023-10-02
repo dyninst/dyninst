@@ -2060,6 +2060,13 @@ AMDGPUInstructionKind RoseInsnAMDGPUFactory::convertKind(entryID opcode) {
         case amdgpu_gfx90a_op_S_GETPC_B64 : return rose_amdgpu_op_s_getpc_b64;
         case amdgpu_gfx90a_op_S_ADD_U32 : return rose_amdgpu_op_s_add_u32;
         case amdgpu_gfx90a_op_S_ADDC_U32 : return rose_amdgpu_op_s_addc_u32;
+
+        case amdgpu_gfx940_op_S_SETPC_B64 : return rose_amdgpu_op_s_setpc_b64;
+        case amdgpu_gfx940_op_S_SWAPPC_B64 : return rose_amdgpu_op_s_swappc_b64;
+        case amdgpu_gfx940_op_S_GETPC_B64 : return rose_amdgpu_op_s_getpc_b64;
+        case amdgpu_gfx940_op_S_ADD_U32 : return rose_amdgpu_op_s_add_u32;
+        case amdgpu_gfx940_op_S_ADDC_U32 : return rose_amdgpu_op_s_addc_u32;
+
         default: return rose_amdgpu_op_INVALID;
     }
 }

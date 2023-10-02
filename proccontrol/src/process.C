@@ -1936,6 +1936,7 @@ int int_process::getAddressWidth()
       case Arch_amdgpu_vega: // according to the vega architecture, there are 32/64 address mode
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940:
          return 8;  
       case Arch_none:
          assert(0);

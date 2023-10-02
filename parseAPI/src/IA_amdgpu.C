@@ -74,7 +74,8 @@ bool IA_amdgpu::isNop() const
 {
     Instruction ci = curInsn();
     auto id = ci.getOperation().getID();
-    if(id == amdgpu_op_s_nop || id == amdgpu_gfx908_op_S_NOP || id == amdgpu_gfx90a_op_S_NOP )
+    if(id == amdgpu_op_s_nop || id == amdgpu_gfx908_op_S_NOP || 
+        id == amdgpu_gfx90a_op_S_NOP || id == amdgpu_gfx940_op_S_NOP)
         return true;
     return false;
 }

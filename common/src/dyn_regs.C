@@ -150,6 +150,26 @@ MachRegister MachRegister::getBaseRegister() const {
                 default:
                     return *this;
             }
+        case Arch_amdgpu_gfx940:
+            switch (category){
+                case amdgpu_gfx940::SGPR:
+                case amdgpu_gfx940::SGPR_VEC2:
+                case amdgpu_gfx940::SGPR_VEC4:
+                case amdgpu_gfx940::SGPR_VEC8:
+                case amdgpu_gfx940::SGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_gfx940::s0); 
+                case amdgpu_gfx940::VGPR:
+                case amdgpu_gfx940::VGPR_VEC2:
+                case amdgpu_gfx940::VGPR_VEC4:
+                case amdgpu_gfx940::VGPR_VEC8:
+                case amdgpu_gfx940::VGPR_VEC16:
+                    return MachRegister( (reg & 0x000000ff) | amdgpu_gfx940::v0); 
+                case amdgpu_gfx940::HWR:
+                    return MachRegister(reg);
+
+                default:
+                    return *this;
+            }
 
         case Arch_aarch32:
         case Arch_aarch64:
@@ -238,7 +258,7 @@ std::string MachRegister::name() const {
                     break;
             }
             return ret;
-        }else if(getArchitecture() == Arch_amdgpu_gfx90a || getArchitecture() == Arch_amdgpu_gfx908){
+        }else if(getArchitecture() == Arch_amdgpu_gfx90a || getArchitecture() == Arch_amdgpu_gfx908 || getArchitecture() == Arch_amdgpu_gfx940){
         	return iter->second;
         }else{
             return iter->second;
@@ -451,6 +471,49 @@ unsigned int MachRegister::size() const {
                                        assert(0);
                                    }
                                }
+        case Arch_amdgpu_gfx940:{
+                                   int reg_class = (reg&0x00ff0000 ) ;
+                                   if ( reg_class == amdgpu_gfx940::SGPR || reg_class == amdgpu_gfx940::VGPR){
+                                       return 4;
+                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC2 || reg_class == amdgpu_gfx940::VGPR_VEC2){
+                                       return 8;
+                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC4 || reg_class == amdgpu_gfx940::VGPR_VEC4){
+                                       return 16;
+                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC8 || reg_class == amdgpu_gfx940::VGPR_VEC8){
+                                       return 32;
+                                   }else if (reg_class == amdgpu_gfx940::SGPR_VEC16 || reg_class == amdgpu_gfx940::VGPR_VEC16){
+                                       return 64;
+                                   }else{
+                                       switch(reg & 0x00007f00){
+                                           case amdgpu_gfx940::BITS_1:
+                                           case amdgpu_gfx940::BITS_2:
+                                           case amdgpu_gfx940::BITS_3:
+                                           case amdgpu_gfx940::BITS_4:
+                                           case amdgpu_gfx940::BITS_6:
+                                           case amdgpu_gfx940::BITS_7:
+                                           case amdgpu_gfx940::BITS_8:
+                                               return 1;
+                                           case amdgpu_gfx940::BITS_9:
+                                           case amdgpu_gfx940::BITS_15:
+                                           case amdgpu_gfx940::BITS_16:
+                                               return 2;
+                                           case amdgpu_gfx940::BITS_32:
+                                               return 4;
+                                           case amdgpu_gfx940::BITS_48:
+                                               return 6;
+                                           case amdgpu_gfx940::BITS_64:
+                                               return 8; 
+                                           case amdgpu_gfx940::BITS_128:
+                                               return 16;
+                                           case amdgpu_gfx940::BITS_256:
+                                               return 32;
+                                           case amdgpu_gfx940::BITS_512:
+                                               return 64;
+                                       }
+                                       common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+                                       assert(0);
+                                   }
+                               }
 
         case Arch_aarch64:{
                               if((reg & 0x00ff0000) == aarch64::FPR)
@@ -536,6 +599,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return amdgpu_gfx908::pc_all;
         case Arch_amdgpu_gfx90a:
             return amdgpu_gfx90a::pc_all;
+        case Arch_amdgpu_gfx940:
+            return amdgpu_gfx940::pc_all;
         case Arch_none:
             return InvalidReg;
     }
@@ -562,6 +627,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
         case Arch_amdgpu_vega: // TODO:Since amdgpu functions are all inlined, the return address is highly likely in sgpr[30:31]
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
         case Arch_intelGen9:
             assert(0);
         case Arch_none:
@@ -588,6 +654,7 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
         case Arch_none:
             return InvalidReg;
 
@@ -619,6 +686,7 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
             return InvalidReg;
         default:
             assert(0);
@@ -646,6 +714,7 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -757,7 +826,8 @@ bool MachRegister::isPC() const
 {
     return (*this == x86_64::rip || *this == x86::eip ||
             *this == ppc32::pc || *this == ppc64::pc ||
-            *this == aarch64::pc || *this == amdgpu_gfx908::pc_all ||*this == amdgpu_gfx90a::pc_all  );
+            *this == aarch64::pc || *this == amdgpu_gfx908::pc_all || 
+            *this == amdgpu_gfx90a::pc_all || *this == amdgpu_gfx940::pc_all);
 }
 
 bool MachRegister::isFramePointer() const
@@ -814,6 +884,7 @@ bool MachRegister::isFlag() const
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
                         {
                             return (reg & 0x0000F000);
                         }
@@ -970,6 +1041,44 @@ static void getAmdgpuGfx90aRoseRegister(int &reg_class, int &reg_idx, int &offse
     return;
 }
 
+static void getAmdgpuGfx940RoseRegister(int &reg_class, int &reg_idx, int &offset, const int &reg){
+    signed int category = (reg & 0x00ff0000);
+    signed int baseID =   (reg & 0x000000ff);
+
+    offset = 0;
+    reg_idx = baseID;
+    switch(category){
+    case amdgpu_gfx940::SGPR: {
+        reg_class = amdgpu_regclass_sgpr;
+        break;
+    }
+
+   case amdgpu_gfx940::VGPR: {
+        reg_class = amdgpu_regclass_vgpr;
+        break;
+    }
+
+   case amdgpu_gfx940::PC: {
+        reg_class = amdgpu_regclass_pc;
+        reg_idx = amdgpu_pc;
+        break;
+    }
+
+    case amdgpu_gfx940::HWR: {
+        reg_class = amdgpu_regclass_pc;
+        reg_idx = amdgpu_pc;
+        break;
+    }
+
+    default:{
+        assert(0 && "unsupported register type for amdgpu gfx940");
+    }
+
+    }
+    return;
+}
+
+
 /* This function should has a boolean return value
  * to indicate whether there is a corresponding
  * ROSE register.
@@ -1003,6 +1112,10 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
         }
         case Arch_amdgpu_gfx90a:{
             getAmdgpuGfx90aRoseRegister(c,n,p,reg);
+            return;
+        }
+       case Arch_amdgpu_gfx940:{
+            getAmdgpuGfx940RoseRegister(c,n,p,reg);
             return;
         }
         case Arch_x86:
@@ -1993,6 +2106,7 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
             // ignore AMD register encodings for now
             return Dyninst::InvalidReg;
             break;
@@ -2450,6 +2564,7 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
         case Arch_amdgpu_vega:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
             return 8;
         default:
             assert(0);
