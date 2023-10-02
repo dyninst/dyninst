@@ -53,7 +53,7 @@
  */
 
 #if defined(__cplusplus) && defined(__has_cpp_attribute)
-    #if __has_cpp_attribute(fallthrough) && !(__clang__ && __cplusplus < 201703)
+    #if __has_cpp_attribute(fallthrough) && !(__clang__ && __cplusplus < 201703L)
         #define DYNINST_FALLTHROUGH [[fallthrough]]
     #elif __has_cpp_attribute(gcc::fallthrough)
         #define DYNINST_FALLTHROUGH [[gcc::fallthrough]]
@@ -61,10 +61,10 @@
         #define DYNINST_FALLTHROUGH [[clang::fallthrough]]
     #endif
 #elif !defined(__cplusplus) && defined(__has_c_attribute)
-    #if __has_c_attribute(fallthrough)
+    #if __has_c_attribute(fallthrough) && !(__clang__ && __STDC_VERSION__ < 202311L)
         #define DYNINST_FALLTHROUGH [[fallthrough]]
-    #elif __STDC_VERSION__ > 201710
-	// scoped attribute names are only valid in C starting with 2x
+    #elif __STDC_VERSION__ >= 202311L
+	// scoped attribute names are only valid in C 23 or later
 	#if __has_c_attribute(gcc::fallthrough)
 	    #define DYNINST_FALLTHROUGH [[gcc::fallthrough]]
 	#elif __has_c_attribute(clang::fallthrough)
@@ -76,8 +76,8 @@
 #if !defined(DYNINST_FALLTHROUGH) && defined(__has_attribute)
     #if __has_attribute(fallthrough)
         #define DYNINST_FALLTHROUGH __attribute__((fallthrough))
-    #elif __cplusplus || __STDC_VERSION__ > 201710
-	// scoped attribute names are only valid in C++ or C starting with 2x
+    #elif __cplusplus || __STDC_VERSION__ >= 202311L
+	// scoped attribute names are only valid in C++, or C 23 or later
 	#if __has_attribute(gcc::fallthrough)
 	    #define DYNINST_FALLTHROUGH __attribute__((gcc::fallthrough))
 	#elif __has_attribute(clang::fallthrough)
@@ -106,11 +106,11 @@
  *   DYNINST_DEPRECRATED("Use NewFoo") int Foo();
  */
 
-#if defined(__cplusplus) && defined(__has_cpp_attribute)
+#if defined(__cplusplus) && defined(__has_cpp_attribute) && !(__clang__ && __cplusplus < 201402L)
     #if __has_cpp_attribute(deprecated)
         #define DYNINST_DEPRECATED(msg) [[deprecated(msg)]]
     #endif
-#elif !defined(__cplusplus) && defined(__has_c_attribute)
+#elif !defined(__cplusplus) && defined(__has_c_attribute) && !(__clang__ && __STDC_VERSION__ >= 202311L)
     #if __has_c_attribute(deprecated)
         #define DYNINST_DEPRECATED(msg) [[deprecated(msg)]]
     #endif
