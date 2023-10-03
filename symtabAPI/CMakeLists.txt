@@ -7,11 +7,13 @@ set(_public_headers
     h/Aggregate.h
     h/Archive.h
     h/Collections.h
+    h/ExceptionBlock.h
     h/Function.h
     h/LineInformation.h
     h/Module.h
     h/RangeLookup.h
     h/Region.h
+    h/relocationEntry.h
     h/StringTable.h
     h/Symbol.h
     h/Symtab.h
@@ -42,11 +44,13 @@ set(_sources
     src/annotations.C
     src/Collections.C
     src/debug.C
+    src/ExceptionBlock.C
     src/Function.C
     src/LineInformation.C
     src/Module.C
     src/Object.C
     src/Region.C
+    src/relocationEntry.C
     src/Symbol.C
     src/Symtab-edit.C
     src/Symtab-lookup.C
