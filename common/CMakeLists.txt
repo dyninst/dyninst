@@ -11,8 +11,6 @@ set(_public_headers
     h/AMDGPU/gfx940/amdgpu_gfx940_sys_regs.h
     h/AMDGPU/gfx90a/amdgpu_gfx90a_op_table.h
     h/AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h
-    h/AMDGPU/vega/amdgpu_vega_op_table.h
-    h/AMDGPU/vega/amdgpu_vega_sys_regs.h
     h/AMDGPU/gfx908/amdgpu_gfx908_op_table.h
     h/AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h
     h/Annotatable.h

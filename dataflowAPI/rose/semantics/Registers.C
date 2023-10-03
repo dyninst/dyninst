@@ -581,29 +581,6 @@ RegisterDictionary::print(std::ostream &o) const {
 //
 
 
-/** AMDGPU Vega Registers
- * Scalar Registers : total 104 registers of 32 bits
- *
- */
-const RegisterDictionary *
-RegisterDictionary::dictionary_amdgpu_vega() {
-    static std::once_flag initialized;
-    static RegisterDictionary *regs = NULL;
-
-    std::call_once(initialized, []() {
-        regs = new RegisterDictionary("amdgpu_vega");
-
-        for (unsigned idx = 0; idx < 104; idx++) {
-            regs->insert("sgpr" + StringUtility::numberToString(idx), amdgpu_regclass_sgpr, amdgpu_sgpr0 + idx, 0, 32);
-        }
-
-        /* 64-bit program counter register */
-        regs->insert("pc", amdgpu_regclass_pc, 0, 0, 64);
-
-        regs->insert("scc", amdgpu_regclass_hwr, amdgpu_status, 0, 1);
-    });
-    return regs;
-}
 /** AMDGPU Registers
  * Scalar Registers : total 104 registers of 32 bits
  *

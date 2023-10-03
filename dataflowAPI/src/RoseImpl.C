@@ -36,7 +36,6 @@
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
 #include "../rose/SgAsmAMDGPUInstruction.h"
-#include "../rose/SgAsmAmdgpuVegaInstruction.h"
 #include "external/rose/rose-compat.h"
 #include "../rose/RegisterDescriptor.h"
 #include "../rose/x86InstructionSemantics.h"
@@ -1363,37 +1362,6 @@ void SgAsmInstruction::set_raw_bytes(SgUnsignedCharList raw_bytes) {
 
 size_t SgAsmInstruction::get_size() const {
     return p_raw_bytes.size();
-}
-
-// defs for SgAsmAmdgpuVegaInstruction
-//
-SgAsmAmdgpuVegaInstruction *isSgAsmAmdgpuVegaInstruction(SgNode *s) {
-    return dynamic_cast<SgAsmAmdgpuVegaInstruction *>(s);
-}
-
-std::string SgAsmAmdgpuVegaInstruction::class_name() const {
-    return "SgAsmAmdgpuVegaInstruction";
-}
-
-VariantT SgAsmAmdgpuVegaInstruction::variantT() const {
-    return V_SgAsmAmdgpuVegaInstruction;
-}
-
-SgAsmAmdgpuVegaInstruction::SgAsmAmdgpuVegaInstruction(rose_addr_t address, std::string mnemonic, AmdgpuVegaInstructionKind kind) :
-        SgAsmInstruction(address, mnemonic) {
-    p_kind = kind;
-}
-
-AmdgpuVegaInstructionKind SgAsmAmdgpuVegaInstruction::get_kind() const {
-    return p_kind;
-}
-
-void SgAsmAmdgpuVegaInstruction::set_kind(AmdgpuVegaInstructionKind kind) {
-    p_kind = kind;
-}
-
-SgAsmAmdgpuVegaInstruction::~SgAsmAmdgpuVegaInstruction() {
-    p_kind = rose_amdgpu_op_INVALID;
 }
 
 // defs for SgAsmAMDGPUInstruction

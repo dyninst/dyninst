@@ -18,7 +18,6 @@ set(_sources
     src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
-    src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.C
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
@@ -52,9 +51,6 @@ set(_private_headers
     src/AMDGPU/gfx90a/amdgpu_gfx90a_insn_entry.h
     src/AMDGPU/gfx90a/decodeOperands.h
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
-    src/AMDGPU/vega/amdgpu_vega_decoder_impl.h
-    src/AMDGPU/vega/amdgpu_vega_insn_entry.h
-    src/AMDGPU/vega/InstructionDecoder-amdgpu-vega.h
     src/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.h
     src/AMDGPU/gfx908/amdgpu_gfx908_insn_entry.h
     src/AMDGPU/gfx908/decodeOperands.h
@@ -138,8 +134,7 @@ dyninst_library(
 set(_inc_dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx940
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx90a
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx908
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/vega)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx908)
 
 foreach(t ${instructionAPI_TARGETS})
   target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")

@@ -210,31 +210,6 @@ namespace Dyninst {
 
             virtual Architecture arch() { return a; }
         };
-         
-        class RoseInsnAmdgpuVegaFactory : public RoseInsnFactory {
-        public:
-            DATAFLOW_EXPORT RoseInsnAmdgpuVegaFactory(Architecture arch) : a(arch) { }
-
-            DATAFLOW_EXPORT virtual ~RoseInsnAmdgpuVegaFactory() { }
-
-        private:
-            Architecture a;
-
-            virtual SgAsmInstruction *createInsn();
-
-            virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem);
-
-            virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
-
-            virtual void massageOperands(const InstructionAPI::Instruction &insn,
-                                         std::vector<InstructionAPI::Operand> &operands );
-
-            virtual void setSizes(SgAsmInstruction *insn);
-
-            AmdgpuVegaInstructionKind convertKind(entryID opcode);
-
-            virtual Architecture arch() { return a; }
-        };
        
     }
 }

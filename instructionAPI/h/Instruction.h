@@ -94,7 +94,6 @@ namespace Dyninst
         friend class InstructionDecoder_x86;
         friend class InstructionDecoder_power;
         friend class InstructionDecoder_aarch64;
-        friend class InstructionDecoder_amdgpu_vega;
         friend class InstructionDecoder_amdgpu_gfx908;
         friend class InstructionDecoder_amdgpu_gfx90a;
         friend class InstructionDecoder_amdgpu_gfx940;

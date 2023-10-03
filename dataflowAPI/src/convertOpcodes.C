@@ -2028,27 +2028,10 @@ ARMv8InstructionKind RoseInsnArmv8Factory::convertKind(entryID opcode) {
     }
 }
 // TODO:
-// This function should just translate each instructionAPI opcode to a rose equivalent version
-AmdgpuVegaInstructionKind RoseInsnAmdgpuVegaFactory::convertKind(entryID opcode) {
-    switch(opcode) {
-        case amdgpu_op_s_setpc_b64 : return rose_amdgpu_op_s_setpc_b64;
-        case amdgpu_op_s_swappc_b64 : return rose_amdgpu_op_s_swappc_b64;
-        case amdgpu_op_s_getpc_b64 : return rose_amdgpu_op_s_getpc_b64;
-        case amdgpu_op_s_add_u32 : return rose_amdgpu_op_s_add_u32;
-        case amdgpu_op_s_addc_u32 : return rose_amdgpu_op_s_addc_u32;
-        default: return rose_amdgpu_op_INVALID;
-    }
-}
 
 // This function should just translate each instructionAPI opcode to a rose equivalent version
 AMDGPUInstructionKind RoseInsnAMDGPUFactory::convertKind(entryID opcode) {
     switch(opcode) {
-        case amdgpu_op_s_setpc_b64 : return rose_amdgpu_op_s_setpc_b64;
-        case amdgpu_op_s_swappc_b64 : return rose_amdgpu_op_s_swappc_b64;
-        case amdgpu_op_s_getpc_b64 : return rose_amdgpu_op_s_getpc_b64;
-        case amdgpu_op_s_add_u32 : return rose_amdgpu_op_s_add_u32;
-        case amdgpu_op_s_addc_u32 : return rose_amdgpu_op_s_addc_u32;
-
         case amdgpu_gfx908_op_S_SETPC_B64 : return rose_amdgpu_op_s_setpc_b64;
         case amdgpu_gfx908_op_S_SWAPPC_B64 : return rose_amdgpu_op_s_swappc_b64;
         case amdgpu_gfx908_op_S_GETPC_B64 : return rose_amdgpu_op_s_getpc_b64;

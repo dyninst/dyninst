@@ -199,27 +199,25 @@ bool DwarfHandle::init_dbg()
             break;
         case EM_AMDGPU: { // TODO: This part of logic needs to be updated to reflect the table on the llvm website
             unsigned int ef_amdgpu_mach = 0x000000ff & file->e_flags();
-			switch(ef_amdgpu_mach){
+            switch(ef_amdgpu_mach){
                 case 0x40:
                     arch = Dyninst::Arch_amdgpu_gfx940;
                     break;
                 case 0x3f:
-					arch = Dyninst::Arch_amdgpu_gfx90a;
+                    arch = Dyninst::Arch_amdgpu_gfx90a;
                     break;
                 case 0x30:
+                case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x31:
                     arch = Dyninst::Arch_amdgpu_gfx908;
                     break;
-				case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d: case 0x2e: case 0x2f: case 0x31:
-					arch = Dyninst::Arch_amdgpu_vega;
-                    break;
-				case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18:
-				case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f:
-					assert(0 && "reserved for r600 architecture");
-				case 0x27: case 0x32 : case 0x39:
-					assert(0 && "reserved");
-				default:
-					assert(0 && "probably won't be supported");
-			}
+                case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18:
+                case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f:
+                    assert(0 && "reserved for r600 architecture");
+                case 0x27: case 0x32 : case 0x39:
+                    assert(0 && "reserved");
+                default:
+                    assert(0 && "probably won't be supported");
+            }
 
             break;
         }
