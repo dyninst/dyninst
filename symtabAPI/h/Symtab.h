@@ -48,6 +48,8 @@
 #include "ProcReader.h"
 #include "Type.h"
 #include "compiler_annotations.h"
+#include "relocationEntry.h"
+#include "ExceptionBlock.h"
 #include "dyninstversion.h"
 
 #include "boost/shared_ptr.hpp"
@@ -67,10 +69,8 @@ namespace SymtabAPI {
 class Archive;
 class builtInTypeCollection;
 
-class ExceptionBlock;
 class Object;
 class localVar;
-class relocationEntry;
 class Type;
 struct symtab_impl;
 
@@ -567,126 +567,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
  private:
     unsigned _ref_cnt{1};
-};
-
-/**
- * Used to represent something like a C++ try/catch block.  
- * Currently only used on Linux
- **/
-SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
-
-class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
-  // Accessors provide consistent access to the *original* offsets.
-  // We allow this to be updated (e.g. to account for relocated code
-   public:
-      ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
-      ExceptionBlock(Offset cStart);
-      SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb) = default;
-      SYMTAB_EXPORT ~ExceptionBlock() = default;
-      SYMTAB_EXPORT ExceptionBlock() = default;
-      SYMTAB_EXPORT ExceptionBlock& operator=(const ExceptionBlock &eb) = default;
-
-      bool hasTry() const;
-      Offset tryStart() const;
-      Offset tryEnd() const;
-      Offset trySize() const;
-      Offset catchStart() const;
-      bool contains(Offset a) const;
-      void setTryStart(Offset ts) 
-      {
-	tryStart_ptr = ts;
-      }
-      void setTryEnd(Offset te)
-      {
-	tryEnd_ptr = te;
-      }
-
-      void setCatchStart(Offset cs)
-      {
-	catchStart_ptr = cs;
-      }
-
-      void setFdeStart(Offset fs)
-      {
-	fdeStart_ptr = fs;
-      }
-      
-      void setFdeEnd(Offset fe)
-      {
-	fdeEnd_ptr = fe;
-      }      	
-
-
-      friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
-   private:
-      Offset tryStart_{};
-      unsigned trySize_{};
-      Offset catchStart_{};
-      bool hasTry_{};
-      Offset tryStart_ptr{};
-      Offset tryEnd_ptr{};
-      Offset catchStart_ptr{};
-      Offset fdeStart_ptr{};
-      Offset fdeEnd_ptr{};
-};
-
-// relocation information for calls to functions not in this image
-SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
-
-class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
-   public:
-
-      relocationEntry();
-      relocationEntry(Offset ta, Offset ra, Offset add, 
-			  std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-      relocationEntry(Offset ta, Offset ra, std::string n, 
-			  Symbol *dynref = NULL, unsigned long relType = 0);
-      relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, 
-			  unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
-      relocationEntry(Offset ta, Offset ra, Offset add,
-                          std::string n, Symbol *dynref = NULL, unsigned long relType = 0,
-                          Region::RegionType rtype = Region::RT_REL);
-
-      Offset target_addr() const;
-      Offset rel_addr() const;
-      Offset addend() const;
-      Region::RegionType regionType() const;
-      const std::string &name() const;
-      Symbol *getDynSym() const;
-      bool addDynSym(Symbol *dynref);
-      unsigned long getRelType() const;
-
-      void setTargetAddr(const Offset);
-      void setRelAddr(const Offset);
-      void setAddend(const Offset);
-      void setRegionType(const Region::RegionType);
-      void setName(const std::string &newName);
-      void setRelType(unsigned long relType) { relType_ = relType; }
-
-      // dump output.  Currently setup as a debugging aid, not really
-      //  for object persistance....
-      //std::ostream & operator<<(std::ostream &s) const;
-      friend SYMTAB_EXPORT std::ostream & operator<<(std::ostream &os, const relocationEntry &q);
-
-      enum {pltrel = 1, dynrel = 2};
-      bool operator==(const relocationEntry &) const;
-
-      enum category { relative, jump_slot, absolute };
-
-      // Architecture-specific functions
-      static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
-      static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
-      category getCategory( unsigned addressWidth );
-
-   private:
-      Offset target_addr_;	// target address of call instruction 
-      Offset rel_addr_;		// address of corresponding relocation entry 
-      Offset addend_;       // addend (from RELA entries)
-      Region::RegionType rtype_;        // RT_REL vs. RT_RELA
-      std::string  name_;
-      Symbol *dynref_;
-      unsigned long relType_;
-      Offset rel_struct_addr_;
 };
 
 }//namespace SymtabAPI
