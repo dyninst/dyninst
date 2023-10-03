@@ -58,7 +58,7 @@ LivenessAnalyzer::LivenessAnalyzer(int w): errorno((ErrorType)-1) {
 }
 
 LivenessAnalyzer::LivenessAnalyzer(Architecture arch, int w): errorno((ErrorType)-1) {
-    if (arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a){
+    if (arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940){
         width = 8;
         abi = ABI::getABI(arch);
     }else{

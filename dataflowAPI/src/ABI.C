@@ -682,8 +682,15 @@ void ABI::initialize64(Architecture arch){
             globalABI64_->index = &machRegIndex_amdgpu_gfx90a();
             break;
         }
+        case Arch_amdgpu_gfx940:{
+            RegisterMap amdgpu_gfx940_map = machRegIndex_amdgpu_gfx940();
+            sz = amdgpu_gfx940_map.size();
+            globalABI_->index = &machRegIndex_amdgpu_gfx940();
+            globalABI64_->index = &machRegIndex_amdgpu_gfx940();
+            break;
+        }
         default:
-        assert(0 && "This call is currently implemented for AMDGPU gfx908 and gfx90a only");
+        assert(0 && "This call is currently implemented for AMDGPU gfx908,gfx90a and gfx940 only");
     }
     returnRegs64_ = getBitArray(sz);
     returnRead64_ = getBitArray(sz);
