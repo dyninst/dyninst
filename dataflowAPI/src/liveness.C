@@ -267,6 +267,104 @@ void LivenessAnalyzer::analyze(Function *func) {
     liveFuncCalculated[func] = true;
 }
 
+// This function aims to reduce the overhead of querying liveness
+// by reporting the liveness for all instructions within a block
+bool LivenessAnalyzer::queryBlock(Location loc, Type type, vector<Address> & addrs, vector<bitArray> & liveRegs) {
+//TODO: consider the trustness of the location 
+
+   if (!loc.isValid()){
+   	errorno = Invalid_Location;
+	return false;
+   }
+
+   // First, ensure that the block liveness is done.
+   analyze(loc.func);
+
+   Address addr = 0;
+   // For "pre"-instruction we subtract one from the address. This is done
+   // because liveness is calculated backwards; therefore, accumulating
+   // up to <addr> is actually the liveness _after_ that instruction, not
+   // before. Since we compare using > below, -1 means it will trigger. 
+
+   switch(loc.type) {
+      case Location::block_:
+      case Location::blockInstance_:
+         addr = loc.block->start();
+	 if (type == Before)
+            addr = loc.block->start() - 1;
+	 else
+            addr = loc.block->start();
+        break;
+      default:
+         assert(0);
+  }
+	
+   // We know: 
+   //    liveness _out_ at the block level:
+   bitArray working = blockLiveInfo[loc.block].out;
+   assert(!working.empty());
+
+   // We now want to do liveness analysis for straight-line code. 
+        
+   using namespace Dyninst::InstructionAPI;
+    
+   Address blockBegin = loc.block->start();
+   Address blockEnd = loc.block->end();
+   std::vector<Address> blockAddrs;
+   
+   const unsigned char* insnBuffer = 
+      reinterpret_cast<const unsigned char*>(getPtrToInstruction(loc.block, blockBegin));
+   assert(insnBuffer);
+
+   InstructionDecoder decoder(insnBuffer,loc.block->size(),
+        loc.func->isrc()->getArch());
+   Address curInsnAddr = blockBegin;
+   do
+   {
+     ReadWriteInfo rw;
+     if(!cachedLivenessInfo.getLivenessInfo(curInsnAddr, loc.func, rw))
+     {
+        Instruction tmp = decoder.decode(insnBuffer);
+        rw = calcRWSets(tmp, loc.block, curInsnAddr);
+        cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, loc.func);
+     }
+     blockAddrs.push_back(curInsnAddr);
+     curInsnAddr += rw.insnSize;
+     insnBuffer += rw.insnSize;
+   } while(curInsnAddr < blockEnd);
+    
+    
+   // We iterate backwards over instructions in the block, as liveness is 
+   // a backwards flow process.
+
+   std::vector<Address>::reverse_iterator current = blockAddrs.rbegin();
+
+   liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
+                   FILE__, __LINE__, current != blockAddrs.rend(), *current, addr);
+   
+   while(current != blockAddrs.rend() && *current > addr)
+   {
+      ReadWriteInfo rwAtCurrent;
+      if(!cachedLivenessInfo.getLivenessInfo(*current, loc.func, rwAtCurrent))
+         assert(0);
+
+      liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
+                      FILE__, __LINE__, addr, *current);
+      liveness_cerr << "Pre:    " << working << endl;
+      working &= (~rwAtCurrent.written);
+      working |= rwAtCurrent.read;
+      liveness_cerr << "Post:   " << working << endl;
+      liveness_cerr << "Current read:  " << rwAtCurrent.read << endl;
+      liveness_cerr << "Current Write: " << rwAtCurrent.written << endl;
+      addrs.push_back(*current);
+      liveRegs.push_back(bitArray(working));
+      ++current;
+   }
+   assert(!working.empty());
+
+   return true;
+}
+
 
 // This function does two things.
 // First, it does a backwards iteration over instructions in its

@@ -95,6 +95,7 @@ public:
 	}
 	bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
 	bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
+	bool queryBlock(ParseAPI::Location loc, Type type, vector<Address> & addrs,vector<bitArray> & liveRegs );
 
 	ErrorType getLastError(){ return errorno; }
 
