@@ -54,19 +54,6 @@ typedef enum {
 \end{apient}
 
 \begin{apient}
-bool findFunctionsByName(vector<Function> &ret,
-                         const string name,
-                         Symtab::NameType nameType = anyName,
-                         bool isRegex = false,
-                         bool checkCase = true)
-\end{apient}
-\apidesc{
-This method finds and returns a vector of \code{Functions} whose names match the given pattern. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any. If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matching \code{Function}s, if any.
-Returns \code{true} if it finds functions that match the given name, otherwise returns
-\code{false}. The error value is set to \code{No\_Such\_Function}.
-}
-
-\begin{apient}
 bool getAllFunctions(vector<Function *> &ret)
 \end{apient}
 \apidesc{
