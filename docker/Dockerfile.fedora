@@ -27,3 +27,4 @@ RUN yum update -y &&   \
       libdwarf-devel   \
       libstdc++-static \
       tbb-devel
+      
