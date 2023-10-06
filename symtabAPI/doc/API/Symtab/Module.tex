@@ -35,16 +35,6 @@ exec & Symtab * & Symtab object that contains the module. \\
 \subsubsection{Function, Variable, Symbol lookup}
 
 \begin{apient}
-bool findFunctionByEntryOffset(Function *&ret,
-                               const Offset offset)
-\end{apient}
-\apidesc{
-This method returns the \code{Function} object that begins at \code{offset}. Returns \code{true} on
-success and \code{false} if there is no matching function. The error value is set to
-\code{No\_Such\_Function}.
-}
-
-\begin{apient}
 typedef enum {
     mangledName,
     prettyName,
