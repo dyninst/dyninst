@@ -1,0 +1,30 @@
+ARG version
+FROM fedora:${version}
+
+#####################################################
+#
+# Base container for a Fedora environment
+#
+#   The dependencies are purposefully unversioned
+#   so that the distribution-default ones are used.
+#
+#####################################################
+
+LABEL maintainer="@hainest"
+
+ENV TZ=America/Chicago
+
+RUN yum update -y &&   \
+    yum install -y     \
+      binutils-devel   \
+      boost-devel      \
+      cmake            \
+      elfutils-devel   \
+      gcc              \
+      g++              \
+      git              \
+      glibc-static     \
+      libdwarf-devel   \
+      libstdc++-static \
+      tbb-devel
+      
