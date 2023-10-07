@@ -2200,16 +2200,20 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
             #pragma omp critical
             convertDebugOffset(tempModLow, modLow);
         }
+
+        dwarf_printf("Locating ranges for module '%s' at offset 0x%zx\n", modname.c_str(), modLow);
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(cu_die);
         SymtabAPI::Module *m;
         #pragma omp critical
         m = associated_symtab->getOrCreateModule(modname, modLow);
+        dwarf_printf("Adding %zu ranges to '%s'\n", mod_ranges.size(), m->fileName().c_str());
         for (auto r = mod_ranges.begin(); r != mod_ranges.end(); ++r)
         {
             m->addRange(r->first, r->second);
         }
         if (!m->hasRanges())
         {
+            dwarf_printf("No ranges found. Checking source lines\n");
             Dwarf_Lines *lines;
             size_t num_lines;
             if (dwarf_getsrclines(&cu_die, &lines, &num_lines) == 0)
