@@ -811,7 +811,6 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 	          FILE__, __LINE__, modName.c_str(), modAddr);
 
     Module *ret = new Module(lang_Unknown, modAddr, modName, this);
-    assert(ret);
 
     if (impl->modules.contains(ret))
     {
