@@ -810,11 +810,11 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
     create_printf("%s[%d]: Module '%s' at location 0x'%zx' not found. Creating new module.\n",
 	          FILE__, __LINE__, modName.c_str(), modAddr);
 
-    Module *ret = new Module(lang_Unknown, modAddr, modName, this);
+    Module *mod = new Module(lang_Unknown, modAddr, modName, this);
 
-    impl->modules.insert(ret);
+    impl->modules.insert(mod);
     
-    return ret;
+    return mod;
 }
 
 Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
