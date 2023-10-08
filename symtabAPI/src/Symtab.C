@@ -807,14 +807,6 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 
    if (fm) return fm;
 
-    const char *str = modName.c_str();
-    int len = modName.length();
-    assert(len>0);
-
-    // TODO ignore directory definitions for now
-    if (str[len-1] == '/') 
-        return NULL;
-
     Module *ret = NULL;
 
     std::string fileNm, fullNm;
