@@ -805,14 +805,7 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 {
    Module *fm = findModuleByOffset(modAddr);
 
-   if (fm)
-   {
-       if(modAddr && (modAddr < fm->addr()))
-       {
-           fm->addr_ = modAddr;
-       }
-      return fm;
-   }
+   if (fm) return fm;
 
     const char *str = modName.c_str();
     int len = modName.length();
