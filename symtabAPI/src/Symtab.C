@@ -807,12 +807,10 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 
    if (fm) return fm;
 
-    Module *ret = NULL;
-
     create_printf("%s[%d]: Module '%s' at location 0x'%zx' not found. Creating new module.\n",
 	          FILE__, __LINE__, modName.c_str(), modAddr);
 
-    ret = new Module(lang_Unknown, modAddr, modName, this);
+    Module *ret = new Module(lang_Unknown, modAddr, modName, this);
     assert(ret);
 
     if (impl->modules.contains(ret))
