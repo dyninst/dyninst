@@ -201,7 +201,7 @@ bool DwarfWalker::parse() {
    for (;typeIter!=moduleTypes->typesByID.end();typeIter++)
    {
       typeIter->second->fixupUnknowns(fixUnknownMod);
-   } /* end iteration over types. */
+   }
 
    /* Fix the types of variables. */
    std::string variableName;
@@ -212,8 +212,8 @@ bool DwarfWalker::parse() {
           moduleTypes->findType( variableIter->second->getID(), Type::share ) != NULL )
       {
          variableIter->second = moduleTypes->findType(variableIter->second->getID(), Type::share);
-      } /* end if data class is unknown but the type exists. */
-   } /* end iteration over variables. */
+      }
+   }
 
     moduleTypes->setDwarfParsed();
     return true;
@@ -226,7 +226,6 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
         return false;
     }
 
-    /* Extract the name of this module. */
     std::string moduleName = DwarfDyninst::die_name(moduleDIE);
 
     auto moduleTag = dwarf_tag(&moduleDIE);
@@ -884,7 +883,7 @@ bool DwarfWalker::parseVariable() {
    if (!curFunc() && !curEnclosure()) {
       createGlobalVariable(locs, type);
 
-   } /* end if this variable is a global */
+   }
    else
    {
       if (!getLineInformation(variableLineNo, hasLineNumber, fileName))
@@ -896,12 +895,12 @@ bool DwarfWalker::parseVariable() {
 
          createLocalVariable(locs, type, variableLineNo, fileName);
 
-      } /* end if a local or static variable. */
+      }
       else {
          auto ret = addStaticClassVariable(locs, type);
          return ret;
       }
-   } /* end if this variable is not global */
+   }
    return true;
 }
 
@@ -2115,7 +2114,7 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
         case DW_ACCESS_private: visibility = visPrivate; break;
         default:
                                 break;
-    } /* end visibility switch */
+    }
 
     return true;
 }
@@ -2173,7 +2172,7 @@ bool DwarfWalker::fixBitFields(std::vector<VariableLocation> &locs,
         if (locs.size())
             locs[0].frameOffset *= 8;
         size *= 8;
-    } /* end if not a bit field member. */
+    }
     return true;
 }
 
@@ -2417,7 +2416,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
 
     /* decode successful */
     return !locs.empty();
-} /* end decodeLocationListForStaticOffsetOrAddress() */
+}
 
 
 void DwarfWalker::setEntry(Dwarf_Die entry) {
