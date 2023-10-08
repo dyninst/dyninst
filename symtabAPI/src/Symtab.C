@@ -824,9 +824,6 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 
     Module *ret = NULL;
 
-    //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
-    //				name.c_str(), addr);
-    
     std::string fileNm, fullNm;
     fullNm = modName;
     fileNm = extract_pathname_tail(modName);
