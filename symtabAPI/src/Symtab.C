@@ -812,12 +812,6 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 
     Module *ret = new Module(lang_Unknown, modAddr, modName, this);
 
-    if (impl->modules.contains(ret))
-    {
-       create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
-             FILE__, __LINE__, ret->fileName().c_str());
-    }
-
     impl->modules.insert(ret);
     
     return (ret);
