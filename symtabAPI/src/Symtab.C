@@ -822,23 +822,18 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
     if (str[len-1] == '/') 
         return NULL;
 
-    return (newModule(modName, modAddr, lang_Unknown));
-}
- 
-Module *Symtab::newModule(const std::string &name, const Offset addr, supportedLanguages lang)
-{
     Module *ret = NULL;
 
     //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
     //				name.c_str(), addr);
     
     std::string fileNm, fullNm;
-    fullNm = name;
-    fileNm = extract_pathname_tail(name);
+    fullNm = modName;
+    fileNm = extract_pathname_tail(modName);
 
     create_printf("%s[%d]: In %p: Creating new module '%s'/'%s'\n", FILE__, __LINE__, (void*)this, fileNm.c_str(), fullNm.c_str());
 
-    ret = new Module(lang, addr, fullNm, this);
+    ret = new Module(lang_Unknown, modAddr, fullNm, this);
     assert(ret);
 
     if (impl->modules.contains(ret))
