@@ -148,10 +148,6 @@ bool DwarfWalker::parse() {
     {
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
-        /*Dwarf_Half moduleTag = dwarf_tag(&current_cu_die);
-        if (moduleTag == DW_TAG_partial_unit) {
-            continue;
-        }*/
         module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
@@ -166,10 +162,6 @@ bool DwarfWalker::parse() {
     {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
-        /*Dwarf_Half moduleTag = dwarf_tag(&current_cu_die);
-        if (moduleTag == DW_TAG_partial_unit) {
-            continue;
-        }*/
         module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
@@ -249,7 +241,6 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     /* Set the language, if any. */
     Dwarf_Attribute languageAttribute;
-    //DWARF_ERROR_RET(dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL ));
     dwarf_attr(&moduleDIE, DW_AT_language, &languageAttribute);
 
     // Set low and high ranges; this can fail, so don't check return addr.
@@ -308,7 +299,6 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
         if(!filename) continue;
         srcFiles->emplace_back(DwarfDyninst::detail::absolute_path(filename, comp_dir),"");
     }
-    //cerr << "pointer: " << srcFiles.get() << endl <<  *(srcFiles.get()) << endl;
     return true;
 }
 
@@ -457,7 +447,6 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
         if (ret && parseChild() ) {
             // Parse children
             Dwarf_Die childDwarf;
-            //Dwarf_Die e = entry();
             int status = dwarf_child(&e, &childDwarf);
             if(status == -1)
                 return false;
@@ -511,9 +500,6 @@ bool DwarfWalker::parseCallsite()
         return false;
 
     InlinedFunction *ifunc = static_cast<InlinedFunction *>(curFunc());
-    //    cout << "Found inline call site in func (0x" << hex << id() << ") "
-    //         << curFunc()->getName() << " at " << curFunc()->getOffset() << dec
-    //         << ", file " << inline_file << ": " << inline_line << endl;
     ifunc->setFile(inline_file.get());
     ifunc->callsite_line = inline_line;
     return true;
@@ -623,7 +609,6 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    // Name first
    FunctionBase *func = curFunc();
    name_result = findFuncName();
-//    if(func) cout << hex << "Begin parseSubprogram for (" << id() << ") " << func->getName() << " at " << func->getOffset() << dec << endl;
    if (curEnclosure() && !func) {
       // This is a member function; create the type entry
       // Since curFunc is false, we're not going back to reparse this
@@ -678,7 +663,6 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       }
       // Only keep pretty names around for inlines, which probably don't have mangled names
       else {
-//          printf("(0x%lx) Adding %s as pretty name to inline at 0x%lx\n", id(), curName().c_str(), func->getOffset());
           dwarf_printf("(0x%lx) Adding as pretty name to inline\n", id());
           func->addPrettyName(curName(), true);
       }
@@ -686,7 +670,6 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 
    //Collect callsite information for inlined functions.
    if (func_type == InlinedFunc) {
-//       cout << "Parsing callsite for (0x" << hex << id() << ") " << curName() << " at " << func->getOffset() << dec << endl;
       parseCallsite();
    }
 
@@ -744,9 +727,7 @@ void DwarfWalker::setRanges(FunctionBase *func) {
    dyn_mutex::unique_lock l(func->ranges_lock);
    if(func->ranges.empty()) {
 	   Address last_low = 0, last_high = 0;
-//       func->ranges.reserve(rangesSize());
 	   for (auto i = ranges_begin(); i != ranges_end(); i++) {
-//           cerr << "Adding " << rangesSize() << " ranges\n";
 	       Address low = i->first;
 	       Address high = i->second;
 	       if (last_low == low && last_high == high)
@@ -764,8 +745,6 @@ bool DwarfWalker::parseRangeTypes(Dwarf_Die die) {
 
    clearRanges();
     std::vector<AddressRange> newRanges = getDieRanges(die);
-//    cerr << "parseRangeTypes generating new ranges, size is " << newRanges.size()
-//         << ", DIE offset is " << die.addr << endl;
     for(auto r = newRanges.begin();
         r != newRanges.end();
         ++r)
@@ -881,8 +860,6 @@ bool DwarfWalker::parseVariable() {
    if (locs.empty()) return true;
 
    for (unsigned i=0; i<locs.size(); i++) {
-      //if (locs[i].stClass != storageAddr)
-      //continue;
       if (locs[i].lowPC) {
          locs[i].lowPC = convertDebugOffset(locs[i].lowPC);
       }
@@ -1056,8 +1033,6 @@ void DwarfWalker::createParameter(const vector<VariableLocation> &locs,
                 id(),
                 curName().c_str(),
                 (void*)paramType.get(), paramType->getName().c_str(),
-		//                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ?
-		//curFunc()->getAllMangledNames()[0].c_str() : ""),
                 (void*)curFunc());
 
    for (unsigned int i = 0; i < locs.size(); ++i)
@@ -1564,7 +1539,6 @@ bool DwarfWalker::hasDeclaration(bool &isDecl) {
 bool DwarfWalker::findTag() {
     Dwarf_Die e = entry();
     Dwarf_Half dieTag = dwarf_tag(&e);
-    //DWARF_FAIL_RET(dieTag);
     setTag(dieTag);
     return true;
 }
@@ -1811,7 +1785,6 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
                 auto ret_p = dwarf_formref_die(&attr, &die);
                 if(!ret_p) return false;
                 offset = dwarf_dieoffset(&die);
-                //if(form==DW_FORM_GNU_ref_alt) is_sup = true;
                 return true;
             }
             /* Then there's DW_FORM_sec_offset which refer other sections, or
@@ -2141,7 +2114,6 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
         case DW_ACCESS_protected: visibility = visProtected; break;
         case DW_ACCESS_private: visibility = visPrivate; break;
         default:
-                                //bperr ( "Uknown visibility, ignoring.\n" );
                                 break;
     } /* end visibility switch */
 
@@ -2328,10 +2300,8 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
         ld.dwarfOp = exprs;
         ld.opLen = exprlen;
         locDescs.push_back(ld);
-        //if(start==0 && end==-1) break;
     }while(offset > 0);
 
-    //assert(locDescs.size()!=1);
     bool ret = decodeLocationListForStaticOffsetOrAddress(locDescs, 1, locs);
     return ret;
 }
@@ -2575,15 +2545,8 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
 {
     if (!DwarfDyninst::is_type_unit(current_cu_die))
         return false;
-    /* typeoffset is relative to the type unit; we want the global offset. */
-    //FIXME
-    //Dwarf_Off cu_off, cu_length;
-    //DWARF_FAIL_RET(dwarf_die_CU_offset_range(typeDIE, &cu_off, &cu_length, NULL ));
-    //cerr << "a) " <<  dwarf_dieoffset(&typeDIE) << endl;
-    //cerr << "b) " <<  dwarf_cuoffset(&typeDIE) << endl;
-
     uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-    typeId_t type_id = get_type_id(/*cu_off +*/ typeoffset, is_info, false);
+    typeId_t type_id = get_type_id(typeoffset, is_info, false);
 
     {
       dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
