@@ -809,13 +809,10 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 
     Module *ret = NULL;
 
-    std::string fileNm, fullNm;
-    fullNm = modName;
-    fileNm = extract_pathname_tail(modName);
+    create_printf("%s[%d]: Module '%s' at location 0x'%zx' not found. Creating new module.\n",
+	          FILE__, __LINE__, modName.c_str(), modAddr);
 
-    create_printf("%s[%d]: In %p: Creating new module '%s'/'%s'\n", FILE__, __LINE__, (void*)this, fileNm.c_str(), fullNm.c_str());
-
-    ret = new Module(lang_Unknown, modAddr, fullNm, this);
+    ret = new Module(lang_Unknown, modAddr, modName, this);
     assert(ret);
 
     if (impl->modules.contains(ret))
