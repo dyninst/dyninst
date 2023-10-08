@@ -814,7 +814,7 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 
     impl->modules.insert(ret);
     
-    return (ret);
+    return ret;
 }
 
 Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
