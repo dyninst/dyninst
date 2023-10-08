@@ -423,7 +423,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    // Change the type of a symbol after the fact
    bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 
-   bool changeSymbolOffset(Symbol *sym, Offset newOffset);
    bool deleteSymbolFromIndices(Symbol *sym);
 
    bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset);

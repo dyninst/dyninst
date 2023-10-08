@@ -163,36 +163,6 @@ bool Symtab::deleteSymbol(Symbol *sym)
     return result;
 }
 
-bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
-    // If we aren't part of an aggregate, change the symbol offset
-    // and update symsByOffset.
-    // If we are part of an aggregate and the only symbol element,
-    // do that and update funcsByOffset or varsByOffset.
-    // If we are and not the only symbol, do 1), remove from 
-    // the aggregate, and make a new aggregate.
-  {
-    indexed_symbols::master_t::accessor a;
-    if (!impl->everyDefinedSymbol.master.find(a, sym))  {
-        assert(!"everyDefinedSymbol.master.find(a, sym)");
-    }
-
-    indexed_symbols::by_offset_t::accessor oa;
-    if (!impl->everyDefinedSymbol.by_offset.find(oa, sym->offset_))  {
-        assert(!"everyDefinedSymbol.by_offset.find(oa, sym->offset_)");
-    }
-    auto &syms = oa->second;
-    syms.erase(std::remove(syms.begin(), syms.end(), sym), syms.end());
-    impl->everyDefinedSymbol.by_offset.insert(oa, newOffset);
-    oa->second.push_back(sym);
-
-    a->second = newOffset;
-    sym->offset_ = newOffset;
-  }
-
-  if (sym->aggregate_ == NULL) return true;
-  else return sym->aggregate_->changeSymbolOffset(sym);
-}
-
 bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset) {
     Function *func = dynamic_cast<Function *>(agg);
     Variable *var = dynamic_cast<Variable *>(agg);
