@@ -2194,24 +2194,26 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 
         std::string modname = DwarfDyninst::die_name(cu_die);
 
-        //cerr << "Processing CU DIE for " << modname << " offset: " << next_cu_off << endl;
         Address tempModLow;
         Address modLow = 0;
         if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, &cu_die, dbg)) {
             #pragma omp critical
             convertDebugOffset(tempModLow, modLow);
         }
+
+        dwarf_printf("Locating ranges for module '%s' at offset 0x%zx\n", modname.c_str(), modLow);
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(cu_die);
         SymtabAPI::Module *m;
         #pragma omp critical
         m = associated_symtab->getOrCreateModule(modname, modLow);
+        dwarf_printf("Adding %zu ranges to '%s'\n", mod_ranges.size(), m->fileName().c_str());
         for (auto r = mod_ranges.begin(); r != mod_ranges.end(); ++r)
         {
             m->addRange(r->first, r->second);
         }
         if (!m->hasRanges())
         {
-//            cout << "No ranges for module " << modname << ", need to extract from statements\n";
+            dwarf_printf("No ranges found. Checking source lines\n");
             Dwarf_Lines *lines;
             size_t num_lines;
             if (dwarf_getsrclines(&cu_die, &lines, &num_lines) == 0)
@@ -2237,8 +2239,6 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
                             }
 
                         }
-//                        cout << "Adding range [" << hex << low << ", " << high << ") to " << dec <<
-//                             m->fileName() << " based on statements" << endl;
                         m->addRange(low, high);
                     }
                 }
@@ -2246,7 +2246,6 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         }
         #pragma omp critical
         m->addDebugInfo(cu_die);
-        //cerr << "Files in module " << modname << endl;
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         // dies_seen.insert(cu_die_off);
     }
