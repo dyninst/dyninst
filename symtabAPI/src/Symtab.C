@@ -803,8 +803,9 @@ void Symtab::createDefaultModule() {
 Module *Symtab::getOrCreateModule(const std::string &modName, 
                                   const Offset modAddr)
 {
-   Module *fm = NULL;
-   if (findModuleByName(fm, modName))
+   Module *fm = findModuleByOffset(modAddr);
+
+   if (fm)
    {
        if(modAddr && (modAddr < fm->addr()))
        {
@@ -827,13 +828,6 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 Module *Symtab::newModule(const std::string &name, const Offset addr, supportedLanguages lang)
 {
     Module *ret = NULL;
-    // modules can be defined several times in C++ due to templates and
-    //   in-line member functions.
-
-    if (findModuleByName(ret, name)) 
-    {
-        return(ret);
-    }
 
     //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
     //				name.c_str(), addr);
