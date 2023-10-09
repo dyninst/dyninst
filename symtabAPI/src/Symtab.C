@@ -805,51 +805,16 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 {
    Module *fm = findModuleByOffset(modAddr);
 
-   if (fm)
-   {
-       if(modAddr && (modAddr < fm->addr()))
-       {
-           fm->addr_ = modAddr;
-       }
-      return fm;
-   }
+   if (fm) return fm;
 
-    const char *str = modName.c_str();
-    int len = modName.length();
-    assert(len>0);
+    create_printf("%s[%d]: Module '%s' at location 0x'%zx' not found. Creating new module.\n",
+	          FILE__, __LINE__, modName.c_str(), modAddr);
 
-    // TODO ignore directory definitions for now
-    if (str[len-1] == '/') 
-        return NULL;
+    Module *mod = new Module(lang_Unknown, modAddr, modName, this);
 
-    return (newModule(modName, modAddr, lang_Unknown));
-}
- 
-Module *Symtab::newModule(const std::string &name, const Offset addr, supportedLanguages lang)
-{
-    Module *ret = NULL;
-
-    //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
-    //				name.c_str(), addr);
+    impl->modules.insert(mod);
     
-    std::string fileNm, fullNm;
-    fullNm = name;
-    fileNm = extract_pathname_tail(name);
-
-    create_printf("%s[%d]: In %p: Creating new module '%s'/'%s'\n", FILE__, __LINE__, (void*)this, fileNm.c_str(), fullNm.c_str());
-
-    ret = new Module(lang, addr, fullNm, this);
-    assert(ret);
-
-    if (impl->modules.contains(ret))
-    {
-       create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
-             FILE__, __LINE__, ret->fileName().c_str());
-    }
-
-    impl->modules.insert(ret);
-    
-    return (ret);
+    return mod;
 }
 
 Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
