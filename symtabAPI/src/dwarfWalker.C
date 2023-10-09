@@ -1630,8 +1630,7 @@ bool DwarfWalker::findFuncName() {
 
     // Is this an inlined function?
     {
-        int const is_inline = dwarf_hasattr(&e, DW_AT_inline);
-        if(is_inline != -1) {
+        if(dwarf_hasattr(&e, DW_AT_inline)) {
           // Find the 'DW_AT_name' for this DIE. Do not traverse this as an abstract
           // instance root (if it is one)- i.e., don't use dwarf_attr_integrate here.
           Dwarf_Attribute nameAttr{};
