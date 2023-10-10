@@ -62,6 +62,8 @@ namespace Dyninst { namespace SymtabAPI {
 
     Statement(const Statement &) = default;
 
+    ~Statement() = default;
+
     struct StatementLess {
       bool operator()(const Statement &lhs, const Statement &rhs) const;
     };
@@ -74,8 +76,6 @@ namespace Dyninst { namespace SymtabAPI {
     bool operator<(Offset addr) const { return startAddr() <= addr; }
 
     bool operator>(Offset addr) const { return !((*this) < addr || (*this == addr)); }
-
-    ~Statement() {}
 
     Offset startAddr() const { return first; }
 
