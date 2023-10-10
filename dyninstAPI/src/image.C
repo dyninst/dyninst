@@ -1697,7 +1697,7 @@ parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
      }
      region = *(regions.begin()); // XXX pick one, throwing up hands. 
 
-     auto *m = linkedFile->findModuleByOffset(functionEntryAddr);
+     auto *m = linkedFile->getContainingModule(functionEntryAddr);
      
      pdmodule *mod = getOrCreateModule(m);
 

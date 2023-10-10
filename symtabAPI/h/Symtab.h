@@ -191,6 +191,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Module* findModuleByOffset(Offset offset) const;
    std::vector<Module*> findModulesByName(std::string const& name) const;
    Module *getDefaultModule() const;
+   Module* getContainingModule(Offset offset) const;
 
    // Region
 
