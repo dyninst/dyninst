@@ -14,6 +14,7 @@ set(_public_headers
     h/RangeLookup.h
     h/Region.h
     h/relocationEntry.h
+    h/Statement.h
     h/StringTable.h
     h/Symbol.h
     h/Symtab.h
@@ -51,6 +52,7 @@ set(_sources
     src/Object.C
     src/Region.C
     src/relocationEntry.C
+    src/Statement.C
     src/Symbol.C
     src/Symtab-edit.C
     src/Symtab-lookup.C

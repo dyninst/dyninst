@@ -47,8 +47,7 @@
 #endif
 #include <boost/shared_ptr.hpp>
 #include "RangeLookup.h"
-
-#include "StringTable.h"
+#include "Statement.h"
 
 namespace Dyninst{
 	namespace SymtabAPI{
@@ -59,80 +58,6 @@ namespace Dyninst{
 		class Symtab;
 
 
-		class SYMTAB_EXPORT Statement : public AddressRange
-		{
-			friend class Module;
-			friend class LineInformation;
-			Statement(int file_index, unsigned int line, unsigned int col = 0,
-					  Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
-					AddressRange(start_addr, end_addr),
-					file_index_(file_index),
-					line_(line),
-					column_(col)
-			{
-			}
-
-			unsigned int file_index_; // Maybe this should be module?
-			unsigned int line_;
-			unsigned int column_;
-			StringTablePtr strings_;
-		public:
-			StringTablePtr getStrings_() const;
-
-			void setStrings_(StringTablePtr strings_);
-
-		public:
-
-			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  {}
-			Statement(const Statement&) = default;
-			struct StatementLess {
-				bool operator () ( const Statement &lhs, const Statement &rhs ) const;
-			};
-
-			typedef StatementLess LineNoTupleLess;
-			bool operator==(const Statement &cmp) const;
-			bool operator==(Offset addr) const {
-				return AddressRange::contains(addr);
-			}
-			bool operator<(Offset addr) const {
-				return startAddr() <= addr;
-			}
-			bool operator>(Offset addr) const {
-				return !((*this) < addr || (*this == addr));
-			}
-			~Statement() {}
-
-			Offset startAddr() const { return first;}
-			Offset endAddr() const {return second;}
-			const std::string& getFile() const;
-			unsigned int getFileIndex() const { return file_index_; }
-			unsigned int getLine()const {return line_;}
-			unsigned int getColumn() const { return column_; }
-			struct addr_range {};
-			struct line_info {};
-			struct upper_bound {};
-
-			typedef Statement* Ptr;
-			typedef const Statement* ConstPtr;
-
-		};
-		template <typename OS>
-		OS& operator<<(OS& os, const Statement& s)
-		{
-			os << "<statement>: [" << std::hex << s.startAddr() << ", " << s.endAddr() << std::dec << ") @ " << s.getFile()
-			   << " (" << s.getFileIndex() << "): " << s.getLine();
-			return os;
-		}
-		template <typename OS>
-		OS& operator<<(OS& os, Statement* s)
-		{
-			os << "<statement>: [" << std::hex << s->startAddr() << ", " << s->endAddr() << std::dec << ") @ " << s->getFile()
-			   << " (" << s->getFileIndex() << "): " << s->getLine();
-			return os;
-		}
-
-
-		typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
 
 		typedef Dyninst::SimpleInterval<Offset, Module*> ModRange;

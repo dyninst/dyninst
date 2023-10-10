@@ -37,7 +37,7 @@
 #include "symutil.h"
 #include "RangeLookup.h"
 #include "Annotatable.h"
-#include "Module.h"
+#include "Statement.h"
 
 #define NEW_GETSOURCELINES_INTERFACE
 
