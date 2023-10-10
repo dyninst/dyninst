@@ -48,17 +48,17 @@ namespace Dyninst { namespace SymtabAPI {
               Offset start_addr = (Offset)-1L, Offset end_addr = (Offset)-1L)
         : AddressRange(start_addr, end_addr), file_index_(file_index), line_(line), column_(col) {}
 
-    unsigned int file_index_; // Maybe this should be module?
-    unsigned int line_;
-    unsigned int column_;
-    StringTablePtr strings_;
+    unsigned int file_index_{}; // Maybe this should be module?
+    unsigned int line_{};
+    unsigned int column_{};
+    StringTablePtr strings_{};
 
   public:
     StringTablePtr getStrings_() const;
 
     void setStrings_(StringTablePtr strings_);
 
-    Statement() : AddressRange(0, 0), file_index_(0), line_(0), column_(0) {}
+    Statement() : AddressRange(0, 0) {}
 
     Statement(const Statement &) = default;
 
