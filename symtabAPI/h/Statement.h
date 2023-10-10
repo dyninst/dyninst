@@ -58,7 +58,6 @@ namespace Dyninst { namespace SymtabAPI {
 
     void setStrings_(StringTablePtr strings_);
 
-  public:
     Statement() : AddressRange(0, 0), file_index_(0), line_(0), column_(0) {}
 
     Statement(const Statement &) = default;
