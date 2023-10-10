@@ -29,6 +29,7 @@
  */
 
 #include "common/src/vgannotations.h"
+#include "compiler_diagnostics.h"
 #include "dwarfWalker.h"
 #include "headers.h"
 #include "Module.h"
@@ -2268,9 +2269,11 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
   typeId_t type_id = get_type_id(subrangeOffset, is_info, false);
 
   // `typeSubrange` expects numeric values for the bounds
+  DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_MAYBE_UNINITIALIZED
   auto range = Type::make_shared<typeSubrange>(
       type_id, 0, lower_bound.value_or(LONG_MIN),
       upper_bound.value_or(LONG_MAX), curName());
+  DYNINST_DIAGNOSTIC_END_SUPPRESS_MAYBE_UNINITIALIZED
 
   dwarf_printf(
       "(0x%lx) Parsed subrange: id %d, low %lu, high %lu, named %s\n",
