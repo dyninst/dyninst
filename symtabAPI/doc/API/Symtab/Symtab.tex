@@ -169,6 +169,14 @@ Returns the module starting at \code{offset}; \code{nullptr}, if not found.
 }
 
 \begin{apient}
+Module* getContainingModule(Offset offset) const
+\end{apient}
+\apidesc{
+Returns the module with PC ranges that contain \code{offset}; \code{nullptr}, if not found.
+By contrast \code{findModuleByOffset}, finds a module \it{starting} at \code{offset}.
+}
+
+\begin{apient}
 bool getAllModules(vector<module *> &ret)
 \end{apient}
 \apidesc{

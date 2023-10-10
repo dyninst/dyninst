@@ -10,6 +10,7 @@
 
 #include <mutex>
 #include <string>
+#include <set>
 
 namespace Dyninst { namespace SymtabAPI {
 
@@ -36,6 +37,30 @@ namespace Dyninst { namespace SymtabAPI {
     FuncRangeLookup func_lookup{};
 
     Module* default_module{};
+
+    Module* getContainingModule(Offset offset) const {
+      std::set<ModRange*> mods;
+      mod_lookup_.find(offset, mods);
+
+      if(mods.size() == 1) {
+	auto const& m = *(mods.begin());
+        return m->id();
+      }
+
+      /* Because the default module covers the entire PC range of the
+         file, it will always be found so exclude it.
+
+         It is assumed that the PC ranges of modules are disjoint and this
+         function can only return a single Module.
+      */
+      for(auto *mr : mods) {
+        if(mr->id() != default_module) {
+          return mr->id();
+	}
+      }
+
+      return nullptr;
+    }
   };
 
 }}

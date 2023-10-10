@@ -369,6 +369,10 @@ std::vector<Module*> Symtab::findModulesByName(std::string const& name) const {
   return impl->modules.find(name);
 }
 
+Module* Symtab::getContainingModule(Offset offset) const {
+  return impl->getContainingModule(offset);
+}
+
 bool Symtab::getAllRegions(std::vector<Region *>&ret)
 {
    if (regions_.size() > 0)
