@@ -65,6 +65,9 @@
 //              conditionals of a chain of if/then/else's. Only gcc 7-8.
 //      UNUSED_VARIABLE
 //              clang <10 warns about variables defined solely for RIAA (locks)
+//      MAYBE_UNINITIALIZED
+//              gcc 12 warns that boost::optional::value_or may use an
+//              unitialized value when value_or checks if it is initialized.
 //
 // Macros to silence unused variable warnings
 //
@@ -87,6 +90,9 @@
  #endif
  #if __GNUC__ >= 7 && __GNUC__ < 9
   #define DYNINST_SUPPRESS_CODE_DUPLICATED_BRANCHES        "-Wduplicated-branches"
+ #endif
+ #if __GNUC__ == 12
+  #define DYNINST_SUPPRESS_CODE_MAYBE_UNINITIALIZED        "-Wmaybe-uninitialized"
  #endif
 #elif defined(__clang__)
  #define DYNINST_SUPPRESS_CODE_FLEX_ARRAY                  "-Wpedantic"
@@ -152,6 +158,14 @@
 #else
  #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_UNUSED_VARIABLE
  #define DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
+#endif
+
+#ifdef DYNINST_SUPPRESS_CODE_MAYBE_UNINITIALIZED
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_MAYBE_UNINITIALIZED DYNINST_DIAGNOSTIC_PUSH_SUPPRESS_CODE(MAYBE_UNINITIALIZED)
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_MAYBE_UNINITIALIZED   DYNINST_DIAGNOSTIC_POP
+#else
+ #define DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_MAYBE_UNINITIALIZED
+ #define DYNINST_DIAGNOSTIC_END_SUPPRESS_MAYBE_UNINITIALIZED
 #endif
 
 // gcc <9, 11.0 and 11.1 (there may be others) have a bug where 'pragma
