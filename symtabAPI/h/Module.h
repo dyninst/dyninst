@@ -32,22 +32,17 @@
 #define __MODULE__H__
 
 #include "Annotatable.h"
-#include "IBSTree-fast.h"
-#include "IBSTree.h"
+#include "RangeLookup.h"
+#include "Statement.h"
 #include "Symbol.h"
-#include "symutil.h"
 
 #include <set>
 #include <stddef.h>
 #include <string>
-#include <utility>
 #include <vector>
 #if defined(cap_dwarf)
 #include "elfutils/libdw.h"
 #endif
-#include "RangeLookup.h"
-#include "Statement.h"
-
 #include <boost/shared_ptr.hpp>
 
 namespace Dyninst { namespace SymtabAPI {
