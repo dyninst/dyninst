@@ -176,6 +176,8 @@ namespace Dyninst { namespace SymtabAPI {
 
     void addDebugInfo(Module::DebugInfoT info);
 
+    StringTablePtr &getStrings();
+
   private:
     bool objectLevelLineInfo;
     Dyninst::SymtabAPI::LineInformation *lineInfo_;
@@ -191,9 +193,6 @@ namespace Dyninst { namespace SymtabAPI {
     std::vector<ModRange *> finalizeRanges();
 
     StringTablePtr strings_;
-
-  public:
-    StringTablePtr &getStrings();
   };
 
   template <typename OS> OS &operator<<(OS &os, const Module &m) {
@@ -217,8 +216,6 @@ namespace Dyninst { namespace SymtabAPI {
     return os;
   }
 
-} // namespace SymtabAPI
-
-} // namespace Dyninst
+}}
 
 #endif
