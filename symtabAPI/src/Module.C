@@ -60,27 +60,6 @@ using namespace std;
 
 static SymtabError serr;
 
-StringTablePtr Statement::getStrings_() const {
-    return strings_;
-}
-
-void Statement::setStrings_(StringTablePtr strings) {
-    Statement::strings_ = strings;
-}
-const std::string& Statement::getFile() const {
-    if(strings_) {
-        if(file_index_ < strings_->size()) {
-            // can't be ->[] on shared pointer to multi_index container or compiler gets confused
-            return (*strings_)[file_index_].str;
-
-        }
-
-    }
-    // This string will be pointed to, so it has to persist.
-    static std::string emptyStr;
-    return emptyStr;
-}
-
 string Module::getCompDir(Module::DebugInfoT& cu)
 {
     if(!compDir_.empty()) return compDir_;

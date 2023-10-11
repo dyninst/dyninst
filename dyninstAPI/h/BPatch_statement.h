@@ -32,7 +32,7 @@
 #define _BPATCH_STATEMENT_H_
 
 #include "BPatch_dll.h"
-#include "Module.h"
+#include "Statement.h"
 class BPatch_module;
 
 
