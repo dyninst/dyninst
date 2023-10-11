@@ -117,7 +117,6 @@ class mapped_module {
       
       void remove(func_instance *func);
 
-      static bool truncateLineFilenames;
       unsigned int getFuncVectorSize() { return everyUniqueFunction.size(); }
 
    private:

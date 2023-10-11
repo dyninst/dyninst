@@ -40,8 +40,6 @@
 #include <iomanip>
 #include <string>
 
-bool mapped_module::truncateLineFilenames = true;
-
 const std::vector<func_instance *> &mapped_module::getAllFunctions() 
 {
    std::vector<parse_func *> pdfuncs;
