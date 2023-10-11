@@ -803,7 +803,7 @@ void Symtab::createDefaultModule() {
 Module *Symtab::getOrCreateModule(const std::string &modName, 
                                   const Offset modAddr)
 {
-   Module *fm = findModuleByOffset(modAddr);
+   Module *fm = getContainingModule(modAddr);
 
    if (fm) return fm;
 
@@ -1609,7 +1609,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
-    Module* m = findModuleByOffset(addressInRange);
+    Module* m = getContainingModule(addressInRange);
 
     if(!m) return false;
 
