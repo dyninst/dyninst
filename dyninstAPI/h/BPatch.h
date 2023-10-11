@@ -44,6 +44,7 @@
 #include <string>
 
 #include "dyninstversion.h"
+#include "compiler_diagnostics.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;
@@ -479,7 +480,8 @@ public:
     //  Turn on/off line info truncating
     
 
-    void truncateLineInfoFilenames(bool x);
+    DYNINST_DEPRECATED("Does nothing")
+    void truncateLineInfoFilenames(bool);
 
     //  BPatch::setTrampRecursive:
     //  Turn on/off recursive trampolines

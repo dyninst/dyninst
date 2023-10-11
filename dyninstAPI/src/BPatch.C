@@ -1851,11 +1851,7 @@ int BPatch::getNotificationFD() {
 #endif
 }
 
-/* If true, we return just filenames when the user asks for line info
-   otherwise, we return filename plus path information. */
-void BPatch::truncateLineInfoFilenames(bool newval) {
-   mapped_module::truncateLineFilenames = newval;
-}
+void BPatch::truncateLineInfoFilenames(bool) {}
 
 void BPatch::getBPatchVersion(int &major, int &minor, int &subminor) 
 {
