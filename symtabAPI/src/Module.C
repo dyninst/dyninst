@@ -60,35 +60,6 @@ using namespace std;
 
 static SymtabError serr;
 
-string Module::getCompDir(Module::DebugInfoT& cu)
-{
-    if(!compDir_.empty()) return compDir_;
-
-#if defined(cap_dwarf)
-    if(!dwarf_hasattr(&cu, DW_AT_comp_dir))
-    {
-        return "";
-    }
-
-    Dwarf_Attribute attr;
-    auto comp_dir = dwarf_formstring( dwarf_attr(&cu, DW_AT_comp_dir, &attr) );
-    compDir_ = std::string( comp_dir ? comp_dir : "" );
-    return compDir_;
-
-#else
-    // TODO Implement this for non-dwarf format
-    return compDir_;
-#endif
-}
-
-string Module::getCompDir()
-{
-    if(!compDir_.empty()) return compDir_;
-
-    return "";
-}
-
-
 bool Module::findSymbol(std::vector<Symbol *> &found,
                         const std::string& name,
                         Symbol::SymbolType sType, 
@@ -199,33 +170,21 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    bool popped = false;
-    Module::DebugInfoT cu;
-    if (exec()->getArchitecture() != Arch_cuda &&
-	(exec()->getObject()->hasDebugInfo() || (popped = info_.try_pop(cu)) )) {
-        // Allocate if none
-        if (!lineInfo_) {
-            lineInfo_ = new LineInformation;
-            // share our string table
-            lineInfo_->setStrings(strings_);
-        }
+    const bool is_cuda = exec()->getArchitecture() == Arch_cuda;
+    const bool debug_info = exec()->getObject()->hasDebugInfo();
 
-        // Parse any CUs that have been added to our list
-        if(popped || info_.try_pop(cu)) {
-            Module::DebugInfoT cu2 = cu;
-            do {
-                exec()->getObject()->parseLineInfoForCU(cu2, lineInfo_);
-            } while(info_.try_pop(cu2));
-
-            // Make sure to call getCompDir so its stored and ready.
-            getCompDir(cu);
-        }
-
-        // Work queue has now been emptied.
-    } else if (!lineInfo_) {
-        objectLevelLineInfo = true;
-        lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
+    if (!debug_info || is_cuda) {
+	objectLevelLineInfo = true;
+	lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
+	return lineInfo_;
     }
+
+    if (!lineInfo_) {
+	lineInfo_ = new LineInformation;
+	lineInfo_->setStrings(strings_);
+    }
+
+    exec()->getObject()->parseLineInfoForCU(addr(), lineInfo_);
     return lineInfo_;
 }
 
@@ -343,7 +302,6 @@ Module::Module() :
    lineInfo_(NULL),
    typeInfo_(NULL),
    fileName_(""),
-   compDir_(""),
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
@@ -356,9 +314,7 @@ Module::Module(const Module &mod) :
    objectLevelLineInfo(mod.objectLevelLineInfo),
    lineInfo_(mod.lineInfo_),
    typeInfo_(mod.typeInfo_),
-   info_(mod.info_),
    fileName_(mod.fileName_),
-   compDir_(mod.compDir_),
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_),
@@ -525,12 +481,6 @@ std::vector<ModRange*> Module::finalizeRanges()
     ranges.clear();
 
     return mod_ranges;
-}
-
-void Module::addDebugInfo(Module::DebugInfoT info) {
-//    cout << "Adding CU DIE to " << fileName() << endl;
-    info_.push(info);
-
 }
 
 StringTablePtr & Module::getStrings() {

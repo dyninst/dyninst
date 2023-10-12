@@ -40,9 +40,6 @@
 #include <stddef.h>
 #include <string>
 #include <vector>
-#if defined(cap_dwarf)
-#include "elfutils/libdw.h"
-#endif
 #include <boost/shared_ptr.hpp>
 
 namespace Dyninst { namespace SymtabAPI {
@@ -60,12 +57,6 @@ namespace Dyninst { namespace SymtabAPI {
     friend class Symtab;
 
   public:
-#if defined(cap_dwarf)
-    typedef Dwarf_Die DebugInfoT;
-#else
-    typedef void *DebugInfoT;
-#endif
-
     Module();
     Module(supportedLanguages lang, Offset adr, std::string fullNm, Symtab *img);
     Module(const Module &mod);
@@ -82,9 +73,6 @@ namespace Dyninst { namespace SymtabAPI {
 
     bool isShared() const;
     ~Module();
-
-    std::string getCompDir();
-    std::string getCompDir(Module::DebugInfoT &); // For internal use
 
     // Symbol output methods
     virtual bool findSymbol(std::vector<Symbol *> &ret, const std::string &name,
@@ -174,15 +162,12 @@ namespace Dyninst { namespace SymtabAPI {
 
     bool hasRanges() const { return !ranges.empty(); }
 
-    void addDebugInfo(Module::DebugInfoT info);
-
     StringTablePtr &getStrings();
 
   private:
     bool objectLevelLineInfo;
     Dyninst::SymtabAPI::LineInformation *lineInfo_;
     typeCollection *typeInfo_;
-    dyn_c_queue<Module::DebugInfoT> info_;
 
     std::string fileName_; // full path to file
     std::string compDir_;

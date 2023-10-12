@@ -145,7 +145,7 @@ protected:
     // explicitly protected
     SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *), Symtab*);
 friend class Module;
-    virtual void parseLineInfoForCU(Module::DebugInfoT , LineInformation* ) { }
+    virtual void parseLineInfoForCU(Offset , LineInformation* ) { }
 
     MappedFile *mf;
 
