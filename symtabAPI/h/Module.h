@@ -81,7 +81,7 @@ namespace Dyninst { namespace SymtabAPI {
     virtual bool getAllSymbols(std::vector<Symbol *> &ret);
 
     // Function based methods
-    bool getAllFunctions(std::vector<Function *> &ret);
+    std::vector<Function*> getAllFunctions() const;
 
     // Variable based methods
     bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset);

@@ -47,8 +47,7 @@ typedef enum {
 bool getAllFunctions(vector<Function *> &ret)
 \end{apient}
 \apidesc{
-This method returns all functions in the object file. Returns \code{true} on success
-and \code{false} if there are no modules. The error value is set to \code{No\_Such\_Function}.
+Returns all functions located within the PC address ranges covered by this module.
 }
 
 \begin{apient}
