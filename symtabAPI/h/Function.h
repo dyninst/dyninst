@@ -44,7 +44,6 @@
 #include "Annotatable.h"
 #include "Aggregate.h"
 #include "Variable.h"
-#include "concurrent.h"
 #include "VariableLocation.h"
 
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);

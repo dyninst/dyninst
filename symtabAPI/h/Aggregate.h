@@ -45,7 +45,6 @@
 #include "Annotatable.h"
 #include <boost/iterator/transform_iterator.hpp>
 #include <functional>
-#include "concurrent.h"
 
 namespace Dyninst{
 namespace SymtabAPI{

@@ -44,8 +44,6 @@
 #include <set>
 #include <iostream>
 
-#include "concurrent.h"
-
 namespace Dyninst
 {
 
