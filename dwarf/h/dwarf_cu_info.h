@@ -62,6 +62,15 @@ namespace Dyninst { namespace DwarfDyninst {
   }
 
   /*
+   * The name of the directory where the source file was compiled.
+   *
+   * If present, it is always an absolute path. Returns an empty string if not found.
+   *
+   */
+  inline std::string cu_dirname(Dwarf_Die cuDie) {
+      return detail::comp_dir_name(cuDie);
+  }
+  /*
    * The name of the compilation unit (CU) referred to by `cuDie`
    *
    *   This is the name of the source file used to create the CU (e.g., test.cpp)

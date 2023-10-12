@@ -291,7 +291,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     } // already parsed, the module had better be right.
 
     // The CU name is always an absolute path
-    auto comp_dir = Dyninst::DwarfDyninst::cu_name(entry);
+    auto comp_dir = Dyninst::DwarfDyninst::cu_dirname(entry);
 
     // store all file sources found by libdw
     for (unsigned i = 0; i < cnt; ++i) {
