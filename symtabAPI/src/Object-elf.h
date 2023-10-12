@@ -417,7 +417,7 @@ public:
   bool hasDebugInfo();
 
 private:
-    void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
+    void parseLineInfoForCU(Offset offset, LineInformation* li);
     void recordLine(
        Region *debug_str,
        open_statement &saved_statement,

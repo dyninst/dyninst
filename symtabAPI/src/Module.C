@@ -170,30 +170,21 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    bool popped = false;
-    Module::DebugInfoT cu;
-    if (exec()->getArchitecture() != Arch_cuda &&
-	(exec()->getObject()->hasDebugInfo() || (popped = info_.try_pop(cu)) )) {
-        // Allocate if none
-        if (!lineInfo_) {
-            lineInfo_ = new LineInformation;
-            // share our string table
-            lineInfo_->setStrings(strings_);
-        }
+    const bool is_cuda = exec()->getArchitecture() == Arch_cuda;
+    const bool debug_info = exec()->getObject()->hasDebugInfo();
 
-        // Parse any CUs that have been added to our list
-        if(popped || info_.try_pop(cu)) {
-            Module::DebugInfoT cu2 = cu;
-            do {
-                exec()->getObject()->parseLineInfoForCU(cu2, lineInfo_);
-            } while(info_.try_pop(cu2));
-        }
-
-        // Work queue has now been emptied.
-    } else if (!lineInfo_) {
-        objectLevelLineInfo = true;
-        lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
+    if (!debug_info || is_cuda) {
+	objectLevelLineInfo = true;
+	lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
+	return lineInfo_;
     }
+
+    if (!lineInfo_) {
+	lineInfo_ = new LineInformation;
+	lineInfo_->setStrings(strings_);
+    }
+
+    exec()->getObject()->parseLineInfoForCU(addr(), lineInfo_);
     return lineInfo_;
 }
 
@@ -323,7 +314,6 @@ Module::Module(const Module &mod) :
    objectLevelLineInfo(mod.objectLevelLineInfo),
    lineInfo_(mod.lineInfo_),
    typeInfo_(mod.typeInfo_),
-   info_(mod.info_),
    fileName_(mod.fileName_),
    language_(mod.language_),
    addr_(mod.addr_),
@@ -491,12 +481,6 @@ std::vector<ModRange*> Module::finalizeRanges()
     ranges.clear();
 
     return mod_ranges;
-}
-
-void Module::addDebugInfo(Module::DebugInfoT info) {
-//    cout << "Adding CU DIE to " << fileName() << endl;
-    info_.push(info);
-
 }
 
 StringTablePtr & Module::getStrings() {

@@ -2244,8 +2244,6 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
                 }
             }
         }
-        #pragma omp critical
-        m->addDebugInfo(cu_die);
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         // dies_seen.insert(cu_die_off);
     }
@@ -3189,8 +3187,14 @@ const char *Object::interpreter_name() const {
     return interpreter_name_;
 }
 
-void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
+void Object::parseLineInfoForCU(Offset offset_, LineInformation* li_for_module)
 {
+    Dwarf_Die cuDIE{};
+    if(!dwarf_addrdie(*dwarf->type_dbg(), offset_, &cuDIE)) {
+        lineinfo_printf("No CU at offset 0x%zx: %s\n", offset_, dwarf_errmsg(dwarf_errno()));
+        return;
+    }
+
     /* Acquire this CU's source lines. */
     Dwarf_Lines *lineBuffer;
     Dwarf_Attribute attr2;
