@@ -49,8 +49,6 @@ namespace Dyninst { namespace SymtabAPI {
   class localVar;
   class Symtab;
 
-#define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
-
   typedef Dyninst::SimpleInterval<Offset, Module *> ModRange;
 
   class SYMTAB_EXPORT Module : public LookupInterface {
