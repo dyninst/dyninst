@@ -83,10 +83,6 @@ namespace Dyninst { namespace SymtabAPI {
     // Function based methods
     bool getAllFunctions(std::vector<Function *> &ret);
 
-    bool findFunctionsByName(std::vector<Function *> &ret, const std::string &name,
-                             NameType nameType = anyName, bool isRegex = false,
-                             bool checkCase = true);
-
     // Variable based methods
     bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset);
     bool findVariablesByName(std::vector<Variable *> &ret, const std::string &name,
