@@ -46,6 +46,7 @@
 #include "common/src/pathName.h"
 #include "Object.h"
 #include <boost/foreach.hpp>
+#include <algorithm>
 
 #if defined(cap_dwarf)
 #include "dwarfWalker.h"
@@ -359,9 +360,16 @@ bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolTyp
    return false;
 }
 
-bool Module::getAllFunctions(std::vector<Function *> &ret)
+std::vector<Function*> Module::getAllFunctions() const
 {
-    return exec()->getAllFunctions(ret);
+    auto const& all_funcs = exec()->getAllFunctionsRef();
+    std::vector<Function*> funcs;
+    std::copy_if(all_funcs.begin(), all_funcs.end(), std::back_inserter(funcs),
+	[this] (Function *f) {
+	  return f->getModule() == this;
+        }
+    );
+    return funcs;
 }
 
 bool Module::operator==(Module &mod) 
