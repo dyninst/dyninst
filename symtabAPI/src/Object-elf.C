@@ -2192,7 +2192,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
     for (size_t i = 0; i < dies.size(); i++) {
         Dwarf_Die cu_die = dies[i];
 
-        std::string modname = DwarfDyninst::die_name(cu_die);
+        std::string modname = DwarfDyninst::cu_name(cu_die);
 
         Address tempModLow;
         Address modLow = 0;
