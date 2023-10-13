@@ -91,6 +91,40 @@ namespace Dyninst { namespace DwarfDyninst {
     // Make the name absolute wrt the compilation directory
     return detail::absolute_path(name, detail::comp_dir_name(cuDie));
   }
+
+  /*
+   * Find the compilation unit (CU) die that starts at the address `addr`.
+   *
+   */
+  inline Dwarf_Die *find_cu(Dwarf *dbg, Dwarf_Addr addr, Dwarf_Die *result) {
+    Dwarf_Die cuDIE{};
+    if (dwarf_addrdie(dbg, addr, &cuDIE)) {
+      *result = cuDIE;
+      return result;
+    }
+
+    // As of libdw 0.189, `dwarf_addrdie` assumes the presence of .debug_aranges.
+    // For compilers that do not emit one, or emit an invalid one (e.g., gtpin binaries),
+    // then manually search through all of the CUs to find a match.
+    size_t cu_header_size{};
+    for (Dwarf_Off cu_off = 0, next_cu_off=0;
+         dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size, NULL, NULL, NULL) == 0;
+         cu_off = next_cu_off) {
+      Dwarf_Off cu_die_off = cu_off + cu_header_size;
+      Dwarf_Die cu_die{}, *cu_die_p{};
+      cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
+      if (!cu_die_p)
+        continue;
+      Dwarf_Addr low_pc{};
+      if (dwarf_lowpc(cu_die_p, &low_pc) == 0) {
+        if (low_pc == addr) {
+          *result = *cu_die_p;
+          return result;
+        }
+      }
+    }
+    return nullptr;
+  }
 }}
 
 #endif
