@@ -73,6 +73,7 @@ namespace Dyninst
             void * m14val;
             void * m32val;
             void * m64val;
+            void * m80val;
             void * m96val;
             void * m128val;
             void * m160val;
@@ -108,6 +109,7 @@ namespace Dyninst
             m14,  // For historical reason m14 means 14 bytes. All other mX means X bits
             m32,
             m64,
+            m80,
             m96,
             m128,
             m160,
@@ -122,7 +124,6 @@ namespace Dyninst
             m448,
             m480,
             m512,
-
             invalid_type
         };
 
@@ -186,6 +187,7 @@ namespace Dyninst
         {
             typedef unsigned char type;
         };
+
         /// A %Result object represents a value computed by a %Expression AST.
         ///
         /// The %Result class is a tagged-union representation of the results that
@@ -195,23 +197,40 @@ namespace Dyninst
         /// the range of the type.
         ///
         /// The \c type field is an enum that may contain any of the following values:
+        /// - \c bit_flag: a single bit (individual flags)
         /// - \c u8: an unsigned 8-bit integer
         /// - \c s8: a signed 8-bit integer
         /// - \c u16: an unsigned 16-bit integer
         /// - \c s16: a signed 16-bit integer
+        /// - \c u24: an unsigned 24-bit integer
         /// - \c u32: an unsigned 32-bit integer
         /// - \c s32: a signed 32-bit integer
-        /// - \c u48: an unsigned 48-bit integer (IA32 pointers)
-        /// - \c s48: a signed 48-bit integer (IA32 pointers)
+        /// - \c u48: an unsigned 48-bit integer
+        /// - \c s48: a signed 48-bit integer
         /// - \c u64: an unsigned 64-bit integer
         /// - \c s64: a signed 64-bit integer
         /// - \c sp_float: a single-precision float
         /// - \c dp_float: a double-precision float
-        /// - \c bit_flag: a single bit (individual flags)
-        /// - \c m512: a 512-bit memory value
         /// - \c dbl128: a 128-bit integer, which often contains packed floating point values
         /// - \c m14: a 14 byte memory value
-        ///
+        /// - \c m32: a 32-bit memory value
+        /// - \c m64: a 64-bit memory value
+        /// - \c m80: an 80-bit memory value
+        /// - \c m96: a 96-bit memory value
+        /// - \c m128: a 128-bit memory value
+        /// - \c m160: a 160-bit memory value
+        /// - \c m192: a 192-bit memory value
+        /// - \c m224: a 224-bit memory value
+        /// - \c m256: a 256-bit memory value
+        /// - \c m288: a 288-bit memory value
+        /// - \c m320: a 320-bit memory value
+        /// - \c m352: a 352-bit memory value
+        /// - \c m384: a 384-bit memory value
+        /// - \c m416: a 416-bit memory value
+        /// - \c m448: a 448-bit memory value
+        /// - \c m480: a 480-bit memory value
+        /// - \c m512: a 512-bit memory value
+
         // The %Instruction API's model of %Results is a simple one, and may seem overly aggressive about
         // making an %Expression's %Result undefined.  It follows the same basic rule as the rest of the API:
         // a decoded %Instruction object represents only the information that may be obtained from the machine
@@ -264,11 +283,14 @@ namespace Dyninst
             {
                 switch(type)
                 {
+                    case bit_flag:
+                        val.bitval = (v != 0) ? 1 : 0;
+                        break;
                     case u8:
                         val.u8val = (unsigned char)(v);
                         break;
                     case s8:
-                        val.s8val = (char)(v);
+                        val.s8val = (signed char)(v);
                         break;
                     case u16:
                         val.u16val = (uint16_t)(v);
@@ -285,23 +307,17 @@ namespace Dyninst
                     case s32:
                         val.s32val = (int32_t)(v);
                         break;
-                    case u64:
-                        val.u64val = (uint64_t)(v);
-                        break;
-                    case s64:
-                        val.s64val = (int64_t)(v);
-                        break;
-                    case bit_flag:
-                        val.bitval = (v != 0) ? 1 : 0;
-                        break;
                     case u48:
                         val.u48val = (uint64_t)(v & 0x0000FFFFFFFFFFFFLL);
                         break;
                     case s48:
                         val.s48val = (int64_t)(v & 0x0000FFFFFFFFFFFFLL);
                         break;
-                    case m512:
-                        val.m512val = (void *)(intptr_t) v;
+                    case u64:
+                        val.u64val = (uint64_t)(v);
+                        break;
+                    case s64:
+                        val.s64val = (int64_t)(v);
                         break;
                     case dbl128:
                         val.dbl128val = (void*)(intptr_t) v;
@@ -309,20 +325,59 @@ namespace Dyninst
                     case m14:
                         val.m14val = (void*)(intptr_t) v;
                         break;
+                    case m32:
+                        val.m32val = (void *)(intptr_t) v;
+                        break;
+                    case m64:
+                        val.m64val = (void *)(intptr_t) v;
+                        break;
+                    case m80:
+                        val.m80val = (void *)(intptr_t) v;
+                        break;
                     case m96:
                         val.m96val = (void *)(intptr_t) v;
+                        break;
+                    case m128:
+                        val.m128val = (void *)(intptr_t) v;
+                        break;
+                    case m160:
+                        val.m160val = (void *)(intptr_t) v;
                         break;
                     case m192:
                         val.m192val = (void *)(intptr_t) v;
                         break;
+                    case m224:
+                        val.m224val = (void *)(intptr_t) v;
+                        break;
                     case m256:
                         val.m256val = (void *)(intptr_t) v;
+                        break;
+                    case m288:
+                        val.m288val = (void *)(intptr_t) v;
+                        break;
+                    case m320:
+                        val.m320val = (void *)(intptr_t) v;
+                        break;
+                    case m352:
+                        val.m352val = (void *)(intptr_t) v;
                         break;
                     case m384:
                         val.m384val = (void *)(intptr_t) v;
                         break;
-                        // Floats should be constructed with float types
+                    case m416:
+                        val.m416val = (void *)(intptr_t) v;
+                        break;
+                    case m448:
+                        val.m448val = (void *)(intptr_t) v;
+                        break;
+                    case m480:
+                        val.m480val = (void *)(intptr_t) v;
+                        break;
+                    case m512:
+                        val.m512val = (void *)(intptr_t) v;
+                        break;
                     default:
+                    // Floats should be constructed with float types
                     case sp_float:
                     case dp_float:
                         assert(!"Invalid type!");
@@ -351,9 +406,11 @@ namespace Dyninst
                     if(!defined) return false;
                     if(!o.defined) return true;
 
-
                     switch(type)
                     {
+                        case bit_flag:
+                            return val.bitval < o.val.bitval;
+                            break;
                         case u8:
                             return val.u8val < o.val.u8val;
                             break;
@@ -375,6 +432,12 @@ namespace Dyninst
                         case s32:
                             return val.s32val < o.val.s32val;
                             break;
+                        case u48:
+                            return val.u48val < o.val.u48val;
+                            break;
+                        case s48:
+                            return val.s48val < o.val.s48val;
+                            break;
                         case u64:
                             return val.u64val < o.val.u64val;
                             break;
@@ -387,35 +450,62 @@ namespace Dyninst
                         case dp_float:
                             return val.dblval < o.val.dblval;
                             break;
-                        case bit_flag:
-                            return val.bitval < o.val.bitval;
-                            break;
-                        case u48:
-                            return val.u48val < o.val.u48val;
-                            break;
-                        case s48:
-                            return val.s48val < o.val.s48val;
-                            break;
-                        case m512:
-                            return memcmp(val.m512val, o.val.m512val, 512) < 0;
-                            break;
                         case dbl128:
-                            return memcmp(val.dbl128val, o.val.dbl128val, 128 / 8) < 0;
+                            return memcmp(val.dbl128val, o.val.dbl128val, 16) < 0;
                             break;
                         case m14:
                             return memcmp(val.m14val, o.val.m14val, 14) < 0;
                             break;
+                        case m32:
+                            return memcmp(val.m32val, o.val.m32val, 4) < 0;
+                            break;
+                        case m64:
+                            return memcmp(val.m64val, o.val.m64val, 8) < 0;
+                            break;
+                        case m80:
+                            return memcmp(val.m80val, o.val.m80val, 10) < 0;
+                            break;
                         case m96:
-                            return memcmp(val.m96val, o.val.m96val, 96) < 0;
+                            return memcmp(val.m96val, o.val.m96val, 12) < 0;
+                            break;
+                        case m128:
+                            return memcmp(val.m128val, o.val.m128val, 16) < 0;
+                            break;
+                        case m160:
+                            return memcmp(val.m160val, o.val.m160val, 20) < 0;
                             break;
                         case m192:
-                            return memcmp(val.m192val, o.val.m192val, 192) < 0;
+                            return memcmp(val.m192val, o.val.m192val, 24) < 0;
+                            break;
+                        case m224:
+                            return memcmp(val.m224val, o.val.m224val, 28) < 0;
                             break;
                         case m256:
-                            return memcmp(val.m256val, o.val.m256val, 256) < 0;
+                            return memcmp(val.m256val, o.val.m256val, 32) < 0;
+                            break;
+                        case m288:
+                            return memcmp(val.m288val, o.val.m288val, 36) < 0;
+                            break;
+                        case m320:
+                            return memcmp(val.m320val, o.val.m320val, 40) < 0;
+                            break;
+                        case m352:
+                            return memcmp(val.m352val, o.val.m352val, 44) < 0;
                             break;
                         case m384:
-                            return memcmp(val.m384val, o.val.m384val, 384) < 0;
+                            return memcmp(val.m384val, o.val.m384val, 48) < 0;
+                            break;
+                        case m416:
+                            return memcmp(val.m416val, o.val.m416val, 52) < 0;
+                            break;
+                        case m448:
+                            return memcmp(val.m448val, o.val.m448val, 56) < 0;
+                            break;
+                        case m480:
+                            return memcmp(val.m480val, o.val.m480val, 60) < 0;
+                            break;
+                        case m512:
+                            return memcmp(val.m512val, o.val.m512val, 64) < 0;
                             break;
                         default:
                             assert(!"Invalid type!");
@@ -430,14 +520,11 @@ namespace Dyninst
                 ///
                 /// Otherwise, they are unequal (due to having different types, an undefined %Result compared to a defined %Result,
                 /// or different values).
-
-
                 bool operator==(const Result& o) const
                 {
                     return !((*this < o) || (o < *this));
-
-
                 }
+
                 /// %Results are formatted as strings containing their contents, represented as hexadecimal.
                 /// The type of the %Result is not included in the output.
                 std::string format() const
@@ -451,6 +538,9 @@ namespace Dyninst
                         char hex[20]; 
                         switch(type)
                         {
+                            case bit_flag:
+                                snprintf(hex, 20, "%x", (unsigned int)val.bitval);
+                                break;
                             case u8:
                                 snprintf(hex, 20, "%x", val.u8val);
                                 break;
@@ -472,6 +562,12 @@ namespace Dyninst
                             case s32:
                                 snprintf(hex, 20, "%x", (unsigned int)val.s32val);
                                 break;
+                            case u48:
+                                snprintf(hex, 20, "%lx", val.u48val);
+                                break;
+                            case s48:
+                                snprintf(hex, 20, "%lx", (uint64_t ) val.s48val);
+                                break;
                             case u64:
                                 snprintf(hex, 20, "%lx", val.u64val);
                                 break;
@@ -484,41 +580,68 @@ namespace Dyninst
                             case dp_float:
                                 snprintf(hex, 20, "%lf", val.dblval);
                                 break;
-                            case bit_flag:
-                                snprintf(hex, 20, "%x", (unsigned int)val.bitval);
-                                break;
-                            case u48:
-                                snprintf(hex, 20, "%lx", val.u48val);
-                                break;
-                            case s48:
-                                snprintf(hex, 20, "%lx", (uint64_t ) val.s48val);
-                                break;
-                            case m512:
-                                snprintf(hex, 20, "%p", val.m512val);
+                            case dbl128:
+                                snprintf(hex, 20, "%p", val.dbl128val);
                                 break;
                             case m14:
                                 snprintf(hex, 20, "%p", val.m14val);
                                 break;
+                            case m32:
+                                snprintf(hex, 20, "%p", val.m32val);
+                                break;
+                            case m64:
+                                snprintf(hex, 20, "%p", val.m64val);
+                                break;
+                            case m80:
+                                snprintf(hex, 20, "%p", val.m80val);
+                                break;
                             case m96:
                                 snprintf(hex, 20, "%p", val.m96val);
                                 break;
-                            case dbl128:
-                                snprintf(hex, 20, "%p", val.dbl128val);
+                            case m128:
+                                snprintf(hex, 20, "%p", val.m128val);
+                                break;
+                            case m160:
+                                snprintf(hex, 20, "%p", val.m160val);
                                 break;
                             case m192:
                                 snprintf(hex, 20, "%p", val.m192val);
                                 break;
+                            case m224:
+                                snprintf(hex, 20, "%p", val.m224val);
+                                break;
                             case m256:
                                 snprintf(hex, 20, "%p", val.m256val);
                                 break;
+                            case m288:
+                                snprintf(hex, 20, "%p", val.m288val);
+                                break;
+                            case m320:
+                                snprintf(hex, 20, "%p", val.m320val);
+                                break;
+                            case m352:
+                                snprintf(hex, 20, "%p", val.m352val);
+                                break;
                             case m384:
                                 snprintf(hex, 20, "%p", val.m384val);
+                                break;
+                            case m416:
+                                snprintf(hex, 20, "%p", val.m416val);
+                                break;
+                            case m448:
+                                snprintf(hex, 20, "%p", val.m448val);
+                                break;
+                            case m480:
+                                snprintf(hex, 20, "%p", val.m480val);
+                                break;
+                            case m512:
+                                snprintf(hex, 20, "%p", val.m512val);
                                 break;
                             default:
                                 snprintf(hex, 20, "[invalid type]");
                                 break;
                         };
-                        return std::string(hex);
+                        return hex;
                     }
                 }
 
@@ -557,13 +680,26 @@ namespace Dyninst
                                 return to_type(val.dblval);
                             case bit_flag:
                                 return to_type(val.bitval);
-                            case m512:
                             case dbl128:
-                            case m192:
-                            case m256:
-                            case m384:
+                            case m14:
+                            case m32:
+                            case m64:
+                            case m80:
                             case m96:
-                                assert(!"M512 and DBL128 types cannot be converted yet");
+                            case m128:
+                            case m160:
+                            case m192:
+                            case m224:
+                            case m256:
+                            case m288:
+                            case m320:
+                            case m352:
+                            case m384:
+                            case m416:
+                            case m448:
+                            case m480:
+                            case m512:
+                                assert(!"Memory types cannot be converted yet");
                                 return to_type(0);
                             default:
                                 assert(!"Invalid type in result!");
@@ -600,14 +736,44 @@ namespace Dyninst
                             return sizeof(float);
                         case dp_float:
                             return sizeof(double);
-                        case m512:
-                            return 64;
                         case dbl128:
                             return 16;
+                        case m14:
+                            return 14;
+                        case m32:
+                            return 4;
+                        case m64:
+                            return 8;
+                        case m80:
+                            return 10;
+                        case m96:
+                            return 12;
+                        case m128:
+                            return 16;
+                        case m160:
+                            return 20;
                         case m192:
                             return 24;
+                        case m224:
+                            return 28;
                         case m256:
                             return 32;
+                        case m288:
+                            return 36;
+                        case m320:
+                            return 40;
+                        case m352:
+                            return 44;
+                        case m384:
+                            return 48;
+                        case m416:
+                            return 52;
+                        case m448:
+                            return 56;
+                        case m480:
+                            return 60;
+                        case m512:
+                            return 64;
                         default:
                             // In probabilistic gap parsing,
                             // we could start to decode at any byte and reach here.
