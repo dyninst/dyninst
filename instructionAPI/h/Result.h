@@ -105,8 +105,7 @@ namespace Dyninst
             sp_float,
             dp_float,
             dbl128,
-            // 48-bit pointers...yay Intel
-            m14,
+            m14,  // For historical reason m14 means 14 bytes. All other mX means X bits
             m32,
             m64,
             m96,
