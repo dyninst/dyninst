@@ -3190,8 +3190,8 @@ const char *Object::interpreter_name() const {
 void Object::parseLineInfoForCU(Offset offset_, LineInformation* li_for_module)
 {
     Dwarf_Die cuDIE{};
-    if(!dwarf_addrdie(*dwarf->type_dbg(), offset_, &cuDIE)) {
-        lineinfo_printf("No CU at offset 0x%zx: %s\n", offset_, dwarf_errmsg(dwarf_errno()));
+    if(!DwarfDyninst::find_cu(*dwarf->type_dbg(), offset_, &cuDIE)) {
+        lineinfo_printf("No CU found at offset 0x%zx: %s\n", offset_, dwarf_errmsg(dwarf_errno()));
         return;
     }
 
