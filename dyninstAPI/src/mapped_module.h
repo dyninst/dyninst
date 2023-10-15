@@ -104,13 +104,6 @@ class mapped_module {
 
       std::string processDirectories(const std::string &fn) const;
 
-      // Given a line in the module, get the set of addresses that it maps
-      // to. Calls the internal getAddrFromLine and then adds the base
-      // address to the returned list of offsets.
-      bool getAddrFromLine(unsigned lineNum,
-            std::vector<Address> &addresses,
-            bool exactMatch);
-
       void addFunction(func_instance *func);
       void addVariable(int_variable *var);
       int_variable* createVariable(std::string name, Address offset, int size);
