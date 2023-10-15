@@ -7,11 +7,8 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/dyninstversion.h.in
 
 set(_public_headers
     h/aarch64_sys_regs.h
-    h/AMDGPU/gfx940/amdgpu_gfx940_op_table.h
     h/AMDGPU/gfx940/amdgpu_gfx940_sys_regs.h
-    h/AMDGPU/gfx90a/amdgpu_gfx90a_op_table.h
     h/AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h
-    h/AMDGPU/gfx908/amdgpu_gfx908_op_table.h
     h/AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h
     h/Annotatable.h
     h/Buffer.h
@@ -28,6 +25,14 @@ set(_public_headers
     h/IBSTree-fast.h
     h/IBSTree.h
     h/MachSyscall.h
+    h/mnemonics/aarch64
+    h/mnemonics/ppc
+    h/mnemonics/x86
+    h/mnemonics/AMDGPU/gfx908
+    h/mnemonics/AMDGPU/gfx90a
+    h/mnemonics/AMDGPU/gfx940
+    h/mnemonics/IntelGPU/generic
+    h/mnemonics/NVIDIA/generic
     h/Node.h
     h/ProcReader.h
     h/SymReader.h
