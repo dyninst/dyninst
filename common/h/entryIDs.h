@@ -37,14 +37,14 @@
 
 /* clang-format off */
 enum entryID : unsigned int {
-  #include "mnemonics/x86"
-  #include "mnemonics/ppc"
-  #include "mnemonics/aarch64"
-  #include "mnemonics/AMDGPU/gfx908"
-  #include "mnemonics/AMDGPU/gfx90a"
-  #include "mnemonics/AMDGPU/gfx940"
-  #include "mnemonics/NVIDIA/generic"
-  #include "mnemonics/IntelGPU/generic"
+  #include "mnemonics/x86_entryIDs.h"
+  #include "mnemonics/ppc_entryIDs.h"
+  #include "mnemonics/aarch64_entryIDs.h"
+  #include "mnemonics/AMDGPU/gfx908_entryIDs.h"
+  #include "mnemonics/AMDGPU/gfx90a_entryIDs.h"
+  #include "mnemonics/AMDGPU/gfx940_entryIDs.h"
+  #include "mnemonics/NVIDIA/generic_entryIDs.h"
+  #include "mnemonics/IntelGPU/generic_entryIDs.h"
   _entry_ids_max_
 };
 /* clang-format on */

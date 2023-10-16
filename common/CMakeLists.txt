@@ -25,14 +25,14 @@ set(_public_headers
     h/IBSTree-fast.h
     h/IBSTree.h
     h/MachSyscall.h
-    h/mnemonics/aarch64
-    h/mnemonics/ppc
-    h/mnemonics/x86
-    h/mnemonics/AMDGPU/gfx908
-    h/mnemonics/AMDGPU/gfx90a
-    h/mnemonics/AMDGPU/gfx940
-    h/mnemonics/IntelGPU/generic
-    h/mnemonics/NVIDIA/generic
+    h/mnemonics/aarch64_entryIDs.h
+    h/mnemonics/ppc_entryIDs.h
+    h/mnemonics/x86_entryIDs.h
+    h/mnemonics/AMDGPU/gfx908_entryIDs.h
+    h/mnemonics/AMDGPU/gfx90a_entryIDs.h
+    h/mnemonics/AMDGPU/gfx940_entryIDs.h
+    h/mnemonics/IntelGPU/generic_entryIDs.h
+    h/mnemonics/NVIDIA/generic_entryIDs.h
     h/Node.h
     h/ProcReader.h
     h/SymReader.h
