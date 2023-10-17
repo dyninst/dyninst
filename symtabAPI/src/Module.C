@@ -171,6 +171,8 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
+    if(lineInfo_) return lineInfo_;
+
     const bool is_cuda = exec()->getArchitecture() == Arch_cuda;
     const bool debug_info = exec()->getObject()->hasDebugInfo();
 
@@ -180,10 +182,8 @@ LineInformation *Module::parseLineInformation() {
 	return lineInfo_;
     }
 
-    if (!lineInfo_) {
-	lineInfo_ = new LineInformation;
-	lineInfo_->setStrings(strings_);
-    }
+    lineInfo_ = new LineInformation;
+    lineInfo_->setStrings(strings_);
 
     exec()->getObject()->parseLineInfoForCU(addr(), lineInfo_);
     return lineInfo_;
