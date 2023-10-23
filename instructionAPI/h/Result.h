@@ -89,24 +89,27 @@ namespace Dyninst
             void * m480val;
             void * m512val;
         };
+
+        // The order of these enumerations is important.
+        // See 'operator==' and arithmetic operators.
         enum Result_Type
         {
             bit_flag = 0,
+            s8,
             u8,
-            s8,            
-            u16,
             s16,
+            u16,
             u24,
-            u32,
             s32,
-            u48,
+            u32,
             s48,
-            u64,
+            u48,
             s64,
+            u64,
             sp_float,
             dp_float,
-            dbl128,
             m14,  // For historical reason m14 means 14 bytes. All other mX means X bits
+            dbl128,
             m32,
             m64,
             m80,
