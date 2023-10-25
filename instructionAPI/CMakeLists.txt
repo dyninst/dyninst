@@ -36,7 +36,6 @@ set(_public_headers
     h/Operand.h
     h/Operation_impl.h
     h/Register.h
-    h/RegisterIDs.h
     h/Result.h
     h/Ternary.h
     h/Visitor.h)

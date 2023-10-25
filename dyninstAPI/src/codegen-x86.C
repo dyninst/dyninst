@@ -47,7 +47,6 @@
 
 #include "emit-x86.h"
 #include "inst-x86.h"
-#include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
 
 #include "StackMod/StackAccess.h"
