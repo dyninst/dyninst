@@ -11,6 +11,7 @@ set(_public_headers
     h/AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h
     h/AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h
     h/Annotatable.h
+    h/Architecture.h
     h/Buffer.h
     h/compiler_annotations.h
     h/compiler_diagnostics.h
