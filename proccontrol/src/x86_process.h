@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 #include "int_process.h"
-#include "common/h/dyn_regs.h"
+#include "registers/MachRegister.h"
 
 class x86_process : virtual public int_process
 {

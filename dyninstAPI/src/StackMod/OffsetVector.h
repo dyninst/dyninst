@@ -34,7 +34,7 @@
 #include <map>
 #include <set>
 #include <utility>
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
 #include "common/src/IntervalTree.h"
 #include "stackanalysis.h"
 

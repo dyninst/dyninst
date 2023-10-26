@@ -34,7 +34,7 @@
 #include "InstructionDecoderImpl.h"
 #include <iostream>
 #include "Immediate.h"
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
 
 namespace Dyninst {
     namespace InstructionAPI {

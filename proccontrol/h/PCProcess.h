@@ -40,7 +40,8 @@
 #include <utility>
 
 #include "dyntypes.h"
-#include "dyn_regs.h"
+#include "Architecture.h"
+#include "registers/MachRegister.h"
 #include "EventType.h"
 #include "util.h"
 #include "PCErrors.h"

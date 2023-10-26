@@ -33,6 +33,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include "unaligned_memory_access.h"
+#include "dyn_regs.h"
 
 static const unsigned int linux_x86_64_mmap_flags_position = 26;
 static const unsigned int linux_x86_64_mmap_size_position = 43;

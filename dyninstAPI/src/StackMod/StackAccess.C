@@ -43,7 +43,7 @@
 #include "BinaryFunction.h"
 
 #include "CFG.h"
-
+#include "dyn_regs.h"
 #include "ABI.h"
 #include "slicing.h"
 #include "SymEval.h"

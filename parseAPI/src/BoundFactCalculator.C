@@ -1,7 +1,7 @@
 #include "dyntypes.h"
 #include "CodeObject.h"
 #include "CodeSource.h"
-
+#include "dyn_regs.h"
 #include "BoundFactCalculator.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"

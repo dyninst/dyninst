@@ -41,6 +41,7 @@
 #include "stackwalk/src/x86-swk.h"
 
 #include "common/src/Types.h"
+#include "dyn_regs.h"
 
 #include <sys/user.h>
 #include <sys/ptrace.h>

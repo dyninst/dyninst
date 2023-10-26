@@ -49,7 +49,7 @@
 #include "util.h"
 #include "debug_parse.h"
 #include "IndirectAnalyzer.h"
-
+#include "dyn_regs.h"
 #include <boost/timer/timer.hpp>
 #include <fstream>
 

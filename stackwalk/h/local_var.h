@@ -36,7 +36,7 @@
 #include "Symtab.h"
 #include "Type.h"
 #include "Function.h"
-
+#include "dyn_regs.h"
 #include "frame.h"
 #include "procstate.h"
 #include "walker.h"

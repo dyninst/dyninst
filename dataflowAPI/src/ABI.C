@@ -31,6 +31,7 @@
 #include "dataflowAPI/h/ABI.h"
 #include "dataflowAPI/src/RegisterMap.h"
 #include <stdio.h>
+#include "dyn_regs.h"
 
 using namespace Dyninst;
 using namespace DataflowAPI;

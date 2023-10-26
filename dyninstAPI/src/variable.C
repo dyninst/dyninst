@@ -35,6 +35,7 @@
 #include <string>
 #include "common/h/Annotatable.h"
 #include "mapped_object.h"
+#include "dyn_regs.h"
 
 image_variable::image_variable(SymtabAPI::Variable *var, pdmodule *mod) :
     var_(var),			       

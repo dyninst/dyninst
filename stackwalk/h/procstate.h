@@ -35,7 +35,8 @@
 #define PROCSTATE_H_
 
 #include "basetypes.h"
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
+#include "Architecture.h"
 #include "PCProcess.h"
 
 

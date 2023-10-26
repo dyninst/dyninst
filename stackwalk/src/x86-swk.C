@@ -42,7 +42,7 @@
 #include "stackwalk/src/libstate.h"
 
 #include "common/src/lru_cache.h"
-
+#include "dyn_regs.h"
 #include "common/h/SymReader.h"
 
 using namespace Dyninst;

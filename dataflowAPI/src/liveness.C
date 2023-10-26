@@ -36,7 +36,7 @@
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Register.h"
 #include "instructionAPI/h/Instruction.h"
-
+#include "dyn_regs.h"
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
 #include <boost/bind/bind.hpp>

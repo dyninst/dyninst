@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <boost/algorithm/string/join.hpp>
 #include "../../common/h/compiler_diagnostics.h"
+#include "dyn_regs.h"
 
 using namespace Dyninst::InstructionAPI;
 

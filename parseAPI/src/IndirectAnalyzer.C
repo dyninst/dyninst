@@ -15,6 +15,8 @@
 #include "InstructionDecoder.h"
 #include "Register.h"
 #include "SymEval.h"
+#include "dyn_regs.h"
+
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 

@@ -50,6 +50,7 @@
 #include "ABI.h"
 #include "Annotatable.h"
 #include "debug_dataflow.h"
+#include "dyn_regs.h"
 
 using namespace std;
 using namespace Dyninst;

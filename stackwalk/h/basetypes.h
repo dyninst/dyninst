@@ -32,7 +32,7 @@
 #define BASETYPES_H_
 
 #include "dyntypes.h"
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
 #include "SymReader.h"
 #include <string>
 #include <sstream>

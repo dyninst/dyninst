@@ -33,7 +33,7 @@
 #ifndef INSTRUCTION_SOURCE_H
 #define INSTRUCTION_SOURCE_H
 
-#include "dyn_regs.h"
+#include "Architecture.h"
 #include "dyntypes.h"
 
 namespace Dyninst {

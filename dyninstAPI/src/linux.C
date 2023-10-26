@@ -42,6 +42,7 @@
 #include "mapped_module.h"
 #include "linux.h"
 #include <dlfcn.h>
+#include "dyn_regs.h"
 
 #include <exception>
 #include <sstream>

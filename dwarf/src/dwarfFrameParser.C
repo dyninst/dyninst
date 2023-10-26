@@ -40,6 +40,7 @@
 #include <iostream>
 #include "debug_common.h" // dwarf_printf
 #include <libelf.h>
+#include "dyn_regs.h"
 
 using namespace Dyninst;
 using namespace DwarfDyninst;

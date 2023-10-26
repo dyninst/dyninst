@@ -34,7 +34,7 @@
 #include <map>
 #include <boost/assign/list_of.hpp>
 #include "Register.h"
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
 #include "registerSpace.h"
 
 using namespace Dyninst;

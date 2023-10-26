@@ -5,6 +5,8 @@
 #include "CodeObject.h"
 #include "CodeSource.h"
 #include "debug_parse.h"
+#include "dyn_regs.h"
+
 using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;

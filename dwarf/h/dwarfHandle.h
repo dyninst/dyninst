@@ -35,6 +35,7 @@
 #include "dyntypes.h"
 #include <map>
 #include <string>
+#include <boost/shared_ptr.hpp>
 
 namespace Dyninst {
 class Elf_X;

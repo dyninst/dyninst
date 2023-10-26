@@ -5,6 +5,7 @@
 #include <Register.h>
 #include "SymEvalSemantics.h"
 #include "BaseSemantics2.h"
+#include "dyn_regs.h"
 
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
 using RoseException = BaseSemantics::Exception;

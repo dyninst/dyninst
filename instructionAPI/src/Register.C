@@ -36,7 +36,8 @@
 #include "Visitor.h"
 #include "../../common/src/singleton_object_pool.h"
 #include "InstructionDecoder-power.h"
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
+#include "Architecture.h"
 #include "ArchSpecificFormatters.h"
 #include "../../common/h/compiler_diagnostics.h"
 
