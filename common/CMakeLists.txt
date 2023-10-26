@@ -65,7 +65,6 @@ set(_private_headers
     src/MappedFile.h
     src/NodeIterator.h
     src/ntHeaders.h
-    src/Pair.h
     src/parseauxv.h
     src/pathName.h
     src/pool_allocators.h

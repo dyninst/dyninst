@@ -38,7 +38,6 @@
 #endif
 
 #define BPATCH_FILE
-#include "common/src/Pair.h"
 #include "common/src/stats.h"
 #include "BPatch.h"
 #include "BPatch_libInfo.h"

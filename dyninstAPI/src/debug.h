@@ -32,7 +32,6 @@
 #define SHOWERROR_H
 
 #include <string>
-#include "common/src/Pair.h"
 #include "compiler_annotations.h"
 
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
