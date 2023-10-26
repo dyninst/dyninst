@@ -33,7 +33,3 @@
 #include "dyn_regs.h"
 #undef DYN_DEFINE_REGS
 //clang-format: on
-
-bool Dyninst::isSegmentRegister(int regClass) {
-    return 0 != (regClass & x86::SEG);
-}

@@ -301,6 +301,12 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(st5, 0x5 | FPDBL | MMX | Arch_x86, "x86");
   DEF_REGISTER(st6, 0x6 | FPDBL | MMX | Arch_x86, "x86");
   DEF_REGISTER(st7, 0x7 | FPDBL | MMX | Arch_x86, "x86");
-}}
+}
+
+inline bool isSegmentRegister(int regClass) {
+  return 0 != (regClass & x86::SEG);
+}
+
+}
 
 #endif

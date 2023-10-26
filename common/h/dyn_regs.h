@@ -47,8 +47,4 @@
 #include "registers/AMDGPU/gfx940/amdgpu_gfx940_regs.h"
 #include "registers/cuda_regs.h"
 
-namespace Dyninst {
-    COMMON_EXPORT bool isSegmentRegister(int regClass);
-}
-
 #endif
