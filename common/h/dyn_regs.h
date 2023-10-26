@@ -33,81 +33,14 @@
 #define DYN_REGS_H_
 
 #include "util.h"
-#include "boost/shared_ptr.hpp"
 #include "Architecture.h"
+#include "registers/MachRegister.h"
 
-#include <assert.h>
-#include <map>
-#include <string>
-
-namespace Dyninst
-{
-    struct x86OperandParser;
-    struct ppcOperandParser;
-    struct aarch64OperandParser;
-
-    typedef unsigned long MachRegisterVal;
+namespace Dyninst {
 
     COMMON_EXPORT bool isSegmentRegister(int regClass);
     COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
-    class COMMON_EXPORT MachRegister {
-        friend struct ::Dyninst::x86OperandParser;
-        friend struct ::Dyninst::ppcOperandParser;
-        friend struct ::Dyninst::aarch64OperandParser;
-        private:
-        signed int reg;
 
-        typedef std::map<signed int, std::string> NameMap;
-        static boost::shared_ptr<MachRegister::NameMap> names();
-        void init_names();
-
-        public:
-
-        MachRegister();
-        explicit MachRegister(signed int r);
-        explicit MachRegister(signed int r, const char *n);
-        explicit MachRegister(signed int r, std::string n);
-
-        MachRegister getBaseRegister() const;
-        Architecture getArchitecture() const;
-        bool isValid() const;
-        MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const;
-
-        std::string name() const;
-        unsigned int size() const;
-        bool operator<(const MachRegister &a) const;
-        bool operator==(const MachRegister &a) const;
-        operator signed int() const;
-        signed int val() const;
-
-        // Return the category of the MachRegister
-        unsigned int regClass() const;
-
-        static MachRegister getPC(Dyninst::Architecture arch);
-        static MachRegister getReturnAddress(Dyninst::Architecture arch);
-        static MachRegister getFramePointer(Dyninst::Architecture arch);
-        static MachRegister getStackPointer(Dyninst::Architecture arch);
-        static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
-        static MachRegister getSyscallNumberOReg(Dyninst::Architecture arch);
-        static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch);
-        static MachRegister getZeroFlag(Dyninst::Architecture arch);
-
-        bool isPC() const;
-        bool isFramePointer() const;
-        bool isStackPointer() const;
-        bool isSyscallNumberReg() const;
-        bool isSyscallReturnValueReg() const;
-        bool isFlag() const;
-        bool isZeroFlag() const;
-
-        void getROSERegister(int &c, int &n, int &p);
-
-        static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
-        static MachRegister getArchRegFromAbstractReg(MachRegister abstract, Dyninst::Architecture arch);
-        int getDwarfEnc() const;
-
-        static MachRegister getArchReg(unsigned int regNum, Dyninst::Architecture arch);
-    };
 
     /**
      * DEF_REGISTER will define its first parameter as the name of the object

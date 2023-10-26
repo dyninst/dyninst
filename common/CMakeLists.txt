@@ -36,6 +36,7 @@ set(_public_headers
     h/mnemonics/NVIDIA/generic_entryIDs.h
     h/Node.h
     h/ProcReader.h
+    h/registers/MachRegister.h
     h/SymReader.h
     h/unaligned_memory_access.h
     h/util.h
@@ -70,6 +71,7 @@ set(_private_headers
     src/parseauxv.h
     src/pathName.h
     src/pool_allocators.h
+    src/registers/MachRegister.C
     src/sha1.h
     src/Singleton.h
     src/singleton_object_pool.h
