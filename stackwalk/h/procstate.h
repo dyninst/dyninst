@@ -90,7 +90,6 @@ public:
   //Return the size of an address in process in bytes
   virtual unsigned getAddressWidth() = 0;
 
-  //Get Architecture, see dyn_regs.h
   virtual Dyninst::Architecture getArchitecture() = 0;
 
   virtual ~ProcessState();
