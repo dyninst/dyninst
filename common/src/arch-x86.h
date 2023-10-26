@@ -40,7 +40,6 @@
 #include <set>
 #include <map>
 #include <vector>
-#include "dyn_regs.h"
 #include "entryIDs.h"
 
 #include "common/src/ia32_locations.h"

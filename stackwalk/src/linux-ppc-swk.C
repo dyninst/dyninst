@@ -34,7 +34,6 @@
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/src/linuxbsd-swk.h"
-#include "common/h/dyn_regs.h"
 #include <sys/user.h>
 #include <sys/ptrace.h>
 #include <assert.h>
