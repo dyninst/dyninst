@@ -38,7 +38,7 @@
 #include "stackwalk/src/sw.h"
 #include "stackwalk/src/libstate.h"
 #include <assert.h>
-#include "dyn_regs.h"
+#include "registers/abstract_regs.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;

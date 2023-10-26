@@ -40,6 +40,7 @@
 #include "Architecture.h"
 #include "ArchSpecificFormatters.h"
 #include "../../common/h/compiler_diagnostics.h"
+#include "registers/x86_regs.h"
 
 using namespace std;
 

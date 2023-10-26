@@ -13,7 +13,11 @@
 #include <assert.h>
 #include <boost/algorithm/string/join.hpp>
 #include "../../common/h/compiler_diagnostics.h"
-#include "dyn_regs.h"
+#include "Architecture.h"
+#include "registers/AMDGPU/gfx908/amdgpu_gfx908_regs.h"
+#include "registers/AMDGPU/gfx90a/amdgpu_gfx90a_regs.h"
+#include "registers/AMDGPU/gfx940/amdgpu_gfx940_regs.h"
+
 
 using namespace Dyninst::InstructionAPI;
 

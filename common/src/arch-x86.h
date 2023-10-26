@@ -41,7 +41,7 @@
 #include <map>
 #include <vector>
 #include "entryIDs.h"
-
+#include "registers/MachRegister.h"
 #include "common/src/ia32_locations.h"
 
 

@@ -37,7 +37,8 @@
 #include "BinaryFunction.h"
 
 #include "common/src/arch.h"
-
+#include "registers/ppc32_regs.h"
+#include "registers/ppc64_regs.h"
 #include "parseAPI/src/debug_parse.h"
 
 #include <deque>

@@ -29,7 +29,11 @@
  */
 #include "SymEvalPolicy.h"
 
-#include "dyn_regs.h"
+#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
+#include "registers/ppc32_regs.h"
+#include "registers/ppc64_regs.h"
+
 
 using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;

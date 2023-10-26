@@ -33,7 +33,8 @@
 #include "dwarfFrameParser.h"
 #include "ProcReader.h"
 #include "dyntypes.h"
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
+#include "registers/abstract_regs.h"
 #include "Types.h"
 #include "debug_common.h"
 #include <iostream>

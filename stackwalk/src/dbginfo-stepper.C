@@ -42,7 +42,10 @@
 #include "common/src/Types.h"
 #include "dwarfFrameParser.h"
 #include "dwarfHandle.h"
-#include "dyn_regs.h"
+#include "Architecture.h"
+#include "registers/abstract_regs.h"
+#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
 
 #if defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/Symtab.h"
@@ -680,4 +683,5 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
 }
 #endif
 //end if defined aarch64
+
 

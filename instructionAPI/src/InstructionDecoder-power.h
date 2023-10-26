@@ -34,7 +34,7 @@
 #include <stddef.h>
 #include <string>
 #include "Immediate.h"
-#include "dyn_regs.h"
+#include "registers/ppc32_regs.h"
 //#define DEBUG_FIELD
 
 namespace Dyninst {

@@ -44,7 +44,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "dyninstAPI/src/instPoint.h"
-
+#include "registers/x86_regs.h"
 #include "dataflowAPI/h/slicing.h"
 
 #include "../CFG/RelocBlock.h"

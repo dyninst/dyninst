@@ -37,7 +37,7 @@
 #include "Function.h"
 #include "VariableLocation.h"
 #include "Object.h"
-#include "dyn_regs.h"
+#include "registers/abstract_regs.h"
 
 #if !defined(os_windows)
 #include "dwarfFrameParser.h"

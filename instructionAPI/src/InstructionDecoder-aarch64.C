@@ -29,7 +29,7 @@
  */
 
 #include "InstructionDecoder-aarch64.h"
-#include "dyn_regs.h"
+#include "registers/aarch64/aarch64_regs.h"
 
 namespace Dyninst {
     namespace InstructionAPI {

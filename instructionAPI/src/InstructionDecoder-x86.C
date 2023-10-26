@@ -40,6 +40,9 @@
 #include "BinaryFunction.h"
 #include "common/src/singleton_object_pool.h"
 #include "unaligned_memory_access.h"
+#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
+#include "registers/abstract_regs.h"
 
 // #define VEX_DEBUG
 

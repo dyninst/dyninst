@@ -30,7 +30,7 @@
 
 #include "common/src/vgannotations.h"
 #include "dyntypes.h"
-#include "dyn_regs.h"
+#include "registers/x86_regs.h"
 #include "IA_IAPI.h"
 #include "util.h"
 #include "Register.h"
