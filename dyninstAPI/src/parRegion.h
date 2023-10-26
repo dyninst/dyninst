@@ -35,7 +35,6 @@
 #include <string.h>
 #include <string>
 #include "common/src/Types.h"
-#include "common/src/Pair.h"
 #include "codeRange.h"
 #include "common/src/arch.h" // instruction
 #include "dyninstAPI/h/BPatch_parRegion.h"

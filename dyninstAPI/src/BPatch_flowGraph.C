@@ -38,7 +38,6 @@
 
 #include "common/src/Types.h"
 #include <unordered_map>
-#include "common/src/Pair.h"
 
 #include "BPatch_process.h"
 #include "BPatch_edge.h"
