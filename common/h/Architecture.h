@@ -31,6 +31,8 @@
 #ifndef DYNINST_ARCHITECTURE_H
 #define DYNINST_ARCHITECTURE_H
 
+#include <cassert>
+
 namespace Dyninst {
 
   // 0xff000000 is used to encode architecture
@@ -48,6 +50,24 @@ namespace Dyninst {
     Arch_amdgpu_gfx940 = 0x9c000000, // future support for gfx940
     Arch_intelGen9 = 0xb6000000      // same as machine no. retrevied from eu-readelf
   } Architecture;
+
+  inline unsigned getArchAddressWidth(Architecture arch) {
+    switch(arch) {
+      case Arch_none: return 0;
+      case Arch_x86:
+      case Arch_ppc32: return 4;
+      case Arch_x86_64:
+      case Arch_ppc64:
+      case Arch_aarch64:
+      case Arch_cuda:
+      case Arch_intelGen9:
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940: return 8;
+      default: assert(0); return 0;
+    }
+    return 0;
+  }
 
 }
 

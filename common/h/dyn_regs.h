@@ -39,8 +39,6 @@
 namespace Dyninst {
 
     COMMON_EXPORT bool isSegmentRegister(int regClass);
-    COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
-
 
     /**
      * DEF_REGISTER will define its first parameter as the name of the object

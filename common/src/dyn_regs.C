@@ -34,34 +34,6 @@
 #undef DYN_DEFINE_REGS
 //clang-format: on
 
-#include "util.h"
-#include <cassert>
-
-COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
-{
+bool Dyninst::isSegmentRegister(int regClass) {
     return 0 != (regClass & x86::SEG);
-}
-
-unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
-{
-    switch (arch) {
-        case Arch_none:
-            return 0;
-        case Arch_x86:
-        case Arch_ppc32:
-            return 4;
-        case Arch_x86_64:
-        case Arch_ppc64:
-        case Arch_aarch64:
-        case Arch_cuda:
-        case Arch_intelGen9:
-        case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_gfx90a:
-        case Arch_amdgpu_gfx940:
-            return 8;
-        default:
-            assert(0);
-            return InvalidReg;
-    }
-    return 0;
 }
