@@ -28,27 +28,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef DYNINST_ABSTRACT_REGS_H
+#define DYNINST_ABSTRACT_REGS_H
 
-#if !defined(DYN_REGS_H_)
-#define DYN_REGS_H_
-
-#include "util.h"
 #include "Architecture.h"
-#include "registers/MachRegister.h"
-
-#include "registers/abstract_regs.h"
-#include "registers/x86_regs.h"
-#include "registers/x86_64_regs.h"
-#include "registers/ppc32_regs.h"
-#include "registers/ppc64_regs.h"
-#include "registers/aarch64/aarch64_regs.h"
-#include "registers/AMDGPU/gfx908/amdgpu_gfx908_regs.h"
-#include "registers/AMDGPU/gfx90a/amdgpu_gfx90a_regs.h"
-#include "registers/AMDGPU/gfx940/amdgpu_gfx940_regs.h"
-#include "registers/cuda_regs.h"
+#include "registers/reg_def.h"
 
 namespace Dyninst {
-    COMMON_EXPORT bool isSegmentRegister(int regClass);
+  /**
+   * For interpreting constants:
+   *  Lowest 16 bits (0x000000ff) is base register ID
+   *  Next 16 bits (0x0000ff00) is the aliasing and subrange ID-
+   *    used on x86/x86_64 to distinguish between things like EAX and AH
+   *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
+   *  Top 16 bits (0xff000000) are the architecture.
+   *
+   *  These values/layout are not guaranteed to remain the same as part of the
+   *  public interface, and may change.
+   **/
+
+  // Abstract registers used for stackwalking
+  DEF_REGISTER(InvalidReg, 0 | Arch_none, "abstract");
+  DEF_REGISTER(FrameBase, 1 | Arch_none, "abstract");
+  DEF_REGISTER(ReturnAddr, 2 | Arch_none, "abstract");
+  DEF_REGISTER(StackTop, 3 | Arch_none, "abstract");
+  // DWARF-ism; the CFA is the value of the stack pointer in the previous frame
+  DEF_REGISTER(CFA, 4 | Arch_none, "abstract");
+
 }
 
 #endif

@@ -28,27 +28,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef DYNINST_REG_DEF_H
+#define DYNINST_REG_DEF_H
 
-#if !defined(DYN_REGS_H_)
-#define DYN_REGS_H_
-
-#include "util.h"
-#include "Architecture.h"
 #include "registers/MachRegister.h"
 
-#include "registers/abstract_regs.h"
-#include "registers/x86_regs.h"
-#include "registers/x86_64_regs.h"
-#include "registers/ppc32_regs.h"
-#include "registers/ppc64_regs.h"
-#include "registers/aarch64/aarch64_regs.h"
-#include "registers/AMDGPU/gfx908/amdgpu_gfx908_regs.h"
-#include "registers/AMDGPU/gfx90a/amdgpu_gfx90a_regs.h"
-#include "registers/AMDGPU/gfx940/amdgpu_gfx940_regs.h"
-#include "registers/cuda_regs.h"
+/**
+ * DEF_REGISTER will define its first parameter as the name of the object
+ * it's declaring, and 'i<name>' as the integer value representing that object.
+ * As an example, the name of a register may be
+ *  x86::EAX
+ * with that register having a value of
+ *  x86::iEAX
+ *
+ * The value is mostly useful in the 'case' part switch statements.
+ **/
+#if defined(DYN_DEFINE_REGS)
+// DYN_DEFINE_REGS Should only be defined in libcommon.
+// We want one definition, which will be in libcommon, and declarations
+// for everyone else.
+//
+// I wanted these to be const MachRegister objects, but that changes the
+// linker scope.  Instead they're non-const.  Every accessor function is
+// const anyways, so we'll just close our eyes and pretend they're declared
+// const.
+#  define DEF_REGISTER(name, value, Arch)                                                          \
+    const signed int i##name = (value);                                                            \
+    COMMON_EXPORT MachRegister name(i##name, Arch "::" #name)
+#else
+#  define DEF_REGISTER(name, value, Arch)                                                          \
+    const signed int i##name = (value);                                                            \
+    COMMON_EXPORT extern MachRegister name
 
-namespace Dyninst {
-    COMMON_EXPORT bool isSegmentRegister(int regClass);
-}
+#endif
 
 #endif
