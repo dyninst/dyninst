@@ -39,18 +39,9 @@
 #include <string>
 
 namespace Dyninst {
-
-  struct x86OperandParser;
-  struct ppcOperandParser;
-  struct aarch64OperandParser;
-
   typedef unsigned long MachRegisterVal;
 
   class COMMON_EXPORT MachRegister {
-    friend struct ::Dyninst::x86OperandParser;
-    friend struct ::Dyninst::ppcOperandParser;
-    friend struct ::Dyninst::aarch64OperandParser;
-
   private:
     signed int reg;
 
