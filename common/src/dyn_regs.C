@@ -28,8 +28,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+//clang-format: off
 #define DYN_DEFINE_REGS
 #include "dyn_regs.h"
+#undef DYN_DEFINE_REGS
+//clang-format: on
 
 #include "util.h"
 #include <cassert>
