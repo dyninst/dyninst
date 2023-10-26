@@ -29,7 +29,6 @@
  */
 
 #include "Register.h"
-#include "../../common/src/Singleton.h"
 #include <vector>
 #include <set>
 #include <sstream>

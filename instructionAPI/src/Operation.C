@@ -36,7 +36,6 @@
 #include "Operation_impl.h"
 #include "common/src/arch-x86.h"
 #include "entryIDs.h"
-#include "common/src/Singleton.h"
 #include "Register.h"
 #include <map>
 #include <mutex>

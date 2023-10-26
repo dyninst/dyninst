@@ -70,7 +70,6 @@ set(_private_headers
     src/pathName.h
     src/pool_allocators.h
     src/sha1.h
-    src/Singleton.h
     src/singleton_object_pool.h
     src/stats.h
     src/std_namesp.h
