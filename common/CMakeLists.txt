@@ -36,7 +36,6 @@ set(_public_headers
     h/registers/aarch64_regs.h
     h/registers/abstract_regs.h
     h/registers/AMDGPU/gfx908/amdgpu_gfx908_regs.h
-    h/registers/AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h
     h/registers/AMDGPU/gfx90a/amdgpu_gfx90a_regs.h
     h/registers/AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h
     h/registers/AMDGPU/gfx940/amdgpu_gfx940_regs.h
