@@ -14,9 +14,9 @@
 #include <boost/algorithm/string/join.hpp>
 #include "../../common/h/compiler_diagnostics.h"
 #include "Architecture.h"
-#include "registers/AMDGPU//amdgpu_gfx908_regs.h"
-#include "registers/AMDGPU//amdgpu_gfx90a_regs.h"
-#include "registers/AMDGPU//amdgpu_gfx940_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
 
 
 using namespace Dyninst::InstructionAPI;
