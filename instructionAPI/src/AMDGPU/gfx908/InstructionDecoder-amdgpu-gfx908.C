@@ -31,7 +31,7 @@
 #include "Ternary.h"
 #include "InstructionDecoder-amdgpu-gfx908.h"
 #include <array>
-#include "registers/AMDGPU/gfx908/amdgpu_gfx908_regs.h"
+#include "registers/AMDGPU//amdgpu_gfx908_regs.h"
 
 namespace Dyninst {
 	namespace InstructionAPI {
