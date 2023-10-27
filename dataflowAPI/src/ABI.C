@@ -43,7 +43,7 @@
 #endif
 
 #if defined(arch_aarch64)
-#  include "registers/aarch64/aarch64_regs.h"
+#  include "registers/aarch64_regs.h"
 #endif
 
 using namespace Dyninst;

@@ -33,8 +33,7 @@ set(_public_headers
     h/Node.h
     h/ProcReader.h
     h/registers/MachRegister.h
-    h/registers/aarch64/aarch64_regs.h
-    h/registers/aarch64/aarch64_sys_regs.h
+    h/registers/aarch64_regs.h
     h/registers/abstract_regs.h
     h/registers/AMDGPU/gfx908/amdgpu_gfx908_regs.h
     h/registers/AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h

@@ -48,7 +48,7 @@
 #include "registers/x86_64_regs.h"
 
 #ifdef arch_aarch64
-# include "registers/aarch64/aarch64_regs.h"
+# include "registers/aarch64_regs.h"
 #endif
 
 #if defined(WITH_SYMTAB_API)

@@ -46,7 +46,7 @@
 #include "registers/x86_64_regs.h"
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
-#include "registers/aarch64/aarch64_regs.h"
+#include "registers/aarch64_regs.h"
 #include "common/h/dyntypes.h"
 
 #include "compiler_annotations.h"

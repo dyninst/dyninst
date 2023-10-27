@@ -45,7 +45,7 @@
 #include "common/src/singleton_object_pool.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
-#include "registers/aarch64/aarch64_regs.h"
+#include "registers/aarch64_regs.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;

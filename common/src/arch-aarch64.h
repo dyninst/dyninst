@@ -36,7 +36,7 @@
 // Code generation
 
 #include "common/src/Types.h"
-#include "registers/aarch64/aarch64_regs.h"
+#include "registers/aarch64_regs.h"
 #include <assert.h>
 #include <vector>
 class AddressSpace;
