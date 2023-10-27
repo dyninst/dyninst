@@ -31,6 +31,8 @@
 #ifndef DYNINST_ABSTRACT_REGS_H
 #define DYNINST_ABSTRACT_REGS_H
 
+//clang-format: off
+
 #include "Architecture.h"
 #include "registers/reg_def.h"
 
@@ -48,12 +50,15 @@ namespace Dyninst {
    **/
 
   // Abstract registers used for stackwalking
-  DEF_REGISTER(InvalidReg, 0 | Arch_none, "abstract");
-  DEF_REGISTER(FrameBase, 1 | Arch_none, "abstract");
-  DEF_REGISTER(ReturnAddr, 2 | Arch_none, "abstract");
-  DEF_REGISTER(StackTop, 3 | Arch_none, "abstract");
+
+  //          (      name, ID |      arch,       arch)
+  DEF_REGISTER(InvalidReg,  0 | Arch_none, "abstract");
+  DEF_REGISTER( FrameBase,  1 | Arch_none, "abstract");
+  DEF_REGISTER(ReturnAddr,  2 | Arch_none, "abstract");
+  DEF_REGISTER(  StackTop,  3 | Arch_none, "abstract");
+
   // DWARF-ism; the CFA is the value of the stack pointer in the previous frame
-  DEF_REGISTER(CFA, 4 | Arch_none, "abstract");
+  DEF_REGISTER(       CFA,  4 | Arch_none, "abstract");
 
 }
 
