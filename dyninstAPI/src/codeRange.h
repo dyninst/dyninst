@@ -42,7 +42,6 @@
 #include <stdlib.h>
 #include <vector>
 #include "common/src/Types.h"
-#include "common/src/std_namesp.h"
 #include "dyninstAPI/src/patch.h"
 
 /** template class for codeRangeTree. The implementation is based on red black

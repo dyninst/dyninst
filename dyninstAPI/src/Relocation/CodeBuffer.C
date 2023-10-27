@@ -121,7 +121,7 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
    if (patch_) {
       // Now things get interesting
       if (!patch_->apply(gen, buf)) {
-	relocation_cerr << "Patch failed application, ret false" << endl;
+	relocation_cerr << "Patch failed application, ret false" << std::endl;
          return false;
       }
    }
@@ -302,7 +302,7 @@ void CodeBuffer::disassemble() const {
 
    Instruction cur = decoder.decode();
    while (cur.isValid()) {
-      cerr << "\t" << std::hex << addr << std::dec << ": " << cur.format() << endl;
+      cerr << "\t" << std::hex << addr << std::dec << ": " << cur.format() << std::endl;
       addr += cur.size();
       cur = decoder.decode();
    }
@@ -313,7 +313,7 @@ void CodeBuffer::updateLabel(unsigned id, Address offset, bool &regenerate) {
 
 
    if (id >= labels_.size()) {
-      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << endl;
+      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << std::endl;
    }
    assert(id < labels_.size());
    assert(id > 0);
@@ -340,7 +340,7 @@ Address CodeBuffer::getLabelAddr(unsigned id) {
 
 Address CodeBuffer::predictedAddr(unsigned id) {
    if (id >= labels_.size()) {
-      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << endl;
+      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << std::endl;
    }
    assert(id < labels_.size());
    assert(id > 0);
