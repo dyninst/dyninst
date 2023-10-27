@@ -57,7 +57,6 @@ set(_private_headers
     src/codegen-x86.h
     src/codeRange.h
     src/debug.h
-    src/dyninst.h
     src/dynProcess.h
     src/dynThread.h
     src/ELF_Section.h

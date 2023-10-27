@@ -34,7 +34,6 @@
 #include "function.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
-#include "dyninst.h"
 
 using namespace Dyninst::ProcControlAPI;
 

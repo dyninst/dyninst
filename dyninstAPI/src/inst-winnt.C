@@ -31,7 +31,6 @@
 // $Id: inst-winnt.C,v 1.31 2008/06/19 22:13:42 jaw Exp $
 
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
