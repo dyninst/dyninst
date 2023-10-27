@@ -31,6 +31,8 @@
 #ifndef DYNINST_PPC32_REGS_H
 #define DYNINST_PPC32_REGS_H
 
+//clang-format: off
+
 #include "Architecture.h"
 #include "registers/reg_def.h"
 
