@@ -110,7 +110,6 @@ bool BinaryEdit::writeTextSpace(void *inOther,
        void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
        inst_printf("Copying to 0x%p [base=0x%p] from 0x%lx (%u bytes)  target=0x%lx  offset=0x%lx\n", 
               local_ptr, range->get_local_ptr(), local, chunk_size, addr, offset);
-       //range->print_range();
        memcpy(local_ptr, (void *)local, chunk_size);
        memoryTracker* mt = dynamic_cast<memoryTracker*>(range);
        assert(mt);
@@ -513,18 +512,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             if (newSegs[i].name == ".bss")
 #endif
                continue;
-            //inst_printf (" segment name: %s\n", newSegs[i].name.c_str());
-            //assert(0);
          }
-         //inst_printf(" ==> memtracker: Copying to 0x%lx from 0x%lx\n", 
-         //newSegs[i].loadaddr, segRange->get_local_ptr());
 	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
 	 assert(mt);
 	 if(mt->dirty) {
             oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getMemSize());
 	 }
-	 
-         //newSegs[i].data = segRange->get_local_ptr();
       }
 
       // Okay, that does it for the old stuff.
@@ -541,9 +534,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          assert(newSectionPtr);
          memoryTracker *tracker = dynamic_cast<memoryTracker *>(writes[i]);
          assert(tracker);
-         //inst_printf("memory tracker: 0x%lx  load=0x%lx  size=%d  %s\n", 
-         //tracker->get_local_ptr(), tracker->get_address(), tracker->get_size(),
-         //tracker->alloced ? "[A]" : "");
          if (!tracker->alloced) continue;
 
          // Copy whatever is in there into the big buffer, at the appropriate address
@@ -589,45 +579,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
-            /*
-              if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
-              Address addr = referring->getOffset();
-              bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
-              assert(result);
-              continue;
-              }
-            */
                
             // Create the relocationEntry
             relocationEntry localRel(to, referring->getMangledName(), referring,
                                      relocationEntry::getGlobalRelType(getAddressWidth(), referring));
 	    
-            /*
-              if( mobj->isSharedLib() ) {
-              localRel.setRelAddr(to - mobj->imageOffset());
-              }
-            */
-            
             symObj->addExternalSymbolReference(referring, newSec, localRel);
-            
-            /*
-              newSymbol = new Symbol(referring->getName(), 
-              Symbol::ST_FUNCTION, 
-              Symbol::SL_GLOBAL,
-              Symbol::SV_DEFAULT, 
-              (Address)0, 
-              symObj->getDefaultModule(),
-              NULL, 
-              8,
-              true, 
-              false);
-              symObj->addSymbol(newSymbol, referring);
-              if (!symObj->hasReldyn() && symObj->hasReladyn()) {
-              newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
-              } else {
-              newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
-              }
-            */
          }
       }
       
@@ -653,7 +610,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       
       
       // And now we generate the new binary
-      //if (!symObj->emit(newFileName.c_str())) {
       if (!symObj->emit(newFileName.c_str())) {
          SymtabError lastError = Symtab::getLastSymtabError();
          showErrorCallback(109, Symtab::printError(lastError));
