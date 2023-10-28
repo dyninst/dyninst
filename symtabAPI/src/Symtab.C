@@ -70,7 +70,7 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-static std::string errMsg;
+static thread_local std::string errMsg;
 
 static const int Symtab_major_version = DYNINST_MAJOR_VERSION;
 static const int Symtab_minor_version = DYNINST_MINOR_VERSION;
