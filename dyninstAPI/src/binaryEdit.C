@@ -507,10 +507,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
          if (!memoryTracker_.find(oldSegs[i]->getMemOffset(), segRange)) {
-#if 0
-            // Looks like BSS
-            if (newSegs[i].name == ".bss")
-#endif
                continue;
          }
 	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
