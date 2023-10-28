@@ -751,6 +751,9 @@ namespace Dyninst {
               default: c = x86_regclass_unknown; break;
             }
             break;
+          default:
+              common_parsing_printf("Unknown category '%d' for Arch_x86\n", category);
+              break;
         }
         break;
       case Arch_x86_64:
@@ -846,6 +849,9 @@ namespace Dyninst {
               default: c = x86_regclass_unknown; break;
             }
             break;
+          default:
+	    common_parsing_printf("Unknown category '%d' for Arch_x86_64\n", category);
+	    break;
         }
         break;
       case Arch_ppc32: {
@@ -979,6 +985,9 @@ namespace Dyninst {
           case x86::FULL:
           case x86_64::D_REG: p = x86_regpos_dword; break;
           case x86::BIT: p = x86_regpos_all; break;
+          default:
+              common_parsing_printf("Unknown subrange value '%d' for Arch_x86\n", subrange);
+              break;
         }
         break;
 
@@ -992,6 +1001,9 @@ namespace Dyninst {
           case x86::W_REG: p = x86_regpos_word; break;
           case x86_64::D_REG: p = x86_regpos_dword; break;
           case x86::BIT: p = x86_regpos_all; break;
+          default:
+              common_parsing_printf("Unknown subrange value '%d' for Arch_x86_64\n", subrange);
+              break;
         }
         break;
       case Arch_aarch64: {
