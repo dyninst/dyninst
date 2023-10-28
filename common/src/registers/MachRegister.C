@@ -1228,6 +1228,7 @@ namespace Dyninst {
           case 152: return Dyninst::InvalidReg; // mxcsr
           case 153: return Dyninst::InvalidReg; // fcw
           case 154: return Dyninst::InvalidReg; // fsw
+          default: return Dyninst::InvalidReg;
         }
         break;
       case Arch_ppc32:
@@ -1298,6 +1299,7 @@ namespace Dyninst {
           case 63: return Dyninst::ppc32::fpr31;
           case 64: return Dyninst::ppc32::cr;
           case 65: return Dyninst::InvalidReg; // FPSCR
+          default: return Dyninst::InvalidReg;
         }
         // Seperate switch statements to give compilers an easier time of
         //  optimizing
@@ -1383,6 +1385,7 @@ namespace Dyninst {
           case 63: return Dyninst::ppc64::fpr31;
           case 64: return Dyninst::ppc64::cr;
           case 65: return Dyninst::InvalidReg; // FPSCR
+          default: return Dyninst::InvalidReg;
         }
         // Seperate switch statements to give compilers an easier time of
         //  optimizing
@@ -1437,6 +1440,7 @@ namespace Dyninst {
           case 30: return Dyninst::aarch64::x30;
           case 31: return Dyninst::aarch64::sp;
           case 32: return Dyninst::InvalidReg;
+          default: return Dyninst::InvalidReg;
         }
         switch(encoding) {
           case 64: return Dyninst::aarch64::q0;
