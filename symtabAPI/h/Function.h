@@ -142,7 +142,6 @@ class SYMTAB_EXPORT FunctionBase
    InlineCollection inlines;
    FunctionBase *inline_parent;
 
-   dyn_mutex ranges_lock;
    FuncRangeCollection ranges;
    std::vector<VariableLocation> frameBase_;
    dyn_mutex frameBaseLock_;
