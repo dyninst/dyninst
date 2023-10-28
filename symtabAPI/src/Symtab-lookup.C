@@ -743,13 +743,6 @@ bool Symtab::getContainingFunction(Offset offset, Function* &func)
 
    // Lazily parse the function ranges, but ensure we only do it once.
    std::call_once(impl->funcRangesAreParsed, [this](){ this->parseFunctionRanges(); });
-
-   if (everyFunction.size() && !sorted_everyFunction)
-   {
-      std::sort(everyFunction.begin(), everyFunction.end(),
-                SymbolCompareByAddr());
-      sorted_everyFunction = true;
-   }
    
    unsigned low = 0;
    unsigned high = everyFunction.size();
