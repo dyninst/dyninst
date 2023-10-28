@@ -100,7 +100,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    /***** Public Member Functions *****/
    public:
    static void version(int& major, int& minor, int& maintenance);
-   Symtab(MappedFile *);
 
    Symtab();
 
