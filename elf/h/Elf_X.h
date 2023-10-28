@@ -38,7 +38,7 @@
 #include <map>
 #include <vector>
 #include "util.h"
-#include "dyn_regs.h"
+#include "Architecture.h"
 
 #ifndef EM_CUDA
 #define EM_CUDA		190	/* NVIDIA CUDA */

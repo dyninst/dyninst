@@ -31,7 +31,8 @@
 #include <stack>
 #include <vector>
 
-#include "dyn_regs.h"
+#include "Architecture.h"
+#include "registers/MachRegister.h"
 #include "dyntypes.h"
 #include "elfutils/libdw.h"
 #include "util.h"

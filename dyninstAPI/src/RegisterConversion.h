@@ -33,7 +33,8 @@
 
 #include "Register.h"
 #include "common/src/Types.h"
-#include "common/h/dyn_regs.h"
+#include "registers/MachRegister.h"
+#include "Architecture.h"
 #include <map>
 
 using namespace Dyninst;

@@ -40,7 +40,7 @@
 #include "Aggregate.h"
 #include "Function.h"
 #include <iterator>
-
+#include "registers/abstract_regs.h"
 #include "symtabAPI/src/Object.h"
 
 #include <iostream>

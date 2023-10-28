@@ -1,12 +1,12 @@
 #include "dyntypes.h"
 #include "CodeObject.h"
 #include "CodeSource.h"
-
 #include "BoundFactCalculator.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
 #include "Instruction.h"
 #include "JumpTableIndexPred.h"
+#include "registers/x86_64_regs.h"
 using namespace Dyninst::InstructionAPI;
 
 void BoundFactsCalculator::NaturalDFS(Node::Ptr cur) {

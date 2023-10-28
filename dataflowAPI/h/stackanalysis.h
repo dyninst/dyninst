@@ -49,7 +49,6 @@
 
 #include "Absloc.h"
 #include "dyntypes.h"
-#include "dyn_regs.h"
 #include "util.h"
 
 // FreeBSD is missing a MINLONG and MAXLONG

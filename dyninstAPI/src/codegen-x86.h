@@ -32,7 +32,7 @@
 #include <set>
 #include <map>
 #include <vector>
-#include "dyn_regs.h"
+#include "Architecture.h"
 #include "entryIDs.h"
 
 

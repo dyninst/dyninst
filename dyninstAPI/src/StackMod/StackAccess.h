@@ -34,7 +34,7 @@
 #include <map>
 #include <set>
 #include <string>
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
 #include "Instruction.h"
 #include "stackanalysis.h"
 

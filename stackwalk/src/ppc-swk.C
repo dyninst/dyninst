@@ -34,7 +34,9 @@
 #include "stackwalk/h/basetypes.h"
 #include "stackwalk/h/frame.h"
 #include "stackwalk/h/walker.h"
-
+#include "registers/abstract_regs.h"
+#include "registers/ppc64_regs.h"
+#include "registers/ppc32_regs.h"
 #include "stackwalk/src/sw.h"
 
 #include "get_trap_instruction.h"

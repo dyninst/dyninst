@@ -41,7 +41,7 @@
 #include <deque>
 #include <set>
 #include <algorithm>
-//#include "arch.h"
+#include "registers/x86_regs.h"
 
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"

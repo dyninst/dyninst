@@ -32,6 +32,20 @@
 #include "dataflowAPI/src/RegisterMap.h"
 #include <stdio.h>
 
+#if defined(arch_x86) || defined(arch_x86_64)
+#  include "registers/x86_regs.h"
+#  include "registers/x86_64_regs.h"
+#endif
+
+#if defined(arch_power)
+#  include "registers/ppc32_regs.h"
+#  include "registers/ppc64_regs.h"
+#endif
+
+#if defined(arch_aarch64)
+#  include "registers/aarch64_regs.h"
+#endif
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 

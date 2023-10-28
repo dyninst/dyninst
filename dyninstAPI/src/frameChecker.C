@@ -30,7 +30,8 @@
 
 #include "frameChecker.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-#include "dyn_regs.h"
+#include "Architecture.h"
+#include "registers/MachRegister.h"
 
 
 using namespace Dyninst;

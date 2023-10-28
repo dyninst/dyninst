@@ -147,7 +147,8 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
 #include "common/src/arch-x86.h"
-#include "dyn_regs.h"
+#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
 #include "compiler_annotations.h"
 #include "unaligned_memory_access.h"
 #include <cstdint>

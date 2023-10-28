@@ -40,7 +40,8 @@
 #include "dataflowAPI/h/slicing.h"
 #include "ABI.h"
 #include "bitArray.h"
-
+#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
 
 #include "common/h/Graph.h"
 #include "instructionAPI/h/Instruction.h"

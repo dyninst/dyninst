@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/dyn_regs.h"
+#include "Architecture.h"
 #include "common/h/dyntypes.h"
 #include "PCErrors.h"
 #include "Generator.h"

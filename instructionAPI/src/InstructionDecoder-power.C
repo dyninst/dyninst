@@ -33,6 +33,9 @@
 #include "../../common/src/singleton_object_pool.h"
 #include <mutex>
 #include "unaligned_memory_access.h"
+#include "registers/ppc32_regs.h"
+#include "registers/ppc64_regs.h"
+
 namespace Dyninst
 {
   namespace InstructionAPI

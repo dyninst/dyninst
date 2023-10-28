@@ -38,7 +38,8 @@
 #include <map>
 #include <sstream>
 
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
+#include "Architecture.h"
 
 namespace Dyninst
 {

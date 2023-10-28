@@ -30,7 +30,8 @@
 
 #include <stack>
 #include <stdio.h>
-#include "dyn_regs.h"
+#include "Architecture.h"
+#include "registers/MachRegister.h"
 #include "dwarfExprParser.h"
 #include "dwarfResult.h"
 #include "debug_common.h"

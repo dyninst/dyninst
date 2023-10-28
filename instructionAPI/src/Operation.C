@@ -41,6 +41,8 @@
 #include <mutex>
 #include "concurrent.h"
 #include "common/src/singleton_object_pool.h"
+#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
 
 using namespace NS_x86;
 #include "BinaryFunction.h"

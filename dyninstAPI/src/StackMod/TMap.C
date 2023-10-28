@@ -29,7 +29,7 @@
  */
 
 #include "debug.h"
-#include "dyn_regs.h"
+#include "registers/MachRegister.h"
 
 #include "StackLocation.h"
 #include "TMap.h"

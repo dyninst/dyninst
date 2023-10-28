@@ -4,6 +4,7 @@
 #include "CFG.h"
 //#include "Instruction.h"
 #include "DynAST.h"
+#include "registers/MachRegister.h"
 
 using namespace std;
 using namespace Dyninst;

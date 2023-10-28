@@ -33,7 +33,7 @@
 
 #include <stdint.h>
 #include "Expression.h"
-#include "dyn_regs.h"
+#include "Architecture.h"
 #include "Operation_impl.h"
 #include "entryIDs.h"
 #include "Instruction.h"

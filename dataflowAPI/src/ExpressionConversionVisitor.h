@@ -32,7 +32,8 @@
 #define _EXPRESSION_CONVERSION_VISITOR_H_
 
 
-#include "dyn_regs.h"
+#include "util.h"
+#include "Architecture.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;

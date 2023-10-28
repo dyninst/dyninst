@@ -6,11 +6,8 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/dyninstversion.h.in
                ${CMAKE_CURRENT_SOURCE_DIR}/h/dyninstversion.h)
 
 set(_public_headers
-    h/aarch64_sys_regs.h
-    h/AMDGPU/gfx940/amdgpu_gfx940_sys_regs.h
-    h/AMDGPU/gfx90a/amdgpu_gfx90a_sys_regs.h
-    h/AMDGPU/gfx908/amdgpu_gfx908_sys_regs.h
     h/Annotatable.h
+    h/Architecture.h
     h/Buffer.h
     h/compiler_annotations.h
     h/compiler_diagnostics.h
@@ -35,6 +32,19 @@ set(_public_headers
     h/mnemonics/NVIDIA/generic_entryIDs.h
     h/Node.h
     h/ProcReader.h
+    h/registers/MachRegister.h
+    h/registers/aarch64_regs.h
+    h/registers/abstract_regs.h
+    h/registers/AMDGPU/amdgpu_gfx908_regs.h
+    h/registers/AMDGPU/amdgpu_gfx90a_regs.h
+    h/registers/AMDGPU/amdgpu_gfx940_regs.h
+    h/registers/cuda_regs.h
+    h/registers/MachRegister.h
+    h/registers/ppc32_regs.h
+    h/registers/ppc64_regs.h
+    h/registers/reg_def.h
+    h/registers/x86_64_regs.h
+    h/registers/x86_regs.h
     h/SymReader.h
     h/unaligned_memory_access.h
     h/util.h
@@ -68,6 +78,7 @@ set(_private_headers
     src/parseauxv.h
     src/pathName.h
     src/pool_allocators.h
+    src/registers/MachRegister.C
     src/sha1.h
     src/singleton_object_pool.h
     src/stats.h

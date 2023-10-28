@@ -36,7 +36,9 @@
 #include "Symtab.h"
 #include "Type.h"
 #include "Function.h"
-
+#include "Architecture.h"
+#include "registers/MachRegister.h"
+#include "registers/abstract_regs.h"
 #include "frame.h"
 #include "procstate.h"
 #include "walker.h"

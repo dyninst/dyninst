@@ -45,6 +45,7 @@
 #include "BPatch_function.h"
 #include "debug.h"
 #include "BPatch_point.h"
+#include "registers/x86_64_regs.h"
 
 const Dyninst::Address BPatch_object::E_OUT_OF_BOUNDS((Dyninst::Address) -1);
 

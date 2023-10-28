@@ -38,7 +38,7 @@
 #include "PlatFeatures.h"
 #include "PCErrors.h"
 
-#include "common/h/dyn_regs.h"
+#include "registers/abstract_regs.h"
 #include "common/h/SymReader.h"
 
 #include "stackwalk/src/libstate.h"

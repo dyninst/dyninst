@@ -50,6 +50,10 @@
 #include "ABI.h"
 #include "Annotatable.h"
 #include "debug_dataflow.h"
+#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
+#include "registers/ppc32_regs.h"
+#include "registers/ppc64_regs.h"
 
 using namespace std;
 using namespace Dyninst;

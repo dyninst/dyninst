@@ -58,7 +58,6 @@
 #include <poll.h>
 
 #include "common/src/parseauxv.h"
-#include "common/h/dyn_regs.h"
 
 #include "symtabAPI/h/SymtabReader.h"
 

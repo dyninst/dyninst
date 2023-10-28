@@ -35,7 +35,6 @@
 #include "InstructionDecoderImpl.h"
 #include <iostream>
 #include "Immediate.h"
-#include "dyn_regs.h"
 #include <cstddef>
 
 namespace Dyninst {

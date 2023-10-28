@@ -49,7 +49,8 @@
 #include "util.h"
 #include "debug_parse.h"
 #include "IndirectAnalyzer.h"
-
+#include "registers/ppc32_regs.h"
+#include "registers/abstract_regs.h"
 #include <boost/timer/timer.hpp>
 #include <fstream>
 

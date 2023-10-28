@@ -37,8 +37,8 @@
 
 #include "stackwalk/src/linuxbsd-swk.h"
 #include "stackwalk/src/dbgstepper-impl.h"
-
-#include "common/h/dyn_regs.h"
+#include "registers/aarch64_regs.h"
+#include "registers/MachRegister.h"
 #include "frame.h"
 
 #include <sys/user.h>
