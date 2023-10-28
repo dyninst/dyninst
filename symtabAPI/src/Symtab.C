@@ -1331,21 +1331,6 @@ Symtab::~Symtab()
 
 }	
 
-bool Symtab::exportXML(string)
-{
-   return false;
-}
-
-bool Symtab::exportBin(string) 
-{
-   return false;
-}
-
-Symtab *Symtab::importBin(std::string)
-{
-   return NULL;
-}
-
 bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size, 
                       std::string name, def_t def_bin)
 {
