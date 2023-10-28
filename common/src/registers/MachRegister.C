@@ -141,6 +141,7 @@ namespace Dyninst {
                       // could use this as a sign that the parse has gone into junk
             assert(0);
         }
+        break;
       case Arch_x86_64:
         switch(reg & 0x0000ff00) {
           case x86_64::L_REG: // L_REG
@@ -160,6 +161,7 @@ namespace Dyninst {
             return 0; // Xiaozhu: do not assert, but return 0 as an indication of parsing junk.
             assert(0);
         }
+        break;
       case Arch_ppc32: {
         int reg_class = reg & 0x00ff0000;
         if(reg_class == ppc32::FPR || reg_class == ppc32::FSR)
@@ -201,6 +203,7 @@ namespace Dyninst {
           assert(0);
         }
       }
+      break;
       case Arch_amdgpu_gfx90a: {
         int reg_class = (reg & 0x00ff0000);
         if(reg_class == amdgpu_gfx90a::SGPR || reg_class == amdgpu_gfx90a::VGPR) {
@@ -228,6 +231,7 @@ namespace Dyninst {
           assert(0);
         }
       }
+      break;
       case Arch_amdgpu_gfx940: {
         int reg_class = (reg & 0x00ff0000);
         if(reg_class == amdgpu_gfx940::SGPR || reg_class == amdgpu_gfx940::VGPR) {
@@ -255,7 +259,7 @@ namespace Dyninst {
           assert(0);
         }
       }
-
+      break;
       case Arch_aarch64: {
         if((reg & 0x00ff0000) == aarch64::FPR) {
           switch(reg & 0x0000ff00) {
