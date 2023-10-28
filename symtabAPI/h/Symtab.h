@@ -393,8 +393,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
 
-   Symbol *getSymbolByIndex(unsigned);
-
    /***** Private Member Functions *****/
    private:
 
