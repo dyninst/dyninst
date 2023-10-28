@@ -101,8 +101,6 @@ class codeRange : public patchTarget {
     //Prints codeRange info to stderr.  
     void print_range(Address addr = 0);
 
-    friend ostream &operator<<(ostream &s, const codeRange &c);
-
     codeRange() = default;
     codeRange(const codeRange&) = default;
     virtual ~codeRange() = default;
