@@ -198,9 +198,10 @@ namespace Dyninst {
             case amdgpu_gfx908::BITS_128: return 16;
             case amdgpu_gfx908::BITS_256: return 32;
             case amdgpu_gfx908::BITS_512: return 64;
+            default:
+        	common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+        	assert(0);
           }
-          common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-          assert(0);
         }
       }
       break;
@@ -226,9 +227,10 @@ namespace Dyninst {
             case amdgpu_gfx90a::BITS_128: return 16;
             case amdgpu_gfx90a::BITS_256: return 32;
             case amdgpu_gfx90a::BITS_512: return 64;
+            default:
+              common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+              assert(0);
           }
-          common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-          assert(0);
         }
       }
       break;
@@ -254,9 +256,10 @@ namespace Dyninst {
             case amdgpu_gfx940::BITS_128: return 16;
             case amdgpu_gfx940::BITS_256: return 32;
             case amdgpu_gfx940::BITS_512: return 64;
+            default:
+              common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+              assert(0);
           }
-          common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-          assert(0);
         }
       }
       break;
