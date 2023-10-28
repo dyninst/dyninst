@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/src/std_namesp.h"
 #include <iomanip>
 #include <string>
 #include "common/src/headers.h"

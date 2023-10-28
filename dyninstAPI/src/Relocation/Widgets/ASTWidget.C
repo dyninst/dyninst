@@ -36,6 +36,7 @@
 #include "../CodeBuffer.h"
 #include "CFG.h"
 #include <string>
+#include <iostream>
 #include "../CodeTracker.h"
 
 using namespace Dyninst;
@@ -64,7 +65,7 @@ std::string ASTWidget::format() const {
 
 // Could be a lot smarter here...
 bool AstPatch::apply(codeGen &gen, CodeBuffer *) {
-  relocation_cerr << "\t\t AstPatch::apply" << endl;
+  relocation_cerr << "\t\t AstPatch::apply" << std::endl;
   registerSpace *localRegSpace = registerSpace::actualRegSpace(point);
   gen.setRegisterSpace(localRegSpace);
 

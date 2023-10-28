@@ -40,7 +40,6 @@
 #include <string>
 #include <vector>
 #include "common/src/Types.h"
-#include "common/src/std_namesp.h"
 
 /** template class for addrRangeTree. The implementation is based on red black
  * tree implementation for efficiency concerns and for getting sorted

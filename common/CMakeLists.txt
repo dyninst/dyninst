@@ -82,7 +82,6 @@ set(_private_headers
     src/sha1.h
     src/singleton_object_pool.h
     src/stats.h
-    src/std_namesp.h
     src/stringDecl.h
     src/symbolDemangle.h
     src/symbolDemangleWithCache.h
