@@ -47,7 +47,6 @@ namespace Dyninst {
 
     typedef std::map<signed int, std::string> NameMap;
     static boost::shared_ptr<MachRegister::NameMap> names();
-    void init_names();
 
   public:
     MachRegister();
