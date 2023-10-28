@@ -322,10 +322,10 @@ namespace Dyninst {
 
   MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch) {
     switch(arch) {
-      case Arch_x86: assert(0);    // not implemented
-      case Arch_x86_64: assert(0); // not implemented
-      case Arch_ppc32: assert(0);  // not implemented
-      case Arch_ppc64: assert(0);  // not implemented
+      case Arch_x86: assert(0); break;    // not implemented
+      case Arch_x86_64: assert(0); break; // not implemented
+      case Arch_ppc32: assert(0); break;  // not implemented
+      case Arch_ppc64: assert(0); break;  // not implemented
       case Arch_aarch64:           // aarch64: x30 stores the RA for current frame
         return aarch64::x30;
       case Arch_aarch32:
@@ -333,7 +333,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
-      case Arch_intelGen9: assert(0);
+      case Arch_intelGen9: assert(0); break;
       case Arch_none: return InvalidReg;
     }
     return InvalidReg;
@@ -364,7 +364,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::sp; // aarch64: stack pointer is an independent register
       case Arch_aarch32:
-      case Arch_cuda: assert(0);
+      case Arch_cuda: assert(0); break;
       case Arch_none:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
@@ -385,7 +385,7 @@ namespace Dyninst {
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: assert(0);
+      case Arch_amdgpu_gfx940: assert(0); break;
       case Arch_none: return InvalidReg;
       default: assert(0); return InvalidReg;
     }
@@ -443,13 +443,13 @@ namespace Dyninst {
       case Arch_x86: return x86::zf;
       case Arch_x86_64: return x86_64::zf;
       case Arch_aarch64: return aarch64::z;
-      case Arch_aarch32: assert(!"Not implemented");
+      case Arch_aarch32: assert(!"Not implemented"); break;
       case Arch_ppc32: return ppc32::cr0e;
       case Arch_ppc64: return ppc64::cr0e;
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: assert(0);
+      case Arch_amdgpu_gfx940: assert(0); break;
       case Arch_none: return InvalidReg;
       default: return InvalidReg;
     }
