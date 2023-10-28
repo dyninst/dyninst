@@ -472,21 +472,6 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    return true;
 }
 
-#if 0 //KEVINTODO: I think this is redundant, SymtabAPI::emitWin.C does this
-static unsigned long addTrapTableSpace_win(AddressSpace *as)
-{
-#if defined (os_windows)
-    return as->getAddressWidth() + 16;
-#else
-    return 0;
-#endif
-}
-
-void addTrapTable_win(newSectionPtr, Address tableAddr)
-{
-}
-#endif
-
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
    // Step 1: changes. 
