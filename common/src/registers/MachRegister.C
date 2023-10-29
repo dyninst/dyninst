@@ -464,7 +464,7 @@ namespace Dyninst {
 
   bool MachRegister::isStackPointer() const {
     if(*this == InvalidReg) return false;
-    return *this == StackTop || *this == getStackPointer(getArchitecure());
+    return *this == StackTop || *this == getStackPointer(getArchitecture());
   }
 
   bool MachRegister::isSyscallNumberReg() const {
