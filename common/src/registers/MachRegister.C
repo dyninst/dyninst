@@ -452,9 +452,8 @@ namespace Dyninst {
   }
 
   bool MachRegister::isPC() const {
-    return (*this == x86_64::rip || *this == x86::eip || *this == ppc32::pc || *this == ppc64::pc ||
-            *this == aarch64::pc || *this == amdgpu_gfx908::pc_all ||
-            *this == amdgpu_gfx90a::pc_all || *this == amdgpu_gfx940::pc_all);
+    if (*this == InvalidReg) return false;
+    return *this == getPC(getArchitecture());
   }
 
   bool MachRegister::isFramePointer() const {
