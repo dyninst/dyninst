@@ -786,14 +786,14 @@ void Symtab::createDefaultModule() {
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
     impl->default_module = mod;
-    impl->modules.insert(mod);
-    for(auto *m : mod->finalizeRanges()) {
-	impl->mod_lookup_.insert(m);
-    }
+    addModule(mod);
 }
 
-void Symtab::addModule(Module *m) {
-  impl->modules.insert(m);
+void Symtab::addModule(Module *mod) {
+  impl->modules.insert(mod);
+  for(auto *m : mod->finalizeRanges()) {
+    impl->mod_lookup_.insert(m);
+  }
 }
 
 Module *Symtab::getOrCreateModule(const std::string &modName, 
@@ -807,9 +807,8 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 	          FILE__, __LINE__, modName.c_str(), modAddr);
 
     Module *mod = new Module(lang_Unknown, modAddr, modName, this);
+    addModule(mod);
 
-    impl->modules.insert(mod);
-    
     return mod;
 }
 
