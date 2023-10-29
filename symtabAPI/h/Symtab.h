@@ -429,8 +429,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 
    bool canBeShared();
-   Module *getOrCreateModule(const std::string &modName, 
-                                           const Offset modAddr);
+   DYNINST_DEPRECATED("Use getContainingModule")
+   Module *getOrCreateModule(const std::string &modName, const Offset modAddr);
    bool parseFunctionRanges();
 
    //Only valid on ELF formats
