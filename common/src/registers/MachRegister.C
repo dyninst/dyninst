@@ -360,6 +360,7 @@ namespace Dyninst {
       case Arch_aarch64: return aarch64::sp; // aarch64: stack pointer is an independent register
       case Arch_aarch32:
       case Arch_cuda: assert(0); break;
+      case Arch_intelGen9:
       case Arch_none:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
