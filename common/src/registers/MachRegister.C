@@ -478,10 +478,8 @@ namespace Dyninst {
   }
 
   bool MachRegister::isSyscallReturnValueReg() const {
-    if(getArchitecture() == Arch_aarch64)
-      assert(0);
-    return (*this == x86_64::rax || *this == x86::eax || *this == ppc32::r1 || *this == ppc64::r1 ||
-            *this == aarch64::x0);
+    if(*this == InvalidReg) return false;
+    return *this == getSyscallReturnValueReg(getArchitecture());
   }
 
   bool MachRegister::isFlag() const {
