@@ -453,7 +453,7 @@ namespace Dyninst {
   }
 
   bool MachRegister::isPC() const {
-    if (*this == InvalidReg) return false;
+    if(*this == InvalidReg) return false;
     return *this == getPC(getArchitecture());
   }
 
