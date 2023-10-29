@@ -378,6 +378,7 @@ namespace Dyninst {
       case Arch_aarch64: return aarch64::x8;
       case Arch_aarch32:
       case Arch_cuda:
+      case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
