@@ -130,16 +130,6 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
         }
     }
 }
-void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols) {
-    dyn_hash_map< std::string, std::vector< Symbol *> >::iterator siter = symbols->begin();
-    int total_syms = 0;
-    while (siter != symbols->end()) {
-        print_symbols(siter->second);
-        total_syms += siter->second.size();
-        siter++;
-    }
-    printf("%d total symbol(s)\n", total_syms);
-}
 
 
 const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)
