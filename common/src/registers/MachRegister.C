@@ -19,10 +19,6 @@ namespace Dyninst {
 
   MachRegister::MachRegister(signed int r) : reg(r) {}
 
-  MachRegister::MachRegister(signed int r, const char* n) : reg(r) {
-    (*names())[r] = std::string(n);
-  }
-
   MachRegister::MachRegister(signed int r, std::string n) : reg(r) { (*names())[r] = n; }
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
