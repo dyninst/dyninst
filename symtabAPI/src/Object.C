@@ -53,7 +53,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 
-//#ifdef BINEDIT_DEBUG
 bool ____sym_hdr_printed = false;
 void print_symbols( std::vector< Symbol *>& allsymbols ) {
     FILE* fd = stdout;
@@ -141,7 +140,6 @@ void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symb
     }
     printf("%d total symbol(s)\n", total_syms);
 }
-//#endif
 
 
 const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)

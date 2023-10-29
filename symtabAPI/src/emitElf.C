@@ -373,9 +373,6 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                 }
             }
         }
-#ifdef BINEDIT_DEBUG
-        printf("%s", msg);
-#endif
     }
 
     return true;

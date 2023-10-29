@@ -1045,11 +1045,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     // a vector to hold all created symbols until they are properly classified
     std::vector<Symbol *> raw_syms;
 
-#ifdef BINEDIT_DEBUG
-    printf("== from linkedFile...\n");
-    print_symbol_map(linkedFile->getAllSymbols());
-#endif
-
     if (!extractSymbolsFromFile(linkedFile, raw_syms)) 
     {
         setSymtabError(Syms_To_Functions);
@@ -1854,18 +1849,6 @@ SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::strin
 
 SYMTAB_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
 {
-#ifdef BINEDIT_DEBUG
-   map<std::string, std::string>::iterator iter = dynLibSubs.begin();
-
-   printf ("substitutions for %s:\n", mf->filename().c_str());
-
-   while (iter != dynLibSubs.end()) 
-   {
-      printf("  \"%s\" => \"%s\"\n", iter->first.c_str(), iter->second.c_str());
-      iter++;
-   }
-#endif
-
    map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
 
    if (loc == dynLibSubs.end())
