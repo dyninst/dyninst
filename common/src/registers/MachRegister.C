@@ -340,6 +340,9 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r1;
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::x29; // aarch64: frame pointer is X29 by convention
+      case Arch_aarch32:
+      case Arch_cuda:
+      case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
