@@ -463,8 +463,8 @@ namespace Dyninst {
   }
 
   bool MachRegister::isStackPointer() const {
-    return (*this == x86_64::rsp || *this == x86::esp || *this == ppc32::r1 || *this == ppc64::r1 ||
-            *this == aarch64::sp);
+    if(*this == InvalidReg) return false;
+    return *this == StackTop || *this == getStackPointer(getArchitecure());
   }
 
   bool MachRegister::isSyscallNumberReg() const {
