@@ -408,7 +408,6 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r3;
       case Arch_aarch64: return aarch64::x0; // returned value is save in x0
       case Arch_none: return InvalidReg;
-      default: assert(0); return InvalidReg;
     }
     return InvalidReg;
   }
