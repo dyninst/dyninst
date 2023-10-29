@@ -509,10 +509,8 @@ namespace Dyninst {
   }
 
   bool MachRegister::isZeroFlag() const {
+    if(*this == InvalidReg) return false;
     switch(getArchitecture()) {
-      case Arch_x86: return *this == x86::zf;
-      case Arch_x86_64: return *this == x86_64::zf;
-      case Arch_aarch64: return *this == aarch64::z;
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
@@ -522,7 +520,8 @@ namespace Dyninst {
         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) ||
                (baseID <= 628 && baseID >= 621);
       }
-      default: assert(!"Not implemented!");
+      default:
+	return *this == getZeroFlag(getArchitecture());
     }
     return false;
   }
