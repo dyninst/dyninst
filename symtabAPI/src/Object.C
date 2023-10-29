@@ -52,9 +52,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-
-bool ____sym_hdr_printed = false;
-
 const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)
 {
    switch(s) {
