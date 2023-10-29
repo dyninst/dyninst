@@ -347,8 +347,6 @@ namespace Dyninst {
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
       case Arch_none: return InvalidReg;
-
-      default: assert(0); return InvalidReg;
     }
     return InvalidReg;
   }
