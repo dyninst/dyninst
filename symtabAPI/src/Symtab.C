@@ -908,7 +908,6 @@ bool sort_reg_by_addr(const Region* a, const Region* b)
   return a->getMemOffset() < b->getMemOffset();
 }
 
-extern void print_symbols( std::vector< Symbol *>& allsymbols );
 extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
 
 static bool ExceptionBlockCmp(ExceptionBlock *a, ExceptionBlock *b) {

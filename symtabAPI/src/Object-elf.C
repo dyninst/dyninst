@@ -91,8 +91,6 @@ bool Object::truncateLineFilenames = false;
 
 std::vector<Symbol *> opdsymbols_;
 
-extern void print_symbols(std::vector<Symbol *> &allsymbols);
-
 extern void print_symbol_map(dyn_hash_map<std::string, std::vector<Symbol *> > *symbols);
 
 void (*dwarf_err_func)(const char *);   // error callback for dwarf errors
