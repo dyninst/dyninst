@@ -458,8 +458,8 @@ namespace Dyninst {
   }
 
   bool MachRegister::isFramePointer() const {
-    return (*this == x86_64::rbp || *this == x86::ebp || *this == FrameBase ||
-            *this == aarch64::x29);
+    if (*this == InvalidReg) return false;
+    return *this == FrameBase || *this == getFramePointer(getArchitecture());
   }
 
   bool MachRegister::isStackPointer() const {
