@@ -361,10 +361,10 @@ namespace Dyninst {
       case Arch_aarch32:
       case Arch_cuda:
       case Arch_intelGen9:
-      case Arch_none:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: return InvalidReg;
+      case Arch_amdgpu_gfx940:
+      case Arch_none: return InvalidReg;
     }
     return InvalidReg;
   }
