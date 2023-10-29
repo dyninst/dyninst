@@ -442,10 +442,10 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::zf;
       case Arch_x86_64: return x86_64::zf;
-      case Arch_aarch64: return aarch64::z;
-      case Arch_aarch32: assert(!"Not implemented"); break;
       case Arch_ppc32: return ppc32::cr0e;
       case Arch_ppc64: return ppc64::cr0e;
+      case Arch_aarch64: return aarch64::z;
+      case Arch_aarch32: assert(!"Not implemented"); break;
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
