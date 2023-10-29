@@ -468,8 +468,8 @@ namespace Dyninst {
   }
 
   bool MachRegister::isSyscallNumberReg() const {
-    return (*this == x86_64::orax || *this == x86::oeax || *this == ppc32::r1 ||
-            *this == ppc64::r1 || *this == aarch64::x8);
+    if(*this == InvalidReg) return false;
+    return *this == getSyscallNumberReg(getArchitecture());
   }
 
   bool MachRegister::isSyscallReturnValueReg() const {
