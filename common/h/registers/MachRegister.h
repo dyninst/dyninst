@@ -34,8 +34,6 @@
 #include "Architecture.h"
 #include "util.h"
 
-#include <boost/shared_ptr.hpp>
-#include <map>
 #include <string>
 
 namespace Dyninst {
@@ -44,9 +42,6 @@ namespace Dyninst {
   class COMMON_EXPORT MachRegister {
   private:
     signed int reg;
-
-    typedef std::map<signed int, std::string> NameMap;
-    static boost::shared_ptr<MachRegister::NameMap> names();
 
   public:
     MachRegister();

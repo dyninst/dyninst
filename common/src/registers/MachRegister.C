@@ -7,19 +7,19 @@
 #include "external/rose/rose-compat.h"
 
 #include <cassert>
+#include <unordered_map>
+
+namespace {
+  std::unordered_map<signed int, std::string> names;
+}
 
 namespace Dyninst {
-  boost::shared_ptr<MachRegister::NameMap> MachRegister::names() {
-    static boost::shared_ptr<MachRegister::NameMap> store =
-        boost::shared_ptr<MachRegister::NameMap>(new MachRegister::NameMap);
-    return store;
-  }
 
   MachRegister::MachRegister() : reg(0) {}
 
   MachRegister::MachRegister(signed int r) : reg(r) {}
 
-  MachRegister::MachRegister(signed int r, std::string n) : reg(r) { (*names())[r] = n; }
+  MachRegister::MachRegister(signed int r, std::string n) : reg(r) { names.emplace(r, std::move(n)); }
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
 
@@ -101,15 +101,7 @@ namespace Dyninst {
   }
 
   std::string MachRegister::name() const {
-    assert(names() != NULL);
-    NameMap::const_iterator iter = names()->find(reg);
-
-    std::string ret;
-    if(iter != names()->end()) {
-      return iter->second;
-    }
-    common_parsing_printf(" can't find register with index %x\n", (unsigned int)reg);
-    return std::string("<INVALID_REG>");
+    return names.find(reg)->second;
   }
 
   unsigned int MachRegister::size() const {
