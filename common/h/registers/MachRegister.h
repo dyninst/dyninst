@@ -53,7 +53,7 @@ namespace Dyninst {
     bool isValid() const;
     MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal& orig) const;
 
-    std::string name() const;
+    std::string const& name() const;
     unsigned int size() const;
     bool operator<(const MachRegister& a) const;
     bool operator==(const MachRegister& a) const;

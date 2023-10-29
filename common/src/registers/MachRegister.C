@@ -100,7 +100,7 @@ namespace Dyninst {
     }
   }
 
-  std::string MachRegister::name() const {
+  std::string const& MachRegister::name() const {
     return names.find(reg)->second;
   }
 
