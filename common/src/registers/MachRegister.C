@@ -458,7 +458,7 @@ namespace Dyninst {
   }
 
   bool MachRegister::isFramePointer() const {
-    if (*this == InvalidReg) return false;
+    if(*this == InvalidReg) return false;
     return *this == FrameBase || *this == getFramePointer(getArchitecture());
   }
 
