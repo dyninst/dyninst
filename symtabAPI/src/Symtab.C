@@ -498,13 +498,6 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
 	createDefaultModule();
     }
 
-    for (auto *m : impl->modules)
-    {
-        for(auto *mr : m->finalizeRanges()) {
-            impl->mod_lookup_.insert(mr);
-        }
-    }
-
 //    const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
 //    for (unsigned i=0; i< mods.size(); i++) {
 //       getOrCreateModule(mods[i].first, mods[i].second);
