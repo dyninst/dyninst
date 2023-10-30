@@ -133,10 +133,9 @@ namespace Dyninst {
           case x86::YMMS: return 32;
           case x86::ZMMS: return 64;
           default:
-            return 0; // KEVINTODO: removed sanity-check assert because of asprotect fuzz testing,
-                      // could use this as a sign that the parse has gone into junk
-            assert(0);
+            return 0;
         }
+        break;
       case Arch_x86_64:
         switch(reg & 0x0000ff00) {
           case x86_64::L_REG: // L_REG
@@ -153,9 +152,9 @@ namespace Dyninst {
           case x86_64::YMMS: return 32;
           case x86_64::ZMMS: return 64;
           default:
-            return 0; // Xiaozhu: do not assert, but return 0 as an indication of parsing junk.
-            assert(0);
+            return 0;  // Xiaozhu: return 0 as an indication of parsing junk.
         }
+        break;
       case Arch_ppc32: {
         int reg_class = reg & 0x00ff0000;
         if(reg_class == ppc32::FPR || reg_class == ppc32::FSR)
@@ -192,11 +191,13 @@ namespace Dyninst {
             case amdgpu_gfx908::BITS_128: return 16;
             case amdgpu_gfx908::BITS_256: return 32;
             case amdgpu_gfx908::BITS_512: return 64;
+            default:
+        	common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+        	assert(0);
           }
-          common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-          assert(0);
         }
       }
+      break;
       case Arch_amdgpu_gfx90a: {
         int reg_class = (reg & 0x00ff0000);
         if(reg_class == amdgpu_gfx90a::SGPR || reg_class == amdgpu_gfx90a::VGPR) {
@@ -219,11 +220,13 @@ namespace Dyninst {
             case amdgpu_gfx90a::BITS_128: return 16;
             case amdgpu_gfx90a::BITS_256: return 32;
             case amdgpu_gfx90a::BITS_512: return 64;
+            default:
+              common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+              assert(0);
           }
-          common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-          assert(0);
         }
       }
+      break;
       case Arch_amdgpu_gfx940: {
         int reg_class = (reg & 0x00ff0000);
         if(reg_class == amdgpu_gfx940::SGPR || reg_class == amdgpu_gfx940::VGPR) {
@@ -246,12 +249,13 @@ namespace Dyninst {
             case amdgpu_gfx940::BITS_128: return 16;
             case amdgpu_gfx940::BITS_256: return 32;
             case amdgpu_gfx940::BITS_512: return 64;
+            default:
+              common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+              assert(0);
           }
-          common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-          assert(0);
         }
       }
-
+      break;
       case Arch_aarch64: {
         if((reg & 0x00ff0000) == aarch64::FPR) {
           switch(reg & 0x0000ff00) {
@@ -314,10 +318,10 @@ namespace Dyninst {
 
   MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch) {
     switch(arch) {
-      case Arch_x86: assert(0);    // not implemented
-      case Arch_x86_64: assert(0); // not implemented
-      case Arch_ppc32: assert(0);  // not implemented
-      case Arch_ppc64: assert(0);  // not implemented
+      case Arch_x86: assert(0); break;    // not implemented
+      case Arch_x86_64: assert(0); break; // not implemented
+      case Arch_ppc32: assert(0); break;  // not implemented
+      case Arch_ppc64: assert(0); break;  // not implemented
       case Arch_aarch64:           // aarch64: x30 stores the RA for current frame
         return aarch64::x30;
       case Arch_aarch32:
@@ -325,7 +329,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
-      case Arch_intelGen9: assert(0);
+      case Arch_intelGen9: assert(0); break;
       case Arch_none: return InvalidReg;
     }
     return InvalidReg;
@@ -356,7 +360,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::sp; // aarch64: stack pointer is an independent register
       case Arch_aarch32:
-      case Arch_cuda: assert(0);
+      case Arch_cuda: assert(0); break;
       case Arch_none:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
@@ -377,7 +381,7 @@ namespace Dyninst {
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: assert(0);
+      case Arch_amdgpu_gfx940: assert(0); break;
       case Arch_none: return InvalidReg;
       default: assert(0); return InvalidReg;
     }
@@ -435,13 +439,13 @@ namespace Dyninst {
       case Arch_x86: return x86::zf;
       case Arch_x86_64: return x86_64::zf;
       case Arch_aarch64: return aarch64::z;
-      case Arch_aarch32: assert(!"Not implemented");
+      case Arch_aarch32: assert(!"Not implemented"); break;
       case Arch_ppc32: return ppc32::cr0e;
       case Arch_ppc64: return ppc64::cr0e;
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: assert(0);
+      case Arch_amdgpu_gfx940: assert(0); break;
       case Arch_none: return InvalidReg;
       default: return InvalidReg;
     }
@@ -740,6 +744,9 @@ namespace Dyninst {
               default: c = x86_regclass_unknown; break;
             }
             break;
+          default:
+              common_parsing_printf("Unknown category '%d' for Arch_x86\n", category);
+              break;
         }
         break;
       case Arch_x86_64:
@@ -835,6 +842,9 @@ namespace Dyninst {
               default: c = x86_regclass_unknown; break;
             }
             break;
+          default:
+	    common_parsing_printf("Unknown category '%d' for Arch_x86_64\n", category);
+	    break;
         }
         break;
       case Arch_ppc32: {
@@ -853,14 +863,6 @@ namespace Dyninst {
               c = powerpc_regclass_cr;
               n = 0;
               p = baseID - 621;
-              /*                       n = baseID - 621;
-                                       if(n > 7) {
-                                       n = 0;
-                                       p = powerpc_condreggranularity_whole;
-                                       } else {
-                                       p = powerpc_condreggranularity_field;
-                                       }
-                                       */
             }
           } break;
           default: c = -1; return;
@@ -946,7 +948,6 @@ namespace Dyninst {
             p = -1;
             c = -1;
             n = -1;
-            //                   assert(!"unknown register type!");
             break;
         }
         return;
@@ -968,6 +969,9 @@ namespace Dyninst {
           case x86::FULL:
           case x86_64::D_REG: p = x86_regpos_dword; break;
           case x86::BIT: p = x86_regpos_all; break;
+          default:
+              common_parsing_printf("Unknown subrange value '%d' for Arch_x86\n", subrange);
+              break;
         }
         break;
 
@@ -981,6 +985,9 @@ namespace Dyninst {
           case x86::W_REG: p = x86_regpos_word; break;
           case x86_64::D_REG: p = x86_regpos_dword; break;
           case x86::BIT: p = x86_regpos_all; break;
+          default:
+              common_parsing_printf("Unknown subrange value '%d' for Arch_x86_64\n", subrange);
+              break;
         }
         break;
       case Arch_aarch64: {
@@ -1205,6 +1212,7 @@ namespace Dyninst {
           case 152: return Dyninst::InvalidReg; // mxcsr
           case 153: return Dyninst::InvalidReg; // fcw
           case 154: return Dyninst::InvalidReg; // fsw
+          default: return Dyninst::InvalidReg;
         }
         break;
       case Arch_ppc32:
@@ -1275,6 +1283,7 @@ namespace Dyninst {
           case 63: return Dyninst::ppc32::fpr31;
           case 64: return Dyninst::ppc32::cr;
           case 65: return Dyninst::InvalidReg; // FPSCR
+          default: return Dyninst::InvalidReg;
         }
         // Seperate switch statements to give compilers an easier time of
         //  optimizing
@@ -1360,6 +1369,7 @@ namespace Dyninst {
           case 63: return Dyninst::ppc64::fpr31;
           case 64: return Dyninst::ppc64::cr;
           case 65: return Dyninst::InvalidReg; // FPSCR
+          default: return Dyninst::InvalidReg;
         }
         // Seperate switch statements to give compilers an easier time of
         //  optimizing
@@ -1414,6 +1424,7 @@ namespace Dyninst {
           case 30: return Dyninst::aarch64::x30;
           case 31: return Dyninst::aarch64::sp;
           case 32: return Dyninst::InvalidReg;
+          default: return Dyninst::InvalidReg;
         }
         switch(encoding) {
           case 64: return Dyninst::aarch64::q0;
