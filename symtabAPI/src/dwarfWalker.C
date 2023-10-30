@@ -50,6 +50,9 @@
 #include <dwarf_cu_info.h>
 #include <stack>
 
+#include <exception>
+#include <stdexcept>
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace DwarfDyninst;
@@ -302,12 +305,78 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     return true;
 }
 
+/*
+ * Bolo -- Wed Oct 25 13:13:12 CDT 2023
+ *
+ * There is something throwing uncaught exceptions in dwarf parsing.
+ * As they are uncaught and downstream of dwarfwalker... the exceptions
+ * unwind the entire stack and the context of the error is lost.
+ *
+ * DW_CATCH is a hack to add exception handling to every single entry
+ * in the dwarfwalker switch/case statement, so that the particular 
+ * DWARF parsing involved can be seen... and you can identify the fault
+ * as NOT BEING IN OTHER CODE.
+ *
+ * As part of this change, each individual dwarf type has been broken out
+ * into it's own case: to better identify what _kind_ of DWARF is involved.
+ *
+ * Also, unknown dwarf type printing is forced on, with a regex tag of DW_CATCH
+ * for easy log searches.
+ *
+ * It appears that something called downstream from parseMember() is causing
+ * these issues with mis-matched data types.   That's a good starting
+ * point to debug this.
+ *
+ * In addition, I'm looking at an alternative method to catch stack
+ * traces at the exception point, to give us a better idea of where
+ * things actually go wrong, to better identify the code involved.
+ * That is a seperate effort from this stopgap. 
+ *
+ * This is constructed so you can easily diff/patch your own workspace
+ * or branch with these changes.   It is not pretty, it is useful
+ * until the source of the errors is tracked down and fixed.  It will
+ * let you know that the error is NOT in code you are adding.
+ *
+ */
+
+/* XXX Terminates in ; because I encapsulated a statement inside a statement,
+   and this ensures that it is flow control and syntax compatible, regardless
+   of the replaced context. */
+#define DW_CATCH(stmt)	\
+	do {									\
+	try {									\
+		stmt 								\
+	}									\
+	catch (const std::exception &x) {					\
+		cerr << "DW_CATCH: parse guts throws std_exception" << endl;	\
+		cerr << "DW_CATCH: code: " <<  #stmt << endl;						\
+		cerr << "DW_CATCH: except: " << x.what() << endl;					\
+		assert(0 && "Stop std::exception Throw to allow debugging");	\
+	}									\
+	catch (...) {								\
+		cerr << "DW_CATCH: parse guts throws ... exception" << endl;	\
+		cerr << "DW_CATCH: code: " << #stmt << endl;						\
+		assert(0 && "Stop ... Exception Throw to allow debugging");	\
+	}									\
+	} while(0)								\
+	;
+
+bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
+{
+	bool	r;
+
+	/* ANd this catches open-coded errors in _parse_int() itself */
+	DW_CATCH( r = _parse_int(e, parseSib, dissociate_context); )
+
+	return r;
+
+}
 
 // As mentioned in the header, this is separate from parse()
 // so we can have a non-Context-creating parse method that reuses
 // the Context from the parent. This allows us to pass in current
 // function, etc. without the Context stack exploding
-bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context) {
+bool DwarfWalker::_parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context) {
     dwarf_printf("PARSE_INT entry, context size %d\n", stack_size());
     // We escape the loop by checking parseSibling() after
     // parsing this DIE and its children, if any
@@ -332,96 +401,180 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
         bool ret = false;
         switch(dwarf_tag(&e)) {
             case DW_TAG_subprogram:
-            case DW_TAG_entry_point:
+                DW_CATCH(
                 ret = parseSubprogram(NormalFunc);
+                )
+                break;
+            case DW_TAG_entry_point:
+                DW_CATCH(
+                ret = parseSubprogram(NormalFunc);
+                )
                 break;
             case DW_TAG_inlined_subroutine:
+                DW_CATCH(
                 ret = parseSubprogram(InlinedFunc);
+                )
                 break;
             case DW_TAG_lexical_block:
+                DW_CATCH(
                 ret = parseLexicalBlock();
+                )
                 break;
             case DW_TAG_try_block:
+                DW_CATCH(
                 ret = parseTryBlock();
+                )
                 break;
             case DW_TAG_catch_block:
+                DW_CATCH(
                 ret = parseCatchBlock();
+                )
                 break;
             case DW_TAG_common_block:
+                DW_CATCH(
                 ret = parseCommonBlock();
+                )
                 break;
             case DW_TAG_constant:
+                DW_CATCH(
                 ret = parseConstant();
+                )
                 break;
             case DW_TAG_variable:
+                DW_CATCH(
                 ret = parseVariable();
+                )
                 break;
             case DW_TAG_formal_parameter:
+                DW_CATCH(
                 ret = parseFormalParam();
+                )
                 break;
             case DW_TAG_base_type:
+                DW_CATCH(
                 ret = parseBaseType();
+                )
                 break;
             case DW_TAG_typedef:
+                DW_CATCH(
                 ret = parseTypedef();
+                )
                 break;
             case DW_TAG_array_type:
+                DW_CATCH(
                 ret = parseArray();
+                )
                 break;
             case DW_TAG_subrange_type:
+                DW_CATCH(
                 ret = parseSubrange();
+                )
                 break;
             case DW_TAG_enumeration_type:
+                DW_CATCH(
                 ret = parseEnum();
+                )
                 break;
             case DW_TAG_inheritance:
+                DW_CATCH(
                 ret = parseInheritance();
+                )
                 break;
             case DW_TAG_structure_type:
-            case DW_TAG_union_type:
-            case DW_TAG_class_type:
+                DW_CATCH(
                 ret = parseStructUnionClass();
+                )
+                break;
+            case DW_TAG_union_type:
+                DW_CATCH(
+                ret = parseStructUnionClass();
+                )
+                break;
+            case DW_TAG_class_type:
+                DW_CATCH(
+                ret = parseStructUnionClass();
+                )
                 break;
             case DW_TAG_enumerator:
+                DW_CATCH(
                 ret = parseEnumEntry();
+                )
                 break;
             case DW_TAG_member:
+                DW_CATCH(
                 ret = parseMember();
+                )
                 break;
             case DW_TAG_const_type:
-            case DW_TAG_packed_type:
-            case DW_TAG_volatile_type:
+                DW_CATCH(
                 ret = parseConstPackedVolatile();
+                )
+                break;
+            case DW_TAG_packed_type:
+                DW_CATCH(
+                ret = parseConstPackedVolatile();
+                )
+                break;
+            case DW_TAG_volatile_type:
+                DW_CATCH(
+                ret = parseConstPackedVolatile();
+                )
                 break;
             case DW_TAG_subroutine_type:
                 /* If the pointer specifies argument types, this DIE has
                    children of those types. */
-            case DW_TAG_ptr_to_member_type:
-            case DW_TAG_pointer_type:
-            case DW_TAG_reference_type:
-            case DW_TAG_rvalue_reference_type:
+                DW_CATCH(
                 ret = parseTypeReferences();
+                )
+                break;
+            case DW_TAG_ptr_to_member_type:
+                DW_CATCH(
+                ret = parseTypeReferences();
+                )
+                break;
+            case DW_TAG_pointer_type:
+                DW_CATCH(
+                ret = parseTypeReferences();
+                )
+                break;
+            case DW_TAG_reference_type:
+                DW_CATCH(
+                ret = parseTypeReferences();
+                )
+                break;
+            case DW_TAG_rvalue_reference_type:
+                DW_CATCH(
+                ret = parseTypeReferences();
+                )
                 break;
             case DW_TAG_compile_unit:
                 dwarf_printf("(0x%lx) Compilation unit, parsing children\n", id());
                 // Parse child
+                DW_CATCH(
                 ret = parseChild();
+                )
                 break;
             case DW_TAG_partial_unit:
                 dwarf_printf("(0x%lx) Partial unit, parsing children\n", id());
                 // Parse child
+                DW_CATCH(
                 ret = parseChild();
+                )
                 break;
             case DW_TAG_type_unit:
                 dwarf_printf("(0x%lx) Type unit, parsing children\n", id());
                 // Parse child
+                DW_CATCH(
                 ret = parseChild();
+                )
                 break;
             case DW_TAG_imported_unit:
                 {
                     dwarf_printf("(0x%lx) Imported unit, parsing imported\n", id());
                     // Parse child
+                    DW_CATCH(
                     ret = parseChild();
+                    )
                     // parse imported
                     Dwarf_Attribute importAttribute;
                     dwarf_attr(&e, DW_AT_import, &importAttribute);
@@ -429,14 +582,44 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool parseSib, bool dissociate_context)
                     auto die_p = dwarf_formref_die(&importAttribute, &importedDIE);
                     Dwarf * desc1 = dwarf_cu_getdwarf(importedDIE.cu);
                     dwarf_printf("(0x%lx) Imported DIE dwarf_desc: %p\n", id(), (void*)desc1);
-                    if(!die_p) break;
-                    if (!parse_int(importedDIE, true))
+                    if(!die_p) {
+#if 1
+			    fprintf(stderr, "DW_CATCH (0x%lx) WARNING DW_TAG_imported_unit no die_p\n", id());
+#endif
+			    break;
+		    }
+                    if (!parse_int(importedDIE, true)){
+#if 1
+		    	fprintf(stderr, "DW_CATCH (0x%lx) WARNING DW_TAG_imported_unit no parse_int\n", id());
+#endif
                         return false;
-                    break;
+		    }
                 }
+                break;
+#if 1
+	    case 0:
+		fprintf(stderr,
+			"DW_CATCH (0x%lx) Warning: DW_TAG 0 End of list not handled, tag 0x%x, dwarf_tag(): 0x%x\n",
+                        id(), tag(), (unsigned int)dwarf_tag(&e));
+		/* Keep on doing whatever was going on before for now */
+		ret = true;
+		break;
+#endif
             default:
                 dwarf_printf("(0x%lx) Warning: unparsed entry with tag 0x%x, dwarf_tag(): 0x%x\n",
                         id(), tag(), (unsigned int)dwarf_tag(&e));
+/* XXX turned on for fedora to see misses */
+#if 0
+	/* XXX to see tag 0x0 entries, turn this on, to debug that issue */
+		/* This was too voluminous.  We really need to track down WHICH tags we 
+		    are not parsing, rather than where the tags are.   There are only a small
+		    handful of tags that I've seen so far that we don't handle. We should
+		    explicitly not log the ones we don't handle, and log the
+		    ones we do not know anything about.    Obscurity gains us nothing.  */
+                /* turn this on always in case we are running across unexpected tags */
+                fprintf(stderr, "DW_CATCH (0x%lx) Warning: unparsed entry with tag 0x%x, dwarf_tag(): 0x%x\n",
+                        id(), tag(), (unsigned int)dwarf_tag(&e));
+#endif
                 ret = true;
                 break;
         }

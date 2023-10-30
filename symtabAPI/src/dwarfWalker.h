@@ -258,7 +258,11 @@ public:
     // whereas parse creates a context.
     bool parse_int(Dwarf_Die entry, bool parseSiblings,
             bool dissociate_context=false);
-    
+
+    /* the one that will have a throw/catch wrapped in the inerface */
+    bool _parse_int(Dwarf_Die entry, bool parseSiblings,
+            bool dissociate_context=false);
+
 private:
     Dwarf_Die current_cu_die;
 
