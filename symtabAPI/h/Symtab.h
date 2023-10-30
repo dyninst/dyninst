@@ -445,8 +445,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
  private:
    void createDefaultModule();
-
-   Module *newModule(const std::string &name, const Offset addr, supportedLanguages lang);
    
    //bool buildFunctionLists(std::vector <Symbol *> &raw_funcs);
    //void enterFunctionInTables(Symbol *func, bool wasSymtab);
