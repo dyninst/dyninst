@@ -724,7 +724,6 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 }
 
 void DwarfWalker::setRanges(FunctionBase *func) {
-   dyn_mutex::unique_lock l(func->ranges_lock);
    if(func->ranges.empty()) {
 	   Address last_low = 0, last_high = 0;
 	   for (auto i = ranges_begin(); i != ranges_end(); i++) {
