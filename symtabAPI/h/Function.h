@@ -77,7 +77,6 @@ class SYMTAB_EXPORT FuncRange {
 
 typedef std::vector<FuncRange> FuncRangeCollection;
 typedef std::vector<FunctionBase *> InlineCollection;
-typedef std::vector<FuncRange> FuncRangeCollection;
 
 class SYMTAB_EXPORT FunctionBase
 {
