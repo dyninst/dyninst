@@ -11,6 +11,7 @@
 
 namespace {
   std::unordered_map<signed int, std::string> names;
+  const std::string invalid_reg_name{"<INVALID_REG>"};
 }
 
 namespace Dyninst {
@@ -101,7 +102,12 @@ namespace Dyninst {
   }
 
   std::string const& MachRegister::name() const {
-    return names.find(reg)->second;
+    auto iter = names.find(reg);
+    if(iter != names.end()) {
+	return iter->second;
+    }
+    common_parsing_printf("No MachRegister found with value %x\n", static_cast<unsigned int>(reg));
+    return invalid_reg_name;
   }
 
   unsigned int MachRegister::size() const {
