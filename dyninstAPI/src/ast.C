@@ -319,6 +319,10 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
     roperand(r),
     eoperand(e)
 {
+    if(!loperand) loperand = boost::make_shared<AstNullNode>();
+    if(!roperand) roperand = boost::make_shared<AstNullNode>();
+    if(!eoperand) eoperand = boost::make_shared<AstNullNode>();
+
     // Optimization pass...
 
     if (op == plusOp) {
@@ -542,18 +546,15 @@ void AstNode::printRC()
 {
     sprintf(errorLine,"RC referenceCount=%d\n",referenceCount);
     logLine(errorLine);
-    if (loperand) {
+
       logLine("RC loperand\n");
       loperand->printRC();
-    }
-    if (roperand) {
+
       logLine("RC roperand\n");
       roperand->printRC();
-    }
-    if (eoperand) {
+
       logLine("RC eoperand\n");
       eoperand->printRC();
-    }
 }
 #endif
 
@@ -1354,13 +1355,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          codeBufIndex_t elseSkipStart = 0;
          codeBufIndex_t elseSkipIndex = gen.getIndex();
          size_t preelse_patches_size = 0, postelse_patches_size = 0;
-         if (eoperand) {
+
             gen.rs()->pushNewRegState(); //Create registerState for else
             preelse_patches_size = gen.allPatches().size();
             elseSkipStart = emitA(branchOp, 0, 0, 0,
                                   gen, rc_no_control, noCost);
             postelse_patches_size = gen.allPatches().size();
-         }
+
 
          // Now that we've generated the "then" section, rewrite the if
          // conditional branch.
@@ -1391,7 +1392,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             gen.setIndex(elseStartIndex);
          }
 
-         if (eoperand) {
             // If there's an else clause, we need to generate code for it.
             gen.tracker()->increaseConditionalLevel();
             if (!eoperand->generateCode_phase2(gen,
@@ -1423,7 +1423,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                      gen, rc_no_control, noCost);
                gen.setIndex(endIndex);
             }
-         }
          retReg = REG_NULL;
          break;
       }
@@ -1585,7 +1584,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             }
             case operandType::RegOffset: {
-               assert(loperand);
                assert(loperand->operand());
 
                // load the address reg + addr into dest
@@ -1775,14 +1773,11 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Null_Register;
          right_dest = Null_Register;
-         if (loperand) {
             if (!loperand->generateCode_phase2(gen,
                                                noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
-         }
 
-         if (roperand &&
-             (roperand->getoType() == operandType::Constant) &&
+         if ((roperand->getoType() == operandType::Constant) &&
              doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
@@ -1801,10 +1796,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             roperand->decUseCount(gen);
          }
          else {
-            if (roperand) {
+
                if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
                REGISTER_CHECK(right_dest);
-            }
+
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
             }
@@ -2359,15 +2354,13 @@ int AstOperatorNode::costHelper(enum CostStyleType costStyle) const {
 
     if (op == ifOp) {
         // loperand is the conditional expression
-        if (loperand) total += loperand->costHelper(costStyle);
+        total += loperand->costHelper(costStyle);
         total += getInsnCost(op);
         int rcost = 0, ecost = 0;
-        if (roperand) {
+
             rcost = roperand->costHelper(costStyle);
-            if (eoperand)
                 rcost += getInsnCost(branchOp);
-        }
-        if (eoperand)
+
             ecost = eoperand->costHelper(costStyle);
         if(ecost == 0) { // ie. there's only the if body
             if(costStyle      == Min)  total += 0;
@@ -2380,18 +2373,18 @@ int AstOperatorNode::costHelper(enum CostStyleType costStyle) const {
             else if(costStyle == Max)  total += MAX(rcost, ecost);
         }
     } else if (op == storeOp) {
-        if (roperand) total += roperand->costHelper(costStyle);
+        total += roperand->costHelper(costStyle);
         total += getInsnCost(op);
     } else if (op == storeIndirOp) {
-        if (loperand) total += loperand->costHelper(costStyle);
-        if (roperand) total += roperand->costHelper(costStyle);
+        total += loperand->costHelper(costStyle);
+        total += roperand->costHelper(costStyle);
         total += getInsnCost(op);
     } else if (op == trampPreamble) {
         total = getInsnCost(op);
     } else {
-        if (loperand)
+
             total += loperand->costHelper(costStyle);
-        if (roperand)
+
             total += roperand->costHelper(costStyle);
         total += getInsnCost(op);
     }
@@ -2487,9 +2480,9 @@ void AstNode::print() const {
       }
     } else if (type == opCodeNode_t) {
       cerr << "(" << getOpString(op);
-      if (loperand) loperand->print();
-      if (roperand) roperand->print();
-      if (eoperand) eoperand->print();
+      loperand->print();
+      roperand->print();
+      eoperand->print();
       fprintf(stderr,")\n");
     } else if (type == callNode) {
       cerr << "(" << callee;
@@ -2497,9 +2490,9 @@ void AstNode::print() const {
          operands[u]->print();
       fprintf(stderr,")\n");
     } else if (type == sequenceNode_t) {
-       if (loperand) loperand->print();
+       loperand->print();
        fprintf(stderr,",");
-       if (roperand) roperand->print();
+       roperand->print();
        fprintf(stderr,"\n");
     }
   }
@@ -2517,18 +2510,18 @@ BPatch_type *AstOperatorNode::checkType(BPatch_function* func) {
 
     assert(BPatch::bpatch != NULL);	/* We'll use this later. */
 
-    if ((loperand || roperand) && getType()) {
+    if (getType()) {
 	// something has already set the type for us.
 	// this is likely an expression for array access
        ret = const_cast<BPatch_type *>(getType());
        return ret;
     }
 
-    if (loperand) lType = loperand->checkType(func);
+    lType = loperand->checkType(func);
 
-    if (roperand) rType = roperand->checkType(func);
+    rType = roperand->checkType(func);
 
-    if (eoperand) eType = eoperand->checkType(func);
+    eType = eoperand->checkType(func);
     (void)eType; // unused...
 
     if (lType == BPatch::bpatch->type_Error ||
@@ -2799,11 +2792,11 @@ bool AstNode::accessesParam() {
 bool AstOperatorNode::accessesParam()
 {
     bool ret = false;
-    if (loperand)
+
         ret |= loperand->accessesParam();
-    if (roperand)
+
         ret |= roperand->accessesParam();
-    if (eoperand)
+
         ret |= eoperand->accessesParam();
     return ret;
 }
@@ -2860,9 +2853,9 @@ bool AstOperatorNode::canBeKept() const {
     }
 
     // The switch statement is a little odd, but hey.
-    if (loperand && !loperand->canBeKept()) return false;
-    if (roperand && !roperand->canBeKept()) return false;
-    if (eoperand && !eoperand->canBeKept()) return false;
+    if (!loperand->canBeKept()) return false;
+    if (!roperand->canBeKept()) return false;
+    if (!eoperand->canBeKept()) return false;
 
     return true;
 }
@@ -2969,27 +2962,27 @@ void AstNode::setChildren(std::vector<AstNodePtr > &) {
 }
 
 void AstOperatorNode::getChildren(std::vector<AstNodePtr > &children) {
-    if (loperand) children.push_back(loperand);
-    if (roperand) children.push_back(roperand);
-    if (eoperand) children.push_back(eoperand);
+    children.push_back(loperand);
+    children.push_back(roperand);
+    children.push_back(eoperand);
 }
 
 void AstOperatorNode::setChildren(std::vector<AstNodePtr > &children){
-   int count = (loperand ? 1 : 0) + (roperand ? 1 : 0) + (eoperand ? 1 : 0);
+   int count = 1 + 1 + 1;
    if ((int)children.size() == count){
       //memory management?
-      if (loperand) loperand = children[0];
-      if (roperand) roperand = children[1];
-      if (eoperand) eoperand = children[2];
+      loperand = children[0];
+      roperand = children[1];
+      eoperand = children[2];
    }else{
       fprintf(stderr, "OPERATOR setChildren given bad arguments. Wanted:%d , given:%d\n", count, (int)children.size());
    }
 }
 
 AstNodePtr AstOperatorNode::deepCopy(){
-   AstNodePtr copy = operatorNode(op, (loperand ? loperand->deepCopy() : loperand),
-                                  (roperand ? roperand->deepCopy() : roperand),
-                                  (eoperand ? eoperand->deepCopy() : eoperand));
+   AstNodePtr copy = operatorNode(op, loperand->deepCopy(),
+                                  roperand->deepCopy(),
+                                  eoperand->deepCopy());
    copy->setType(bptype);
    copy->setTypeChecking(doTypeCheck);
 
@@ -3186,9 +3179,9 @@ AstNodePtr AstMiniTrampNode::deepCopy(){
 
 
 void AstOperatorNode::setVariableAST(codeGen &g) {
-    if(loperand) loperand->setVariableAST(g);
-    if(roperand) roperand->setVariableAST(g);
-    if(eoperand) eoperand->setVariableAST(g);
+    loperand->setVariableAST(g);
+    roperand->setVariableAST(g);
+    eoperand->setVariableAST(g);
 }
 
 void AstOperandNode::setVariableAST(codeGen &g){
@@ -3244,9 +3237,9 @@ bool AstCallNode::containsFuncCall() const {
 
 
 bool AstOperatorNode::containsFuncCall() const {
-	if (loperand && loperand->containsFuncCall()) return true;
-	if (roperand && roperand->containsFuncCall()) return true;
-	if (eoperand && eoperand->containsFuncCall()) return true;
+	if (loperand->containsFuncCall()) return true;
+	if (roperand->containsFuncCall()) return true;
+	if (eoperand->containsFuncCall()) return true;
 	return false;
 }
 
@@ -3329,9 +3322,9 @@ bool AstCallNode::usesAppRegister() const {
 }
 
 bool AstOperatorNode::usesAppRegister() const {
-	if (loperand && loperand->usesAppRegister()) return true;
-	if (roperand && roperand->usesAppRegister()) return true;
-	if (eoperand && eoperand->usesAppRegister()) return true;
+	if (loperand->usesAppRegister()) return true;
+	if (roperand->usesAppRegister()) return true;
+	if (eoperand->usesAppRegister()) return true;
 	return false;
 }
 
@@ -3635,9 +3628,9 @@ std::string AstStackGenericNode::format(std::string indent) {
 std::string AstOperatorNode::format(std::string indent) {
    std::stringstream ret;
    ret << indent << "Op/" << hex << this << dec << "(" << convert(op) << ")" << endl;
-   if (loperand) ret << indent << loperand->format(indent + "  ");
-   if (roperand) ret << indent << roperand->format(indent + "  ");
-   if (eoperand) ret << indent << eoperand->format(indent + "  ");
+   ret << indent << loperand->format(indent + "  ");
+   ret << indent << roperand->format(indent + "  ");
+   ret << indent << eoperand->format(indent + "  ");
 
    return ret.str();
 }
