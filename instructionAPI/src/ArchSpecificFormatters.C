@@ -12,6 +12,7 @@
 #include <string.h>
 #include <assert.h>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/shared_ptr.hpp>
 #include "../../common/h/compiler_diagnostics.h"
 #include "Architecture.h"
 #include "registers/AMDGPU/amdgpu_gfx908_regs.h"
