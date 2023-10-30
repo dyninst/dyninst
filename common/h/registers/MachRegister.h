@@ -52,7 +52,6 @@ namespace Dyninst {
   public:
     MachRegister();
     explicit MachRegister(signed int r);
-    explicit MachRegister(signed int r, const char* n);
     explicit MachRegister(signed int r, std::string n);
 
     MachRegister getBaseRegister() const;
