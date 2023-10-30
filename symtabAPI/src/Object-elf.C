@@ -91,10 +91,6 @@ bool Object::truncateLineFilenames = false;
 
 std::vector<Symbol *> opdsymbols_;
 
-extern void print_symbols(std::vector<Symbol *> &allsymbols);
-
-extern void print_symbol_map(dyn_hash_map<std::string, std::vector<Symbol *> > *symbols);
-
 void (*dwarf_err_func)(const char *);   // error callback for dwarf errors
 
 static bool pdelf_check_ehdr(Elf_X &elf) {
@@ -2393,9 +2389,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
     // executables are treated as shared libraries.
     is_aout_ = isOnlyExecutable();
 
-#ifdef BINEDIT_DEBUG
-    print_symbol_map(&symbols_);
-#endif
 #if defined(TIMED_PARSE)
     struct timeval endtime;
   gettimeofday(&endtime, NULL);
@@ -3153,12 +3146,6 @@ bool AObject::getSegments(vector<Segment> &segs) const {
 
 
 bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned) {
-#ifdef BINEDIT_DEBUG
-    printf("emitting...\n");
-  //print_symbol_map(&symbols_);
-  print_symbols(allSymbols);
-  printf("%d total symbol(s)\n", allSymbols.size());
-#endif
     if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32) {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_,

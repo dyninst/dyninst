@@ -908,9 +908,6 @@ bool sort_reg_by_addr(const Region* a, const Region* b)
   return a->getMemOffset() < b->getMemOffset();
 }
 
-extern void print_symbols( std::vector< Symbol *>& allsymbols );
-extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
-
 static bool ExceptionBlockCmp(ExceptionBlock *a, ExceptionBlock *b) {
     return a->catchStart() < b->catchStart();
 }
@@ -1044,11 +1041,6 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     // a vector to hold all created symbols until they are properly classified
     std::vector<Symbol *> raw_syms;
-
-#ifdef BINEDIT_DEBUG
-    printf("== from linkedFile...\n");
-    print_symbol_map(linkedFile->getAllSymbols());
-#endif
 
     if (!extractSymbolsFromFile(linkedFile, raw_syms)) 
     {
@@ -1854,18 +1846,6 @@ SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::strin
 
 SYMTAB_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
 {
-#ifdef BINEDIT_DEBUG
-   map<std::string, std::string>::iterator iter = dynLibSubs.begin();
-
-   printf ("substitutions for %s:\n", mf->filename().c_str());
-
-   while (iter != dynLibSubs.end()) 
-   {
-      printf("  \"%s\" => \"%s\"\n", iter->first.c_str(), iter->second.c_str());
-      iter++;
-   }
-#endif
-
    map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
 
    if (loc == dynLibSubs.end())
