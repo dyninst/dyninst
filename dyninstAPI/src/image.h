@@ -48,7 +48,6 @@
 
 #include <set>
 
-#include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/infHeap.h"
