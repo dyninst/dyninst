@@ -1867,7 +1867,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                 soffset = soffset_dbg;
                 if (soffset_dbg) {
                     bool result;
-                    #pragma omp critical
                     result = convertDebugOffset(soffset_dbg, soffset);
                     if (!result) {
                         //Symbol does not match any section, can't convert
@@ -2193,7 +2192,6 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         Address tempModLow;
         Address modLow = 0;
         if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, &cu_die, dbg)) {
-            #pragma omp critical
             convertDebugOffset(tempModLow, modLow);
         }
 
