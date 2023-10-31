@@ -340,12 +340,13 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r1;
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::x29; // aarch64: frame pointer is X29 by convention
+      case Arch_aarch32:
+      case Arch_cuda:
+      case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
       case Arch_none: return InvalidReg;
-
-      default: assert(0); return InvalidReg;
     }
     return InvalidReg;
   }
@@ -358,12 +359,12 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::sp; // aarch64: stack pointer is an independent register
       case Arch_aarch32:
-      case Arch_cuda: assert(0); break;
-      case Arch_none:
+      case Arch_cuda:
+      case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: return InvalidReg;
-      default: assert(0); return InvalidReg;
+      case Arch_amdgpu_gfx940:
+      case Arch_none: return InvalidReg;
     }
     return InvalidReg;
   }
@@ -377,11 +378,11 @@ namespace Dyninst {
       case Arch_aarch64: return aarch64::x8;
       case Arch_aarch32:
       case Arch_cuda:
+      case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: assert(0); break;
+      case Arch_amdgpu_gfx940:
       case Arch_none: return InvalidReg;
-      default: assert(0); return InvalidReg;
     }
     return InvalidReg;
   }
@@ -406,8 +407,13 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r3;
       case Arch_ppc64: return ppc64::r3;
       case Arch_aarch64: return aarch64::x0; // returned value is save in x0
+      case Arch_aarch32:
+      case Arch_cuda:
+      case Arch_intelGen9:
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940:
       case Arch_none: return InvalidReg;
-      default: assert(0); return InvalidReg;
     }
     return InvalidReg;
   }
@@ -436,47 +442,44 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::zf;
       case Arch_x86_64: return x86_64::zf;
-      case Arch_aarch64: return aarch64::z;
-      case Arch_aarch32: assert(!"Not implemented"); break;
       case Arch_ppc32: return ppc32::cr0e;
       case Arch_ppc64: return ppc64::cr0e;
+      case Arch_aarch64: return aarch64::z;
+      case Arch_aarch32:
       case Arch_cuda:
+      case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: assert(0); break;
+      case Arch_amdgpu_gfx940:
       case Arch_none: return InvalidReg;
-      default: return InvalidReg;
     }
 
     return InvalidReg;
   }
 
   bool MachRegister::isPC() const {
-    return (*this == x86_64::rip || *this == x86::eip || *this == ppc32::pc || *this == ppc64::pc ||
-            *this == aarch64::pc || *this == amdgpu_gfx908::pc_all ||
-            *this == amdgpu_gfx90a::pc_all || *this == amdgpu_gfx940::pc_all);
+    if(*this == InvalidReg) return false;
+    return *this == getPC(getArchitecture());
   }
 
   bool MachRegister::isFramePointer() const {
-    return (*this == x86_64::rbp || *this == x86::ebp || *this == FrameBase ||
-            *this == aarch64::x29);
+    if(*this == InvalidReg) return false;
+    return *this == FrameBase || *this == getFramePointer(getArchitecture());
   }
 
   bool MachRegister::isStackPointer() const {
-    return (*this == x86_64::rsp || *this == x86::esp || *this == ppc32::r1 || *this == ppc64::r1 ||
-            *this == aarch64::sp);
+    if(*this == InvalidReg) return false;
+    return *this == StackTop || *this == getStackPointer(getArchitecture());
   }
 
   bool MachRegister::isSyscallNumberReg() const {
-    return (*this == x86_64::orax || *this == x86::oeax || *this == ppc32::r1 ||
-            *this == ppc64::r1 || *this == aarch64::x8);
+    if(*this == InvalidReg) return false;
+    return *this == getSyscallNumberReg(getArchitecture());
   }
 
   bool MachRegister::isSyscallReturnValueReg() const {
-    if(getArchitecture() == Arch_aarch64)
-      assert(0);
-    return (*this == x86_64::rax || *this == x86::eax || *this == ppc32::r1 || *this == ppc64::r1 ||
-            *this == aarch64::x0);
+    if(*this == InvalidReg) return false;
+    return *this == getSyscallReturnValueReg(getArchitecture());
   }
 
   bool MachRegister::isFlag() const {
@@ -506,10 +509,8 @@ namespace Dyninst {
   }
 
   bool MachRegister::isZeroFlag() const {
+    if(*this == InvalidReg) return false;
     switch(getArchitecture()) {
-      case Arch_x86: return *this == x86::zf;
-      case Arch_x86_64: return *this == x86_64::zf;
-      case Arch_aarch64: return *this == aarch64::z;
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
@@ -519,7 +520,8 @@ namespace Dyninst {
         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) ||
                (baseID <= 628 && baseID >= 621);
       }
-      default: assert(!"Not implemented!");
+      default:
+	return *this == getZeroFlag(getArchitecture());
     }
     return false;
   }
