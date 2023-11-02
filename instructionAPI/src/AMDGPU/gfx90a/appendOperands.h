@@ -1,0 +1,33 @@
+#include <stdint.h>
+
+void appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SIMM32(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_DSMEM(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_FLAT_SCRATCH(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_PC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SDST(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SDST_EXEC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SDST_M0(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void processOPR_SMEM_OFFSET(layout_ENC_SMEM & layout  );
+void appendOPR_SRC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SRC_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SRC_NOLDS(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SRC_NOLIT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SRC_SIMPLE(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SRC_VGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SRC_VGPR_OR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SREG(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SREG_NOVCC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SSRC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SSRC_LANESEL(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SSRC_NOLIT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_SSRC_SPECIAL_SCC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_VCC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_VGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_VGPR_OR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );
+void appendOPR_VGPR_OR_LDS(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1 , bool isImplicit = false );

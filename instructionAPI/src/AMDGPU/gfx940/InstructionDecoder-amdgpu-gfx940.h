@@ -287,17 +287,12 @@ namespace Dyninst {
             uint32_t decodeOPR_LITERAL();
             Expression::Ptr decodeOPR_SDWA();
             Expression::Ptr decodeOPR_LABEL(uint64_t input);
-            Expression::Ptr decodeOPR_SIMM4(uint64_t input);
-            Expression::Ptr decodeOPR_SIMM8(uint64_t input);
-            Expression::Ptr decodeOPR_SIMM16(uint64_t input);
-            Expression::Ptr decodeOPR_SIMM32(uint64_t input);
-            Expression::Ptr decodeOPR_WAITCNT(uint64_t input);
             using InstructionDecoderImpl::makeRegisterExpression;
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t num_elements = 1);
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t low , uint32_t high );
             void specialHandle();
             #include "amdgpu_gfx940_decoder_impl.h"    
-            #include "decodeOperands.h"    
+            #include "appendOperands.h"    
         };
     }
 }

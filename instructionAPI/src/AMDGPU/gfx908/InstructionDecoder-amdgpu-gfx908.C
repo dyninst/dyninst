@@ -178,21 +178,7 @@ namespace Dyninst {
 			return makeAddExpression(lhs, rhs, s64);
 	
         }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM4(uint64_t input){
-		    return Immediate::makeImmediate(Result(s8, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM8(uint64_t input){
-		    return Immediate::makeImmediate(Result(s8, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM16(uint64_t input){
-		    return Immediate::makeImmediate(Result(s16, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SIMM32(uint64_t input){
-		    return Immediate::makeImmediate(Result(s32, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_WAITCNT(uint64_t input){
-		    return Immediate::makeImmediate(Result(s16, input));
-        }
+
         Expression::Ptr InstructionDecoder_amdgpu_gfx908::makeRegisterExpression(MachRegister registerID, uint32_t num_elements){
             if(registerID == amdgpu_gfx908::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
@@ -209,7 +195,7 @@ namespace Dyninst {
 
 
 #include "amdgpu_gfx908_decoder_impl.C"
-#include "decodeOperands.C"
+#include "appendOperands.C"
 #include "finalizeOperands.C"
 		inline unsigned int InstructionDecoder_amdgpu_gfx908::get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
 			assert(offset %4 ==0 );
