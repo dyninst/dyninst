@@ -158,6 +158,7 @@
 
 using namespace std;
 using namespace boost::assign;
+using namespace Dyninst;
 
 namespace NS_x86 {
 
