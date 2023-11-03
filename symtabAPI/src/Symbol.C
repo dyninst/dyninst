@@ -273,10 +273,7 @@ std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
                   << " }";
 }
 
-     Offset tryStart_;
-	       unsigned trySize_;
-		         Offset catchStart_;
-				       bool hasTry_;
+
 
 ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb) 
 {
