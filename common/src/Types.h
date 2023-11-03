@@ -84,10 +84,6 @@ typedef struct maps_entries {
 
 #include "common/h/util.h"
 
-// NB: this is probably inappropriate for 64-bit addresses!
-inline unsigned hash_address(const Address& addr) {
-   return (unsigned) ((addr >> 2) & 0xffffffff);
-}
 #endif /* __cplusplus */
 
 #endif /* !defined(_Types_h_) */
