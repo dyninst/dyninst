@@ -31,7 +31,6 @@
 #include "common/src/headers.h"
 #include "common/src/parseauxv.h"
 #include "common/src/linuxKludges.h"
-
 #include <elf.h>
 
 #include <vector>

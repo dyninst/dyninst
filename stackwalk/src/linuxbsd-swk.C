@@ -34,7 +34,7 @@
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/frame.h"
-
+#include "common/src/vm_maps.h"
 #include "stackwalk/src/sw.h"
 #include "stackwalk/src/symtab-swk.h"
 #include "stackwalk/src/libstate.h"

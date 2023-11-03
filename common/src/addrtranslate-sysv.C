@@ -50,7 +50,7 @@
 #include "common/src/parseauxv.h"
 #include "common/src/headers.h"
 #include "common/src/pathName.h"
-
+#include "common/src/vm_maps.h"
 #include "common/src/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 

@@ -31,7 +31,7 @@
 #include "common/src/headers.h"
 #include "common/src/addrtranslate-sysv.h"
 #include "common/src/freebsdKludges.h"
-
+#include "common/src/vm_maps.h"
 #include <cstdio>
 
 #include <sys/types.h>

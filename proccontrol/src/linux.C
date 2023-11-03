@@ -48,7 +48,7 @@
 #include "registers/ppc64_regs.h"
 #include "registers/aarch64_regs.h"
 #include "common/h/dyntypes.h"
-
+#include "common/src/vm_maps.h"
 #include "compiler_annotations.h"
 
 #include "common/src/pathName.h"

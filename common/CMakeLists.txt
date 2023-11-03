@@ -87,7 +87,8 @@ set(_private_headers
     src/symbolDemangleWithCache.h
     src/Timer.h
     src/Types.h
-    src/vgannotations.h)
+    src/vgannotations.h
+    src/vm_maps.h)
 
 set(_sources
     src/pfq-rwlock.C
