@@ -112,13 +112,13 @@ std::string P_cplus_demangle( const std::string &symbol, bool includeTypes )
 } /* end P_cplus_demangle() */
 
 
-bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
+bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid)
 {
    static bool have_process_vm_readv = true;
 
    const unsigned char *ap = (const unsigned char*) inTraced;
    unsigned char *dp = (unsigned char *) inSelf;
-   Address w = 0x0;               /* ptrace I/O buffer */
+   Dyninst::Address w = 0x0;               /* ptrace I/O buffer */
    int len = sizeof(void *);
    unsigned cnt;
 
@@ -158,7 +158,7 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKDATA, pid, (Address) (ap-cnt), w, len);
+      w = P_ptrace(PTRACE_PEEKDATA, pid, (Dyninst::Address) (ap-cnt), w, len);
       if (errno) {
          return false;
       }
@@ -176,7 +176,7 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
    /* Copy aligned portion */
    while (size >= (u_int)len) {
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) ap, 0, len);
       if (errno) {
          return false;
       }
@@ -193,7 +193,7 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) ap, 0, len);
       if (errno) {
          return false;
       }
@@ -211,8 +211,8 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
 
    unsigned char *ap = (unsigned char*) inTraced;
    const unsigned char *dp = (const unsigned char*) inSelf;
-   Address w = 0x0;               /* ptrace I/O buffer */
-   int len = sizeof(Address); /* address alignment of ptrace I/O requests */
+   Dyninst::Address w = 0x0;               /* ptrace I/O buffer */
+   int len = sizeof(Dyninst::Address); /* address alignment of ptrace I/O requests */
    unsigned cnt;
 
    if (0 == nbytes) {
@@ -243,14 +243,14 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       }
    }
 
-   if ((cnt = ((Address)ap) % len)) {
+   if ((cnt = ((Dyninst::Address)ap) % len)) {
       /* Start of request is not aligned. */
       unsigned char *p = (unsigned char*) &w;
 
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write the segment back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) (ap-cnt), 0);
 
       if (errno) {
          return false;
@@ -259,7 +259,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
          p[cnt+i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w)) {
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Dyninst::Address) (ap-cnt), w)) {
          return false;
       }
 
@@ -274,9 +274,9 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
 
    /* Copy aligned portion */
    while (nbytes >= (u_int)len) {
-      assert(0 == ((Address)ap) % len);
+      assert(0 == ((Dyninst::Address)ap) % len);
       memcpy(&w, dp, len);
-      int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
+      int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Dyninst::Address) ap, w);
       if (retval < 0) {
          return false;
       }
@@ -294,7 +294,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write it back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) ap, 0);
 
       if (errno) {
          return false;
@@ -304,7 +304,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       for (unsigned i = 0; i < nbytes; i++)
          p[i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w)) {
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Dyninst::Address) ap, w)) {
          return false;
       }
    }
@@ -325,7 +325,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
 #define AT_SYSINFO_EHDR 33
 #endif
 
-static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address) {
+static bool couldBeVsyscallPage(map_entries *entry, bool strict, Dyninst::Address) {
    if (strict) {
        if (entry->prems != PREMS_PRIVATE)
          return false;
@@ -352,7 +352,7 @@ bool AuxvParser::readAuxvInfo()
   uint32_t *buffer32 = NULL;
   uint64_t *buffer64 = NULL;
   unsigned pos = 0;
-  Address dso_start = 0x0, text_start = 0x0;
+  Dyninst::Address dso_start = 0x0, text_start = 0x0;
 
   struct {
     unsigned long type;
@@ -428,7 +428,7 @@ bool AuxvParser::readAuxvInfo()
    * can be larger than a single page.  Thus we look through /proc/pid/maps
    * for known, default, or guessed start address(es).
    **/
-  std::vector<Address> guessed_addrs;
+  std::vector<Dyninst::Address> guessed_addrs;
 
   /* The first thing to check is the auxvinfo, if we have any. */
   if( dso_start != 0x0 )
@@ -458,7 +458,7 @@ bool AuxvParser::readAuxvInfo()
   map_entries *secondary_match = NULL;
   map_entries *maps = getVMMaps(pid, num_maps);
   for (unsigned i=0; i<guessed_addrs.size(); i++) {
-     Address addr = guessed_addrs[i];
+     Dyninst::Address addr = guessed_addrs[i];
      for (unsigned j=0; j<num_maps; j++) {
         map_entries *entry = &(maps[j]);
         if (addr < entry->start || addr >= entry->end)
@@ -618,9 +618,9 @@ static unsigned long get_word_at(process *p, unsigned long addr, bool &err) {
  * Check the machine's stack pointer, page align it, and start walking
  * back looking for an unaccessible page.
  **/
-static Address getStackTop(AddrSpaceReader *proc, bool &err) {
-   Address stack_pointer;
-   Address pagesize = getpagesize();
+static Dyninst::Address getStackTop(AddrSpaceReader *proc, bool &err) {
+   Dyninst::Address stack_pointer;
+   Dyninst::Address pagesize = getpagesize();
    bool result;
    long word;
    err = false;

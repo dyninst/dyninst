@@ -45,7 +45,7 @@
 #elif defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/SymtabReader.h"
-using namespace SymtabAPI;
+using namespace Dyninst::SymtabAPI;
 #else
 #error "No defined symbol reader"
 #endif

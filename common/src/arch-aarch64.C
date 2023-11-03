@@ -77,7 +77,7 @@ unsigned instruction::getTargetReg() const {
     return -1;
 }
 
-Address instruction::getTarget(Address addr) const {
+Dyninst::Address instruction::getTarget(Dyninst::Address addr) const {
     if (isUncondBranch() || isCondBranch()) {
         return getBranchOffset() + addr;
     }
@@ -86,7 +86,7 @@ Address instruction::getTarget(Address addr) const {
 }
 
 // TODO: argument _needs_ to be an int, or ABS() doesn't work.
-void instruction::setBranchOffset(Address /*newOffset*/) {
+void instruction::setBranchOffset(Dyninst::Address /*newOffset*/) {
 		assert(0);
 }
 
@@ -98,11 +98,11 @@ bool instruction::isCall() const
     return false;
 }
 
-void instruction::setInstruction(codeBuf_t * /*ptr*/, Address) {
+void instruction::setInstruction(codeBuf_t * /*ptr*/, Dyninst::Address) {
 		assert(0);
 }
 
-void instruction::setInstruction(unsigned char *ptr, Address) {
+void instruction::setInstruction(unsigned char *ptr, Dyninst::Address) {
     // We don't need the addr on this platform
     insn_ = Dyninst::read_memory_as<instructUnion>(ptr);
 }
@@ -129,13 +129,13 @@ bool instruction::isCondBranch() const {
     return false;
 }
 
-unsigned instruction::jumpSize(Address /*from*/, Address /*to*/, unsigned /*addr_width*/) {
+unsigned instruction::jumpSize(Dyninst::Address /*from*/, Dyninst::Address /*to*/, unsigned /*addr_width*/) {
 		assert(0);
         return -1;
 }
 
 // -1 is infinite, don't ya know.
-unsigned instruction::jumpSize(Address /*disp*/, unsigned /*addr_width*/) {
+unsigned instruction::jumpSize(Dyninst::Address /*disp*/, unsigned /*addr_width*/) {
 		assert(0);
    return instruction::size();
 }
@@ -197,7 +197,7 @@ unsigned instruction::getBranchTargetReg() const{
     return -1;
 }
 
-Address instruction::getBranchOffset() const {
+Dyninst::Address instruction::getBranchOffset() const {
     if (isUncondBranch()) {
         if( CHECK_INST(UNCOND_BR.IMM) ){
             return signExtend(GET_OFFSET32(UNCOND_BR.IMM), 26+2 );

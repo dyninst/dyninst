@@ -192,7 +192,7 @@ void emitMovImmToReg(RealRegister dest, int imm, codeGen &gen);
 void emitMovImmToRM(RealRegister base, int disp, int imm, codeGen &gen);
 void emitMovRegToRM(RealRegister base, int disp, RealRegister src, codeGen &gen);
 void emitMovRMToReg(RealRegister dest, RealRegister base, int disp, codeGen &gen);
-void emitMovImmToMem(Address maddr, int imm, codeGen &gen);
+void emitMovImmToMem(Dyninst::Address maddr, int imm, codeGen &gen);
 void emitPushImm(unsigned int imm, codeGen &gen);
 void emitSaveO(codeGen &gen);
 void emitRestoreO(codeGen &gen);
@@ -217,7 +217,7 @@ void emitJccR8(int condition_code, char jump_offset,
                codeGen &gen);
 void emitJcc(int condition, int offset, codeGen &gen, bool willRegen=true);
 void emitPushImm(unsigned int imm, codeGen &gen);
-void emitAddMemImm32(Address dest, int imm, codeGen &gen);
+void emitAddMemImm32(Dyninst::Address dest, int imm, codeGen &gen);
 void emitCallRel32(unsigned disp32, codeGen &gen);
 
 void emitJmpMC(int condition, int offset, codeGen &gen);

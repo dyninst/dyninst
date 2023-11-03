@@ -62,6 +62,7 @@
 #include <sys/syscall.h>
 
 #include "compiler_annotations.h"
+#include "dyntypes.h"
 
 #define PDSOCKET_ERROR (-1)
 typedef int PDSOCKET;
@@ -233,16 +234,16 @@ inline ssize_t P_recv(int s, void *buf, int len, int flags) {
 
 /* Ugly */
 #if 0
-inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len = -1) {
-    if (word_len != -1 && word_len != sizeof(Address)) {
+inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int word_len = -1) {
+    if (word_len != -1 && word_len != sizeof(Dyninst::Address)) {
 	return (ptrace((enum __ptrace_request)req, pid, (uint32_t)addr, (uint32_t)data));
     } else {
 	return (ptrace((enum __ptrace_request)req, pid, addr, data));
     }
 }
-// long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len);
+// long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int word_len);
 #else
-inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int = -1) {
+inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int = -1) {
 	return (ptrace((enum __ptrace_request)req, pid, addr, data));}
 #endif
 

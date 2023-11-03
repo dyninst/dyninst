@@ -42,6 +42,7 @@
 #include "BPatch_instruction.h"
 #include "Instruction.h"
 #include "BPatch_enums.h"
+#include "dyntypes.h"
 //#include "BPatch_edge.h"
 
 class image;

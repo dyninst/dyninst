@@ -40,7 +40,7 @@
 
 using namespace Dyninst;
 
-const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
+const Dyninst::Address Graph::INITIAL_ADDR = (Dyninst::Address) -1;
 
 
 

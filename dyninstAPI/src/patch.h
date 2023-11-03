@@ -32,6 +32,7 @@
 #define patch_h
 
 #include <string>
+#include "dyntypes.h"
 
 class codeGen;
 
@@ -41,7 +42,7 @@ class codeGen;
 
 class patchTarget {
  public:
-   virtual Address get_address() const = 0;
+   virtual Dyninst::Address get_address() const = 0;
    virtual unsigned get_size() const = 0;
    virtual std::string get_name() const;
    patchTarget() = default;
@@ -51,14 +52,14 @@ class patchTarget {
 
 class toAddressPatch : public patchTarget {
  private:
-   Address addr;
+   Dyninst::Address addr;
  public:
-   toAddressPatch(Address a) : addr(a) {}
+   toAddressPatch(Dyninst::Address a) : addr(a) {}
    virtual ~toAddressPatch();
 
-   virtual Address get_address() const;
+   virtual Dyninst::Address get_address() const;
    virtual unsigned get_size() const;
-   void set_address(Address a);
+   void set_address(Dyninst::Address a);
 };
 
 class relocPatch {
@@ -98,7 +99,7 @@ class ifTargetPatch : public patchTarget
    signed int targetOffset;
  public:
    ifTargetPatch(signed int o) { targetOffset = o; }
-   virtual Address get_address() const { return (Address) targetOffset; }
+   virtual Dyninst::Address get_address() const { return (Dyninst::Address) targetOffset; }
    virtual unsigned get_size() const { return 0; }
    virtual std::string get_name() const { return std::string("ifTarget"); }
    virtual ~ifTargetPatch() { }

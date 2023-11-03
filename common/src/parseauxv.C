@@ -97,7 +97,7 @@ AuxvParser::AuxvParser(int pid_, unsigned addr_size_) :
    create_err = !readAuxvInfo();
 }
  
-Address AuxvParser::getInterpreterBase()
+Dyninst::Address AuxvParser::getInterpreterBase()
 {
    return interpreter_base;
 }
@@ -107,27 +107,27 @@ bool AuxvParser::parsedVsyscall()
    return found_vsyscall;
 }
 
-Address AuxvParser::getVsyscallBase()
+Dyninst::Address AuxvParser::getVsyscallBase()
 {
    return vsyscall_base;
 }
 
-Address AuxvParser::getVsyscallText()
+Dyninst::Address AuxvParser::getVsyscallText()
 {
    return vsyscall_text;
 }
 
-Address AuxvParser::getVsyscallEnd()
+Dyninst::Address AuxvParser::getVsyscallEnd()
 {
    return vsyscall_end;
 }   
 
-Address AuxvParser::getProgramBase()
+Dyninst::Address AuxvParser::getProgramBase()
 {
    return phdr;
 }
 
-Address AuxvParser::getPageSize()
+Dyninst::Address AuxvParser::getPageSize()
 {
    return page_size;
 }

@@ -103,7 +103,7 @@ A million repetitions of "a"
 #include <stdio.h>
 #include <string.h>
 
-#include "common/src/Types.h"
+#include "dyntypes.h"
 #include "common/src/sha1.h"
 /* #include <process.h> */	/* prototype for exit() - JHB */
 /* Using return() instead of exit() - SWR */

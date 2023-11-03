@@ -179,7 +179,7 @@ void codeRangeTree::deleteFixup(entry* x){
 
 
 // fails if the key value is already in the tree (happens for shared code)
-codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
+codeRangeTree::entry *codeRangeTree::treeInsert(Dyninst::Address key, codeRange *value)
 {
 	entry* y = NULL;
 	entry* x = setData;
@@ -228,7 +228,7 @@ codeRangeTree::entry *codeRangeTree::treeSuccessor(entry* x) const{
 }
 
 
-codeRangeTree::entry *codeRangeTree::find_internal(Address element) const{
+codeRangeTree::entry *codeRangeTree::find_internal(Dyninst::Address element) const{
 	entry* x = setData;
 	while(x != nil){
             if (element < x->key) {
@@ -319,7 +319,7 @@ void codeRangeTree::insert(codeRange *value) {
 	setData->color = TREE_BLACK;
 }
 
- void codeRangeTree::remove(Address key){
+ void codeRangeTree::remove(Dyninst::Address key){
 	entry* z = find_internal(key);
     if(!z) { return; }
     if(z->key != key) { return; }
@@ -359,7 +359,7 @@ void codeRangeTree::destroy(entry* node){
 	delete node;
 }
 
-bool codeRangeTree::find(Address key, codeRange *& value) const{
+bool codeRangeTree::find(Dyninst::Address key, codeRange *& value) const{
     value = NULL;
     if (!precessor(key, value))
         return false;
@@ -396,7 +396,7 @@ bool codeRangeTree::find(Address key, codeRange *& value) const{
 #endif
 }
 
-bool codeRangeTree::precessor(Address key, codeRange * &value) const{
+bool codeRangeTree::precessor(Dyninst::Address key, codeRange * &value) const{
     entry *x = setData;
     entry *last = nil;
     while (x != nil) {
@@ -427,7 +427,7 @@ bool codeRangeTree::precessor(Address key, codeRange * &value) const{
     return false;
 }
 
-bool codeRangeTree::successor(Address key, codeRange * &value) const{
+bool codeRangeTree::successor(Dyninst::Address key, codeRange * &value) const{
     entry *x = setData;
     entry *last = nil;
     while (x != nil) {
@@ -478,7 +478,7 @@ void codeRangeTree::clear() {
 }
 
 #define PRINT_COMMA if (print_comma) fprintf(stderr, ", "); print_comma = true
-void codeRange::print_range(Address) {
+void codeRange::print_range(Dyninst::Address) {
    bool print_comma = false;
    image *img_ptr = is_image();
    mapped_object *mapped_ptr = is_mapped_object();

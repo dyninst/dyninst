@@ -36,21 +36,14 @@
 #if !defined(_Types_h_)
 #define _Types_h_
 
+#include "dyntypes.h"
+
 #if defined __cplusplus
 #  include <cstdint>
 #else
 #  include <stdint.h>
 #endif
 
-
-#if defined(__cplusplus)
-#include "common/h/dyntypes.h"
-using namespace Dyninst;
-static const Address ADDR_NULL = (Address)(0);
-#else
-#define ADDR_NULL (0)
-typedef unsigned long Address;
-#endif
 
 typedef long long int RegValue;      /* register content 64-bit */
 /* This needs to be an int since it is sometimes used to pass offsets
@@ -70,6 +63,9 @@ static const Register REG_NULL = (Register)(-1);
 #define MAPENTRIES_PATH_SIZE 512
 #define MAPENTRIES_PATH_SIZE_STR "512"
 typedef struct maps_entries {
+#if defined __cplusplus
+  using Address = Dyninst::Address;
+#endif
    Address start;
    Address end;
    unsigned prems;

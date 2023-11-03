@@ -35,7 +35,7 @@
 #ifndef BASE_TRAMP_H
 #define BASE_TRAMP_H
 
-#include "common/src/Types.h"
+#include "dyntypes.h"
 #include "inst.h" // callWhen
 #include "dyninstAPI/src/codeRange.h"
 //#include "arch.h"
@@ -63,10 +63,10 @@ class baseTramp {
     void initializeFlags();
 
     bool generateCode(codeGen &gen,
-                      Address baseInMutatee);
+                      Dyninst::Address baseInMutatee);
 
     bool generateCodeInlined(codeGen &gen,
-                             Address baseInMutatee);
+                             Dyninst::Address baseInMutatee);
 
     bool checkForFuncCalls();
 

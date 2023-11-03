@@ -39,7 +39,7 @@ class pcRelRegion {
    unsigned cur_offset;
    unsigned cur_size;
    pcRelRegion(const instruction &i);
-   virtual unsigned apply(Address addr) = 0;
+   virtual unsigned apply(Dyninst::Address addr) = 0;
    virtual unsigned maxSize() = 0;
    virtual bool canPreApply();
    virtual ~pcRelRegion();
@@ -48,15 +48,15 @@ class pcRelRegion {
 
 class pcRelJump : public pcRelRegion {
 private:
-   Address addr_targ;
+   Dyninst::Address addr_targ;
    patchTarget *targ;
     bool copy_prefixes_;
 
-   Address get_target();
+   Dyninst::Address get_target();
 public:
    pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes = true);
-   pcRelJump(Address target, const instruction &i, bool copyPrefixes = true);
-   virtual unsigned apply(Address addr);
+   pcRelJump(Dyninst::Address target, const instruction &i, bool copyPrefixes = true);
+   virtual unsigned apply(Dyninst::Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
    virtual ~pcRelJump();
@@ -64,14 +64,14 @@ public:
 
 class pcRelJCC : public pcRelRegion {
 private:
-   Address addr_targ;
+   Dyninst::Address addr_targ;
    patchTarget *targ;
 
-   Address get_target();
+   Dyninst::Address get_target();
 public:
    pcRelJCC(patchTarget *t, const instruction &i);
-   pcRelJCC(Address target, const instruction &i);
-   virtual unsigned apply(Address addr);
+   pcRelJCC(Dyninst::Address target, const instruction &i);
+   virtual unsigned apply(Dyninst::Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
    virtual ~pcRelJCC();
@@ -79,15 +79,15 @@ public:
 
 class pcRelCall: public pcRelRegion {
 private:
-   Address targ_addr;
+   Dyninst::Address targ_addr;
    patchTarget *targ;
 
-   Address get_target();
+   Dyninst::Address get_target();
 public:
    pcRelCall(patchTarget *t, const instruction &i);
-   pcRelCall(Address targ_addr, const instruction &i);
+   pcRelCall(Dyninst::Address targ_addr, const instruction &i);
 
-   virtual unsigned apply(Address addr);
+   virtual unsigned apply(Dyninst::Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
    ~pcRelCall();
@@ -95,10 +95,10 @@ public:
 
 class pcRelData : public pcRelRegion {
 private:
-   Address data_addr;
+   Dyninst::Address data_addr;
 public:
-   pcRelData(Address a, const instruction &i);
-   virtual unsigned apply(Address addr);
+   pcRelData(Dyninst::Address a, const instruction &i);
+   virtual unsigned apply(Dyninst::Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
 };

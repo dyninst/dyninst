@@ -54,7 +54,7 @@ extern const char *STRTAB_NAME;
 extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
 
-extern const char *pdelf_get_shnames(Elf_X *elf);
+extern const char *pdelf_get_shnames(Dyninst::Elf_X *elf);
 
 #define PT_PAX_FLAGS  (PT_LOOS + 0x5041580) /* PaX flags */
 

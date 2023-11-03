@@ -44,6 +44,7 @@
 #include "BPatch_module.h"
 #include "BPatch_memoryAccess_NP.h"
 #include "StackMod.h"
+#include "dyntypes.h"
 
 class func_instance;
 

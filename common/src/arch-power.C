@@ -73,7 +73,7 @@ instruction *instruction::copy() const {
     return new instruction(*this);
 }
 
-Address instruction::getTarget(Address addr) const {
+Dyninst::Address instruction::getTarget(Dyninst::Address addr) const {
     if (isUncondBranch() || isCondBranch()) {
         return getBranchOffset() + addr;
     }
@@ -86,7 +86,7 @@ Address instruction::getTarget(Address addr) const {
 }
 
 // TODO: argument _needs_ to be an int, or ABS() doesn't work.
-void instruction::setBranchOffset(Address newOffset) {
+void instruction::setBranchOffset(Dyninst::Address newOffset) {
     if (isUncondBranch()) {
         assert(ABS((int) newOffset) < MAX_BRANCH);
         IFORM_LI_SET(*this, newOffset >> 2);
@@ -111,13 +111,13 @@ bool instruction::isCall() const
     return(isInsnType(OPmask | AALKmask, CALLmatch));
 }
 
-void instruction::setInstruction(codeBuf_t *ptr, Address) {
+void instruction::setInstruction(codeBuf_t *ptr, Dyninst::Address) {
     // We don't need the addr on this platform
 
     instructUnion *insnPtr = (instructUnion *)ptr;
     insn_.raw = (*insnPtr).raw;
 }
-void instruction::setInstruction(unsigned char *ptr, Address) {
+void instruction::setInstruction(unsigned char *ptr, Dyninst::Address) {
     // We don't need the addr on this platform
     insn_ = Dyninst::read_memory_as<instructUnion>(ptr);
 }
@@ -130,13 +130,13 @@ bool instruction::isCondBranch() const {
     return isInsnType(Bmask, BCmatch);
 }
 
-unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) {
-    Address disp = ABS((long)(to - from));
+unsigned instruction::jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width) {
+    Dyninst::Address disp = ABS((long)(to - from));
     return jumpSize(disp, addr_width);
 }
 
 // -1 is infinite, don't ya know.
-unsigned instruction::jumpSize(Address disp, unsigned addr_width) {
+unsigned instruction::jumpSize(Dyninst::Address disp, unsigned addr_width) {
    if (ABS(disp) >= MAX_BRANCH) {
       return maxInterFunctionJumpSize(addr_width);
    }
@@ -244,7 +244,7 @@ bool instruction::isThunk() const {
   return true;
 }
 
-Address instruction::getBranchOffset() const {
+Dyninst::Address instruction::getBranchOffset() const {
     if (isUncondBranch()) {
         return (IFORM_LI(*this) << 2);
     }

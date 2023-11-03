@@ -33,6 +33,8 @@
 
 #include <utility>
 #include "BPatch_Vector.h"
+#include "dyntypes.h"
+
 class BPatch_process;
 class BPatch_thread;
 class BPatch_module;

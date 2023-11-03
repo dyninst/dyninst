@@ -77,14 +77,14 @@ public:
     PCEventMailbox();
     ~PCEventMailbox();
 
-    void enqueue(ProcControlAPI::Event::const_ptr ev);
-    ProcControlAPI::Event::const_ptr dequeue(bool block);
+    void enqueue(Dyninst::ProcControlAPI::Event::const_ptr ev);
+    Dyninst::ProcControlAPI::Event::const_ptr dequeue(bool block);
     unsigned int size();
     bool find(PCProcess *proc);
 
 protected:
     std::map<int, int> procCount;
-    std::queue<ProcControlAPI::Event::const_ptr> eventQueue;
+    std::queue<Dyninst::ProcControlAPI::Event::const_ptr> eventQueue;
     CondVar<> queueCond;
 };
 
@@ -165,8 +165,8 @@ public:
      * case 2: register the callback, insert the breakpoint
      * case 3: don't register the callback, insert the breakpoint
      */
-	static bool useCallback(ProcControlAPI::EventType et);
-	static bool useBreakpoint(ProcControlAPI::EventType et);
+	static bool useCallback(Dyninst::ProcControlAPI::EventType et);
+	static bool useBreakpoint(Dyninst::ProcControlAPI::EventType et);
 
 private:
 	// We need to use a separate thread so that we can fast-handle certain
@@ -186,9 +186,9 @@ private:
 	EventPtr dequeue(bool block);
 	bool handle(EventPtr);
 
-	static ProcControlAPI::Process::cb_ret_t ret_stopped;
-	static ProcControlAPI::Process::cb_ret_t ret_continue;
-	static ProcControlAPI::Process::cb_ret_t ret_default;
+	static Dyninst::ProcControlAPI::Process::cb_ret_t ret_stopped;
+	static Dyninst::ProcControlAPI::Process::cb_ret_t ret_continue;
+	static Dyninst::ProcControlAPI::Process::cb_ret_t ret_default;
 
 
 	PCEventMailbox mailbox_;

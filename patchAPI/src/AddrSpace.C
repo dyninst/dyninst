@@ -29,7 +29,6 @@
  */
 /* Public Interface */
 
-#include "common/src/Types.h"
 #include "AddrSpace.h"
 #include "PatchObject.h"
 #include "PatchMgr.h"
@@ -73,25 +72,25 @@ AddrSpace::~AddrSpace() {
 }
 
 bool
-AddrSpace::write(PatchObject* /*obj*/, Address /*to*/,
-                 Address /*from*/, size_t /*size*/) {
+AddrSpace::write(PatchObject* /*obj*/, Dyninst::Address /*to*/,
+                 Dyninst::Address /*from*/, size_t /*size*/) {
   return false;
 }
 
-Address
+Dyninst::Address
 AddrSpace::malloc(PatchObject* /*obj*/, size_t /*size*/,
-                  Address /*near*/) {
+                  Dyninst::Address /*near*/) {
   return false;
 }
 
 bool
-AddrSpace::realloc(PatchObject* /*obj*/, Address /*orig*/,
+AddrSpace::realloc(PatchObject* /*obj*/, Dyninst::Address /*orig*/,
                    size_t /*size*/) {
   return false;
 }
 
 bool
-AddrSpace::free(PatchObject* /*obj*/, Address /*orig*/) {
+AddrSpace::free(PatchObject* /*obj*/, Dyninst::Address /*orig*/) {
   return false;
 }
 

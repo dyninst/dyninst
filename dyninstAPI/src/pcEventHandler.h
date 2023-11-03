@@ -35,7 +35,7 @@
 #include "dyninstAPI/h/BPatch_process.h"
 
 #include <unordered_map>
-#include "common/src/Types.h"
+#include "dyntypes.h"
 #include "common/src/dthread.h"
 
 #include "syscallNotification.h"
@@ -57,7 +57,7 @@ class PCEventMuxer;
  */
 
 class PCEventHandler {
-	typedef ProcControlAPI::Event::const_ptr EventPtr;
+	typedef Dyninst::ProcControlAPI::Event::const_ptr EventPtr;
 	// Why syscallNotification is a friend:
     //
     // It is a friend because it reaches in to determine whether to install
@@ -76,17 +76,17 @@ protected:
 
 	bool handle_internal(EventPtr ev);
 
-    bool handleExit(ProcControlAPI::EventExit::const_ptr ev, PCProcess *evProc) const;
-    bool handleFork(ProcControlAPI::EventFork::const_ptr ev, PCProcess *evProc) const;
-    bool handleExec(ProcControlAPI::EventExec::const_ptr ev, PCProcess *&evProc) const;
-    bool handleCrash(ProcControlAPI::EventCrash::const_ptr ev, PCProcess *evProc) const;
-    bool handleForceTerminate(ProcControlAPI::EventForceTerminate::const_ptr ev, PCProcess *evProc) const;
-    bool handleThreadCreate(ProcControlAPI::EventNewThread::const_ptr ev, PCProcess *evProc) const;
-    bool handleThreadDestroy(ProcControlAPI::EventThreadDestroy::const_ptr ev, PCProcess *evProc) const;
-    bool handleSignal(ProcControlAPI::EventSignal::const_ptr ev, PCProcess *evProc) const;
-    bool handleLibrary(ProcControlAPI::EventLibrary::const_ptr ev, PCProcess *evProc) const;
-    bool handleBreakpoint(ProcControlAPI::EventBreakpoint::const_ptr ev, PCProcess *evProc) const;
-    bool handleRPC(ProcControlAPI::EventRPC::const_ptr ev, PCProcess *evProc) const;
+    bool handleExit(Dyninst::ProcControlAPI::EventExit::const_ptr ev, PCProcess *evProc) const;
+    bool handleFork(Dyninst::ProcControlAPI::EventFork::const_ptr ev, PCProcess *evProc) const;
+    bool handleExec(Dyninst::ProcControlAPI::EventExec::const_ptr ev, PCProcess *&evProc) const;
+    bool handleCrash(Dyninst::ProcControlAPI::EventCrash::const_ptr ev, PCProcess *evProc) const;
+    bool handleForceTerminate(Dyninst::ProcControlAPI::EventForceTerminate::const_ptr ev, PCProcess *evProc) const;
+    bool handleThreadCreate(Dyninst::ProcControlAPI::EventNewThread::const_ptr ev, PCProcess *evProc) const;
+    bool handleThreadDestroy(Dyninst::ProcControlAPI::EventThreadDestroy::const_ptr ev, PCProcess *evProc) const;
+    bool handleSignal(Dyninst::ProcControlAPI::EventSignal::const_ptr ev, PCProcess *evProc) const;
+    bool handleLibrary(Dyninst::ProcControlAPI::EventLibrary::const_ptr ev, PCProcess *evProc) const;
+    bool handleBreakpoint(Dyninst::ProcControlAPI::EventBreakpoint::const_ptr ev, PCProcess *evProc) const;
+    bool handleRPC(Dyninst::ProcControlAPI::EventRPC::const_ptr ev, PCProcess *evProc) const;
 
     enum RTBreakpointVal {
         NoRTBreakpoint,
@@ -94,14 +94,14 @@ protected:
         SoftRTBreakpoint
     };
 
-    bool handleRTBreakpoint(ProcControlAPI::EventBreakpoint::const_ptr ev, PCProcess *evProc) const;
-    bool handleStopThread(PCProcess *evProc, Address rt_arg) const;
-    bool handleUserMessage(PCProcess *evProc, BPatch_process *bpProc, Address rt_arg) const;
-    bool handleDynFuncCall(PCProcess *evProc, BPatch_process *bpProc, Address rt_arg) const;
+    bool handleRTBreakpoint(Dyninst::ProcControlAPI::EventBreakpoint::const_ptr ev, PCProcess *evProc) const;
+    bool handleStopThread(PCProcess *evProc, Dyninst::Address rt_arg) const;
+    bool handleUserMessage(PCProcess *evProc, BPatch_process *bpProc, Dyninst::Address rt_arg) const;
+    bool handleDynFuncCall(PCProcess *evProc, BPatch_process *bpProc, Dyninst::Address rt_arg) const;
 
     // platform-specific
     static bool shouldStopForSignal(int signal);
-    static bool isValidRTSignal(int signal, RTBreakpointVal breakpointVal, Address arg1, int status);
+    static bool isValidRTSignal(int signal, RTBreakpointVal breakpointVal, Dyninst::Address arg1, int status);
     static bool isCrashSignal(int signal);
     static bool isKillSignal(int signal);
 

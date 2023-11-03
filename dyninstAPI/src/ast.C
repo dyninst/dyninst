@@ -209,7 +209,7 @@ AstNodePtr AstNode::sequenceNode(std::vector<AstNodePtr > &sequence) {
 }
 
 AstNodePtr AstNode::variableNode(vector<AstNodePtr> &ast_wrappers,
-                                 vector<pair<Offset, Offset> >*ranges) {
+                                 vector<pair<Dyninst::Offset, Dyninst::Offset> >*ranges) {
     return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
 }
 
@@ -464,7 +464,7 @@ AstSequenceNode::AstSequenceNode(std::vector<AstNodePtr > &sequence) :
     }
 }
 
-AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Offset, Offset> > *ranges) :
+AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Dyninst::Offset, Dyninst::Offset> > *ranges) :
     ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
 {
    vector<AstNodePtr>::iterator i;
@@ -3217,7 +3217,7 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         index = 0;
         return;
     }
-    Address addr = gen.point()->addr_compat();     //Offset of inst point from function base address
+    Address addr = gen.point()->addr_compat();     //Dyninst::Offset of inst point from function base address
     bool found = false;
     for(unsigned i=0; i< ranges_->size();i++){
        if((*ranges_)[i].first<=addr && addr<=(*ranges_)[i].second) {

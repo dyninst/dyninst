@@ -188,7 +188,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
 }
 
 bool baseTramp::generateCode(codeGen &gen,
-                             Address baseInMutatee) {
+                             Dyninst::Address baseInMutatee) {
    inst_printf("baseTramp %p ::generateCode(%p, 0x%lx, %u)\n",
                (void*)this, gen.start_ptr(), baseInMutatee, gen.used());
    initializeFlags();
@@ -261,7 +261,7 @@ bool baseTramp::generateCode(codeGen &gen,
 #include "BPatch_collections.h"
 
 bool baseTramp::generateCodeInlined(codeGen &gen,
-                                    Address) {
+                                    Dyninst::Address) {
    // We're generating something like so:
    //
    // <Save state>

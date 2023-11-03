@@ -35,7 +35,7 @@
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_point.h"
 #include <unordered_map>
-#include "common/src/Types.h"
+#include "dyntypes.h"
 #include "common/h/util.h"
 #include "util.h"
 
@@ -47,14 +47,14 @@ public:
     {}
 
    bool registerMonitoredPoint(BPatch_point *point);
-   BPatch_point *getMonitoredPoint(Address addr);
+   BPatch_point *getMonitoredPoint(Dyninst::Address addr);
 
-   int getStopThreadCallbackID(Address cb);
+   int getStopThreadCallbackID(Dyninst::Address cb);
 
 protected:
    int stopThreadIDCounter_;
-   std::unordered_map<Address, unsigned> stopThreadCallbacks_;
-   std::unordered_map<Address, BPatch_point *> monitoredPoints_;
+   std::unordered_map<Dyninst::Address, unsigned> stopThreadCallbacks_;
+   std::unordered_map<Dyninst::Address, BPatch_point *> monitoredPoints_;
 };
 
 #endif /* _BPatch_libInfo_h_ */

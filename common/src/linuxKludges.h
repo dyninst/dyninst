@@ -33,6 +33,7 @@
 #define _linux_kludges_h
 
 #include <vector>
+#include "dyntypes.h"
 
 COMMON_EXPORT bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
 
