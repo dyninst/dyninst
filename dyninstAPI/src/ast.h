@@ -69,8 +69,6 @@ class image_variable;
 
 
 
-// a register number, e.g. [0,31]
-// typedef int reg; // see new Dyninst::Register type in "common/src/Types.h"
 
 #include "opcode.h"
 

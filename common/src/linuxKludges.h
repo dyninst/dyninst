@@ -35,6 +35,7 @@
 #include <vector>
 #include "dyntypes.h"
 #include "common/src/vm_maps.h"
+#include "common/h/util.h"
 
 COMMON_EXPORT bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
 

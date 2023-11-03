@@ -63,6 +63,7 @@
 
 #include "compiler_annotations.h"
 #include "dyntypes.h"
+#include "common/h/util.h"
 
 #define PDSOCKET_ERROR (-1)
 typedef int PDSOCKET;

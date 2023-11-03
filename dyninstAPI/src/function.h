@@ -39,7 +39,6 @@
 #include <set>
 #include <stddef.h>
 #include <vector>
-#include "common/src/Types.h"
 #include "codegen.h"
 #include "codeRange.h"
 #include "util.h"

@@ -35,7 +35,6 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "binaryEdit.h"
 #include "common/src/stats.h"
-#include "common/src/Types.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/src/ntHeaders.h"

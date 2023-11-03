@@ -37,7 +37,6 @@
 #include "debug_common.h"
 #include "VariableLocation.h"
 #include "ProcReader.h"
-#include "Types.h"
 #include "compiler_annotations.h"
 
 using namespace std;

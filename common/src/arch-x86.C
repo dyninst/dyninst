@@ -131,9 +131,6 @@
 // This include *really must* come first in the file.
 #include "common/src/vgannotations.h"
 
-// This include *must* come first in the file.
-#include "common/src/Types.h"
-
 #include <assert.h>
 #include <stdio.h>
 #include <map>

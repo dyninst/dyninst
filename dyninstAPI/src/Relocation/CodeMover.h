@@ -33,7 +33,6 @@
 #define _R_CODE_MOVER_H_
 
 #include "CFG.h"
-#include "common/src/Types.h"
 #include <set>
 #include <string>
 #include <utility>

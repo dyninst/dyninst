@@ -35,7 +35,6 @@
 
 // Code generation
 
-#include "common/src/Types.h"
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include <vector>

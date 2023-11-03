@@ -35,7 +35,6 @@
 #include "common/h/dyntypes.h"
 #include "common/h/SymReader.h"
 
-#include "common/src/Types.h"
 #include "common/src/linuxKludges.h"
 
 #define START_THREAD_FUNC_NAME "start_thread"

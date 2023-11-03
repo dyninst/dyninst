@@ -86,7 +86,6 @@ set(_private_headers
     src/symbolDemangle.h
     src/symbolDemangleWithCache.h
     src/Timer.h
-    src/Types.h
     src/vgannotations.h
     src/vm_maps.h)
 

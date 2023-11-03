@@ -56,7 +56,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "dyninstRTExport.h"
-#include "common/src/Types.h"
 #include "common/h/compiler_diagnostics.h"
 
 /* If we must make up a boolean type, we should make it unique */

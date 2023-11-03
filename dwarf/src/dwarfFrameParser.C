@@ -34,7 +34,6 @@
 #include "dwarfExprParser.h"
 #include "dwarfResult.h"
 #include "VariableLocation.h"
-#include "Types.h"
 #include "elfutils/libdw.h"
 #include <stdio.h>
 #include <iostream>

@@ -35,7 +35,6 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include "common/src/Types.h"
 #include "compiler_annotations.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/function.h"

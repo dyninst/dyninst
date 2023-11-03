@@ -40,7 +40,6 @@
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/x86-swk.h"
 
-#include "common/src/Types.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 

@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../common/src/Types.h"
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"

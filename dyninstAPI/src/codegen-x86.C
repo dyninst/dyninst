@@ -35,7 +35,6 @@
 #include "boost/assign/std/set.hpp"
 #include <map>
 #include <string>
-#include "common/src/Types.h"
 #include "common/src/ia32_locations.h"
 #include "codegen.h"
 #include "util.h"

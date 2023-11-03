@@ -32,7 +32,6 @@
 #define PCEVENTMUXER_H
 
 #include "common/src/dthread.h"
-#include "common/src/Types.h"
 
 #include "Event.h"
 #include "dyninstAPI/h/BPatch_process.h"

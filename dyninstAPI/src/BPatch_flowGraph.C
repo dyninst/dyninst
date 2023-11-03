@@ -36,7 +36,6 @@
 #include <string.h>
 #include <string>
 
-#include "common/src/Types.h"
 #include <unordered_map>
 
 #include "BPatch_process.h"

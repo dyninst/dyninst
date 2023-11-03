@@ -55,7 +55,6 @@
 #include "dyninstAPI/h/BPatch_enums.h"
 
 #include <unordered_map>
-#include "common/src/Types.h"
 
 #if defined(os_linux)||defined(os_freebsd)
 #include "symtabAPI/h/Archive.h"

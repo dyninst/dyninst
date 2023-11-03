@@ -35,7 +35,6 @@
 #include <boost/bind/bind.hpp>
 
 #include "util.h"
-#include "common/src/Types.h"
 
 #include "BPatch_flowGraph.h"
 #include "BPatch_collections.h"

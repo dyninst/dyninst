@@ -31,7 +31,6 @@
 #define INSIDE_INSTRUCTION_API
 
 #include "common/src/vgannotations.h"
-#include "common/src/Types.h"
 
 #include "Operation_impl.h"
 #include "common/src/arch-x86.h"

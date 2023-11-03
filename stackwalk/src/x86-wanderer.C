@@ -38,8 +38,6 @@
 #include "stackwalk/src/libstate.h"
 #include "stackwalk/src/sw.h"
 
-#include "common/src/Types.h"
-
 #include "compiler_annotations.h"
 
 #include "common/h/SymReader.h"
