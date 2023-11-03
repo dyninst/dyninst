@@ -667,7 +667,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Symtab::emit(std::string filename)
         
       // First, text
-      assert(symObj);
       
       
       // And now we generate the new binary
