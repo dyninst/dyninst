@@ -624,7 +624,7 @@ public:
         rpc(ProcControlAPI::IRPC::ptr()),
         rpcStartAddr(0),
         rpcCompletionAddr(0),
-        resultRegister(REG_NULL),
+        resultRegister(Null_Register),
         returnValue(NULL),
         runProcWhenDone(false),
         isComplete(false),

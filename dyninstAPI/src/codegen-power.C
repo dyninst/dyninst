@@ -487,10 +487,10 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     // 4. Restore the original register value (if a scratch register was not found)
     // 5. build the branch instruction.
     //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
-    Register scratch = REG_NULL;
+    Register scratch = Null_Register;
     // TODO: Fix this, this should work....
     //= gen.rs()->getScratchRegister(gen);
-    if (scratch == REG_NULL) {
+    if (scratch == Null_Register) {
       //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
         instPoint *point = GetInstPointPower(gen, from);//gen.point();
         if (!point) {
@@ -509,7 +509,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
             break;
           }
         }
-        if (scratch == REG_NULL) {
+        if (scratch == Null_Register) {
           if (liveRegs[registerSpace::lr] == false && isCall) {
               usingLR = true;
               // Register 11 is the chosen one for using temporarily.
@@ -523,13 +523,13 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
               return generateBranchViaTrap(gen, from, to, isCall);
           }
         }
-    } else if (scratch != REG_NULL) {
+    } else if (scratch != Null_Register) {
         //fprintf(stderr, "%s\n", "Generating branch with TAR.....");
         insnCodeGen::generateBranchTar(gen, scratch, to, isCall);
         return;
     }
 
-    if (scratch == REG_NULL) {
+    if (scratch == Null_Register) {
       // Now the fun stuff....
       // Loed destination value into r11, copy it to SPR_TAR, restore the original R11 value.
       insnCodeGen::loadImmIntoReg(gen, registerSpace::r10, to);
@@ -586,9 +586,9 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //   gen.setRegisterSpace(rs);
   //   Register scratch = rs->getScratchRegister(gen, true);
   //   // 
-  //   assert(scratch == REG_NULL);
+  //   assert(scratch == Null_Register);
 
-  //   if (scratch == REG_NULL) { 
+  //   if (scratch == Null_Register) { 
   //       // Just save and restore everything, this is bad but its likely safe and can be revisted later.
   //       // GenerateSavesBaseTrampStyle(gen);
   //       // everythingSaved = true;
@@ -1056,7 +1056,7 @@ int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Registe
 		assert (stack_size == numRegs);
 		for (int i = 0; i < numRegs; i++){
 			Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-			assert (scratchReg != REG_NULL);
+			assert (scratchReg != Null_Register);
 			freeReg.push_back(scratchReg);
 			excludeReg.push_back(scratchReg);
 		}

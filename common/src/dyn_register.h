@@ -43,7 +43,4 @@ typedef long long int RegValue;
 /* '255' */
 constexpr Register Null_Register{static_cast<unsigned int>(-1)};
 
-/* Easily noticeable name... */
-constexpr Register REG_NULL{static_cast<unsigned int>(-1)};
-
 #endif

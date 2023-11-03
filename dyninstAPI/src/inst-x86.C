@@ -1361,7 +1361,7 @@ Register EmitterIA32::emitCall(opCode op,
 
    emitCallCleanup(gen, callee, param_size, saves);
 
-   if (!inInstrumentation) return REG_NULL;
+   if (!inInstrumentation) return Null_Register;
 
    // allocate a (virtual) register to store the return value
    // Virtual register
@@ -1588,13 +1588,13 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
       }
    }
    assert(0);
-   return stackItemLocation(RealRegister(REG_NULL), 0);
+   return stackItemLocation(RealRegister(Null_Register), 0);
 }
 
 // Restore mutatee value of GPR reg to dest (real) GPR
 Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use)
 {
-   Register dest = REG_NULL;
+   Register dest = Null_Register;
    RealRegister dest_r(-1);
    if (dest_to_use) {
       dest_r = *dest_to_use;
@@ -1701,7 +1701,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    }
 
    RealRegister src1_r(-1);
-   Register src1 = REG_NULL;
+   Register src1 = Null_Register;
    if (havera) {
       if (gen.inInstrumentation()) {
        src1 = restoreGPRtoReg(RealRegister(ra), gen);
@@ -1720,7 +1720,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    }
 
    RealRegister src2_r(-1);
-   Register src2 = REG_NULL;
+   Register src2 = Null_Register;
    if (haverb) {
       if (ra == rb) {
          src2_r = src1_r;
@@ -1767,11 +1767,11 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    }
    ::emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);
 
-   if (src1 != REG_NULL) {
+   if (src1 != Null_Register) {
        gen.rs()->unKeepRegister(src1);
        gen.rs()->freeRegister(src1);
    }
-   if (src2 != REG_NULL) {
+   if (src2 != Null_Register) {
        gen.rs()->unKeepRegister(src2);
        gen.rs()->freeRegister(src2);
    }
@@ -2505,12 +2505,12 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     unsigned u;
     for (u = 0; u < operands.size(); u++) {
         Address unused = ADDR_NULL;
-        Register reg = REG_NULL;
+        Register reg = Null_Register;
         if (!operands[u]->generateCode_phase2(gen,
                                               noCost,
                                               unused,
                                               reg)) assert(0); // ARGH....
-        assert (reg != REG_NULL); // Give me a real return path!
+        assert (reg != Null_Register); // Give me a real return path!
         srcs.push_back(reg);
     }
     

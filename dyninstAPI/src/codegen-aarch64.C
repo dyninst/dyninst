@@ -152,7 +152,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         insnCodeGen::generate(gen, branchInsn);
     };
 
-    Register scratch = REG_NULL;
+    Register scratch = Null_Register;
 
     if(isCall)
     {
@@ -174,7 +174,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         scratch = rs->getScratchRegister(gen, true);
     }
 
-    if (scratch == REG_NULL)
+    if (scratch == Null_Register)
     {
         //fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
         generateBranchViaTrap(gen, from, to, isCall);
@@ -476,7 +476,7 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Reg
     else
 	    scratchReg = gen.rs()->getScratchRegister(gen, true);
 
-    if (scratchReg == REG_NULL) {
+    if (scratchReg == Null_Register) {
         fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
         assert(0);
     }
@@ -851,7 +851,7 @@ bool insnCodeGen::modifyData(Address target,
         else {
             // Get scratch register
             Register scratch = gen.rs()->getScratchRegister(gen, true);
-            if(scratch == REG_NULL)
+            if(scratch == Null_Register)
                 assert(!"No scratch register available to load the target \
                         address into for a PC-relative data access using LDR/LDRSW!");
 

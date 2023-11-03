@@ -148,7 +148,7 @@ class registerSlot {
     // Don't want to use this...
     registerSlot() :
        alloc_num(0),
-        number(REG_NULL),
+        number(Null_Register),
         name("DEFAULT REGISTER"),
         initialState(deadAlways),
         offLimits(true),

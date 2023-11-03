@@ -666,7 +666,7 @@ Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
     Register dest = gen.rs()->allocateRegister(gen, noCost);
 
     ast_printf("Allocator returned %u\n", dest);
-    assert(dest != REG_NULL);
+    assert(dest != Null_Register);
 
     if (useCount > 1) {
         ast_printf("Adding kept register %u for node %p: useCount %d\n", dest, (void*)this, useCount);
@@ -760,7 +760,7 @@ bool AstNode::generateCode(codeGen &gen,
 bool AstNode::generateCode(codeGen &gen,
                            bool noCost) {
     Address unused = ADDR_NULL;
-    Register unusedReg = REG_NULL;
+    Register unusedReg = Null_Register;
     bool ret = generateCode(gen, noCost, unused, unusedReg);
     gen.rs()->freeRegister(unusedReg);
 
@@ -770,7 +770,7 @@ bool AstNode::generateCode(codeGen &gen,
 bool AstNode::previousComputationValid(Register &reg,
                                        codeGen &gen) {
 	Register keptReg = gen.tracker()->hasKeptRegister(this);
-	if (keptReg != REG_NULL) {
+	if (keptReg != Null_Register) {
 		reg = keptReg;
 		ast_printf("Returning previously used register %u for node %p\n", reg, (void*)this);
 		return true;
@@ -781,7 +781,7 @@ bool AstNode::previousComputationValid(Register &reg,
 // We're going to use this fragment over and over and over...
 #define RETURN_KEPT_REG(r) do { if (previousComputationValid(r, gen)) { decUseCount(gen); gen.rs()->incRefCount(r); return true;} } while (0)
 #define ERROR_RETURN do { fprintf(stderr, "[%s:%d] ERROR: failure to generate operand\n", __FILE__, __LINE__); return false; } while (0)
-#define REGISTER_CHECK(r) do { if ((r) == REG_NULL) { fprintf(stderr, "[%s: %d] ERROR: returned register invalid\n", __FILE__, __LINE__); return false; } } while (0)
+#define REGISTER_CHECK(r) do { if ((r) == Null_Register) { fprintf(stderr, "[%s: %d] ERROR: returned register invalid\n", __FILE__, __LINE__); return false; } } while (0)
 
 
 bool AstNode::initRegisters(codeGen &g) {
@@ -821,7 +821,7 @@ bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
                                       Address &retAddr,
                                       Register &retReg) {
     retAddr = ADDR_NULL;
-    retReg = REG_NULL;
+    retReg = Null_Register;
 
     decUseCount(gen);
 
@@ -840,7 +840,7 @@ bool AstNode::allocateCanaryRegister(codeGen& gen,
     registerSpace* regSpace = registerSpace::actualRegSpace(point);
     bool realReg = true;
     Register tmpReg = regSpace->getScratchRegister(gen, noCost, realReg);
-    if (tmpReg != REG_NULL) {
+    if (tmpReg != Null_Register) {
         reg = tmpReg;
         needSaveAndRestore = false;
         if (gen.getArch() == Arch_x86) {
@@ -852,7 +852,7 @@ bool AstNode::allocateCanaryRegister(codeGen& gen,
     // Couldn't find a dead register to use :-(
     registerSpace* deadRegSpace = registerSpace::optimisticRegSpace(gen.addrSpace());
     reg = deadRegSpace->getScratchRegister(gen, noCost, realReg);
-    if (reg == REG_NULL) {
+    if (reg == Null_Register) {
         fprintf(stderr, "WARNING: using default allocateAndKeep in allocateCanaryRegister\n");
         reg = allocateAndKeep(gen, noCost);
     }
@@ -1142,7 +1142,7 @@ bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
     generatedAddr_ = gen.currAddr();
 
     retAddr = ADDR_NULL;
-    retReg = REG_NULL;
+    retReg = Null_Register;
 
 	decUseCount(gen);
 
@@ -1326,7 +1326,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          // Would be nice to allow register branches...
          loperand->decUseCount(gen);
          (void)emitA(branchOp, 0, 0, (Register)offset, gen, rc_no_control, noCost);
-         retReg = REG_NULL; // No return register
+         retReg = Null_Register; // No return register
          break;
       }
       case ifOp: {
@@ -1430,7 +1430,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                gen.setIndex(endIndex);
             }
          }
-         retReg = REG_NULL;
+         retReg = Null_Register;
          break;
       }
       case ifMCOp: {
@@ -1545,7 +1545,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             gen.setIndex(elseStartIndex);
          }
          // END from ifOp
-         retReg = REG_NULL;
+         retReg = Null_Register;
          break;
       }
       case doOp: {
@@ -1555,7 +1555,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case getAddrOp: {
          switch(loperand->getoType()) {
             case operandType::variableAddr:
-               if (retReg == REG_NULL) {
+               if (retReg == Null_Register) {
                   retReg = allocateAndKeep(gen, noCost);
                }
                assert (loperand->getOVar());
@@ -1563,7 +1563,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           gen.point(), gen.addrSpace());
                break;
             case operandType::variableValue:
-               if (retReg == REG_NULL) {
+               if (retReg == Null_Register) {
                   retReg = allocateAndKeep(gen, noCost);
                }
                assert (loperand->getOVar());
@@ -1573,7 +1573,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             case operandType::DataAddr:
                {
                   addr = reinterpret_cast<Address>(loperand->getOValue());
-                  if (retReg == REG_NULL) {
+                  if (retReg == Null_Register) {
                      retReg = allocateAndKeep(gen, noCost);
                   }
                   assert(!loperand->getOVar());
@@ -1583,7 +1583,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             case operandType::FrameAddr: {
                // load the address fp + addr into dest
-               if (retReg == REG_NULL)
+               if (retReg == Null_Register)
                   retReg = allocateAndKeep(gen, noCost);
                Register temp = gen.rs()->getScratchRegister(gen, noCost);
                addr = (Address) loperand->getOValue();
@@ -1595,7 +1595,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                assert(loperand->operand());
 
                // load the address reg + addr into dest
-               if (retReg == REG_NULL) {
+               if (retReg == Null_Register) {
                   retReg = allocateAndKeep(gen, noCost);
                }
                addr = (Address) loperand->operand()->getOValue();
@@ -1742,7 +1742,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          if (roperand->decRefCount())
             gen.rs()->freeRegister(src1);
          gen.rs()->freeRegister(src2);
-         retReg = REG_NULL;
+         retReg = Null_Register;
          break;
       }
       case storeIndirOp: {
@@ -1756,12 +1756,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             gen.rs()->freeRegister(src1);
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src2);
-         retReg = REG_NULL;
+         retReg = Null_Register;
          break;
       }
       case trampPreamble: {
          // This ast cannot be shared because it doesn't return a register
-         retReg = REG_NULL;
+         retReg = Null_Register;
          break;
       }
       case plusOp:
@@ -1789,7 +1789,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          if ((roperand->getoType() == operandType::Constant) &&
              doNotOverflow((int64_t)roperand->getOValue())) {
-            if (retReg == REG_NULL) {
+            if (retReg == Null_Register) {
                retReg = allocateAndKeep(gen, noCost);
                ast_printf("Operator node, const RHS, allocated register %u\n", retReg);
             }
@@ -1808,7 +1808,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          else {
                if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
                REGISTER_CHECK(right_dest);
-            if (retReg == REG_NULL) {
+            if (retReg == Null_Register) {
                retReg = allocateAndKeep(gen, noCost);
             }
             emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
@@ -1841,7 +1841,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 #endif
    // Allocate a register to return
    if (oType != operandType::DataReg) {
-       if (retReg == REG_NULL) {
+       if (retReg == Null_Register) {
            retReg = allocateAndKeep(gen, noCost);
        }
    }
@@ -1996,7 +1996,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     const BPatch_memoryAccess* ma;
     const BPatch_addrSpec_NP *start;
     const BPatch_countSpec_NP *count;
-    if (retReg == REG_NULL)
+    if (retReg == Null_Register)
         retReg = allocateAndKeep(gen, noCost);
     switch(mem_) {
     case EffectiveAddr: {
@@ -2143,11 +2143,11 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 	// TODO: put register allocation here and have emitCall just
 	// move the return result.
-    if (tmp == REG_NULL) {
+    if (tmp == Null_Register) {
         // Happens in function replacement... didn't allocate
         // a return register.
     }
-    else if (retReg == REG_NULL) {
+    else if (retReg == Null_Register) {
         //emitFuncCall allocated tmp; we can use it, but let's see
         // if we should keep it around.
         retReg = tmp;
@@ -2172,7 +2172,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &,
                                           Register &retReg) {
     RETURN_KEPT_REG(retReg);
-    Register tmp = REG_NULL;
+    Register tmp = Null_Register;
     Address unused = ADDR_NULL;
 
     if (sequence_.size() == 0) {
@@ -2187,7 +2187,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                tmp)) ERROR_RETURN;
         if (sequence_[i]->decRefCount())
            gen.rs()->freeRegister(tmp);
-        tmp = REG_NULL;
+        tmp = Null_Register;
     }
 
     // We keep the last one
@@ -2209,10 +2209,10 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
                                               Address &,
                                               Register &retReg) {
     RETURN_KEPT_REG(retReg);
-    if (retReg == REG_NULL) {
+    if (retReg == Null_Register) {
         retReg = allocateAndKeep(gen, noCost);
     }
-    if (retReg == REG_NULL) return false;
+    if (retReg == Null_Register) return false;
 
     emitVload(loadConstOp,
               (Address) gen.point()->addr_compat(),
@@ -2224,10 +2224,10 @@ bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address &,
                                             Register &retReg) {
-    if (retReg == REG_NULL) {
+    if (retReg == Null_Register) {
         retReg = allocateAndKeep(gen, noCost);
     }
-    if (retReg == REG_NULL) return false;
+    if (retReg == Null_Register) return false;
 
     emitVload(loadConstOp,
               (Address) gen.currAddr(),
@@ -2250,10 +2250,10 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
    InstructionAPI::Instruction insn = gen.point()->block()->getInsn(gen.point()->block()->last());
    if (insn.getCategory() == c_ReturnInsn) {
       // if this is a return instruction our AST reads the top stack value
-      if (retReg == REG_NULL) {
+      if (retReg == Null_Register) {
          retReg = allocateAndKeep(gen, noCost);
       }
-      if (retReg == REG_NULL) return false;
+      if (retReg == Null_Register) return false;
 
 #if defined (arch_x86)
         emitVload(loadRegRelativeOp,
@@ -3445,7 +3445,7 @@ void regTracker_t::removeKeptRegister(codeGen &gen, AstNode *n) {
 Register regTracker_t::hasKeptRegister(AstNode *n) {
    auto iter = tracker.find(n);
    if (iter == tracker.end())
-      return REG_NULL;
+      return Null_Register;
    else return iter->second.keptRegister;
 }
 

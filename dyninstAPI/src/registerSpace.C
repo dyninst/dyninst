@@ -100,7 +100,7 @@ unsigned registerSlot::encoding() const {
         break;
     default:
         assert(0);
-        return REG_NULL;
+        return Null_Register;
         break;
     }
 #elif defined(arch_x86) || defined(arch_x86_64)
@@ -116,7 +116,7 @@ unsigned registerSlot::encoding() const {
             break;
         default:
             assert(0);
-            return REG_NULL;
+            return Null_Register;
             break;
     }
 #else
@@ -432,7 +432,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
     if (toUse == NULL) {
         // Crap.
       // debugPrint();
-        return REG_NULL;
+        return Null_Register;
     }
 
     toUse->alloc_num = num_allocs;
@@ -452,7 +452,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
   regalloc_printf("Allocating and retaining register...\n");
   Register reg = getScratchRegister(gen, noCost, realReg);
   regalloc_printf("retaining register %u\n", reg);
-  if (reg == REG_NULL) return REG_NULL;
+  if (reg == Null_Register) return Null_Register;
   if (realReg) {
     physicalRegs(reg)->refCount = 1;
   }
@@ -820,7 +820,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
 registerSlot *registerSpace::findRegister(Register source) {
     // Oh, oops... we're handed a register number... and we can't tell if it's
     // GPR, FPR, or SPR...
-    if (source == REG_NULL) return NULL;
+    if (source == Null_Register) return NULL;
 
     auto iter = registers_.find(source);
     if (iter == registers_.end()) return NULL;
@@ -1004,7 +1004,7 @@ void registerSpace::getAllRegisterNames(std::vector<std::string> &ret) {
 Register registerSpace::getRegByName(const std::string name) {
     map<std::string,Register>::iterator cur = registersByName.find(name);
     if (cur == registersByName.end())
-        return REG_NULL;
+        return Null_Register;
     return (*cur).second;
 }
 

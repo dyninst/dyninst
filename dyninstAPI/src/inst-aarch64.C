@@ -138,7 +138,7 @@ void registerSpace::initialize() {
 
 void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
 {
-    assert(scratchReg!=REG_NULL);
+    assert(scratchReg!=Null_Register);
 
     //TODO move map to common location
     map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
@@ -645,21 +645,21 @@ Register EmitterAARCH64::emitCall(opCode op,
     // Passing operands to registers
     for(size_t id = 0; id < operands.size(); id++)
     {
-        Register reg = REG_NULL;
+        Register reg = Null_Register;
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true))
             reg = registerSpace::r0 + id;
 
         Address unnecessary = ADDR_NULL;
         if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg))
             assert(0);
-        assert(reg!=REG_NULL);
+        assert(reg!=Null_Register);
     }
 
     assert(gen.rs());
 
     // Address of function to call in scratch register
     Register scratch = gen.rs()->getScratchRegister(gen);
-    assert(scratch != REG_NULL && "cannot get a scratch register");
+    assert(scratch != Null_Register && "cannot get a scratch register");
     gen.markRegDefined(scratch);
 
     if (gen.addrSpace()->edit() != NULL
@@ -770,7 +770,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                 // TODO: PARAM_OFFSET(addrWidth) is currently not used
                 // should delete that macro if it's useless
 
-                if (src2 != REG_NULL) insnCodeGen::saveRegister(gen, src2, stkOffset);
+                if (src2 != Null_Register) insnCodeGen::saveRegister(gen, src2, stkOffset);
                 insnCodeGen::restoreRegister(gen, dest, stkOffset);
 
                 return dest;
@@ -788,7 +788,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
             {
                 int offset = TRAMP_GPR_OFFSET(addrWidth);
                 // its on the stack so load it.
-                //if (src2 != REG_NULL) saveRegister(gen, src2, reg, offset);
+                //if (src2 != Null_Register) saveRegister(gen, src2, reg, offset);
                 insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()));
                 return(dest);
             }
@@ -897,7 +897,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         std::vector<Register> exclude;
 	exclude.push_back(dest);
         Register scratch = gen.rs()->getScratchRegister(gen, exclude);
-        assert(scratch != REG_NULL && "cannot get a scratch register");
+        assert(scratch != Null_Register && "cannot get a scratch register");
         gen.markRegDefined(scratch);
         restoreGPRtoGPR(gen, rb, scratch);
     	// call adds, save 2^scale * rb to dest
@@ -1304,7 +1304,7 @@ bool EmitterAARCH6432Stat::emitPIC(codeGen& gen, Address origAddr, Address reloc
       int stack_size = 0;
       int gpr_off, fpr_off, ctr_off;
       //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx Registers PC %d scratch %d \n", origAddr, relocAddr, scratchPCReg, scratchReg);
-      if ((scratchPCReg == REG_NULL) || (scratchReg == REG_NULL)) {
+      if ((scratchPCReg == Null_Register) || (scratchReg == Null_Register)) {
 		//fprintf(stderr, " Creating new stack frame for 0x%lx to 0x%lx \n", origAddr, relocAddr);
 
 		newStackFrame = true;
@@ -1320,11 +1320,11 @@ bool EmitterAARCH6432Stat::emitPIC(codeGen& gen, Address origAddr, Address reloc
 	      stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, 2);
 
 	      scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-	      assert(scratchPCReg != REG_NULL);
+	      assert(scratchPCReg != Null_Register);
 	      excludeReg.clear();
 	      excludeReg.push_back(scratchPCReg);
 	      scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-	      assert(scratchReg != REG_NULL);
+	      assert(scratchReg != Null_Register);
 	      // relocaAddr has moved since we added instructions to setup a new stack frame
 	      relocAddr = relocAddr + ((stack_size + 1)*(gen.width()));
               //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx stack size %d Registers PC %d scratch %d \n", origAddr, relocAddr, stack_size, scratchPCReg, scratchReg);
@@ -1351,7 +1351,7 @@ bool EmitterAARCH64Dyn::emitPIC(codeGen &gen, Address origAddr, Address relocAdd
 
 	Address origRet = origAddr + 4;
 	Register scratch = gen.rs()->getScratchRegister(gen, true);
-	assert(scratch != REG_NULL);
+	assert(scratch != Null_Register);
 	instruction::loadImmIntoReg(gen, scratch, origRet);
 	insnCodeGen::generateMoveToLR(gen, scratch);
 	return true;
@@ -1416,7 +1416,7 @@ bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
 
   Register scratchReg = 3; // = gen.rs()->getScratchRegister(gen, true);
   int stackSize = 0;
-  if (scratchReg == REG_NULL) {
+  if (scratchReg == Null_Register) {
     std::vector<Register> freeReg;
     std::vector<Register> excludeReg;
     stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
@@ -1457,7 +1457,7 @@ bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
     long varOffset = dest - gen.currAddr();
 
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != REG_NULL && "cannot get a scratch register");
+    assert(baseReg != Null_Register && "cannot get a scratch register");
     emitMovePCToReg(baseReg, gen);
 
     std::vector<Register> exclude;
@@ -1493,7 +1493,7 @@ bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
     long varOffset = dest - gen.currAddr();
 
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != REG_NULL && "cannot get a scratch register");
+    assert(baseReg != Null_Register && "cannot get a scratch register");
     emitMovePCToReg(baseReg, gen);
 
     std::vector<Register> exclude;
@@ -1574,7 +1574,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
 
     // load register with address from jump slot
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != REG_NULL && "cannot get a scratch register");
+    assert(baseReg != Null_Register && "cannot get a scratch register");
 
     emitMovePCToReg(baseReg, gen);
     Address varOffset = addr - gen.currAddr() + 4;
@@ -1622,7 +1622,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
 
     // load register with address from jump slot
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != REG_NULL && "cannot get a scratch register");
+    assert(baseReg != Null_Register && "cannot get a scratch register");
 
     emitMovePCToReg(baseReg, gen);
     Address varOffset = addr - gen.currAddr() + 4;
@@ -1631,7 +1631,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
-        assert(scratchReg1 != REG_NULL && "cannot get a scratch register");
+        assert(scratchReg1 != Null_Register && "cannot get a scratch register");
         emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
         emitStoreRelative(source, 0, scratchReg1, size, gen);
     } else {

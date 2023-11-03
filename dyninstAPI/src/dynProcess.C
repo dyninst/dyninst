@@ -1803,7 +1803,7 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
    return postIRPC_internal(buffer,
                             size,
                             size,
-                            REG_NULL,
+                            Null_Register,
                             addr,
                             userData,
                             runProcessWhenDone,
@@ -1850,7 +1850,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
       return false;
    }
    
-   Register resultReg = REG_NULL;
+   Register resultReg = Null_Register;
    if( !action->generateCode(irpcBuf, false, resultReg) ) {
       proccontrol_printf("%s[%d]: failed to generate code from AST\n",
                          FILE__, __LINE__);

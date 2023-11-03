@@ -116,7 +116,7 @@ public:
 	public:
 		Register keptRegister;	
 		int keptLevel;
-		commonExpressionTracker() : keptRegister(REG_NULL), keptLevel(-1) {}
+		commonExpressionTracker() : keptRegister(Null_Register), keptLevel(-1) {}
 	};
 
 	int condLevel;

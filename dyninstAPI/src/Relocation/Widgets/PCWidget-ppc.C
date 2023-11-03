@@ -71,7 +71,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     Address origRet = addr() + insn_.size();
     Register scratch = gen.rs()->getScratchRegister(gen, true);
     bool createFrame = false;
-    if (scratch == REG_NULL) {
+    if (scratch == Null_Register) {
       stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
       assert(stackSize == 1);
       scratch = freeReg[0];
@@ -138,14 +138,14 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   excludeReg.push_back(scratchPCReg);
   Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
     
-  if ((scratchPCReg == REG_NULL) && (scratchReg == REG_NULL)) {
+  if ((scratchPCReg == Null_Register) && (scratchReg == Null_Register)) {
     excludeReg.clear();
     stackSize = insnCodeGen::createStackFrame(gen, 2, freeReg, excludeReg);
     assert(stackSize == 2);
     scratchPCReg = freeReg[0];
     scratchReg = freeReg[1];
       
-  } else if (scratchReg == REG_NULL && scratchPCReg != REG_NULL) {
+  } else if (scratchReg == Null_Register && scratchPCReg != Null_Register) {
     stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
     assert(stackSize == 1);
     scratchReg = freeReg[0];

@@ -437,7 +437,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     callType call_conven = target->getCallingConvention();
     int estimatedFrameSize = 0;
     std::vector <Register> srcs;
-    Register ecx_target = REG_NULL, edx_target = REG_NULL;
+    Register ecx_target = Null_Register, edx_target = Null_Register;
     Address unused = ADDR_NULL;
     const int num_operands = operands.size();
 
@@ -447,10 +447,10 @@ int EmitterIA32::emitCallParams(codeGen &gen,
         case stdcall_call:
           //Push all registers onto stack
           for (unsigned u = 0; u < operands.size(); u++) {
-              Register src = REG_NULL;
+              Register src = Null_Register;
               Address unused = ADDR_NULL;
               if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
-              assert(src != REG_NULL);
+              assert(src != Null_Register);
               srcs.push_back(src);
           }
           break;
@@ -468,10 +468,10 @@ int EmitterIA32::emitCallParams(codeGen &gen,
         srcs.push_back(Null_Register);
         //Push other registers onto the stack
         for (unsigned u = 1; u < operands.size(); u++) {
-              Register src = REG_NULL;
+              Register src = Null_Register;
               Address unused = ADDR_NULL;
               if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
-              assert(src != REG_NULL);
+              assert(src != Null_Register);
               srcs.push_back(src);
         }     
         break;
@@ -504,10 +504,10 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 
         //Push other registers onto the stack
         for (unsigned u = 2; u < operands.size(); u++) {
-              Register src = REG_NULL;
+              Register src = Null_Register;
               Address unused = ADDR_NULL;
               if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
-              assert(src != REG_NULL);
+              assert(src != Null_Register);
               srcs.push_back(src);
         }
         break;
@@ -527,12 +527,12 @@ int EmitterIA32::emitCallParams(codeGen &gen,
           gen.rs()->freeRegister(srcs[i]);
     }
 
-    if (ecx_target != REG_NULL) {
+    if (ecx_target != Null_Register) {
         //Store the parameter in ecx
 		gen.rs()->loadVirtualToSpecific(ecx_target, RealRegister(REGNUM_ECX), gen);
     }
 
-    if (edx_target != REG_NULL) {
+    if (edx_target != Null_Register) {
 		gen.rs()->loadVirtualToSpecific(edx_target, RealRegister(REGNUM_EDX), gen);
     }
     return estimatedFrameSize;
