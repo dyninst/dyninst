@@ -41,8 +41,6 @@
 
 using namespace Dyninst::SymtabAPI;
 
-// #define USE_ADDRESS_MAPS
-
 // Reading and writing get somewhat interesting. We are building
 // a false address space - that of the "inferior" binary we're editing. 
 // However, that address space doesn't exist - and so we must overlay
@@ -695,11 +693,6 @@ Address BinaryEdit::maxAllocedAddr() {
 bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     // Should be set by now
     assert(highWaterMark_ != 0);
-
-#if defined(USE_ADDRESS_MAPS)
-    void *buf = malloc(size);
-    if (!buf) return false;
-#endif
     
     Address newStart = highWaterMark_;
 
