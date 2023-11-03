@@ -35,13 +35,13 @@
 #include "CodeSource.h"
 #include "Location.h"
 #include "Instruction.h"
-#include "Register.h"
 #include "InstructionDecoder.h"
 #include "InstructionCache.h"
 #include "bitArray.h"
 #include "ABI.h"
 #include <map>
 #include <set>
+#include "Register.h"
 
 
 using namespace Dyninst;

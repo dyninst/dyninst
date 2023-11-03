@@ -29,9 +29,10 @@
  */
 
 #include "IAPI_to_AST.h"
+
+#include "Register.h"
 #include "BinaryFunction.h"
 #include "Immediate.h"
-#include "Register.h"
 #include "Dereference.h"
 #if defined(arch_x86) || defined(arch_x86_64)
 #include "RegisterConversion.h"

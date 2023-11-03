@@ -62,6 +62,7 @@ set(_private_headers
     src/arch-x86.h
     src/debug_common.h
     src/dthread.h
+    src/dyn_register.h
     src/freebsdHeaders.h
     src/freebsdKludges.h
     src/headers.h

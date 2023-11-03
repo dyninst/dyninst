@@ -33,9 +33,9 @@
 #include "Absloc.h"
 #include "AbslocInterface.h"
 
+#include "Register.h"
 // Pile of InstructionAPI includes
 #include "Expression.h"
-#include "Register.h"
 #include "Result.h"
 #include "Dereference.h"
 #include "BinaryFunction.h"

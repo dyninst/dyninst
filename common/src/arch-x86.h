@@ -35,7 +35,6 @@
 #define _ARCH_X86_H
 
 #include "dyntypes.h"
-#include "Types.h"
 #include <assert.h>
 #include <stdio.h>
 #include <set>
@@ -44,6 +43,7 @@
 #include "entryIDs.h"
 #include "registers/MachRegister.h"
 #include "common/src/ia32_locations.h"
+#include "dyn_register.h"
 
 
 namespace NS_x86 {

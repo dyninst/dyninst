@@ -44,8 +44,8 @@
 #include <stdio.h>
 #include <string>
 #include <unordered_map>
-#include "common/src/Types.h"
 
+#include "dyn_register.h"
 #include "Point.h"
 
 #include "BPatch_snippet.h"

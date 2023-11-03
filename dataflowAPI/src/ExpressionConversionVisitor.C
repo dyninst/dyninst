@@ -29,7 +29,6 @@
  */
 #include "ExpressionConversionVisitor.h"
 
-#include "Register.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
@@ -37,6 +36,7 @@
 
 #include <list>
 
+#include "Register.h"
 #include "../rose/SgAsmExpression.h"
 
 using namespace Dyninst;

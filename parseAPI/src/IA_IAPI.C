@@ -33,7 +33,6 @@
 #include "registers/x86_regs.h"
 #include "IA_IAPI.h"
 #include "util.h"
-#include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
@@ -46,6 +45,7 @@
 #include <deque>
 #include <map>
 
+#include "Register.h"
 #include "IA_x86.h"
 #include "IA_power.h"
 #include "IA_aarch64.h"

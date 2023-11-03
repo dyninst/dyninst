@@ -331,8 +331,8 @@ bool DwarfFrameParser::getRegAtFrame(
             }
 
             // translate dwarf reg to machine reg
-            //Dyninst::MachRegister dyn_register = MachRegister::DwarfEncToReg(dwarf_reg, arch);
-            //cons.readReg(dyn_register);
+            //Dyninst::MachRegister Register = MachRegister::DwarfEncToReg(dwarf_reg, arch);
+            //cons.readReg(Register);
 
             ConcreteDwarfResult aux_cdr;
             // if is concrete, add Deref as last operation if there isn't DW_OP_stack_value
