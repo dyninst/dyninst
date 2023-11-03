@@ -1425,7 +1425,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     // there may be an immediate after the displacement
     // so we copy over the rest of the instruction here
     while (origInsn - origInsnStart < (int)insnSz) {
-        auto nextByte = read_memory_as<uint8_t>(origInsn);
+        auto nextByte = Dyninst::read_memory_as<uint8_t>(origInsn);
         append_memory_as_byte(newInsn, nextByte);
     }
 

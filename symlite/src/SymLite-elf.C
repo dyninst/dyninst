@@ -402,7 +402,7 @@ unsigned long SymElf::getSymOffset(const Elf_X_Sym &symbol, unsigned idx)
       
       unsigned long sym_offset = symbol.st_value(idx);
       while (sym_offset >= odp_addr && sym_offset < odp_addr + odp_size)
-         sym_offset = read_memory_as<uint64_t>(odp_data + sym_offset - odp_addr);
+         sym_offset = Dyninst::read_memory_as<uint64_t>(odp_data + sym_offset - odp_addr);
       return sym_offset;
    }
 
@@ -420,7 +420,7 @@ unsigned long SymElf::getSymTOC(const Elf_X_Sym &symbol, unsigned idx)
       if (sym_offset < odp_addr || (sym_offset >= odp_addr + odp_size)) 
          return 0;
 
-      auto toc = read_memory_as<uint64_t>(odp_data + (sym_offset - odp_addr + sizeof(long)));
+      auto toc = Dyninst::read_memory_as<uint64_t>(odp_data + (sym_offset - odp_addr + sizeof(long)));
       return toc;
    }
 

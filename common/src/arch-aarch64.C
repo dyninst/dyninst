@@ -104,7 +104,7 @@ void instruction::setInstruction(codeBuf_t * /*ptr*/, Address) {
 
 void instruction::setInstruction(unsigned char *ptr, Address) {
     // We don't need the addr on this platform
-    insn_ = read_memory_as<instructUnion>(ptr);
+    insn_ = Dyninst::read_memory_as<instructUnion>(ptr);
 }
 
 bool instruction::isBranchReg() const{

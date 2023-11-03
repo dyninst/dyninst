@@ -663,7 +663,7 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
         pthrd_printf("flags 0x%x:\n", (unsigned int)flags);
 
         for(unsigned int i = 0; i< buffer_size ; i+=4){
-            pthrd_printf("0x%8x\n", read_memory_as<uint32_t>(static_cast<char *>(buffer)+i)) ;
+            pthrd_printf("0x%8x\n", Dyninst::read_memory_as<uint32_t>(static_cast<char *>(buffer)+i)) ;
         }
 
 #endif
