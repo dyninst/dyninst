@@ -320,33 +320,35 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
     eoperand(e)
 {
     // Optimization pass...
-
-    if (op == plusOp) {
-        if (loperand->getoType() == operandType::Constant) {
-            // Swap left and right...
-            AstNodePtr temp = loperand;
-            loperand = roperand;
-            roperand = temp;
-        }
-    }
-    if (op == timesOp) {
-        if (roperand->getoType() == operandType::undefOperandType) {
-            // ...
-       }
-        else if (roperand->getoType() != operandType::Constant) {
-            AstNodePtr temp = roperand;
-            roperand = loperand;
-            loperand = temp;
-        }
-        else {
-            int result;
-            if (!isPowerOf2((Address)roperand->getOValue(),result) &&
-                isPowerOf2((Address)loperand->getOValue(),result)) {
-                AstNodePtr temp = roperand;
-                roperand = loperand;
-                loperand = temp;
-            }
-        }
+    if(!loperand) return;
+    if(roperand) {
+      if (op == plusOp) {
+          if (loperand->getoType() == operandType::Constant) {
+              // Swap left and right...
+              AstNodePtr temp = loperand;
+              loperand = roperand;
+              roperand = temp;
+          }
+      }
+      if (op == timesOp) {
+          if (roperand->getoType() == operandType::undefOperandType) {
+              // ...
+         }
+          else if (roperand->getoType() != operandType::Constant) {
+              AstNodePtr temp = roperand;
+              roperand = loperand;
+              loperand = temp;
+          }
+          else {
+              int result;
+              if (!isPowerOf2((Address)roperand->getOValue(),result) &&
+                  isPowerOf2((Address)loperand->getOValue(),result)) {
+                  AstNodePtr temp = roperand;
+                  roperand = loperand;
+                  loperand = temp;
+              }
+          }
+      }
     }
     if (l != AstNodePtr())
     {
@@ -1159,22 +1161,25 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
 #if !defined(arch_x86)
     // Override: if we're trying to save to an original
     // register, make sure it's saved on the stack.
-    if (op == storeOp) {
+    if(loperand) {
+      if (op == storeOp) {
         if (loperand->getoType() == operandType::origRegister) {
-            Address origReg = (Address) loperand->getOValue();
-            // Mark that register as live so we are sure to save it.
-            registerSlot *r = (*(g.rs()))[origReg];
-            r->liveState = registerSlot::live;
+          Address origReg = (Address) loperand->getOValue();
+          // Mark that register as live so we are sure to save it.
+          registerSlot *r = (*(g.rs()))[origReg];
+          r->liveState = registerSlot::live;
         }
+      }
     }
 #endif
     return ret;
 }
 
-
 #if defined(arch_x86) || defined(arch_x86_64)
 bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost)
 {
+   if(!(loperand && roperand)) { return false; }
+
    //Recognize the common case of 'a = a op constant' and try to
    // generate optimized code for this case.
    Address laddr;
@@ -1295,6 +1300,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &, int, bool)
 bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &retAddr,
                                           Register &retReg) {
+   if(!(loperand && roperand)) { return false; }
 
    retAddr = ADDR_NULL; // We won't be setting this...
    // retReg may have a value or be the (register) equivalent of NULL.
