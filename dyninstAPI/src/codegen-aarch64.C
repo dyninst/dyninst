@@ -113,7 +113,7 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool link) {
+void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
     long disp = (to - from);
 
     if (labs(disp) > MAX_BRANCH_OFFSET) {
@@ -122,13 +122,13 @@ void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool li
         generateBranch(gen, disp, link);
 }
 
-void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
+void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
     generateBranch(gen, from, to, true);
 }
 
 void insnCodeGen::generateLongBranch(codeGen &gen,
-                                     Address from,
-                                     Address to,
+                                     Dyninst::Address from,
+                                     Dyninst::Address to,
                                      bool isCall) 
 {
     auto generateBReg = [&isCall, &gen](Register s) -> void
@@ -185,7 +185,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     generateBReg(scratch);
 }
 
-void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
+void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
     long disp = to - from;
     if (labs(disp) <= MAX_BRANCH_OFFSET) {
         // We shouldn't be here, since this is an internal-called-only func.
@@ -210,7 +210,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
-void insnCodeGen::generateConditionalBranch(codeGen& gen, Address to, unsigned opcode, bool s)
+void insnCodeGen::generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s)
 {
     instruction insn;
     insn.clear();
@@ -481,7 +481,7 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Reg
         assert(0);
     }
 
-    loadImmIntoReg(gen, scratchReg, static_cast<Address>(val));
+    loadImmIntoReg(gen, scratchReg, static_cast<Dyninst::Address>(val));
 
     return scratchReg;
 }
@@ -651,8 +651,8 @@ assert(0);
 
 bool insnCodeGen::generateMem(codeGen &,
                               instruction&,
-                              Address,
-                              Address,
+                              Dyninst::Address,
+                              Dyninst::Address,
                               Register,
                   Register) {
 assert(0);
@@ -673,7 +673,7 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-bool insnCodeGen::modifyJump(Address target,
+bool insnCodeGen::modifyJump(Dyninst::Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     long disp = target - gen.currAddr();
@@ -704,7 +704,7 @@ bool insnCodeGen::modifyJump(Address target,
  * bit-twiddling functions can then be defined if necessary in the codegen-* files 
  * and called as necessary by the common, refactored logic.
 */
-bool insnCodeGen::modifyJcc(Address target,
+bool insnCodeGen::modifyJcc(Dyninst::Address target,
 			    NS_aarch64::instruction &insn,
 			    codeGen &gen) {
     long disp = target - gen.currAddr();
@@ -713,7 +713,7 @@ bool insnCodeGen::modifyJcc(Address target,
     if(labs(disp) > MAX_CBRANCH_OFFSET ||
             (isTB && labs(disp) > MAX_TBRANCH_OFFSET))
     {
-        Address origFrom = gen.currAddr();
+        Dyninst::Address origFrom = gen.currAddr();
 
         /*
          * A conditional branch of the form:
@@ -754,7 +754,7 @@ bool insnCodeGen::modifyJcc(Address target,
          * bytes (8 actually, but I'm not hardcoding this) ahead of the original 'from' address.
          * So adjust it accordingly.*/
         codeBufIndex_t curIdx = gen.getIndex();
-        Address newFrom = origFrom + (unsigned)(curIdx - startIdx);
+        Dyninst::Address newFrom = origFrom + (unsigned)(curIdx - startIdx);
         insnCodeGen::generateBranch(gen, newFrom, target);
     } 
     else
@@ -773,7 +773,7 @@ bool insnCodeGen::modifyJcc(Address target,
     return true;
 }
 
-bool insnCodeGen::modifyCall(Address target,
+bool insnCodeGen::modifyCall(Dyninst::Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     if (insn.isUncondBranch())
@@ -782,7 +782,7 @@ bool insnCodeGen::modifyCall(Address target,
         return modifyJcc(target, insn, gen);
 }
 
-bool insnCodeGen::modifyData(Address target,
+bool insnCodeGen::modifyData(Dyninst::Address target,
         NS_aarch64::instruction &insn,
         codeGen &gen) 
 {
@@ -793,14 +793,14 @@ bool insnCodeGen::modifyData(Address target,
         isneg = true;
 
     if (((raw >> 24) & 0x1F) == 0x10) {
-        Address offset;
+        Dyninst::Address offset;
         if((static_cast<uint32_t>(raw) >> 31) & 0x1) {
             target &= 0xFFFFF000;
-            Address cur = gen.currAddr() & 0xFFFFF000;
+            Dyninst::Address cur = gen.currAddr() & 0xFFFFF000;
             offset = isneg ? (cur - target) : (target - cur);
             offset >>= 12;
         } else {
-            Address cur = gen.currAddr();
+            Dyninst::Address cur = gen.currAddr();
             offset = isneg ? (cur - target) : (target - cur);
         }
         signed long imm = isneg ? -((signed long)offset) : offset;
@@ -836,7 +836,7 @@ bool insnCodeGen::modifyData(Address target,
 
         }
     } else if (((raw >> 24) & 0x3F) == 0x18 || ((raw >> 24) & 0x3F) == 0x1C) {
-        Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
+        Dyninst::Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
         //If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
         if (offset <= (1 << 20)) {
             instruction newInsn(insn);

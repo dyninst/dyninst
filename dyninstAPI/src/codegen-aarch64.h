@@ -32,6 +32,7 @@
 #define _CODEGEN_AARCH64_H
 
 #include <vector>
+#include "dyntypes.h"
 
 class AddressSpace;
 
@@ -81,27 +82,27 @@ public:
                                bool link = false);
 
     static void generateBranch(codeGen &gen,
-                               Address from,
-                               Address to,
+                               Dyninst::Address from,
+                               Dyninst::Address to,
                                bool link = false);
 
     static void generateCall(codeGen &gen,
-                             Address from,
-                             Address to);
+                             Dyninst::Address from,
+                             Dyninst::Address to);
 
     static void generateLongBranch(codeGen &gen,
-                                   Address from,
-                                   Address to,
+                                   Dyninst::Address from,
+                                   Dyninst::Address to,
                                    bool isCall);
 
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
-                                      Address from,
-                                      Address to,
+                                      Dyninst::Address from,
+                                      Dyninst::Address to,
                                       bool isCall);
 
     // Generate conditional branch
-    static void generateConditionalBranch(codeGen& gen, Address to, unsigned opcode, bool s);
+    static void generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s);
 
     // LDR/STR (immediate)
     // immd in the range -256 to 255
@@ -111,7 +112,7 @@ public:
     static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt,
             Register rn, int immd, int size, bool is128bit, IndexMode im=Offset);
 
-    static inline void loadImmIntoReg(codeGen &gen, Register rt, Address value)
+    static inline void loadImmIntoReg(codeGen &gen, Register rt, Dyninst::Address value)
     {
         insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
         if(value > 0xFFFF)
@@ -166,8 +167,8 @@ public:
 
     static bool generateMem(codeGen &gen,
                             instruction &insn,
-                            Address origAddr,
-                            Address newAddr,
+                            Dyninst::Address origAddr,
+                            Dyninst::Address newAddr,
                             Register newLoadReg,
                             Register newStoreReg);
 
@@ -206,8 +207,8 @@ public:
     static bool generate(codeGen &gen,
                          instruction &insn,
                          AddressSpace *proc,
-                         Address origAddr,
-                         Address newAddr,
+                         Dyninst::Address origAddr,
+                         Dyninst::Address newAddr,
                          patchTarget *fallthroughOverride = NULL,
                          patchTarget *targetOverride = NULL);
 
@@ -222,19 +223,19 @@ public:
 
     static void generateNOOP(codeGen &gen, unsigned size = 4);
 
-    static bool modifyJump(Address target,
+    static bool modifyJump(Dyninst::Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
 
-    static bool modifyJcc(Address target,
+    static bool modifyJcc(Dyninst::Address target,
                           NS_aarch64::instruction &insn,
                           codeGen &gen);
 
-    static bool modifyCall(Address target,
+    static bool modifyCall(Dyninst::Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
 
-    static bool modifyData(Address target,
+    static bool modifyData(Dyninst::Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
 };
