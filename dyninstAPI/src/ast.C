@@ -1784,14 +1784,11 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Null_Register;
          right_dest = Null_Register;
-         if (loperand) {
             if (!loperand->generateCode_phase2(gen,
                                                noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
-         }
 
-         if (roperand &&
-             (roperand->getoType() == operandType::Constant) &&
+         if ((roperand->getoType() == operandType::Constant) &&
              doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
@@ -1810,10 +1807,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             roperand->decUseCount(gen);
          }
          else {
-            if (roperand) {
                if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
                REGISTER_CHECK(right_dest);
-            }
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
             }
