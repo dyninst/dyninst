@@ -1300,7 +1300,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &, int, bool)
 bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &retAddr,
                                           Register &retReg) {
-   if(!(loperand && roperand)) { return false; }
+   if(!loperand) { return false; }
 
    retAddr = ADDR_NULL; // We won't be setting this...
    // retReg may have a value or be the (register) equivalent of NULL.
@@ -1330,8 +1330,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          break;
       }
       case ifOp: {
+         if(!roperand) { return false; }
          // This ast cannot be shared because it doesn't return a register
-
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          REGISTER_CHECK(src1);
          codeBufIndex_t ifIndex= gen.getIndex();
@@ -1481,6 +1481,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          break;
       }
       case whileOp: {
+        if(!roperand) { return false; }
         codeBufIndex_t top = gen.getIndex(); 
 
         // BEGIN from ifOp       
@@ -1627,6 +1628,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          break;
       }
       case storeOp: {
+        if(!roperand) { return false; }
 	bool result = generateOptimizedAssignment(gen, size, noCost);
          if (result)
             break;
@@ -1745,7 +1747,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          break;
       }
       case storeIndirOp: {
-
+        if(!roperand) { return false; }
          if (!roperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          if (!loperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
          REGISTER_CHECK(src1);
@@ -1778,6 +1780,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case geOp:
       default:
       {
+         if(!roperand) { return false; }
          bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Null_Register;
          right_dest = Null_Register;
