@@ -177,11 +177,6 @@ namespace Dyninst {
             return InstructionDecoderImpl::makeRegisterExpression(registerID, low, high );
         }
 
-
-
-//#include "amdgpu_gfx940_decoder_impl.C"
-//#include "appendOperands.C"
-//#include "finalizeOperands.C"
         inline unsigned int InstructionDecoder_amdgpu_gfx940::get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
             assert(offset %4 ==0 );
             if(b.start + offset + 4 <= b.end)
