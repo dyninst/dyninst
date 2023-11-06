@@ -534,11 +534,6 @@ AstNodePtr AstNode::threadIndexNode() {
     return indexNode_;
 }
 
-
-#if defined(ASTDEBUG)
-#define AST_PRINT
-#endif
-
 AstNode::~AstNode() {
     //printf("at ~AstNode()  count=%d\n", referenceCount);
 }
