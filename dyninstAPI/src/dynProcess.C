@@ -64,7 +64,7 @@ namespace {
 	// Note that "%x" outputs incorrect/incomplete addresses, and that "%lx"
 	// or system-dependent "%p" (generally also requiring a typecast to (void*))
 	// must be used instead!
-	char *Address_str (Address addr)
+	char *Address_str (Dyninst::Address addr)
 	{
 		static int i=0;
 		i=(i+1)%_numaddrstrs;
@@ -856,7 +856,7 @@ bool PCProcess::loadRTLib() {
 
    // Install a breakpoint in DYNINSTtrapFunction.
    // This is used as RT signal.
-   Address addr = getRTTrapFuncAddr();
+   Dyninst::Address addr = getRTTrapFuncAddr();
    if (addr == 0) {
        startup_printf("%s[%d]: Cannot find DYNINSTtrapFunction. Needed as RT signal\n", FILE__, __LINE__);
        return false;
@@ -961,7 +961,7 @@ bool PCProcess::insertBreakpointAtMain() {
                 FILE__, __LINE__);
         return false;
     }
-    Address addr = main_function_->addr();
+    Dyninst::Address addr = main_function_->addr();
 
     // Create the breakpoint
     mainBrkPt_ = Breakpoint::newBreakpoint();
@@ -984,7 +984,7 @@ bool PCProcess::removeBreakpointAtMain() {
         return true;
     }
 
-    Address addr = main_function_->addr();
+    Dyninst::Address addr = main_function_->addr();
 
     if( !pcProc_->rmBreakpoint(addr, mainBrkPt_) ) {
         startup_printf("%s[%d]: failed to remove breakpoint at main entry: 0x%lx\n",
@@ -1213,7 +1213,7 @@ bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
        cerr << "Writing to terminated process!" << endl;
        return false;
     }
-    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+    bool result = pcProc_->writeMemory((Dyninst::Address)inTracedProcess, inSelf,
                                        amount);
 
     if( BPatch_defensiveMode == proc()->getHybridMode() && !result ) {
@@ -1221,7 +1221,7 @@ bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
         // from the page, remove them and try again
 
         PCMemPerm origRights, rights(true, true, true);
-        if (!pcProc_->setMemoryAccessRights((Address)inTracedProcess,
+        if (!pcProc_->setMemoryAccessRights((Dyninst::Address)inTracedProcess,
                                             amount, rights, origRights)) {
             cerr << "Fail to set memory permissions!" << endl;
             return false;
@@ -1236,7 +1236,7 @@ bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
         */
 
         if( origRights.isRX() || origRights.isR() ) {
-            result = pcProc_->writeMemory((Address)inTracedProcess, inSelf,
+            result = pcProc_->writeMemory((Dyninst::Address)inTracedProcess, inSelf,
                                           amount);
 
             /*
