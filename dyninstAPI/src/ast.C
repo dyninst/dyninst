@@ -1592,7 +1592,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             }
             case operandType::RegOffset: {
-               assert(loperand);
                assert(loperand->operand());
 
                // load the address reg + addr into dest
