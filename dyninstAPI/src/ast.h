@@ -572,7 +572,6 @@ class AstOperatorNode : public AstNode {
 
     bool generateOptimizedAssignment(codeGen &gen, int size, bool noCost);
 
-    AstOperatorNode() {}
     opCode op{};
     AstNodePtr loperand;
     AstNodePtr roperand;
