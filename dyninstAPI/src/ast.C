@@ -2590,19 +2590,6 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
 }
 
 bool AstNode::accessesParam() {
-#if 0
-    fprintf(stderr, "Undefined call to getChildren for type: ");
-    if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
-    else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
-    else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
-    else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
-    else if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
-    else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
-    else if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
-    else fprintf(stderr, "unknownNode\n");
-#endif
     return false;
 }
 
