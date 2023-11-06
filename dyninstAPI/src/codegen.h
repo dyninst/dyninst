@@ -35,6 +35,7 @@
 #include <string>
 #include <map>
 #include "dyntypes.h"
+#include "dyn_register.h"
 #include "common/src/arch.h"
 #include "dyninstAPI/src/patch.h"
 
@@ -240,8 +241,8 @@ class codeGen {
     void beginTrackRegDefs();
     void endTrackRegDefs();
     const bitArray &getRegsDefined();
-    void markRegDefined(Register r);
-    bool isRegDefined(Register r);
+    void markRegDefined(Dyninst::Register r);
+    bool isRegDefined(Dyninst::Register r);
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }

@@ -1257,19 +1257,19 @@ unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
    return 0x0;
 }
 
-Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
+Dyninst::Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
 	assert(0);
 	return 0;
 }
 
 // this function just multiplexes between the 32-bit and 64-bit versions
-Register emitFuncCall(opCode op, 
+Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector<AstNodePtr> &operands, 
                       bool noCost,
                       func_instance *callee)
 {
-    Register reg = gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);
+    Dyninst::Register reg = gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);
     return reg;
 }
 
@@ -1321,7 +1321,7 @@ void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 }
 
 
-Register EmitterIA32::emitCall(opCode op, 
+Dyninst::Register EmitterIA32::emitCall(opCode op,
                                codeGen &gen,
                                const std::vector<AstNodePtr> &operands, 
                                bool noCost, func_instance *callee) {
@@ -1339,9 +1339,9 @@ Register EmitterIA32::emitCall(opCode op,
       cerr << "ERROR: emitCall with op == " << op << endl;
     }
     assert(op == callOp);
-    std::vector <Register> srcs;
+    std::vector <Dyninst::Register> srcs;
     int param_size;
-    std::vector<Register> saves;
+    std::vector<Dyninst::Register> saves;
     
     //  Sanity check for NULL address arg
     if (!callee) {
@@ -1354,8 +1354,8 @@ Register EmitterIA32::emitCall(opCode op,
 
    param_size = emitCallParams(gen, operands, callee, saves, noCost);
 
-   //Register ret = gen.rs()->allocateRegister(gen, noCost);
-   Register ret = REGNUM_EAX;
+   //Dyninst::Register ret = gen.rs()->allocateRegister(gen, noCost);
+   Dyninst::Register ret = REGNUM_EAX;
 
    emitCallInstruction(gen, callee, ret);
 
@@ -1375,7 +1375,7 @@ Register EmitterIA32::emitCall(opCode op,
  * base is the next free position on ibuf where code is to be generated
  */
 
-codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
+codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
                      codeGen &gen, RegControl rc, bool /*noCost*/)
 {
    //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
@@ -1411,7 +1411,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
    return retval;
 }
 
-Register emitR(opCode op, Register src1, Register src2, Register dest,
+Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen, bool noCost,
                const instPoint *location, bool /*for_multithreaded*/)
 {
@@ -1592,9 +1592,9 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
 }
 
 // Restore mutatee value of GPR reg to dest (real) GPR
-Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use)
+Dyninst::Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use)
 {
-   Register dest = Null_Register;
+   Dyninst::Register dest = Null_Register;
    RealRegister dest_r(-1);
    if (dest_to_use) {
       dest_r = *dest_to_use;
@@ -1644,7 +1644,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    if (r->spilledState == registerSlot::unspilled ||
        !gen.isRegDefined(reg.reg())) 
    {
-      //Register is still in its pristine state from app, leave it.
+      //Dyninst::Register is still in its pristine state from app, leave it.
       if (dest_r.reg() == -1)
 	      gen.rs()->noteVirtualInReal(dest, reg);
       else if (dest_r.reg() != reg.reg())
@@ -1669,7 +1669,7 @@ void restoreGPRtoGPR(RealRegister src, RealRegister dest, codeGen &gen)
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift, codeGen &gen, bool /* noCost */)
+void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen, bool /* noCost */)
 {
     // TODO 16-bit registers, rep hacks
     long imm = as->getImm();
@@ -1680,7 +1680,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift, cod
     gen.codeEmitter()->emitASload(ra, rb, sc, imm, dest, stackShift, gen);
 }
 
-void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackOffset, codeGen &gen)
+void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Dyninst::Register dest, int stackOffset, codeGen &gen)
 {
     bool havera = ra > -1, haverb = rb > -1;
    
@@ -1701,7 +1701,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    }
 
    RealRegister src1_r(-1);
-   Register src1 = Null_Register;
+   Dyninst::Register src1 = Null_Register;
    if (havera) {
       if (gen.inInstrumentation()) {
        src1 = restoreGPRtoReg(RealRegister(ra), gen);
@@ -1720,7 +1720,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    }
 
    RealRegister src2_r(-1);
-   Register src2 = Null_Register;
+   Dyninst::Register src2 = Null_Register;
    if (haverb) {
       if (ra == rb) {
          src2_r = src1_r;
@@ -1777,7 +1777,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
    }
 }
 
-void emitCSload(const BPatch_countSpec_NP *as, Register dest,
+void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest,
 		codeGen &gen, bool /* noCost */ )
 {
    // VG(7/30/02): different from ASload on this platform, no LEA business
@@ -1790,7 +1790,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
    gen.codeEmitter()->emitCSload(ra, rb, sc, imm, dest, gen);
 }
 
-void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register dest, codeGen &gen)
 {
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
@@ -1905,7 +1905,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
    }
 }
 
-void emitVload(opCode op, Address src1, Register src2, Register dest, 
+void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, AddressSpace * /* proc */)
@@ -1947,7 +1947,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
    }
 }
 
-void emitVstore(opCode op, Register src1, Register src2, Address dest,
+void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Address dest,
                 codeGen &gen, bool /*noCost*/, registerSpace * /*rs*/, 
                 int size,
                 const instPoint * /* location */, AddressSpace * /* proc */)
@@ -1970,7 +1970,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
    }
 }
 
-void emitV(opCode op, Register src1, Register src2, Register dest, 
+void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
            codeGen &gen, bool /*noCost*/, 
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace * /* proc */, bool s)
@@ -2065,7 +2065,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     return;
 }
 
-void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
+void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Register dest,
              codeGen &gen, bool, registerSpace *, bool s)
 {
    if (op ==  storeOp) {
@@ -2200,12 +2200,12 @@ int getInsnCost(opCode op)
    return 0;
 }
 
-bool EmitterIA32::emitPush(codeGen &gen, Register reg) {
+bool EmitterIA32::emitPush(codeGen &gen, Dyninst::Register reg) {
     RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
     return ::emitPush(real_reg, gen);
 }
 
-bool EmitterIA32::emitPop(codeGen &gen, Register reg) {
+bool EmitterIA32::emitPop(codeGen &gen, Dyninst::Register reg) {
     RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
     return ::emitPop(real_reg, gen);
 }
@@ -2248,7 +2248,7 @@ bool EmitterIA32::emitAdjustStackPointer(int index, codeGen &gen) {
 
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
-                                        Register dest,
+                                        Dyninst::Register dest,
                                         codeGen &gen,
                                         int,
                                         bool){
@@ -2256,7 +2256,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 }
 
 void emitStorePreviousStackFrameRegister(Address register_num,
-                                        Register src,
+                                        Dyninst::Register src,
                                         codeGen &gen,
                                         int,
                                         bool) {
@@ -2497,15 +2497,15 @@ void emitJump(unsigned disp32, codeGen &gen)
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const std::vector<AstNodePtr> &operands,
                               func_instance */*target*/, 
-                              std::vector<Register> &/*extra_saves*/, 
+                              std::vector<Dyninst::Register> &/*extra_saves*/,
                               bool noCost)
 {
-    std::vector <Register> srcs;
+    std::vector <Dyninst::Register> srcs;
     unsigned frame_size = 0;
     unsigned u;
     for (u = 0; u < operands.size(); u++) {
         Address unused = ADDR_NULL;
-        Register reg = Null_Register;
+        Dyninst::Register reg = Null_Register;
         if (!operands[u]->generateCode_phase2(gen,
                                               noCost,
                                               unused,
@@ -2529,7 +2529,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 bool EmitterIA32::emitCallCleanup(codeGen &gen,
                                 func_instance * /*target*/, 
                                 int frame_size, 
-                                std::vector<Register> &/*extra_saves*/)
+                                std::vector<Dyninst::Register> &/*extra_saves*/)
 {
    if (frame_size)
       emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size

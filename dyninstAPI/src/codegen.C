@@ -744,13 +744,13 @@ const bitArray &codeGen::getRegsDefined()
    return regsDefined_;
 }
 
-void codeGen::markRegDefined(Register r) {
+void codeGen::markRegDefined(Dyninst::Register r) {
    if (!trackRegDefs_)
       return;
    regsDefined_[r] = true;
 }
 
-bool codeGen::isRegDefined(Register r) {
+bool codeGen::isRegDefined(Dyninst::Register r) {
    assert(trackRegDefs_);
    return regsDefined_[r];
 }
@@ -769,7 +769,7 @@ Dyninst::Architecture codeGen::getArch() const {
 }
 
 void codeGen::registerDefensivePad(block_instance *callBlock, Dyninst::Address padStart, unsigned padSize) {
-  // Register a match between a call instruction
+  // Dyninst::Register a match between a call instruction
   // and a padding area post-reloc-call for
   // control flow interception purposes.
   // This is kind of hacky, btw.

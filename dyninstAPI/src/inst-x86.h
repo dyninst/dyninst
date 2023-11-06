@@ -159,9 +159,9 @@ class codeGen;
 #define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -1*(x*8), REGNUM_RAX, insn)
 
 void emitAddressingMode(unsigned base, unsigned index,
-                        unsigned int scale, RegValue disp,
+                        unsigned int scale, Dyninst::RegValue disp,
                         int reg_opcode, codeGen &gen);
-void emitAddressingMode(unsigned base, RegValue disp,
+void emitAddressingMode(unsigned base, Dyninst::RegValue disp,
                         unsigned reg_opcode, codeGen &gen);
 
 
@@ -203,10 +203,10 @@ void emitSubRegReg(RealRegister dest, RealRegister src, codeGen &gen);
 void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen);
 
 void restoreGPRtoGPR(RealRegister reg, RealRegister dest, codeGen &gen);
-Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL);
+Dyninst::Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL);
 
 void emitLEA(RealRegister base, RealRegister index, unsigned int scale,
-	     RegValue disp, RealRegister dest, codeGen &gen);
+	     Dyninst::RegValue disp, RealRegister dest, codeGen &gen);
 
 bool emitPush(RealRegister reg, codeGen &gen);
 bool emitPop(RealRegister reg, codeGen &gen);

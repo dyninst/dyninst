@@ -31,6 +31,7 @@
 #ifndef DYNINST_REGISTER
 #define DYNINST_REGISTER
 
+namespace Dyninst {
 /* This needs to be an int since it is sometimes used to pass offsets
    to the code generator (i.e. if-statement) - jkh 5/24/99 */
 
@@ -42,5 +43,7 @@ typedef long long int RegValue;
 
 /* '255' */
 constexpr Register Null_Register{static_cast<unsigned int>(-1)};
+
+}
 
 #endif

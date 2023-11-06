@@ -1171,7 +1171,7 @@ inline bool is_addr32(Dyninst::Address addr) {
 }
 
 COMMON_EXPORT void decode_SIB(unsigned sib, unsigned& scale, 
-        Register& index_reg, Register& base_reg);
+        Dyninst::Register& index_reg, Dyninst::Register& base_reg);
 COMMON_EXPORT const unsigned char* skip_headers(const unsigned char*, 
         ia32_instruction* = NULL);
 

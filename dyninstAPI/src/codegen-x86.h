@@ -35,6 +35,7 @@
 #include "Architecture.h"
 #include "entryIDs.h"
 #include "dyntypes.h"
+#include "dyn_register.h"
 
 #if !defined(arch_x86) && !defined(arch_x86_64)
  
@@ -95,8 +96,8 @@ class insnCodeGen {
                    instruction & insn,
                    Dyninst::Address origAddr,
                    Dyninst::Address newAddr,
-                   Register newLoadReg,
-                   Register newStoreReg);
+                   Dyninst::Register newLoadReg,
+                   Dyninst::Register newStoreReg);
 
   static bool modifyJump(Dyninst::Address target,
                          NS_x86::instruction &insn, 

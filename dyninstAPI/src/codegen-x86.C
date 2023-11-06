@@ -676,7 +676,7 @@ unsigned pcRelData::apply(Dyninst::Address addr)
    if ((*(origInsn + nPrefixes) == 0x0F) && (*(origInsn + nPrefixes + 1) == 0x38 || *(origInsn + nPrefixes + 1) == 0x3A))
    	  nOpcodeBytes = 3;
    
-   Register pointer_reg = (Register)-1;
+   Dyninst::Register pointer_reg = (Dyninst::Register)-1;
      
    if (!is_disp32(newDisp+insnSz) && !is_addr32(data_addr)) {
       // Case C: replace with 64-bit.
@@ -711,7 +711,7 @@ unsigned pcRelData::apply(Dyninst::Address addr)
       // us to change last three bits (the r/m field)
       // to the value of pointer_reg
       unsigned char mod_rm = *origInsn++;
-      assert(pointer_reg != (Register)-1);
+      assert(pointer_reg != (Dyninst::Register)-1);
       mod_rm = (mod_rm & 0xf8) + pointer_reg;
       append_memory_as_byte(newInsn, mod_rm);
    }
@@ -750,7 +750,7 @@ unsigned pcRelData::apply(Dyninst::Address addr)
    
    if (is_data_abs64) {
       // Cleanup on aisle pointer_reg...
-      assert(pointer_reg != (Register)-1);
+      assert(pointer_reg != (Dyninst::Register)-1);
       emitPopReg64(pointer_reg, *gen);
    }
    return (unsigned) (newInsn - orig_loc);
@@ -790,13 +790,13 @@ bool insnCodeGen::generateMem(codeGen &gen,
                               instruction & insn,
                               Dyninst::Address /*origAddr*/,
                               Dyninst::Address /*newAddr*/,
-                              Register loadExpr,
-                              Register storeExpr) 
+                              Dyninst::Register loadExpr,
+                              Dyninst::Register storeExpr)
 {
    /**********
     * Check parameters
     **********/
-   Register newreg = Null_Register;
+   Dyninst::Register newreg = Null_Register;
    if (loadExpr != Null_Register && storeExpr != Null_Register) {
        cerr << "can't rewrite insn\nerror 1" << endl;
       return false; //Can only do one memory replace per instruction now
@@ -1150,7 +1150,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     signed long newDisp = targetAddr - from;
     GET_PTR(newInsn, gen);
 
-    Register pointer_reg = (Register)-1;
+    Dyninst::Register pointer_reg = (Dyninst::Register)-1;
 
     /******************************************* prefix/opcode ****************/
 
@@ -1241,7 +1241,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
 #if defined(arch_x86_64)
     if (is_data_abs64) {
         // Cleanup on aisle pointer_reg...
-        assert(pointer_reg != (Register)-1);
+        assert(pointer_reg != (Dyninst::Register)-1);
         emitPopReg64(pointer_reg, gen);
     }
 #endif

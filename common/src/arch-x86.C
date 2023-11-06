@@ -11869,7 +11869,7 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
 
 
 //Determine appropriate scale, index, and base given SIB byte.
-void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg){
+void decode_SIB(unsigned sib, unsigned& scale, Dyninst::Register& index_reg, Dyninst::Register& base_reg){
    scale = sib >> 6;
 
    //scale = 2^scale

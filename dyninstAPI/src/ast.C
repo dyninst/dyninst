@@ -659,14 +659,14 @@ void AstNode::cleanUseCount(void)
 
 // Allocate a register and make it available for sharing if our
 // node is shared
-Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
+Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
 {
     ast_printf("Allocating register for node %p, useCount %d\n", (void*)this, useCount);
     // Allocate a register
-    Register dest = gen.rs()->allocateRegister(gen, noCost);
+    Dyninst::Register dest = gen.rs()->allocateRegister(gen, noCost);
 
     ast_printf("Allocator returned %u\n", dest);
-    assert(dest != Null_Register);
+    assert(dest != Dyninst::Null_Register);
 
     if (useCount > 1) {
         ast_printf("Adding kept register %u for node %p: useCount %d\n", dest, (void*)this, useCount);
@@ -705,7 +705,7 @@ Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
 bool AstNode::generateCode(codeGen &gen,
                            bool noCost,
                            Address &retAddr,
-                           Register &retReg) {
+                           Dyninst::Register &retReg) {
     static bool entered = false;
 
 
@@ -760,17 +760,17 @@ bool AstNode::generateCode(codeGen &gen,
 bool AstNode::generateCode(codeGen &gen,
                            bool noCost) {
     Address unused = ADDR_NULL;
-    Register unusedReg = Null_Register;
+    Dyninst::Register unusedReg = Dyninst::Null_Register;
     bool ret = generateCode(gen, noCost, unused, unusedReg);
     gen.rs()->freeRegister(unusedReg);
 
     return ret;
 }
 
-bool AstNode::previousComputationValid(Register &reg,
+bool AstNode::previousComputationValid(Dyninst::Register &reg,
                                        codeGen &gen) {
-	Register keptReg = gen.tracker()->hasKeptRegister(this);
-	if (keptReg != Null_Register) {
+	Dyninst::Register keptReg = gen.tracker()->hasKeptRegister(this);
+	if (keptReg != Dyninst::Null_Register) {
 		reg = keptReg;
 		ast_printf("Returning previously used register %u for node %p\n", reg, (void*)this);
 		return true;
@@ -781,7 +781,7 @@ bool AstNode::previousComputationValid(Register &reg,
 // We're going to use this fragment over and over and over...
 #define RETURN_KEPT_REG(r) do { if (previousComputationValid(r, gen)) { decUseCount(gen); gen.rs()->incRefCount(r); return true;} } while (0)
 #define ERROR_RETURN do { fprintf(stderr, "[%s:%d] ERROR: failure to generate operand\n", __FILE__, __LINE__); return false; } while (0)
-#define REGISTER_CHECK(r) do { if ((r) == Null_Register) { fprintf(stderr, "[%s: %d] ERROR: returned register invalid\n", __FILE__, __LINE__); return false; } } while (0)
+#define REGISTER_CHECK(r) do { if ((r) == Dyninst::Null_Register) { fprintf(stderr, "[%s: %d] ERROR: returned register invalid\n", __FILE__, __LINE__); return false; } } while (0)
 
 
 bool AstNode::initRegisters(codeGen &g) {
@@ -798,7 +798,7 @@ bool AstNode::initRegisters(codeGen &g) {
 
 bool AstNode::generateCode_phase2(codeGen &, bool,
                                   Address &,
-                                  Register &) {
+                                  Dyninst::Register &) {
     fprintf(stderr, "ERROR: call to AstNode generateCode_phase2; should be handled by subclass\n");
     fprintf(stderr, "Undefined phase2 for:\n");
     if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
@@ -819,9 +819,9 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
 
 bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
                                       Address &retAddr,
-                                      Register &retReg) {
+                                      Dyninst::Register &retReg) {
     retAddr = ADDR_NULL;
-    retReg = Null_Register;
+    retReg = Dyninst::Null_Register;
 
     decUseCount(gen);
 
@@ -830,7 +830,7 @@ bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
 
 bool AstNode::allocateCanaryRegister(codeGen& gen,
         bool noCost,
-        Register& reg,
+        Dyninst::Register& reg,
         bool& needSaveAndRestore)
 {
     // Let's see if we can find a dead register to use!
@@ -839,8 +839,8 @@ bool AstNode::allocateCanaryRegister(codeGen& gen,
     // Try to get a scratch register from the register space
     registerSpace* regSpace = registerSpace::actualRegSpace(point);
     bool realReg = true;
-    Register tmpReg = regSpace->getScratchRegister(gen, noCost, realReg);
-    if (tmpReg != Null_Register) {
+    Dyninst::Register tmpReg = regSpace->getScratchRegister(gen, noCost, realReg);
+    if (tmpReg != Dyninst::Null_Register) {
         reg = tmpReg;
         needSaveAndRestore = false;
         if (gen.getArch() == Arch_x86) {
@@ -852,7 +852,7 @@ bool AstNode::allocateCanaryRegister(codeGen& gen,
     // Couldn't find a dead register to use :-(
     registerSpace* deadRegSpace = registerSpace::optimisticRegSpace(gen.addrSpace());
     reg = deadRegSpace->getScratchRegister(gen, noCost, realReg);
-    if (reg == Null_Register) {
+    if (reg == Dyninst::Null_Register) {
         fprintf(stderr, "WARNING: using default allocateAndKeep in allocateCanaryRegister\n");
         reg = allocateAndKeep(gen, noCost);
     }
@@ -866,14 +866,14 @@ bool AstNode::allocateCanaryRegister(codeGen& gen,
 #if defined(cap_stack_mods)
 bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         Address &,
-        Register &)
+        Dyninst::Register &)
 {
     // Turn off default basetramp instrumentation saves & restores
     gen.setInsertNaked(true);
     gen.setModifiedStackFrame(true);
 
     bool ignored;
-    Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
+    Dyninst::Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
 
     Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
     assert(emitter);
@@ -884,16 +884,16 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
 
         /* Move stack pointer to accomodate new value */
         if (gen.getArch() == Arch_x86) {
-            emitter->emitLEA(reg_sp, Null_Register, 0, -size, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -size, reg_sp, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            emitter->emitLEA(reg_sp, Null_Register, 0, -size, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -size, reg_sp, gen);
         }
 
     } else if (type == CANARY_AST){
 //        gen.setCanary(true);
 
         // Find a register to use
-        Register canaryReg = Null_Register;
+        Dyninst::Register canaryReg = Dyninst::Null_Register;
         bool needSaveAndRestore = true;
 
         // 64-bit requires stack alignment
@@ -905,7 +905,7 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             int canarySize = 8;
             int off = AMD64_STACK_ALIGNMENT - canarySize; // canary
-            emitter->emitLEA(reg_sp, Null_Register, 0, -off, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -off, reg_sp, gen);
         } else {
             canaryReg = REGNUM_EAX;
             needSaveAndRestore = true;
@@ -915,14 +915,14 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         if (needSaveAndRestore) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPush(gen, canaryReg);
-                emitter->emitLEA(reg_sp, Null_Register, 0, 2*disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, 2*disp, reg_sp, gen);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPush(gen, canaryReg);
-                emitter->emitLEA(reg_sp, Null_Register, 0, 2*disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, 2*disp, reg_sp, gen);
             }
         }
 
@@ -954,11 +954,11 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         if (needSaveAndRestore) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPop(gen, canaryReg);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -disp, reg_sp, gen);
                 emitter->emitPop(gen, canaryReg);
             }
         }
@@ -972,14 +972,14 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         Address &,
-        Register &)
+        Dyninst::Register &)
 {
     // Turn off default basetramp instrumentation saves & restores
     gen.setInsertNaked(true);
     gen.setModifiedStackFrame(true);
 
     bool ignored;
-    Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
+    Dyninst::Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
 
     Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
     assert(emitter);
@@ -988,15 +988,15 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         /* Adjust stack pointer by size */
         int disp = size;
         if (gen.getArch() == Arch_x86) {
-            emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, disp, reg_sp, gen);
         } else if (gen.getArch() == Arch_x86_64) {
-            emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, disp, reg_sp, gen);
         }
     } else if (type == CANARY_AST) {
 //        gen.setCanary(true);
 
         // Find a register to use
-        Register canaryReg = Null_Register;
+        Dyninst::Register canaryReg = Dyninst::Null_Register;
         bool needSaveAndRestore = true;
         if (gen.getArch() == Arch_x86_64) {
             allocateCanaryRegister(gen, noCost, canaryReg, needSaveAndRestore);
@@ -1011,10 +1011,10 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
                 gen.codeEmitter()->emitPush(gen, canaryReg);
-                emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, disp, reg_sp, gen);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                emitter->emitLEA(reg_sp, Null_Register, 0, disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, disp, reg_sp, gen);
             }
         }
 
@@ -1024,11 +1024,11 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         } else {
             Address canaryOffset = -1*(Address)(canaryHeight_);
             if (gen.getArch() == Arch_x86) {
-                Register destReg = reg_sp;
+                Dyninst::Register destReg = reg_sp;
                 RealRegister canaryReg_r = gen.rs()->loadVirtualForWrite(canaryReg, gen);
                 emitMovRMToReg(canaryReg_r, RealRegister(destReg), canaryOffset, gen);
             } else if (gen.getArch() == Arch_x86_64) {
-                Register destReg = reg_sp;
+                Dyninst::Register destReg = reg_sp;
                 gen.codeEmitter()->emitLoadRelative(canaryReg, canaryOffset, destReg, 0, gen);
             }
         }
@@ -1050,11 +1050,11 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         if (needSaveAndRestore) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPop(gen, canaryReg);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -disp, reg_sp, gen);
                 gen.codeEmitter()->emitPop(gen, canaryReg);
             }
        }
@@ -1063,10 +1063,10 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
         if (canaryAfterPrologue_) {
             if (gen.getArch() == Arch_x86) {
                 int disp = 4;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
             } else if (gen.getArch() == Arch_x86_64) {
                 int disp = 8;
-                emitter->emitLEA(reg_sp, Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
+                emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -1*canaryHeight_ + disp, reg_sp, gen);
             }
         }
 
@@ -1075,7 +1075,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
             // 64-bit requires stack alignment (this will include canary cleanup)
             int canarySize = 8;
             int off = AMD64_STACK_ALIGNMENT - canarySize;
-            emitter->emitLEA(reg_sp, Null_Register, 0, off, reg_sp, gen);
+            emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, off, reg_sp, gen);
         }
 
         // If the canary value is valid, jmp to next expected instruction
@@ -1105,7 +1105,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
     return true;
 }
 
-bool AstStackGenericNode::generateCode_phase2(codeGen& gen, bool, Address&, Register&)
+bool AstStackGenericNode::generateCode_phase2(codeGen& gen, bool, Address&, Dyninst::Register&)
 {
     gen.setInsertNaked(true);
     gen.setModifiedStackFrame(true);
@@ -1117,18 +1117,18 @@ bool AstStackGenericNode::generateCode_phase2(codeGen& gen, bool, Address&, Regi
 #else
 bool AstStackInsertNode::generateCode_phase2(codeGen&, bool,
         Address &,
-        Register &) {
+        Dyninst::Register &) {
     return false;
 }
 
 bool AstStackRemoveNode::generateCode_phase2(codeGen&, bool,
         Address &,
-        Register &)
+        Dyninst::Register &)
 {
     return false;
 }
 
-bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Register&)
+bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Dyninst::Register&)
 {
     return false;
 }
@@ -1136,13 +1136,13 @@ bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Register
 
 bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
                                        Address &retAddr,
-                                       Register &retReg) {
+                                       Dyninst::Register &retReg) {
 	assert(generatedAddr_ == 0);
     // Pick up the address we were added at
     generatedAddr_ = gen.currAddr();
 
     retAddr = ADDR_NULL;
-    retReg = Null_Register;
+    retReg = Dyninst::Null_Register;
 
 	decUseCount(gen);
 
@@ -1299,7 +1299,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &, int, bool)
 
 bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &retAddr,
-                                          Register &retReg) {
+                                          Dyninst::Register &retReg) {
    if(!loperand) { return false; }
 
    retAddr = ADDR_NULL; // We won't be setting this...
@@ -1311,22 +1311,22 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
    Address addr = ADDR_NULL;
 
-   Register src1 = Null_Register;
-   Register src2 = Null_Register;
+   Dyninst::Register src1 = Dyninst::Null_Register;
+   Dyninst::Register src2 = Dyninst::Null_Register;
 
-   Register right_dest = Null_Register;
-   Register tmp = Null_Register;
+   Dyninst::Register right_dest = Dyninst::Null_Register;
+   Dyninst::Register tmp = Dyninst::Null_Register;
 
    switch(op) {
       case branchOp: {
          assert(loperand->getoType() == operandType::Constant);
-         unsigned offset = (Register) (long) loperand->getOValue();
+         unsigned offset = (Dyninst::Register) (long) loperand->getOValue();
          // We are not calling loperand->generateCode_phase2,
          // so we decrement its useCount by hand.
          // Would be nice to allow register branches...
          loperand->decUseCount(gen);
-         (void)emitA(branchOp, 0, 0, (Register)offset, gen, rc_no_control, noCost);
-         retReg = Null_Register; // No return register
+         (void)emitA(branchOp, 0, 0, (Dyninst::Register)offset, gen, rc_no_control, noCost);
+         retReg = Dyninst::Null_Register; // No return register
          break;
       }
       case ifOp: {
@@ -1343,7 +1343,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 	 // We can reuse src1 for the body of the conditional; however, keep the value here
 	 // so that we can use it for the branch fix below.
-         Register src1_copy = src1;
+         Dyninst::Register src1_copy = src1;
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
 
@@ -1388,10 +1388,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             // This backtracks over current code.
             // If/when we vectorize, we can do this in a two-pass arrangement
             (void) emitA(op, src1_copy, 0,
-                         (Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
+                         (Dyninst::Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
                          gen, rc_no_control, noCost);
             // Now we can free the register
-            // Register has already been freed; we're just re-using it.
+            // Dyninst::Register has already been freed; we're just re-using it.
             //gen.rs()->freeRegister(src1);
 
             gen.setIndex(elseStartIndex);
@@ -1425,12 +1425,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             else {
                gen.setIndex(elseSkipIndex);
                emitA(branchOp, 0, 0,
-                     (Register) codeGen::getDisplacement(elseSkipStart, endIndex),
+                     (Dyninst::Register) codeGen::getDisplacement(elseSkipStart, endIndex),
                      gen, rc_no_control, noCost);
                gen.setIndex(endIndex);
             }
          }
-         retReg = Null_Register;
+         retReg = Dyninst::Null_Register;
          break;
       }
       case ifMCOp: {
@@ -1496,7 +1496,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 	 // We can reuse src1 for the body of the conditional; however, keep the value here
 	 // so that we can use it for the branch fix below.
-         Register src1_copy = src1;
+         Dyninst::Register src1_copy = src1;
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
 
@@ -1536,16 +1536,16 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             // This backtracks over current code.
             // If/when we vectorize, we can do this in a two-pass arrangement
             (void) emitA(ifOp, src1_copy, 0,
-                         (Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
+                         (Dyninst::Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
                          gen, rc_no_control, noCost);
             // Now we can free the register
-            // Register has already been freed; we're just re-using it.
+            // Dyninst::Register has already been freed; we're just re-using it.
             //gen.rs()->freeRegister(src1);
 
             gen.setIndex(elseStartIndex);
          }
          // END from ifOp
-         retReg = Null_Register;
+         retReg = Dyninst::Null_Register;
          break;
       }
       case doOp: {
@@ -1555,7 +1555,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case getAddrOp: {
          switch(loperand->getoType()) {
             case operandType::variableAddr:
-               if (retReg == Null_Register) {
+               if (retReg == Dyninst::Null_Register) {
                   retReg = allocateAndKeep(gen, noCost);
                }
                assert (loperand->getOVar());
@@ -1563,7 +1563,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           gen.point(), gen.addrSpace());
                break;
             case operandType::variableValue:
-               if (retReg == Null_Register) {
+               if (retReg == Dyninst::Null_Register) {
                   retReg = allocateAndKeep(gen, noCost);
                }
                assert (loperand->getOVar());
@@ -1573,7 +1573,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             case operandType::DataAddr:
                {
                   addr = reinterpret_cast<Address>(loperand->getOValue());
-                  if (retReg == Null_Register) {
+                  if (retReg == Dyninst::Null_Register) {
                      retReg = allocateAndKeep(gen, noCost);
                   }
                   assert(!loperand->getOVar());
@@ -1583,9 +1583,9 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             case operandType::FrameAddr: {
                // load the address fp + addr into dest
-               if (retReg == Null_Register)
+               if (retReg == Dyninst::Null_Register)
                   retReg = allocateAndKeep(gen, noCost);
-               Register temp = gen.rs()->getScratchRegister(gen, noCost);
+               Dyninst::Register temp = gen.rs()->getScratchRegister(gen, noCost);
                addr = (Address) loperand->getOValue();
                emitVload(loadFrameAddr, addr, temp, retReg, gen,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
@@ -1595,7 +1595,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                assert(loperand->operand());
 
                // load the address reg + addr into dest
-               if (retReg == Null_Register) {
+               if (retReg == Dyninst::Null_Register) {
                   retReg = allocateAndKeep(gen, noCost);
                }
                addr = (Address) loperand->operand()->getOValue();
@@ -1699,7 +1699,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             }
             case operandType::origRegister:
-               gen.rs()->writeProgramRegister(gen, (Register)(long)loperand->getOValue(),
+               gen.rs()->writeProgramRegister(gen, (Dyninst::Register)(long)loperand->getOValue(),
                                               src1, getSize());
                //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
                //src1, gen, getSize(), noCost);
@@ -1717,13 +1717,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             }
             case operandType::ReturnVal:
-               emitR(getRetValOp, Null_Register,
+               emitR(getRetValOp, Dyninst::Null_Register,
                      src1, src2, gen, noCost, gen.point(),
                      gen.addrSpace()->multithread_capable());
                loperand->decUseCount(gen);
                break;
             case operandType::ReturnAddr:
-                emitR(getRetAddrOp, Null_Register,
+                emitR(getRetAddrOp, Dyninst::Null_Register,
                       src1, src2, gen, noCost, gen.point(),
                       gen.addrSpace()->multithread_capable());
                 break;
@@ -1742,7 +1742,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          if (roperand->decRefCount())
             gen.rs()->freeRegister(src1);
          gen.rs()->freeRegister(src2);
-         retReg = Null_Register;
+         retReg = Dyninst::Null_Register;
          break;
       }
       case storeIndirOp: {
@@ -1756,12 +1756,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             gen.rs()->freeRegister(src1);
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src2);
-         retReg = Null_Register;
+         retReg = Dyninst::Null_Register;
          break;
       }
       case trampPreamble: {
          // This ast cannot be shared because it doesn't return a register
-         retReg = Null_Register;
+         retReg = Dyninst::Null_Register;
          break;
       }
       case plusOp:
@@ -1781,15 +1781,15 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       {
          if(!roperand) { return false; }
          bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
-         src1 = Null_Register;
-         right_dest = Null_Register;
+         src1 = Dyninst::Null_Register;
+         right_dest = Dyninst::Null_Register;
             if (!loperand->generateCode_phase2(gen,
                                                noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
 
          if ((roperand->getoType() == operandType::Constant) &&
              doNotOverflow((int64_t)roperand->getOValue())) {
-            if (retReg == Null_Register) {
+            if (retReg == Dyninst::Null_Register) {
                retReg = allocateAndKeep(gen, noCost);
                ast_printf("Operator node, const RHS, allocated register %u\n", retReg);
             }
@@ -1798,7 +1798,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
-            if (src1 != Null_Register && loperand->decRefCount())
+            if (src1 != Dyninst::Null_Register && loperand->decRefCount())
                gen.rs()->freeRegister(src1);
 
             // We do not .generateCode for roperand, so need to update its
@@ -1808,16 +1808,16 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          else {
                if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
                REGISTER_CHECK(right_dest);
-            if (retReg == Null_Register) {
+            if (retReg == Dyninst::Null_Register) {
                retReg = allocateAndKeep(gen, noCost);
             }
             emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
-            if (src1 != Null_Register && loperand->decRefCount()) {
+            if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
                // Don't free inputs until afterwards; we have _no_ idea
                gen.rs()->freeRegister(src1);
             }
             // what the underlying code might do with a temporary register.
-            if (right_dest != Null_Register && roperand->decRefCount())
+            if (right_dest != Dyninst::Null_Register && roperand->decRefCount())
                gen.rs()->freeRegister(right_dest);
          }
       }
@@ -1828,12 +1828,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
                                          Address &,
-                                         Register &retReg) {
+                                         Dyninst::Register &retReg) {
 	RETURN_KEPT_REG(retReg);
 
 
     Address addr = ADDR_NULL;
-    Register src = Null_Register;
+    Dyninst::Register src = Dyninst::Null_Register;
 
 #if defined(ASTDEBUG)
    sprintf(errorLine,"### location: %p ###\n", (void*)gen.point());
@@ -1841,11 +1841,11 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 #endif
    // Allocate a register to return
    if (oType != operandType::DataReg) {
-       if (retReg == Null_Register) {
+       if (retReg == Dyninst::Null_Register) {
            retReg = allocateAndKeep(gen, noCost);
        }
    }
-   Register temp;
+   Dyninst::Register temp;
    int tSize;
    int len;
    BPatch_type *Type;
@@ -1869,10 +1869,10 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
          gen.rs()->freeRegister(src);
       break;
    case operandType::DataReg:
-       retReg = (Register) (long) oValue;
+       retReg = (Dyninst::Register) (long) oValue;
        break;
    case operandType::origRegister:
-      gen.rs()->readProgramRegister(gen, (Register)(long)oValue, retReg, size);
+      gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
        //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
        //size, noCost);
        break;
@@ -1887,7 +1887,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
         noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
    case operandType::ReturnVal:
-       src = emitR(getRetValOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
+       src = emitR(getRetValOp, 0, Dyninst::Null_Register, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
        if (src != retReg) {
@@ -1897,7 +1897,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        break;
    case operandType::ReturnAddr:
-       src = emitR(getRetAddrOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
+       src = emitR(getRetAddrOp, 0, Dyninst::Null_Register, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
        if (src != retReg) {
@@ -1924,7 +1924,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
                assert(0);
                break;
        }
-       src = emitR(paramOp, (Address)oValue, Null_Register,
+       src = emitR(paramOp, (Address)oValue, Dyninst::Null_Register,
                    retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
@@ -1989,14 +1989,14 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
                                         Address &,
-                                        Register &retReg) {
+                                        Dyninst::Register &retReg) {
 
 	RETURN_KEPT_REG(retReg);
 
     const BPatch_memoryAccess* ma;
     const BPatch_addrSpec_NP *start;
     const BPatch_countSpec_NP *count;
-    if (retReg == Null_Register)
+    if (retReg == Dyninst::Null_Register)
         retReg = allocateAndKeep(gen, noCost);
     switch(mem_) {
     case EffectiveAddr: {
@@ -2096,7 +2096,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 
 bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
                                       Address &,
-                                      Register &retReg) {
+                                      Dyninst::Register &retReg) {
 	// We call this anyway... not that we'll ever be kept.
 	// Well... if we can somehow know a function is entirely
 	// dependent on arguments (a flag?) we can keep it around.
@@ -2119,7 +2119,7 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
         assert(use_func); // Otherwise we've got trouble...
     }
 
-    Register tmp = 0;
+    Dyninst::Register tmp = 0;
 
     if (use_func && !callReplace_) {
         tmp = emitFuncCall(callOp, gen, args_,
@@ -2143,11 +2143,11 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 	// TODO: put register allocation here and have emitCall just
 	// move the return result.
-    if (tmp == Null_Register) {
+    if (tmp == Dyninst::Null_Register) {
         // Happens in function replacement... didn't allocate
         // a return register.
     }
-    else if (retReg == Null_Register) {
+    else if (retReg == Dyninst::Null_Register) {
         //emitFuncCall allocated tmp; we can use it, but let's see
         // if we should keep it around.
         retReg = tmp;
@@ -2170,9 +2170,9 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &,
-                                          Register &retReg) {
+                                          Dyninst::Register &retReg) {
     RETURN_KEPT_REG(retReg);
-    Register tmp = Null_Register;
+    Dyninst::Register tmp = Dyninst::Null_Register;
     Address unused = ADDR_NULL;
 
     if (sequence_.size() == 0) {
@@ -2187,7 +2187,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                tmp)) ERROR_RETURN;
         if (sequence_[i]->decRefCount())
            gen.rs()->freeRegister(tmp);
-        tmp = Null_Register;
+        tmp = Dyninst::Null_Register;
     }
 
     // We keep the last one
@@ -2200,19 +2200,19 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &addr,
-                                          Register &retReg) {
+                                          Dyninst::Register &retReg) {
     return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
                                               bool noCost,
                                               Address &,
-                                              Register &retReg) {
+                                              Dyninst::Register &retReg) {
     RETURN_KEPT_REG(retReg);
-    if (retReg == Null_Register) {
+    if (retReg == Dyninst::Null_Register) {
         retReg = allocateAndKeep(gen, noCost);
     }
-    if (retReg == Null_Register) return false;
+    if (retReg == Dyninst::Null_Register) return false;
 
     emitVload(loadConstOp,
               (Address) gen.point()->addr_compat(),
@@ -2223,11 +2223,11 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
 bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address &,
-                                            Register &retReg) {
-    if (retReg == Null_Register) {
+                                            Dyninst::Register &retReg) {
+    if (retReg == Dyninst::Null_Register) {
         retReg = allocateAndKeep(gen, noCost);
     }
-    if (retReg == Null_Register) return false;
+    if (retReg == Dyninst::Null_Register) return false;
 
     emitVload(loadConstOp,
               (Address) gen.currAddr(),
@@ -2240,7 +2240,7 @@ bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
 bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address & retAddr,
-                                            Register &retReg)
+                                            Dyninst::Register &retReg)
 {
     if (gen.point()->type() != instPoint::PreCall &&
        gen.point()->type() != instPoint::FuncExit &&
@@ -2250,10 +2250,10 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
    InstructionAPI::Instruction insn = gen.point()->block()->getInsn(gen.point()->block()->last());
    if (insn.getCategory() == c_ReturnInsn) {
       // if this is a return instruction our AST reads the top stack value
-      if (retReg == Null_Register) {
+      if (retReg == Dyninst::Null_Register) {
          retReg = allocateAndKeep(gen, noCost);
       }
-      if (retReg == Null_Register) return false;
+      if (retReg == Dyninst::Null_Register) return false;
 
 #if defined (arch_x86)
         emitVload(loadRegRelativeOp,
@@ -2297,7 +2297,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
 bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
  						  bool ,
 						  Address&,
-						  Register& )
+						  Dyninst::Register& )
 {
    (void)gen; // unused
 #if defined(arch_x86_64)
@@ -3421,7 +3421,7 @@ bool AstScrambleRegistersNode::usesAppRegister() const
    return true;
 }
 
-void regTracker_t::addKeptRegister(codeGen &gen, AstNode *n, Register reg) {
+void regTracker_t::addKeptRegister(codeGen &gen, AstNode *n, Dyninst::Register reg) {
 	assert(n);
 	if (tracker.find(n) != tracker.end()) {
 		assert(tracker[n].keptRegister == reg);
@@ -3442,17 +3442,17 @@ void regTracker_t::removeKeptRegister(codeGen &gen, AstNode *n) {
    tracker.erase(iter);
 }
 
-Register regTracker_t::hasKeptRegister(AstNode *n) {
+Dyninst::Register regTracker_t::hasKeptRegister(AstNode *n) {
    auto iter = tracker.find(n);
    if (iter == tracker.end())
-      return Null_Register;
+      return Dyninst::Null_Register;
    else return iter->second.keptRegister;
 }
 
 // Find if the given register is "owned" by an AST node,
 // and if so nuke it.
 
-bool regTracker_t::stealKeptRegister(Register r) {
+bool regTracker_t::stealKeptRegister(Dyninst::Register r) {
 	ast_printf("STEALING kept register %u for someone else\n", r);
         for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
            if (iter->second.keptRegister == r) {
@@ -3534,7 +3534,7 @@ int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
   return NULL;
 }
 
-void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen,
+void AstOperandNode::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Register dest, codeGen& gen,
 				      bool noCost, registerSpace* rs,
 				      int size_, const instPoint* point, AddressSpace* as)
 {
@@ -3549,7 +3549,7 @@ void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, c
   }
 }
 
-void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen,
+void AstOperandNode::emitVariableStore(opCode op, Dyninst::Register src1, Dyninst::Register src2, codeGen& gen,
 				      bool noCost, registerSpace* rs,
 				      int size_, const instPoint* point, AddressSpace* as)
 {
@@ -3591,7 +3591,7 @@ bool AstNode::generate(Point *point, Buffer &buffer) {
 bool AstSnippetNode::generateCode_phase2(codeGen &gen,
                                          bool,
                                          Address &,
-                                         Register &) {
+                                         Dyninst::Register &) {
    Buffer buf(gen.currAddr(), 1024);
    if (!snip_->generate(gen.point(), buf)) return false;
    gen.copy(buf.start_ptr(), buf.size());
