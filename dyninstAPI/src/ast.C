@@ -1806,10 +1806,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
     Address addr = ADDR_NULL;
     Dyninst::Register src = Dyninst::Null_Register;
 
-#if defined(ASTDEBUG)
-   sprintf(errorLine,"### location: %p ###\n", (void*)gen.point());
-   logLine(errorLine);
-#endif
    // Allocate a register to return
    if (oType != operandType::DataReg) {
        if (retReg == Dyninst::Null_Register) {
@@ -2445,20 +2441,6 @@ BPatch_type *AstOperatorNode::checkType(BPatch_function* func) {
        ret = BPatch::bpatch->type_Untyped;
     }
 
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-       logLine(" type is ");
-       if (ret->getName()){
-          logLine(ret->getName());
-       } else {
-          logLine(" <NULL Name String>");
-          logLine("\n");
-       }
-    }
-#endif
-
     // remember what type we are
     setType(ret);
 
@@ -2532,19 +2514,6 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
        ret = BPatch::bpatch->type_Untyped;
     }
 
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-	logLine(" type is ");
-	if (ret->getName())
-	     logLine(ret->getName());
-	else
-	     logLine(" <NULL Name String>");
-	logLine("\n");
-    }
-#endif
-
     // remember what type we are
     setType(ret);
 
@@ -2577,19 +2546,6 @@ BPatch_type *AstCallNode::checkType(BPatch_function* func) {
     } else if (errorFlag) {
        ret = BPatch::bpatch->type_Untyped;
     }
-
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-	logLine(" type is ");
-	if (ret->getName())
-	     logLine(ret->getName());
-	else
-	     logLine(" <NULL Name String>");
-	logLine("\n");
-    }
-#endif
 
     // remember what type we are
     setType(ret);
@@ -2626,19 +2582,6 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
     } else if (errorFlag) {
 	ret = BPatch::bpatch->type_Untyped;
     }
-
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-	logLine(" type is ");
-	if (ret->getName())
-	     logLine(ret->getName());
-	else
-	     logLine(" <NULL Name String>");
-	logLine("\n");
-    }
-#endif
 
     // remember what type we are
     setType(ret);
