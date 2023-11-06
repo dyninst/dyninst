@@ -68,10 +68,7 @@ namespace {
 	{
 		static int i=0;
 		i=(i+1)%_numaddrstrs;
-		if (sizeof(Address) == sizeof(int))
-			snprintf(_addrstr[i],19,"0x%08X",(unsigned int)addr);
-		else
-			snprintf(_addrstr[i],19,"0x%016lX",(unsigned long)addr);
+		snprintf(_addrstr[i],19,"0x%016lX", addr);
 		return (_addrstr[i]);
 	}
 }
