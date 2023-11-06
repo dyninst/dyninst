@@ -534,12 +534,6 @@ class AstOperatorNode : public AstNode {
  public:
 
     AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
-    
-    ~AstOperatorNode() {
-        //printf("at ~AstOperatorode()\n");
-        //debugPrint();
-    }
-
 
    virtual std::string format(std::string indent);
     virtual int costHelper(enum CostStyleType costStyle) const;	
