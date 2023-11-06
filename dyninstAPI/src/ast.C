@@ -2290,45 +2290,6 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
    return true;
 }
 
-#if defined(AST_PRINT)
-std::string getOpString(opCode op)
-{
-    switch (op) {
-	case plusOp: return("+");
-	case minusOp: return("-");
-	case xorOp: return("^");
-    case timesOp: return("*");
-	case divOp: return("/");
-	case lessOp: return("<");
-	case leOp: return("<=");
-	case greaterOp: return(">");
-	case geOp: return(">=");
-	case eqOp: return("==");
-	case neOp: return("!=");
-	case loadOp: return("lda");
-	case loadConstOp: return("load");
-	case storeOp: return("=");
-	case ifOp: return("if");
-	case ifMCOp: return("ifMC");
-	case whileOp: return("while") ;
-	case doOp: return("while") ;
-	case trampPreamble: return("preTramp");
-	case branchOp: return("goto");
-	case noOp: return("nop");
-	case andOp: return("and");
-	case orOp: return("or");
-	case loadIndirOp: return("load&");
-	case storeIndirOp: return("=&");
-	case loadFrameRelativeOp: return("load $fp");
-	case loadRegRelativeOp: return("load $reg");
-        case loadFrameAddr: return("$fp");
-	case storeFrameRelativeOp: return("store $fp");
-	case getAddrOp: return("&");
-	default: return("ERROR");
-    }
-}
-#endif
-
 #undef MIN
 #define MIN(x,y) ((x)>(y) ? (y) : (x))
 #undef MAX
