@@ -59,11 +59,7 @@ class AddressSpace;
 class instPoint;
 class func_instance;
 class int_variable;
-
 class codeGen;
-class codeRange;
-class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
-//class BPatch_type;
 class image_variable;
 
 
@@ -362,7 +358,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	// Return all children of this node ([lre]operand, ..., operands[])
 	virtual void getChildren(std::vector<AstNodePtr> &); 
 
-   void printRC(void);
 	virtual bool accessesParam(void);
 
 	virtual void setOValue(void *) { assert(0); }

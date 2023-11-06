@@ -62,8 +62,6 @@ using namespace Dyninst::InstructionAPI;
 #elif defined(arch_x86) || defined (arch_x86_64)
 #include "inst-x86.h"
 #include "emit-x86.h"
-extern int tramp_pre_frame_size_32;
-extern int tramp_pre_frame_size_64;
 #elif defined(arch_aarch64)
 #include "inst-aarch64.h"
 #else
@@ -96,10 +94,6 @@ AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 AstNode::AstNode() {
-#if defined(ASTDEBUG)
-   ASTcounter();
-#endif
-
 //   dyn_debug_ast = 0;
    referenceCount = 0;
    useCount = 0;
@@ -533,31 +527,6 @@ AstNodePtr AstNode::threadIndexNode() {
 
     return indexNode_;
 }
-
-
-#if defined(ASTDEBUG)
-#define AST_PRINT
-#endif
-
-#if defined(AST_PRINT)
-void AstNode::printRC()
-{
-    sprintf(errorLine,"RC referenceCount=%d\n",referenceCount);
-    logLine(errorLine);
-    if (loperand) {
-      logLine("RC loperand\n");
-      loperand->printRC();
-    }
-    if (roperand) {
-      logLine("RC roperand\n");
-      roperand->printRC();
-    }
-    if (eoperand) {
-      logLine("RC eoperand\n");
-      eoperand->printRC();
-    }
-}
-#endif
 
 AstNode::~AstNode() {
     //printf("at ~AstNode()  count=%d\n", referenceCount);
@@ -1835,10 +1804,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
     Address addr = ADDR_NULL;
     Dyninst::Register src = Dyninst::Null_Register;
 
-#if defined(ASTDEBUG)
-   sprintf(errorLine,"### location: %p ###\n", (void*)gen.point());
-   logLine(errorLine);
-#endif
    // Allocate a register to return
    if (oType != operandType::DataReg) {
        if (retReg == Dyninst::Null_Register) {
@@ -2310,45 +2275,6 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
    return true;
 }
 
-#if defined(AST_PRINT)
-std::string getOpString(opCode op)
-{
-    switch (op) {
-	case plusOp: return("+");
-	case minusOp: return("-");
-	case xorOp: return("^");
-    case timesOp: return("*");
-	case divOp: return("/");
-	case lessOp: return("<");
-	case leOp: return("<=");
-	case greaterOp: return(">");
-	case geOp: return(">=");
-	case eqOp: return("==");
-	case neOp: return("!=");
-	case loadOp: return("lda");
-	case loadConstOp: return("load");
-	case storeOp: return("=");
-	case ifOp: return("if");
-	case ifMCOp: return("ifMC");
-	case whileOp: return("while") ;
-	case doOp: return("while") ;
-	case trampPreamble: return("preTramp");
-	case branchOp: return("goto");
-	case noOp: return("nop");
-	case andOp: return("and");
-	case orOp: return("or");
-	case loadIndirOp: return("load&");
-	case storeIndirOp: return("=&");
-	case loadFrameRelativeOp: return("load $fp");
-	case loadRegRelativeOp: return("load $reg");
-        case loadFrameAddr: return("$fp");
-	case storeFrameRelativeOp: return("store $fp");
-	case getAddrOp: return("&");
-	default: return("ERROR");
-    }
-}
-#endif
-
 #undef MIN
 #define MIN(x,y) ((x)>(y) ? (y) : (x))
 #undef MAX
@@ -2443,72 +2369,6 @@ int AstVariableNode::costHelper(enum CostStyleType /*costStyle*/) const{
     return total;
 }
 
-#if defined(AST_PRINT)
-void AstNode::print() const {
-  if (this) {
-#if defined(ASTDEBUG)
-    bpfatal("{%d}", referenceCount) ;
-#endif
-    if (type == operandNode) {
-      if (oType == operandType::Constant) {
-	fprintf(stderr,"%d", (int)(Address) oValue);
-      } else if (oType == operandType::ConstantString) {
-        fprintf(stderr," %s", (char *)oValue);
-      } else if (oType == operandType::DataIndir) {
-	fprintf(stderr," @[");
-        if(loperand) loperand->print();
-	fprintf(stderr,"]");
-      } else if (oType == operandType::DataReg) {
-	fprintf(stderr," reg%d ",(int)(Address)oValue);
-	if(loperand) loperand->print();
-      } else if (oType == operandType::Param || oType == operandType::ParamAtCall || oType == operandType::ParamAtEntry) {
-	fprintf(stderr," param[%d]", (int)(Address) oValue);
-      } else if (oType == operandType::ReturnVal) {
-	fprintf(stderr,"retVal");
-      } else if (oType == operandType::ReturnAddr) {
-	fprintf(stderr, "retAddr");
-      } else if (oType == operandType::DataAddr)  {
-	if(!oVar)
-	{
-	  fprintf(stderr," [0x%lx]", (long) oValue);
-	}
-	else
-	{
-	  fprintf(stderr," [%s]", oVar->symTabName().c_str());
-	}
-
-      } else if (oType == FrameAddr)  {
-	fprintf(stderr," [$fp + %d]", (int)(Address) oValue);
-      } else if (oType == RegOffset)  {
-	fprintf(stderr," [$%d + %d]", (int)(Address) loperand->getOValue(), (int)(Address) oValue);
-      } else if (oType == EffectiveAddr)  {
-	fprintf(stderr," <<effective address>>");
-      } else if (oType == BytesAccessed)  {
-	fprintf(stderr," <<bytes accessed>>");
-      } else {
-	fprintf(stderr," <Unknown Operand>");
-      }
-    } else if (type == opCodeNode_t) {
-      cerr << "(" << getOpString(op);
-      if (loperand) loperand->print();
-      if (roperand) roperand->print();
-      if (eoperand) eoperand->print();
-      fprintf(stderr,")\n");
-    } else if (type == callNode) {
-      cerr << "(" << callee;
-      for (unsigned u = 0; u < operands.size(); u++)
-         operands[u]->print();
-      fprintf(stderr,")\n");
-    } else if (type == sequenceNode_t) {
-       if (loperand) loperand->print();
-       fprintf(stderr,",");
-       if (roperand) roperand->print();
-       fprintf(stderr,"\n");
-    }
-  }
-}
-#endif
-
 BPatch_type *AstNode::checkType(BPatch_function*) {
     return BPatch::bpatch->type_Untyped;
 }
@@ -2578,20 +2438,6 @@ BPatch_type *AstOperatorNode::checkType(BPatch_function* func) {
     } else if (errorFlag) {
        ret = BPatch::bpatch->type_Untyped;
     }
-
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-       logLine(" type is ");
-       if (ret->getName()){
-          logLine(ret->getName());
-       } else {
-          logLine(" <NULL Name String>");
-          logLine("\n");
-       }
-    }
-#endif
 
     // remember what type we are
     setType(ret);
@@ -2666,19 +2512,6 @@ BPatch_type *AstOperandNode::checkType(BPatch_function* func)
        ret = BPatch::bpatch->type_Untyped;
     }
 
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-	logLine(" type is ");
-	if (ret->getName())
-	     logLine(ret->getName());
-	else
-	     logLine(" <NULL Name String>");
-	logLine("\n");
-    }
-#endif
-
     // remember what type we are
     setType(ret);
 
@@ -2711,19 +2544,6 @@ BPatch_type *AstCallNode::checkType(BPatch_function* func) {
     } else if (errorFlag) {
        ret = BPatch::bpatch->type_Untyped;
     }
-
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-	logLine(" type is ");
-	if (ret->getName())
-	     logLine(ret->getName());
-	else
-	     logLine(" <NULL Name String>");
-	logLine("\n");
-    }
-#endif
 
     // remember what type we are
     setType(ret);
@@ -2761,19 +2581,6 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
 	ret = BPatch::bpatch->type_Untyped;
     }
 
-#if defined(ASTDEBUG)
-    // it would be useful to have some indication of what the type applied to
-    // (currently it appears to be copious amounts of contextless junk)
-    if (ret) {
-	logLine(" type is ");
-	if (ret->getName())
-	     logLine(ret->getName());
-	else
-	     logLine(" <NULL Name String>");
-	logLine("\n");
-    }
-#endif
-
     // remember what type we are
     setType(ret);
 
@@ -2781,19 +2588,6 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
 }
 
 bool AstNode::accessesParam() {
-#if 0
-    fprintf(stderr, "Undefined call to getChildren for type: ");
-    if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
-    else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
-    else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
-    else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
-    else if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
-    else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
-    else if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
-    else fprintf(stderr, "unknownNode\n");
-#endif
     return false;
 }
 
