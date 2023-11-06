@@ -27,7 +27,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
+#ifndef INSTRUCTION_DECODER_GFX908_H
+#define INSTRUCTION_DECODER_GFX908_H
 #include <array>
 #include <stddef.h>
 #include <stdint.h>
@@ -3779,4 +3780,4 @@ namespace Dyninst {
 
     }
 }
-
+#endif //INSTRUCTION_DECODER_GFX908_H
