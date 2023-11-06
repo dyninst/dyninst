@@ -34,7 +34,8 @@
 #include <vector>
 #include <string>
 #include <map>
-
+#include "dyntypes.h"
+#include "dyn_register.h"
 #include "common/src/arch.h"
 #include "dyninstAPI/src/patch.h"
 
@@ -169,8 +170,8 @@ class codeGen {
     // For code generation -- given the current state of 
     // generation and a base address in the mutatee, 
     // produce a "current" address.
-    Address currAddr() const;
-    Address currAddr(Address base) const;
+    Dyninst::Address currAddr() const;
+    Dyninst::Address currAddr(Dyninst::Address base) const;
     
     enum { cgNOP, cgTrap, cgIllegal };
 
@@ -186,7 +187,7 @@ class codeGen {
 
     //Have each region generate code with this codeGen object being
     // placed at addr
-    void applyPCRels(Address addr);
+    void applyPCRels(Dyninst::Address addr);
 
     //Return true if there are any active regions.
     bool hasPCRels() const;
@@ -196,7 +197,7 @@ class codeGen {
 
     //Create a patch into the codeRange
     void addPatch(codeBufIndex_t index, patchTarget *source, 
-                  unsigned size = sizeof(Address),
+                  unsigned size = sizeof(Dyninst::Address),
                   relocPatch::patch_type_t ptype = relocPatch::patch_type_t::abs,
                   Dyninst::Offset off = 0);
 
@@ -208,7 +209,7 @@ class codeGen {
     void setAddrSpace(AddressSpace *a);
     void setThread(PCThread *t) { thr_ = t; }
     void setRegisterSpace(registerSpace *r) { rs_ = r; }
-    void setAddr(Address a) { addr_ = a; }
+    void setAddr(Dyninst::Address a) { addr_ = a; }
     void setPoint(instPoint *i) { ip_ = i; }
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
@@ -219,7 +220,7 @@ class codeGen {
     unsigned width() const;
     AddressSpace *addrSpace() const;
     PCThread *thread();
-    Address startAddr() const { return addr_; }
+    Dyninst::Address startAddr() const { return addr_; }
     instPoint *point() const;
     baseTramp *bt() const { return bt_; }
     func_instance *func() const;
@@ -240,24 +241,24 @@ class codeGen {
     void beginTrackRegDefs();
     void endTrackRegDefs();
     const bitArray &getRegsDefined();
-    void markRegDefined(Register r);
-    bool isRegDefined(Register r);
+    void markRegDefined(Dyninst::Register r);
+    bool isRegDefined(Dyninst::Register r);
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
 
     // SD-DYNINST
     // 
-    typedef std::pair<Address, unsigned> Extent;
-    void registerDefensivePad(block_instance *, Address, unsigned);
+    typedef std::pair<Dyninst::Address, unsigned> Extent;
+    void registerDefensivePad(block_instance *, Dyninst::Address, unsigned);
     std::map<block_instance *, Extent> &getDefensivePads() { return defensivePads_; }
     
     // Immediate uninstrumentation
-    void registerInstrumentation(baseTramp *bt, Address loc) { instrumentation_[bt] = loc; }
-    std::map<baseTramp *, Address> &getInstrumentation() { return instrumentation_; }
+    void registerInstrumentation(baseTramp *bt, Dyninst::Address loc) { instrumentation_[bt] = loc; }
+    std::map<baseTramp *, Dyninst::Address> &getInstrumentation() { return instrumentation_; }
     
-    void registerRemovedInstrumentation(baseTramp *bt, Address loc) { removedInstrumentation_[bt] = loc; }
-    std::map<baseTramp *, Address> &getRemovedInstrumentation() { return removedInstrumentation_; }
+    void registerRemovedInstrumentation(baseTramp *bt, Dyninst::Address loc) { removedInstrumentation_[bt] = loc; }
+    std::map<baseTramp *, Dyninst::Address> &getRemovedInstrumentation() { return removedInstrumentation_; }
 
  private:
     void realloc(unsigned newSize); 
@@ -275,7 +276,7 @@ class codeGen {
     PCThread *thr_;
     registerSpace *rs_;
     regTracker_t *t_;
-    Address addr_;
+    Dyninst::Address addr_;
     instPoint *ip_;
     func_instance *f_;
     baseTramp *bt_;
@@ -293,8 +294,8 @@ class codeGen {
     std::vector<pcRelRegion *> pcrels_;
 
     std::map<block_instance *, Extent> defensivePads_;
-    std::map<baseTramp *, Address> instrumentation_;
-    std::map<baseTramp *, Address> removedInstrumentation_;
+    std::map<baseTramp *, Dyninst::Address> instrumentation_;
+    std::map<baseTramp *, Dyninst::Address> removedInstrumentation_;
 };
 
 #endif

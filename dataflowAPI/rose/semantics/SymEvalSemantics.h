@@ -14,6 +14,7 @@
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "BaseSemantics2.h"
 #include "../../h/SymEval.h"
+#include "dyntypes.h"
 
 namespace rose {
     namespace BinaryAnalysis {

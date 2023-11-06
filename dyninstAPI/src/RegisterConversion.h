@@ -31,11 +31,11 @@
 #if !defined(REGISTER_CONVERSION_H)
 #define REGISTER_CONVERSION_H
 
-#include "Register.h"
-#include "common/src/Types.h"
 #include "registers/MachRegister.h"
 #include "Architecture.h"
 #include <map>
+#include "dyn_register.h"
+#include "Register.h"
 
 using namespace Dyninst;
 

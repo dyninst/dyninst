@@ -32,7 +32,7 @@
 
 #include "Visitor.h"
 #include "Instruction.h"
-#include "common/src/Types.h"
+#include "dyntypes.h"
 
 class BPatch_memoryAccess;
 
@@ -48,7 +48,7 @@ class BPatch_memoryAccessAdapter : public Dyninst::InstructionAPI::Visitor
   }
   
   BPatch_memoryAccess* convert(Dyninst::InstructionAPI::Instruction insn,
-			       Address current, bool is64);
+			       Dyninst::Address current, bool is64);
   virtual void visit(Dyninst::InstructionAPI::BinaryFunction* b);
   virtual void visit(Dyninst::InstructionAPI::Dereference* d);
   virtual void visit(Dyninst::InstructionAPI::RegisterAST* r);

@@ -31,8 +31,9 @@
 #ifndef auxvparser_h
 #define auxvparser_h
 
-#include "common/src/Types.h"
+#include "util.h"
 #include <map>
+#include "dyntypes.h"
 
 class COMMON_EXPORT AuxvParser
 {
@@ -40,12 +41,12 @@ class COMMON_EXPORT AuxvParser
    int pid;
    unsigned ref_count;
    bool create_err;
-   Address interpreter_base;
-   Address vsyscall_base;
-   Address vsyscall_text;
-   Address vsyscall_end;
+   Dyninst::Address interpreter_base;
+   Dyninst::Address vsyscall_base;
+   Dyninst::Address vsyscall_text;
+   Dyninst::Address vsyscall_end;
    bool found_vsyscall;
-   Address phdr;
+   Dyninst::Address phdr;
 
    unsigned page_size;
    unsigned addr_size;
@@ -53,7 +54,7 @@ class COMMON_EXPORT AuxvParser
    bool readAuxvInfo();
    void *readAuxvFromProc();
    void *readAuxvFromStack();
-   Address getStackTop(bool &err);
+   Dyninst::Address getStackTop(bool &err);
    AuxvParser(int pid, unsigned asize); 
 
    static std::map<int, AuxvParser *> pid_to_parser;
@@ -64,13 +65,13 @@ class COMMON_EXPORT AuxvParser
    void deleteAuxvParser();
    ~AuxvParser();
 
-   Address getInterpreterBase();
+   Dyninst::Address getInterpreterBase();
    bool parsedVsyscall();
-   Address getVsyscallBase();
-   Address getVsyscallText();
-   Address getVsyscallEnd();
-   Address getProgramBase();
-   Address getPageSize();
+   Dyninst::Address getVsyscallBase();
+   Dyninst::Address getVsyscallText();
+   Dyninst::Address getVsyscallEnd();
+   Dyninst::Address getProgramBase();
+   Dyninst::Address getPageSize();
 };
 
 

@@ -48,6 +48,8 @@
 #endif
 #endif
 
+#ifdef __cplusplus
+
 #include <functional>
 #include <memory>
 #include <utility>
@@ -74,12 +76,14 @@ using dyn_hash_set = std::unordered_set<Key, Hash, Comp, Alloc>;
 namespace Dyninst
 {
 #if defined(_WIN64)
-    typedef uintptr_t Address;
-    typedef uintptr_t Offset;
+  typedef uintptr_t Address;
+  typedef uintptr_t Offset;
 #else
-    typedef unsigned long Address;
-    typedef unsigned long Offset;
+  typedef unsigned long Address;
+  typedef unsigned long Offset;
 #endif
+
+  static constexpr Address ADDR_NULL{0};
 
 #if defined(_MSC_VER)
    typedef int PID;
@@ -106,7 +110,7 @@ namespace Dyninst
 #endif
 #endif
 
-   int ThrIDToTid(Dyninst::THR_ID id);
+   inline int ThrIDToTid(Dyninst::THR_ID id) { return id; }
 }
 
 namespace Dyninst
@@ -118,5 +122,10 @@ namespace Dyninst
       Windows
    } OSType;
 }
+
+#else
+# define ADDR_NULL (0)
+typedef unsigned long Address;
+#endif
 
 #endif

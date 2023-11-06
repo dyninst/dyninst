@@ -51,7 +51,6 @@
 #include <utility>
 #include <vector>
 #include "headers.h"
-#include "Types.h"
 #include "MappedFile.h"
 #include "IntervalTree.h"
 

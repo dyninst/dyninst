@@ -35,7 +35,6 @@
 #include "boost/assign/std/set.hpp"
 #include <map>
 #include <string>
-#include "common/src/Types.h"
 #include "common/src/ia32_locations.h"
 #include "codegen.h"
 #include "util.h"
@@ -84,7 +83,7 @@ unsigned copy_prefixes(const unsigned char *&origInsn, unsigned char *&newInsn, 
   return nPrefixes;
 }
 
-//Copy all prefixes but the Operand-Size and Address-Size prefixes (0x66 and 0x67)
+//Copy all prefixes but the Operand-Size and Dyninst::Address-Size prefixes (0x66 and 0x67)
 unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&newInsn, 
                               unsigned insnType) 
 {
@@ -103,7 +102,7 @@ unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&ne
     return retval;
 }
 
-//Copy all prefixes but the Operand-Size and Address-Size prefixes (0x66 and 0x67)
+//Copy all prefixes but the Operand-Size and Dyninst::Address-Size prefixes (0x66 and 0x67)
 // Returns the number of bytes copied
 unsigned copy_prefixes_nosize_or_segments(const unsigned char *&origInsn, unsigned char *&newInsn, 
                               unsigned insnType) 
@@ -211,7 +210,7 @@ void insnCodeGen::generateTrap(codeGen &gen) {
  */
 
 void insnCodeGen::generateBranch(codeGen &gen,
-                                 Address fromAddr, Address toAddr)
+                                 Dyninst::Address fromAddr, Dyninst::Address toAddr)
 {
   GET_PTR(insn, gen);
   long disp;
@@ -273,7 +272,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
 
 
 // Unified the 64-bit push between branch and call
-void insnCodeGen::generatePush64(codeGen &gen, Address val)
+void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 {
   GET_PTR(insn, gen);
 #if 0
@@ -302,7 +301,7 @@ void insnCodeGen::generatePush64(codeGen &gen, Address val)
   SET_PTR(insn, gen);
 }
 
-void insnCodeGen::generateBranch64(codeGen &gen, Address to)
+void insnCodeGen::generateBranch64(codeGen &gen, Dyninst::Address to)
 {
     // "long jump" - generates sequence to jump to any 64-bit address
     // pushes the value on the stack (using 4 16-bit pushes) the uses a 'RET'
@@ -315,7 +314,7 @@ void insnCodeGen::generateBranch64(codeGen &gen, Address to)
 
 }
 
-void insnCodeGen::generateBranch32(codeGen &gen, Address to)
+void insnCodeGen::generateBranch32(codeGen &gen, Dyninst::Address to)
 {
    // "long jump" - generates sequence to jump to any 32-bit address
    emitPushImm(to, gen);
@@ -326,8 +325,8 @@ void insnCodeGen::generateBranch32(codeGen &gen, Address to)
 }
 
 void insnCodeGen::generateCall(codeGen &gen,
-                               Address from,
-                               Address target)
+                               Dyninst::Address from,
+                               Dyninst::Address target)
 {
   //assert(target);
   long disp = target - (from + CALL_REL32_SZ);
@@ -394,7 +393,7 @@ pcRelJump::pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes) :
 {
 }
 
-pcRelJump::pcRelJump(Address target, const instruction &i, bool copyPrefixes) :
+pcRelJump::pcRelJump(Dyninst::Address target, const instruction &i, bool copyPrefixes) :
    pcRelRegion(i),
    addr_targ(target),
    targ(NULL),
@@ -402,7 +401,7 @@ pcRelJump::pcRelJump(Address target, const instruction &i, bool copyPrefixes) :
 {
 }
 
-Address pcRelJump::get_target() 
+Dyninst::Address pcRelJump::get_target()
 {
    if (targ)
       return targ->get_address();
@@ -413,7 +412,7 @@ pcRelJump::~pcRelJump()
 {
 }
 
-unsigned pcRelJump::apply(Address addr)
+unsigned pcRelJump::apply(Dyninst::Address addr)
 {
    const unsigned char *origInsn = orig_instruc.ptr();
    unsigned insnType = orig_instruc.type();
@@ -456,14 +455,14 @@ pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
 {
 }
 
-pcRelJCC::pcRelJCC(Address target, const instruction &i) :
+pcRelJCC::pcRelJCC(Dyninst::Address target, const instruction &i) :
    pcRelRegion(i),
    addr_targ(target),
    targ(NULL)
 {
 }
 
-Address pcRelJCC::get_target() 
+Dyninst::Address pcRelJCC::get_target()
 {
    if (targ)
       return targ->get_address();
@@ -474,12 +473,12 @@ pcRelJCC::~pcRelJCC()
 {
 }
 
-unsigned pcRelJCC::apply(Address addr)
+unsigned pcRelJCC::apply(Dyninst::Address addr)
 {
    const unsigned char *origInsn = orig_instruc.ptr();
    unsigned insnType = orig_instruc.type();
-   Address target = get_target();
-   Address potential;
+   Dyninst::Address target = get_target();
+   Dyninst::Address potential;
    signed long disp;
    codeBufIndex_t start = gen->getIndex();
    GET_PTR(newInsn, *gen);
@@ -547,7 +546,7 @@ unsigned pcRelJCC::apply(Address addr)
 
    // Original address is a little skewed... 
    // We've moved past the original address (to the tune of nPrefixes + 2 (JCC) + 2 (J))
-   Address currAddr = addr + (unsigned) gen->getIndex() - start;
+   Dyninst::Address currAddr = addr + (unsigned) gen->getIndex() - start;
    insnCodeGen::generateBranch(*gen, currAddr, target);
    codeBufIndex_t done = gen->getIndex();
 
@@ -586,14 +585,14 @@ pcRelCall::pcRelCall(patchTarget *t, const instruction &i) :
 {
 }
 
-pcRelCall::pcRelCall(Address target, const instruction &i) :
+pcRelCall::pcRelCall(Dyninst::Address target, const instruction &i) :
    pcRelRegion(i),
    targ_addr(target),
    targ(NULL)
 {
 }
 
-Address pcRelCall::get_target()
+Dyninst::Address pcRelCall::get_target()
 {
    if (targ)
       return targ->get_address();
@@ -604,7 +603,7 @@ pcRelCall::~pcRelCall()
 {
 }
 
-unsigned pcRelCall::apply(Address addr)
+unsigned pcRelCall::apply(Dyninst::Address addr)
 {
    const unsigned char *origInsn = orig_instruc.ptr();
    unsigned insnType = orig_instruc.type();
@@ -634,7 +633,7 @@ bool pcRelCall::canPreApply()
    return gen->startAddr() && (!targ || get_target());
 }
 
-pcRelData::pcRelData(Address a, const instruction &i) :
+pcRelData::pcRelData(Dyninst::Address a, const instruction &i) :
    pcRelRegion(i),
    data_addr(a)
 {
@@ -643,13 +642,13 @@ pcRelData::pcRelData(Address a, const instruction &i) :
 #define REL_DATA_MAXSIZE 2/*push r*/ + 10/*movImmToReg64*/ + 7/*orig insn*/ + 2/*pop r*/
 
 #if !defined(arch_x86_64)
-unsigned pcRelData::apply(Address) {
+unsigned pcRelData::apply(Dyninst::Address) {
    assert(0);
    return 0;
 }
 
 #else
-unsigned pcRelData::apply(Address addr) 
+unsigned pcRelData::apply(Dyninst::Address addr)
 {
    // We may need to change these from 32-bit relative
    // to 64-bit absolute. This happens with the jumps and calls
@@ -676,7 +675,7 @@ unsigned pcRelData::apply(Address addr)
    if ((*(origInsn + nPrefixes) == 0x0F) && (*(origInsn + nPrefixes + 1) == 0x38 || *(origInsn + nPrefixes + 1) == 0x3A))
    	  nOpcodeBytes = 3;
    
-   Register pointer_reg = (Register)-1;
+   Dyninst::Register pointer_reg = (Dyninst::Register)-1;
      
    if (!is_disp32(newDisp+insnSz) && !is_addr32(data_addr)) {
       // Case C: replace with 64-bit.
@@ -711,7 +710,7 @@ unsigned pcRelData::apply(Address addr)
       // us to change last three bits (the r/m field)
       // to the value of pointer_reg
       unsigned char mod_rm = *origInsn++;
-      assert(pointer_reg != (Register)-1);
+      assert(pointer_reg != (Dyninst::Register)-1);
       mod_rm = (mod_rm & 0xf8) + pointer_reg;
       append_memory_as_byte(newInsn, mod_rm);
    }
@@ -750,7 +749,7 @@ unsigned pcRelData::apply(Address addr)
    
    if (is_data_abs64) {
       // Cleanup on aisle pointer_reg...
-      assert(pointer_reg != (Register)-1);
+      assert(pointer_reg != (Dyninst::Register)-1);
       emitPopReg64(pointer_reg, *gen);
    }
    return (unsigned) (newInsn - orig_loc);
@@ -775,9 +774,9 @@ bool pcRelData::canPreApply()
  * The comments and naming schemes in this function assume some familiarity with
  * the IA32/IA32e instruction encoding.  If you don't understand this, I suggest
  * you start with Chapter 2 of:
- *  _IA-32 Intel Architecture Software Developer's Manual, Volume 2a_
+ *  _IA-32 Intel Dyninst::Architecture Software Developer's Manual, Volume 2a_
  * and appendix A of:
- *  _IA-32 Intel Architecture Software Developer's Manual, Volume 2b_
+ *  _IA-32 Intel Dyninst::Architecture Software Developer's Manual, Volume 2b_
  *
  * This function takes an instruction that accesses memory, and emits a 
  * copy of that instruction that has the load/store replaces with a load/store
@@ -788,15 +787,15 @@ bool pcRelData::canPreApply()
  **/
 bool insnCodeGen::generateMem(codeGen &gen,
                               instruction & insn,
-                              Address /*origAddr*/, 
-                              Address /*newAddr*/,
-                              Register loadExpr,
-                              Register storeExpr) 
+                              Dyninst::Address /*origAddr*/,
+                              Dyninst::Address /*newAddr*/,
+                              Dyninst::Register loadExpr,
+                              Dyninst::Register storeExpr)
 {
    /**********
     * Check parameters
     **********/
-   Register newreg = Null_Register;
+   Dyninst::Register newreg = Null_Register;
    if (loadExpr != Null_Register && storeExpr != Null_Register) {
        cerr << "can't rewrite insn\nerror 1" << endl;
       return false; //Can only do one memory replace per instruction now
@@ -993,8 +992,8 @@ bool insnCodeGen::generateMem(codeGen &gen,
 }
 
 
-bool insnCodeGen::modifyJump(Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
-   Address from = gen.currAddr();
+bool insnCodeGen::modifyJump(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
+   Dyninst::Address from = gen.currAddr();
 
    const unsigned char *origInsn = insn.ptr();
    unsigned insnType = insn.type();
@@ -1011,12 +1010,12 @@ bool insnCodeGen::modifyJump(Address targetAddr, NS_x86::instruction &insn, code
    return true;
 }
 
-bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
+bool insnCodeGen::modifyJcc(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
    const unsigned char *origInsn = insn.ptr();
    unsigned insnType = insn.type();
-   Address from = gen.currAddr();
+   Dyninst::Address from = gen.currAddr();
 
-   Address potential;
+   Dyninst::Address potential;
    signed long disp;
    codeBufIndex_t start = gen.getIndex();
    GET_PTR(newInsn, gen);
@@ -1084,7 +1083,7 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
 
    // Original address is a little skewed... 
    // We've moved past the original address (to the tune of nPrefixes + 2 (JCC) + 2 (J))
-   Address currAddr = from + (unsigned) gen.getIndex() - start;
+   Dyninst::Address currAddr = from + (unsigned) gen.getIndex() - start;
    insnCodeGen::generateBranch(gen, currAddr, targetAddr);
    codeBufIndex_t done = gen.getIndex();
 
@@ -1100,7 +1099,7 @@ bool insnCodeGen::modifyJcc(Address targetAddr, NS_x86::instruction &insn, codeG
    return true;
 }
 
-bool insnCodeGen::modifyCall(Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
+bool insnCodeGen::modifyCall(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
    // If we're within a 32-bit displacement, we reuse the original call. 
    // Otherwise we say "welp, sucks to be us", strip any prefixes, 
    // and do a 64-bit long thang
@@ -1130,7 +1129,7 @@ bool insnCodeGen::modifyCall(Address targetAddr, NS_x86::instruction &insn, code
    return true;
 }
 
-bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen) 
+bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, codeGen &gen)
 {
     // We may need to change these from 32-bit relative
     // to 64-bit absolute. This happens with the jumps and calls
@@ -1144,13 +1143,13 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     const unsigned char* origInsnStart = origInsn;
     // unsigned insnType = insn.type();
     unsigned insnSz = insn.size();
-    Address from = gen.currAddr();
+    Dyninst::Address from = gen.currAddr();
 
     bool is_data_abs64 = false;
     signed long newDisp = targetAddr - from;
     GET_PTR(newInsn, gen);
 
-    Register pointer_reg = (Register)-1;
+    Dyninst::Register pointer_reg = (Dyninst::Register)-1;
 
     /******************************************* prefix/opcode ****************/
 
@@ -1241,7 +1240,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 #if defined(arch_x86_64)
     if (is_data_abs64) {
         // Cleanup on aisle pointer_reg...
-        assert(pointer_reg != (Register)-1);
+        assert(pointer_reg != (Dyninst::Register)-1);
         emitPopReg64(pointer_reg, gen);
     }
 #endif
@@ -1249,7 +1248,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     return true;
 }
 
-bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Architecture arch, Address addr) {
+bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Dyninst::Architecture arch, Dyninst::Address addr) {
 
     relocation_cerr << "\t\tmodifyDisp "
         << std::hex << addr
@@ -1425,7 +1424,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     // there may be an immediate after the displacement
     // so we copy over the rest of the instruction here
     while (origInsn - origInsnStart < (int)insnSz) {
-        auto nextByte = read_memory_as<uint8_t>(origInsn);
+        auto nextByte = Dyninst::read_memory_as<uint8_t>(origInsn);
         append_memory_as_byte(newInsn, nextByte);
     }
 

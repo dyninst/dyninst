@@ -44,7 +44,7 @@ using namespace InstructionAPI;
 
 
 BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
-							 Address current, bool is64)
+							 Dyninst::Address current, bool is64)
 {
 #if defined(arch_x86) || defined(arch_x86_64)
     static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };

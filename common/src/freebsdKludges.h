@@ -34,7 +34,8 @@
 #include <sys/types.h>
 #include <sys/ptrace.h>
 #include <errno.h>
-
+#include "dyntypes.h"
+#include "common/src/vm_maps.h"
 #include <vector>
 #include <map>
 

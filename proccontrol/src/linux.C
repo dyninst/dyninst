@@ -48,7 +48,7 @@
 #include "registers/ppc64_regs.h"
 #include "registers/aarch64_regs.h"
 #include "common/h/dyntypes.h"
-
+#include "common/src/vm_maps.h"
 #include "compiler_annotations.h"
 
 #include "common/src/pathName.h"
@@ -2401,14 +2401,14 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
         if (size == 4) {
            if( sizeof(void *) == 8 ) {
               // Avoid endian issues
-              auto tmpVal = read_memory_as<uint64_t>(user_area+offset);
+              auto tmpVal = Dyninst::read_memory_as<uint64_t>(user_area+offset);
               val = (uint32_t) tmpVal;
            }else{
-              val = read_memory_as<uint32_t>(user_area+offset);
+              val = Dyninst::read_memory_as<uint32_t>(user_area+offset);
            }
         }
         else if (size == 8) {
-           val = read_memory_as<uint64_t>(user_area+offset);
+           val = Dyninst::read_memory_as<uint64_t>(user_area+offset);
         }
         else {
            assert(0);

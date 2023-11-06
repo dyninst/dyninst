@@ -37,7 +37,7 @@
 // #include "BPatch_image.h"
 #include "BPatch_addressSpace.h"
 #include "BPatch_enums.h"
-
+#include "dyntypes.h"
 #include "BPatch_callbacks.h"
 #include "PCProcess.h"
 

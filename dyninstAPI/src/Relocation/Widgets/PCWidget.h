@@ -32,9 +32,9 @@
 #define _PATCHAPI_PC_ATOM_H_
 
 #include <string>
-#include "Widget.h"
 
-// Define where the PC value is supposed to go
+#include "dyn_register.h"
+#include "Widget.h"
 #include "dataflowAPI/h/Absloc.h"
 
 class block_instance;

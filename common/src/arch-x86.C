@@ -131,9 +131,6 @@
 // This include *really must* come first in the file.
 #include "common/src/vgannotations.h"
 
-// This include *must* come first in the file.
-#include "common/src/Types.h"
-
 #include <assert.h>
 #include <stdio.h>
 #include <map>
@@ -158,6 +155,7 @@
 
 using namespace std;
 using namespace boost::assign;
+using namespace Dyninst;
 
 namespace NS_x86 {
 
@@ -10504,7 +10502,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                      macadr->set16(mDI, -1, 0);
                      break;
                   case 6:
-                     macadr->set16(-1, -1, read_memory_as<int16_t>(dispAddr));
+                     macadr->set16(-1, -1, Dyninst::read_memory_as<int16_t>(dispAddr));
                      if (loc)
                      {
                         loc->disp_position = loc->modrm_position + 1;
@@ -10573,7 +10571,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                   loc->disp_size = 2;
                }
 
-               auto disp16 = read_memory_as<int16_t>(dispAddr);
+               auto disp16 = Dyninst::read_memory_as<int16_t>(dispAddr);
                switch (rm)
                {
                   case 0:
@@ -10689,7 +10687,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                            loc->disp_size = 4;
                         }
 
-                        auto disp32 = read_memory_as<int32_t>(dispAddr);
+                        auto disp32 = Dyninst::read_memory_as<int32_t>(dispAddr);
                         macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()),
                               disp32, addrSzAttr);
                      } else {
@@ -10706,7 +10704,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                            loc->disp_size = 4;
                         }
 
-                        auto disp32 = read_memory_as<int32_t>(dispAddr);
+                        auto disp32 = Dyninst::read_memory_as<int32_t>(dispAddr);
                         if (mode_64)
                            macadr->set(mRIP, disp32, addrSzAttr);
                         else
@@ -10735,7 +10733,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                   loc->disp_size = 1;
                }
 
-               auto disp8 = read_memory_as<int8_t>(dispAddr);
+               auto disp8 = Dyninst::read_memory_as<int8_t>(dispAddr);
                switch (rm)
                {
                   case 0:
@@ -10781,7 +10779,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
                   loc->disp_size = 4;
                }
 
-               auto disp32 = read_memory_as<int32_t>(dispAddr);
+               auto disp32 = Dyninst::read_memory_as<int32_t>(dispAddr);
                switch (rm)
                {
                   case 0:
@@ -10939,13 +10937,13 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                   switch(addrSzAttr)
                   {
                      case 1: // 16-bit offset
-                        offset = read_memory_as<int16_t>(addr);
+                        offset = Dyninst::read_memory_as<int16_t>(addr);
                         break;
                      case 2: // 32-bit offset
-                        offset = read_memory_as<int32_t>(addr);
+                        offset = Dyninst::read_memory_as<int32_t>(addr);
                         break;
                      case 4: // 64-bit
-                        offset = read_memory_as<int64_t>(addr);
+                        offset = Dyninst::read_memory_as<int64_t>(addr);
                         break;
                      default:
                         assert(0);
@@ -11723,28 +11721,28 @@ int displacement(const unsigned char *instr, unsigned type) {
          if(*instr == 0x38 || *instr == 0x3A)  instr++;
       }
       // Skip the instr opcode and the MOD/RM byte
-      disp = read_memory_as<int32_t>(instr+2);
+      disp = Dyninst::read_memory_as<int32_t>(instr+2);
    } else if (type & IS_JUMP) {
       if (type & REL_B) {
-         disp = read_memory_as<int8_t>(instr+1);
+         disp = Dyninst::read_memory_as<int8_t>(instr+1);
       } else if (type & REL_W) {
-         disp = read_memory_as<int16_t>(instr+1); // skip opcode
+         disp = Dyninst::read_memory_as<int16_t>(instr+1); // skip opcode
       } else if (type & REL_D) {
-         disp = read_memory_as<int32_t>(instr+1);
+         disp = Dyninst::read_memory_as<int32_t>(instr+1);
       }
    } else if (type & IS_JCC) {
       if (type & REL_B) {
-         disp = read_memory_as<int8_t>(instr+1);
+         disp = Dyninst::read_memory_as<int8_t>(instr+1);
       } else if (type & REL_W) {
-         disp = read_memory_as<int16_t>(instr+2); // skip two byte opcode
+         disp = Dyninst::read_memory_as<int16_t>(instr+2); // skip two byte opcode
       } else if (type & REL_D) {
-         disp = read_memory_as<int32_t>(instr+2);   // skip two byte opcode
+         disp = Dyninst::read_memory_as<int32_t>(instr+2);   // skip two byte opcode
       }
    } else if (type & IS_CALL) {
       if (type & REL_W) {
-         disp = read_memory_as<int16_t>(instr+1); // skip opcode
+         disp = Dyninst::read_memory_as<int16_t>(instr+1); // skip opcode
       } else if (type & REL_D) {
-         disp = read_memory_as<int32_t>(instr+1);
+         disp = Dyninst::read_memory_as<int32_t>(instr+1);
       }
    }
 
@@ -11868,7 +11866,7 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
 
 
 //Determine appropriate scale, index, and base given SIB byte.
-void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg){
+void decode_SIB(unsigned sib, unsigned& scale, Dyninst::Register& index_reg, Dyninst::Register& base_reg){
    scale = sib >> 6;
 
    //scale = 2^scale

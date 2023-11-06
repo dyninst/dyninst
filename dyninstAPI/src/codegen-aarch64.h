@@ -32,6 +32,8 @@
 #define _CODEGEN_AARCH64_H
 
 #include <vector>
+#include "dyntypes.h"
+#include "common/src/dyn_register.h"
 
 class AddressSpace;
 
@@ -81,37 +83,37 @@ public:
                                bool link = false);
 
     static void generateBranch(codeGen &gen,
-                               Address from,
-                               Address to,
+                               Dyninst::Address from,
+                               Dyninst::Address to,
                                bool link = false);
 
     static void generateCall(codeGen &gen,
-                             Address from,
-                             Address to);
+                             Dyninst::Address from,
+                             Dyninst::Address to);
 
     static void generateLongBranch(codeGen &gen,
-                                   Address from,
-                                   Address to,
+                                   Dyninst::Address from,
+                                   Dyninst::Address to,
                                    bool isCall);
 
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
-                                      Address from,
-                                      Address to,
+                                      Dyninst::Address from,
+                                      Dyninst::Address to,
                                       bool isCall);
 
     // Generate conditional branch
-    static void generateConditionalBranch(codeGen& gen, Address to, unsigned opcode, bool s);
+    static void generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s);
 
     // LDR/STR (immediate)
     // immd in the range -256 to 255
-    static void generateMemAccess(codeGen &gen, LoadStore accType, Register r1,
-            Register r2, int immd, unsigned size, IndexMode im=Post);
+    static void generateMemAccess(codeGen &gen, LoadStore accType, Dyninst::Register r1,
+            Dyninst::Register r2, int immd, unsigned size, IndexMode im=Post);
 
-    static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt,
-            Register rn, int immd, int size, bool is128bit, IndexMode im=Offset);
+    static void generateMemAccessFP(codeGen &gen, LoadStore accType, Dyninst::Register rt,
+            Dyninst::Register rn, int immd, int size, bool is128bit, IndexMode im=Offset);
 
-    static inline void loadImmIntoReg(codeGen &gen, Register rt, Address value)
+    static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rt, Dyninst::Address value)
     {
         insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
         if(value > 0xFFFF)
@@ -122,79 +124,79 @@ public:
             insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
     }
 
-    static void saveRegister(codeGen &gen, Register r, int sp_offset, IndexMode im=Offset);
+    static void saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im=Offset);
 
-    static void restoreRegister(codeGen &gen, Register r, int sp_offset, IndexMode im=Offset);
+    static void restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im=Offset);
 
     /** TODO **/
-    static void generateLoadReg(codeGen &gen, Register rt,
-                                Register ra, Register rb);
+    static void generateLoadReg(codeGen &gen, Dyninst::Register rt,
+                                Dyninst::Register ra, Dyninst::Register rb);
 
-    static void generateStoreReg(codeGen &gen, Register rs,
-                                 Register ra, Register rb);
+    static void generateStoreReg(codeGen &gen, Dyninst::Register rs,
+                                 Dyninst::Register ra, Dyninst::Register rb);
 
-    static void generateLoadReg64(codeGen &gen, Register rt,
-                                  Register ra, Register rb);
+    static void generateLoadReg64(codeGen &gen, Dyninst::Register rt,
+                                  Dyninst::Register ra, Dyninst::Register rb);
 
-    static void generateStoreReg64(codeGen &gen, Register rs,
-                                   Register ra, Register rb);
+    static void generateStoreReg64(codeGen &gen, Dyninst::Register rs,
+                                   Dyninst::Register ra, Dyninst::Register rb);
 
-    static void generateLShift(codeGen &gen, Register rs,
-                               int shift, Register ra);
+    static void generateLShift(codeGen &gen, Dyninst::Register rs,
+                               int shift, Dyninst::Register ra);
 
-    static void generateRShift(codeGen &gen, Register rs,
-                               int shift, Register ra);
+    static void generateRShift(codeGen &gen, Dyninst::Register rs,
+                               int shift, Dyninst::Register ra);
 
-    static void generateLShift64(codeGen &gen, Register rs,
-                                 int shift, Register ra);
+    static void generateLShift64(codeGen &gen, Dyninst::Register rs,
+                                 int shift, Dyninst::Register ra);
 
-    static void generateRShift64(codeGen &gen, Register rs,
-                                 int shift, Register ra);
+    static void generateRShift64(codeGen &gen, Dyninst::Register rs,
+                                 int shift, Dyninst::Register ra);
 
     static void generateRelOp(codeGen &gen, int cond,
-                              int mode, Register rs1,
-                              Register rs2, Register rd);
+                              int mode, Dyninst::Register rs1,
+                              Dyninst::Register rs2, Dyninst::Register rd);
 
-    static void loadPartialImmIntoReg(codeGen &gen, Register rt,
+    static void loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt,
                                       long value);
 
-    static void generateMoveFromLR(codeGen &gen, Register rt);
+    static void generateMoveFromLR(codeGen &gen, Dyninst::Register rt);
 
-    static void generateMoveToLR(codeGen &gen, Register rs);
+    static void generateMoveToLR(codeGen &gen, Dyninst::Register rs);
 
-    static void generateMoveToCR(codeGen &gen, Register rs);
+    static void generateMoveToCR(codeGen &gen, Dyninst::Register rs);
 
     static bool generateMem(codeGen &gen,
                             instruction &insn,
-                            Address origAddr,
-                            Address newAddr,
-                            Register newLoadReg,
-                            Register newStoreReg);
+                            Dyninst::Address origAddr,
+                            Dyninst::Address newAddr,
+                            Dyninst::Register newLoadReg,
+                            Dyninst::Register newStoreReg);
 
     /** *** **/
 
     static void generateAddSubShifted(
-            codeGen &gen, ArithOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit);
+            codeGen &gen, ArithOp op, int shift, int imm6, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
     static void generateAddSubImmediate(
-            codeGen &gen, ArithOp op, int shift, int imm12, Register rn, Register rd, bool is64bit);
+            codeGen &gen, ArithOp op, int shift, int imm12, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
-    static void generateMul(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit);
+    static void generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
-    static void generateDiv(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit, bool s);
+    static void generateDiv(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit, bool s);
 
     static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift,
-            Register rm, int imm6, Register rn, Register rd, bool is64bit);
+            Dyninst::Register rm, int imm6, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
     // This is for MOVK, MOVN, and MOVZ. For MOV use the other generateMove()
-    static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
+    static void generateMove(codeGen &gen, int imm16, int shift, Dyninst::Register rd, MoveOp movOp);
 
     // This is for MOV, which is an alias for ORR. See ARMv8 Documentation.
-    static void generateMove(codeGen &gen, Register rd, Register rm, bool is64bit = true);
+    static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, bool is64bit = true);
 
-    static void generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit);
+    static void generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
-    static Register moveValueToReg(codeGen &gen, long int val, std::vector<Register> *exclude = NULL);
+    static Dyninst::Register moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude = NULL);
 
     static void generate(codeGen &gen, instruction &insn);
 
@@ -206,15 +208,15 @@ public:
     static bool generate(codeGen &gen,
                          instruction &insn,
                          AddressSpace *proc,
-                         Address origAddr,
-                         Address newAddr,
+                         Dyninst::Address origAddr,
+                         Dyninst::Address newAddr,
                          patchTarget *fallthroughOverride = NULL,
                          patchTarget *targetOverride = NULL);
 
     //TODO
     // Routines to create/remove a new stack frame for getting scratch registers
-    static int createStackFrame(codeGen &gen, int numRegs, std::vector <Register> &freeReg,
-            std::vector <Register> &excludeReg);
+    static int createStackFrame(codeGen &gen, int numRegs, std::vector <Dyninst::Register> &freeReg,
+            std::vector <Dyninst::Register> &excludeReg);
 
     //TODO
     static void removeStackFrame(codeGen &gen);
@@ -222,19 +224,19 @@ public:
 
     static void generateNOOP(codeGen &gen, unsigned size = 4);
 
-    static bool modifyJump(Address target,
+    static bool modifyJump(Dyninst::Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
 
-    static bool modifyJcc(Address target,
+    static bool modifyJcc(Dyninst::Address target,
                           NS_aarch64::instruction &insn,
                           codeGen &gen);
 
-    static bool modifyCall(Address target,
+    static bool modifyCall(Dyninst::Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
 
-    static bool modifyData(Address target,
+    static bool modifyData(Dyninst::Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
 };

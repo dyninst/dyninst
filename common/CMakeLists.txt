@@ -62,6 +62,7 @@ set(_private_headers
     src/arch-x86.h
     src/debug_common.h
     src/dthread.h
+    src/dyn_register.h
     src/freebsdHeaders.h
     src/freebsdKludges.h
     src/headers.h
@@ -85,14 +86,13 @@ set(_private_headers
     src/symbolDemangle.h
     src/symbolDemangleWithCache.h
     src/Timer.h
-    src/Types.h
-    src/vgannotations.h)
+    src/vgannotations.h
+    src/vm_maps.h)
 
 set(_sources
     src/pfq-rwlock.C
     src/concurrent.C
     src/Timer.C
-    src/Types.C
     src/lprintf.C
     src/pathName.C
     src/stats.C

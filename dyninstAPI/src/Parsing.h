@@ -38,11 +38,12 @@
 #include "parseAPI/h/InstructionSource.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/ParseCallback.h"
+#include "dyntypes.h"
 
 // some useful types
-using ParseAPI::EdgeTypeEnum;
-using ParseAPI::FuncReturnStatus;
-using ParseAPI::FuncSource;
+using Dyninst::ParseAPI::EdgeTypeEnum;
+using Dyninst::ParseAPI::FuncReturnStatus;
+using Dyninst::ParseAPI::FuncSource;
 using std::vector;
 
 /*** The image_* object factory ***/
@@ -59,20 +60,20 @@ class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
     DynCFGFactory(image * im);
     ~DynCFGFactory() {}
     
-    ParseAPI::Function * mkfunc(Address addr, FuncSource src, std::string name,
-            ParseAPI::CodeObject * obj, ParseAPI::CodeRegion * reg,
-            InstructionSource * isrc);
-    ParseAPI::Block * mkblock(ParseAPI::Function * f, ParseAPI::CodeRegion * r,
-            Address addr);
-    ParseAPI::Edge * mkedge(ParseAPI::Block * src, ParseAPI::Block * trg, 
+    Dyninst::ParseAPI::Function * mkfunc(Dyninst::Address addr, FuncSource src, std::string name,
+            Dyninst::ParseAPI::CodeObject * obj, Dyninst::ParseAPI::CodeRegion * reg,
+            Dyninst::InstructionSource * isrc);
+    Dyninst::ParseAPI::Block * mkblock(Dyninst::ParseAPI::Function * f, Dyninst::ParseAPI::CodeRegion * r,
+            Dyninst::Address addr);
+    Dyninst::ParseAPI::Edge * mkedge(Dyninst::ParseAPI::Block * src, Dyninst::ParseAPI::Block * trg,
             EdgeTypeEnum type);
 
-    ParseAPI::Block * mksink(ParseAPI::CodeObject *obj, ParseAPI::CodeRegion*r);
+    Dyninst::ParseAPI::Block * mksink(Dyninst::ParseAPI::CodeObject *obj, Dyninst::ParseAPI::CodeRegion*r);
 
     // leaving default atm    
-    //void free_func(ParseAPI::Function * f);
-    //void free_block(ParseAPI::Block * b);
-    //void free_edge(ParseAPI::Edge * e);
+    //void free_func(Dyninst::ParseAPI::Function * f);
+    //void free_block(Dyninst::ParseAPI::Block * b);
+    //void free_edge(Dyninst::ParseAPI::Edge * e);
 
     //void free_all();
     void dump_stats();
@@ -86,14 +87,14 @@ class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
     int _sink_block_allocs;
     //int _sink_edge_allocs; FIXME can't determine
 
-    void _record_func_alloc(ParseAPI::FuncSource fs)
+    void _record_func_alloc(Dyninst::ParseAPI::FuncSource fs)
     {
-        assert(fs < ParseAPI::_funcsource_end_);
+        assert(fs < Dyninst::ParseAPI::_funcsource_end_);
         ++_func_allocs[fs];
     }
-    void _record_edge_alloc(ParseAPI::EdgeTypeEnum et,bool /* sink */)
+    void _record_edge_alloc(Dyninst::ParseAPI::EdgeTypeEnum et,bool /* sink */)
     {
-        assert(et < ParseAPI::_edgetype_end_);
+        assert(et < Dyninst::ParseAPI::_edgetype_end_);
         ++_edge_allocs[et];
 
         //if(sink)
@@ -108,34 +109,34 @@ class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
 };
 
 class image;
-class DynParseCallback : public ParseAPI::ParseCallback {
+class DynParseCallback : public Dyninst::ParseAPI::ParseCallback {
  public:
-  DynParseCallback(image * img) : ParseAPI::ParseCallback(), _img(img) { }
+  DynParseCallback(image * img) : Dyninst::ParseAPI::ParseCallback(), _img(img) { }
   ~DynParseCallback() { }
 
   protected:
   // defensive and exploratory mode callbacks
-  virtual void abruptEnd_cf(Address,ParseAPI::Block *,default_details*);
-  virtual void newfunction_retstatus(ParseAPI::Function*);
-  virtual void patch_nop_jump(Address);
-  virtual bool hasWeirdInsns(const ParseAPI::Function*) const;
-  virtual void foundWeirdInsns(ParseAPI::Function*);
+  virtual void abruptEnd_cf(Dyninst::Address,Dyninst::ParseAPI::Block *,default_details*);
+  virtual void newfunction_retstatus(Dyninst::ParseAPI::Function*);
+  virtual void patch_nop_jump(Dyninst::Address);
+  virtual bool hasWeirdInsns(const Dyninst::ParseAPI::Function*) const;
+  virtual void foundWeirdInsns(Dyninst::ParseAPI::Function*);
 
   // other callbacks
-  virtual void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
-  virtual void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
-  virtual bool updateCodeBytes(Address target); // updates if needed
-  virtual void split_block_cb(ParseAPI::Block *, ParseAPI::Block *); // needed for defensive mode
+  virtual void interproc_cf(Dyninst::ParseAPI::Function*,Dyninst::ParseAPI::Block*,Dyninst::Address,interproc_details*);
+  virtual void overlapping_blocks(Dyninst::ParseAPI::Block*,Dyninst::ParseAPI::Block*);
+  virtual bool updateCodeBytes(Dyninst::Address target); // updates if needed
+  virtual void split_block_cb(Dyninst::ParseAPI::Block *, Dyninst::ParseAPI::Block *); // needed for defensive mode
 
-  virtual void destroy_cb(ParseAPI::Block *);
-  virtual void destroy_cb(ParseAPI::Edge *);
-  virtual void destroy_cb(ParseAPI::Function *);
+  virtual void destroy_cb(Dyninst::ParseAPI::Block *);
+  virtual void destroy_cb(Dyninst::ParseAPI::Edge *);
+  virtual void destroy_cb(Dyninst::ParseAPI::Function *);
 
-  virtual void remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);
-  virtual void remove_block_cb(ParseAPI::Function *, ParseAPI::Block *);
+  virtual void remove_edge_cb(Dyninst::ParseAPI::Block *, Dyninst::ParseAPI::Edge *, edge_type_t);
+  virtual void remove_block_cb(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *);
 
 #if defined(arch_power) || defined(arch_aarch64)
-  void instruction_cb(ParseAPI::Function*, ParseAPI::Block *, Address, insn_details*);
+  void instruction_cb(Dyninst::ParseAPI::Function*, Dyninst::ParseAPI::Block *, Dyninst::Address, insn_details*);
 #endif
  private:
     image * _img;

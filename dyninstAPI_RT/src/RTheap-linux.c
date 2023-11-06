@@ -44,6 +44,7 @@
 #include <unistd.h>                   /* sbrk(), read(), mmap */
 #include <sys/mman.h>                 /* mmap() */
 #include "RTheap.h"
+#include "dyntypes.h"
 
 #if 1 //defined(MUTATEE64)
 

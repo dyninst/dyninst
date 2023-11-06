@@ -1,5 +1,7 @@
 #include "dyntypes.h"
 #include "IndirectAnalyzer.h"
+
+#include "Register.h"
 #include "BoundFactCalculator.h"
 #include "JumpTableFormatPred.h"
 #include "JumpTableIndexPred.h"
@@ -13,7 +15,6 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-#include "Register.h"
 #include "SymEval.h"
 
 using namespace Dyninst::ParseAPI;

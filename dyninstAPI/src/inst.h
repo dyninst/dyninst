@@ -38,7 +38,7 @@
 #include <vector>
 #include <unordered_map>
 #include "opcode.h" // enum opCode now defined here.
-#include "common/src/Types.h"
+#include "dyn_register.h"
 #include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
 
@@ -157,7 +157,7 @@ unsigned getPrimitiveCost(const std::string &name);
  * Generate an instruction.
  * Previously this was handled by the polymorphic "emit" function, which
  * took a variety of argument types and variously returned either an
- * Address or a Register or nothing of value.  The following family of
+ * Dyninst::Address or a Dyninst::Register or nothing of value.  The following family of
  * functions replace "emit" with more strongly typed versions.
  */
 
@@ -169,47 +169,47 @@ typedef enum gnenum {
 
 // The return value is a magic "hand this in when we update" black box;
 // emitA handles emission of things like ifs that need to be updated later.
-codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dst, 
+codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register src2, long dst,
                      codeGen &gen, RegControl rc, bool noCost);
 
-// for operations requiring a Register to be returned
+// for operations requiring a Dyninst::Register to be returned
 // (e.g., getRetValOp, getRetAddrOp, getParamOp, getSysRetValOp, getSysParamOp)
-Register emitR(opCode op, Register src1, Register src2, Register dst, 
+Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen, bool noCost, 
                const instPoint *location, bool for_multithreaded);
 
 // for general arithmetic and logic operations which return nothing
-void     emitV(opCode op, Register src1, Register src2, Register dst, 
+void     emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen, bool noCost, 
                registerSpace *rs = NULL, int size = 4,
                const instPoint * location = NULL, AddressSpace * proc = NULL, bool s = true);
 
-// for loadOp and loadConstOp (reading from an Address)
-void     emitVload(opCode op, Address src1, Register src2, Register dst, 
+// for loadOp and loadConstOp (reading from an Dyninst::Address)
+void     emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
                    codeGen &gen, bool noCost, 
                    registerSpace *rs = NULL, int size = 4, 
                    const instPoint * location = NULL, AddressSpace * proc = NULL);
 
-// for storeOp (writing to an Address)
-void     emitVstore(opCode op, Register src1, Register src2, Address dst, 
+// for storeOp (writing to an Dyninst::Address)
+void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Address dst,
                     codeGen &gen, bool noCost, 
                     registerSpace *rs = NULL, int size = 4, 
                     const instPoint * location = NULL, AddressSpace * proc = NULL);
 
-// for loadOp and loadConstOp (reading from an Address)
-void     emitVload(opCode op, const image_variable* src1, Register src2, Register dst, 
+// for loadOp and loadConstOp (reading from an Dyninst::Address)
+void     emitVload(opCode op, const image_variable* src1, Dyninst::Register src2, Dyninst::Register dst,
                    codeGen &gen, bool noCost, 
                    registerSpace *rs = NULL, int size = 4, 
                    const instPoint * location = NULL, AddressSpace * proc = NULL);
 
-// for storeOp (writing to an Address)
-void     emitVstore(opCode op, Register src1, Register src2, const image_variable* dst, 
+// for storeOp (writing to an Dyninst::Address)
+void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, const image_variable* dst,
                     codeGen &gen, bool noCost, 
                     registerSpace *rs = NULL, int size = 4, 
                     const instPoint * location = NULL, AddressSpace * proc = NULL);
 
 // and the retyped original emitImm companion
-void     emitImm(opCode op, Register src, RegValue src2imm, Register dst, 
+void     emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst,
                  codeGen &gen, bool noCost,
                  registerSpace *rs = NULL, bool s = true);
 
@@ -222,21 +222,21 @@ typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
 
 void emitJmpMC(int condition, int offset, codeGen &gen);
 
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift, codeGen &gen, bool noCost);
+void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen, bool noCost);
 
-void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool noCost);
+void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen, bool noCost);
 
 // VG(11/06/01): moved here and added location
-Register emitFuncCall(opCode op, codeGen &gen,
+Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
                       std::vector<AstNodePtr> &operands,
 					  bool noCost, 
                       func_instance *func);
 
 // Obsolete version that uses an address. DON'T USE THIS or expect it to survive.
-Register emitFuncCall(opCode op, codeGen &gen,
+Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
                       std::vector<AstNodePtr> &operands, 
 		      		  bool noCost, 
-                      Address callee_addr_);
+                      Dyninst::Address callee_addr_);
 
 int getInsnCost(opCode t);
 
@@ -244,7 +244,7 @@ int getInsnCost(opCode t);
  * get the requested parameter into a register.
  *
  */
-Register getParameter(Register dest, int param);
+Dyninst::Register getParameter(Dyninst::Register dest, int param);
 
 extern std::string getProcessStatus(const AddressSpace *p);
 
@@ -252,23 +252,23 @@ extern std::string getProcessStatus(const AddressSpace *p);
 // expects the symbol name advanced past the underscore
 extern unsigned findTags(const std::string funcName);
 
-extern Address getMaxBranch();
+extern Dyninst::Address getMaxBranch();
 
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
 extern std::map<std::string, unsigned> primitiveCosts; 
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f);
+bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
 
 /**
  * A set of optimized emiters for common idioms.  Return 
  * false if the platform can't perform any optimizations.
  **/
 //Store constant in memory at address
-bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost);
+bool emitStoreConst(Dyninst::Address addr, int imm, codeGen &gen, bool noCost);
 //Add constant to memory at address
-bool emitAddSignedImm(Address addr, long int imm, codeGen &gen, bool noCost);
+bool emitAddSignedImm(Dyninst::Address addr, long int imm, codeGen &gen, bool noCost);
 //Subtract constant from memory at address
-bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost);
+bool emitSubSignedImm(Dyninst::Address addr, long int imm, codeGen &gen, bool noCost);
 
 #endif

@@ -38,6 +38,7 @@
 #include "PatchCommon.h"
 #include "Snippet.h"
 #include "util.h"
+#include "dyntypes.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -63,9 +64,9 @@ ExitSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {}
 
 struct InsnLoc_t {
    PatchBlock *block;
-   Address addr;
+   Dyninst::Address addr;
    InstructionAPI::Instruction insn;
-InsnLoc_t(PatchBlock *b, Address a, InstructionAPI::Instruction i) :
+InsnLoc_t(PatchBlock *b, Dyninst::Address a, InstructionAPI::Instruction i) :
    block(b), addr(a), insn(i) {}
 };
       
@@ -85,16 +86,16 @@ struct Location {
    static Location Instruction(InsnLoc_t l) { 
       return Location(NULL, l.block, l.addr, l.insn, NULL, true, Instruction_); 
    }
-   static Location Instruction(PatchBlock *b, Address a) { 
+   static Location Instruction(PatchBlock *b, Dyninst::Address a) {
       return Location(NULL, b, a, InstructionAPI::Instruction(), NULL, false, Instruction_);
    }
    static Location InstructionInstance(PatchFunction *f, InsnLoc_t l, bool trusted = false) { 
       return Location(f, l.block, l.addr, l.insn, NULL, trusted, InstructionInstance_); 
    }
-   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a) { 
+   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Dyninst::Address a) {
       return Location(f, b, a, InstructionAPI::Instruction(), NULL, false, InstructionInstance_);
    }
-   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a,
+   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Dyninst::Address a,
                                        InstructionAPI::Instruction i, bool trusted = false) {
       return Location(f, b, a, i, NULL, trusted, InstructionInstance_); 
    }
@@ -141,14 +142,14 @@ struct Location {
    
    PatchFunction *func;
    PatchBlock *block;
-   Address addr;
+   Dyninst::Address addr;
    InstructionAPI::Instruction insn;
    PatchEdge *edge;
    bool trusted;
    type_t type;
 
 private:
-Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction i, PatchEdge *e, bool u, type_t t) :
+Location(PatchFunction *f, PatchBlock *b, Dyninst::Address a, InstructionAPI::Instruction i, PatchEdge *e, bool u, type_t t) :
    func(f), block(b), addr(a), insn(i), edge(e), trusted(u), type(t) {}
 
 };
@@ -198,7 +199,7 @@ class PATCHAPI_EXPORT Point {
     };
 
     template <class Scope>
-    static Point* create(Address addr,
+    static Point* create(Dyninst::Address addr,
                          Point::Type type,
                          PatchMgrPtr mgr,
                          Scope* scope) {
@@ -210,7 +211,7 @@ class PATCHAPI_EXPORT Point {
     // Block instrumentation /w/ optional function context
     Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, PatchFunction * = NULL);
     // Insn instrumentation /w/ optional function context
-    Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, Address, InstructionAPI::Instruction, PatchFunction * = NULL);
+    Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, Dyninst::Address, InstructionAPI::Instruction, PatchFunction * = NULL);
     // Function entry or during
     Point(Point::Type t, PatchMgrPtr mgr, PatchFunction *);
     // Function call or exit site
@@ -233,7 +234,7 @@ class PATCHAPI_EXPORT Point {
 
     // Getters
     size_t size();
-    Address addr() const { return addr_; }
+    Dyninst::Address addr() const { return addr_; }
     Type type() const {return type_;}
     bool empty() const { return instanceList_.empty();}
 
@@ -267,7 +268,7 @@ class PATCHAPI_EXPORT Point {
 
 
     InstanceList instanceList_;
-    Address addr_{};
+    Dyninst::Address addr_{};
     Type type_{};
     PatchMgrPtr mgr_;
     PatchBlock* the_block_{};
@@ -372,7 +373,7 @@ class PATCHAPI_EXPORT PointMaker {
     virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *);
     virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *, PatchBlock *);
     virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, PatchFunction *context);
-    virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address, InstructionAPI::Instruction,
+    virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Dyninst::Address, InstructionAPI::Instruction,
                                PatchFunction *context);
     virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *, PatchFunction *context);
 
@@ -381,7 +382,7 @@ class PATCHAPI_EXPORT PointMaker {
 };
 
 // Collection classes
-typedef std::map<Address, Point *> InsnPoints;
+typedef std::map<Dyninst::Address, Point *> InsnPoints;
 
 
 struct BlockPoints {

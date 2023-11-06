@@ -36,7 +36,6 @@
 #include "InstructionCategories.h"
 #include "InstructionDecoder.h"
 #include "Expression.h"
-#include "Register.h"
 #include "Result.h"
 #include "Dereference.h"
 #include "Immediate.h"

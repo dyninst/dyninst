@@ -36,6 +36,7 @@
 
 #include <vector>
 #include <set>
+#include "dyntypes.h"
 
 class AddressSpace;
 class int_variable;
@@ -43,15 +44,15 @@ class int_variable;
 class trampTrapMappings {
  public:
    typedef struct {
-      Address from_addr;
-      Address to_addr;
+      Dyninst::Address from_addr;
+      Dyninst::Address to_addr;
       bool written;
       bool mutatee_side;
       unsigned cur_index;
    } tramp_mapping_t;
  private:
 
-   dyn_hash_map<Address, tramp_mapping_t> mapping;
+   dyn_hash_map<Dyninst::Address, tramp_mapping_t> mapping;
    std::set<tramp_mapping_t *> updated_mappings;
 
    static void arrange_mapping(tramp_mapping_t &m, bool should_sort,
@@ -74,8 +75,8 @@ class trampTrapMappings {
    unsigned long table_used;
    unsigned long table_allocated;
    unsigned long table_mutatee_size;
-   Address current_table;
-   Address table_header;
+   Dyninst::Address current_table;
+   Dyninst::Address table_header;
    bool blockFlushes;
    
  public:
@@ -83,9 +84,9 @@ class trampTrapMappings {
    void copyTrapMappings(trampTrapMappings *parent);
    void clearTrapMappings();
 
-   void addTrapMapping(Address from, Address to, bool write_to_mutatee = false);
-   Address getTrapMapping(Address from);
-   bool definesTrapMapping(Address from);
+   void addTrapMapping(Dyninst::Address from, Dyninst::Address to, bool write_to_mutatee = false);
+   Dyninst::Address getTrapMapping(Dyninst::Address from);
+   bool definesTrapMapping(Dyninst::Address from);
    bool needsUpdating();
    void flush();
    void allocateTable();

@@ -40,7 +40,7 @@ image_parRegion::image_parRegion(parse_func * imageFunc)
 {
 }
 
-image_parRegion::image_parRegion(Address firstOffset, parse_func * imageFunc)
+image_parRegion::image_parRegion(Dyninst::Address firstOffset, parse_func * imageFunc)
   : regionIf_(imageFunc), parentIf_(NULL),
     firstInsnOffset_(firstOffset), lastInsnOffset_(0),
     regionType(OMP_NONE)
@@ -146,12 +146,12 @@ void image_parRegion::setClause(const char *key, int value)
   clauses[key] = value;
 }
 
-void image_parRegion::setClauseLoc(const char *key, Address value)
+void image_parRegion::setClauseLoc(const char *key, Dyninst::Address value)
 {
   clauses[key] = value;
 }
 
-int_parRegion::int_parRegion(image_parRegion *ip, Address baseAddr, func_instance * iFunc)
+int_parRegion::int_parRegion(image_parRegion *ip, Dyninst::Address baseAddr, func_instance * iFunc)
 {
   ip_ = ip;
   addr_ = baseAddr + ip->get_address();
@@ -177,12 +177,12 @@ int image_parRegion::getClause(const char * key)
 }
 
 
-Address int_parRegion::getClauseLoc(const char * key)
+Dyninst::Address int_parRegion::getClauseLoc(const char * key)
 {
   return  ip_->getClauseLoc(key);   
 }
 
-Address image_parRegion::getClauseLoc(const char * key)
+Dyninst::Address image_parRegion::getClauseLoc(const char * key)
 {
   if (clauses.find(key) != clauses.end())
     return clauses[key];
@@ -195,9 +195,9 @@ int int_parRegion::replaceOMPParameter(const char * key, int value)
 {
   //  parReg->replaceOMPParameter(key,value);
   
-  Address writeAddy = getClauseLoc(key);
+  Dyninst::Address writeAddy = getClauseLoc(key);
 
-  Address writeValue = 0x39000000;
+  Dyninst::Address writeValue = 0x39000000;
 
   if (value > 0 )
     writeValue += (unsigned) value;

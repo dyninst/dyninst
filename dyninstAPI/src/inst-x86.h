@@ -159,9 +159,9 @@ class codeGen;
 #define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -1*(x*8), REGNUM_RAX, insn)
 
 void emitAddressingMode(unsigned base, unsigned index,
-                        unsigned int scale, RegValue disp,
+                        unsigned int scale, Dyninst::RegValue disp,
                         int reg_opcode, codeGen &gen);
-void emitAddressingMode(unsigned base, RegValue disp,
+void emitAddressingMode(unsigned base, Dyninst::RegValue disp,
                         unsigned reg_opcode, codeGen &gen);
 
 
@@ -192,7 +192,7 @@ void emitMovImmToReg(RealRegister dest, int imm, codeGen &gen);
 void emitMovImmToRM(RealRegister base, int disp, int imm, codeGen &gen);
 void emitMovRegToRM(RealRegister base, int disp, RealRegister src, codeGen &gen);
 void emitMovRMToReg(RealRegister dest, RealRegister base, int disp, codeGen &gen);
-void emitMovImmToMem(Address maddr, int imm, codeGen &gen);
+void emitMovImmToMem(Dyninst::Address maddr, int imm, codeGen &gen);
 void emitPushImm(unsigned int imm, codeGen &gen);
 void emitSaveO(codeGen &gen);
 void emitRestoreO(codeGen &gen);
@@ -203,10 +203,10 @@ void emitSubRegReg(RealRegister dest, RealRegister src, codeGen &gen);
 void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen);
 
 void restoreGPRtoGPR(RealRegister reg, RealRegister dest, codeGen &gen);
-Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL);
+Dyninst::Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL);
 
 void emitLEA(RealRegister base, RealRegister index, unsigned int scale,
-	     RegValue disp, RealRegister dest, codeGen &gen);
+	     Dyninst::RegValue disp, RealRegister dest, codeGen &gen);
 
 bool emitPush(RealRegister reg, codeGen &gen);
 bool emitPop(RealRegister reg, codeGen &gen);
@@ -217,7 +217,7 @@ void emitJccR8(int condition_code, char jump_offset,
                codeGen &gen);
 void emitJcc(int condition, int offset, codeGen &gen, bool willRegen=true);
 void emitPushImm(unsigned int imm, codeGen &gen);
-void emitAddMemImm32(Address dest, int imm, codeGen &gen);
+void emitAddMemImm32(Dyninst::Address dest, int imm, codeGen &gen);
 void emitCallRel32(unsigned disp32, codeGen &gen);
 
 void emitJmpMC(int condition, int offset, codeGen &gen);

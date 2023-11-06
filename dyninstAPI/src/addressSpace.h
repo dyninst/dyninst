@@ -45,7 +45,7 @@
 #include <utility>
 #include <vector>
 #include <list>
-
+#include "dyntypes.h"
 #include "common/src/IntervalTree.h"
 
 #include "parseAPI/h/CodeObject.h"

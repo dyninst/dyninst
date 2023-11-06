@@ -46,7 +46,6 @@ class image;
 #include <string>
 #include <set>
 #include <vector>
-#include "common/src/Types.h"
 #include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
 

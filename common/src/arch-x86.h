@@ -34,7 +34,7 @@
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
 
-#include "common/src/Types.h"
+#include "dyntypes.h"
 #include <assert.h>
 #include <stdio.h>
 #include <set>
@@ -43,6 +43,7 @@
 #include "entryIDs.h"
 #include "registers/MachRegister.h"
 #include "common/src/ia32_locations.h"
+#include "dyn_register.h"
 
 
 namespace NS_x86 {
@@ -985,8 +986,8 @@ COMMON_EXPORT unsigned
 get_instruction(const unsigned char *instr, unsigned &instType, const unsigned char **op_ptr, bool mode_64);
 
 /* get the target of a jump or call */
-COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsigned size,
-		   Address addr);
+COMMON_EXPORT Dyninst::Address get_target(const unsigned char *instr, unsigned type, unsigned size,
+		   Dyninst::Address addr);
 
 // Size of a jump rel32 instruction
 #define JUMP_REL32_SZ (6)
@@ -1053,15 +1054,15 @@ class instruction {
       setInstruction((const unsigned char *) ptr, 0, mode_64);
   }
 
-  unsigned setInstruction(const unsigned char *p, Address, bool mode_64) {
+  unsigned setInstruction(const unsigned char *p, Dyninst::Address, bool mode_64) {
       ptr_ = p;
       size_ = get_instruction(ptr_, type_, &op_ptr_, mode_64);
       return size_;
   }
 
   // if the instruction is a jump or call, return the target, else return zero
-  Address getTarget(Address addr) const { 
-    return (Address)get_target(ptr_, type_, size_, addr); 
+  Dyninst::Address getTarget(Dyninst::Address addr) const {
+    return (Dyninst::Address)get_target(ptr_, type_, size_, addr);
   }
 
   // return the size of the instruction in bytes
@@ -1086,7 +1087,7 @@ class instruction {
   static unsigned maxInterFunctionJumpSize(unsigned addr_width) { return maxJumpSize(addr_width); }
 
   // And tell us how much space we'll need...
-  COMMON_EXPORT static unsigned jumpSize(Address from, Address to, unsigned addr_width);
+  COMMON_EXPORT static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
   COMMON_EXPORT static unsigned jumpSize(long disp, unsigned addr_width);
   COMMON_EXPORT static unsigned maxJumpSize(unsigned addr_width);
 
@@ -1127,7 +1128,7 @@ class instruction {
   bool isSysCallInsn() const { return op_ptr_[0] == SYSCALL[0] &&
                                    op_ptr_[1] == SYSCALL[1]; }
 
-  static bool isAligned(const Address ) { return true; }
+  static bool isAligned(const Dyninst::Address ) { return true; }
 
     void print()
   {
@@ -1162,15 +1163,15 @@ inline bool is_disp16(long disp) {
 inline bool is_disp32(long disp) {
   return (disp <= INT32_MAX && disp >= INT32_MIN);
 }
-inline bool is_disp32(Address a1, Address a2) {
+inline bool is_disp32(Dyninst::Address a1, Dyninst::Address a2) {
   return is_disp32(a2 - (a1 + JUMP_REL32_SZ));
 }
-inline bool is_addr32(Address addr) {
+inline bool is_addr32(Dyninst::Address addr) {
     return (addr < UINT32_MAX);
 }
 
 COMMON_EXPORT void decode_SIB(unsigned sib, unsigned& scale, 
-        Register& index_reg, Register& base_reg);
+        Dyninst::Register& index_reg, Dyninst::Register& base_reg);
 COMMON_EXPORT const unsigned char* skip_headers(const unsigned char*, 
         ia32_instruction* = NULL);
 
@@ -1178,14 +1179,14 @@ COMMON_EXPORT const unsigned char* skip_headers(const unsigned char*,
 /* Address bounds of new dynamic heap segments.  On x86 we don't try
 to allocate new segments near base tramps, so heap segments can be
 allocated anywhere (the tramp address "x" is ignored). */
-inline Address region_lo(const Address /*x*/) { return 0x00000000; }
-inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
+inline Dyninst::Address region_lo(const Dyninst::Address /*x*/) { return 0x00000000; }
+inline Dyninst::Address region_hi(const Dyninst::Address /*x*/) { return 0xf0000000; }
 
 #if defined(arch_x86_64)
 // range functions for AMD64
 
-inline Address region_lo_64(const Address x) { return x & 0xffffffff80000000; }
-inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
+inline Dyninst::Address region_lo_64(const Dyninst::Address x) { return x & 0xffffffff80000000; }
+inline Dyninst::Address region_hi_64(const Dyninst::Address x) { return x | 0x000000007fffffff; }
 
 #endif
 

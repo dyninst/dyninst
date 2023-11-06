@@ -1091,7 +1091,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                                 if (got != NULL) {
                                     unsigned char *data =
                                             (unsigned char *) got->getPtrToRawData();
-                                    glink_addr = read_memory_as<unsigned int>
+                                    glink_addr = Dyninst::read_memory_as<unsigned int>
                                             (data + (g_o_t - got->getMemOffset() + 4));
                                     break;
                                 }
@@ -1102,7 +1102,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     // Otherwise, first entry in .plt section holds the glink address
                     if (glink_addr == 0) {
                         unsigned char *data = (unsigned char *) plt->getPtrToRawData();
-                        glink_addr = read_memory_as<uint32_t>(data);
+                        glink_addr = Dyninst::read_memory_as<uint32_t>(data);
                     }
 
                     // Search for region that contains glink address
@@ -2632,10 +2632,10 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
     switch (type & 0x0f) {
         case DW_EH_PE_absptr:
             if (mi.word_size == 4) {
-                *value = (unsigned long) endian_32bit(read_memory_as<uint32_t>(addr), mi.big_input);
+                *value = (unsigned long) endian_32bit(Dyninst::read_memory_as<uint32_t>(addr), mi.big_input);
                 size = 4;
             } else if (mi.word_size == 8) {
-                *value = (unsigned long) endian_64bit(read_memory_as<uint64_t>(addr), mi.big_input);
+                *value = (unsigned long) endian_64bit(Dyninst::read_memory_as<uint64_t>(addr), mi.big_input);
                 size = 8;
             }
             break;
@@ -2646,27 +2646,27 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             *value = read_sleb128(addr, &size);
             break;
         case DW_EH_PE_udata2:
-            *value = endian_16bit(read_memory_as<uint16_t>(addr), mi.big_input);
+            *value = endian_16bit(Dyninst::read_memory_as<uint16_t>(addr), mi.big_input);
             size = 2;
             break;
         case DW_EH_PE_sdata2:
-            *value = endian_16bit(read_memory_as<uint16_t>(addr), mi.big_input);
+            *value = endian_16bit(Dyninst::read_memory_as<uint16_t>(addr), mi.big_input);
             size = 2;
             break;
         case DW_EH_PE_udata4:
-            *value = endian_32bit(read_memory_as<uint32_t>(addr), mi.big_input);
+            *value = endian_32bit(Dyninst::read_memory_as<uint32_t>(addr), mi.big_input);
             size = 4;
             break;
         case DW_EH_PE_sdata4:
-            *value = endian_32bit(read_memory_as<uint32_t>(addr), mi.big_input);
+            *value = endian_32bit(Dyninst::read_memory_as<uint32_t>(addr), mi.big_input);
             size = 4;
             break;
         case DW_EH_PE_udata8:
-            *value = endian_64bit(read_memory_as<uint64_t>(addr), mi.big_input);
+            *value = endian_64bit(Dyninst::read_memory_as<uint64_t>(addr), mi.big_input);
             size = 8;
             break;
         case DW_EH_PE_sdata8:
-            *value = endian_64bit(read_memory_as<uint64_t>(addr), mi.big_input);
+            *value = endian_64bit(Dyninst::read_memory_as<uint64_t>(addr), mi.big_input);
             size = 8;
             break;
         default:
@@ -2851,7 +2851,7 @@ int read_except_table_gcc3(
 
         // Calculate size in bytes of PC Begin
         const unsigned char* pc_begin_start = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
-            (read_memory_as<uint32_t>(fde_bytes) == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
+            (Dyninst::read_memory_as<uint32_t>(fde_bytes) == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
         unsigned long pc_begin_val;
         mi.pc = fde_addr + (unsigned long) (pc_begin_start - fde_bytes);
         int pc_begin_size = read_val_of_type(range_encoding, &pc_begin_val, pc_begin_start, mi);
@@ -2878,7 +2878,7 @@ int read_except_table_gcc3(
 
         // Get the augmentation data for the FDE
         cur_augdata = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
-            (read_memory_as<uint32_t>(fde_bytes) == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN) +
+            (Dyninst::read_memory_as<uint32_t>(fde_bytes) == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN) +
             pc_begin_size + pc_range_size + aug_length_size; 
 
         for (j=0; j<augmentor_len; j++)

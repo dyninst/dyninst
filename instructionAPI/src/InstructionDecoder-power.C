@@ -266,7 +266,7 @@ namespace Dyninst
       isRAWritten = false;
       isFPInsn = false;
       bcIsConditional = false;
-      insn = read_memory_as<uint32_t>(b.start);
+      insn = Dyninst::read_memory_as<uint32_t>(b.start);
 #if defined(DEBUG_RAW_INSN)        
         cout.width(0);
         cout << "0x";

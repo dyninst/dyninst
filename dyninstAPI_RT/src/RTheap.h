@@ -34,6 +34,7 @@
 #define _RT_HEAP_H
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" /* RT_Boolean, Address */
+#include "dyntypes.h"
 
 #if defined(os_linux) || defined(os_freebsd)
 

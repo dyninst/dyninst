@@ -30,7 +30,6 @@
 
 
 #include "IA_x86.h"
-#include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
@@ -43,6 +42,7 @@
 #include "instructionAPI/h/Visitor.h"
 
 #include <deque>
+#include "Register.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;

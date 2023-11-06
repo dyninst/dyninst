@@ -34,7 +34,7 @@
 #include <list>
 #include <string>
 #include <utility>
-#include "common/src/Types.h" // Address
+#include "dyntypes.h"
 #include "dyninstAPI/src/codegen.h" // codeGen
 #include "dyninstAPI/src/function.h"
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr

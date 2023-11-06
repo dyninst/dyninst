@@ -6,13 +6,14 @@
 #include <iterator>
 #include <utility>
 #include <vector>
+#include "dyntypes.h"
 
 namespace st = Dyninst::SymtabAPI;
 
 struct indexed_symbols {
   typedef Dyninst::dyn_c_hash_map<st::Symbol *, Dyninst::Offset> master_t;
   typedef std::vector<st::Symbol *> symvec_t;
-  typedef Dyninst::dyn_c_hash_map<Offset, symvec_t> by_offset_t;
+  typedef Dyninst::dyn_c_hash_map<Dyninst::Offset, symvec_t> by_offset_t;
   typedef Dyninst::dyn_c_hash_map<std::string, symvec_t> by_name_t;
 
   master_t master;
@@ -24,7 +25,7 @@ struct indexed_symbols {
   // Only inserts if not present. Returns whether it inserted.
   // Operations on the indexed_symbols compound table.
   bool insert(st::Symbol *s) {
-    Offset o = s->getOffset();
+    Dyninst::Offset o = s->getOffset();
     master_t::accessor a;
     if (master.insert(a, std::make_pair(s, o))) {
       {

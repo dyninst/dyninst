@@ -39,7 +39,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "common/src/Types.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>

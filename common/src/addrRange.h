@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include "common/src/Types.h"
 
 /** template class for addrRangeTree. The implementation is based on red black
  * tree implementation for efficiency concerns and for getting sorted
@@ -54,7 +53,7 @@ typedef enum { TREE_RED, TREE_BLACK } color_t;
 
 class addrRange {
  public:
-   virtual Address get_address() const = 0;
+   virtual Dyninst::Address get_address() const = 0;
    virtual unsigned long get_size() const = 0;
    virtual std::string get_name() const {
       return std::string("UNNAMED");
@@ -71,7 +70,7 @@ class addrRangeTree {
 
    /** tree implementation structure. Used to implement the RB tree */
    typedef struct entry {
-      Address key;
+      Dyninst::Address key;
       T *value;
       color_t color;	/* color of the node */
       struct entry* left; /* left child */
@@ -98,7 +97,7 @@ class addrRangeTree {
        * @param d data element
        * @param e nill entry 
        */
-      entry(Address key_, T *value_, entry* e) 
+      entry(Dyninst::Address key_, T *value_, entry* e)
          : key(key_), value(value_), color(TREE_RED), left(e),
            right(e), parent(NULL) 
       {
@@ -241,7 +240,7 @@ class addrRangeTree {
 
    // insertion to a binary search tree. It returns the new element pointer
    // that is inserted. If element is already there it returns NULL
-   entry* treeInsert(Address key, T *value)
+   entry* treeInsert(Dyninst::Address key, T *value)
    {
       entry* y = NULL;
       entry* x = setData;
@@ -292,7 +291,7 @@ class addrRangeTree {
 
    // method that returns the entry pointer for the element that is searched
    //for. If the entry is not found then it retuns NULL
-   entry* find_internal(Address element) const
+   entry* find_internal(Dyninst::Address element) const
    {
       entry* x = setData;
       while(x != nil){
@@ -355,7 +354,7 @@ class addrRangeTree {
    }
 
    // Similar to precessor, but returns an entry
-   bool precessor_internal(Address key, entry * &value) const
+   bool precessor_internal(Dyninst::Address key, entry * &value) const
    {
       entry *x = setData;
       entry *last = nil;
@@ -389,7 +388,7 @@ class addrRangeTree {
 
 
    // Similar to successor, but returns an entry
-   bool successor_internal(Address key, entry * &value) const
+   bool successor_internal(Dyninst::Address key, entry * &value) const
    {
       entry *x = setData;
       entry *last = nil;
@@ -504,7 +503,7 @@ class addrRangeTree {
       /** removes the element in the tree 
        * @param 1 element that will be removed  
        */
-      void remove(Address key)
+      void remove(Dyninst::Address key)
       {
          entry* z = find_internal(key);
          if(!z)
@@ -536,7 +535,7 @@ class addrRangeTree {
       /** returns true if the argument is member of the addrRangeTree
        * @param e the element that will be searched for
        */
-      virtual bool find(Address key, T *& value) const
+      virtual bool find(Dyninst::Address key, T *& value) const
       {
          value = NULL;
          if (!precessor(key, value))
@@ -559,7 +558,7 @@ class addrRangeTree {
       /** Fills in the vector with all address ranges that overlap
        * with the address range defined by (start, end]
        */
-      virtual bool find(Address start, Address end, 
+      virtual bool find(Dyninst::Address start, Dyninst::Address end,
                         std::vector<T *> &ranges) const
       {
          entry *cur = nil;
@@ -585,7 +584,7 @@ class addrRangeTree {
       /** Returns the largest value less than or equal to the
        * key given
        */
-      virtual bool precessor(Address key, T *& value) const
+      virtual bool precessor(Dyninst::Address key, T *& value) const
       {
          entry *val;
          bool result = precessor_internal(key, val);
@@ -599,7 +598,7 @@ class addrRangeTree {
       /** Returns the smallest value greater than or equal to the
        * key given
        */
-      virtual bool successor(Address key, T *& value) const
+      virtual bool successor(Dyninst::Address key, T *& value) const
       {
          entry *val;
          bool result = successor_internal(key, val);

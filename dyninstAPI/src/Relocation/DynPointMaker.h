@@ -31,7 +31,6 @@
 #define PATCHAPI_DYNPOINTMAKER_H_
 
 #include "Point.h"
-#include "common/src/Types.h"
 #include "instructionAPI/h/Instruction.h"
 
 
@@ -52,8 +51,8 @@ class DynPointMaker : public Dyninst::PatchAPI::PointMaker {
     virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *);
     virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *, PatchBlock *);
     virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, PatchFunction *context);
-    virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address,
-                               InstructionAPI::Instruction, PatchFunction *context);
+    virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Dyninst::Address,
+                               Dyninst::InstructionAPI::Instruction, PatchFunction *context);
     virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *, PatchFunction *f);
 
 };

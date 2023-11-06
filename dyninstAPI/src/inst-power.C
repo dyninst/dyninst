@@ -411,11 +411,11 @@ unsigned registerSpace::SPR(Register x) {
         break;
     case cr:
         fprintf(stderr, "Error: condition register has no encoding!\n");
-        return REG_NULL;
+        return Null_Register;
         break;
     default:
         assert(0);
-        return REG_NULL;
+        return Null_Register;
         break;
     }
 }
@@ -1310,7 +1310,7 @@ Register EmitterPOWER::emitCallReplacement(opCode ocode,
     }
 
     // What to return here?
-    return REG_NULL;
+    return Null_Register;
 }
 
 
@@ -1364,7 +1364,7 @@ Register EmitterPOWER::emitCallReplacement(opCode ocode,
 //     }
 
 //     // What to return here?
-//     return REG_NULL;
+//     return Null_Register;
 // }
 // There are four "axes" going on here:
 // 32 bit vs 64 bit  
@@ -1494,17 +1494,17 @@ Register EmitterPOWER::emitCall(opCode ocode,
 	    insnCodeGen::generateImm(gen, CALop, dummyReg, 0, 0);
 	}
 */
-	//Register src = REG_NULL;
+	//Register src = Null_Register;
         // Try to target the code generation
         
-        Register reg = REG_NULL;
+        Register reg = Null_Register;
         // Try to allocate the correct parameter register
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r3 + u, true))
             reg = registerSpace::r3 + u;
              //fprintf(stderr, "info: %s:%d: Register: %d \n", __FILE__, __LINE__, reg); 
 	Address unused = ADDR_NULL;
 	if (!operands[u]->generateCode_phase2( gen, false, unused, reg)) assert(0);
-	assert(reg != REG_NULL);
+	assert(reg != Null_Register);
 	srcs.push_back(reg);
 	//bperr( "Generated operand %d, base %d\n", u, base);
     }
@@ -1589,7 +1589,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     
     emitCallInstruction(gen, callee, setTOC, toc_anchor);
     // ALL instrumentation
-    Register retReg = REG_NULL;
+    Register retReg = Null_Register;
     if (inInstrumentation) {
         // get a register to keep the return value in.
         retReg = gen.rs()->allocateRegister(gen, noCost);        
@@ -1703,7 +1703,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
         // 8 are stored on the caller's stack at an offset.
         // 
         // src1 is the argument number 0..X, the first 8 are stored in regs
-        // src2 (if not REG_NULL) holds the value to be written into src1
+        // src2 (if not Null_Register) holds the value to be written into src1
 
         if(src1 < 8) {
             // src1 is 0..8 - it's a parameter number, not a register
@@ -1732,7 +1732,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                             PARAM_OFFSET(addrWidth);
             }
 
-            if (src2 != REG_NULL) saveRegisterAtOffset(gen, src2, stkOffset);
+            if (src2 != Null_Register) saveRegisterAtOffset(gen, src2, stkOffset);
             restoreRegisterAtOffset(gen, dest, stkOffset);
             return(dest);
       }
@@ -1757,7 +1757,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
       int offset = TRAMP_GPR_OFFSET(addrWidth);
       
       // its on the stack so load it.
-      if (src2 != REG_NULL) saveRegister(gen, src2, reg, offset);
+      if (src2 != Null_Register) saveRegister(gen, src2, reg, offset);
       restoreRegister(gen, reg, dest, offset);
       return(dest);
     }
@@ -1773,7 +1773,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
     }
 
     assert(0);
-    return REG_NULL;
+    return Null_Register;
 }
 
 void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &)
@@ -2934,7 +2934,7 @@ bool EmitterPOWER32Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAd
       int stack_size = 0;
       int gpr_off, fpr_off, ctr_off;
       //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx Registers PC %d scratch %d \n", origAddr, relocAddr, scratchPCReg, scratchReg);
-      if ((scratchPCReg == REG_NULL) || (scratchReg == REG_NULL)) {
+      if ((scratchPCReg == Null_Register) || (scratchReg == Null_Register)) {
 		//fprintf(stderr, " Creating new stack frame for 0x%lx to 0x%lx \n", origAddr, relocAddr);
 
 		newStackFrame = true;
@@ -2950,11 +2950,11 @@ bool EmitterPOWER32Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAd
 	      stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, 2);
 
 	      scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-	      assert(scratchPCReg != REG_NULL);
+	      assert(scratchPCReg != Null_Register);
 	      excludeReg.clear();
 	      excludeReg.push_back(scratchPCReg);
 	      scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-	      assert(scratchReg != REG_NULL);
+	      assert(scratchReg != Null_Register);
 	      // relocaAddr has moved since we added instructions to setup a new stack frame
 	      relocAddr = relocAddr + ((stack_size + 1)*(gen.width()));
               //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx stack size %d Registers PC %d scratch %d \n", origAddr, relocAddr, stack_size, scratchPCReg, scratchReg);
@@ -2981,7 +2981,7 @@ bool EmitterPOWERDyn::emitPIC(codeGen &gen, Address origAddr, Address relocAddr)
 
 	Address origRet = origAddr + 4;
 	Register scratch = gen.rs()->getScratchRegister(gen, true);
-	assert(scratch != REG_NULL);
+	assert(scratch != Null_Register);
 	instruction::loadImmIntoReg(gen, scratch, origRet);
 	insnCodeGen::generateMoveToLR(gen, scratch);
 	return true;
@@ -3004,12 +3004,12 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee
 
 bool EmitterPOWER32Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-  if (scratchReg == REG_NULL) return false;
+  if (scratchReg == Null_Register) return false;
 
-  Register scratchLR = REG_NULL;
+  Register scratchLR = Null_Register;
   std::vector<Register> excluded; excluded.push_back(scratchReg);
   scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
-  if (scratchLR == REG_NULL) {
+  if (scratchLR == Null_Register) {
     if (scratchReg == registerSpace::r0) return false;
     // We can use r0 for this, since it's volatile. 
     scratchLR = registerSpace::r0;
@@ -3069,12 +3069,12 @@ bool EmitterPOWER32Stat::emitTOCJump(block_instance *block, codeGen &gen) {
 
 bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-  if (scratchReg == REG_NULL) return false;
+  if (scratchReg == Null_Register) return false;
 
-  Register scratchLR = REG_NULL;
+  Register scratchLR = Null_Register;
   std::vector<Register> excluded; excluded.push_back(scratchReg);
   scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
-  if (scratchLR == REG_NULL) {
+  if (scratchLR == Null_Register) {
     if (scratchReg == registerSpace::r0) return false;
     // We can use r0 for this, since it's volatile. 
     scratchReg = registerSpace::r0;
@@ -3435,7 +3435,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    	addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
 
-   if (scratchReg == REG_NULL) {
+   if (scratchReg == Null_Register) {
    	std::vector<Register> freeReg;
         std::vector<Register> excludeReg;
    	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
@@ -3495,7 +3495,7 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
 
    // load register with address from jump slot
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-   if (scratchReg == REG_NULL) {
+   if (scratchReg == Null_Register) {
    	std::vector<Register> freeReg;
         std::vector<Register> excludeReg;
    	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
@@ -3513,7 +3513,7 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
         std::vector<Register> exclude;
         exclude.push_back(scratchReg);
    	Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
-   	if (scratchReg1 == REG_NULL) {
+   	if (scratchReg1 == Null_Register) {
    		std::vector<Register> freeReg;
         	std::vector<Register> excludeReg;
    		stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);

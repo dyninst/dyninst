@@ -42,7 +42,7 @@
 #include "BPatch_callbacks.h"
 #include <set>
 #include <string>
-
+#include "dyntypes.h"
 #include "dyninstversion.h"
 #include "compiler_diagnostics.h"
 

@@ -37,7 +37,6 @@
 #include "addressSpace.h"
 #include "dynThread.h"
 #include "dynProcess.h"
-#include "common/src/Types.h"
 #include "compiler_annotations.h"
 #include "codegen.h"
 #include "util.h"
@@ -70,7 +69,7 @@ codeGen::codeGen() :
     thr_(NULL),
     rs_(NULL),
     t_(NULL),
-    addr_((Address)-1),
+    addr_((Dyninst::Address)-1),
     ip_(NULL),
     f_(NULL),
     bt_(NULL),
@@ -94,7 +93,7 @@ codeGen::codeGen(unsigned size) :
     thr_(NULL),
     rs_(NULL),
 	t_(NULL),
-    addr_((Address)-1),
+    addr_((Dyninst::Address)-1),
     ip_(NULL),
     f_(NULL),
     bt_(NULL),
@@ -125,7 +124,7 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     thr_(NULL),
     rs_(NULL),
     t_(NULL),
-    addr_((Address)-1),
+    addr_((Dyninst::Address)-1),
     ip_(NULL),
     f_(NULL),
     bt_(NULL),
@@ -440,13 +439,13 @@ long codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
    return ((to_l - from_l) * CODE_GEN_OFFSET_SIZE);
 }
 
-Address codeGen::currAddr() const {
-  if(addr_ == (Address) -1) return (Address) -1;
-  assert(addr_ != (Address) -1);
+Dyninst::Address codeGen::currAddr() const {
+  if(addr_ == (Dyninst::Address) -1) return (Dyninst::Address) -1;
+  assert(addr_ != (Dyninst::Address) -1);
   return currAddr(addr_);
 }
 
-Address codeGen::currAddr(Address base) const { 
+Dyninst::Address codeGen::currAddr(Dyninst::Address base) const {
     return (offset_ * CODE_GEN_OFFSET_SIZE) + base;
 }
 
@@ -529,7 +528,7 @@ void codeGen::addPCRelRegion(pcRelRegion *reg) {
    reg->gen = this;
    reg->cur_offset = used();
 
-   if (startAddr() != (Address) -1 && reg->canPreApply()) {
+   if (startAddr() != (Dyninst::Address) -1 && reg->canPreApply()) {
      //If we already have addressess for everything (usually when relocating a function)
      // then don't bother creating the region, just generate the code.
      reg->apply(startAddr() + reg->cur_offset);
@@ -542,7 +541,7 @@ void codeGen::addPCRelRegion(pcRelRegion *reg) {
    }
 }
 
-void codeGen::applyPCRels(Address base)
+void codeGen::applyPCRels(Dyninst::Address base)
 {
    vector<pcRelRegion *>::iterator i;
 
@@ -633,7 +632,7 @@ void relocPatch::applyPatch()
    if (applied_)
       return;
 
-   Address addr = source_->get_address();
+   Dyninst::Address addr = source_->get_address();
 
 
    switch (ptype_) {
@@ -666,7 +665,7 @@ std::string patchTarget::get_name() const {
 toAddressPatch::~toAddressPatch() {
 }
 
-Address toAddressPatch::get_address() const 
+Dyninst::Address toAddressPatch::get_address() const
 { 
   return addr; 
 }
@@ -675,7 +674,7 @@ unsigned toAddressPatch::get_size() const {
   return 0; 
 }
 
-void toAddressPatch::set_address(Address a) {
+void toAddressPatch::set_address(Dyninst::Address a) {
    addr = a;
 }
 
@@ -744,13 +743,13 @@ const bitArray &codeGen::getRegsDefined()
    return regsDefined_;
 }
 
-void codeGen::markRegDefined(Register r) {
+void codeGen::markRegDefined(Dyninst::Register r) {
    if (!trackRegDefs_)
       return;
    regsDefined_[r] = true;
 }
 
-bool codeGen::isRegDefined(Register r) {
+bool codeGen::isRegDefined(Dyninst::Register r) {
    assert(trackRegDefs_);
    return regsDefined_[r];
 }
@@ -768,8 +767,8 @@ Dyninst::Architecture codeGen::getArch() const {
   return Arch_none;
 }
 
-void codeGen::registerDefensivePad(block_instance *callBlock, Address padStart, unsigned padSize) {
-  // Register a match between a call instruction
+void codeGen::registerDefensivePad(block_instance *callBlock, Dyninst::Address padStart, unsigned padSize) {
+  // Dyninst::Register a match between a call instruction
   // and a padding area post-reloc-call for
   // control flow interception purposes.
   // This is kind of hacky, btw.
@@ -786,7 +785,7 @@ std::string codeGen::format() const {
 
    stringstream ret;
 
-   Address base = (addr_ != (Address)-1) ? addr_ : 0;
+   Dyninst::Address base = (addr_ != (Dyninst::Address)-1) ? addr_ : 0;
    InstructionDecoder deco
       (buffer_,used(),aSpace_->getArch());
    Instruction insn = deco.decode();

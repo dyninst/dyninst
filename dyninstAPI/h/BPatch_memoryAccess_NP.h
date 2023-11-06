@@ -36,6 +36,7 @@
 #include "BPatch_Vector.h"
 #include <stdlib.h>
 #include "BPatch_instruction.h"
+#include "dyntypes.h"
 
 class BPatch_point;
 class internal_instruction;

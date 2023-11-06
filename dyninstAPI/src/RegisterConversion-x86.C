@@ -33,6 +33,7 @@
 
 #include <map>
 #include <boost/assign/list_of.hpp>
+
 #include "Register.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"

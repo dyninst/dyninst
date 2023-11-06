@@ -35,7 +35,6 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include "common/src/Types.h"
 #include "compiler_annotations.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/function.h"
@@ -1861,14 +1860,14 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
    int frame_size = 0;
    for (int u = operands.size() - 1; u >= 0; u--) {
       Address unused = ADDR_NULL;
-      unsigned reg = REG_NULL;
+      unsigned reg = Null_Register;
       if(u >= (int)AMD64_ARG_REGS)
       {
          if (!operands[u]->generateCode_phase2(gen,
                                                noCost,
                                                unused,
                                                reg)) assert(0);
-         assert(reg != REG_NULL);
+         assert(reg != Null_Register);
          emitPushReg64(reg, gen);
          gen.rs()->freeRegister(reg);
          frame_size++;
@@ -1899,7 +1898,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
    emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
    gen.markRegDefined(REGNUM_RAX);
 
-   emitCallInstruction(gen, callee, REG_NULL);
+   emitCallInstruction(gen, callee, Null_Register);
 
    // Now clear whichever registers were "allocated" for a return value
    // Don't do that for stack-pushed operands; they've already been freed.
@@ -1922,7 +1921,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
       gen.rs()->incStack(-alignment);
    }
 
-   if (!inInstrumentation) return REG_NULL;
+   if (!inInstrumentation) return Null_Register;
 
    // We now have a bit of an ordering problem.
    // The RS thinks all registers are free; this is not the case
@@ -2066,14 +2065,14 @@ void EmitterAMD64::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
    registerSlot *rax = (*gen.rs())[REGNUM_RAX];
    assert(rax);
    loc.offset += (rax->saveOffset * 8);
-   emitLEA(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, gen);
+   emitLEA(loc.reg.reg(), Null_Register, 0, loc.offset, dest, gen);
 }
 
 
 void EmitterAMD64::emitGetRetAddr(Register dest, codeGen &gen)
 {
    stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-   emitLEA(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, gen);
+   emitLEA(loc.reg.reg(), Null_Register, 0, loc.offset, dest, gen);
 }
 
 
@@ -2091,7 +2090,7 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPoint::Ty
       registerSlot *regSlot = (*gen.rs())[reg];
       assert(regSlot);
       loc.offset += (regSlot->saveOffset * 8);
-      emitLEA(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, gen);
+      emitLEA(loc.reg.reg(), Null_Register, 0, loc.offset, dest, gen);
       return;
    }
    assert(param_num >= 6);

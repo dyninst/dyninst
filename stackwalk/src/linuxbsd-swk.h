@@ -34,8 +34,6 @@
 #include "common/h/dyntypes.h"
 #include "common/h/SymReader.h"
 
-#include "common/src/Types.h"
-
 #include "stackwalk/h/framestepper.h"
 
 #define MAX_TRAP_LEN 8

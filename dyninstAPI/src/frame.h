@@ -35,7 +35,6 @@
 
 #include <iosfwd>
 #include <vector>
-#include "common/src/Types.h"
 
 #include "instPoint.h"
 #include "baseTramp.h"

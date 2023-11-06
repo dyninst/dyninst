@@ -423,7 +423,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::RPCCallback(EventPtr ev) {
        return ret;
     }
 
-    if( rpcInProg->resultRegister == REG_NULL ) {
+    if( rpcInProg->resultRegister == Null_Register ) {
         // If the resultRegister isn't set, the returnValue shouldn't matter
         rpcInProg->returnValue = NULL;
     }else{

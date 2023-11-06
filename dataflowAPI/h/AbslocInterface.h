@@ -34,8 +34,9 @@
 
 #include <map>
 #include <vector>
-#include "Instruction.h"
+
 #include "Register.h"
+#include "Instruction.h"
 #include "Expression.h"
 #include "Operand.h"
 #include "Absloc.h"

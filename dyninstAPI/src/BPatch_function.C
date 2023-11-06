@@ -59,7 +59,6 @@
 #include "StackMod/StackModChecker.h"
 #endif
 
-#include "common/src/Types.h"
 
 #include "Point.h"
 #include "PatchMgr.h"

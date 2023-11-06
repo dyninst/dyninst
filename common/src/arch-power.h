@@ -35,7 +35,6 @@
 
 // Code generation
 
-#include "common/src/Types.h"
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include <vector>
@@ -813,7 +812,7 @@ class COMMON_EXPORT instruction {
     instruction *copy() const;
 
     void clear() { insn_.raw = 0; }
-    void setInstruction(codeBuf_t *ptr, Address = 0);
+    void setInstruction(codeBuf_t *ptr, Dyninst::Address = 0);
     void setBits(unsigned int pos, unsigned int len, unsigned int value) {
         unsigned int mask;
 
@@ -827,7 +826,7 @@ class COMMON_EXPORT instruction {
         insn_.raw = insn_.raw | value;
     }
     unsigned int asInt() const { return insn_.raw; }
-    void setInstruction(unsigned char *ptr, Address = 0);
+    void setInstruction(unsigned char *ptr, Dyninst::Address = 0);
     
 
     // To solve host/target endian mismatches
@@ -837,13 +836,13 @@ class COMMON_EXPORT instruction {
     // We need instruction::size() all _over_ the place.
     static unsigned size() { return sizeof(instructUnion); } 
 
-    Address getBranchOffset() const;
-    void setBranchOffset(Address newOffset);
+    Dyninst::Address getBranchOffset() const;
+    void setBranchOffset(Dyninst::Address newOffset);
 
     // And tell us how much space we'll need...
     // Returns -1 if we can't do a branch due to architecture limitations
-    static unsigned jumpSize(Address from, Address to, unsigned addr_width);
-    static unsigned jumpSize(Address disp, unsigned addr_width);
+    static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
+    static unsigned jumpSize(Dyninst::Address disp, unsigned addr_width);
     static unsigned maxJumpSize(unsigned addr_width);
 
     static unsigned maxInterFunctionJumpSize(unsigned addr_width);
@@ -868,7 +867,7 @@ class COMMON_EXPORT instruction {
         return ((insn_.raw & mask) == match);
     }
     
-    Address getTarget(Address insnAddr) const;
+    Dyninst::Address getTarget(Dyninst::Address insnAddr) const;
     
     unsigned spaceToRelocate() const;
     bool getUsedRegs(std::vector<int> &regs);
@@ -890,7 +889,7 @@ class COMMON_EXPORT instruction {
     
     bool isCall() const;
     
-    static bool isAligned(Address addr) {
+    static bool isAligned(Dyninst::Address addr) {
         return !(addr & 0x3);
     }
     

@@ -37,7 +37,7 @@
 #include "registers/MachRegister.h"
 #include "common/src/IntervalTree.h"
 #include "stackanalysis.h"
-
+#include "dyntypes.h"
 #include "StackAccess.h"
 
 using namespace Dyninst;

@@ -34,12 +34,12 @@
 
 #include <string.h>
 #include <string>
-#include "common/src/Types.h"
 #include "codeRange.h"
 #include "common/src/arch.h" // instruction
 #include "dyninstAPI/h/BPatch_parRegion.h"
 #include <unordered_map>
 #include <map>
+#include "dyntypes.h"
 
 class mapped_module;
 class mapped_object;
@@ -67,15 +67,15 @@ struct ltstr
 class image_parRegion : public codeRange {
  public:
   image_parRegion(parse_func * imageFunc);
-  image_parRegion(Address firstOffset, parse_func * imageFunc);
+  image_parRegion(Dyninst::Address firstOffset, parse_func * imageFunc);
  
-  Address firstInsnOffset() const { return firstInsnOffset_; }
+  Dyninst::Address firstInsnOffset() const { return firstInsnOffset_; }
 
-  void setLastInsn(Address last) { lastInsnOffset_ = last;}
-  Address lastInsnOffset() const { return lastInsnOffset_; }
-  Address getSize() const { return lastInsnOffset_ - firstInsnOffset_; }
+  void setLastInsn(Dyninst::Address last) { lastInsnOffset_ = last;}
+  Dyninst::Address lastInsnOffset() const { return lastInsnOffset_; }
+  Dyninst::Address getSize() const { return lastInsnOffset_ - firstInsnOffset_; }
 
-  Address get_address() const {return firstInsnOffset_; }
+  Dyninst::Address get_address() const {return firstInsnOffset_; }
   unsigned int get_size() const {return 0;}
 
   parRegType getRegionType(){return regionType;}
@@ -90,8 +90,8 @@ class image_parRegion : public codeRange {
   void setClause(const char * key, int value);
   int getClause(const char * key);
 
-  void setClauseLoc(const char * key, Address value);
-  Address getClauseLoc(const char * key);
+  void setClauseLoc(const char * key, Dyninst::Address value);
+  Dyninst::Address getClauseLoc(const char * key);
   
   void printDetails();
 
@@ -100,21 +100,21 @@ class image_parRegion : public codeRange {
  private:
   parse_func *regionIf_;
   parse_func *parentIf_;
-  Address firstInsnOffset_;
-  Address lastInsnOffset_;
+  Dyninst::Address firstInsnOffset_;
+  Dyninst::Address lastInsnOffset_;
   parRegType regionType;
   std::map<const char*, int, ltstr> clauses;
-  std::map<const char*, Address, ltstr> clause_locations;
+  std::map<const char*, Dyninst::Address, ltstr> clause_locations;
 };
 
 
 class int_parRegion {
  public:
-  int_parRegion(image_parRegion *ip, Address baseAddr, func_instance * );
+  int_parRegion(image_parRegion *ip, Dyninst::Address baseAddr, func_instance * );
   ~int_parRegion();
 
-  Address firstInsnAddr() {return addr_;}
-  Address endAddr() {return endAddr_;}
+  Dyninst::Address firstInsnAddr() {return addr_;}
+  Dyninst::Address endAddr() {return endAddr_;}
 
   const image_parRegion * imagePar() const { return ip_; }
   
@@ -123,12 +123,12 @@ class int_parRegion {
   const func_instance * intFunc() { return intFunc_;}
 
   int getClause(const char * key);
-  Address getClauseLoc(const char * key);
+  Dyninst::Address getClauseLoc(const char * key);
 
   int replaceOMPParameter(const char * key, int value);
 
-  Address addr_; /* Absolute address of start of region */
-  Address endAddr_; /* Address of end of region */
+  Dyninst::Address addr_; /* Absolute address of start of region */
+  Dyninst::Address endAddr_; /* Dyninst::Address of end of region */
 
   func_instance * intFunc_;
 

@@ -29,7 +29,6 @@
  */
 
 #include "IA_amdgpu.h"
-#include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
@@ -44,6 +43,7 @@
 #include <functional>
 #include <algorithm>
 #include <set>
+#include "Register.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;

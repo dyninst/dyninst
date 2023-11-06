@@ -34,7 +34,8 @@
 #include <vector>
 #include "Architecture.h"
 #include "entryIDs.h"
-
+#include "dyntypes.h"
+#include "dyn_register.h"
 
 #if !defined(arch_x86) && !defined(arch_x86_64)
  
@@ -62,14 +63,14 @@ class insnCodeGen {
  public:
 
   // More code generation
-  static void generatePush64(codeGen &gen, Address val);
+  static void generatePush64(codeGen &gen, Dyninst::Address val);
 
   // Code generation
-  static void generateBranch(codeGen &gen, Address from, Address to);
+  static void generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to);
   static void generateBranch(codeGen &gen, int disp);
-  static void generateBranch64(codeGen &gen, Address to);
-  static void generateBranch32(codeGen &gen, Address to);
-  static void generateCall(codeGen &gen, Address from, Address to);
+  static void generateBranch64(codeGen &gen, Dyninst::Address to);
+  static void generateBranch32(codeGen &gen, Dyninst::Address to);
+  static void generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to);
 
   // We may want to generate an efficient set 'o nops
   static void generateNOOP(codeGen &gen, unsigned size = 1);
@@ -86,33 +87,33 @@ class insnCodeGen {
   static bool generate(codeGen &gen,
                 instruction & insn,
                 AddressSpace *addrSpace,
-                Address origAddr,
-                Address newAddr,
+                Dyninst::Address origAddr,
+                Dyninst::Address newAddr,
                 patchTarget *fallthroughOverride = NULL,
                 patchTarget *targetOverride = NULL);
 
   static bool generateMem(codeGen &gen,
                    instruction & insn,
-                   Address origAddr,
-                   Address newAddr,
-                   Register newLoadReg,
-                   Register newStoreReg);
+                   Dyninst::Address origAddr,
+                   Dyninst::Address newAddr,
+                   Dyninst::Register newLoadReg,
+                   Dyninst::Register newStoreReg);
 
-  static bool modifyJump(Address target,
+  static bool modifyJump(Dyninst::Address target,
                          NS_x86::instruction &insn, 
                          codeGen &gen);
-  static bool modifyJcc(Address target,
+  static bool modifyJcc(Dyninst::Address target,
                         NS_x86::instruction &insn, 
                          codeGen &gen);
-  static bool modifyCall(Address target,
+  static bool modifyCall(Dyninst::Address target,
                          NS_x86::instruction &insn, 
                          codeGen &gen);
-  static bool modifyData(Address target,
+  static bool modifyData(Dyninst::Address target,
                          NS_x86::instruction &insn, 
                          codeGen &gen);
   static bool modifyDisp(signed long newDisp,
                          NS_x86::instruction &insn,
-                         codeGen &gen, Architecture arch, Address addr);
+                         codeGen &gen, Dyninst::Architecture arch, Dyninst::Address addr);
 };
 
 

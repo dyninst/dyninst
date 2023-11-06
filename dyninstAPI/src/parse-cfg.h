@@ -40,7 +40,6 @@
 #include <utility>
 #include <vector>
 #include <string>
-#include "common/src/Types.h"
 #include "common/src/arch.h" // instruction
 #include "codeRange.h"
 #include "parRegion.h"

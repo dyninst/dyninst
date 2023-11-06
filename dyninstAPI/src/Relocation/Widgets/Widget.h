@@ -31,7 +31,6 @@
 #if !defined(PATCHAPI_ATOM_H_)
 #define PATCHAPI_ATOM_H_
 
-#include "common/src/Types.h" // Address
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr
 #include <string>
 #include <list> // stl::list
