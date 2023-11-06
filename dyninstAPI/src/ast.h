@@ -59,11 +59,7 @@ class AddressSpace;
 class instPoint;
 class func_instance;
 class int_variable;
-
 class codeGen;
-class codeRange;
-class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
-//class BPatch_type;
 class image_variable;
 
 
