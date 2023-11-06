@@ -96,10 +96,6 @@ AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 AstNode::AstNode() {
-#if defined(ASTDEBUG)
-   ASTcounter();
-#endif
-
 //   dyn_debug_ast = 0;
    referenceCount = 0;
    useCount = 0;
