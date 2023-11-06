@@ -38,7 +38,6 @@ namespace Dyninst {
         typedef void (InstructionDecoder_amdgpu_gfx90a::*operandFactory)();
 
         typedef amdgpu_gfx90a_insn_entry amdgpu_gfx90a_insn_table[];
-        typedef amdgpu_mask_entry amdgpu_decoder_table[];
 
         const std::array<std::string, 16> InstructionDecoder_amdgpu_gfx90a::condNames = { {
             "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
@@ -54,23 +53,7 @@ namespace Dyninst {
             return nullptr;
         }
 
-#include "amdgpu_gfx90a_insn_entry.h"
-        struct amdgpu_mask_entry {
-            unsigned int mask;
-            std::size_t branchCnt;
-            const std::pair<unsigned int,unsigned int>* nodeBranches;
-            int insnTableIndex;
-
-            static const amdgpu_decoder_table main_decoder_table;
-            static const std::pair<unsigned int,unsigned int> branchTable[];
-        };
-
-#include "amdgpu_gfx90a_opcode_tables.C"
-
         using namespace std;
-        void InstructionDecoder_amdgpu_gfx90a::NOTHING() {
-        }
-
         Result_Type InstructionDecoder_amdgpu_gfx90a::makeSizeType(unsigned int) {
             assert(0); //not implemented
             return u32;
@@ -91,7 +74,7 @@ namespace Dyninst {
         }
 
         void InstructionDecoder_amdgpu_gfx90a::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
-                int immLen_ = 16) {
+                int immLen_ ) {
             Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
             // * 4 => 2 more bits
             int64_t offset = sign_extend64(immLen_+2, immVal * 4);
@@ -196,9 +179,6 @@ namespace Dyninst {
 
 
 
-#include "amdgpu_gfx90a_decoder_impl.C"
-#include "appendOperands.C"
-#include "finalizeOperands.C"
         inline unsigned int InstructionDecoder_amdgpu_gfx90a::get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
             assert(offset %4 ==0 );
             if(b.start + offset + 4 <= b.end)

@@ -18,8 +18,20 @@ set(_sources
     src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
+    src/AMDGPU/gfx908/decodeOperands.C
+    src/AMDGPU/gfx908/appendOperands.C
+    src/AMDGPU/gfx908/finalizeOperands.C
+    src/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.C
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
+    src/AMDGPU/gfx90a/decodeOperands.C
+    src/AMDGPU/gfx90a/appendOperands.C
+    src/AMDGPU/gfx90a/finalizeOperands.C
+    src/AMDGPU/gfx90a/amdgpu_gfx90a_decoder_impl.C
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
+    src/AMDGPU/gfx940/decodeOperands.C
+    src/AMDGPU/gfx940/appendOperands.C
+    src/AMDGPU/gfx940/finalizeOperands.C
+    src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C)
 
@@ -42,17 +54,8 @@ set(_public_headers
 
 set(_private_headers
     src/amdgpu_branchinsn_table.h
-    src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.h
-    src/AMDGPU/gfx940/amdgpu_gfx940_insn_entry.h
-    src/AMDGPU/gfx940/appendOperands.h
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
-    src/AMDGPU/gfx90a/amdgpu_gfx90a_decoder_impl.h
-    src/AMDGPU/gfx90a/amdgpu_gfx90a_insn_entry.h
-    src/AMDGPU/gfx90a/appendOperands.h
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
-    src/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.h
-    src/AMDGPU/gfx908/amdgpu_gfx908_insn_entry.h
-    src/AMDGPU/gfx908/appendOperands.h
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
