@@ -62,8 +62,6 @@ using namespace Dyninst::InstructionAPI;
 #elif defined(arch_x86) || defined (arch_x86_64)
 #include "inst-x86.h"
 #include "emit-x86.h"
-extern int tramp_pre_frame_size_32;
-extern int tramp_pre_frame_size_64;
 #elif defined(arch_aarch64)
 #include "inst-aarch64.h"
 #else
