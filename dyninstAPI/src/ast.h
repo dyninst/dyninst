@@ -362,7 +362,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	// Return all children of this node ([lre]operand, ..., operands[])
 	virtual void getChildren(std::vector<AstNodePtr> &); 
 
-   void printRC(void);
 	virtual bool accessesParam(void);
 
 	virtual void setOValue(void *) { assert(0); }

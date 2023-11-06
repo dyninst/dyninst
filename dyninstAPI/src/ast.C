@@ -539,26 +539,6 @@ AstNodePtr AstNode::threadIndexNode() {
 #define AST_PRINT
 #endif
 
-#if defined(AST_PRINT)
-void AstNode::printRC()
-{
-    sprintf(errorLine,"RC referenceCount=%d\n",referenceCount);
-    logLine(errorLine);
-    if (loperand) {
-      logLine("RC loperand\n");
-      loperand->printRC();
-    }
-    if (roperand) {
-      logLine("RC roperand\n");
-      roperand->printRC();
-    }
-    if (eoperand) {
-      logLine("RC eoperand\n");
-      eoperand->printRC();
-    }
-}
-#endif
-
 AstNode::~AstNode() {
     //printf("at ~AstNode()  count=%d\n", referenceCount);
 }
