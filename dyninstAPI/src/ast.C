@@ -2456,11 +2456,11 @@ void AstNode::print() const {
         fprintf(stderr," %s", (char *)oValue);
       } else if (oType == operandType::DataIndir) {
 	fprintf(stderr," @[");
-        loperand->print();
+        if(loperand) loperand->print();
 	fprintf(stderr,"]");
       } else if (oType == operandType::DataReg) {
 	fprintf(stderr," reg%d ",(int)(Address)oValue);
-        loperand->print();
+	if(loperand) loperand->print();
       } else if (oType == operandType::Param || oType == operandType::ParamAtCall || oType == operandType::ParamAtEntry) {
 	fprintf(stderr," param[%d]", (int)(Address) oValue);
       } else if (oType == operandType::ReturnVal) {
