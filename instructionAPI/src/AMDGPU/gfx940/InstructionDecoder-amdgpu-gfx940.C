@@ -38,7 +38,6 @@ namespace Dyninst {
         typedef void (InstructionDecoder_amdgpu_gfx940::*operandFactory)();
 
         typedef amdgpu_gfx940_insn_entry amdgpu_gfx940_insn_table[];
-        typedef amdgpu_mask_entry amdgpu_decoder_table[];
 
         const std::array<std::string, 16> InstructionDecoder_amdgpu_gfx940::condNames = { {
             "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
@@ -54,23 +53,7 @@ namespace Dyninst {
             return nullptr;
         }
 
-#include "amdgpu_gfx940_insn_entry.h"
-        struct amdgpu_mask_entry {
-            unsigned int mask;
-            std::size_t branchCnt;
-            const std::pair<unsigned int,unsigned int>* nodeBranches;
-            int insnTableIndex;
-
-            static const amdgpu_decoder_table main_decoder_table;
-            static const std::pair<unsigned int,unsigned int> branchTable[];
-        };
-
-#include "amdgpu_gfx940_opcode_tables.C"
-
         using namespace std;
-        void InstructionDecoder_amdgpu_gfx940::NOTHING() {
-        }
-
         Result_Type InstructionDecoder_amdgpu_gfx940::makeSizeType(unsigned int) {
             assert(0); //not implemented
             return u32;
@@ -91,7 +74,7 @@ namespace Dyninst {
         }
 
         void InstructionDecoder_amdgpu_gfx940::makeBranchTarget(bool branchIsCall, bool bIsConditional, int immVal,
-                int immLen_ = 16) {
+                int immLen_) {
             Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);
             // * 4 => 2 more bits
             int64_t offset = sign_extend64(immLen_+2, immVal * 4);
@@ -180,21 +163,7 @@ namespace Dyninst {
             return makeAddExpression(lhs, rhs, s64);
 
         }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx940::decodeOPR_SIMM4(uint64_t input){
-            return Immediate::makeImmediate(Result(s8, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx940::decodeOPR_SIMM8(uint64_t input){
-            return Immediate::makeImmediate(Result(s8, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx940::decodeOPR_SIMM16(uint64_t input){
-            return Immediate::makeImmediate(Result(s16, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx940::decodeOPR_SIMM32(uint64_t input){
-            return Immediate::makeImmediate(Result(s32, input));
-        }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx940::decodeOPR_WAITCNT(uint64_t input){
-            return Immediate::makeImmediate(Result(s16, input));
-        }
+
         Expression::Ptr InstructionDecoder_amdgpu_gfx940::makeRegisterExpression(MachRegister registerID, uint32_t num_elements){
             if(registerID == amdgpu_gfx940::src_literal){
                 return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
@@ -208,11 +177,6 @@ namespace Dyninst {
             return InstructionDecoderImpl::makeRegisterExpression(registerID, low, high );
         }
 
-
-
-#include "amdgpu_gfx940_decoder_impl.C"
-#include "decodeOperands.C"
-#include "finalizeOperands.C"
         inline unsigned int InstructionDecoder_amdgpu_gfx940::get32bit(InstructionDecoder::buffer &b,unsigned int offset ){
             assert(offset %4 ==0 );
             if(b.start + offset + 4 <= b.end)
@@ -258,10 +222,6 @@ namespace Dyninst {
         Instruction InstructionDecoder_amdgpu_gfx940::decode(InstructionDecoder::buffer &b) {
             setupInsnWord(b);
             mainDecode();
-            if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
-                //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
-                //std::mem_fn(decode_lookup_table[instr_family])(this);
-            }
             b.start += insn_in_progress->size();
             return *insn_in_progress;
         }
