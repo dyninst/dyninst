@@ -53,7 +53,7 @@
 #include "headers.h"
 #include "MappedFile.h"
 #include "IntervalTree.h"
-
+#include "Module.h"
 #include <elf.h>
 #include <libelf.h>
 #include <string>
@@ -166,8 +166,8 @@ public:
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo();
-  
   void parseTypeInfo();
+  void addModule(SymtabAPI::Module* m) override;
 
   bool needs_function_binding() const override { return (plt_addr_ > 0); }
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const override;

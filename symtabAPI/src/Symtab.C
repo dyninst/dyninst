@@ -792,7 +792,9 @@ void Symtab::createDefaultModule() {
     }
 }
 
-
+void Symtab::addModule(Module *m) {
+  impl->modules.insert(m);
+}
 
 Module *Symtab::getOrCreateModule(const std::string &modName, 
                                   const Offset modAddr)

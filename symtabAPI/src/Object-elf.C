@@ -3051,6 +3051,10 @@ ObjectType Object::objType() const {
     return obj_type_;
 }
 
+void Object::addModule(SymtabAPI::Module* m) {
+  associated_symtab->addModule(m);
+}
+
 void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs) {
     string working_module;
     string mod_string;

@@ -49,6 +49,7 @@
 
 #include "Symbol.h"
 #include "Symtab.h"
+#include "Module.h"
 #include "LineInformation.h"
 #include "common/src/headers.h"
 #include "common/src/MappedFile.h"
@@ -140,6 +141,7 @@ public:
     // Only implemented for ELF right now
     SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {}
 	SYMTAB_EXPORT virtual void rebase(Offset) {}
+    virtual void addModule(SymtabAPI::Module *) {}
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
