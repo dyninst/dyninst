@@ -498,13 +498,6 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
 	createDefaultModule();
     }
 
-    for (auto *m : impl->modules)
-    {
-        for(auto *mr : m->finalizeRanges()) {
-            impl->mod_lookup_.insert(mr);
-        }
-    }
-
 //    const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
 //    for (unsigned i=0; i< mods.size(); i++) {
 //       getOrCreateModule(mods[i].first, mods[i].second);
@@ -786,13 +779,15 @@ void Symtab::createDefaultModule() {
                      this);
     mod->addRange(imageOffset_, imageLen_ + imageOffset_);
     impl->default_module = mod;
-    impl->modules.insert(mod);
-    for(auto *m : mod->finalizeRanges()) {
-	impl->mod_lookup_.insert(m);
-    }
+    addModule(mod);
 }
 
-
+void Symtab::addModule(Module *mod) {
+  impl->modules.insert(mod);
+  for(auto *m : mod->finalizeRanges()) {
+    impl->mod_lookup_.insert(m);
+  }
+}
 
 Module *Symtab::getOrCreateModule(const std::string &modName, 
                                   const Offset modAddr)
@@ -805,9 +800,8 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
 	          FILE__, __LINE__, modName.c_str(), modAddr);
 
     Module *mod = new Module(lang_Unknown, modAddr, modName, this);
+    addModule(mod);
 
-    impl->modules.insert(mod);
-    
     return mod;
 }
 

@@ -38,6 +38,7 @@
 #include "os.h"
 #include "instPoint.h"
 #include "function.h"
+#include "Object.h"
 
 using namespace Dyninst::SymtabAPI;
 
@@ -585,8 +586,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
       
       std::vector<Symbol *> newSyms;
-      buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
-                                                                     lowWaterMark_));
+      auto *mod = symObj->getContainingModule(lowWaterMark_);
+      if(!mod) {
+	  mod = new Module(lang_Unknown, lowWaterMark_, "dyninstInst", symObj);
+	  symObj->getObject()->addModule(mod);
+      }
+      buildDyninstSymbols(newSyms, newSec, mod);
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
       }
