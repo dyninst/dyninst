@@ -2197,9 +2197,10 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 
         dwarf_printf("Locating ranges for module '%s' at offset 0x%zx\n", modname.c_str(), modLow);
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(cu_die);
-        SymtabAPI::Module *m;
-        #pragma omp critical
-        m = associated_symtab->getOrCreateModule(modname, modLow);
+        auto *m = associated_symtab->getContainingModule(modLow);
+        if(!m) {
+          m = new SymtabAPI::Module(lang_Unknown, modLow, modname, associated_symtab);
+        }
         dwarf_printf("Adding %zu ranges to '%s'\n", mod_ranges.size(), m->fileName().c_str());
         for (auto r = mod_ranges.begin(); r != mod_ranges.end(); ++r)
         {
@@ -2240,6 +2241,9 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         }
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         // dies_seen.insert(cu_die_off);
+
+        // 'addModule' finalizes the Module's ranges, so do not add until after they are computed
+        associated_symtab->addModule(m);
     }
 
     return true;
