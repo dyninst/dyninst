@@ -169,13 +169,13 @@ public:
   
   void parseTypeInfo();
 
-  bool needs_function_binding() const { return (plt_addr_ > 0); } 
-  bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;
-  bool get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const;
+  bool needs_function_binding() const override { return (plt_addr_ > 0); }
+  bool get_func_binding_table(std::vector<relocationEntry> &fbt) const override;
+  bool get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const override;
   void getDependencies(std::vector<std::string> &deps);
   std::vector<std::string> &libsRMd();
 
-  bool addRelocationEntry(relocationEntry &re);
+  bool addRelocationEntry(relocationEntry &re) override;
 
   //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }
@@ -189,7 +189,7 @@ public:
   bool removePrereqLibrary(std::string libname);
   void insertDynamicEntry(long name, long value);
  
-  virtual char *mem_image() const 
+  virtual char *mem_image() const override
   {
      assert(mf);
      return (char *)mf->base_addr();
@@ -232,9 +232,9 @@ public:
 	    return false;
 	}
 
-   Dyninst::Architecture getArch() const;
-   bool isBigEndianDataEncoding() const;
-   bool getABIVersion(int &major, int &minor) const;
+   Dyninst::Architecture getArch() const override;
+   bool isBigEndianDataEncoding() const override;
+   bool getABIVersion(int &major, int &minor) const override;
 	bool is_offset_in_plt(Offset offset) const;
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
     int getRegionHdrIndexByAddr(Offset addr);
@@ -244,8 +244,8 @@ public:
     bool getRegValueAtFrame(Address pc, 
                             Dyninst::MachRegister reg, 
                             Dyninst::MachRegisterVal &reg_result,
-                            MemRegReader *reader);
-    bool hasFrameDebugInfo();
+                            MemRegReader *reader) override;
+    bool hasFrameDebugInfo() override;
     
     bool convertDebugOffset(Offset off, Offset &new_off);
 
@@ -257,7 +257,7 @@ public:
     bool hasRelplt() const {return hasRelplt_;}
     bool hasRelaplt() const {return hasRelaplt_;}
     bool hasNoteSection() const {return hasNoteSection_;}
-    Region::RegionType getRelType() const { return relType_; }
+    Region::RegionType getRelType() const override { return relType_; }
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
@@ -292,15 +292,15 @@ public:
     Offset getInitAddr() const {return init_addr_; }
     Offset getFiniAddr() const { return fini_addr_; }
 
-    virtual void setTruncateLinePaths(bool value);
-    virtual bool getTruncateLinePaths();
+    virtual void setTruncateLinePaths(bool value) override;
+    virtual bool getTruncateLinePaths() override;
     
     Elf_X * getElfHandle() { return elfHdr; }
 
     unsigned gotSize() const { return got_size_; }
     Offset gotAddr() const { return got_addr_; }
 
-    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs); 
+    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs) override;
 
     private:
     std::vector<std::vector<boost::shared_ptr<void> > > freeList;
@@ -416,7 +416,7 @@ public:
   bool hasDebugInfo();
 
 private:
-    void parseLineInfoForCU(Offset offset, LineInformation* li);
+    void parseLineInfoForCU(Offset offset, LineInformation* li) override;
     void recordLine(
        Region *debug_str,
        open_statement &saved_statement,
