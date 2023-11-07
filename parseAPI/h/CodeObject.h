@@ -82,9 +82,11 @@ class CodeObject {
     
     // `exact-target' parsing; optinally recursive
     PARSER_EXPORT void parse(Address target, bool recursive);
+    PARSER_EXPORT void parse(const std::vector<Address> &targets, bool recursive);
 
     // `even-more-exact-target' parsing; optinally recursive
     PARSER_EXPORT void parse(CodeRegion *cr, Address target, bool recursive);
+    PARSER_EXPORT void parse(const std::vector<std::pair<Address, CodeRegion *>> &targets, bool recursive);
 
     // parses new edges in already parsed functions
 	struct NewEdgeToParse {

@@ -207,6 +207,24 @@ CodeObject::parse(CodeRegion *cr, Address target, bool recursive) {
 }
 
 void
+CodeObject::parse(const std::vector<Address> &targets, bool recursive) {
+    if(!parser) {
+        fprintf(stderr,"FATAL: internal parser undefined\n");
+        return;
+    }
+    parser->parse_at(targets, recursive, ONDEMAND);
+}
+
+void
+CodeObject::parse(const std::vector<std::pair<Address, CodeRegion *>> &targets, bool recursive) {
+    if(!parser) {
+        fprintf(stderr,"FATAL: internal parser undefined\n");
+        return;
+    }
+    parser->parse_at(targets, recursive, ONDEMAND);
+}
+
+void
 CodeObject::parseGaps(CodeRegion *cr, GapParsingType type /* PreambleMatching 0 */) {
     if(!parser) {
         fprintf(stderr,"FATAL: internal parser undefined\n");
