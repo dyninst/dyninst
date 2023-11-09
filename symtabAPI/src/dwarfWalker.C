@@ -262,12 +262,12 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     // Find the Symtab Module corresponding to this CU
     mod() = [this]() {
-      SymtabAPI::Module* m = symtab()->findModuleByOffset(modLow);
+      SymtabAPI::Module* m = symtab()->findModuleByOffset(offset());
       if(m) return m;
       return symtab()->getDefaultModule();
     }();
 
-    dwarf_printf("Mapped to Symtab module %p from '%s' at offset %zx\n", (void*)mod(), mod()->fileName().c_str(), modLow);
+    dwarf_printf("Mapped to Symtab module %p from '%s' at offset %zx\n", (void*)mod(), mod()->fileName().c_str(), offset());
 
     if(!fixUnknownMod){
       fixUnknownMod = mod();
