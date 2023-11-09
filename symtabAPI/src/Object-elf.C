@@ -2193,7 +2193,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 
         dwarf_printf("Locating ranges for module '%s' at offset 0x%zx\n", modname.c_str(), loc);
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(cu_die);
-        auto *m = associated_symtab->getContainingModule(loc);
+        auto *m = associated_symtab->findModuleByOffset(loc);
         if(!m) {
           m = new SymtabAPI::Module(lang_Unknown, loc, modname, associated_symtab);
         }
