@@ -97,6 +97,12 @@ namespace Dyninst { namespace DwarfDyninst {
    *
    */
   inline Dwarf_Die *find_cu(Dwarf *dbg, Dwarf_Addr addr, Dwarf_Die *result) {
+    // The .debug_info DIE offset is the starting address for modules.
+    if(dwarf_offdie(dbg, addr, result)) {
+      return result;
+    }
+
+    // Search for the given address (assumes .debug_aranges is present)
     Dwarf_Die cuDIE{};
     if (dwarf_addrdie(dbg, addr, &cuDIE)) {
       *result = cuDIE;
