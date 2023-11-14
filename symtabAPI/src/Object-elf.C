@@ -2189,17 +2189,13 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 
         std::string modname = DwarfDyninst::cu_name(cu_die);
 
-        Address tempModLow;
-        Address modLow = 0;
-        if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, &cu_die, dbg)) {
-            convertDebugOffset(tempModLow, modLow);
-        }
+        auto const loc = dwarf_dieoffset(&cu_die);
 
-        dwarf_printf("Locating ranges for module '%s' at offset 0x%zx\n", modname.c_str(), modLow);
+        dwarf_printf("Locating ranges for module '%s' at offset 0x%zx\n", modname.c_str(), loc);
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(cu_die);
-        auto *m = associated_symtab->getContainingModule(modLow);
+        auto *m = associated_symtab->findModuleByOffset(loc);
         if(!m) {
-          m = new SymtabAPI::Module(lang_Unknown, modLow, modname, associated_symtab);
+          m = new SymtabAPI::Module(lang_Unknown, loc, modname, associated_symtab);
         }
         dwarf_printf("Adding %zu ranges to '%s'\n", mod_ranges.size(), m->fileName().c_str());
         for (auto r = mod_ranges.begin(); r != mod_ranges.end(); ++r)
