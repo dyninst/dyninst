@@ -70,6 +70,7 @@ namespace Dyninst { namespace x86 {
   const signed int H_REG  = 0x00000200; // 8-bit, second byte
   const signed int W_REG  = 0x00000300; // 16-bit, first word
   const signed int FULL   = 0x00000000; // 32 bits
+  const signed int HEXA   = 0x00000500; // 64-bit MMX and 3DNow!
   const signed int OCT    = 0x00000600; // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
   const signed int FPDBL  = 0x00000700; // 80-bit x87 FPU
   const signed int BIT    = 0x00000800; // 1-bit EFLAGS
@@ -277,14 +278,14 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(     zmm30,   0x1E |  ZMMS |   ZMM | Arch_x86, "x86");
   DEF_REGISTER(     zmm31,   0x1F |  ZMMS |   ZMM | Arch_x86, "x86");
 
-  DEF_REGISTER(       mm0,    0x0 | FPDBL |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm1,    0x1 | FPDBL |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm2,    0x2 | FPDBL |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm3,    0x3 | FPDBL |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm4,    0x4 | FPDBL |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm5,    0x5 | FPDBL |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm6,    0x6 | FPDBL |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm7,    0x7 | FPDBL |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm0,    0x0 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm1,    0x1 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm2,    0x2 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm3,    0x3 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm4,    0x4 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm5,    0x5 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm6,    0x6 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm7,    0x7 |   MMS |   MMX | Arch_x86, "x86");
   DEF_REGISTER(       cr0,    0x0 |  FULL |   CTL | Arch_x86, "x86");
   DEF_REGISTER(       cr1,    0x1 |  FULL |   CTL | Arch_x86, "x86");
   DEF_REGISTER(       cr2,    0x2 |  FULL |   CTL | Arch_x86, "x86");
