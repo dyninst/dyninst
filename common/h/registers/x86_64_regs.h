@@ -108,17 +108,18 @@ namespace Dyninst { namespace x86_64 {
   const signed int BASE15 = 0xf;
   const signed int FLAGS  = 0x00000000;  // RFLAGS Register
 
-  const signed int CF = x86::CF;
-  const signed int PF = x86::PF;
-  const signed int AF = x86::AF;
-  const signed int ZF = x86::ZF;
-  const signed int SF = x86::SF;
-  const signed int TF = x86::TF;
-  const signed int IF = x86::IF;
-  const signed int DF = x86::DF;
-  const signed int OF = x86::OF;
-  const signed int NT = x86::NT;
-  const signed int RF = x86::RF;
+  /* Base IDs for each bit in EFLAGS */
+  const signed int CF = x86::CF; // Carry Flag
+  const signed int PF = x86::PF; // Parity Flag
+  const signed int AF = x86::AF; // Auxiliary Carry Flag
+  const signed int ZF = x86::ZF; // Zero Flag
+  const signed int SF = x86::SF; // Sign Flag
+  const signed int TF = x86::TF; // Trap Flag
+  const signed int IF = x86::IF; // Interrupt Enable Flag
+  const signed int DF = x86::DF; // Direction Flag
+  const signed int OF = x86::OF; // Overflow Flag
+  const signed int NT = x86::NT; // Nested Task
+  const signed int RF = x86::RF; // Resume Flag
 
   //          (      name,     ID | alias |   cat |        arch,     arch)
   DEF_REGISTER(       rax,  BASEA |  FULL |   GPR | Arch_x86_64, "x86_64");
