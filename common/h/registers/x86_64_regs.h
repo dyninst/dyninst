@@ -117,17 +117,18 @@ namespace Dyninst { namespace x86_64 {
   const signed int BASEES = 0x5; // Extended data Segment register
 
   /* Base IDs for each bit in EFLAGS */
-  const signed int CF = x86::CF; // Carry Flag
-  const signed int PF = x86::PF; // Parity Flag
-  const signed int AF = x86::AF; // Auxiliary Carry Flag
-  const signed int ZF = x86::ZF; // Zero Flag
-  const signed int SF = x86::SF; // Sign Flag
-  const signed int TF = x86::TF; // Trap Flag
-  const signed int IF = x86::IF; // Interrupt Enable Flag
-  const signed int DF = x86::DF; // Direction Flag
-  const signed int OF = x86::OF; // Overflow Flag
-  const signed int NT = x86::NT; // Nested Task
-  const signed int RF = x86::RF; // Resume Flag
+  const signed int CF    = x86::CF;    // Carry Flag
+  const signed int FLAG1 = x86::FLAG1; // Reserved
+  const signed int PF    = x86::PF;    // Parity Flag
+  const signed int AF    = x86::AF;    // Auxiliary Carry Flag
+  const signed int ZF    = x86::ZF;    // Zero Flag
+  const signed int SF    = x86::SF;    // Sign Flag
+  const signed int TF    = x86::TF;    // Trap Flag
+  const signed int IF    = x86::IF;    // Interrupt Enable Flag
+  const signed int DF    = x86::DF;    // Direction Flag
+  const signed int OF    = x86::OF;    // Overflow Flag
+  const signed int NT    = x86::NT;    // Nested Task
+  const signed int RF    = x86::RF;    // Resume Flag
 
   //          (      name,     ID | alias |   cat |        arch,     arch)
   DEF_REGISTER(       rax,  BASEA |  FULL |   GPR | Arch_x86_64, "x86_64");
@@ -202,6 +203,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(       eip,   0x10 | D_REG |         Arch_x86_64, "x86_64");
   DEF_REGISTER(     flags,  FLAGS |  FULL |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        cf,     CF |   BIT |  FLAG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(     flag1,  FLAG1 |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        pf,     PF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        af,     AF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        zf,     ZF |   BIT |  FLAG | Arch_x86_64, "x86_64");
