@@ -114,23 +114,16 @@ namespace Dyninst {
     switch(getArchitecture()) {
       case Arch_x86:
         switch(reg & 0x0000ff00) {
-          case x86::L_REG: // L_REG
-          case x86::H_REG: // H_REG
-            return 1;
-          case x86::W_REG: // W_REG
-            return 2;
-          case x86::FULL: // FULL
-            return 4;
-            // Commented out because no register
-            // is defined with this size type
-            // case x86::QUAD:
-            //   return 8;
-          case x86::XMMS: return 16;
-          case x86::FPDBL: return 10;
+          case x86::FULL: return 4;
           case x86::BIT: return 0;
+          case x86::L_REG:
+          case x86::H_REG: return 1;
+          case x86::W_REG: return 2;
+          case x86::FPDBL: return 10;
+          case x86::MMS: return 8;
+          case x86::XMMS: return 16;
           case x86::YMMS: return 32;
           case x86::ZMMS: return 64;
-          case x86::MMS: return 8;
           case x86::KMSKS: return 8;
           default:
             return 0;
