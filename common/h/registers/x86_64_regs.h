@@ -106,7 +106,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int BASE13 = 0xd;
   const signed int BASE14 = 0xe;
   const signed int BASE15 = 0xf;
-  const signed int FLAGS  = 0x00000000;  // RFLAGS Register
+  const signed int FLAGS  = 0x0;  // RFLAGS Register
 
   /* Base IDs for each bit in EFLAGS */
   const signed int CF = x86::CF; // Carry Flag
