@@ -126,20 +126,17 @@ namespace Dyninst {
         break;
       case Arch_x86_64:
         switch(reg & 0x0000ff00) {
-          case x86_64::L_REG: // L_REG
-          case x86_64::H_REG: // H_REG
-            return 1;
-          case x86_64::W_REG: // W_REG
-            return 2;
-          case x86_64::FULL: // FULL
-            return 8;
+          case x86_64::L_REG:
+          case x86_64::H_REG: return 1;
+          case x86_64::W_REG: return 2;
           case x86_64::D_REG: return 4;
+          case x86_64::FULL: return 8;
+          case x86_64::MMS: return 8;
           case x86_64::OCT: return 16;
           case x86_64::FPDBL: return 10;
           case x86_64::BIT: return 0;
           case x86_64::YMMS: return 32;
           case x86_64::ZMMS: return 64;
-          case x86_64::MMS: return 8;
           default:
             return 0;  // Xiaozhu: return 0 as an indication of parsing junk.
         }
