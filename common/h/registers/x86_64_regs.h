@@ -129,6 +129,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int IF    = x86::IF;    // Interrupt Enable Flag
   const signed int DF    = x86::DF;    // Direction Flag
   const signed int OF    = x86::OF;    // Overflow Flag
+  const signed int FLAGC = x86::FLAGC; // I/O Privilege Level (bits 12 and 13)
   const signed int NT    = x86::NT;    // Nested Task
   const signed int RF    = x86::RF;    // Resume Flag
 
@@ -216,6 +217,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(       if_,     IF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        df,     DF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        of,     OF |   BIT |  FLAG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(     flagc,  FLAGC |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(       nt_,     NT |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        rf,     RF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        ds, BASEDS |  FULL |   SEG | Arch_x86_64, "x86_64");
