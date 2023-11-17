@@ -132,7 +132,7 @@ namespace Dyninst {
           case x86_64::D_REG: return 4;
           case x86_64::FULL: return 8;
           case x86_64::MMS: return 8;
-          case x86_64::OCT: return 16;
+          case x86_64::XMMS: return 16;
           case x86_64::FPDBL: return 10;
           case x86_64::BIT: return 0;
           case x86_64::YMMS: return 32;
@@ -1008,7 +1008,7 @@ namespace Dyninst {
       case Arch_x86_64:
         switch(subrange) {
           case x86_64::FULL:
-          case x86_64::OCT:
+          case x86_64::XMMS:
           case x86_64::MMS:
           case x86_64::KMSKS:
           case x86_64::FPDBL: p = x86_regpos_qword; break;
