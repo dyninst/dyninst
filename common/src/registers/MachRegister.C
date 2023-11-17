@@ -125,7 +125,7 @@ namespace Dyninst {
             // is defined with this size type
             // case x86::QUAD:
             //   return 8;
-          case x86::OCT: return 16;
+          case x86::XMMS: return 16;
           case x86::FPDBL: return 10;
           case x86::BIT: return 0;
           case x86::YMMS: return 32;
@@ -976,7 +976,7 @@ namespace Dyninst {
     switch(getArchitecture()) {
       case Arch_x86:
         switch(subrange) {
-          case x86::OCT:
+          case x86::XMMS:
           case x86::KMSKS:
           case x86::FPDBL: p = x86_regpos_qword; break;
           case x86::MMS: p = x86_regpos_qword; break;
@@ -995,7 +995,7 @@ namespace Dyninst {
       case Arch_x86_64:
         switch(subrange) {
           case x86::FULL:
-          case x86::OCT:
+          case x86::XMMS:
           case x86::FPDBL: p = x86_regpos_qword; break;
           case x86::H_REG: p = x86_regpos_high_byte; break;
           case x86::L_REG: p = x86_regpos_low_byte; break;
