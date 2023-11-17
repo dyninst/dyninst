@@ -90,23 +90,31 @@ namespace Dyninst { namespace x86_64 {
   const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
 
   /* Base IDs for aliased GPRs */
-  const signed int BASEA  = 0x0;
-  const signed int BASEC  = 0x1;
-  const signed int BASED  = 0x2;
-  const signed int BASEB  = 0x3;
-  const signed int BASESP = 0x4;
-  const signed int BASEBP = 0x5;
-  const signed int BASESI = 0x6;
-  const signed int BASEDI = 0x7;
-  const signed int BASE8  = 0x8;
-  const signed int BASE9  = 0x9;
-  const signed int BASE10 = 0xa;
-  const signed int BASE11 = 0xb;
-  const signed int BASE12 = 0xc;
-  const signed int BASE13 = 0xd;
-  const signed int BASE14 = 0xe;
-  const signed int BASE15 = 0xf;
-  const signed int FLAGS  = 0x0;  // RFLAGS Register
+  const signed int FLAGS  = 0x00;  // RFLAGS Register
+  const signed int BASEA  = 0x00;
+  const signed int BASEC  = 0x01;
+  const signed int BASED  = 0x02;
+  const signed int BASEB  = 0x03;
+  const signed int BASESP = 0x04;
+  const signed int BASEBP = 0x05;
+  const signed int BASESI = 0x06;
+  const signed int BASEDI = 0x07;
+  const signed int BASE8  = 0x08;
+  const signed int BASE9  = 0x09;
+  const signed int BASE10 = 0x0A;
+  const signed int BASE11 = 0x0B;
+  const signed int BASE12 = 0x0C;
+  const signed int BASE13 = 0x0D;
+  const signed int BASE14 = 0x0E;
+  const signed int BASE15 = 0x0F;
+
+  /* Base IDs for memory segment registers */
+  const signed int BASEDS = 0x0; // Data Segment register
+  const signed int BASESS = 0x1; // Stack Segment register
+  const signed int BASEFS = 0x2; // F Segment register
+  const signed int BASEGS = 0x3; // G Segment register
+  const signed int BASECS = 0x4; // Code Segment register
+  const signed int BASEES = 0x5; // Extended data Segment register
 
   /* Base IDs for each bit in EFLAGS */
   const signed int CF = x86::CF; // Carry Flag
@@ -204,12 +212,12 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(        of,     OF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(       nt_,     NT |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        rf,     RF |   BIT |  FLAG | Arch_x86_64, "x86_64");
-  DEF_REGISTER(        ds,    0x0 |  FULL |   SEG | Arch_x86_64, "x86_64");
-  DEF_REGISTER(        es,    0x1 |  FULL |   SEG | Arch_x86_64, "x86_64");
-  DEF_REGISTER(        fs,    0x2 |  FULL |   SEG | Arch_x86_64, "x86_64");
-  DEF_REGISTER(        gs,    0x3 |  FULL |   SEG | Arch_x86_64, "x86_64");
-  DEF_REGISTER(        cs,    0x4 |  FULL |   SEG | Arch_x86_64, "x86_64");
-  DEF_REGISTER(        ss,    0x5 |  FULL |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        ds, BASEDS |  FULL |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        es, BASEES |  FULL |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        fs, BASEFS |  FULL |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        gs, BASEGS |  FULL |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        cs, BASECS |  FULL |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        ss, BASESS |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(      orax,    0x0 |  FULL |  MISC | Arch_x86_64, "x86_64");
   DEF_REGISTER(    fsbase,    0x1 |  FULL |  MISC | Arch_x86_64, "x86_64");
   DEF_REGISTER(    gsbase,    0x2 |  FULL |  MISC | Arch_x86_64, "x86_64");

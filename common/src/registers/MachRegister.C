@@ -785,12 +785,12 @@ namespace Dyninst {
           case x86_64::SEG:
             c = x86_regclass_segment;
             switch(baseID) {
-              case 0x0: n = x86_segreg_ds; break;
-              case 0x1: n = x86_segreg_es; break;
-              case 0x2: n = x86_segreg_fs; break;
-              case 0x3: n = x86_segreg_gs; break;
-              case 0x4: n = x86_segreg_cs; break;
-              case 0x5: n = x86_segreg_ss; break;
+              case x86_64::BASEDS: n = x86_segreg_ds; break;
+              case x86_64::BASEES: n = x86_segreg_es; break;
+              case x86_64::BASEFS: n = x86_segreg_fs; break;
+              case x86_64::BASEGS: n = x86_segreg_gs; break;
+              case x86_64::BASECS: n = x86_segreg_cs; break;
+              case x86_64::BASESS: n = x86_segreg_ss; break;
               default: n = 0; break;
             }
             break;
