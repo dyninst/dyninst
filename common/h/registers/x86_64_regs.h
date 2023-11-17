@@ -88,6 +88,8 @@ namespace Dyninst { namespace x86_64 {
   const signed int YMM    = 0x000B0000;  // YMM0-YMM7 Registers from AVX2/FMA
   const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM7 Registers from AVX-512
   const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
+
+  /* Base IDs for aliased GPRs */
   const signed int BASEA  = 0x0;
   const signed int BASEC  = 0x1;
   const signed int BASED  = 0x2;
