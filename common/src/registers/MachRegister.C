@@ -818,6 +818,7 @@ namespace Dyninst {
               case x86_64::AC: n = x86_flag_ac; break;
               case x86_64::VIF: n = x86_flag_vif; break;
               case x86_64::VIP: n = x86_flag_vip; break;
+              case x86_64::ID: n = x86_flag_id; break;
               default:
                 c = -1;
                 return;
