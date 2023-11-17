@@ -119,15 +119,12 @@ namespace Dyninst { namespace x86 {
   
 
   /**
-   * For interpreting constants:
-   *  Lowest 16 bits (0x000000ff) is base register ID
-   *  Next 16 bits (0x0000ff00) is the aliasing and subrange ID-
-   *    used on x86/x86_64 to distinguish between things like EAX and AH
-   *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
-   *  Top 16 bits (0xff000000) are the architecture.
-   *
-   *  These values/layout are not guaranteed to remain the same as part of the
-   *  public interface, and may change.
+   * Format of constants:
+   *  [0x000000ff] Lower 16 bits are base register ID
+   *  [0x0000ff00] Next 16 bits are the aliasing and subrange ID used to distinguish
+   *               between whole and aliased registers like EAX and AH.
+   *  [0x00ff0000] Next 16 bits are the register category, GPR, FLAG, etc.
+   *  [0xff000000] Upper 16 bits are the architecture.
    **/
  
    /* General-purpose Registers */
