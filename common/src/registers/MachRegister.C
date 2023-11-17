@@ -718,6 +718,7 @@ namespace Dyninst {
               case x86::FLAGC: n= x86_flag_iopl0; break;
               case x86::FLAGD: n= x86_flag_iopl1; break;
               case x86::NT: n = x86_flag_nt; break;
+              case x86::RF: n = x86_flag_rf; break;
               default: assert(0); break;
             }
             break;
