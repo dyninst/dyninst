@@ -116,7 +116,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int BASECS = 0x4; // Code Segment register
   const signed int BASEES = 0x5; // Extended data Segment register
 
-  /* Base IDs for each bit in EFLAGS */
+  /* Base IDs for each bit in RFLAGS */
   const signed int CF    = x86::CF;    // Carry Flag
   const signed int FLAG1 = x86::FLAG1; // Reserved
   const signed int PF    = x86::PF;    // Parity Flag
@@ -134,6 +134,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int NT    = x86::NT;    // Nested Task
   const signed int FLAGF = x86::FLAGF; // Reserved
   const signed int RF    = x86::RF;    // Resume Flag
+  /* Flags 22-63 are reserved */
 
   //          (      name,     ID | alias |   cat |        arch,     arch)
   DEF_REGISTER(       rax,  BASEA |  FULL |   GPR | Arch_x86_64, "x86_64");
