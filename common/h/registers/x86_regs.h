@@ -133,30 +133,38 @@ namespace Dyninst { namespace x86 {
    /* General-purpose Registers */
   //          (      name,     ID | alias |   cat |     arch,  arch)
   DEF_REGISTER(       eax,  BASEA |  FULL |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(       ecx,  BASEC |  FULL |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(       edx,  BASED |  FULL |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(       ebx,  BASEB |  FULL |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(       esp, BASESP |  FULL |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(       ebp, BASEBP |  FULL |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(       esi, BASESI |  FULL |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(       edi, BASEDI |  FULL |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(        ax,  BASEA | W_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        ah,  BASEA | H_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        al,  BASEA | L_REG |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(        ax,  BASEA | W_REG |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(       ecx,  BASEC |  FULL |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(        cx,  BASEC | W_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        ch,  BASEC | H_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        cl,  BASEC | L_REG |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(        cx,  BASEC | W_REG |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(       edx,  BASED |  FULL |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(        dx,  BASED | W_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        dh,  BASED | H_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        dl,  BASED | L_REG |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(        dx,  BASED | W_REG |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(       ebx,  BASEB |  FULL |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(        bx,  BASEB | W_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        bh,  BASEB | H_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        bl,  BASEB | L_REG |   GPR | Arch_x86, "x86");
-  DEF_REGISTER(        bx,  BASEB | W_REG |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(       esp, BASESP |  FULL |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        sp, BASESP | W_REG |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(       ebp, BASEBP |  FULL |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        bp, BASEBP | W_REG |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(       esi, BASESI |  FULL |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        si, BASESI | W_REG |   GPR | Arch_x86, "x86");
+  DEF_REGISTER(       edi, BASEDI |  FULL |   GPR | Arch_x86, "x86");
   DEF_REGISTER(        di, BASEDI | W_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(       eip,   0x10 |  FULL |         Arch_x86, "x86");
+
+  DEF_REGISTER(        cs,    0x0 | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        ds,    0x1 | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        es,    0x2 | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        ss,    0x3 | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        fs,    0x4 | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        gs,    0x5 | W_REG |   SEG | Arch_x86, "x86");
+
   DEF_REGISTER(     flags,  FLAGS |  FULL |  FLAG | Arch_x86, "x86");
   DEF_REGISTER(        cf,     CF |   BIT |  FLAG | Arch_x86, "x86");
   DEF_REGISTER(     flag1,  FLAG1 |   BIT |  FLAG | Arch_x86, "x86");
@@ -181,24 +189,41 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(       vip,    VIP |   BIT |  FLAG | Arch_x86, "x86");
   DEF_REGISTER(        id,     ID |   BIT |  FLAG | Arch_x86, "x86");
 
-  DEF_REGISTER(        ds,    0x0 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        es,    0x1 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        fs,    0x2 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        gs,    0x3 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        cs,    0x4 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        ss,    0x5 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(      oeax,    0x0 |  FULL |  MISC | Arch_x86, "x86");
-  DEF_REGISTER(    fsbase,    0x1 |  FULL |  MISC | Arch_x86, "x86");
-  DEF_REGISTER(    gsbase,    0x2 |  FULL |  MISC | Arch_x86, "x86");
+  DEF_REGISTER(       cr0,    0x0 |  FULL |   CTL | Arch_x86, "x86");
+  DEF_REGISTER(       cr1,    0x1 |  FULL |   CTL | Arch_x86, "x86");
+  DEF_REGISTER(       cr2,    0x2 |  FULL |   CTL | Arch_x86, "x86");
+  DEF_REGISTER(       cr3,    0x3 |  FULL |   CTL | Arch_x86, "x86");
+  DEF_REGISTER(       cr4,    0x4 |  FULL |   CTL | Arch_x86, "x86");
+  DEF_REGISTER(       cr5,    0x5 |  FULL |   CTL | Arch_x86, "x86");
+  DEF_REGISTER(       cr6,    0x6 |  FULL |   CTL | Arch_x86, "x86");
+  DEF_REGISTER(       cr7,    0x7 |  FULL |   CTL | Arch_x86, "x86");
 
-  DEF_REGISTER(        k0,   0x00 | KMSKS | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k1,   0x01 | KMSKS | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k2,   0x02 | KMSKS | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k3,   0x03 | KMSKS | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k4,   0x04 | KMSKS | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k5,   0x05 | KMSKS | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k6,   0x06 | KMSKS | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k7,   0x07 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(       dr0,    0x0 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(       dr1,    0x1 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(       dr2,    0x2 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(       dr3,    0x3 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(       dr4,    0x4 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(       dr5,    0x5 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(       dr6,    0x6 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(       dr7,    0x7 |  FULL |   DBG | Arch_x86, "x86");
+
+  DEF_REGISTER(       st0,    0x0 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       st1,    0x1 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       st2,    0x2 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       st3,    0x3 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       st4,    0x4 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       st5,    0x5 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       st6,    0x6 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       st7,    0x7 | FPDBL |   X87 | Arch_x86, "x86");
+
+  DEF_REGISTER(       mm0,    0x0 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm1,    0x1 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm2,    0x2 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm3,    0x3 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm4,    0x4 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm5,    0x5 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm6,    0x6 |   MMS |   MMX | Arch_x86, "x86");
+  DEF_REGISTER(       mm7,    0x7 |   MMS |   MMX | Arch_x86, "x86");
 
   DEF_REGISTER(      xmm0,   0x00 |  XMMS |   XMM | Arch_x86, "x86");
   DEF_REGISTER(      xmm1,   0x01 |  XMMS |   XMM | Arch_x86, "x86");
@@ -227,30 +252,19 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(      zmm6,   0x06 |  ZMMS |   ZMM | Arch_x86, "x86");
   DEF_REGISTER(      zmm7,   0x07 |  ZMMS |   ZMM | Arch_x86, "x86");
 
-  DEF_REGISTER(       mm0,    0x0 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm1,    0x1 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm2,    0x2 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm3,    0x3 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm4,    0x4 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm5,    0x5 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm6,    0x6 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       mm7,    0x7 |   MMS |   MMX | Arch_x86, "x86");
-  DEF_REGISTER(       cr0,    0x0 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       cr1,    0x1 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       cr2,    0x2 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       cr3,    0x3 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       cr4,    0x4 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       cr5,    0x5 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       cr6,    0x6 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       cr7,    0x7 |  FULL |   CTL | Arch_x86, "x86");
-  DEF_REGISTER(       dr0,    0x0 |  FULL |   DBG | Arch_x86, "x86");
-  DEF_REGISTER(       dr1,    0x1 |  FULL |   DBG | Arch_x86, "x86");
-  DEF_REGISTER(       dr2,    0x2 |  FULL |   DBG | Arch_x86, "x86");
-  DEF_REGISTER(       dr3,    0x3 |  FULL |   DBG | Arch_x86, "x86");
-  DEF_REGISTER(       dr4,    0x4 |  FULL |   DBG | Arch_x86, "x86");
-  DEF_REGISTER(       dr5,    0x5 |  FULL |   DBG | Arch_x86, "x86");
-  DEF_REGISTER(       dr6,    0x6 |  FULL |   DBG | Arch_x86, "x86");
-  DEF_REGISTER(       dr7,    0x7 |  FULL |   DBG | Arch_x86, "x86");
+  DEF_REGISTER(        k0,   0x00 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k1,   0x01 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k2,   0x02 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k3,   0x03 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k4,   0x04 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k5,   0x05 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k6,   0x06 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k7,   0x07 | KMSKS | KMASK | Arch_x86, "x86");
+
+  /* Pseudo-registers for internal use only */
+  DEF_REGISTER(      oeax,    0x0 |  FULL |  MISC | Arch_x86, "x86");
+  DEF_REGISTER(    fsbase,    0x1 |  FULL |  MISC | Arch_x86, "x86");
+  DEF_REGISTER(    gsbase,    0x2 |  FULL |  MISC | Arch_x86, "x86");
   DEF_REGISTER(       tr0,    0x0 |  FULL |   TST | Arch_x86, "x86");
   DEF_REGISTER(       tr1,    0x1 |  FULL |   TST | Arch_x86, "x86");
   DEF_REGISTER(       tr2,    0x2 |  FULL |   TST | Arch_x86, "x86");
@@ -259,14 +273,6 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(       tr5,    0x5 |  FULL |   TST | Arch_x86, "x86");
   DEF_REGISTER(       tr6,    0x6 |  FULL |   TST | Arch_x86, "x86");
   DEF_REGISTER(       tr7,    0x7 |  FULL |   TST | Arch_x86, "x86");
-  DEF_REGISTER(       st0,    0x0 | FPDBL |   X87 | Arch_x86, "x86");
-  DEF_REGISTER(       st1,    0x1 | FPDBL |   X87 | Arch_x86, "x86");
-  DEF_REGISTER(       st2,    0x2 | FPDBL |   X87 | Arch_x86, "x86");
-  DEF_REGISTER(       st3,    0x3 | FPDBL |   X87 | Arch_x86, "x86");
-  DEF_REGISTER(       st4,    0x4 | FPDBL |   X87 | Arch_x86, "x86");
-  DEF_REGISTER(       st5,    0x5 | FPDBL |   X87 | Arch_x86, "x86");
-  DEF_REGISTER(       st6,    0x6 | FPDBL |   X87 | Arch_x86, "x86");
-  DEF_REGISTER(       st7,    0x7 | FPDBL |   X87 | Arch_x86, "x86");
 }
 
 inline bool isSegmentRegister(int regClass) {
