@@ -62,15 +62,15 @@ namespace Dyninst { namespace x86_64 {
    *   registers that are historically referred to by name (e.g., AL is
    *   the lower 8 bits of EAX).
    */
-  const signed int L_REG  = 0x00000100; // 8-bit, first byte
-  const signed int H_REG  = 0x00000200; // 8-bit, second byte
-  const signed int W_REG  = 0x00000300; // 16-bit, first word
-  const signed int D_REG  = 0x00000F00; // 32 bit, first double word
   const signed int FULL   = 0x00000000; // 64 bits
-  const signed int MMS    = 0x00000500; // 64-bit MMX and 3DNow!
-  const signed int OCT    = 0x00000600; // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
-  const signed int FPDBL  = 0x00000700; // 80-bit x87 FPU
-  const signed int BIT    = 0x00000800; // 1-bit EFLAGS
+  const signed int BIT    = 0x00000100; // 1-bit EFLAGS
+  const signed int L_REG  = 0x00000200; // 8-bit, first byte
+  const signed int H_REG  = 0x00000300; // 8-bit, second byte
+  const signed int W_REG  = 0x00000400; // 16-bit, first word
+  const signed int D_REG  = 0x00000500; // 32 bit, first double word
+  const signed int FPDBL  = 0x00000600; // 80-bit x87 FPU
+  const signed int MMS    = 0x00000700; // 64-bit MMX and 3DNow!
+  const signed int OCT    = 0x00000800; // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
   const signed int YMMS   = 0x00000900; // 256-bit SSE, AVX2, FMA3/4
   const signed int ZMMS   = 0x00000A00; // 512-bit AVX-512/AVX10
   const signed int GPR    = 0x00010000;
