@@ -137,6 +137,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int VM    = 0x11;       // Virtual-8086 Mode
   const signed int AC    = 0x12;       // Alignment Check/Access Control
   const signed int VIF   = 0x13;       // Virtual Interrupt Flag
+  const signed int VIP   = 0x14;       // Virtual Interrupt Pending
   /* Flags 22-63 are reserved */
 
   //          (      name,     ID | alias |   cat |        arch,     arch)
@@ -231,6 +232,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(        vm,     VM |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        ac,     AC |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(       vif,    VIF |   BIT |  FLAG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       vip,    VIP |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        ds, BASEDS |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        es, BASEES |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        fs, BASEFS |  FULL |   SEG | Arch_x86_64, "x86_64");
