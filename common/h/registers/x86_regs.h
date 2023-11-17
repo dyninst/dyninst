@@ -126,6 +126,8 @@ namespace Dyninst { namespace x86 {
   const signed int VIF   = 0x13;  // Virtual Interrupt Flag
   const signed int VIP   = 0x14;  // Virtual Interrupt Pending
   const signed int ID    = 0x15;  // ID Flag
+  /* Flags 22-31 are reserved */
+  
 
   //          (      name,     ID | alias |   cat |     arch,  arch)
   DEF_REGISTER(       eax,  BASEA |  FULL |   GPR | Arch_x86, "x86");
