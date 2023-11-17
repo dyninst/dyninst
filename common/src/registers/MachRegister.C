@@ -137,6 +137,7 @@ namespace Dyninst {
           case x86_64::BIT: return 0;
           case x86_64::YMMS: return 32;
           case x86_64::ZMMS: return 64;
+          case x86_64::KMSKS: return 8;
           default:
             return 0;  // Xiaozhu: return 0 as an indication of parsing junk.
         }
@@ -1009,6 +1010,7 @@ namespace Dyninst {
           case x86_64::FULL:
           case x86_64::OCT:
           case x86_64::MMS:
+          case x86_64::KMSKS:
           case x86_64::FPDBL: p = x86_regpos_qword; break;
           case x86_64::H_REG: p = x86_regpos_high_byte; break;
           case x86_64::L_REG: p = x86_regpos_low_byte; break;
