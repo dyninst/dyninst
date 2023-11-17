@@ -132,6 +132,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int FLAGC = x86::FLAGC; // I/O Privilege Level (bits 12 and 13)
   const signed int FLAGD = x86::FLAGD; // I/O Privilege Level (bits 12 and 13)
   const signed int NT    = x86::NT;    // Nested Task
+  const signed int FLAGF = x86::FLAGF; // Reserved
   const signed int RF    = x86::RF;    // Resume Flag
 
   //          (      name,     ID | alias |   cat |        arch,     arch)
@@ -221,6 +222,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(     flagc,  FLAGC |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(     flagd,  FLAGD |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(       nt_,     NT |   BIT |  FLAG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(     flagf,  FLAGF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        rf,     RF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        ds, BASEDS |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        es, BASEES |  FULL |   SEG | Arch_x86_64, "x86_64");
