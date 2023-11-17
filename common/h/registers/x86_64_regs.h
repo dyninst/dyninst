@@ -135,6 +135,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int FLAGF = x86::FLAGF; // Reserved
   const signed int RF    = x86::RF;    // Resume Flag
   const signed int VM    = 0x11;       // Virtual-8086 Mode
+  const signed int AC    = 0x12;       // Alignment Check/Access Control
   /* Flags 22-63 are reserved */
 
   //          (      name,     ID | alias |   cat |        arch,     arch)
@@ -227,6 +228,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(     flagf,  FLAGF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        rf,     RF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        vm,     VM |   BIT |  FLAG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        ac,     AC |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        ds, BASEDS |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        es, BASEES |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        fs, BASEFS |  FULL |   SEG | Arch_x86_64, "x86_64");
