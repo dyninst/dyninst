@@ -139,6 +139,7 @@ namespace Dyninst {
           case x86_64::BIT: return 0;
           case x86_64::YMMS: return 32;
           case x86_64::ZMMS: return 64;
+          case x86_64::MMS: return 8;
           default:
             return 0;  // Xiaozhu: return 0 as an indication of parsing junk.
         }
@@ -993,7 +994,8 @@ namespace Dyninst {
       case Arch_x86_64:
         switch(subrange) {
           case x86::FULL:
-          case x86::XMMS:
+          case x86::OCT:
+          case x86_64::MMS:
           case x86::FPDBL: p = x86_regpos_qword; break;
           case x86::H_REG: p = x86_regpos_high_byte; break;
           case x86::L_REG: p = x86_regpos_low_byte; break;
