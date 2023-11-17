@@ -476,6 +476,8 @@ Absloc SymEvalPolicy_64::convert(X86Flag f)
          return Absloc(x86_64::of);
       case x86_flag_iopl0:
          return Absloc(x86_64::FLAGC);
+      case x86_flag_iopl1:
+         return Absloc(x86_64::FLAGD);
       case x86_flag_nt:
          return Absloc(x86_64::nt_);
       default:
