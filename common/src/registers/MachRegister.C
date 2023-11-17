@@ -722,6 +722,7 @@ namespace Dyninst {
               case x86::VM: n= x86_flag_vm; break;
               case x86::AC: n = x86_flag_ac; break;
               case x86::VIF: n = x86_flag_vif; break;
+              case x86::VIP: n = x86_flag_vip; break;
               default: assert(0); break;
             }
             break;
