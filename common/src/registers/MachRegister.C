@@ -1011,6 +1011,8 @@ namespace Dyninst {
           case x86_64::XMMS:
           case x86_64::MMS:
           case x86_64::KMSKS:
+          case x86_64::YMMS:
+          case x86_64::ZMMS:
           case x86_64::FPDBL: p = x86_regpos_qword; break;
           case x86_64::H_REG: p = x86_regpos_high_byte; break;
           case x86_64::L_REG: p = x86_regpos_low_byte; break;

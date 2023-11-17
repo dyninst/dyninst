@@ -308,10 +308,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(     xmm29,   0x1D |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm30,   0x1E |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm31,   0x1F |  XMMS |   XMM | Arch_x86_64, "x86_64");
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
   DEF_REGISTER(      ymm0,   0x00 |  YMMS |   YMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(      ymm1,   0x01 |  YMMS |   YMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(      ymm2,   0x02 |  YMMS |   YMM | Arch_x86_64, "x86_64");
