@@ -64,6 +64,7 @@ namespace Dyninst { namespace x86 {
   const signed int OCT    = 0x00000700;  // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
   const signed int YMMS   = 0x00000800;  // 256-bit SSE, AVX2, FMA3/4
   const signed int ZMMS   = 0x00000900;  // 512-bit AVX-512/AVX10
+  const signed int KMSKS  = 0x00000A00;  // 64-bit mask from AVX-512/AVX10
 
   /* Register Categories */
   const signed int GPR    = 0x00010000;  // General-Purpose Registers
@@ -190,14 +191,14 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(    fsbase,    0x1 |  FULL |  MISC | Arch_x86, "x86");
   DEF_REGISTER(    gsbase,    0x2 |  FULL |  MISC | Arch_x86, "x86");
 
-  DEF_REGISTER(        k0,   0x00 |   OCT | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k1,   0x01 |   OCT | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k2,   0x02 |   OCT | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k3,   0x03 |   OCT | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k4,   0x04 |   OCT | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k5,   0x05 |   OCT | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k6,   0x06 |   OCT | KMASK | Arch_x86, "x86");
-  DEF_REGISTER(        k7,   0x07 |   OCT | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k0,   0x00 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k1,   0x01 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k2,   0x02 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k3,   0x03 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k4,   0x04 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k5,   0x05 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k6,   0x06 | KMSKS | KMASK | Arch_x86, "x86");
+  DEF_REGISTER(        k7,   0x07 | KMSKS | KMASK | Arch_x86, "x86");
 
   DEF_REGISTER(      xmm0,   0x00 |   OCT |   XMM | Arch_x86, "x86");
   DEF_REGISTER(      xmm1,   0x01 |   OCT |   XMM | Arch_x86, "x86");

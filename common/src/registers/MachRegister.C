@@ -131,6 +131,7 @@ namespace Dyninst {
           case x86::YMMS: return 32;
           case x86::ZMMS: return 64;
           case x86::MMS: return 8;
+          case x86::KMSKS: return 8;
           default:
             return 0;
         }
@@ -976,6 +977,7 @@ namespace Dyninst {
       case Arch_x86:
         switch(subrange) {
           case x86::OCT:
+          case x86::KMSKS:
           case x86::FPDBL: p = x86_regpos_qword; break;
           case x86::MMS: p = x86_regpos_qword; break;
           case x86::H_REG: p = x86_regpos_high_byte; break;
