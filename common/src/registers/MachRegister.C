@@ -811,6 +811,7 @@ namespace Dyninst {
               case x86_64::OF: n = x86_flag_of; break;
               case x86_64::FLAGC: n = x86_flag_iopl0; break;
               case x86_64::FLAGD: n = x86_flag_iopl1; break;
+              case x86_64::NT: n = x86_flag_nt; break;
               case x86_64::FLAGF: n = x86_flag_15; break;
               case x86_64::VM: n = x86_flag_vm; break;
               case x86_64::RF: n = x86_flag_rf; break;
