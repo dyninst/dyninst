@@ -39,18 +39,6 @@
 
 namespace Dyninst { namespace x86_64 {
 
-  /**
-   * For interpreting constants:
-   *  Lowest 16 bits (0x000000ff) is base register ID
-   *  Next 16 bits (0x0000ff00) is the aliasing and subrange ID-
-   *    used on x86/x86_64 to distinguish between things like EAX and AH
-   *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
-   *  Top 16 bits (0xff000000) are the architecture.
-   *
-   *  These values/layout are not guaranteed to remain the same as part of the
-   *  public interface, and may change.
-   **/
-
   /* Register lengths
    *
    * NOTE:
@@ -141,6 +129,13 @@ namespace Dyninst { namespace x86_64 {
   const signed int ID    = 0x15;       // ID Flag
   /* Flags 22-63 are reserved */
 
+  /* Format of constants:
+   *  [0x000000ff] Lower 16 bits are base register ID
+   *  [0x0000ff00] Next 16 bits are the aliasing and subrange ID used to distinguish
+   *               between whole and aliased registers like EAX and AH.
+   *  [0x00ff0000] Next 16 bits are the register category, GPR, FLAG, etc.
+   *  [0xff000000] Upper 16 bits are the architecture.
+   */
   //          (      name,     ID | alias |   cat |        arch,     arch)
   DEF_REGISTER(       rax,  BASEA |  FULL |   GPR | Arch_x86_64, "x86_64");
   DEF_REGISTER(       rcx,  BASEC |  FULL |   GPR | Arch_x86_64, "x86_64");
