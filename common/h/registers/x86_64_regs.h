@@ -122,6 +122,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int PF    = x86::PF;    // Parity Flag
   const signed int FLAG3 = x86::FLAG3; // Reserved
   const signed int AF    = x86::AF;    // Auxiliary Carry Flag
+  const signed int FLAG5 = x86::FLAG5; // Reserved
   const signed int ZF    = x86::ZF;    // Zero Flag
   const signed int SF    = x86::SF;    // Sign Flag
   const signed int TF    = x86::TF;    // Trap Flag
@@ -208,6 +209,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(        pf,     PF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(     flag3,  FLAG3 |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        af,     AF |   BIT |  FLAG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(     flag5,  FLAG5 |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        zf,     ZF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        sf,     SF |   BIT |  FLAG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        tf,     TF |   BIT |  FLAG | Arch_x86_64, "x86_64");

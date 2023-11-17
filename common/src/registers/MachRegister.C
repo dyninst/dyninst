@@ -802,6 +802,7 @@ namespace Dyninst {
               case x86_64::PF: n = x86_flag_pf; break;
               case x86_64::FLAG3: n = x86_flag_3; break;
               case x86_64::AF: n = x86_flag_af; break;
+              case x86_64::FLAG5: n = x86_flag_5; break;
               case x86_64::ZF: n = x86_flag_zf; break;
               case x86_64::SF: n = x86_flag_sf; break;
               case x86_64::TF: n = x86_flag_tf; break;
