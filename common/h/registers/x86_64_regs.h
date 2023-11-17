@@ -85,6 +85,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int CTL    = 0x000A0000;
   const signed int DBG    = 0x000B0000;
   const signed int TST    = 0x000C0000;
+  const signed int X87    = 0x000D0000;  // x87 FPU Registers
   const signed int FLAGS  = 0x00000000;
   const signed int BASEA  = 0x0;
   const signed int BASEC  = 0x1;
@@ -343,14 +344,14 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(       tr5,    0x5 |  FULL |   TST | Arch_x86_64, "x86_64");
   DEF_REGISTER(       tr6,    0x6 |  FULL |   TST | Arch_x86_64, "x86_64");
   DEF_REGISTER(       tr7,    0x7 |  FULL |   TST | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st0,    0x0 | FPDBL |   MMX | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st1,    0x1 | FPDBL |   MMX | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st2,    0x2 | FPDBL |   MMX | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st3,    0x3 | FPDBL |   MMX | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st4,    0x4 | FPDBL |   MMX | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st5,    0x5 | FPDBL |   MMX | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st6,    0x6 | FPDBL |   MMX | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       st7,    0x7 | FPDBL |   MMX | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st0,    0x0 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st1,    0x1 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st2,    0x2 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st3,    0x3 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st4,    0x4 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st5,    0x5 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st6,    0x6 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       st7,    0x7 | FPDBL |   X87 | Arch_x86_64, "x86_64");
 
 }}
 
