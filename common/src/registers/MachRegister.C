@@ -983,7 +983,6 @@ namespace Dyninst {
           case x86::L_REG: p = x86_regpos_low_byte; break;
           case x86::W_REG: p = x86_regpos_word; break;
           case x86::FULL:
-          case x86_64::D_REG: p = x86_regpos_dword; break;
           case x86::BIT: p = x86_regpos_all; break;
           default:
               common_parsing_printf("Unknown subrange value '%d' for Arch_x86\n", subrange);
@@ -993,15 +992,15 @@ namespace Dyninst {
 
       case Arch_x86_64:
         switch(subrange) {
-          case x86::FULL:
-          case x86::OCT:
+          case x86_64::FULL:
+          case x86_64::OCT:
           case x86_64::MMS:
-          case x86::FPDBL: p = x86_regpos_qword; break;
-          case x86::H_REG: p = x86_regpos_high_byte; break;
-          case x86::L_REG: p = x86_regpos_low_byte; break;
-          case x86::W_REG: p = x86_regpos_word; break;
+          case x86_64::FPDBL: p = x86_regpos_qword; break;
+          case x86_64::H_REG: p = x86_regpos_high_byte; break;
+          case x86_64::L_REG: p = x86_regpos_low_byte; break;
+          case x86_64::W_REG: p = x86_regpos_word; break;
           case x86_64::D_REG: p = x86_regpos_dword; break;
-          case x86::BIT: p = x86_regpos_all; break;
+          case x86_64::BIT: p = x86_regpos_all; break;
           default:
               common_parsing_printf("Unknown subrange value '%d' for Arch_x86_64\n", subrange);
               break;
