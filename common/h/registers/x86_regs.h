@@ -103,23 +103,24 @@ namespace Dyninst { namespace x86 {
   const signed int BASEDI = 0x7;
   const signed int FLAGS  = 0x0;
 
-  const signed int CF    = 0x0;
-  const signed int FLAG1 = 0x1;
-  const signed int PF    = 0x2;
-  const signed int FLAG3 = 0x3;
-  const signed int AF    = 0x4;
-  const signed int FLAG5 = 0x5;
-  const signed int ZF    = 0x6;
-  const signed int SF    = 0x7;
-  const signed int TF    = 0x8;
-  const signed int IF    = 0x9;
-  const signed int DF    = 0xa;
-  const signed int OF    = 0xb;
-  const signed int FLAGC = 0xc;
-  const signed int FLAGD = 0xd;
-  const signed int NT    = 0xe;
-  const signed int FLAGF = 0xf;
-  const signed int RF    = 0x10;
+  /* Base IDs for each bit in EFLAGS */
+  const signed int CF    = 0x00;  // Carry Flag
+  const signed int FLAG1 = 0x01;  // Reserved
+  const signed int PF    = 0x02;  // Parity Flag
+  const signed int FLAG3 = 0x03;  // Reserved
+  const signed int AF    = 0x04;  // Auxiliary Carry Flag
+  const signed int FLAG5 = 0x05;  // Reserved
+  const signed int ZF    = 0x06;  // Zero Flag
+  const signed int SF    = 0x07;  // Sign Flag
+  const signed int TF    = 0x08;  // Trap Flag
+  const signed int IF    = 0x09;  // Interrupt Enable Flag
+  const signed int DF    = 0x0A;  // Direction Flag
+  const signed int OF    = 0x0B;  // Overflow Flag
+  const signed int FLAGC = 0x0C;  // I/O Privilege Level (bits 12 and 13)
+  const signed int FLAGD = 0x0D;  // I/O Privilege Level (bits 12 and 13)
+  const signed int NT    = 0x0E;  // Nested Task
+  const signed int FLAGF = 0x0F;  // Reserved
+  const signed int RF    = 0x10;  // Resume Flag
 
   //          (      name,     ID | alias |   cat |     arch,  arch)
   DEF_REGISTER(       eax,  BASEA |  FULL |   GPR | Arch_x86, "x86");
