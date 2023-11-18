@@ -734,6 +734,14 @@ namespace Dyninst {
             c = x86_regclass_st_top;
             n = baseID;
             break;
+          case x86::YMM:
+            c = x86_regclass_ymm;
+            n = baseID;
+            break;
+          case x86::ZMM:
+            c = x86_regclass_zmm;
+            n = baseID;
+            break;
           case x86::CTL:
             c = x86_regclass_cr;
             n = baseID;
