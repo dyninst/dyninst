@@ -92,6 +92,14 @@ namespace Dyninst { namespace x86 {
   const signed int BASEDI = 0x7;
   const signed int FLAGS  = 0x0;
 
+  /* Base IDs for memory segment registers */
+  const signed int BASEDS = 0x0; // Data Segment register
+  const signed int BASESS = 0x1; // Stack Segment register
+  const signed int BASEFS = 0x2; // F Segment register
+  const signed int BASEGS = 0x3; // G Segment register
+  const signed int BASECS = 0x4; // Code Segment register
+  const signed int BASEES = 0x5; // Extended data Segment register
+
   /* Base IDs for each bit in EFLAGS */
   const signed int CF    = 0x00;  // Carry Flag
   const signed int FLAG1 = 0x01;  // Reserved
@@ -155,12 +163,12 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(        di, BASEDI | W_REG |   GPR | Arch_x86, "x86");
   DEF_REGISTER(       eip,   0x10 |  FULL |         Arch_x86, "x86");
 
-  DEF_REGISTER(        cs,    0x0 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        ds,    0x1 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        es,    0x2 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        ss,    0x3 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        fs,    0x4 | W_REG |   SEG | Arch_x86, "x86");
-  DEF_REGISTER(        gs,    0x5 | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        cs, BASECS | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        ds, BASEDS | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        es, BASEES | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        ss, BASESS | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        fs, BASEFS | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        gs, BASEGS | W_REG |   SEG | Arch_x86, "x86");
 
   DEF_REGISTER(     flags,  FLAGS |  FULL |  FLAG | Arch_x86, "x86");
   DEF_REGISTER(        cf,     CF |   BIT |  FLAG | Arch_x86, "x86");
