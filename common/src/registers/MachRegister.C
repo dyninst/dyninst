@@ -978,6 +978,8 @@ namespace Dyninst {
       case Arch_x86:
         switch(subrange) {
           case x86::XMMS:
+          case x86::YMMS:
+          case x86::ZMMS:
           case x86::KMSKS:
           case x86::FPDBL: p = x86_regpos_qword; break;
           case x86::MMS: p = x86_regpos_qword; break;
