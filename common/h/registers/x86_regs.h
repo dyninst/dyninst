@@ -128,11 +128,11 @@ namespace Dyninst { namespace x86 {
 
   /**
    * Format of constants:
-   *  [0x000000ff] Lower 16 bits are base register ID
-   *  [0x0000ff00] Next 16 bits are the aliasing and subrange ID used to distinguish
+   *  [0x000000ff] Lower 8 bits are base register ID
+   *  [0x0000ff00] Next 8 bits are the aliasing and subrange ID used to distinguish
    *               between whole and aliased registers like EAX and AH.
-   *  [0x00ff0000] Next 16 bits are the register category, GPR, FLAG, etc.
-   *  [0xff000000] Upper 16 bits are the architecture.
+   *  [0x00ff0000] Next 8 bits are the register category, GPR, FLAG, etc.
+   *  [0xff000000] Upper 8 bits are the architecture.
    **/
  
    /* General-purpose Registers */
