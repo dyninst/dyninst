@@ -54,6 +54,8 @@ namespace Dyninst {
           return x86_64::st0;
         else if(category == x86_64::XMM)
           return x86_64::ymm0;
+        else if(category == x86_64::YMM)
+          return x86_64::zmm0;
         else
           return *this;
       case Arch_ppc32:
