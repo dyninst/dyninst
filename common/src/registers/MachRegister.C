@@ -50,6 +50,8 @@ namespace Dyninst {
           return MachRegister(reg & 0xfffff0ff);
         else if(category == x86_64::FLAG)
           return x86_64::flags;
+        else if(category == x86_64::MMX)
+          return x86_64::st0;
         else
           return *this;
       case Arch_ppc32:
