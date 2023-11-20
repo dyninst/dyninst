@@ -32,6 +32,8 @@ namespace Dyninst {
           return MachRegister(reg & 0xfffff0ff);
         else if(category == x86::FLAG)
           return x86::flags;
+        else if(category == x86::MMX)
+          return x86::st0;
         else
           return *this;
       case Arch_x86_64:
