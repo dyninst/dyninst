@@ -37,6 +37,9 @@ namespace Dyninst {
         else if(category == x86::XMM)
           // assume CPU is new enough that it always has AVX registers
           return x86::ymm0;
+        else if(category == x86::YMM)
+            // assume CPU is new enough that it always has AVX-512 registers
+            return x86::zmm0;
         else
           return *this;
       case Arch_x86_64:
