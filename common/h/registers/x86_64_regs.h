@@ -123,11 +123,11 @@ namespace Dyninst { namespace x86_64 {
   const signed int NT    = x86::NT;    // Nested Task
   const signed int FLAGF = x86::FLAGF; // Reserved
   const signed int RF    = x86::RF;    // Resume Flag
-  const signed int VM    = 0x11;       // Virtual-8086 Mode
-  const signed int AC    = 0x12;       // Alignment Check/Access Control
-  const signed int VIF   = 0x13;       // Virtual Interrupt Flag
-  const signed int VIP   = 0x14;       // Virtual Interrupt Pending
-  const signed int ID    = 0x15;       // ID Flag
+  const signed int VM    = x86::VM;    // Virtual-8086 Mode
+  const signed int AC    = x86::AC;    // Alignment Check/Access Control
+  const signed int VIF   = x86::VIF;   // Virtual Interrupt Flag
+  const signed int VIP   = x86::VIP;   // Virtual Interrupt Pending
+  const signed int ID    = x86::ID;    // ID Flag
   /* Flags 22-63 are reserved */
 
   /* Format of constants:
