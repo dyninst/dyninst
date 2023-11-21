@@ -1276,7 +1276,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_prefetch, "prefetch")
   (e_prefetchnta, "prefetchnta")
   (e_prefetcht0, "prefetcht0")
-  (e_prefetchT1, "prefetchT1")
+  (e_prefetcht1, "prefetchT1")
   (e_prefetchT2, "prefetchT2")
   (e_prefetch_w, "prefetchw")
   (e_prefetchw, "prefetchw")
@@ -3920,7 +3920,7 @@ static ia32_entry groupMap2[][2][8] = {
     {
       { e_prefetchnta, t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHNT << FPOS), 0 },
       { e_prefetcht0,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT0 << FPOS), 0 },
-      { e_prefetchT1,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS), 0 },
+      { e_prefetcht1,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS), 0 },
       { e_prefetchT2,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS), 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },

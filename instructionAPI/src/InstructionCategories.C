@@ -100,7 +100,7 @@ namespace Dyninst
           case e_prefetch:
           case e_prefetchnta:
           case e_prefetcht0:
-          case e_prefetchT1:
+          case e_prefetcht1:
           case e_prefetchT2:
           case e_prefetch_w:
           case e_prefetchw:
