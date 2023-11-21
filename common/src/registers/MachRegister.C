@@ -29,7 +29,7 @@ namespace Dyninst {
     switch(getArchitecture()) {
       case Arch_x86:
         if(category == x86::GPR)
-          return MachRegister(reg & 0xfffff0ff);
+          return MachRegister(reg & 0xffff00ff);
         else if(category == x86::FLAG)
           return x86::flags;
         else if(category == x86::MMX)
