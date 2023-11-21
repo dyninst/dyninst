@@ -33,13 +33,16 @@ namespace Dyninst {
         else if(category == x86::FLAG)
           return x86::flags;
         else if(category == x86::MMX)
-          return x86::st0;
+          // Keep the register number, but change the category to X87 (e.g., MMX1 -> st1).
+          return MachRegister((reg & ~0x00ff0000) | x86::X87);
         else if(category == x86::XMM)
           // assume CPU is new enough that it always has AVX registers
-          return x86::ymm0;
+          // Keep the register number, but change the category to ZMM (e.g., XMM1 -> ZMM1).
+          return MachRegister((reg & ~0x00ff0000) | x86::ZMM);
         else if(category == x86::YMM)
             // assume CPU is new enough that it always has AVX-512 registers
-            return x86::zmm0;
+            // Keep the register number, but change the category to ZMM (e.g., YMM1 -> ZMM1).
+            return MachRegister((reg & ~0x00ff0000) | x86::ZMM);
         else
           return *this;
       case Arch_x86_64:
