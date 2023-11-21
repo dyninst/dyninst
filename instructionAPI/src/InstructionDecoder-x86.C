@@ -1790,7 +1790,7 @@ namespace Dyninst
                     case e_btr:
                     case e_bts:
                     case e_cmpxchg:
-                    case e_cmpxch8b:
+                    case e_cmpxchg8b:
                     case e_dec:
                     case e_inc:
                     case e_neg:

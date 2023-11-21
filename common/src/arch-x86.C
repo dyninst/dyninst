@@ -937,7 +937,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmpss, "cmpss")
   (e_cmpsw, "cmpsw")
   (e_cmpxchg, "cmpxchg")
-  (e_cmpxch8b, "cmpxch8b")
+  (e_cmpxchg8b, "cmpxchg8b")
   (e_comisd, "comisd")
   (e_comiss, "comiss")
   (e_cpuid, "cpuid")
@@ -2084,7 +2084,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable_
   flagTable_[e_cmpss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpsw] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpxchg] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable_[e_cmpxch8b] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
+  flagTable_[e_cmpxchg8b] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   flagTable_[e_comisd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_comiss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_daa] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
@@ -3766,7 +3766,7 @@ static ia32_entry groupMap[][8] = {
  { /* group 9 - operands are defined here */
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   // see comments for cmpxch
-  { e_cmpxch8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
+  { e_cmpxchg8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_xrstors, t_done, 0, true, { Wps, Zz, Zz }, 0, 0, 0 },
   { e_xsavec, t_done, 0, true, { Md, Zz, Zz }, s1W, 0, 0 },

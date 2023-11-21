@@ -152,7 +152,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cmpsw;
         case e_cmpxchg:
             return x86_cmpxchg;
-        case e_cmpxch8b:
+        case e_cmpxchg8b:
             return x86_cmpxchg8b;
         case e_ret_far:
             return x86_retf;

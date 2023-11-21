@@ -91,7 +91,7 @@ namespace Dyninst
           case e_cmpss:
           case e_cmpsw:
           case e_cmpxchg:
-          case e_cmpxch8b:
+          case e_cmpxchg8b:
           case power_op_cmp:
           case power_op_cmpi:
           case power_op_cmpl:
