@@ -73,9 +73,9 @@ namespace Dyninst { namespace x86_64 {
   const signed int TST    = 0x00070000;  // Internal InstructionAPI Registers
   const signed int X87    = 0x00080000;  // x87 FPU Registers
   const signed int MMX    = 0x00090000;  // MM0-MM7 Registers
-  const signed int XMM    = 0x000A0000;  // XMM0-XMM7 Registers from SSE
-  const signed int YMM    = 0x000B0000;  // YMM0-YMM7 Registers from AVX2/FMA
-  const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM7 Registers from AVX-512
+  const signed int XMM    = 0x000A0000;  // XMM0-XMM15 Registers from SSE (XMM0-XMM31 for AVX-512)
+  const signed int YMM    = 0x000B0000;  // YMM0-YMM15 Registers from AVX2/FMA (YMM0-YMM31 for AVX-512)
+  const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM31 Registers from AVX-512
   const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
 
   /* Base IDs for aliased GPRs */
