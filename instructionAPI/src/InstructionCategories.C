@@ -98,7 +98,7 @@ namespace Dyninst
           case power_op_cmpli:
               return c_CompareInsn;
           case e_prefetch:
-          case e_prefetchNTA:
+          case e_prefetchnta:
           case e_prefetchT0:
           case e_prefetchT1:
           case e_prefetchT2:
