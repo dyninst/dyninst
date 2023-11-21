@@ -452,10 +452,16 @@ Absloc SymEvalPolicy_64::convert(X86Flag f)
    switch (f) {
       case x86_flag_cf:
          return Absloc(x86_64::cf);
+      case x86_flag_1:
+         return Absloc(x86_64::flag1);
       case x86_flag_pf:
          return Absloc(x86_64::pf);
+      case x86_flag_3:
+         return Absloc(x86_64::flag3);
       case x86_flag_af:
          return Absloc(x86_64::af);
+      case x86_flag_5:
+         return Absloc(x86_64::flag5);
       case x86_flag_zf:
          return Absloc(x86_64::zf);
       case x86_flag_sf:
@@ -468,8 +474,14 @@ Absloc SymEvalPolicy_64::convert(X86Flag f)
          return Absloc(x86_64::df);
       case x86_flag_of:
          return Absloc(x86_64::of);
+      case x86_flag_iopl0:
+         return Absloc(x86_64::FLAGC);
+      case x86_flag_iopl1:
+         return Absloc(x86_64::FLAGD);
       case x86_flag_nt:
          return Absloc(x86_64::nt_);
+      case x86_flag_15:
+         return Absloc(x86_64::FLAGF);
       default:
          assert(0);
          return Absloc();
