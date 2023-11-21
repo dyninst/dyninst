@@ -58,7 +58,6 @@ namespace Dyninst
       case e_jcxz_jec:
       case e_jl:
       case e_jle:
-      case e_jmpe:
       case e_jnb:
       case e_jnb_jae_j:
       case e_jnbe:

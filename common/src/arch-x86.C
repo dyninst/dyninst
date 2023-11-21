@@ -4556,7 +4556,7 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
   },
   { /* SSEB8 */
-    { e_jmpe, t_done, 0, false, { Jz, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_done, 0, false, { Zz, Zz, Zz }, 0, s1R, 0 },
     { e_popcnt, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
