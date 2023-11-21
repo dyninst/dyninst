@@ -29,9 +29,20 @@ namespace Dyninst {
     switch(getArchitecture()) {
       case Arch_x86:
         if(category == x86::GPR)
-          return MachRegister(reg & 0xfffff0ff);
+          return MachRegister(reg & 0xffff00ff);
         else if(category == x86::FLAG)
           return x86::flags;
+        else if(category == x86::MMX)
+          // Keep the register number, but change the category to X87 (e.g., MMX1 -> st1).
+          return MachRegister((reg & ~0x00ff0000) | x86::X87);
+        else if(category == x86::XMM)
+          // assume CPU is new enough that it always has AVX registers
+          // Keep the register number, but change the category to ZMM (e.g., XMM1 -> ZMM1).
+          return MachRegister((reg & ~0x00ff0000) | x86::ZMM);
+        else if(category == x86::YMM)
+            // assume CPU is new enough that it always has AVX-512 registers
+            // Keep the register number, but change the category to ZMM (e.g., YMM1 -> ZMM1).
+            return MachRegister((reg & ~0x00ff0000) | x86::ZMM);
         else
           return *this;
       case Arch_x86_64:
@@ -98,22 +109,17 @@ namespace Dyninst {
     switch(getArchitecture()) {
       case Arch_x86:
         switch(reg & 0x0000ff00) {
-          case x86::L_REG: // L_REG
-          case x86::H_REG: // H_REG
-            return 1;
-          case x86::W_REG: // W_REG
-            return 2;
-          case x86::FULL: // FULL
-            return 4;
-            // Commented out because no register
-            // is defined with this size type
-            // case x86::QUAD:
-            //   return 8;
-          case x86::OCT: return 16;
-          case x86::FPDBL: return 10;
+          case x86::FULL: return 4;
           case x86::BIT: return 0;
+          case x86::L_REG:
+          case x86::H_REG: return 1;
+          case x86::W_REG: return 2;
+          case x86::FPDBL: return 10;
+          case x86::MMS: return 8;
+          case x86::XMMS: return 16;
           case x86::YMMS: return 32;
           case x86::ZMMS: return 64;
+          case x86::KMSKS: return 8;
           default:
             return 0;
         }
@@ -677,12 +683,12 @@ namespace Dyninst {
           case x86::SEG:
             c = x86_regclass_segment;
             switch(baseID) {
-              case 0x0: n = x86_segreg_ds; break;
-              case 0x1: n = x86_segreg_es; break;
-              case 0x2: n = x86_segreg_fs; break;
-              case 0x3: n = x86_segreg_gs; break;
-              case 0x4: n = x86_segreg_cs; break;
-              case 0x5: n = x86_segreg_ss; break;
+              case x86::BASEDS: n = x86_segreg_ds; break;
+              case x86::BASEES: n = x86_segreg_es; break;
+              case x86::BASEFS: n = x86_segreg_fs; break;
+              case x86::BASEGS: n = x86_segreg_gs; break;
+              case x86::BASECS: n = x86_segreg_cs; break;
+              case x86::BASESS: n = x86_segreg_ss; break;
               default: n = 0; break;
             }
             break;
@@ -698,6 +704,15 @@ namespace Dyninst {
               case x86::IF: n = x86_flag_if; break;
               case x86::DF: n = x86_flag_df; break;
               case x86::OF: n = x86_flag_of; break;
+              case x86::FLAGC: n= x86_flag_iopl0; break;
+              case x86::FLAGD: n= x86_flag_iopl1; break;
+              case x86::NT: n = x86_flag_nt; break;
+              case x86::RF: n = x86_flag_rf; break;
+              case x86::VM: n= x86_flag_vm; break;
+              case x86::AC: n = x86_flag_ac; break;
+              case x86::VIF: n = x86_flag_vif; break;
+              case x86::VIP: n = x86_flag_vip; break;
+              case x86::ID: n = x86_flag_id; break;
               default: assert(0); break;
             }
             break;
@@ -708,6 +723,18 @@ namespace Dyninst {
             break;
           case x86::MMX:
             c = x86_regclass_mm;
+            n = baseID;
+            break;
+          case x86::X87:
+            c = x86_regclass_st_top;
+            n = baseID;
+            break;
+          case x86::YMM:
+            c = x86_regclass_ymm;
+            n = baseID;
+            break;
+          case x86::ZMM:
+            c = x86_regclass_zmm;
             n = baseID;
             break;
           case x86::CTL:
@@ -945,8 +972,12 @@ namespace Dyninst {
     switch(getArchitecture()) {
       case Arch_x86:
         switch(subrange) {
-          case x86::OCT:
+          case x86::XMMS:
+          case x86::YMMS:
+          case x86::ZMMS:
+          case x86::KMSKS:
           case x86::FPDBL: p = x86_regpos_qword; break;
+          case x86::MMS: p = x86_regpos_qword; break;
           case x86::H_REG: p = x86_regpos_high_byte; break;
           case x86::L_REG: p = x86_regpos_low_byte; break;
           case x86::W_REG: p = x86_regpos_word; break;
@@ -962,7 +993,7 @@ namespace Dyninst {
       case Arch_x86_64:
         switch(subrange) {
           case x86::FULL:
-          case x86::OCT:
+          case x86::XMMS:
           case x86::FPDBL: p = x86_regpos_qword; break;
           case x86::H_REG: p = x86_regpos_high_byte; break;
           case x86::L_REG: p = x86_regpos_low_byte; break;
