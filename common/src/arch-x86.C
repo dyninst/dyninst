@@ -936,7 +936,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmpsd, "cmpsd")
   (e_cmpss, "cmpss")
   (e_cmpsw, "cmpsw")
-  (e_cmpxch, "cmpxch")
+  (e_cmpxchg, "cmpxchg")
   (e_cmpxch8b, "cmpxch8b")
   (e_comisd, "comisd")
   (e_comiss, "comiss")
@@ -2083,7 +2083,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable_
   flagTable_[e_cmpsd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpsw] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable_[e_cmpxch] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable_[e_cmpxchg] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpxch8b] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   flagTable_[e_comisd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_comiss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
@@ -2734,8 +2734,8 @@ static ia32_entry twoByteMap[256] = {
   // Assuming this is used with LOCK prefix, the destination gets a write anyway
   // This is not the case without lock prefix, but I ignore that case
   // Also, given that the 3rd operand is a register I ignore that it may be written
-  { e_cmpxch, t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
-  { e_cmpxch, t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
+  { e_cmpxchg, t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
+  { e_cmpxchg, t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
   { e_lss, t_done, 0, true, { SS, Gv, Mp }, 0, s1W2W3R, 0 },
   { e_btr, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
   { e_lfs, t_done, 0, true, { FS, Gv, Mp }, 0, s1W2W3R, 0 },
