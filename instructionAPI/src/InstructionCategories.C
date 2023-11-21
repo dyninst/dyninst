@@ -99,7 +99,7 @@ namespace Dyninst
               return c_CompareInsn;
           case e_prefetch:
           case e_prefetchnta:
-          case e_prefetchT0:
+          case e_prefetcht0:
           case e_prefetchT1:
           case e_prefetchT2:
           case e_prefetch_w:

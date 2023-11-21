@@ -162,7 +162,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_prefetch;
         case e_prefetchnta:
             return x86_prefetchnta;
-        case e_prefetchT0:
+        case e_prefetcht0:
             return x86_prefetcht0;
         case e_prefetchT1:
             return x86_prefetcht1;
