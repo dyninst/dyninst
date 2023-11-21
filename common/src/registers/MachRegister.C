@@ -51,11 +51,14 @@ namespace Dyninst {
         else if(category == x86_64::FLAG)
           return x86_64::flags;
         else if(category == x86_64::MMX)
-          return x86_64::st0;
+          // Keep the register number, but change the category to X87 (e.g., MMX1 -> st1).
+          return MachRegister((reg & ~0x00ff0000) | x86_64::X87);
         else if(category == x86_64::XMM)
-          return x86_64::ymm0;
+            // Keep the register number, but change the category to ZMM (e.g., XMM1 -> ZMM1).
+	    return MachRegister((reg & ~0x00ff0000) | x86_64::ZMM);
         else if(category == x86_64::YMM)
-          return x86_64::zmm0;
+            // Keep the register number, but change the category to ZMM (e.g., YMM1 -> ZMM1).
+	    return MachRegister((reg & ~0x00ff0000) | x86_64::ZMM);
         else
           return *this;
       case Arch_ppc32:
