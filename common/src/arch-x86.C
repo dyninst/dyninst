@@ -1117,7 +1117,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_lodsw, "lodsw")
   (e_loop, "loop")
   (e_loope, "loope")
-  (e_loopn, "loopn")
+  (e_loopne, "loopne")
   (e_lsl, "lsl")
   (e_lss, "lss")
   (e_ltr, "ltr")
@@ -2130,7 +2130,7 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_lodsd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable_[e_lodsw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable_[e_loope] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
-  flagTable_[e_loopn] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
+  flagTable_[e_loopne] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
   flagTable_[e_lsl] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   // I'd expect that mov control/debug/test gets handled when we do operand analysis
   // If it doesn't, fix later
@@ -2481,7 +2481,7 @@ static ia32_entry oneByteMap[256] = {
   { e_No_Entry, t_coprocEsc, GrpDE, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_coprocEsc, GrpDF, true, { Zz, Zz, Zz }, 0, 0, 0 },
   /* E0 */
-  { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
+  { e_loopne,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_loop,     t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_jcxz_jec, t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },

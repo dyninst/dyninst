@@ -134,7 +134,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_loop;
         case e_loope:
             return x86_loopz;
-        case e_loopn:
+        case e_loopne:
             return x86_loopnz;
         case e_call:
             return x86_call;

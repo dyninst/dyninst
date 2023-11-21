@@ -74,7 +74,7 @@ namespace Dyninst
       case e_jz:
       case e_loop:
       case e_loope:
-      case e_loopn:
+      case e_loopne:
       case aarch64_op_b_uncond:
       case aarch64_op_b_cond:
       case aarch64_op_tbz:

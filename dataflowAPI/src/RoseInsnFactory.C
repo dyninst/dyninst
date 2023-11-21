@@ -208,7 +208,7 @@ void RoseInsnX86Factory::massageOperands(const Instruction &insn,
       break;
   case e_loop:
   case e_loope:
-  case e_loopn:
+  case e_loopne:
       operands.resize(1);
       break;
   case e_ret_far:
