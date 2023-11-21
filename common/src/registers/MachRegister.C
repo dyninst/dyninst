@@ -85,22 +85,6 @@ namespace Dyninst {
 
   bool MachRegister::isValid() const { return (reg != InvalidReg.reg); }
 
-  MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg,
-                                               MachRegisterVal& orig) const {
-    if(subreg.reg == reg || getArchitecture() == Arch_ppc32 || getArchitecture() == Arch_ppc64)
-      return orig;
-
-    assert(subreg.getBaseRegister() == getBaseRegister());
-    switch((subreg.reg & 0x00000f00) >> 8) {
-      case 0x0: return orig;
-      case 0x1: return (orig & 0xff);
-      case 0x2: return (orig & 0xff00) >> 8;
-      case 0x3: return (orig & 0xffff);
-      case 0xf: return (orig & 0xffffffff);
-      default: assert(0); return orig;
-    }
-  }
-
   std::string const& MachRegister::name() const {
     auto iter = names.find(reg);
     if(iter != names.end()) {

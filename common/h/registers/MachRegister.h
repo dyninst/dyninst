@@ -51,7 +51,6 @@ namespace Dyninst {
     MachRegister getBaseRegister() const;
     Architecture getArchitecture() const;
     bool isValid() const;
-    MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal& orig) const;
 
     std::string const& name() const;
     unsigned int size() const;
