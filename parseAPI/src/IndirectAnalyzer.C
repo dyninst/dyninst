@@ -276,26 +276,31 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	InsnAdapter::IA_IAPI* insnBlock = InsnAdapter::IA_IAPI::makePlatformIA_IAPI(b->obj()->cs()->getArch(), dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
 	Address cur = b->start();
 	while (cur < b->end()) {
-	    if (insnBlock->getInstruction().getCategory() == c_CallInsn && insnBlock->isThunk()) {
-	        bool valid;
-		Address addr;
-		boost::tie(valid, addr) = insnBlock->getCFT();
-		const unsigned char *target = (const unsigned char *) b->region()->getPtrToInstruction(addr);
-		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
-		Instruction thunkFirst = targetChecker.decode();
-		set<RegisterAST::Ptr> thunkTargetRegs;
-		thunkFirst.getWriteSet(thunkTargetRegs);
-		
-		for (auto curReg = thunkTargetRegs.begin(); curReg != thunkTargetRegs.end(); ++curReg) {
-		    ThunkInfo t;
-		    t.reg = (*curReg)->getID();
-		    t.value = insnBlock->getAddr() + insnBlock->getInstruction().size();
-		    t.value += ThunkAdjustment(t.value, t.reg, b);
-		    t.block = b;
-		    thunks.insert(make_pair(insnBlock->getAddr(), t));
-		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", insnBlock->getAddr(), t.value , t.reg.name().c_str());
-		}
-	    }
+        if (insnBlock->getInstruction().getCategory() == c_CallInsn && insnBlock->isThunk()) {
+            bool valid;
+            Address addr;
+            boost::tie(valid, addr) = insnBlock->getCFT();
+            const unsigned char *target = (const unsigned char *) b->region()->getPtrToInstruction(addr);
+            // CFT may be located in another Region. In such case target will be 0, and we should find proper Region
+            // TODO search for the correct Region instead of just ignoring the instruction
+            if ( target )
+            {
+                InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
+                Instruction thunkFirst = targetChecker.decode();
+                set<RegisterAST::Ptr> thunkTargetRegs;
+                thunkFirst.getWriteSet(thunkTargetRegs);
+
+                for (auto curReg = thunkTargetRegs.begin(); curReg != thunkTargetRegs.end(); ++curReg) {
+                    ThunkInfo t;
+                    t.reg = (*curReg)->getID();
+                    t.value = insnBlock->getAddr() + insnBlock->getInstruction().size();
+                    t.value += ThunkAdjustment(t.value, t.reg, b);
+                    t.block = b;
+                    thunks.insert(make_pair(insnBlock->getAddr(), t));
+                    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", insnBlock->getAddr(), t.value , t.reg.name().c_str());
+                }
+            }
+        }
 	    cur += insnBlock->getInstruction().size();
 	    if (cur < b->end()) insnBlock->advance();
 	}
