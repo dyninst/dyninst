@@ -918,7 +918,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmove, "cmove")
   (e_cmovnae, "cmovnae")
   (e_cmovnb, "cmovnb")
-  (e_cmovnbe, "cmovnbe")
+  (e_cmova, "cmova")
   (e_cmovne, "cmovne")
   (e_cmovng, "cmovng")
   (e_cmovnge, "cmovnge")
@@ -2067,7 +2067,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable_
   flagTable_[e_cmove] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovnae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmova] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovng] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovnge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
@@ -4026,7 +4026,7 @@ static ia32_entry sseVexMult[][4] = {
         { e_No_Entry, t_sse, SSE46, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE46, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSEVEX47 */
-        { e_cmovnbe, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+        { e_cmova, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
         { e_No_Entry, t_sse, SSE47, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE47, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE47, false, { Zz, Zz, Zz }, 0, 0, 0 },
