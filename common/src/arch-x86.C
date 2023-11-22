@@ -1366,7 +1366,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_setz, "setz")
   (e_sfence, "sfence")
   (e_sgdt, "sgdt")
-  (e_shl_sal, "shl/sal")
+  (e_shl, "shl")
   (e_shld, "shld")
   (e_shr, "shr")
   (e_shrd, "shrd")
@@ -2173,7 +2173,7 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_setz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_shld] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_shrd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable_[e_shl_sal] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable_[e_shl] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_stc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
   flagTable_[e_std] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::df));
   flagTable_[e_sti] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::if_));
@@ -3677,9 +3677,9 @@ static ia32_entry groupMap[][8] = {
   { e_ror, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_rcl, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_rcr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_shl, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_shr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_shl, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_sar, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 }
  },
 

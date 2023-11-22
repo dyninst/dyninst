@@ -854,7 +854,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_sfence;
         case e_sgdt:
             return x86_sgdt;
-        case e_shl_sal:
+        case e_shl:
             return x86_shl;
         case e_shld:
             return x86_shld;
