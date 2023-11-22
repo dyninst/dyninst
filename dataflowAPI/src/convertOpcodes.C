@@ -920,7 +920,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_ucomisd;
         case e_ucomiss:
             return x86_ucomiss;
-        case e_ud:
+        case e_ud0:
             return x86_unknown_instruction;
         case e_ud2:
             return x86_ud2;

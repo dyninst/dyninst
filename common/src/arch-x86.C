@@ -4874,9 +4874,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSEFF */
-    { e_ud, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_ud0, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_ud, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_ud0, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
 };
