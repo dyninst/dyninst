@@ -999,7 +999,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
  (e_fcmovnbe, "fcmovnbe")
   (e_fcom, "fcom")
   (e_fcomi, "fcomi")
-  (e_fcomip, "fcomip")
+  (e_fcompi, "fcompi")
   (e_fcomp, "fcomp")
   (e_fcompp, "fcompp")
   (e_fdiv, "fdiv")
@@ -3597,7 +3597,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE, 0 },
         { e_fnstsw,   t_done, 0, true, { AX, Zz, Zz }, 0, s1W, 0 },
         { e_fucomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
-        { e_fcomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
+        { e_fcompi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     }
 }
