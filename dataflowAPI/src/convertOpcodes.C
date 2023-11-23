@@ -254,7 +254,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cmova;
         case e_cmovne:
             return x86_cmovne;
-        case e_cmovng:
+        case e_cmovle:
             return x86_cmovle;
         case e_cmovnge:
             return x86_cmovl;
