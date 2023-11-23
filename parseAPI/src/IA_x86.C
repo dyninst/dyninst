@@ -570,7 +570,6 @@ bool IA_x86::isFakeCall() const
                 stackDelta += sign * 8 * addrWidth;
                 break;
             case e_pushf:
-            case e_pushfd:
                 sign = -1;
                 //FALLTHROUGH
             case e_popf:

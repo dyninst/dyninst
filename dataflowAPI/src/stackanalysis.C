@@ -683,7 +683,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
       case e_leave:
          handleLeave(block, off, xferFuncs);
          break;
-      case e_pushfd:
+      case e_pushf:
          sign = -1;
          //FALLTHROUGH
       case e_popfd:

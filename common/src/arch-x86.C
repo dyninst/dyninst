@@ -1319,7 +1319,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_push, "push")
   (e_pushal, "pusha")
   (e_pushf, "pushf")
-  (e_pushfd, "pushfd")
   (e_pxor, "pxor")
   (e_rcl, "rcl")
   (e_rcpps, "rcpps")
@@ -2402,7 +2401,7 @@ static ia32_entry oneByteMap[256] = {
   { e_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R, s1I },
   { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R, 0 },
   { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 },
-  { e_pushfd, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW, s2I },
+  { e_pushf, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW, s2I },
   { e_popfd,  t_done, 0, false, { Fv, rSP, Zz }, 0, s1W2RW, s2I },
   { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // FIXME Intel
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // FIXME Intel
