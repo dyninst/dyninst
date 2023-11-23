@@ -1420,7 +1420,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_wrmsr, "wrmsr")
   (e_xadd, "xadd")
   (e_xchg, "xchg")
-  (e_xlat, "xlat")
+  (e_xlatb, "xlatb")
   (e_xor, "xor")
   (e_xorpd, "xorpd")
   (e_xorps, "xorps")
@@ -2468,7 +2468,7 @@ static ia32_entry oneByteMap[256] = {
   { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, s1I | s2I },
   { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, s1I | s2I },
   { e_salc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // undocumeted
-  { e_xlat, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS, 0 }, // scream
+  { e_xlatb, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS, 0 }, // scream
   /* D8 */
   { e_No_Entry, t_coprocEsc, GrpD8, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_coprocEsc, GrpD9, true, { Zz, Zz, Zz }, 0, 0, 0 },

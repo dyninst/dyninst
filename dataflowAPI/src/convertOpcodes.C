@@ -946,7 +946,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_xadd;
         case e_xchg:
             return x86_xchg;
-        case e_xlat:
+        case e_xlatb:
             return x86_xlatb;
         case e_xor:
             return x86_xor;
