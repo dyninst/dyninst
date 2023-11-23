@@ -922,7 +922,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmovne, "cmovne")
   (e_cmovle, "cmovle")
   (e_cmovl, "cmovl")
-  (e_cmovnl, "cmovnl")
+  (e_cmovge, "cmovge")
   (e_cmovno, "cmovno")
   (e_cmovns, "cmovns")
   (e_cmovo, "cmovo")
@@ -2071,7 +2071,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable_
   flagTable_[e_cmovne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
@@ -2619,9 +2619,9 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry,  t_sse_vex_mult, SSEVEX4A, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX4B, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_cmovl, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
-  { e_cmovnl,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+  { e_cmovge,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
   { e_cmovle,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
-  { e_cmovnl,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+  { e_cmovge,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
   /* 50 */
   { e_No_Entry, t_sse, SSE50, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSE51, true, { Zz, Zz, Zz }, 0, 0, 0 },
