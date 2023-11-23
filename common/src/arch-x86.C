@@ -1361,7 +1361,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_seto, "seto")
   (e_setp, "setp")
   (e_sets, "sets")
-  (e_setz, "setz")
+  (e_sete, "sete")
   (e_sfence, "sfence")
   (e_sgdt, "sgdt")
   (e_shl, "shl")
@@ -2168,7 +2168,7 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_seto] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_sets] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_sete] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_shld] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_shrd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_shl] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
@@ -2697,7 +2697,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry,  t_sse_vex_mult, SSEVEX91, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX92, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX93, false, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_setz,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+  { e_sete,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_setne,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_setbe,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_seta, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },

@@ -842,7 +842,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_setpe;
         case e_sets:
             return x86_sets;
-        case e_setz:
+        case e_sete:
             return x86_sete;
         case e_sfence:
             return x86_sfence;

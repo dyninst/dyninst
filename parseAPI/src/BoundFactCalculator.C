@@ -455,7 +455,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     }
 
     // Assume all SETxx entry ids are contiguous
-    if (id >= e_setb && id <= e_setz) {
+    if (id >= e_setb && id <= e_sete) {
         newFact->GenFact(outAST, new StridedInterval(1,0,1), false);
 	parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	newFact->Print();
