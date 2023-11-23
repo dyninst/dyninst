@@ -288,7 +288,7 @@ IdiomModel::IdiomModel(string model_spec) {
 	i37.prefix = true;
 	i37.terms.push_back(IdiomTerm(e_jmp, x86::eip, NOARG));
 	i37.terms.push_back(WILDCARD_TERM);
-	i37.terms.push_back(IdiomTerm(e_jnz, x86::eip, NOARG));
+	i37.terms.push_back(IdiomTerm(e_jne, x86::eip, NOARG));
 	reverse(i37.terms.begin(), i37.terms.end());
 	prefix.addIdiom(i37);
 
@@ -856,7 +856,7 @@ IdiomModel::IdiomModel(string model_spec) {
 	i10.w = 11.854041;
 	i10.prefix = false;
 	i10.terms.push_back(IdiomTerm(e_cmp, MEMARG, IMMARG));
-	i10.terms.push_back(IdiomTerm(e_jnz, x86_64::rip, NOARG));
+	i10.terms.push_back(IdiomTerm(e_jne, x86_64::rip, NOARG));
 	i10.terms.push_back(IdiomTerm(e_push, x86_64::rbp, x86_64::rsp));
 	normal.addIdiom(i10);
 
@@ -1193,7 +1193,7 @@ IdiomModel::IdiomModel(string model_spec) {
 	Idiom i51;
 	i51.w = -11.891171;
 	i51.prefix = true;
-	i51.terms.push_back(IdiomTerm(e_jnz, x86_64::rip, NOARG));
+	i51.terms.push_back(IdiomTerm(e_jne, x86_64::rip, NOARG));
 	reverse(i51.terms.begin(), i51.terms.end());
 	prefix.addIdiom(i51);
 

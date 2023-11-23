@@ -577,7 +577,7 @@ namespace Dyninst
                 case e_jno:
                 case e_jnp:
                 case e_jns:
-                case e_jnz:
+                case e_jne:
                 case e_jo:
                 case e_jp:
                 case e_js:

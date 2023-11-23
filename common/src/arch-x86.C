@@ -1092,7 +1092,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_jno, "jno")
   (e_jnp, "jnp")
   (e_jns, "jns")
-  (e_jnz, "jnz")
+  (e_jne, "jne")
   (e_jo, "jo")
   (e_jp, "jp")
   (e_js, "js")
@@ -2120,7 +2120,7 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_jno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_jnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_jne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_js] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
@@ -2358,7 +2358,7 @@ static ia32_entry oneByteMap[256] = {
   { e_jb_jnaej_j, t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jnb_jae_j,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jz,         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
-  { e_jnz,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
+  { e_jne,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jbe,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_ja,       t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   /* 78 */
@@ -2682,7 +2682,7 @@ static ia32_entry twoByteMap[256] = {
   { e_jb,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jae,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jz,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
-  { e_jnz,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
+  { e_jne,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jbe,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_ja, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   /* 88 */
