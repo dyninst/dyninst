@@ -1350,7 +1350,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_setbe, "setbe")
   (e_setl, "setl")
   (e_setle, "setle")
-  (e_setnb, "setnb")
+  (e_setae, "setae")
   (e_setnbe, "setnbe")
   (e_setnl, "setnl")
   (e_setnle, "setnle")
@@ -2157,7 +2157,7 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_setbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_setae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setnle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
@@ -4064,7 +4064,7 @@ static ia32_entry sseVexMult[][4] = {
         { e_No_Entry, t_sse, SSE92, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE92, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEVEX93 */
-        { e_setnb,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+        { e_setae,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
         { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0, 0 }
