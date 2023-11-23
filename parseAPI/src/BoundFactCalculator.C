@@ -260,7 +260,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 static bool IsConditionalJump(Instruction insn) {
     entryID id = insn.getOperation().getID();
     if (id == e_jz || id == e_jnz ||
-        id == e_jb || id == e_jnb ||
+        id == e_jb || id == e_jae ||
 	id == e_jbe || id == e_jnbe ||
 	id == e_jb_jnaej_j || id == e_jnb_jae_j ||
 	id == e_jle || id == e_jl ||
