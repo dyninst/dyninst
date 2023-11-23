@@ -557,8 +557,7 @@ bool IA_x86::isFakeCall() const
                 stackDelta += sign * size;
                 break;
             }
-            case e_pusha:
-            case e_pushad:
+            case e_pushal:
                 sign = -1;
                 //FALLTHROUGH
             case e_popal:

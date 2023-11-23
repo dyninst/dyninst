@@ -768,9 +768,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_punpcklwd;
         case e_push:
             return x86_push;
-        case e_pusha:
-            return x86_pusha;
-        case e_pushad:
+        case e_pushal:
             return x86_pushad;
         case e_pushf:
             return x86_pushf;

@@ -340,8 +340,7 @@ namespace Dyninst
                 nonOperandMemoryReads.insert(make_pair(e_popal, stackPointerAsExpr));
                 nonOperandMemoryReads.insert(make_pair(e_popaw, stackPointerAsExpr));
                 nonOperandMemoryWrites.insert(make_pair(e_push, stackPointerAsExpr));
-                nonOperandMemoryWrites.insert(make_pair(e_pusha, stackPointerAsExpr));
-                nonOperandMemoryWrites.insert(make_pair(e_pushad, stackPointerAsExpr));
+                nonOperandMemoryWrites.insert(make_pair(e_pushal, stackPointerAsExpr));
                 nonOperandMemoryWrites.insert(make_pair(e_call, stackPointerAsExpr));
                 nonOperandMemoryReads.insert(make_pair(e_ret_near, stackPointerAsExpr));
                 nonOperandMemoryReads.insert(make_pair(e_ret_far, stackPointerAsExpr));

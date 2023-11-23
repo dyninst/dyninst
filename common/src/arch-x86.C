@@ -1317,8 +1317,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_punpcklqdq, "punpcklqdq")
   (e_punpcklwd, "punpcklwd")
   (e_push, "push")
-  (e_pusha, "pusha")
-  (e_pushad, "pushad")
+  (e_pushal, "pusha")
   (e_pushf, "pushf")
   (e_pushfd, "pushfd")
   (e_pxor, "pxor")
@@ -2335,7 +2334,7 @@ static ia32_entry oneByteMap[256] = {
   { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW, s2I },
   { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW, s2I },
   /* 60 */
-  { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW, s2I },
+  { e_pushal, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW, s2I },
   { e_popaw,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW, s2I },
   { e_bound, t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R, 0 }, // or VEX
   { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R, 0 }, /* No REX */

@@ -689,7 +689,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
       case e_popfd:
          handlePushPopFlags(sign, xferFuncs);
          break;
-      case e_pushad:
+      case e_pushal:
          sign = -1;
          handlePushPopRegs(sign, xferFuncs);
          break;

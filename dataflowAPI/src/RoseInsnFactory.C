@@ -203,7 +203,7 @@ void RoseInsnX86Factory::massageOperands(const Instruction &insn,
   case e_lodsw:
       operands.clear();
       break;
-  case e_pushad:
+  case e_pushal:
       operands.clear();
       break;
   case e_loop:
