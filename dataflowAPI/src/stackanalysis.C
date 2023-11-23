@@ -693,7 +693,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
          sign = -1;
          handlePushPopRegs(sign, xferFuncs);
          break;
-      case e_popad:
+      case e_popaw:
          // This nukes all registers
          handleDefault(insn, block, off, xferFuncs);
          break;

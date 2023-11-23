@@ -562,7 +562,7 @@ bool IA_x86::isFakeCall() const
                 sign = -1;
                 //FALLTHROUGH
             case e_popal:
-            case e_popad:
+            case e_popaw:
                 if (1 == sign) {
                     mal_printf("popad ins'n at %lx in func at %lx changes sp "
                                "by %d. %s[%d]\n", ah->getAddr(), 

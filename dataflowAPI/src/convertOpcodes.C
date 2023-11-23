@@ -696,7 +696,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_pop;
         case e_popal:
             return x86_popa;
-        case e_popad:
+        case e_popaw:
             return x86_popad;
         case e_popf:
             return x86_popf;

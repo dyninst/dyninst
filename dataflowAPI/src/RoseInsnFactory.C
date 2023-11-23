@@ -194,7 +194,7 @@ void RoseInsnX86Factory::massageOperands(const Instruction &insn,
     // Nada
     operands.clear();
     break;
-  case e_popad:
+  case e_popaw:
   case e_pushfd:
     operands.clear();
     break;
