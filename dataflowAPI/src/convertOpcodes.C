@@ -322,8 +322,6 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cvttsd2si;
         case e_cvttss2si:
             return x86_cvttss2si;
-        case e_cwd:
-            return x86_cwd;
         case e_cwde:
             return x86_cwde;
         case e_daa:
