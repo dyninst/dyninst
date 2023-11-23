@@ -824,7 +824,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_setae;
         case e_seta:
             return x86_seta;
-        case e_setnl:
+        case e_setge:
             return x86_setge;
         case e_setnle:
             return x86_setg;
