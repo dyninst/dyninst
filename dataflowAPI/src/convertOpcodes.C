@@ -266,7 +266,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cmovns;
         case e_cmovo:
             return x86_cmovo;
-        case e_cmovpe:
+        case e_cmovp:
             return x86_cmovpe;
         case e_cmovpo:
             return x86_cmovpo;
