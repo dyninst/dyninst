@@ -1357,7 +1357,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_setno, "setno")
   (e_setnp, "setnp")
   (e_setns, "setns")
-  (e_setnz, "setnz")
+  (e_setne, "setne")
   (e_seto, "seto")
   (e_setp, "setp")
   (e_sets, "sets")
@@ -2164,7 +2164,7 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_setno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_setne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_seto] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_sets] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
@@ -2698,7 +2698,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry,  t_sse_vex_mult, SSEVEX92, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX93, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_setz,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
-  { e_setnz,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+  { e_setne,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_setbe,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_seta, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   /* 98 */
