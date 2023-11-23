@@ -264,7 +264,7 @@ static bool IsConditionalJump(Instruction insn) {
 	id == e_jbe || id == e_ja ||
 	id == e_jb_jnaej_j || id == e_jnb_jae_j ||
 	id == e_jle || id == e_jl ||
-	id == e_jnl || id == e_jnle) return true;
+	id == e_jge || id == e_jnle) return true;
     if (id == aarch64_op_b_cond) return true;
     if (id == power_op_bc || id == power_op_bcctr || id == power_op_bclr) return true;
     return false;
