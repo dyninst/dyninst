@@ -70,7 +70,7 @@ namespace Dyninst
       case e_jo:
       case e_jp:
       case e_js:
-      case e_jz:
+      case e_je:
       case e_loop:
       case e_loope:
       case e_loopne:

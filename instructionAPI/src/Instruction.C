@@ -581,7 +581,7 @@ namespace Dyninst
                 case e_jo:
                 case e_jp:
                 case e_js:
-                case e_jz:
+                case e_je:
                     return true;
                 default:
                     {
