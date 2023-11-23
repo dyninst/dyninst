@@ -110,7 +110,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_ja;
         case e_jge:
             return x86_jge;
-        case e_jnle:
+        case e_jg:
             return x86_jg;
         case e_jno:
             return x86_jno;
