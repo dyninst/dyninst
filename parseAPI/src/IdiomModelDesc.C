@@ -234,7 +234,7 @@ IdiomModel::IdiomModel(string model_spec) {
 	i30.prefix = false;
 	i30.terms.push_back(WILDCARD_TERM);
 	i30.terms.push_back(WILDCARD_TERM);
-	i30.terms.push_back(IdiomTerm(e_jnbe, x86::eip, NOARG));
+	i30.terms.push_back(IdiomTerm(e_ja, x86::eip, NOARG));
 	normal.addIdiom(i30);
 
 	Idiom i31;

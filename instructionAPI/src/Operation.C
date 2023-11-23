@@ -324,7 +324,7 @@ namespace Dyninst
                 nonOperandRegisterWrites.insert(make_pair(e_jmp, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jae, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jnb_jae_j, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_jnbe, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_ja, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jnl, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jnle, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jno, thePC));

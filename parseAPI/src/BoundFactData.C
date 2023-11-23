@@ -582,7 +582,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
     if (type == COND_TAKEN) {
         switch (id) {
 	    // unsigned 
-	    case e_jnbe: {
+	    case e_ja: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        // If both elements are constant,
@@ -831,7 +831,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 	    }
 	    case aarch64_op_b_cond:
 	    case power_op_bc:
-	    case e_jnbe: {
+	    case e_ja: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
