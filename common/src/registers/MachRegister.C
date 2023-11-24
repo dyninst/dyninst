@@ -1044,6 +1044,13 @@ namespace Dyninst {
   /*
    * DWARF Encodings
    *
+   * x86:
+   *  System V Application Binary Interface
+   *  Intel386 Architecture Processor Supplement
+   *  Version 1.0 February 3, 2015
+   *  Table 2.14: DWARF Register Number Mapping
+   *  https://gitlab.com/x86-psABIs/i386-ABI
+   *
    * x86_64:
    *   System V Application Binary Interface
    *   AMD64 Architecture Processor Supplement
@@ -1092,9 +1099,9 @@ namespace Dyninst {
           case 34: return Dyninst::x86::mm5;
           case 35: return Dyninst::x86::mm6;
           case 36: return Dyninst::x86::mm7;
-          case 37: return Dyninst::InvalidReg; // fcw
-          case 38: return Dyninst::InvalidReg; // fsw
-          case 39: return Dyninst::InvalidReg; // mxcsr
+          case 37: return Dyninst::InvalidReg;
+          case 38: return Dyninst::InvalidReg;
+//          case 39: return Dyninst::x86::mxcsr;
           case 40: return Dyninst::x86::es;
           case 41: return Dyninst::x86::cs;
           case 42: return Dyninst::x86::ss;
@@ -1103,8 +1110,99 @@ namespace Dyninst {
           case 45: return Dyninst::x86::gs;
           case 46: return Dyninst::InvalidReg;
           case 47: return Dyninst::InvalidReg;
-          case 48: return Dyninst::InvalidReg; // tr
-          case 49: return Dyninst::InvalidReg; // ldtr
+//          case 48: return Dyninst::x86::tr;
+//          case 49: return Dyninst::x86::ldtr;
+          case 50: return Dyninst::InvalidReg;
+          case 51: return Dyninst::InvalidReg;
+          case 52: return Dyninst::InvalidReg;
+          case 53: return Dyninst::InvalidReg;
+          case 54: return Dyninst::InvalidReg;
+          case 55: return Dyninst::InvalidReg;
+          case 56: return Dyninst::InvalidReg;
+          case 57: return Dyninst::InvalidReg;
+          case 58: return Dyninst::InvalidReg;
+          case 59: return Dyninst::InvalidReg;
+          case 60: return Dyninst::InvalidReg;
+          case 61: return Dyninst::InvalidReg;
+          case 62: return Dyninst::InvalidReg;
+          case 63: return Dyninst::InvalidReg;
+          case 64: return Dyninst::InvalidReg;
+          case 65: return Dyninst::InvalidReg;
+          case 66: return Dyninst::InvalidReg;
+          case 67: return Dyninst::InvalidReg;
+          case 68: return Dyninst::InvalidReg;
+          case 69: return Dyninst::InvalidReg;
+          case 70: return Dyninst::InvalidReg;
+          case 71: return Dyninst::InvalidReg;
+          case 72: return Dyninst::InvalidReg;
+          case 73: return Dyninst::InvalidReg;
+          case 74: return Dyninst::InvalidReg;
+          case 75: return Dyninst::InvalidReg;
+          case 76: return Dyninst::InvalidReg;
+          case 77: return Dyninst::InvalidReg;
+          case 78: return Dyninst::InvalidReg;
+          case 79: return Dyninst::InvalidReg;
+          case 80: return Dyninst::InvalidReg;
+          case 81: return Dyninst::InvalidReg;
+          case 82: return Dyninst::InvalidReg;
+          case 83: return Dyninst::InvalidReg;
+          case 84: return Dyninst::InvalidReg;
+          case 85: return Dyninst::InvalidReg;
+          case 86: return Dyninst::InvalidReg;
+          case 87: return Dyninst::InvalidReg;
+          case 88: return Dyninst::InvalidReg;
+          case 89: return Dyninst::InvalidReg;
+          case 90: return Dyninst::InvalidReg;
+          case 91: return Dyninst::InvalidReg;
+          case 92: return Dyninst::InvalidReg;
+
+/* End of documented registers */
+/* The rest of these are assigned arbitrary values for internal Dyninst use. */
+          case 1024: return Dyninst::x86::ax;
+          case 1025: return Dyninst::x86::al;
+          case 1026: return Dyninst::x86::ch;
+          case 1027: return Dyninst::x86::dx;
+          case 1028: return Dyninst::x86::dl;
+          case 1029: return Dyninst::x86::bh;
+          case 1030: return Dyninst::x86::sp;
+          case 1031: return Dyninst::x86::si;
+          case 1032: return Dyninst::x86::cf;
+          case 1033: return Dyninst::x86::pf;
+          case 1034: return Dyninst::x86::af;
+          case 1035: return Dyninst::x86::zf;
+          case 1036: return Dyninst::x86::tf;
+          case 1037: return Dyninst::x86::df;
+          case 1038: return Dyninst::x86::flagc;
+          case 1039: return Dyninst::x86::nt_;
+          case 1040: return Dyninst::x86::rf;
+          case 1041: return Dyninst::x86::ac;
+          case 1042: return Dyninst::x86::vip;
+          case 1043: return Dyninst::x86::cr0;
+          case 1044: return Dyninst::x86::cr2;
+          case 1045: return Dyninst::x86::cr4;
+          case 1046: return Dyninst::x86::cr6;
+          case 1047: return Dyninst::x86::dr0;
+          case 1048: return Dyninst::x86::dr2;
+          case 1049: return Dyninst::x86::dr4;
+          case 1050: return Dyninst::x86::dr6;
+          case 1051: return Dyninst::x86::ymm0;
+          case 1052: return Dyninst::x86::ymm2;
+          case 1053: return Dyninst::x86::ymm4;
+          case 1054: return Dyninst::x86::ymm6;
+          case 1055: return Dyninst::x86::zmm0;
+          case 1056: return Dyninst::x86::zmm2;
+          case 1057: return Dyninst::x86::zmm4;
+          case 1058: return Dyninst::x86::zmm6;
+          case 1059: return Dyninst::x86::k0;
+          case 1060: return Dyninst::x86::k2;
+          case 1061: return Dyninst::x86::k4;
+          case 1062: return Dyninst::x86::k6;
+          case 1063: return Dyninst::x86::oeax;
+          case 1064: return Dyninst::x86::gsbase;
+          case 1065: return Dyninst::x86::tr1;
+          case 1066: return Dyninst::x86::tr3;
+          case 1067: return Dyninst::x86::tr5;
+          case 1068: return Dyninst::x86::tr7;
           default: return Dyninst::InvalidReg;
         }
         break;
@@ -1609,6 +1707,17 @@ namespace Dyninst {
           case Dyninst::x86::iedi: return 7;
           case Dyninst::x86::ieip: return 8;
           case Dyninst::x86::iflags: return 9;
+          /*[10] Reserved */
+          case Dyninst::x86::ist0: return 11;
+          case Dyninst::x86::ist1: return 12;
+          case Dyninst::x86::ist2: return 13;
+          case Dyninst::x86::ist3: return 14;
+          case Dyninst::x86::ist4: return 15;
+          case Dyninst::x86::ist5: return 16;
+          case Dyninst::x86::ist6: return 17;
+          case Dyninst::x86::ist7: return 18;
+          /*[19] Reserved */
+          /*[20] Reserved */
           case Dyninst::x86::ixmm0: return 21;
           case Dyninst::x86::ixmm1: return 22;
           case Dyninst::x86::ixmm2: return 23;
@@ -1625,12 +1734,110 @@ namespace Dyninst {
           case Dyninst::x86::imm5: return 34;
           case Dyninst::x86::imm6: return 35;
           case Dyninst::x86::imm7: return 36;
+          /*[37] Reserved */
+          /*[38] Reserved */
+//          case Dyninst::x86::imxcsr: return 39;
           case Dyninst::x86::ies: return 40;
           case Dyninst::x86::ics: return 41;
           case Dyninst::x86::iss: return 42;
           case Dyninst::x86::ids: return 43;
           case Dyninst::x86::ifs: return 44;
           case Dyninst::x86::igs: return 45;
+          /*[46] Reserved */
+          /*[47] Reserved */
+//          case Dyninst::x86::itr: return 48;
+//          case Dyninst::x86::ildtr: return 49;
+          /*[50] Reserved */
+          /*[51] Reserved */
+          /*[52] Reserved */
+          /*[53] Reserved */
+          /*[54] Reserved */
+          /*[55] Reserved */
+          /*[56] Reserved */
+          /*[57] Reserved */
+          /*[58] Reserved */
+          /*[59] Reserved */
+          /*[60] Reserved */
+          /*[61] Reserved */
+          /*[62] Reserved */
+          /*[63] Reserved */
+          /*[64] Reserved */
+          /*[65] Reserved */
+          /*[66] Reserved */
+          /*[67] Reserved */
+          /*[68] Reserved */
+          /*[69] Reserved */
+          /*[70] Reserved */
+          /*[71] Reserved */
+          /*[72] Reserved */
+          /*[73] Reserved */
+          /*[74] Reserved */
+          /*[75] Reserved */
+          /*[76] Reserved */
+          /*[77] Reserved */
+          /*[78] Reserved */
+          /*[79] Reserved */
+          /*[80] Reserved */
+          /*[81] Reserved */
+          /*[82] Reserved */
+          /*[83] Reserved */
+          /*[84] Reserved */
+          /*[85] Reserved */
+          /*[86] Reserved */
+          /*[87] Reserved */
+          /*[88] Reserved */
+          /*[89] Reserved */
+          /*[90] Reserved */
+          /*[91] Reserved */
+          /*[92] Reserved */
+
+/* End of documented registers */
+/* The rest of these are assigned arbitrary values for internal Dyninst use. */
+          case Dyninst::x86::iax: return 1024;
+          case Dyninst::x86::ial: return 1025;
+          case Dyninst::x86::ich: return 1026;
+          case Dyninst::x86::idx: return 1027;
+          case Dyninst::x86::idl: return 1028;
+          case Dyninst::x86::ibh: return 1029;
+          case Dyninst::x86::isp: return 1030;
+          case Dyninst::x86::isi: return 1031;
+          case Dyninst::x86::icf: return 1032;
+          case Dyninst::x86::ipf: return 1033;
+          case Dyninst::x86::iaf: return 1034;
+          case Dyninst::x86::izf: return 1035;
+          case Dyninst::x86::itf: return 1036;
+          case Dyninst::x86::idf: return 1037;
+          case Dyninst::x86::iflagc: return 1038;
+          case Dyninst::x86::int_: return 1039;
+          case Dyninst::x86::irf: return 1040;
+          case Dyninst::x86::iac: return 1041;
+          case Dyninst::x86::ivip: return 1042;
+          case Dyninst::x86::icr0: return 1043;
+          case Dyninst::x86::icr2: return 1044;
+          case Dyninst::x86::icr4: return 1045;
+          case Dyninst::x86::icr6: return 1046;
+          case Dyninst::x86::idr0: return 1047;
+          case Dyninst::x86::idr2: return 1048;
+          case Dyninst::x86::idr4: return 1049;
+          case Dyninst::x86::idr6: return 1050;
+          case Dyninst::x86::iymm0: return 1051;
+          case Dyninst::x86::iymm2: return 1052;
+          case Dyninst::x86::iymm4: return 1053;
+          case Dyninst::x86::iymm6: return 1054;
+          case Dyninst::x86::izmm0: return 1055;
+          case Dyninst::x86::izmm2: return 1056;
+          case Dyninst::x86::izmm4: return 1057;
+          case Dyninst::x86::izmm6: return 1058;
+          case Dyninst::x86::ik0: return 1059;
+          case Dyninst::x86::ik2: return 1060;
+          case Dyninst::x86::ik4: return 1061;
+          case Dyninst::x86::ik6: return 1062;
+          case Dyninst::x86::ioeax: return 1063;
+          case Dyninst::x86::igsbase: return 1064;
+          case Dyninst::x86::itr1: return 1065;
+          case Dyninst::x86::itr3: return 1066;
+          case Dyninst::x86::itr5: return 1067;
+          case Dyninst::x86::itr7: return 1068;
           default: return -1;
         }
         break;
