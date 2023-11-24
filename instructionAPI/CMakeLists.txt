@@ -17,7 +17,7 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
-    src/InstructionDecoder-x86.C
+    src/InstructionDecoder-Capstone.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/gfx908/decodeOperands.C
@@ -67,6 +67,7 @@ set(_private_headers
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
     src/InstructionDecoder-x86.h
+    src/InstructionDecoder-Capstone.h
     h/syscalls.h
     h/interrupts.h)
 
@@ -137,7 +138,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES INSTRUCTION_LIB
   DYNINST_DEPS common
-  PUBLIC_DEPS Dyninst::Boost_headers
+  PUBLIC_DEPS Dyninst::Boost_headers capstone::capstone
 )
 # cmake-format: on
 
