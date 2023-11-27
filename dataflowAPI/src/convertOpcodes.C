@@ -412,7 +412,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_fnstenv;
         case e_fstp:
             return x86_fstp;
-        case e_fstsw:
+        case e_fnstsw:
             return x86_fnstsw;
         case e_fsub:
             return x86_fsub;

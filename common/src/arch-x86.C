@@ -1035,7 +1035,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fnstcw, "fnstcw")
   (e_fnstenv, "fnstenv")
   (e_fstp, "fstp")
-  (e_fstsw, "fstsw")
+  (e_fnstsw, "fnstsw")
   (e_fsub, "fsub")
   (e_fsubp, "fsubp")
   (e_fsubr, "fsubr")
@@ -3544,7 +3544,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_frstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R, 0 },
         { e_fucomp, t_done, 0, true, { ST0, Efd, Zz }, 0, s1R2R, 0 }, // stack pop
         { e_fsave,  t_done, 0, true, { M512, Zz, Zz }, 0, s1W, 0 },
-        { e_fstsw,  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 }
+        { e_fnstsw,  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 }
     },
     { // DD TODO semantics check
         { e_ffree,    t_done, 0, true, { Efd, Zz, Zz }, 0, s1W, 0 },
@@ -3595,7 +3595,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fxch,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2RW, 0 },
         { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE, 0 },
         { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE, 0 },
-        { e_fstsw,   t_done, 0, true, { AX, Zz, Zz }, 0, s1W, 0 },
+        { e_fnstsw,   t_done, 0, true, { AX, Zz, Zz }, 0, s1W, 0 },
         { e_fucomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
         { e_fcomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
