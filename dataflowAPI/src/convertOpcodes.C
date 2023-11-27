@@ -402,7 +402,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_fnop;
         case e_frstor:
             return x86_frstor;
-        case e_fsave:
+        case e_fnsave:
             return x86_fnsave;
         case e_fst:
             return x86_fst;
