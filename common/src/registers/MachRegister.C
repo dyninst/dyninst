@@ -1101,7 +1101,7 @@ namespace Dyninst {
           case 36: return Dyninst::x86::mm7;
           case 37: return Dyninst::InvalidReg;
           case 38: return Dyninst::InvalidReg;
-//          case 39: return Dyninst::x86::mxcsr;
+          case 39: return Dyninst::x86::mxcsr;
           case 40: return Dyninst::x86::es;
           case 41: return Dyninst::x86::cs;
           case 42: return Dyninst::x86::ss;
@@ -1318,7 +1318,7 @@ namespace Dyninst {
           case 61: return Dyninst::InvalidReg;
           case 62: return Dyninst::x86_64::tr;
           case 63: return Dyninst::x86_64::ldtr;
-//          case 64: return Dyninst::x86_64::mxcsr;
+          case 64: return Dyninst::x86_64::mxcsr;
 //          case 65: return Dyninst::x86_64::fcw;
 //          case 66: return Dyninst::x86_64::fsw;
           case 67: return Dyninst::x86_64::xmm16;
@@ -1866,7 +1866,7 @@ namespace Dyninst {
           case Dyninst::x86::imm7: return 36;
           /*[37] Reserved */
           /*[38] Reserved */
-//          case Dyninst::x86::imxcsr: return 39;
+          case Dyninst::x86::imxcsr: return 39;
           case Dyninst::x86::ies: return 40;
           case Dyninst::x86::ics: return 41;
           case Dyninst::x86::iss: return 42;
@@ -2083,7 +2083,7 @@ namespace Dyninst {
           /*[61] Reserved */
           case Dyninst::x86_64::itr: return 62;
           case Dyninst::x86_64::ildtr: return 63;
-//          case Dyninst::x86_64::imxcsr: return 64;
+          case Dyninst::x86_64::imxcsr: return 64;
 //          case Dyninst::x86_64::ifcw: return 65;
 //          case Dyninst::x86_64::ifsw: return 66;
           case Dyninst::x86_64::ixmm16: return 67;

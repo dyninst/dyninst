@@ -246,6 +246,7 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(      xmm5,   0x05 |  XMMS |   XMM | Arch_x86, "x86");
   DEF_REGISTER(      xmm6,   0x06 |  XMMS |   XMM | Arch_x86, "x86");
   DEF_REGISTER(      xmm7,   0x07 |  XMMS |   XMM | Arch_x86, "x86");
+  DEF_REGISTER(     mxcsr,   0x08 |  FULL |   XMM | Arch_x86, "x86");
 
   DEF_REGISTER(      ymm0,   0x00 |  YMMS |   YMM | Arch_x86, "x86");
   DEF_REGISTER(      ymm1,   0x01 |  YMMS |   YMM | Arch_x86, "x86");

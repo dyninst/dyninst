@@ -61,7 +61,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int XMMS   = 0x00000800; // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
   const signed int YMMS   = 0x00000900; // 256-bit SSE, AVX2, FMA3/4
   const signed int ZMMS   = 0x00000A00; // 512-bit AVX-512/AVX10
-  const signed int KMSKS  = 0x00000B00;  // 64-bit mask from AVX-512/AVX10
+  const signed int KMSKS  = 0x00000B00; // 64-bit mask from AVX-512/AVX10
 
   /* Register Categories */
   const signed int GPR    = 0x00010000;  // General-Purpose Registers
@@ -316,6 +316,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(     xmm29,   0x1D |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm30,   0x1E |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm31,   0x1F |  XMMS |   XMM | Arch_x86_64, "x86_64");
+  DEF_REGISTER(     mxcsr,   0x20 | D_REG |   XMM | Arch_x86_64, "x86_64");
 
   DEF_REGISTER(      ymm0,   0x00 |  YMMS |   YMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(      ymm1,   0x01 |  YMMS |   YMM | Arch_x86_64, "x86_64");
