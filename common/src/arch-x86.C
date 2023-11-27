@@ -1033,7 +1033,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fsave, "fsave")
   (e_fst, "fst")
   (e_fnstcw, "fnstcw")
-  (e_fstenv, "fstenv")
+  (e_fnstenv, "fnstenv")
   (e_fstp, "fstp")
   (e_fstsw, "fstsw")
   (e_fsub, "fsub")
@@ -3455,7 +3455,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fstp,   t_done, 0, true, { Ef, ST0, Zz }, 0, s1W2R, 0 }, // stack pop
         { e_fldenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1R, 0 },
         { e_fldcw,  t_done, 0, true, { Ew,  Zz, Zz }, 0, s1R, 0 },
-        { e_fstenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1W, 0 },
+        { e_fnstenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1W, 0 },
         { e_fnstcw,  t_done, 0, true, { Ew,  Zz, Zz }, 0, s1W, 0 }
     },
     { // D9 
