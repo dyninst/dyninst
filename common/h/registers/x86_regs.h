@@ -99,6 +99,10 @@ namespace Dyninst { namespace x86 {
   const signed int BASEGS = 0x3; // G Segment register
   const signed int BASECS = 0x4; // Code Segment register
   const signed int BASEES = 0x5; // Extended data Segment register
+  const signed int BASEGD = 0x6; // Global Descriptor Table
+  const signed int BASELD = 0x7; // Local Descriptor Table
+  const signed int BASEID = 0X8; // Interrupt Descriptor Table
+  const signed int BASETR = 0x9; // Task Register
 
   /* Base IDs for each bit in EFLAGS */
   const signed int CF    = 0x00;  // Carry Flag
@@ -169,6 +173,10 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(        ss, BASESS | W_REG |   SEG | Arch_x86, "x86");
   DEF_REGISTER(        fs, BASEFS | W_REG |   SEG | Arch_x86, "x86");
   DEF_REGISTER(        gs, BASEGS | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(      gdtr, BASEGD | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(      ldtr, BASELD | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(      idtr, BASEID | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        tr, BASETR | W_REG |   SEG | Arch_x86, "x86");
 
   DEF_REGISTER(     flags,  FLAGS |  FULL |  FLAG | Arch_x86, "x86");
   DEF_REGISTER(        cf,     CF |   BIT |  FLAG | Arch_x86, "x86");
