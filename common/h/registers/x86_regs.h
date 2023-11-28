@@ -228,6 +228,8 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(       st5,    0x5 | FPDBL |   X87 | Arch_x86, "x86");
   DEF_REGISTER(       st6,    0x6 | FPDBL |   X87 | Arch_x86, "x86");
   DEF_REGISTER(       st7,    0x7 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       fcw,    0x8 | W_REG |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       fsw,    0x9 | W_REG |   X87 | Arch_x86, "x86");
 
   DEF_REGISTER(       mm0,    0x0 |   MMS |   MMX | Arch_x86, "x86");
   DEF_REGISTER(       mm1,    0x1 |   MMS |   MMX | Arch_x86, "x86");
