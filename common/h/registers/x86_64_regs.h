@@ -77,6 +77,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int YMM    = 0x000B0000;  // YMM0-YMM15 Registers from AVX2/FMA (YMM0-YMM31 for AVX-512)
   const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM31 Registers from AVX-512
   const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
+  const signed int FPCTL  = 0x000E0000;  // 32-bit x87 and SSE control registers
 
   /* Base IDs for aliased GPRs */
   const signed int FLAGS  = 0x00;  // RFLAGS Register
@@ -274,8 +275,8 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(       st5,    0x5 | FPDBL |   X87 | Arch_x86_64, "x86_64");
   DEF_REGISTER(       st6,    0x6 | FPDBL |   X87 | Arch_x86_64, "x86_64");
   DEF_REGISTER(       st7,    0x7 | FPDBL |   X87 | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       fcw,    0x8 | W_REG |   X87 | Arch_x86_64, "x86_64");
-  DEF_REGISTER(       fsw,    0x9 | W_REG |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       fcw,    0x8 | W_REG | FPCTL | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       fsw,    0x9 | W_REG | FPCTL | Arch_x86_64, "x86_64");
 
   DEF_REGISTER(       mm0,    0x0 |   MMS |   MMX | Arch_x86_64, "x86_64");
   DEF_REGISTER(       mm1,    0x1 |   MMS |   MMX | Arch_x86_64, "x86_64");
@@ -318,7 +319,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(     xmm29,   0x1D |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm30,   0x1E |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm31,   0x1F |  XMMS |   XMM | Arch_x86_64, "x86_64");
-  DEF_REGISTER(     mxcsr,   0x20 | D_REG |   XMM | Arch_x86_64, "x86_64");
+  DEF_REGISTER(     mxcsr,   0x20 | D_REG | FPCTL | Arch_x86_64, "x86_64");
 
   DEF_REGISTER(      ymm0,   0x00 |  YMMS |   YMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(      ymm1,   0x01 |  YMMS |   YMM | Arch_x86_64, "x86_64");
