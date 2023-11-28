@@ -61,7 +61,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int XMMS   = 0x00000800; // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
   const signed int YMMS   = 0x00000900; // 256-bit SSE, AVX2, FMA3/4
   const signed int ZMMS   = 0x00000A00; // 512-bit AVX-512/AVX10
-  const signed int KMSKS  = 0x00000B00;  // 64-bit mask from AVX-512/AVX10
+  const signed int KMSKS  = 0x00000B00; // 64-bit mask from AVX-512/AVX10
 
   /* Register Categories */
   const signed int GPR    = 0x00010000;  // General-Purpose Registers
@@ -77,6 +77,7 @@ namespace Dyninst { namespace x86_64 {
   const signed int YMM    = 0x000B0000;  // YMM0-YMM15 Registers from AVX2/FMA (YMM0-YMM31 for AVX-512)
   const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM31 Registers from AVX-512
   const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
+  const signed int FPCTL  = 0x000E0000;  // control/status Registers from x87, SSE, and AVX
 
   /* Base IDs for aliased GPRs */
   const signed int FLAGS  = 0x00;  // RFLAGS Register
@@ -104,6 +105,10 @@ namespace Dyninst { namespace x86_64 {
   const signed int BASEGS = 0x3; // G Segment register
   const signed int BASECS = 0x4; // Code Segment register
   const signed int BASEES = 0x5; // Extended data Segment register
+  const signed int BASEGD = 0x6; // Global Descriptor Table
+  const signed int BASELD = 0x7; // Local Descriptor Table
+  const signed int BASEID = 0X8; // Interrupt Descriptor Table
+  const signed int BASETR = 0x9; // Task Register
 
   /* Base IDs for each bit in RFLAGS */
   const signed int CF    = x86::CF;    // Carry Flag
@@ -239,6 +244,10 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(        gs, BASEGS |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        cs, BASECS |  FULL |   SEG | Arch_x86_64, "x86_64");
   DEF_REGISTER(        ss, BASESS |  FULL |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(      gdtr, BASEGD | W_REG |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(      ldtr, BASELD | W_REG |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(      idtr, BASEID | W_REG |   SEG | Arch_x86_64, "x86_64");
+  DEF_REGISTER(        tr, BASETR | W_REG |   SEG | Arch_x86_64, "x86_64");
 
   DEF_REGISTER(       cr0,    0x0 |  FULL |   CTL | Arch_x86_64, "x86_64");
   DEF_REGISTER(       cr1,    0x1 |  FULL |   CTL | Arch_x86_64, "x86_64");
@@ -266,6 +275,8 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(       st5,    0x5 | FPDBL |   X87 | Arch_x86_64, "x86_64");
   DEF_REGISTER(       st6,    0x6 | FPDBL |   X87 | Arch_x86_64, "x86_64");
   DEF_REGISTER(       st7,    0x7 | FPDBL |   X87 | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       fcw,    0x8 | W_REG | FPCTL | Arch_x86_64, "x86_64");
+  DEF_REGISTER(       fsw,    0x9 | W_REG | FPCTL | Arch_x86_64, "x86_64");
 
   DEF_REGISTER(       mm0,    0x0 |   MMS |   MMX | Arch_x86_64, "x86_64");
   DEF_REGISTER(       mm1,    0x1 |   MMS |   MMX | Arch_x86_64, "x86_64");
@@ -308,6 +319,7 @@ namespace Dyninst { namespace x86_64 {
   DEF_REGISTER(     xmm29,   0x1D |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm30,   0x1E |  XMMS |   XMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(     xmm31,   0x1F |  XMMS |   XMM | Arch_x86_64, "x86_64");
+  DEF_REGISTER(     mxcsr,   0x20 | D_REG | FPCTL | Arch_x86_64, "x86_64");
 
   DEF_REGISTER(      ymm0,   0x00 |  YMMS |   YMM | Arch_x86_64, "x86_64");
   DEF_REGISTER(      ymm1,   0x01 |  YMMS |   YMM | Arch_x86_64, "x86_64");

@@ -80,6 +80,7 @@ namespace Dyninst { namespace x86 {
   const signed int YMM    = 0x000B0000;  // YMM0-YMM7 Registers from AVX2/FMA
   const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM7 Registers from AVX-512
   const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
+  const signed int FPCTL  = 0x000E0000;  // control/status Registers from x87, SSE, and AVX
 
   /* Base IDs for aliased GPRs */
   const signed int BASEA  = 0x0;
@@ -99,6 +100,10 @@ namespace Dyninst { namespace x86 {
   const signed int BASEGS = 0x3; // G Segment register
   const signed int BASECS = 0x4; // Code Segment register
   const signed int BASEES = 0x5; // Extended data Segment register
+  const signed int BASEGD = 0x6; // Global Descriptor Table
+  const signed int BASELD = 0x7; // Local Descriptor Table
+  const signed int BASEID = 0X8; // Interrupt Descriptor Table
+  const signed int BASETR = 0x9; // Task Register
 
   /* Base IDs for each bit in EFLAGS */
   const signed int CF    = 0x00;  // Carry Flag
@@ -169,6 +174,10 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(        ss, BASESS | W_REG |   SEG | Arch_x86, "x86");
   DEF_REGISTER(        fs, BASEFS | W_REG |   SEG | Arch_x86, "x86");
   DEF_REGISTER(        gs, BASEGS | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(      gdtr, BASEGD | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(      ldtr, BASELD | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(      idtr, BASEID | W_REG |   SEG | Arch_x86, "x86");
+  DEF_REGISTER(        tr, BASETR | W_REG |   SEG | Arch_x86, "x86");
 
   DEF_REGISTER(     flags,  FLAGS |  FULL |  FLAG | Arch_x86, "x86");
   DEF_REGISTER(        cf,     CF |   BIT |  FLAG | Arch_x86, "x86");
@@ -220,6 +229,8 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(       st5,    0x5 | FPDBL |   X87 | Arch_x86, "x86");
   DEF_REGISTER(       st6,    0x6 | FPDBL |   X87 | Arch_x86, "x86");
   DEF_REGISTER(       st7,    0x7 | FPDBL |   X87 | Arch_x86, "x86");
+  DEF_REGISTER(       fcw,    0x8 | W_REG | FPCTL | Arch_x86, "x86");
+  DEF_REGISTER(       fsw,    0x9 | W_REG | FPCTL | Arch_x86, "x86");
 
   DEF_REGISTER(       mm0,    0x0 |   MMS |   MMX | Arch_x86, "x86");
   DEF_REGISTER(       mm1,    0x1 |   MMS |   MMX | Arch_x86, "x86");
@@ -238,6 +249,7 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(      xmm5,   0x05 |  XMMS |   XMM | Arch_x86, "x86");
   DEF_REGISTER(      xmm6,   0x06 |  XMMS |   XMM | Arch_x86, "x86");
   DEF_REGISTER(      xmm7,   0x07 |  XMMS |   XMM | Arch_x86, "x86");
+  DEF_REGISTER(     mxcsr,   0x08 |  FULL | FPCTL | Arch_x86, "x86");
 
   DEF_REGISTER(      ymm0,   0x00 |  YMMS |   YMM | Arch_x86, "x86");
   DEF_REGISTER(      ymm1,   0x01 |  YMMS |   YMM | Arch_x86, "x86");
