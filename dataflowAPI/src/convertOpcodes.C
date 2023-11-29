@@ -102,17 +102,15 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_jle;
         case e_jmp:
             return x86_jmp;
-        case e_jmpe:
-            return x86_jmpe;
-        case e_jnb:
+        case e_jae:
             return x86_jae;
         case e_jnb_jae_j:
             return x86_jae;
-        case e_jnbe:
+        case e_ja:
             return x86_ja;
-        case e_jnl:
+        case e_jge:
             return x86_jge;
-        case e_jnle:
+        case e_jg:
             return x86_jg;
         case e_jno:
             return x86_jno;
@@ -120,7 +118,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_jpo;
         case e_jns:
             return x86_jns;
-        case e_jnz:
+        case e_jne:
             return x86_jne;
         case e_jo:
             return x86_jo;
@@ -128,13 +126,13 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_jpe;
         case e_js:
             return x86_js;
-        case e_jz:
+        case e_je:
             return x86_je;
         case e_loop:
             return x86_loop;
         case e_loope:
             return x86_loopz;
-        case e_loopn:
+        case e_loopne:
             return x86_loopnz;
         case e_call:
             return x86_call;
@@ -152,9 +150,9 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cmpss;
         case e_cmpsw:
             return x86_cmpsw;
-        case e_cmpxch:
+        case e_cmpxchg:
             return x86_cmpxchg;
-        case e_cmpxch8b:
+        case e_cmpxchg8b:
             return x86_cmpxchg8b;
         case e_ret_far:
             return x86_retf;
@@ -162,13 +160,13 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_ret;
         case e_prefetch:
             return x86_prefetch;
-        case e_prefetchNTA:
+        case e_prefetchnta:
             return x86_prefetchnta;
-        case e_prefetchT0:
+        case e_prefetcht0:
             return x86_prefetcht0;
-        case e_prefetchT1:
+        case e_prefetcht1:
             return x86_prefetcht1;
-        case e_prefetchT2:
+        case e_prefetcht2:
             return x86_prefetcht2;
         case e_prefetch_w:
             return x86_prefetchw;
@@ -248,19 +246,19 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cmovbe;
         case e_cmove:
             return x86_cmove;
-        case e_cmovnae:
+        case e_cmovb:
             return x86_cmovb;
-        case e_cmovnb:
+        case e_cmovae:
             return x86_cmovae;
-        case e_cmovnbe:
+        case e_cmova:
             return x86_cmova;
         case e_cmovne:
             return x86_cmovne;
-        case e_cmovng:
+        case e_cmovle:
             return x86_cmovle;
-        case e_cmovnge:
+        case e_cmovl:
             return x86_cmovl;
-        case e_cmovnl:
+        case e_cmovge:
             return x86_cmovge;
         case e_cmovno:
             return x86_cmovno;
@@ -268,9 +266,9 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cmovns;
         case e_cmovo:
             return x86_cmovo;
-        case e_cmovpe:
+        case e_cmovp:
             return x86_cmovpe;
-        case e_cmovpo:
+        case e_cmovnp:
             return x86_cmovpo;
         case e_cmovs:
             return x86_cmovs;
@@ -324,8 +322,6 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cvttsd2si;
         case e_cvttss2si:
             return x86_cvttss2si;
-        case e_cwd:
-            return x86_cwd;
         case e_cwde:
             return x86_cwde;
         case e_daa:
@@ -402,17 +398,17 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_fnop;
         case e_frstor:
             return x86_frstor;
-        case e_fsave:
+        case e_fnsave:
             return x86_fnsave;
         case e_fst:
             return x86_fst;
-        case e_fstcw:
+        case e_fnstcw:
             return x86_fnstcw;
-        case e_fstenv:
+        case e_fnstenv:
             return x86_fnstenv;
         case e_fstp:
             return x86_fstp;
-        case e_fstsw:
+        case e_fnstsw:
             return x86_fnstsw;
         case e_fsub:
             return x86_fsub;
@@ -698,9 +694,9 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_pmuludq;
         case e_pop:
             return x86_pop;
-        case e_popa:
+        case e_popal:
             return x86_popa;
-        case e_popad:
+        case e_popaw:
             return x86_popad;
         case e_popf:
             return x86_popf;
@@ -766,20 +762,16 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_punpcklbw;
         case e_punpckldq:
             return x86_punpckldq;
-        case e_punpcklqld:
+        case e_punpcklqdq:
             return x86_punpcklqdq;
         case e_punpcklwd:
             return x86_punpcklwd;
         case e_push:
             return x86_push;
-        case e_pusha:
-            return x86_pusha;
-        case e_pushad:
+        case e_pushal:
             return x86_pushad;
         case e_pushf:
             return x86_pushf;
-        case e_pushfd:
-            return x86_pushfd;
         case e_pxor:
             return x86_pxor;
         case e_rcl:
@@ -828,13 +820,13 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_setl;
         case e_setle:
             return x86_setle;
-        case e_setnb:
+        case e_setae:
             return x86_setae;
-        case e_setnbe:
+        case e_seta:
             return x86_seta;
-        case e_setnl:
+        case e_setge:
             return x86_setge;
-        case e_setnle:
+        case e_setg:
             return x86_setg;
         case e_setno:
             return x86_setno;
@@ -842,7 +834,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_setpo;
         case e_setns:
             return x86_setns;
-        case e_setnz:
+        case e_setne:
             return x86_setne;
         case e_seto:
             return x86_seto;
@@ -850,13 +842,13 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_setpe;
         case e_sets:
             return x86_sets;
-        case e_setz:
+        case e_sete:
             return x86_sete;
         case e_sfence:
             return x86_sfence;
         case e_sgdt:
             return x86_sgdt;
-        case e_shl_sal:
+        case e_shl:
             return x86_shl;
         case e_shld:
             return x86_shld;
@@ -922,7 +914,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_ucomisd;
         case e_ucomiss:
             return x86_ucomiss;
-        case e_ud:
+        case e_ud0:
             return x86_unknown_instruction;
         case e_ud2:
             return x86_ud2;
@@ -954,7 +946,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_xadd;
         case e_xchg:
             return x86_xchg;
-        case e_xlat:
+        case e_xlatb:
             return x86_xlatb;
         case e_xor:
             return x86_xor;

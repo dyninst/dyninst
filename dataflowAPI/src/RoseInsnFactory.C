@@ -158,7 +158,7 @@ void RoseInsnX86Factory::massageOperands(const Instruction &insn,
     // ROSE does not need implicit registers
     operands.resize(1);
     break;
-  case e_cmpxch:
+  case e_cmpxchg:
     operands.resize(2);
     break;
   case e_movsb:
@@ -194,8 +194,8 @@ void RoseInsnX86Factory::massageOperands(const Instruction &insn,
     // Nada
     operands.clear();
     break;
-  case e_popad:
-  case e_pushfd:
+  case e_popaw:
+  case e_pushf:
     operands.clear();
     break;
   case e_lodsd:
@@ -203,12 +203,12 @@ void RoseInsnX86Factory::massageOperands(const Instruction &insn,
   case e_lodsw:
       operands.clear();
       break;
-  case e_pushad:
+  case e_pushal:
       operands.clear();
       break;
   case e_loop:
   case e_loope:
-  case e_loopn:
+  case e_loopne:
       operands.resize(1);
       break;
   case e_ret_far:

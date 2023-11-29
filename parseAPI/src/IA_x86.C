@@ -557,12 +557,11 @@ bool IA_x86::isFakeCall() const
                 stackDelta += sign * size;
                 break;
             }
-            case e_pusha:
-            case e_pushad:
+            case e_pushal:
                 sign = -1;
                 //FALLTHROUGH
-            case e_popa:
-            case e_popad:
+            case e_popal:
+            case e_popaw:
                 if (1 == sign) {
                     mal_printf("popad ins'n at %lx in func at %lx changes sp "
                                "by %d. %s[%d]\n", ah->getAddr(), 
@@ -571,7 +570,6 @@ bool IA_x86::isFakeCall() const
                 stackDelta += sign * 8 * addrWidth;
                 break;
             case e_pushf:
-            case e_pushfd:
                 sign = -1;
                 //FALLTHROUGH
             case e_popf:

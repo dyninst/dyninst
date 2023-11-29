@@ -582,7 +582,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
     if (type == COND_TAKEN) {
         switch (id) {
 	    // unsigned 
-	    case e_jnbe: {
+	    case e_ja: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        // If both elements are constant,
@@ -601,7 +601,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jnb: 
+	    case e_jae:
 	    case e_jnb_jae_j: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
@@ -659,7 +659,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jz: {
+	    case e_je: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -678,7 +678,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jnz: {
+	    case e_jne: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -696,7 +696,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 	    }
 
 	    // signed
-	    case e_jnle: {
+	    case e_jg: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -712,7 +712,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jnl: {
+	    case e_jge: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -808,7 +808,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jnb:
+	    case e_jae:
 	    case e_jnb_jae_j: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
@@ -831,7 +831,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 	    }
 	    case aarch64_op_b_cond:
 	    case power_op_bc:
-	    case e_jnbe: {
+	    case e_ja: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -849,7 +849,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jnz: {
+	    case e_jne: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -870,7 +870,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jz: {
+	    case e_je: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -920,7 +920,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jnl: {
+	    case e_jge: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -937,7 +937,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		break;
 
 	    }
-	    case e_jnle: {
+	    case e_jg: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");

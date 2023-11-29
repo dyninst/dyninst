@@ -313,7 +313,7 @@ namespace Dyninst
 
                 nonOperandRegisterWrites.insert(make_pair(e_loop, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_loope, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_loopn, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_loopne, thePC));
 
                 nonOperandRegisterWrites.insert(make_pair(e_jb, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jb_jnaej_j, thePC));
@@ -322,26 +322,25 @@ namespace Dyninst
                 nonOperandRegisterWrites.insert(make_pair(e_jl, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jle, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jmp, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_jnb, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_jae, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jnb_jae_j, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_jnbe, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_jnl, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_jnle, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_ja, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_jge, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_jg, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jno, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jnp, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jns, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_jnz, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_jne, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jo, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_jp, thePC));
                 nonOperandRegisterWrites.insert(make_pair(e_js, thePC));
-                nonOperandRegisterWrites.insert(make_pair(e_jz, thePC));
+                nonOperandRegisterWrites.insert(make_pair(e_je, thePC));
 
                 nonOperandMemoryReads.insert(make_pair(e_pop, stackPointerAsExpr));
-                nonOperandMemoryReads.insert(make_pair(e_popa, stackPointerAsExpr));
-                nonOperandMemoryReads.insert(make_pair(e_popad, stackPointerAsExpr));
+                nonOperandMemoryReads.insert(make_pair(e_popal, stackPointerAsExpr));
+                nonOperandMemoryReads.insert(make_pair(e_popaw, stackPointerAsExpr));
                 nonOperandMemoryWrites.insert(make_pair(e_push, stackPointerAsExpr));
-                nonOperandMemoryWrites.insert(make_pair(e_pusha, stackPointerAsExpr));
-                nonOperandMemoryWrites.insert(make_pair(e_pushad, stackPointerAsExpr));
+                nonOperandMemoryWrites.insert(make_pair(e_pushal, stackPointerAsExpr));
                 nonOperandMemoryWrites.insert(make_pair(e_call, stackPointerAsExpr));
                 nonOperandMemoryReads.insert(make_pair(e_ret_near, stackPointerAsExpr));
                 nonOperandMemoryReads.insert(make_pair(e_ret_far, stackPointerAsExpr));

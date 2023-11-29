@@ -58,23 +58,22 @@ namespace Dyninst
       case e_jcxz_jec:
       case e_jl:
       case e_jle:
-      case e_jmpe:
-      case e_jnb:
+      case e_jae:
       case e_jnb_jae_j:
-      case e_jnbe:
-      case e_jnl:
-      case e_jnle:
+      case e_ja:
+      case e_jge:
+      case e_jg:
       case e_jno:
       case e_jnp:
       case e_jns:
-      case e_jnz:
+      case e_jne:
       case e_jo:
       case e_jp:
       case e_js:
-      case e_jz:
+      case e_je:
       case e_loop:
       case e_loope:
-      case e_loopn:
+      case e_loopne:
       case aarch64_op_b_uncond:
       case aarch64_op_b_cond:
       case aarch64_op_tbz:
@@ -91,18 +90,18 @@ namespace Dyninst
           case e_cmpsd:
           case e_cmpss:
           case e_cmpsw:
-          case e_cmpxch:
-          case e_cmpxch8b:
+          case e_cmpxchg:
+          case e_cmpxchg8b:
           case power_op_cmp:
           case power_op_cmpi:
           case power_op_cmpl:
           case power_op_cmpli:
               return c_CompareInsn;
           case e_prefetch:
-          case e_prefetchNTA:
-          case e_prefetchT0:
-          case e_prefetchT1:
-          case e_prefetchT2:
+          case e_prefetchnta:
+          case e_prefetcht0:
+          case e_prefetcht1:
+          case e_prefetcht2:
           case e_prefetch_w:
           case e_prefetchw:
               return c_PrefetchInsn;

@@ -125,3 +125,4 @@ cmake-build-*/
 .cproject
 .settings
 .pydevproject
+*__pycache__*

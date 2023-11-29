@@ -563,7 +563,7 @@ namespace Dyninst
                 case amdgpu_gfx940_op_S_SETPC_B64:
                 case amdgpu_gfx940_op_S_SWAPPC_B64:
                     return false;
-                case e_jnb:
+                case e_jae:
                 case e_jb:
                 case e_jb_jnaej_j:
                 case e_jbe:
@@ -571,17 +571,17 @@ namespace Dyninst
                 case e_jl:
                 case e_jle:
                 case e_jnb_jae_j:
-                case e_jnbe:
-                case e_jnl:
-                case e_jnle:
+                case e_ja:
+                case e_jge:
+                case e_jg:
                 case e_jno:
                 case e_jnp:
                 case e_jns:
-                case e_jnz:
+                case e_jne:
                 case e_jo:
                 case e_jp:
                 case e_js:
-                case e_jz:
+                case e_je:
                     return true;
                 default:
                     {

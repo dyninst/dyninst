@@ -916,18 +916,18 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmc, "cmc")
   (e_cmovbe, "cmovbe")
   (e_cmove, "cmove")
-  (e_cmovnae, "cmovnae")
-  (e_cmovnb, "cmovnb")
-  (e_cmovnbe, "cmovnbe")
+  (e_cmovb, "cmovb")
+  (e_cmovae, "cmovae")
+  (e_cmova, "cmova")
   (e_cmovne, "cmovne")
-  (e_cmovng, "cmovng")
-  (e_cmovnge, "cmovnge")
-  (e_cmovnl, "cmovnl")
+  (e_cmovle, "cmovle")
+  (e_cmovl, "cmovl")
+  (e_cmovge, "cmovge")
   (e_cmovno, "cmovno")
   (e_cmovns, "cmovns")
   (e_cmovo, "cmovo")
-  (e_cmovpe, "cmovpe")
-  (e_cmovpo, "cmovpo")
+  (e_cmovp, "cmovp")
+  (e_cmovnp, "cmovnp")
   (e_cmovs, "cmovs")
   (e_cmp, "cmp")
   (e_cmppd, "cmppd")
@@ -936,8 +936,8 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmpsd, "cmpsd")
   (e_cmpss, "cmpss")
   (e_cmpsw, "cmpsw")
-  (e_cmpxch, "cmpxch")
-  (e_cmpxch8b, "cmpxch8b")
+  (e_cmpxchg, "cmpxchg")
+  (e_cmpxchg8b, "cmpxchg8b")
   (e_comisd, "comisd")
   (e_comiss, "comiss")
   (e_cpuid, "cpuid")
@@ -999,7 +999,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
  (e_fcmovnbe, "fcmovnbe")
   (e_fcom, "fcom")
   (e_fcomi, "fcomi")
-  (e_fcomip, "fcomip")
+  (e_fcompi, "fcompi")
   (e_fcomp, "fcomp")
   (e_fcompp, "fcompp")
   (e_fdiv, "fdiv")
@@ -1030,12 +1030,12 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fnop, "fnop")
  (e_fprem, "fprem")
   (e_frstor, "frstor")
-  (e_fsave, "fsave")
+  (e_fnsave, "fnsave")
   (e_fst, "fst")
-  (e_fstcw, "fstcw")
-  (e_fstenv, "fstenv")
+  (e_fnstcw, "fnstcw")
+  (e_fnstenv, "fnstenv")
   (e_fstp, "fstp")
-  (e_fstsw, "fstsw")
+  (e_fnstsw, "fnstsw")
   (e_fsub, "fsub")
   (e_fsubp, "fsubp")
   (e_fsubr, "fsubr")
@@ -1043,7 +1043,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fucom, "fucom")
   (e_fucomp, "fucomp")
   (e_fucomi, "fucomi")
-  (e_fucomip, "fucomip")
+  (e_fucompi, "fucompi")
   (e_fucompp, "fucompp")
  (e_fxch, "fxch")
   (e_fxrstor, "fxrstor")
@@ -1084,19 +1084,19 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_jl, "jl")
   (e_jle, "jle")
   (e_jmp, "jmp")
-  (e_jnb, "jnb")
+  (e_jae, "jae")
   (e_jnb_jae_j, "jnb")
-  (e_jnbe, "jnbe")
-  (e_jnl, "jnl")
-  (e_jnle, "jnle")
+  (e_ja, "ja")
+  (e_jge, "jge")
+  (e_jg, "jg")
   (e_jno, "jno")
   (e_jnp, "jnp")
   (e_jns, "jns")
-  (e_jnz, "jnz")
+  (e_jne, "jne")
   (e_jo, "jo")
   (e_jp, "jp")
   (e_js, "js")
-  (e_jz, "jz")
+  (e_je, "je")
   (e_lahf, "lahf")
   (e_lar, "lar")
   (e_ldmxcsr, "ldmxcsr")
@@ -1117,7 +1117,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_lodsw, "lodsw")
   (e_loop, "loop")
   (e_loope, "loope")
-  (e_loopn, "loopn")
+  (e_loopne, "loopne")
   (e_lsl, "lsl")
   (e_lss, "lss")
   (e_ltr, "ltr")
@@ -1267,17 +1267,17 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_pmulld, "pmulld")
   (e_pmuludq, "pmuludq")
   (e_pop, "pop")
-  (e_popa, "popa")
-  (e_popad, "popad")
+  (e_popal, "popa")
+  (e_popaw, "popad")
   (e_popcnt, "popcnt")
   (e_popf, "popf")
   (e_popfd, "popfd")
   (e_por, "por")
   (e_prefetch, "prefetch")
-  (e_prefetchNTA, "prefetchNTA")
-  (e_prefetchT0, "prefetchT0")
-  (e_prefetchT1, "prefetchT1")
-  (e_prefetchT2, "prefetchT2")
+  (e_prefetchnta, "prefetchnta")
+  (e_prefetcht0, "prefetcht0")
+  (e_prefetcht1, "prefetchT1")
+  (e_prefetcht2, "prefetchT2")
   (e_prefetch_w, "prefetchw")
   (e_prefetchw, "prefetchw")
   (e_prefetchwt1, "prefetchwt1")
@@ -1314,13 +1314,11 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_punpckhwd, "punpckhwd")
   (e_punpcklbw, "punpcklbw")
   (e_punpckldq, "punpckldq")
-  (e_punpcklqld, "punpcklqld")
+  (e_punpcklqdq, "punpcklqdq")
   (e_punpcklwd, "punpcklwd")
   (e_push, "push")
-  (e_pusha, "pusha")
-  (e_pushad, "pushad")
+  (e_pushal, "pusha")
   (e_pushf, "pushf")
-  (e_pushfd, "pushfd")
   (e_pxor, "pxor")
   (e_rcl, "rcl")
   (e_rcpps, "rcpps")
@@ -1352,21 +1350,21 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_setbe, "setbe")
   (e_setl, "setl")
   (e_setle, "setle")
-  (e_setnb, "setnb")
-  (e_setnbe, "setnbe")
-  (e_setnl, "setnl")
-  (e_setnle, "setnle")
+  (e_setae, "setae")
+  (e_seta, "seta")
+  (e_setge, "setge")
+  (e_setg, "setg")
   (e_setno, "setno")
   (e_setnp, "setnp")
   (e_setns, "setns")
-  (e_setnz, "setnz")
+  (e_setne, "setne")
   (e_seto, "seto")
   (e_setp, "setp")
   (e_sets, "sets")
-  (e_setz, "setz")
+  (e_sete, "sete")
   (e_sfence, "sfence")
   (e_sgdt, "sgdt")
-  (e_shl_sal, "shl/sal")
+  (e_shl, "shl")
   (e_shld, "shld")
   (e_shr, "shr")
   (e_shrd, "shrd")
@@ -1422,7 +1420,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_wrmsr, "wrmsr")
   (e_xadd, "xadd")
   (e_xchg, "xchg")
-  (e_xlat, "xlat")
+  (e_xlatb, "xlatb")
   (e_xor, "xor")
   (e_xorpd, "xorpd")
   (e_xorps, "xorps")
@@ -2065,26 +2063,26 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable_
   flagTable_[e_cmc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
   flagTable_[e_cmovbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmove] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovnae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmova] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovng] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovnge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovpe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_cmovpo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_cmovnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmovs] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_cmp] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpsb] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpsd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_cmpsw] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable_[e_cmpxch] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable_[e_cmpxch8b] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
+  flagTable_[e_cmpxchg] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable_[e_cmpxchg8b] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   flagTable_[e_comisd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_comiss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_daa] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
@@ -2112,25 +2110,25 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_jbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_jnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_jae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jnb_jae_j] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_jnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_jnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_jnle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_ja] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_jge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_jg] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_jnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_jne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_jp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_js] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_jz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_je] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_lar] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   flagTable_[e_lodsb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable_[e_lodsd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable_[e_lodsw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable_[e_loope] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
-  flagTable_[e_loopn] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
+  flagTable_[e_loopne] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
   flagTable_[e_lsl] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   // I'd expect that mov control/debug/test gets handled when we do operand analysis
   // If it doesn't, fix later
@@ -2159,21 +2157,21 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_setbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setnle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_setae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_seta] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_setge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_setg] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_setne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_seto] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_setp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_sets] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable_[e_setz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable_[e_sete] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable_[e_shld] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_shrd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable_[e_shl_sal] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable_[e_shl] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable_[e_stc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
   flagTable_[e_std] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::df));
   flagTable_[e_sti] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::if_));
@@ -2335,8 +2333,8 @@ static ia32_entry oneByteMap[256] = {
   { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW, s2I },
   { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW, s2I },
   /* 60 */
-  { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW, s2I },
-  { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW, s2I },
+  { e_pushal, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW, s2I },
+  { e_popaw,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW, s2I },
   { e_bound, t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R, 0 }, // or VEX
   { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R, 0 }, /* No REX */
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // PREFIX_SEG_OVR
@@ -2357,19 +2355,19 @@ static ia32_entry oneByteMap[256] = {
   { e_jno,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jb_jnaej_j, t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jnb_jae_j,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
-  { e_jz,         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
-  { e_jnz,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
+  { e_je,         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
+  { e_jne,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jbe,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
-  { e_jnbe,       t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
+  { e_ja,       t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   /* 78 */
   { e_js,   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jns,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jp,   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jnp,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jl,   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
-  { e_jnl,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
+  { e_jge,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   { e_jle,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
-  { e_jnle, t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
+  { e_jg, t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R, 0 },
   /* 80 */
   { e_No_Entry, t_grp, Grp1a, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_grp, Grp1b, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -2403,7 +2401,7 @@ static ia32_entry oneByteMap[256] = {
   { e_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R, s1I },
   { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R, 0 },
   { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 },
-  { e_pushfd, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW, s2I },
+  { e_pushf, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW, s2I },
   { e_popfd,  t_done, 0, false, { Fv, rSP, Zz }, 0, s1W2RW, s2I },
   { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // FIXME Intel
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // FIXME Intel
@@ -2470,7 +2468,7 @@ static ia32_entry oneByteMap[256] = {
   { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, s1I | s2I },
   { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, s1I | s2I },
   { e_salc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // undocumeted
-  { e_xlat, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS, 0 }, // scream
+  { e_xlatb, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS, 0 }, // scream
   /* D8 */
   { e_No_Entry, t_coprocEsc, GrpD8, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_coprocEsc, GrpD9, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -2481,7 +2479,7 @@ static ia32_entry oneByteMap[256] = {
   { e_No_Entry, t_coprocEsc, GrpDE, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_coprocEsc, GrpDF, true, { Zz, Zz, Zz }, 0, 0, 0 },
   /* E0 */
-  { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
+  { e_loopne,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_loop,     t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_jcxz_jec, t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
@@ -2608,7 +2606,7 @@ static ia32_entry twoByteMap[256] = {
   { e_cmovo,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX41, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX42, false, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_cmovnb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+  { e_cmovae,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX44, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX45, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX46, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -2618,10 +2616,10 @@ static ia32_entry twoByteMap[256] = {
   { e_cmovns,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX4A, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX4B, false, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_cmovnge, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
-  { e_cmovnl,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
-  { e_cmovng,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
-  { e_cmovnl,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+  { e_cmovl, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+  { e_cmovge,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+  { e_cmovle,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+  { e_cmovge,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
   /* 50 */
   { e_No_Entry, t_sse, SSE50, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSE51, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -2680,38 +2678,38 @@ static ia32_entry twoByteMap[256] = {
   { e_jo,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jno,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jb,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
-  { e_jnb,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
-  { e_jz,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
-  { e_jnz,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
+  { e_jae,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
+  { e_je,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
+  { e_jne,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jbe,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
-  { e_jnbe, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
+  { e_ja, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   /* 88 */
   { e_js,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jns,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jp,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jnp,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jl,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
-  { e_jnl,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
+  { e_jge,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   { e_jle,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
-  { e_jnle, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
+  { e_jg, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS), 0 },
   /* 90 */
   { e_No_Entry,  t_sse_vex_mult, SSEVEX90, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX91, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX92, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX93, false, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_setz,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
-  { e_setnz,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+  { e_sete,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+  { e_setne,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_setbe,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
-  { e_setnbe, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+  { e_seta, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   /* 98 */
   { e_No_Entry,  t_sse_vex_mult, SSEVEX98, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,  t_sse_vex_mult, SSEVEX99, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_setp,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_setnp,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_setl,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
-  { e_setnl,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+  { e_setge,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   { e_setle,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
-  { e_setnle, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+  { e_setg, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
   /* A0 */
   { e_push,   t_done, 0, false, { FS, eSP, Zz }, 0, s1R2RW, s2I },
   { e_pop,    t_done, 0, false, { FS, eSP, Zz }, 0, s1W2RW, s2I },
@@ -2734,8 +2732,8 @@ static ia32_entry twoByteMap[256] = {
   // Assuming this is used with LOCK prefix, the destination gets a write anyway
   // This is not the case without lock prefix, but I ignore that case
   // Also, given that the 3rd operand is a register I ignore that it may be written
-  { e_cmpxch, t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
-  { e_cmpxch, t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
+  { e_cmpxchg, t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
+  { e_cmpxchg, t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
   { e_lss, t_done, 0, true, { SS, Gv, Mp }, 0, s1W2W3R, 0 },
   { e_btr, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
   { e_lfs, t_done, 0, true, { FS, Gv, Mp }, 0, s1W2W3R, 0 },
@@ -3455,8 +3453,8 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fstp,   t_done, 0, true, { Ef, ST0, Zz }, 0, s1W2R, 0 }, // stack pop
         { e_fldenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1R, 0 },
         { e_fldcw,  t_done, 0, true, { Ew,  Zz, Zz }, 0, s1R, 0 },
-        { e_fstenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1W, 0 },
-        { e_fstcw,  t_done, 0, true, { Ew,  Zz, Zz }, 0, s1W, 0 }
+        { e_fnstenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1W, 0 },
+        { e_fnstcw,  t_done, 0, true, { Ew,  Zz, Zz }, 0, s1W, 0 }
     },
     { // D9 
         { e_fld,    t_done, 0, true, { ST0, Ef, Zz }, 0, s1W2R, 0 }, // stack push
@@ -3543,8 +3541,8 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fstp,   t_done, 0, true, { Efd, ST0, Zz }, 0, s1W2R, 0 }, // stack pop
         { e_frstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R, 0 },
         { e_fucomp, t_done, 0, true, { ST0, Efd, Zz }, 0, s1R2R, 0 }, // stack pop
-        { e_fsave,  t_done, 0, true, { M512, Zz, Zz }, 0, s1W, 0 },
-        { e_fstsw,  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 }
+        { e_fnsave,  t_done, 0, true, { M512, Zz, Zz }, 0, s1W, 0 },
+        { e_fnstsw,  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 }
     },
     { // DD TODO semantics check
         { e_ffree,    t_done, 0, true, { Efd, Zz, Zz }, 0, s1W, 0 },
@@ -3595,9 +3593,9 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fxch,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2RW, 0 },
         { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE, 0 },
         { e_fstp,  t_done, 0, true, { Ef, ST0, Zz }, 0, sNONE, 0 },
-        { e_fstsw,   t_done, 0, true, { AX, Zz, Zz }, 0, s1W, 0 },
-        { e_fucomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
-        { e_fcomip,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
+        { e_fnstsw,   t_done, 0, true, { AX, Zz, Zz }, 0, s1W, 0 },
+        { e_fucompi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
+        { e_fcompi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R, 0 }, // stack pop
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     }
 }
@@ -3677,9 +3675,9 @@ static ia32_entry groupMap[][8] = {
   { e_ror, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_rcl, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_rcr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_shl, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_shr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_shl, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_sar, t_done, 0, true, { Zz, Zz, Zz }, 0, 0, 0 }
  },
 
@@ -3766,7 +3764,7 @@ static ia32_entry groupMap[][8] = {
  { /* group 9 - operands are defined here */
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   // see comments for cmpxch
-  { e_cmpxch8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
+  { e_cmpxchg8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_xrstors, t_done, 0, true, { Wps, Zz, Zz }, 0, 0, 0 },
   { e_xsavec, t_done, 0, true, { Md, Zz, Zz }, s1W, 0, 0 },
@@ -3918,10 +3916,10 @@ static ia32_entry groupMap2[][2][8] = {
   },
   { /* group 16 */
     {
-      { e_prefetchNTA, t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHNT << FPOS), 0 },
-      { e_prefetchT0,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT0 << FPOS), 0 },
-      { e_prefetchT1,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS), 0 },
-      { e_prefetchT2,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS), 0 },
+      { e_prefetchnta, t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHNT << FPOS), 0 },
+      { e_prefetcht0,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT0 << FPOS), 0 },
+      { e_prefetcht1,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS), 0 },
+      { e_prefetcht2,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS), 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -4006,7 +4004,7 @@ static ia32_entry sseVexMult[][4] = {
         { e_No_Entry, t_sse, SSE41, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE41, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSEVEX42 */
-        { e_cmovnae, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+        { e_cmovb, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
         { e_No_Entry, t_sse, SSE42, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE42, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE42, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -4026,17 +4024,17 @@ static ia32_entry sseVexMult[][4] = {
         { e_No_Entry, t_sse, SSE46, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE46, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSEVEX47 */
-        { e_cmovnbe, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+        { e_cmova, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
         { e_No_Entry, t_sse, SSE47, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE47, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE47, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSEVEX4A */
-        { e_cmovpe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+        { e_cmovp,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
         { e_No_Entry, t_sse, SSE4A, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE4A, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE4A, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSEVEX4B */
-        { e_cmovpo,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
+        { e_cmovnp,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R | (fCOND << FPOS), 0 },
         { e_No_Entry, t_sse, SSE4B, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE4B, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE4B, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -4066,7 +4064,7 @@ static ia32_entry sseVexMult[][4] = {
         { e_No_Entry, t_sse, SSE92, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE92, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEVEX93 */
-        { e_setnb,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
+        { e_setae,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS), 0 },
         { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse, SSE93, false, { Zz, Zz, Zz }, 0, 0, 0 }
@@ -4402,7 +4400,7 @@ static ia32_entry sseMap[][4] = {
   { /* SSE6C */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_punpcklqld, t_sse_mult, SSE6C_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+    { e_punpcklqdq, t_sse_mult, SSE6C_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE6D */
@@ -4556,7 +4554,7 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
   },
   { /* SSEB8 */
-    { e_jmpe, t_done, 0, false, { Jz, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_done, 0, false, { Zz, Zz, Zz }, 0, s1R, 0 },
     { e_popcnt, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -4874,9 +4872,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSEFF */
-    { e_ud, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_ud0, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_ud, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_ud0, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
 };
