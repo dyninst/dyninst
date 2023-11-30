@@ -23,20 +23,20 @@ if __name__ == "__main__":
         "--capstone",
         type=str,
         required=True,
-        help="Capstone header (e.g., /capstone-engine/capstone/arch/X86/X86MappingInsnName.inc)"
+        help="Capstone directory (e.g., /capstone-engine/capstone/)"
     )
 
     parser.add_argument("--arch", type=str, choices=["x86"], default="x86")
     args = parser.parse_args()
 
     if args.arch == "x86":
-        translator = x86.x86()
+        translator = x86.x86(args.capstone)
 
     with open("mnemonics", "w") as f:
         for p in translator.pseudo:
             f.write("{0:s}_{1:s}, /* pseudo mnemonic */\n".format(translator.dyninst_prefix, p))
         
-        mnemonics = capstone.read_mnemonics(args.capstone)
+        mnemonics = capstone.read_mnemonics(translator.mnemonics_file)
         mnemonics.extend(translator.missing)
         mnemonics.sort()
         

@@ -1,9 +1,11 @@
 class x86:
 
-    def __init__(self):
+    def __init__(self, cap_dir):
         self.capstone_prefix = "X86"
         self.dyninst_prefix = "e"
         self.dyninst_register_prefix = "x86_64"
+        self.mnemonics_file = cap_dir + "/arch/X86/X86MappingInsnName.inc"
+        self.registers_file = cap_dir + "/include/capstone/x86.h"
         
         # Mnemonics missing in Capstone
         self.missing = [ "faddp" ]
