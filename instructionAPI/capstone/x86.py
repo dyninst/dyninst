@@ -7,9 +7,6 @@ class x86:
         self.mnemonics_file = cap_dir + "/arch/X86/X86MappingInsnName.inc"
         self.registers_file = cap_dir + "/include/capstone/x86.h"
         
-        # Mnemonics missing in Capstone
-        self.missing = [ "faddp" ]
-        
         # Pseudo-mnemonics used in Dyninst and Capstone
         #   The ones from Capstone are used for GNU assembler (gas) compatibility
         self.pseudo = [
@@ -87,6 +84,8 @@ class x86:
             "cmovng" : { "seen" : False, "values" : ["cmovle",] },
             "cmovg" : { "seen" : False, "values" : ["cmovnle",] },
             "cmovnle" : { "seen" : False, "values" : ["cmovg",] },
+            "fadd" : { "seen" : False, "values" : ["faddp",] },
+            "faddp" : { "seen" : False, "values" : ["fadd",] },
             "fcompi" : { "seen" : False, "values" : ["fcomip",] }, # From LLVM, but present in bddisasm, binutils, and xed
             "fcomip" : { "seen" : False, "values" : ["fcompi",] },
             "fucomip" : { "seen" : False, "values" : ["fucompi",] },
