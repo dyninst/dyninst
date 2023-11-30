@@ -36,10 +36,6 @@ if __name__ == "__main__":
         for p in translator.pseudo:
             f.write("{0:s}_{1:s}, /* pseudo mnemonic */\n".format(translator.dyninst_prefix, p))
         
-        mnemonics = capstone.read_mnemonics(translator.mnemonics_file)
-        mnemonics.extend(translator.missing)
-        mnemonics.sort()
-        
         # Remove already-printed names
         mnemonics = [m for m in mnemonics if m not in translator.pseudo]
 
