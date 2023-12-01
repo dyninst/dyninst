@@ -31,7 +31,6 @@
 #if !defined(RESULT_H)
 #define RESULT_H
 
-#include <sstream>
 #include <string.h> // memcmp
 #if !defined(_MSC_VER)
 #include <inttypes.h>
