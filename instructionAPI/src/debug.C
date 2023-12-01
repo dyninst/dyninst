@@ -7,19 +7,19 @@
 namespace {
   bool debug_decode = false;
   std::once_flag init_flag{};
-}
-
-namespace Dyninst { namespace InstructionAPI {
-
+  
   void init() {
     std::call_once(init_flag,
-      [&debug_decode](){
+      []() noexcept {
         if(getenv("INSTRUCTIONAPI_DEBUG_DECODE")) {
             debug_decode = true;
         }
       }
     );
   }
+}
+
+namespace Dyninst { namespace InstructionAPI {
 
   void decode_printf(const char *format, ...) {
     if (NULL == format) return;
