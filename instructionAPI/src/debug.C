@@ -4,10 +4,12 @@
 #include <stdarg.h>
 #include <mutex>
 
-namespace Dyninst { namespace InstructionAPI {
+namespace {
+  bool debug_decode = false;
+  std::once_flag init_flag{};
+}
 
-  static bool debug_decode = false;
-  static std::once_flag init_flag{};
+namespace Dyninst { namespace InstructionAPI {
 
   void init() {
     std::call_once(init_flag,
