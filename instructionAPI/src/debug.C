@@ -2,18 +2,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <mutex>
 
 namespace Dyninst { namespace InstructionAPI {
 
   static bool debug_decode = false;
+  static std::once_flag init_flag{};
 
   void init() {
-    static bool initialized = false;
-    if (initialized) return;
-    initialized = true;
-    if(getenv("INSTRUCTIONAPI_DEBUG_DECODE")) {
-        debug_decode = true;
-    }
+    std::call_once(init_flag,
+      [&debug_decode](){
+        if(getenv("INSTRUCTIONAPI_DEBUG_DECODE")) {
+            debug_decode = true;
+        }
+      }
+    );
   }
 
   void decode_printf(const char *format, ...) {
