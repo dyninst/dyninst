@@ -33,7 +33,7 @@ if args.arch == "aarch64" and args.spec_dir is None:
 print("Processing registers for {0:s}\n".format(args.arch))
 
 if args.arch == "x86":
-  registers = x86.registers.registers(args.capstone_dir, args.dyninst_dir, args.spec_dir)
+  registers = x86.registers.registers(args.capstone_dir, args.dyninst_dir)
 elif args.arch == "aarch64":
   registers = aarch64.registers.registers(args.capstone_dir, args.dyninst_dir, args.spec_dir)
 elif args.arch == "ppc":
@@ -47,8 +47,6 @@ def _check_uniqueness():
       print("Duplicate register: \n  old: {0:s}\n  new: {1:s}".format(str(r), str(seen[r["name"]])))
     else:
       seen[r["name"]] = r
-_check_uniqueness()
-
 
 # Display added registers
 def _print_new_regs():
@@ -62,8 +60,10 @@ def _print_new_regs():
     seen = True
   if not seen:
     print("  none added")
-_print_new_regs()
 
+if registers.all:
+  _check_uniqueness()
+  _print_new_regs()
 
 # length/size fields
 with open("{0:s}.lengths".format(args.arch), "w") as f:
@@ -78,45 +78,50 @@ with open("{0:s}.dwarf".format(args.arch), "w") as file:
   registers.export_dwarf(file)
 
 # Register definitions
-unique_ids_by_category = {}
-with open("{0:s}.registers".format(args.arch), "w") as file:
-  max_name_len = max([len(r["name"]) for r in registers.all])
-  max_size_len = max([len(r["size"]) for r in registers.all])
-  max_cat_len = max([len(r["categories"]) for r in registers.all])
-
-  for r in registers.all:
-    categories = r["categories"]
+if registers.all:
+  with open("{0:s}.registers".format(args.arch), "w") as file:
+    max_name_len = max([len(r["name"]) for r in registers.all])
+    max_size_len = max([len(r["size"]) for r in registers.all])
+    max_cat_len = max([len(r["categories"]) for r in registers.all])
     
-    base_category = categories
-    if '|' in categories:
-      base_category = categories.split("|")[0].strip()
-    
-    if base_category not in unique_ids_by_category:
-      unique_ids_by_category[base_category] = 0
-
-    #                  (   name,  ID |    size |     cat |       arch
-    fmt = "DEF_REGISTER(%{0:d}s, %3d | %{1:d}s | %{2:d}s | Arch_{3:s});\n".format(
-      max_name_len+2,
-      max_size_len,
-      max_cat_len,
-      registers.dyninst_suffix
-    )
-    file.write(fmt % (r["name"], unique_ids_by_category[base_category], r["size"], r["categories"]))
-    unique_ids_by_category[base_category] += 1
-
-    # The Dyninst register fields are only 8 bits wide
-    if unique_ids_by_category[base_category] > 255:
-      raise Exception("There are more than 255 '{0:s}' registers.".format(base_category))
+    unique_ids_by_category = {}
+  
+    for r in registers.all:
+      categories = r["categories"]
+      
+      base_category = categories
+      if '|' in categories:
+        base_category = categories.split("|")[0].strip()
+      
+      if base_category not in unique_ids_by_category:
+        unique_ids_by_category[base_category] = 0
+  
+      #                  (   name,  ID |    size |     cat |       arch
+      fmt = "DEF_REGISTER(%{0:d}s, %3d | %{1:d}s | %{2:d}s | Arch_{3:s});\n".format(
+        max_name_len+2,
+        max_size_len,
+        max_cat_len,
+        registers.dyninst_suffix
+      )
+      file.write(fmt % (r["name"], unique_ids_by_category[base_category], r["size"], r["categories"]))
+      unique_ids_by_category[base_category] += 1
+  
+      # The Dyninst register fields are only 8 bits wide
+      if unique_ids_by_category[base_category] > 255:
+        raise Exception("There are more than 255 '{0:s}' registers.".format(base_category))
 
 
 # Aliased registers
-with open("{0:s}.aliases".format(args.arch), "w") as file:
-  max_alias_len = max([len(r["alias"]) for r in registers.aliases])
-  max_primary_len = max([len(r["primary"]) for r in registers.aliases])
+if registers.aliases:
+  with open("{0:s}.aliases".format(args.arch), "w") as file:
+    max_alias_len = max([len(r["alias"]) for r in registers.aliases])
+    max_primary_len = max([len(r["primary"]) for r in registers.aliases])
+    
+    fmt = "DEF_REGISTER_ALIAS(%{0:d}s, %{1:d}s, \"{2:s}\");\n".format(max_alias_len, max_primary_len, registers.dyninst_suffix) 
   
-  fmt = "DEF_REGISTER_ALIAS(%{0:d}s, %{1:d}s, \"{2:s}\");\n".format(max_alias_len, max_primary_len, registers.dyninst_suffix) 
+    for reg in registers.aliases:
+      file.write(fmt % (reg["alias"], reg["primary"]))
 
-  for reg in registers.aliases:
-    file.write(fmt % (reg["alias"], reg["primary"]))
-
+# Translation tables between Capstone and Dyninst
+registers.export_xlat_tables()
 
