@@ -36,6 +36,7 @@ set(_sources
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
     src/x86/decoder.C
+    src/x86/opcode_xlat.C
     src/x86/register_xlat.C
     src/syscalls.C
     src/interrupts.C
@@ -74,6 +75,7 @@ set(_private_headers
     src/InstructionDecoder-power.h
     src/power_opcode_tables.h
     src/x86/decoder.h
+    src/x86/opcode_xlat.h
     src/x86/register_xlat.h
     h/syscalls.h
     h/interrupts.h
