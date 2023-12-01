@@ -3,6 +3,7 @@ include_guard(GLOBAL)
 include(DyninstLibrary)
 
 set(_sources
+    src/debug.C
     src/Instruction.C
     src/InstructionAST.C
     src/Operation.C
@@ -53,6 +54,7 @@ set(_public_headers
     h/Visitor.h)
 
 set(_private_headers
+    src/debug.h
     src/amdgpu_branchinsn_table.h
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
