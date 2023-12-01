@@ -7,7 +7,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   static bool debug_decode = false;
 
-  void init_debug_symtabAPI() {
+  void init() {
     static bool initialized = false;
     if (initialized) return;
     initialized = true;
@@ -19,7 +19,7 @@ namespace Dyninst { namespace InstructionAPI {
   void decode_printf(const char *format, ...) {
     if (NULL == format) return;
 
-    init_debug_symtabAPI();
+    init();
     if (!debug_decode) return;
 
     va_list va;
