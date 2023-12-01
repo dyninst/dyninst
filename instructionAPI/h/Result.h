@@ -33,7 +33,7 @@
 
 #include <string.h> // memcmp
 #include <cstdint>
-#include <assert.h>
+#include <cassert>
 #include <string>
 
 
