@@ -35,7 +35,7 @@
 #include <cstdint>
 #include <cassert>
 #include <string>
-#include "common/h/util.h"
+#include "util.h"
 
 
 namespace Dyninst
