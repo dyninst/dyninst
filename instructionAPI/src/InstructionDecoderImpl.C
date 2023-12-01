@@ -30,7 +30,7 @@
 
 #include "InstructionDecoderImpl.h"
 #include "common/src/singleton_object_pool.h"
-#include "InstructionDecoder-x86.h"
+#include "x86/decoder.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
@@ -70,7 +70,7 @@ namespace Dyninst
             {
                 case Arch_x86:
                 case Arch_x86_64:
-                    return Ptr(new InstructionDecoder_x86(a));
+                    return Ptr(new x86_decoder(a));
                 case Arch_ppc32:
                 case Arch_ppc64:
                     return Ptr(new InstructionDecoder_power(a));
