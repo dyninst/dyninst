@@ -28,41 +28,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef INSTRUCTIONAPI_X86_DECODER_H
-#define INSTRUCTIONAPI_X86_DECODER_H
+#ifndef INSTRUCTIONAPI_X86_OPCODE_XLAT_H
+#define INSTRUCTIONAPI_X86_OPCODE_XLAT_H
 
-#include "capstone/capstone.h"
-#include "InstructionDecoderImpl.h"
-#include "Result.h"
+#include "capstone/x86.h"
+#include "entryIDs.h"
 
-namespace Dyninst { namespace InstructionAPI {
+namespace Dyninst { namespace InstructionAPI { namespace x86 {
 
-  class x86_decoder final : public InstructionDecoderImpl {
-  public:
-    struct disassem final {
-      csh handle{};
-      cs_insn *insn{};
-    };
+  entryID translate_opcode(x86_insn);
 
-  private:
-    cs_mode mode{};
-    disassem disassembler{};
-
-  public:
-    x86_decoder(Dyninst::Architecture a);
-    x86_decoder() = delete;
-    x86_decoder(x86_decoder const &) = delete;
-    x86_decoder &operator=(x86_decoder const &) = delete;
-    x86_decoder(x86_decoder &&) = delete;
-    x86_decoder &operator=(x86_decoder &&) = delete;
-    ~x86_decoder();
-
-    Instruction decode(InstructionDecoder::buffer &) override;
-
-  private:
-    void decode_operands(Instruction&);
-  };
-
-}}
+}}}
 
 #endif

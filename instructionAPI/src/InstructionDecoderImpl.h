@@ -76,7 +76,6 @@ class InstructionDecoderImpl
         boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
 
-        Operation m_Operation;
         Architecture m_Arch;
 
 };
