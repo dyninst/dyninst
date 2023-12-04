@@ -69,6 +69,9 @@ namespace Dyninst { namespace InstructionAPI {
     buf.start += dis.insn->size;
   }
   
-  bool x86_decoder::decodeOperands(Instruction const*) { return true; }
+  bool x86_decoder::decodeOperands(Instruction const*) {
+    // Capstone does this for us.
+    return true;
+  }
 
 }}
