@@ -40,7 +40,13 @@ namespace Dyninst { namespace InstructionAPI {
 
   class x86_decoder final : public InstructionDecoderImpl {
     cs_mode mode{};
-    csh handle{};
+
+    struct disassem final {
+      csh handle{};
+      cs_insn *insn{};
+    };
+    disassem dis_with_detail{};
+    disassem dis_without_detail{};
 
   public:
 
