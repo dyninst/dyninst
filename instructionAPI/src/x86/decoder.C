@@ -16,8 +16,11 @@
 
 namespace di = Dyninst::InstructionAPI;
 
-static bool is_in_group(cs_detail*, cs_group_type);
 static di::Result_Type size_to_type(uint8_t);
+
+static bool is_cft(di::InsnCategory const c) { return c == di::c_BranchInsn || c == di::c_CallInsn; }
+static bool is_call(di::InsnCategory const c) { return is_cft(c) && c == di::c_CallInsn; }
+static bool is_conditional(di::InsnCategory const c, entryID const id) { return c == di::c_BranchInsn && id != e_jmp; }
 
 namespace Dyninst { namespace InstructionAPI {
 
@@ -107,94 +110,23 @@ namespace Dyninst { namespace InstructionAPI {
       return;
     }
 
-    const bool isCFT = (category == c_BranchInsn || category == c_CallInsn);
-    const bool isCall = isCFT && c_CallInsn;
-    const bool isConditional = (category == c_BranchInsn && insn->getOperation().getID() != e_jmp);
-    const bool isRela = is_in_group(d, CS_GRP_BRANCH_RELATIVE);
-
-    bool err = false;
-    cs_x86* detail = &(d->x86);
-    for(uint8_t i = 0; i < detail->op_count; ++i) {
-      cs_x86_op* operand = &(detail->operands[i]);
-      if(operand->type == X86_OP_REG) {
-        auto regAST = makeRegisterExpression(x86::translate_register(operand->reg, mode));
-        if(isCFT) {
-          // if a call or a jump has a register as an operand,
-          // it should not be a conditional jump
-          assert(!isConditional);
-          insn->addSuccessor(regAST, isCall, true, false, false);
-        } else {
-          // Capstone may report register operands as neither read nor written.
-          // In this case, we mark it as both read and written to be conservative.
-          bool isRead = ((operand->access & CS_AC_READ) != 0);
-          bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
-          if(!isRead && !isWritten) {
-            isRead = isWritten = true;
-          }
-          insn->appendOperand(regAST, isRead, isWritten, false);
-        }
-        // TODO: correctly mark implicit registers
-      } else if(operand->type == X86_OP_IMM) {
-        auto immAST = Immediate::makeImmediate(Result(s32, operand->imm));
-        if(isCFT) {
-          // It looks like that Capstone automatically adjust the offset with the instruction length
-          auto IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-          if(isRela) {
-            auto target(makeAddExpression(IP, immAST, u64));
-            insn->addSuccessor(target, isCall, false, isConditional, false);
-          } else {
-            insn->addSuccessor(immAST, isCall, false, isConditional, false);
-          }
-          if(isConditional)
-            insn->addSuccessor(IP, false, false, true, true);
-        } else {
-          insn->appendOperand(immAST, false, false, false);
-        }
-      } else if(operand->type == X86_OP_MEM) {
-        Expression::Ptr effectiveAddr;
-        x86_op_mem* mem = &(operand->mem);
-        // TODO: handle segment registers
-        if(mem->base != X86_REG_INVALID) {
-          effectiveAddr = makeRegisterExpression(x86::translate_register(mem->base, this->mode));
-        }
-        if(mem->index != X86_REG_INVALID) {
-          Expression::Ptr indexAST = makeRegisterExpression(x86::translate_register(mem->index, this->mode));
-          indexAST = makeMultiplyExpression(indexAST, Immediate::makeImmediate(Result(u8, mem->scale)), u64);
-          if(effectiveAddr)
-            effectiveAddr = makeAddExpression(effectiveAddr, indexAST, u64);
-          else
-            effectiveAddr = indexAST;
-        }
-        // Displacement for addressing memory. So it is unsigned
-        auto immAST = Immediate::makeImmediate(Result(u32, mem->disp));
-        if(effectiveAddr)
-          effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
-        else
-          effectiveAddr = immAST;
-        Result_Type type = size_to_type(operand->size);
-        if(type == invalid_type) {
-          err = true;
-        }
-        Expression::Ptr memAST;
-        if(insn->getOperation().getID() == e_lea)
-          memAST = effectiveAddr;
-        else
-          memAST = makeDereferenceExpression(effectiveAddr, type);
-        if(isCFT) {
-          assert(!isConditional);
-          insn->addSuccessor(memAST, isCall, true, false, false);
-        } else {
-          // Capstone may report register operands as neither read nor written.
-          // In this case, we mark it as both read and written to be conservative.
-          bool isRead = ((operand->access & CS_AC_READ) != 0);
-          bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
-          if(!isRead && !isWritten) {
-            isRead = isWritten = true;
-          }
-          insn->appendOperand(memAST, isRead, isWritten, false);
-        }
-      } else {
-        fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
+    auto* d = dis.insn->detail;
+    for(uint8_t i = 0; i < d->x86.op_count; ++i) {
+      cs_x86_op const& operand = d->x86.operands[i];
+      switch(operand.type) {
+        case X86_OP_REG:
+          decode_reg(insn, operand);
+          break;
+        case X86_OP_IMM:
+          decode_imm(insn, operand);
+          break;
+        case X86_OP_MEM:
+          decode_mem(insn, operand);
+          break;
+        case X86_OP_INVALID:
+          decode_printf("[0x%lx %s %s] has an invalid operand.\n", dis.insn->address,
+                        dis.insn->mnemonic, dis.insn->op_str);
+          break;
       }
     }
 
@@ -223,18 +155,104 @@ namespace Dyninst { namespace InstructionAPI {
       auto regAST = makeRegisterExpression(reg);
       insn->appendOperand(regAST, rit->second.first, rit->second.second, true);
     }
-    if(err)
-      fprintf(stderr, "\tinstruction %s\n", insn->format().c_str());
   }
 
-}}
+  void x86_decoder::decode_reg(Instruction const* insn, cs_x86_op const& operand) {
+    // TODO: correctly mark implicit registers
+    auto const isCFT = is_cft(insn->getCategory());
+    auto regAST = makeRegisterExpression(di::x86::translate_register(operand.reg, mode));
 
-bool is_in_group(cs_detail *d, cs_group_type g) {
-  for (uint8_t i = 0; i < d->groups_count; ++i)
-    if (d->groups[i] == g)
-      return true;
-  return false;
-}
+    if(isCFT) {
+      auto const isCall = is_call(insn->getCategory());
+      insn->addSuccessor(regAST, isCall, true, false, false);
+      return;
+    }
+
+    // It's an error if an operand is neither read nor written.
+    // In this case, we mark it as both read and written to be conservative.
+    bool isRead = ((operand.access & CS_AC_READ) != 0);
+    bool isWritten = ((operand.access & CS_AC_WRITE) != 0);
+    if(!isRead && !isWritten) {
+      isRead = isWritten = true;
+    }
+    insn->appendOperand(regAST, isRead, isWritten, false);
+  }
+
+  void x86_decoder::decode_imm(Instruction const* insn, cs_x86_op const& operand) {
+    auto immAST = Immediate::makeImmediate(Result(s32, operand.imm));
+    auto const isCFT = is_cft(insn->getCategory());
+
+    if(!isCFT) {
+      insn->appendOperand(immAST, false, false, false);
+      return;
+    }
+
+    // It looks like that Capstone automatically adjust the offset with the instruction length
+    auto IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+
+    auto const& dis = dis_with_detail;
+    auto const isCall = is_call(insn->getCategory());
+    auto const isConditional = is_conditional(insn->getCategory(), insn->getOperation().getID());
+    auto const usesRelativeAddressing = cs_insn_group(dis.handle, dis.insn, CS_GRP_BRANCH_RELATIVE);
+
+    if(usesRelativeAddressing) {
+      auto target(makeAddExpression(IP, immAST, u64));
+      insn->addSuccessor(target, isCall, false, isConditional, false);
+    } else {
+      insn->addSuccessor(immAST, isCall, false, isConditional, false);
+    }
+    if(isConditional) {
+      insn->addSuccessor(IP, false, false, true, true);
+    }
+  }
+
+  void x86_decoder::decode_mem(Instruction const* insn, cs_x86_op const& operand) {
+    Expression::Ptr effectiveAddr;
+    auto const isCFT = is_cft(insn->getCategory());
+    auto const isCall = is_call(insn->getCategory());
+    auto const isConditional = is_conditional(insn->getCategory(), insn->getOperation().getID());
+    // TODO: handle segment registers
+    if(operand.mem.base != X86_REG_INVALID) {
+      effectiveAddr = makeRegisterExpression(x86::translate_register(operand.mem.base, this->mode));
+    }
+    if(operand.mem.index != X86_REG_INVALID) {
+      Expression::Ptr indexAST = makeRegisterExpression(x86::translate_register(operand.mem.index, this->mode));
+      indexAST = makeMultiplyExpression(indexAST, Immediate::makeImmediate(Result(u8, operand.mem.scale)), u64);
+      if(effectiveAddr)
+        effectiveAddr = makeAddExpression(effectiveAddr, indexAST, u64);
+      else
+        effectiveAddr = indexAST;
+    }
+    // Displacement for addressing memory. So it is unsigned
+    auto immAST = Immediate::makeImmediate(Result(u32, operand.mem.disp));
+    if(effectiveAddr)
+      effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
+    else
+      effectiveAddr = immAST;
+    Result_Type type = size_to_type(operand.size);
+    if(type == invalid_type) {
+//      err = true;
+    }
+    Expression::Ptr memAST;
+    if(insn->getOperation().getID() == e_lea)
+      memAST = effectiveAddr;
+    else
+      memAST = makeDereferenceExpression(effectiveAddr, type);
+    if(isCFT) {
+      assert(!isConditional);
+      insn->addSuccessor(memAST, isCall, true, false, false);
+    } else {
+      // Capstone may report register operands as neither read nor written.
+      // In this case, we mark it as both read and written to be conservative.
+      bool isRead = ((operand.access & CS_AC_READ) != 0);
+      bool isWritten = ((operand.access & CS_AC_WRITE) != 0);
+      if(!isRead && !isWritten) {
+        isRead = isWritten = true;
+      }
+      insn->appendOperand(memAST, isRead, isWritten, false);
+    }
+  }
+}}
 
 di::Result_Type size_to_type(uint8_t cap_size) {
   switch (cap_size) {
