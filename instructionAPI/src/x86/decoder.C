@@ -110,6 +110,14 @@ namespace Dyninst { namespace InstructionAPI {
       return;
     }
 
+    /* Decode _explicit_ operands
+     *
+     * There are three types of these for x86:
+     *
+     *   add r1, r2       ; r1, r2 are both X86_OP_REG
+     *   jmp -64          ; -64 is X86_OP_IMM
+     *   mov r1, 0x33     ; r1 is X86_OP_REG, 0x33 is X86_OP_MEM
+     */
     auto* d = dis.insn->detail;
     for(uint8_t i = 0; i < d->x86.op_count; ++i) {
       cs_x86_op const& operand = d->x86.operands[i];
@@ -130,6 +138,18 @@ namespace Dyninst { namespace InstructionAPI {
       }
     }
 
+    /* Decode _implicit_ operands
+     *
+     * These are operands which are not part of the opcode. Some opcodes
+     * have both explicit and implicit operands. For example,
+     *
+     *   add r1, r2       ; {e,r}flags is written to implicitly
+     *   jmp -64          ; PC/IP is written to implicitly
+     *
+     * Some have only implicit:
+     *
+     *   pop  ; modifies stack pointer {e,r}sp
+     */
     // The key is a Capstone register enum
     // The value is a pair of boolean, where the first represnet whether read or not
     // and the second one represents whether written or not
