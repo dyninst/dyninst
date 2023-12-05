@@ -5,6 +5,11 @@ if(CMAKE_VERSION VERSION_EQUAL "3.19.0")
   message(FATAL_ERROR "Dyninst cannot use CMake version 3.19.0")
 endif()
 
+# find_package() uses upper-case <PACKAGENAME>_ROOT variables.
+if(POLICY CMP0144)
+  cmake_policy(SET CMP0144 NEW)
+endif()
+
 set(DYNINST_MAJOR_VERSION 12)
 set(DYNINST_MINOR_VERSION 3)
 set(DYNINST_PATCH_VERSION 0)
