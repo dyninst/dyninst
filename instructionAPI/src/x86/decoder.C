@@ -105,7 +105,7 @@ namespace Dyninst { namespace InstructionAPI {
   void x86_decoder::decode_operands(Instruction const* insn, disassem dis) {
     auto const category = insn->getCategory();
     if(category == c_ReturnInsn) {
-      auto ret_addr = makeDereferenceExpression(makeRegisterExpression(MachRegister::getStackPointer(m_Arch)), u64);
+      auto ret_addr = insn->makeReturnExpression();
       insn->addSuccessor(ret_addr, false, true, false, false);
       return;
     }
