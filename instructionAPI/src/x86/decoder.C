@@ -1,6 +1,3 @@
-#include "capstone/capstone.h"
-#include "capstone/x86.h"
-
 #include "x86/decoder.h"
 #include "x86/register-xlat.h"
 #include "mnemonic-xlat.h"
