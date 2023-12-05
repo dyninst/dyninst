@@ -33,7 +33,6 @@
 
 #include "capstone/capstone.h"
 #include "Result.h"
-#include "Operation_impl.h"
 #include "InstructionDecoderImpl.h"
 
 namespace Dyninst { namespace InstructionAPI {
