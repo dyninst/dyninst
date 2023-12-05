@@ -70,7 +70,7 @@ namespace Dyninst { namespace InstructionAPI {
       decode_printf("Failed to disassemble instruction at %p: %s\n", code, cs_strerror(cs_errno(dis.handle)));
       return;
     }
-    decode_operands(insn, dis.insn->detail);
+    decode_operands(insn, dis);
   }
 
   void x86_decoder::decodeOpcode(InstructionDecoder::buffer& buf) {
@@ -99,7 +99,7 @@ namespace Dyninst { namespace InstructionAPI {
     return true;
   }
 
-  void x86_decoder::decode_operands(Instruction const* insn, cs_detail* d) {
+  void x86_decoder::decode_operands(Instruction const* insn, disassem dis) {
     auto const category = insn->getCategory();
     if(category == c_ReturnInsn) {
       auto ret_addr = makeDereferenceExpression(makeRegisterExpression(MachRegister::getStackPointer(m_Arch)), u64);
