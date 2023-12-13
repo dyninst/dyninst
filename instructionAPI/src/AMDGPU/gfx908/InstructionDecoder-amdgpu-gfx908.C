@@ -228,10 +228,6 @@ namespace Dyninst {
 		Instruction InstructionDecoder_amdgpu_gfx908::decode(InstructionDecoder::buffer &b) {
 			setupInsnWord(b);
 			mainDecode();
-			if(entryToCategory(insn_in_progress->getOperation().getID())==c_BranchInsn){
-                //cout << "Is Branch Instruction !! , name = " << insn_in_progress -> getOperation().mnemonic << endl;
-				//std::mem_fun(decode_lookup_table[instr_family])(this);
-			}
 			b.start += insn_in_progress->size();
 			return *insn_in_progress;
 		}
