@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <map>
+#include <vector>
 
 namespace di = Dyninst::InstructionAPI;
 
@@ -21,6 +22,9 @@ static bool is_conditional(di::InsnCategory const c, entryID const id) { return 
 
 struct implicit_state final { bool read, written; };
 static std::map<x86_reg,implicit_state> implicit_registers(cs_detail const*);
+
+struct eflags_t final { Dyninst::MachRegister reg; implicit_state state; };
+static std::vector<eflags_t> expand_eflags(x86_reg, cs_mode);
 
 namespace Dyninst { namespace InstructionAPI {
 
@@ -153,16 +157,18 @@ namespace Dyninst { namespace InstructionAPI {
     for(auto r : implicit_registers(d)) {
       constexpr bool is_implicit = true;
       x86_reg reg = r.first;
-      MachRegister mreg = x86::translate_register(reg, this->mode);
-      
-      // Traditionally, instructionAPI only present individual flag fields,
-      // not the whole flag register
-      if(reg == Dyninst::x86::flags || reg == Dyninst::x86_64::flags)
-        continue;
-      
-      auto regAST = makeRegisterExpression(mreg);
-      implicit_state s = r.second;
-      insn->appendOperand(regAST, s.read, s.written, is_implicit);
+      if(reg == X86_REG_EFLAGS) {
+        for(auto fr : expand_eflags(reg, this->mode)) {
+          if(!fr.state.read && !fr.state.written) continue; // don't report untouched registers
+          auto regAST = makeRegisterExpression(fr.reg);
+          insn->appendOperand(regAST, fr.state.read, fr.state.written, is_implicit);
+        }
+      } else {
+        MachRegister mreg = x86::translate_register(reg, this->mode);
+        auto regAST = makeRegisterExpression(mreg);
+        implicit_state s = r.second;
+        insn->appendOperand(regAST, s.read, s.written, is_implicit);
+      }
     }
   }
 
@@ -304,3 +310,50 @@ std::map<x86_reg,implicit_state> implicit_registers(cs_detail const* d) {
   }
   return regs;
 }
+
+/* clang-format  off */
+std::vector<eflags_t> expand_eflags(x86_reg r, cs_mode m) {
+  /*
+   *  There are four possible types of access modeled by Capstone:
+   *
+   *    MODIFY    - written to
+   *    PRIOR     - this is never used in Capstone
+   *    RESET     - set to zero
+   *    SET       - written to
+   *    TEST      - read from
+   *    UNDEFINED - no guarantees about the state of the flag
+   *
+   */
+  std::vector<eflags_t> regs;
+  if(m == CS_MODE_64) {
+    regs.push_back({Dyninst::x86_64::af,  {!!(r & X86_EFLAGS_TEST_AF), !!((r & X86_EFLAGS_SET_AF) || (r & X86_EFLAGS_RESET_AF) || (r & X86_EFLAGS_MODIFY_AF))}});
+    regs.push_back({Dyninst::x86_64::cf,  {!!(r & X86_EFLAGS_TEST_CF), !!((r & X86_EFLAGS_SET_CF) || (r & X86_EFLAGS_RESET_CF) || (r & X86_EFLAGS_MODIFY_CF))}});
+    regs.push_back({Dyninst::x86_64::sf,  {!!(r & X86_EFLAGS_TEST_SF), !!((r & X86_EFLAGS_SET_SF) || (r & X86_EFLAGS_RESET_SF) || (r & X86_EFLAGS_MODIFY_SF))}});
+    regs.push_back({Dyninst::x86_64::zf,  {!!(r & X86_EFLAGS_TEST_ZF), !!((r & X86_EFLAGS_SET_ZF) || (r & X86_EFLAGS_RESET_ZF) || (r & X86_EFLAGS_MODIFY_ZF))}});
+    regs.push_back({Dyninst::x86_64::pf,  {!!(r & X86_EFLAGS_TEST_PF), !!((r & X86_EFLAGS_SET_PF) || (r & X86_EFLAGS_RESET_PF) || (r & X86_EFLAGS_MODIFY_PF))}});
+    regs.push_back({Dyninst::x86_64::of,  {!!(r & X86_EFLAGS_TEST_OF), !!((r & X86_EFLAGS_SET_OF) || (r & X86_EFLAGS_RESET_OF) || (r & X86_EFLAGS_MODIFY_OF))}});
+    regs.push_back({Dyninst::x86_64::tf,  {!!(r & X86_EFLAGS_TEST_TF), !!(                           (r & X86_EFLAGS_RESET_TF) || (r & X86_EFLAGS_MODIFY_TF))}});
+    regs.push_back({Dyninst::x86_64::if_, {!!(r & X86_EFLAGS_TEST_IF), !!((r & X86_EFLAGS_SET_IF) || (r & X86_EFLAGS_RESET_IF) || (r & X86_EFLAGS_MODIFY_IF))}});
+    regs.push_back({Dyninst::x86_64::df,  {!!(r & X86_EFLAGS_TEST_DF), !!((r & X86_EFLAGS_SET_DF) || (r & X86_EFLAGS_RESET_DF) || (r & X86_EFLAGS_MODIFY_DF))}});
+    regs.push_back({Dyninst::x86_64::nt_, {!!(r & X86_EFLAGS_TEST_NT), !!(                           (r & X86_EFLAGS_RESET_NT) || (r & X86_EFLAGS_MODIFY_NT))}});
+    regs.push_back({Dyninst::x86_64::rf,  {!!(r & X86_EFLAGS_TEST_RF), !!(                           (r & X86_EFLAGS_RESET_RF) || (r & X86_EFLAGS_MODIFY_RF))}});
+    return regs;
+  }
+  if(m == CS_MODE_32) {
+    regs.push_back({Dyninst::x86::af,  {!!(r & X86_EFLAGS_TEST_AF), !!((r & X86_EFLAGS_SET_AF) || (r & X86_EFLAGS_RESET_AF) || (r & X86_EFLAGS_MODIFY_AF))}});
+    regs.push_back({Dyninst::x86::cf,  {!!(r & X86_EFLAGS_TEST_CF), !!((r & X86_EFLAGS_SET_CF) || (r & X86_EFLAGS_RESET_CF) || (r & X86_EFLAGS_MODIFY_CF))}});
+    regs.push_back({Dyninst::x86::sf,  {!!(r & X86_EFLAGS_TEST_SF), !!((r & X86_EFLAGS_SET_SF) || (r & X86_EFLAGS_RESET_SF) || (r & X86_EFLAGS_MODIFY_SF))}});
+    regs.push_back({Dyninst::x86::zf,  {!!(r & X86_EFLAGS_TEST_ZF), !!((r & X86_EFLAGS_SET_ZF) || (r & X86_EFLAGS_RESET_ZF) || (r & X86_EFLAGS_MODIFY_ZF))}});
+    regs.push_back({Dyninst::x86::pf,  {!!(r & X86_EFLAGS_TEST_PF), !!((r & X86_EFLAGS_SET_PF) || (r & X86_EFLAGS_RESET_PF) || (r & X86_EFLAGS_MODIFY_PF))}});
+    regs.push_back({Dyninst::x86::of,  {!!(r & X86_EFLAGS_TEST_OF), !!((r & X86_EFLAGS_SET_OF) || (r & X86_EFLAGS_RESET_OF) || (r & X86_EFLAGS_MODIFY_OF))}});
+    regs.push_back({Dyninst::x86::tf,  {!!(r & X86_EFLAGS_TEST_TF), !!(                           (r & X86_EFLAGS_RESET_TF) || (r & X86_EFLAGS_MODIFY_TF))}});
+    regs.push_back({Dyninst::x86::if_, {!!(r & X86_EFLAGS_TEST_IF), !!((r & X86_EFLAGS_SET_IF) || (r & X86_EFLAGS_RESET_IF) || (r & X86_EFLAGS_MODIFY_IF))}});
+    regs.push_back({Dyninst::x86::df,  {!!(r & X86_EFLAGS_TEST_DF), !!((r & X86_EFLAGS_SET_DF) || (r & X86_EFLAGS_RESET_DF) || (r & X86_EFLAGS_MODIFY_DF))}});
+    regs.push_back({Dyninst::x86::nt_, {!!(r & X86_EFLAGS_TEST_NT), !!(                           (r & X86_EFLAGS_RESET_NT) || (r & X86_EFLAGS_MODIFY_NT))}});
+    regs.push_back({Dyninst::x86::rf,  {!!(r & X86_EFLAGS_TEST_RF), !!(                           (r & X86_EFLAGS_RESET_RF) || (r & X86_EFLAGS_MODIFY_RF))}});
+    return regs;
+  }
+
+  return regs;
+}
+/* clang-format  on */
