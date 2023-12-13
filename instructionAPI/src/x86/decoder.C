@@ -9,7 +9,7 @@
 #include "registers/MachRegister.h"
 
 #include <cstdint>
-#include <utility>
+#include <map>
 
 namespace di = Dyninst::InstructionAPI;
 
@@ -18,6 +18,9 @@ static di::Result_Type size_to_type(uint8_t);
 static bool is_cft(di::InsnCategory const c) { return c == di::c_BranchInsn || c == di::c_CallInsn; }
 static bool is_call(di::InsnCategory const c) { return is_cft(c) && c == di::c_CallInsn; }
 static bool is_conditional(di::InsnCategory const c, entryID const id) { return c == di::c_BranchInsn && id != e_jmp; }
+
+struct implicit_state final { bool read, written; };
+static std::map<x86_reg,implicit_state> implicit_registers(cs_detail const*);
 
 namespace Dyninst { namespace InstructionAPI {
 
@@ -147,35 +150,23 @@ namespace Dyninst { namespace InstructionAPI {
      *
      *   pop  ; modifies stack pointer {e,r}sp
      */
-    // The key is a Capstone register enum
-    // The value is a pair of boolean, where the first represnet whether read or not
-    // and the second one represents whether written or not
-    std::map<uint16_t, std::pair<bool, bool>> implicitRegs;
-    for(int i = 0; i < d->regs_read_count; ++i) {
-      implicitRegs.insert(std::make_pair(d->regs_read[i], std::make_pair(true, false)));
-    }
-    for(int i = 0; i < d->regs_write_count; ++i) {
-      auto it = implicitRegs.find(d->regs_write[i]);
-      if(it == implicitRegs.end()) {
-        implicitRegs.insert(std::make_pair(d->regs_write[i], std::make_pair(false, true)));
-      } else {
-        it->second.second = true;
-      }
-    }
-
-    for(auto rit = implicitRegs.begin(); rit != implicitRegs.end(); ++rit) {
-      MachRegister reg = x86::translate_register((x86_reg)rit->first, this->mode);
+    for(auto r : implicit_registers(d)) {
+      constexpr bool is_implicit = true;
+      x86_reg reg = r.first;
+      MachRegister mreg = x86::translate_register(reg, this->mode);
+      
       // Traditionally, instructionAPI only present individual flag fields,
       // not the whole flag register
       if(reg == Dyninst::x86::flags || reg == Dyninst::x86_64::flags)
         continue;
-      auto regAST = makeRegisterExpression(reg);
-      insn->appendOperand(regAST, rit->second.first, rit->second.second, true);
+      
+      auto regAST = makeRegisterExpression(mreg);
+      implicit_state s = r.second;
+      insn->appendOperand(regAST, s.read, s.written, is_implicit);
     }
   }
 
   void x86_decoder::decode_reg(Instruction const* insn, cs_x86_op const& operand) {
-    // TODO: correctly mark implicit registers
     auto const isCFT = is_cft(insn->getCategory());
     auto regAST = makeRegisterExpression(di::x86::translate_register(operand.reg, mode));
 
@@ -297,4 +288,19 @@ di::Result_Type size_to_type(uint8_t cap_size) {
     case 64: return di::m512;
     default: return di::invalid_type;
   }
+}
+
+std::map<x86_reg,implicit_state> implicit_registers(cs_detail const* d) {
+  std::map<x86_reg, implicit_state> regs;
+  for(int i = 0; i < d->regs_read_count; ++i) {
+    regs.emplace(static_cast<x86_reg>(d->regs_read[i]), implicit_state{true, false});
+  }
+  for(int i = 0; i < d->regs_write_count; ++i) {
+    auto res = regs.emplace(static_cast<x86_reg>(d->regs_write[i]), implicit_state{false, true});
+    if(!res.second) {
+      // Register already existed, so was read. Mark it written.
+      res.first->second.written = true;
+    }
+  }
+  return regs;
 }
