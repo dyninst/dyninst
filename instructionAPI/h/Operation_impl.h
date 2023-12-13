@@ -139,20 +139,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() ;
       /// Returns the set of memory locations implicitly written.
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() ;
-      friend std::size_t hash_value(Operation const& op)
-      {
-        size_t seed = 0;
-        boost::hash_combine(seed, op.operationID);
-        boost::hash_combine(seed, op.prefixID);
-        boost::hash_combine(seed, op.archDecodedFrom);
-        boost::hash_combine(seed, op.addrWidth);
-        boost::hash_combine(seed, op.segPrefix);
-        boost::hash_combine(seed, op.isVectorInsn);
-        return seed;
-      }
-      bool operator==(const Operation& rhs) const {
-        return hash_value(*this) == hash_value(rhs);
-      }
+
       void updateMnemonic(std::string new_mnemonic){
         mnemonic = new_mnemonic;
       }
