@@ -60,7 +60,7 @@ namespace Dyninst
             return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size() * 8));
         }
 
-        Operation_impl::Operation_impl(entryID id, std::string m, Architecture arch)
+        Operation::Operation(entryID id, std::string m, Architecture arch)
             : operationID(id), archDecodedFrom(arch), prefixID(prefix_none)
         {
             switch(archDecodedFrom)
@@ -111,7 +111,7 @@ namespace Dyninst
             return false;
         }
 
-        Operation_impl::Operation_impl(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
+        Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
             archDecodedFrom(arch), prefixID(prefix_none)
         {
             segPrefix = 0;
@@ -140,7 +140,7 @@ namespace Dyninst
             }
         }
 
-        Operation_impl::Operation_impl(const Operation_impl& o)
+        Operation::Operation(const Operation& o)
         {
             operationID = o.operationID;
             archDecodedFrom = o.archDecodedFrom;
@@ -150,7 +150,7 @@ namespace Dyninst
             isVectorInsn = o.isVectorInsn;
             mnemonic = o.mnemonic;
         }
-        const Operation_impl& Operation_impl::operator=(const Operation_impl& o)
+        const Operation& Operation::operator=(const Operation& o)
         {
             operationID = o.operationID;
             archDecodedFrom = o.archDecodedFrom;
@@ -161,7 +161,7 @@ namespace Dyninst
             mnemonic = o.mnemonic;
             return *this;
         }
-        Operation_impl::Operation_impl()
+        Operation::Operation()
         {
             operationID = e_No_Entry;
             archDecodedFrom = Arch_none;
@@ -171,19 +171,19 @@ namespace Dyninst
             isVectorInsn = false;
         }
 
-        const Operation_impl::registerSet&  Operation_impl::implicitReads()
+        const Operation::registerSet&  Operation::implicitReads()
         {
             SetUpNonOperandData();
 
             return otherRead;
         }
-        const Operation_impl::registerSet&  Operation_impl::implicitWrites()
+        const Operation::registerSet&  Operation::implicitWrites()
         {
             SetUpNonOperandData();
 
             return otherWritten;
         }
-        bool Operation_impl::isRead(Expression::Ptr candidate)
+        bool Operation::isRead(Expression::Ptr candidate)
         {
 
             SetUpNonOperandData();
@@ -208,18 +208,18 @@ namespace Dyninst
             }
             return false;
         }
-        const Operation_impl::VCSet& Operation_impl::getImplicitMemReads()
+        const Operation::VCSet& Operation::getImplicitMemReads()
         {
             SetUpNonOperandData();
             return otherEffAddrsRead;
         }
-        const Operation_impl::VCSet& Operation_impl::getImplicitMemWrites()
+        const Operation::VCSet& Operation::getImplicitMemWrites()
         {
             SetUpNonOperandData();
             return otherEffAddrsWritten;
         }
 
-        bool Operation_impl::isWritten(Expression::Ptr candidate)
+        bool Operation::isWritten(Expression::Ptr candidate)
         {
 
             SetUpNonOperandData();
@@ -245,7 +245,7 @@ namespace Dyninst
             return false;
         }
 
-        std::string Operation_impl::format() const
+        std::string Operation::format() const
         {
             if(mnemonic != "")
             {
@@ -269,20 +269,20 @@ namespace Dyninst
             return result;
         }
 
-        entryID Operation_impl::getID() const
+        entryID Operation::getID() const
         {
             return operationID;
         }
 
-        prefixEntryID Operation_impl::getPrefixID() const
+        prefixEntryID Operation::getPrefixID() const
         {
             return prefixID;
         }
 
         struct OperationMaps
         {
-            typedef dyn_c_hash_map<entryID, Operation_impl::registerSet > reg_info_t;
-            typedef dyn_c_hash_map<entryID, Operation_impl::VCSet > mem_info_t;
+            typedef dyn_c_hash_map<entryID, Operation::registerSet > reg_info_t;
+            typedef dyn_c_hash_map<entryID, Operation::VCSet > mem_info_t;
             public:
             OperationMaps(Architecture arch)
             {
@@ -370,15 +370,15 @@ namespace Dyninst
 
 
             }
-            Operation_impl::registerSet thePC;
-            Operation_impl::registerSet pcAndSP;
-            Operation_impl::registerSet stackPointer;
-            Operation_impl::VCSet stackPointerAsExpr;
-            Operation_impl::registerSet framePointer;
-            Operation_impl::registerSet spAndBP;
-            Operation_impl::registerSet si;
-            Operation_impl::registerSet di;
-            Operation_impl::registerSet si_and_di;
+            Operation::registerSet thePC;
+            Operation::registerSet pcAndSP;
+            Operation::registerSet stackPointer;
+            Operation::VCSet stackPointerAsExpr;
+            Operation::registerSet framePointer;
+            Operation::registerSet spAndBP;
+            Operation::registerSet si;
+            Operation::registerSet di;
+            Operation::registerSet si_and_di;
 
             reg_info_t nonOperandRegisterReads;
             reg_info_t nonOperandRegisterWrites;
@@ -400,7 +400,7 @@ namespace Dyninst
                     return op_data_32;
             }
         }
-        void Operation_impl::SetUpNonOperandData()
+        void Operation::SetUpNonOperandData()
         {
             if (archDecodedFrom != Arch_x86 && archDecodedFrom != Arch_x86_64) return;
             std::call_once(data_initialized, [&]() {

@@ -96,7 +96,7 @@ namespace Dyninst
     /// %Operations are constructed by the %InstructionDecoder as part of the process
     /// of constructing an %Instruction.
     
-    class Operation_impl : public boost::lockable_adapter<boost::recursive_mutex>
+    class Operation : public boost::lockable_adapter<boost::recursive_mutex>
     {
     public:
       typedef std::set<RegisterAST::Ptr> registerSet;
@@ -109,13 +109,13 @@ namespace Dyninst
       friend class Instruction; // to make use of the update size function
       
     public:
-      INSTRUCTION_EXPORT Operation_impl(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+      INSTRUCTION_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
                                   Architecture arch = Arch_none);
-      INSTRUCTION_EXPORT Operation_impl(const Operation_impl& o);
-      INSTRUCTION_EXPORT Operation_impl();
-      INSTRUCTION_EXPORT Operation_impl(entryID id, std::string m, Architecture arch);
-      
-      INSTRUCTION_EXPORT const Operation_impl& operator=(const Operation_impl& o);
+      INSTRUCTION_EXPORT Operation(const Operation& o);
+      INSTRUCTION_EXPORT Operation();
+      INSTRUCTION_EXPORT Operation(entryID id, std::string m, Architecture arch);
+
+      INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
       
       /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
       INSTRUCTION_EXPORT const registerSet& implicitReads() ;
@@ -139,7 +139,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() ;
       /// Returns the set of memory locations implicitly written.
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() ;
-      friend std::size_t hash_value(Operation_impl const& op)
+      friend std::size_t hash_value(Operation const& op)
       {
         size_t seed = 0;
         boost::hash_combine(seed, op.operationID);
@@ -150,7 +150,7 @@ namespace Dyninst
         boost::hash_combine(seed, op.isVectorInsn);
         return seed;
       }
-      bool operator==(const Operation_impl& rhs) const {
+      bool operator==(const Operation& rhs) const {
         return hash_value(*this) == hash_value(rhs);
       }
       void updateMnemonic(std::string new_mnemonic){
@@ -179,13 +179,6 @@ namespace Dyninst
       mutable std::string mnemonic;
 
       
-    };
-    struct Operation: public Operation_impl {
-        Operation(entryID id, std::string m, Architecture arch)
-                : Operation_impl(id, m, arch)  {}
-        Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
-                Architecture arch = Arch_none) : Operation_impl(e, p, l, arch) {}
-        Operation() : Operation_impl() {}
     };
   }
 }

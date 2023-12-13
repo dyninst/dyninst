@@ -122,7 +122,6 @@ namespace Dyninst
     public:
       /// \brief A type definition for a reference counted pointer to a %Expression.
       typedef boost::shared_ptr<Expression> Ptr;
-      friend class Operation_impl;
     protected:      
       Expression(Result_Type t);
       Expression(MachRegister r);
