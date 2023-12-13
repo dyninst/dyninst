@@ -116,7 +116,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     /* Decode _explicit_ operands
      *
-     * There are three types of these for x86:
+     * There are three types:
      *
      *   add r1, r2       ; r1, r2 are both X86_OP_REG
      *   jmp -64          ; -64 is X86_OP_IMM
