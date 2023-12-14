@@ -174,7 +174,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   void x86_decoder::decode_reg(Instruction const* insn, cs_x86_op const& operand) {
     auto const isCFT = is_cft(insn->getCategory());
-    auto regAST = makeRegisterExpression(di::x86::translate_register(operand.reg, mode));
+    auto regAST = makeRegisterExpression(x86::translate_register(operand.reg, mode));
 
     if(isCFT) {
       auto const isCall = is_call(insn->getCategory());
