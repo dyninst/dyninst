@@ -120,7 +120,7 @@ namespace Dyninst { namespace InstructionAPI {
      *
      *   add r1, r2       ; r1, r2 are both X86_OP_REG
      *   jmp -64          ; -64 is X86_OP_IMM
-     *   mov r1, 0x33     ; r1 is X86_OP_REG, 0x33 is X86_OP_MEM
+     *   mov r1, [0x33]   ; r1 is X86_OP_REG, 0x33 is X86_OP_MEM
      */
     auto* d = dis.insn->detail;
     for(uint8_t i = 0; i < d->x86.op_count; ++i) {
