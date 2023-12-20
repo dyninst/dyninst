@@ -16,8 +16,8 @@ namespace di = Dyninst::InstructionAPI;
 
 static di::Result_Type size_to_type(uint8_t);
 
-static bool is_cft(di::InsnCategory const c) { return c == di::c_BranchInsn || c == di::c_CallInsn; }
-static bool is_call(di::InsnCategory const c) { return is_cft(c) && c == di::c_CallInsn; }
+static bool is_call(di::InsnCategory const c) { return c == di::c_CallInsn; }
+static bool is_cft(di::InsnCategory const c) { return c == di::c_BranchInsn || is_call(c); }
 static bool is_conditional(di::InsnCategory const c, entryID const id) { return c == di::c_BranchInsn && id != e_jmp; }
 
 struct implicit_state final { bool read, written; };
