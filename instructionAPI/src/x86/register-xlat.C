@@ -253,7 +253,7 @@ namespace Dyninst { namespace InstructionAPI { namespace x86 {
           case X86_REG_FP6:
           case X86_REG_FP7:
 
-          /* AMX registers */
+          /* MPX registers */
           case X86_REG_BND0:
           case X86_REG_BND1:
           case X86_REG_BND2:
@@ -510,7 +510,7 @@ namespace Dyninst { namespace InstructionAPI { namespace x86 {
           case X86_REG_FP6:
           case X86_REG_FP7:
 
-          /* AMX registers */
+          /* MPX registers */
           case X86_REG_BND0:
           case X86_REG_BND1:
           case X86_REG_BND2:
