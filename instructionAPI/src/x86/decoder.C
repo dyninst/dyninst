@@ -314,7 +314,7 @@ std::map<x86_reg,implicit_state> implicit_registers(cs_detail const* d) {
 /* clang-format  off */
 std::vector<eflags_t> expand_eflags(x86_reg r, cs_mode m) {
   /*
-   *  There are four possible types of access modeled by Capstone:
+   *  There are six possible types of access modeled by Capstone:
    *
    *    MODIFY    - written to
    *    PRIOR     - this is never used in Capstone
