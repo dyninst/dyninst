@@ -193,9 +193,8 @@ namespace Dyninst { namespace InstructionAPI {
 
   void x86_decoder::decode_imm(Instruction const* insn, cs_x86_op const& operand) {
     auto immAST = Immediate::makeImmediate(Result(s32, operand.imm));
-    auto const isCFT = is_cft(insn->getCategory());
 
-    if(!isCFT) {
+    if(!is_cft(insn->getCategory())) {
       insn->appendOperand(immAST, false, false, false);
       return;
     }
