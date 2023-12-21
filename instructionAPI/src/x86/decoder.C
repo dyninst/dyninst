@@ -229,16 +229,16 @@ namespace Dyninst { namespace InstructionAPI {
     }
     if(operand.mem.index != X86_REG_INVALID) {
       Expression::Ptr indexAST = makeRegisterExpression(x86::translate_register(operand.mem.index, this->mode));
-      indexAST = makeMultiplyExpression(indexAST, Immediate::makeImmediate(Result(u8, operand.mem.scale)), u64);
+      indexAST = makeMultiplyExpression(indexAST, Immediate::makeImmediate(Result(u8, operand.mem.scale)), s64);
       if(effectiveAddr)
-        effectiveAddr = makeAddExpression(effectiveAddr, indexAST, u64);
+        effectiveAddr = makeAddExpression(effectiveAddr, indexAST, s64);
       else
         effectiveAddr = indexAST;
     }
-    // Displacement for addressing memory. So it is unsigned
-    auto immAST = Immediate::makeImmediate(Result(u32, operand.mem.disp));
+
+    auto immAST = Immediate::makeImmediate(Result(s32, operand.mem.disp));
     if(effectiveAddr)
-      effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
+      effectiveAddr = makeAddExpression(effectiveAddr, immAST, s64);
     else
       effectiveAddr = immAST;
     Result_Type type = size_to_type(operand.size);
