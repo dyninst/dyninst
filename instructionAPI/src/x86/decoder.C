@@ -243,12 +243,12 @@ namespace Dyninst { namespace InstructionAPI {
     } else {
       effectiveAddr = immAST;
     }
-    Result_Type type = size_to_type(operand.size);
 
     Expression::Ptr memAST;
     if(insn->getOperation().getID() == e_lea) {
       memAST = effectiveAddr;
     } else {
+      Result_Type type = size_to_type(operand.size);
       memAST = makeDereferenceExpression(effectiveAddr, type);
     }
 
