@@ -244,9 +244,7 @@ namespace Dyninst { namespace InstructionAPI {
     else
       effectiveAddr = immAST;
     Result_Type type = size_to_type(operand.size);
-    if(type == invalid_type) {
-//      err = true;
-    }
+
     Expression::Ptr memAST;
     if(insn->getOperation().getID() == e_lea)
       memAST = effectiveAddr;
