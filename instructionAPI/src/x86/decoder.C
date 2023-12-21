@@ -230,24 +230,27 @@ namespace Dyninst { namespace InstructionAPI {
     if(operand.mem.index != X86_REG_INVALID) {
       Expression::Ptr indexAST = makeRegisterExpression(x86::translate_register(operand.mem.index, this->mode));
       indexAST = makeMultiplyExpression(indexAST, Immediate::makeImmediate(Result(u8, operand.mem.scale)), s64);
-      if(effectiveAddr)
+      if(effectiveAddr) {
         effectiveAddr = makeAddExpression(effectiveAddr, indexAST, s64);
-      else
+      } else {
         effectiveAddr = indexAST;
+      }
     }
 
     auto immAST = Immediate::makeImmediate(Result(s32, operand.mem.disp));
-    if(effectiveAddr)
+    if(effectiveAddr) {
       effectiveAddr = makeAddExpression(effectiveAddr, immAST, s64);
-    else
+    } else {
       effectiveAddr = immAST;
+    }
     Result_Type type = size_to_type(operand.size);
 
     Expression::Ptr memAST;
-    if(insn->getOperation().getID() == e_lea)
+    if(insn->getOperation().getID() == e_lea) {
       memAST = effectiveAddr;
-    else
+    } else {
       memAST = makeDereferenceExpression(effectiveAddr, type);
+    }
 
     if(is_cft(insn->getCategory())) {
       auto const isCall = is_call(insn->getCategory());
