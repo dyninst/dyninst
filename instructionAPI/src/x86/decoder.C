@@ -200,7 +200,6 @@ namespace Dyninst { namespace InstructionAPI {
       return;
     }
 
-    // It looks like that Capstone automatically adjust the offset with the instruction length
     auto IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
 
     auto const& dis = dis_with_detail;
@@ -209,6 +208,8 @@ namespace Dyninst { namespace InstructionAPI {
     auto const usesRelativeAddressing = cs_insn_group(dis.handle, dis.insn, CS_GRP_BRANCH_RELATIVE);
 
     if(usesRelativeAddressing) {
+      // Capstone adjusts the offset to account for the current instruction's length, so we can
+      // just create an addition AST expression here.
       auto target(makeAddExpression(IP, immAST, s64));
       insn->addSuccessor(target, isCall, false, isConditional, false);
     } else {
