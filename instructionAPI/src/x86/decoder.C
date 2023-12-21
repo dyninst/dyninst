@@ -259,11 +259,11 @@ namespace Dyninst { namespace InstructionAPI {
       }
     }
 
-    auto immAST = Immediate::makeImmediate(Result(s32, operand.mem.disp));
+    auto displacementAST = Immediate::makeImmediate(Result(s32, operand.mem.disp));
     if(effectiveAddr) {
-      effectiveAddr = makeAddExpression(effectiveAddr, immAST, s64);
+      effectiveAddr = makeAddExpression(effectiveAddr, displacementAST, s64);
     } else {
-      effectiveAddr = immAST;
+      effectiveAddr = displacementAST;
     }
 
     Expression::Ptr memAST;
