@@ -192,7 +192,8 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void x86_decoder::decode_imm(Instruction const* insn, cs_x86_op const& operand) {
-    auto immAST = Immediate::makeImmediate(Result(s32, operand.imm));
+    // Capstone internally converts all immediate values to int64_t
+    auto immAST = Immediate::makeImmediate(Result(s64, operand.imm));
 
     if(!is_cft(insn->getCategory())) {
       insn->appendOperand(immAST, false, false, false);
@@ -208,7 +209,7 @@ namespace Dyninst { namespace InstructionAPI {
     auto const usesRelativeAddressing = cs_insn_group(dis.handle, dis.insn, CS_GRP_BRANCH_RELATIVE);
 
     if(usesRelativeAddressing) {
-      auto target(makeAddExpression(IP, immAST, u64));
+      auto target(makeAddExpression(IP, immAST, s64));
       insn->addSuccessor(target, isCall, false, isConditional, false);
     } else {
       insn->addSuccessor(immAST, isCall, false, isConditional, false);
