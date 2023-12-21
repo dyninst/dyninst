@@ -222,8 +222,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   void x86_decoder::decode_mem(Instruction const* insn, cs_x86_op const& operand) {
     Expression::Ptr effectiveAddr;
-    auto const isCFT = is_cft(insn->getCategory());
-    auto const isCall = is_call(insn->getCategory());
 
     // TODO: handle segment registers
     if(operand.mem.base != X86_REG_INVALID) {
@@ -250,7 +248,9 @@ namespace Dyninst { namespace InstructionAPI {
       memAST = effectiveAddr;
     else
       memAST = makeDereferenceExpression(effectiveAddr, type);
-    if(isCFT) {
+
+    if(is_cft(insn->getCategory())) {
+      auto const isCall = is_call(insn->getCategory());
       insn->addSuccessor(memAST, isCall, true, false, false);
     } else {
       // Capstone may report register operands as neither read nor written.
