@@ -278,17 +278,19 @@ namespace Dyninst { namespace InstructionAPI {
     if(is_cft(insn->getCategory())) {
       auto const isCall = is_call(insn->getCategory());
       insn->addSuccessor(memAST, isCall, true, false, false);
-    } else {
-      // Capstone may report register operands as neither read nor written.
-      // In this case, we mark it as both read and written to be conservative.
-      bool isRead = ((operand.access & CS_AC_READ) != 0);
-      bool isWritten = ((operand.access & CS_AC_WRITE) != 0);
-      if(!isRead && !isWritten) {
-        isRead = isWritten = true;
-      }
-      insn->appendOperand(memAST, isRead, isWritten, false);
+      return;
     }
+
+    // Capstone may report register operands as neither read nor written.
+    // In this case, we mark it as both read and written to be conservative.
+    bool isRead = ((operand.access & CS_AC_READ) != 0);
+    bool isWritten = ((operand.access & CS_AC_WRITE) != 0);
+    if(!isRead && !isWritten) {
+      isRead = isWritten = true;
+    }
+    insn->appendOperand(memAST, isRead, isWritten, false);
   }
+
 }}
 
 di::Result_Type size_to_type(uint8_t cap_size) {
