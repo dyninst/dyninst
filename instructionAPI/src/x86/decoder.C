@@ -221,6 +221,27 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void x86_decoder::decode_mem(Instruction const* insn, cs_x86_op const& operand) {
+    /*
+     *   Intel 64 and IA-32 Architectures Software Developer’s Manual
+     *   June 2021
+     *   Section 3.7.5 Specifying an Offset
+     *
+     *   The offset part of a memory address can be specified directly as a static value (called
+     *   a displacement) or through an address computation made up of one or more of the following
+     *   components:
+     *
+     *   - Displacement: An 8-, 16-, or 32-bit value.
+     *   - Base:         The value in a general-purpose register.
+     *   - Index:        The value in a general-purpose register.
+     *   - Scale factor: A value of 2, 4, or 8 that is multiplied by the index value.
+     *
+     *   Offset = Base + (Index * Scale) + Displacement
+     *
+     *   The offset which results from adding these components is called an effective address. Each
+     *   of these components can have either a positive or negative (2s complement) value, with the
+     *   exception of the scaling factor.
+     */
+
     Expression::Ptr effectiveAddr;
 
     // TODO: handle segment registers
