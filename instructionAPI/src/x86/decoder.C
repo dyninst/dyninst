@@ -268,12 +268,12 @@ namespace Dyninst { namespace InstructionAPI {
 
     Expression::Ptr memAST;
     if(insn->getOperation().getID() == e_lea) {
+      // LEA (Load Effective Address) does not dereference its memory operand
       memAST = effectiveAddr;
     } else {
       Result_Type type = size_to_type(operand.size);
       memAST = makeDereferenceExpression(effectiveAddr, type);
     }
-
 
     if(is_cft(insn->getCategory())) {
       auto const isCall = is_call(insn->getCategory());
