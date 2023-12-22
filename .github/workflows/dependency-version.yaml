@@ -51,4 +51,11 @@ jobs:
             res=1
           fi
 
+          current=$(awk 'match($0,/set\(_min_version (.+)\)/,a){print a[1]}' cmake/tpls/DyninstCapstone.cmake)
+          expected=$(awk 'match($0,/capstone:(.+)/,a){print a[1]}' docker/dependencies.versions)
+          if test "$current" != "$expected"; then
+            echo "Capstone mismatch: Found $current, expected $expected" >/dev/stderr
+            res=1
+          fi
+                    
           exit $res
