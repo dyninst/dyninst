@@ -243,10 +243,46 @@ namespace Dyninst { namespace InstructionAPI {
      */
 
     Expression::Ptr effectiveAddr;
-
-    // TODO: handle segment registers
     if(operand.mem.base != X86_REG_INVALID) {
-      effectiveAddr = makeRegisterExpression(x86::translate_register(operand.mem.base, this->mode));
+      auto baseRegister = makeRegisterExpression(x86::translate_register(operand.mem.base, this->mode));
+
+      if(operand.mem.segment != X86_REG_INVALID) {
+        auto segmentRegister = makeRegisterExpression(x86::translate_register(operand.mem.segment, this->mode));
+
+        /* Intel 64 and IA-32 Architectures Software Developer’s Manual
+         * June 2021
+         *
+         * Section 19.1.1 Address Translation in Real-Address Mode
+         *
+         *    In real-address mode, the processor does not interpret segment selectors as indexes into a descriptor
+         *    table; instead, it uses them directly to form linear addresses as the 8086 processor does. It shifts
+         *    the segment selector left by 4 bits to form a 20-bit base address (see Figure 19-1). The offset into
+         *    a segment is added to the base address to create a linear address that maps directly to the physical
+         *    address space.
+         *
+         * effective addr = [seg * 16 + base]
+         *
+         *
+         * Section 3.7.4.1 Segmentation in 64-Bit Mode
+         *
+         *    In IA-32e mode, the effects of segmentation depend on whether the processor is running in compatibility
+         *    mode or 64-bit mode. In compatibility mode, segmentation functions just as it does in legacy IA-32 mode,
+         *    using the 16-bit or 32-bit protected mode semantics described above.
+         *
+         *    In 64-bit mode, segmentation is generally (but not completely) disabled, creating a flat 64-bit
+         *    linear-address space. The processor treats the segment base of CS, DS, ES, SS as zero, creating a linear
+         *    address that is equal to the effective address. The exceptions are the FS and GS segments, whose segment
+         *    registers (which hold the segment base) can be used as additional base registers in some linear address
+         *    calculations.
+         */
+        auto type = (this->mode == CS_MODE_64) ? u64 : u32;
+        auto conversion_factor = Immediate::makeImmediate(Result(u8,0x10));  // left shift by 4 (multiply by 16)
+        auto baseAddress_20bit = makeMultiplyExpression(segmentRegister, conversion_factor, type);
+        auto linear_address = makeAddExpression(baseAddress_20bit, baseRegister, type);
+        effectiveAddr = makeDereferenceExpression(linear_address, type);
+      } else {
+        effectiveAddr = baseRegister;
+      }
     }
 
     if(operand.mem.index != X86_REG_INVALID) {
