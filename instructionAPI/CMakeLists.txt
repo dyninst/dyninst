@@ -73,9 +73,13 @@ set(_private_headers
 =======
     src/x86/decoder.h
     src/x86/mnemonic-xlat.h
+<<<<<<< HEAD
     src/x86/register-xlat.h
     )
 >>>>>>> a3d9a7f33 (Add stub replacement for x86 decoder)
+=======
+    src/x86/register-xlat.h)
+>>>>>>> efd1a32fb (Fix cmake formatting in instructionAPI/CMakeLists.txt)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
