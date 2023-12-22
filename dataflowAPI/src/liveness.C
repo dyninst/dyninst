@@ -625,10 +625,10 @@ void LivenessAnalyzer::clean(Function *func){
 bool LivenessAnalyzer::isMMX(MachRegister machReg){
 	auto const arch = machReg.getArchitecture();
 	if (arch == Arch_x86) {
-		return (machReg.val() & 0x00ff0000) == x86::MMX;
+		return machReg.regClass() == x86::MMX;
 	}
 	if (arch == Arch_x86_64) {
-		return (machReg.val() & 0x00ff0000) == x86_64::MMX;
+		return machReg.regClass() == x86_64::MMX;
 	}
 	return false;
 }
