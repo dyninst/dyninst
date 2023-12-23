@@ -39,10 +39,14 @@ RUN apt-get -qq update && \
       libiberty-dev           \
       pkg-config              \
       clang                   \
-      libomp-dev
+      libomp-dev              \
+      git                     \
+      ca-certificates
 
-COPY docker/build_elfutils.sh docker/dependencies.versions /
+COPY docker/build_elfutils.sh docker/build_capstone.sh docker/dependencies.versions /
 
 RUN bash build_elfutils.sh --from-source ${build_elfutils} --jobs ${build_jobs}
 
-RUN rm build_elfutils.sh dependencies.versions
+RUN bash build_capstone.sh --jobs ${build_jobs}
+
+RUN rm build_elfutils.sh docker/build_capstone.sh dependencies.versions

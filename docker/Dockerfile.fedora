@@ -14,6 +14,8 @@ LABEL maintainer="@hainest"
 
 ENV TZ=America/Chicago
 
+ARG build_jobs=1
+
 RUN yum update -y &&   \
     yum install -y     \
       binutils-devel   \
@@ -27,4 +29,9 @@ RUN yum update -y &&   \
       libdwarf-devel   \
       libstdc++-static \
       tbb-devel
-      
+
+COPY docker/build_capstone.sh docker/dependencies.versions /
+
+RUN bash build_capstone.sh --jobs ${build_jobs}
+
+RUN rm build_capstone.sh dependencies.versions
