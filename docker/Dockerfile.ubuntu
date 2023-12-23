@@ -2,6 +2,7 @@ ARG version
 FROM ubuntu:${version}
 
 ARG build_elfutils="no"
+ARG build_jobs=1
 
 #####################################################
 #
