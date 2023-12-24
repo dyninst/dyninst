@@ -74,7 +74,14 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
       int v{};
       #pragma omp critical
       {
-        v = vfprintf(stderr, msg.c_str(), va);
+#ifdef __clang__
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
+        v = vprintf(msg.c_str(), va);
+#ifdef __clang__
+        #pragma clang diagnostic pop
+#endif
         fflush(stdout);
       }
       return v;
