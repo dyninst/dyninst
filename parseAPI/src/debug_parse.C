@@ -34,18 +34,16 @@
 
 #include "debug_parse.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using namespace Dyninst::ParseAPI;
 
 int Dyninst::ParseAPI::dyn_debug_parsing = 0;
 int Dyninst::ParseAPI::dyn_debug_malware = 0;
 int Dyninst::ParseAPI::dyn_debug_indirect_collect = 0;
 int Dyninst::ParseAPI::dyn_debug_initialized = 0;
-
-#if defined(_OPENMP)
-#include <omp.h>
-#endif
-
-dyn_tls FILE* log_file = NULL;
 
 int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
 {
@@ -59,23 +57,29 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
 
     if(!dyn_debug_parsing) return 0;
     if(NULL == format) return -1;
-    if (log_file == NULL) {
-        char filename[128];
-#if defined(_OPENMP)
-        snprintf(filename, 128, "%s-%d.txt", getenv("DYNINST_DEBUG_PARSING"), omp_get_thread_num());
-#else
-        snprintf(filename, 128, "%s-%d.txt", getenv("DYNINST_DEBUG_PARSING"), 0);
-#endif
 
-        log_file = fopen(filename, "w");
-    }
+    auto const id = []() -> int {
+#ifdef _OPENMP
+      return omp_get_thread_num();
+#endif
+      return 0;
+    }();
+
+    auto msg = "[thread " + std::to_string(id) + "] " + std::string(format);
 
     va_list va;
     va_start(va,format);
-    int ret = vfprintf(log_file, format, va);
-    fflush(log_file);
-    va_end(va);
 
+    auto ret = [&]() {
+      int v{};
+      #pragma omp critical
+      {
+        v = vfprintf(stderr, msg.c_str(), va);
+        fflush(stdout);
+      }
+      return v;
+    }();
+    va_end(va);
     return ret;
 }
 
