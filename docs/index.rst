@@ -45,3 +45,14 @@ Developed by
 |     Computer Science Department
 |     University of Maryland
 |     College Park, MD 20742
+
+.. toctree::
+   :caption: getting started
+   :name: basics
+   :hidden:
+   :maxdepth: 1
+
+   basics/overview
+   basics/building
+   basics/using
+   basics/first_mutator
