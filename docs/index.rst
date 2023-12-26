@@ -41,6 +41,9 @@ to more effectively use different aspects of binary analysis for building their 
 :ref:`sec:stackwalk-intro`
    Collect and analyze stack traces
 
+:ref:`sec:symtab-intro`
+   A platform-independent representation of symbol tables, object file headers, and debug information
+
 .. _main-support:
 
 -------
@@ -94,6 +97,7 @@ Developed by
    patchAPI/overview
    proccontrol/overview
    stackwalk/overview
+   symtabAPI/overview
    usertools/DynC/overview
 
 .. toctree::
@@ -121,6 +125,7 @@ Developed by
    patchAPI/public/API
    proccontrol/public/API
    stackwalk/public/API
+   symtabAPI/public/API   
 
 .. toctree::
    :caption: developer docs
@@ -134,6 +139,7 @@ Developed by
    patchAPI/developer/API
    proccontrol/developer/API
    stackwalk/developer/API
+   symtabAPI/developer/API
 
 .. toctree::
    :caption: advanced
