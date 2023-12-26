@@ -23,6 +23,10 @@ to more effectively use different aspects of binary analysis for building their 
 :ref:`sec:dyninstapi-intro`
    An interface for instrumenting and working with binaries and processes
 
+:ref:`sec:instruction-intro`
+   Decode raw binary instructions into a platform-independent represention that provides
+   a description of their semantics
+
 :ref:`sec:proccontrolapi-intro`
    An API and library for controlling processes
 
@@ -74,6 +78,7 @@ Developed by
    :maxdepth: 3
 
    dyninstAPI/overview
+   instructionAPI/overview
    proccontrol/overview
    usertools/DynC/overview
 
@@ -97,6 +102,7 @@ Developed by
    :maxdepth: 2
 
    dyninstAPI/public/API
+   instructionAPI/public/API
    proccontrol/public/API
 
 .. toctree::
@@ -106,6 +112,7 @@ Developed by
    :maxdepth: 3
 
    dyninstAPI/developer/API
+   instructionAPI/developer/API
    proccontrol/developer/API
 
 .. toctree::
