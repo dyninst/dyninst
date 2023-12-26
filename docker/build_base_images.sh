@@ -34,7 +34,11 @@ function make_image {
 make_image ubuntu 20.04 "--build-arg build_elfutils=yes"
 make_image ubuntu 22.04
 make_image ubuntu 23.04
+make_image ubuntu 23.10
+make_image ubuntu 24.04
 
+make_image fedora 37
+make_image fedora 38
 make_image fedora 39
 
 echo -n "["
