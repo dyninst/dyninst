@@ -1,0 +1,76 @@
+===========
+DyninstAPI
+===========
+
+.. toctree::
+  :caption: Developer API
+  :name: dyninstapi-developer-api
+  :hidden:
+  :maxdepth: 1
+  
+  addressSpace.h
+  arch-forward-decl.h
+  ast.h
+  baseTramp.h
+  binaryEdit.h
+  block.h
+  BPatch_collections.h
+  BPatch_libInfo.h
+  BPatch_memoryAccessAdapter.h
+  BPatch_private.h
+  codegen-aarch64.h
+  codegen.h
+  codegen-power.h
+  codegen-x86.h
+  codeRange.h
+  debug.h
+  dyninst.h
+  dynProcess.h
+  dynThread.h
+  ELF_Section.h
+  emit-aarch64.h
+  emit-power.h
+  emitter.h
+  emit-x86.h
+  frameChecker.h
+  frame.h
+  freebsd.h
+  freebsd-x86.h
+  function.h
+  hybridAnalysis.h
+  IAPI_to_AST.h
+  image.h
+  infHeap.h
+  inst-aarch64.h
+  inst.h
+  instP.h
+  instPoint.h
+  inst-power.h
+  inst-x86.h
+  legacy-instruction.h
+  LinearVariable.h
+  linux-aarch64.h
+  linux.h
+  linux-power.h
+  linux-x86.h
+  mapped_module.h
+  mapped_object.h
+  nt_signal_emul.h
+  opcode.h
+  os.h
+  parRegion.h
+  parse-cfg.h
+  Parsing.h
+  patch.h
+  Patching.h
+  pcEventHandler.h
+  pcEventMuxer.h
+  pcrel.h
+  pdwinnt.h
+  RegisterConversion.h
+  registerSpace.h
+  syscallNotification.h
+  syscalltrap.h
+  trapMappings.h
+  unix.h
+  util.h
