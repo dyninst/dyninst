@@ -2,6 +2,7 @@ ARG version
 FROM ubuntu:${version}
 
 ARG build_elfutils="no"
+ARG build_jobs=1
 
 #####################################################
 #
@@ -41,5 +42,7 @@ RUN apt-get -qq update && \
       libomp-dev
 
 COPY docker/build_elfutils.sh docker/dependencies.versions /
-RUN bash build_elfutils.sh ${build_elfutils}
+
+RUN bash build_elfutils.sh --from-source ${build_elfutils} --jobs ${build_jobs}
+
 RUN rm build_elfutils.sh dependencies.versions

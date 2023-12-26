@@ -2,7 +2,17 @@
 
 set -e
 
-if test x"$1" != xyes; then
+jobs=1     # run builds with N jobs (same as 'make -jN')
+source=no  # push images after building
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    -j|--jobs) jobs="$2"; shift 2; ;;
+    -s|--from-source) source="$2"; shift 2; ;;
+  esac
+done
+
+if test "$source" = "no"; then
   apt install -qq -y --no-install-recommends elfutils libelf-dev libdw-dev libdebuginfod-dev
   exit
 fi
@@ -18,6 +28,6 @@ cd elfutils-${version}/
 mkdir build
 cd build
 ../configure --enable-libdebuginfod --disable-debuginfod
-make install
+make install -j ${jobs}
 cd /
 rm -rf elfutils-${version}/ elfutils-${version}.tar
