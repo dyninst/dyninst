@@ -56,3 +56,12 @@ Developed by
    basics/building
    basics/using
    basics/first_mutator
+
+.. toctree::
+   :caption: advanced
+   :name: advanced
+   :hidden:
+   :maxdepth: 2
+   
+   advanced/optimizations
+   advanced/pitfalls
