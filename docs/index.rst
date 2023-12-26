@@ -38,6 +38,9 @@ to more effectively use different aspects of binary analysis for building their 
 :ref:`sec:proccontrolapi-intro`
    An API and library for controlling processes
 
+:ref:`sec:stackwalk-intro`
+   Collect and analyze stack traces
+
 .. _main-support:
 
 -------
@@ -90,6 +93,7 @@ Developed by
    parseAPI/overview
    patchAPI/overview
    proccontrol/overview
+   stackwalk/overview
    usertools/DynC/overview
 
 .. toctree::
@@ -116,6 +120,7 @@ Developed by
    parseAPI/public/API
    patchAPI/public/API
    proccontrol/public/API
+   stackwalk/public/API
 
 .. toctree::
    :caption: developer docs
@@ -128,6 +133,7 @@ Developed by
    parseAPI/developer/API
    patchAPI/developer/API
    proccontrol/developer/API
+   stackwalk/developer/API
 
 .. toctree::
    :caption: advanced
