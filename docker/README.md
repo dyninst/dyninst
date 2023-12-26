@@ -58,3 +58,27 @@ them locally and build in the container!
 # This is bound to your host - edit files there
 $ cd /code
 ```
+
+## Maintainers
+
+### Adding a new OS image
+
+1. Add the relevant information to 'build_base_images.sh'. For example, `make_image ubuntu 24.10`.
+
+2. Run `build_base_images.sh --push` to build and push  _all_  container images.
+
+3. Running the script above will print a complete list of supported OSes. These need to be added to the
+   GitHub "os:" fields in the workflow files dev-containers.yaml and pr-tests.yaml.
+   Make a PR to add these updated files.
+
+4. After committing the PR above, the 'Build and Deploy Development Containers' workflow will update/generate
+   the associated development containers automatically on the next committed PR. It can be run manually via
+   the Github interface, if preferred.
+
+### Adding a dependency
+
+Assuming all of the requisite CMake files are in place, a new dependency can be added to the container images. If
+the dependency can be installed by the package provider, add it to the `Dockerfile.<OS>` file, and run
+`build_base_images.sh --push`. If it needs to be built from source, add a new build script (e.g., build_foo.sh)
+and call it from the `Dockerfile.<OS>` files. If the dependency only sometimes needs to be built from source,
+see the usage of 'build_elfutils.sh' for guidance.
