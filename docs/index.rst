@@ -27,6 +27,10 @@ to more effectively use different aspects of binary analysis for building their 
    Decode raw binary instructions into a platform-independent represention that provides
    a description of their semantics
 
+:ref:`sec:parseapi-intro`
+   Converts the machine code representation of a program, library, or code snippet into
+   platform-independent abstractions such as instructions, basic blocks, functions, and loops
+
 :ref:`sec:proccontrolapi-intro`
    An API and library for controlling processes
 
@@ -79,6 +83,7 @@ Developed by
 
    dyninstAPI/overview
    instructionAPI/overview
+   parseAPI/overview
    proccontrol/overview
    usertools/DynC/overview
 
@@ -103,6 +108,7 @@ Developed by
 
    dyninstAPI/public/API
    instructionAPI/public/API
+   parseAPI/public/API
    proccontrol/public/API
 
 .. toctree::
@@ -113,6 +119,7 @@ Developed by
 
    dyninstAPI/developer/API
    instructionAPI/developer/API
+   parseAPI/developer/API
    proccontrol/developer/API
 
 .. toctree::
