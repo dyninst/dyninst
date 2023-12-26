@@ -1,0 +1,47 @@
+.. _manual-main:
+
+.. image:: https://img.shields.io/github/stars/dyninst/dyninst?style=social
+    :alt: GitHub stars
+    :target: https://github.com/dyninst/dyninst/stargazers
+
+=======
+Dyninst
+=======
+
+.. epigraph::
+
+   *Part of the* `Paradyn <http://www.paradyn.org>`_ *project*
+
+Dyninst is a collection of libraries for performing binary instrumentation, analysis, and
+modification. These libraries are assembled into a collection of toolkits that allow users
+to more effectively use different aspects of binary analysis for building their own tools.
+
+.. _main-support:
+
+-------
+Support
+-------
+
+* For **bugs and feature requests**, please use the `issue tracker <https://github.com/dyninst/dyninst/issues>`_.
+* For **contributions**, visit us on `Github <https://github.com/dyninst/dyninst>`_.
+
+---------
+Resources
+---------
+
+`GitHub Repository <https://github.com/dyninst/dyninst>`_
+    The code on GitHub.
+
+------------
+Developed by
+------------
+
+|     Paradyn Parallel Performance Tools
+
+|     Computer Science Department
+|     University of Wisconsin-Madison
+|     Madison, WI 53706
+
+|     Computer Science Department
+|     University of Maryland
+|     College Park, MD 20742
