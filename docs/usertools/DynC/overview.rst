@@ -1,8 +1,8 @@
-DynC API
-========
+.. _`sec:dyncapi-intro`:
 
-Motivation
-----------
+====
+DynC
+====
 
 Dyninst is a powerful instrumentation tool, but specifying
 instrumentation code (known as an Abstract Syntax Tree) in the
@@ -18,7 +18,7 @@ notifies the user when entering and exiting functions, and keeps track
 of the number of times each function is called.
 
 Dyninst API
-~~~~~~~~~~~
+===========
 
 When creating a function tracer using the Dyninst API, the programmer
 must perform many discrete lookups and create many
@@ -111,7 +111,7 @@ Insert the snippets:
 .. _dync-api-1:
 
 The DynC API
-~~~~~~~~~~~~
+------------
 
 A function tracer is much easier to build in DynC API, especially if
 reading dynC code from file. Storing dynC code in external files not

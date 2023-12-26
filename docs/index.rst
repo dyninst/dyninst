@@ -16,6 +16,10 @@ Dyninst is a collection of libraries for performing binary instrumentation, anal
 modification. These libraries are assembled into a collection of toolkits that allow users
 to more effectively use different aspects of binary analysis for building their own tools.
 
+:ref:`sec:dyncapi-intro`
+  A C-like language for enabling rapid creation of Dyninst mutators without the need to specify API-level
+  interactions.
+
 .. _main-support:
 
 -------
@@ -56,6 +60,14 @@ Developed by
    basics/building
    basics/using
    basics/first_mutator
+
+.. toctree::
+   :caption: toolkit overviews
+   :name: toolkit-overviews
+   :hidden:
+   :maxdepth: 3
+   
+   usertools/DynC/overview
 
 .. toctree::
    :caption: examples
