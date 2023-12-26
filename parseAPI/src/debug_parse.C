@@ -82,7 +82,7 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
 #ifdef __clang__
         #pragma clang diagnostic pop
 #endif
-        fflush(stdout);
+        fflush(stderr);
       }
       return v;
     }();
