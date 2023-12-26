@@ -20,6 +20,9 @@ to more effectively use different aspects of binary analysis for building their 
   A C-like language for enabling rapid creation of Dyninst mutators without the need to specify API-level
   interactions.
 
+:ref:`sec:proccontrolapi-intro`
+   An API and library for controlling processes
+
 .. _main-support:
 
 -------
@@ -66,7 +69,8 @@ Developed by
    :name: toolkit-overviews
    :hidden:
    :maxdepth: 3
-   
+
+   proccontrol/overview
    usertools/DynC/overview
 
 .. toctree::
@@ -81,6 +85,22 @@ Developed by
    examples/instrument_function
    examples/memory_access
    examples/retee
+
+.. toctree::
+   :caption: toolkit api docs
+   :name: apis
+   :hidden:
+   :maxdepth: 2
+
+   proccontrol/public/API
+
+.. toctree::
+   :caption: developer docs
+   :name: dev-docs
+   :hidden:
+   :maxdepth: 3
+
+   proccontrol/developer/API
 
 .. toctree::
    :caption: advanced
