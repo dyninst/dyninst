@@ -16,6 +16,10 @@ Dyninst is a collection of libraries for performing binary instrumentation, anal
 modification. These libraries are assembled into a collection of toolkits that allow users
 to more effectively use different aspects of binary analysis for building their own tools.
 
+:ref:`sec:dataflow-intro`
+   Trace the flow of data through a binary using the techniques of slicing, stack analysis,
+   symbolic expansion and evaluation, and register liveness
+
 :ref:`sec:dyncapi-intro`
   A C-like language for enabling rapid creation of Dyninst mutators without the need to specify API-level
   interactions.
@@ -91,6 +95,7 @@ Developed by
    :hidden:
    :maxdepth: 3
 
+   dataflowAPI/overview
    dyninstAPI/overview
    instructionAPI/overview
    parseAPI/overview
@@ -120,6 +125,7 @@ Developed by
    :maxdepth: 2
 
    common/public/API
+   dataflowAPI/public/API
    dyninstAPI/public/API
    instructionAPI/public/API
    parseAPI/public/API
@@ -135,6 +141,7 @@ Developed by
    :maxdepth: 3
 
    common/developer/API
+   dataflowAPI/developer/API
    dyninstAPI/developer/API
    instructionAPI/developer/API
    parseAPI/developer/API
