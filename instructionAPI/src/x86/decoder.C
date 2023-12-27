@@ -246,7 +246,7 @@ namespace Dyninst { namespace InstructionAPI {
     if(operand.mem.base != X86_REG_INVALID) {
       auto baseRegister = makeRegisterExpression(x86::translate_register(operand.mem.base, this->mode));
 
-      if(operand.mem.segment != X86_REG_INVALID) {
+      if(this->mode == CS_MODE_32 && operand.mem.segment != X86_REG_INVALID) {
         auto segmentRegister = makeRegisterExpression(x86::translate_register(operand.mem.segment, this->mode));
 
         /* Intel 64 and IA-32 Architectures Software Developer’s Manual
