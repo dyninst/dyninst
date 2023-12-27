@@ -73,7 +73,9 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
       #pragma omp critical
       {
         v = fprintf(stderr, "[thread %d] ", id);
-        v &= vfprintf(stderr, format, va);
+        if(v >= 0) {
+          v = vfprintf(stderr, format, va);
+        }
         fflush(stderr);
       }
       return v;
