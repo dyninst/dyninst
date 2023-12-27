@@ -54,7 +54,6 @@ set(DATAFLOW_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEval.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/templates.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C)
 
 set(ROSE_SRC
