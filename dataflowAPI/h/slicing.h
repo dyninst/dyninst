@@ -141,9 +141,7 @@ class Slicer {
   typedef std::pair<InstructionAPI::Instruction, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
 
-  // An instruction cache to avoid redundant instruction decoding.
-  // A user can optionaly provide a cache shared by multiple slicers.
-  // The cache is keyed with basic block starting address.
+  // Instruction cache. The key is the basic block starting address.
   typedef dyn_hash_map<Address, InsnVec> InsnCache;
 
   DATAFLOW_EXPORT Slicer(AssignmentPtr a,
@@ -191,7 +189,6 @@ class Slicer {
     func(f), block(NULL), stackDepth(depth) {}
   };
 
-  // This should be sufficient...
   typedef std::deque<ContextElement> Context;
 
 
@@ -217,15 +214,7 @@ class Slicer {
   Location() : func(NULL), block(NULL), fwd(true) {}
   };
     
-  // Describes an abstract region, a minimal context
-  // (block and function), and the assignment that
-  // relates to that region (uses or defines it, 
-  // depending on slice direction)
-  //
-  // A slice is composed of Elements; SliceFrames 
-  // keep a list of the currently active elements
-  // that are at the `leading edge' of the 
-  // under-construction slice
+  // A slice is composed of abstract regions called Elements
   struct DATAFLOW_EXPORT Element {
     Element(ParseAPI::Block * b,
         ParseAPI::Function * f,
@@ -318,13 +307,9 @@ class Slicer {
     DATAFLOW_EXPORT virtual ~Predicates() {}
 
     // Callback function when adding a new node to the slice.
-    // Return true if we want to continue slicing
     DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr,
                                                  std::set<ParseAPI::Edge*> &) { return true;}
-    // Callback function after we have added new a node and corresponding new edges to the slice.
-    // This function allows users to inspect the current slice graph and determine which abslocs
-    // need further slicing and which abslocs are no longer interesting, by modifying the current
-    // SliceFrame.
+    // Callback function after adding a new node and corresponding new edges to the slice.
     DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr, Slicer*) {return true;} 						
     DATAFLOW_EXPORT virtual bool ignoreEdge(ParseAPI::Edge*) { return false;}
     DATAFLOW_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
