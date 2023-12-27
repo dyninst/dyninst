@@ -254,14 +254,6 @@ void LivenessAnalyzer::analyze(Function *func) {
     liveFuncCalculated[func] = true;
 }
 
-
-// This function does two things.
-// First, it does a backwards iteration over instructions in its
-// block to calculate its liveness.
-// At the same time, we cache liveness (which was calculated) in
-// any instPoints we cover. Since an iP only exists if the user
-// asked for it, we take its existence to indicate that they'll
-// also be instrumenting. 
 bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 //TODO: consider the trustness of the location 
 
