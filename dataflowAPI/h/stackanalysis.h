@@ -79,9 +79,6 @@ public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
    typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
-   // This class represents a stack pointer definition by recording the block
-   // and address of the definition, as well as the original absloc that was
-   // defined by the definition.
    class DATAFLOW_EXPORT Definition {
    public:
       typedef enum {TOP, BOTTOM, DEF} Type;
@@ -234,13 +231,6 @@ public:
       Type type_;
    };
 
-   // This class represents pairs of Definitions and Heights.  During our stack
-   // pointer analysis, we keep track of any stack pointers in registers or
-   // memory, as well as the instruction addresses at which those pointers were
-   // defined. This is useful for StackMod, where we sometimes want to modify
-   // pointer definitions to adjust the locations of variables on the stack.
-   // Thus, it makes sense to associate each stack pointer (Height) to the point
-   // at which it was defined (Definition).
    class DATAFLOW_EXPORT DefHeight {
    public:
       DefHeight(const Definition &d, const Height &h) : def(d), height(h) {}
@@ -257,14 +247,6 @@ public:
       Height height;
    };
 
-   // In some programs, it is possible for a register or memory location to
-   // contain different stack pointers depending on the path taken to the
-   // current instruction.  When this happens, our stack pointer analysis tries
-   // to keep track of the different possible stack pointers, up to a maximum
-   // number per instruction (specified by the DEF_LIMIT constant).  As a
-   // result, we need a structure to hold sets of DefHeights.  This class fills
-   // that role, providing several useful methods to build, modify, and
-   // extract information from such sets.
    class DATAFLOW_EXPORT DefHeightSet {
    public:
       bool operator==(const DefHeightSet &other) const {
@@ -333,26 +315,6 @@ public:
       std::set<DefHeight> defHeights;
    };
 
-   // We need to represent the effects of instructions. We do this in terms of
-   // transfer functions. We recognize the following effects on the stack.
-   //   * Offset by known amount: push/pop/etc.
-   //   * Set to known value: leave
-   //   * Copy the stack pointer to/from some Absloc.
-   //
-   // There are also:
-   //   * Offset by unknown amount expressible in a range [l, h]
-   //   * Set to unknown value expressible in a range [l, h]
-   // which we don't handle yet.
-   //
-   // This gives us the following transfer functions.
-   //   * Delta(RV, f, t, v) -> RV[f] += v;
-   //   * Abs(RV, f, t, v) -> RV[f] = v;
-   //   * Copy(RV, f, t, v) -> RV[t] = RV[f];
-   //
-   // In the implementations below, we provide f, t, v at construction time (as
-   // they are fixed) and RV as a parameter. Note that a transfer function is a
-   // function T : (RegisterVector, RegisterID, RegisterID, value) ->
-   // (RegisterVector).
    typedef std::map<Absloc, DefHeightSet> AbslocState;
    class DATAFLOW_EXPORT TransferFunc {
    public:
@@ -421,19 +383,7 @@ public:
       Absloc target;
       long delta;
       long abs;
-
-      // Distinguish between default-constructed transfer functions and
-      // explicitly-retopped transfer functions.
       bool retop;
-
-      // Annotate transfer functions that have the following characteristic:
-      // if target is TOP, keep as TOP
-      // else, target must be set to BOTTOM
-      // E.g., sign-extending a register:
-      //   if the register had an uninitialized stack height (TOP),
-      //       the sign-extension has no effect
-      //   if the register had a valid or notunique (BOTTOM) stack height,
-      //       the sign-extension must result in a BOTTOM stack height
       bool topBottom;
 
       // Handle complex math from SIB functions
@@ -446,9 +396,6 @@ public:
    typedef std::list<TransferFunc> TransferFuncs;
    typedef std::map<Absloc, TransferFunc> TransferSet;
 
-   // Summarize the effects of a series (list!) of transfer functions.
-   // Intended to summarize a block. We may want to do a better job of
-   // summarizing, but this works...
    class SummaryFunc {
    public:
       static const long uninitialized = MAXLONG;
@@ -468,16 +415,6 @@ public:
 
       TransferSet accumFuncs;
    };
-
-   // The results of the stack analysis is a series of intervals. For each
-   // interval we have the following information:
-   //   a) Whether the function has a well-defined
-   //      stack frame. This is defined as follows:
-   //        * x86/AMD-64: a frame pointer
-   //        * POWER: an allocated frame pointed to by GPR1
-   //   b) The "depth" of the stack; the distance between
-   //      the stack pointer and the caller's stack pointer.
-   //   c) The "depth" of any copies of the stack pointer.
 
    typedef std::map<Offset, AbslocState> StateIntervals;
    typedef std::map<ParseAPI::Block *, StateIntervals> Intervals;
@@ -601,9 +538,7 @@ private:
 
    Height getStackCleanAmount(ParseAPI::Function *func);
 
-   // This constant limits the number of definitions we track per register. If
-   // more than this many definitions are found, the register is considered to
-   // be BOTTOM, and the definitions tracked so far are dropped.
+   // limit the number of definitions we track per register.
    static const unsigned DEF_LIMIT = 2;
 
    ParseAPI::Function *func;
@@ -614,10 +549,6 @@ private:
    // Function summaries to utilize during analysis
    std::map<Address, TransferSet> functionSummaries;
 
-   // Functions whose return values should be topped rather than bottomed.  This
-   // is used when evaluating a cycle in the call graph via fixed-point
-   // analysis.  Note that if functionSummaries contains a summary for the
-   // function, it will be used instead.
    std::set<Address> toppableFunctions;
 
    // SP effect tracking
