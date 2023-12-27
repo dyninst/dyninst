@@ -28,19 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Base representations for locations in program memory and registers
-// We use a two-layered model consisting of AbsLocs (abstract locations)
-// and AbsRegions (abstract regions). 
-//
-// An Absloc defines a unique location in memory or a register. We 
-// consider the stack to be a separate, indexed-from-zero memory location.
-//
-// An AbsRegion is a set of Abslocs. In essence it is a set, though we
-// may be able to use a more efficient internal representation than a
-// set. As a TODO, we wish to provide shortcuts for comparing one type
-// of AbsRegion to another type more efficiently than the fallback
-// point-wise comparison.
-
 #if !defined(ABSLOC_H)
 #define ABSLOC_H
 
