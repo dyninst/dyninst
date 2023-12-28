@@ -7,78 +7,95 @@ DynAST.h
 
 .. cpp:class:: AST
 
-   We provide a generic AST framework to represent tree structures. One
-   example use case is to represent instruction semantics with symbolic
-   expressions. The AST framework includes the base class definitions for
-   tree nodes and visitors. Users can inherit tree node classes to create
-   their own AST structure and AST visitors to write their own analyses for
-   the AST.
+  **A generic framework for representing Abstract Syntax Trees (AST)**
 
-   All AST node classes should be derived from the AST class. Currently we
-   have the following types of AST nodes.
+  One example use case is to represent instruction semantics with symbolic
+  expressions. The AST framework includes the base class definitions for
+  tree nodes and visitors.
 
-   .. table::
+  Users can inherit tree node classes to create
+  their own AST structure and AST visitors to write their own analyses for
+  the AST. All AST node classes should be derived from the AST class.
 
-     ============= ======================
-     AST::ID       Meaning
-     ============= ======================
-     V_AST         Base class type
-     V_BottomAST   Bottom AST node
-     V_ConstantAST Constant AST node
-     V_VariableAST Variable AST node
-     V_RoseAST     ROSEOperation AST node
-     V_StackAST    Stack AST node
-     ============= ======================
+  .. cpp:enum:: ID
 
-   .. cpp:type:: boost::shared_ptr<AST> Ptr;
+    .. cpp:enumerator:: V_AST
+    .. cpp:enumerator:: V_BottomAST
+    .. cpp:enumerator:: V_ConstantAST
+    .. cpp:enumerator:: V_VariableAST
+    .. cpp:enumerator:: V_RoseAST
+    .. cpp:enumerator:: V_StackAST
+    .. cpp:enumerator:: V_InputVariableAST
+    .. cpp:enumerator:: V_ReferenceAST
+    .. cpp:enumerator:: V_StpAST
+    .. cpp:enumerator:: V_YicesAST
+    .. cpp:enumerator:: V_SemanticsAST
 
-     Shared pointer for class AST.
+  .. cpp:type:: boost::shared_ptr<AST> Ptr
 
-   .. cpp:type:: std::vector<AST::Ptr> Children;
+    Shared pointer for class AST.
 
-     The container type for the children of this AST.
+  .. cpp:type:: std::vector<Ptr> Children
 
-   .. cpp:function:: bool operator==(const AST &rhs) const
-   .. cpp:function:: bool equals(AST::Ptr rhs)
+    The container type for the children of this AST.
 
-     Check whether two AST nodes are equal. Return ``true`` when two nodes
-     are in the same type and are equal according to the ``==`` operator of
-     that type.
+  .. cpp:function:: bool operator==(const AST &rhs) const
+  .. cpp:function:: bool equals(Ptr rhs)
 
-   .. cpp:function:: virtual unsigned numChildren() const
+    Checks if two AST nodes are equal.
 
-     Return the number of children of this node.
+    Return ``true`` when two nodes
+    are in the same type and are equal according to the ``==`` operator of
+    that type.
 
-   .. cpp:function:: virtual AST::Ptr child(unsigned i) const
+  .. cpp:function:: virtual unsigned numChildren() const
 
-     Return the ``i``\ th child.
+    Returns the number of children of this node.
 
-   .. cpp:function:: virtual const std::string format() const = 0;
+  .. cpp:function:: virtual Ptr child(unsigned i) const
 
-     Return the string representation of the node.
+    Returns the ``i``\ th child.
 
-   .. cpp:function:: static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b)
+  .. cpp:function:: virtual const std::string format() const = 0
 
-     Substitute every occurrence of ``a`` with ``b`` in AST ``in``. Return a
-     new AST after the substitution.
+    Returns the string representation of the node.
 
-   .. cpp:function:: virtual AST::ID AST::getID() const
+  .. cpp:function:: static void hasCycle(Ptr in,std::map<Ptr, int> &visited)
 
-     Return the class type ID of this node.
+    Detects if ``in`` exists in the set of ``visited`` nodes.
 
-   .. cpp:function:: virtual Ptr accept(ASTVisitor *v)
+    This works recursively to detect visitation of ``in`` multiple times which would
+    signal the presence of a cycle in the tree.
 
-     Apply visitor ``v`` to this node. Note that this method will not
-     automatically apply the visitor to its children.
+  .. cpp:function:: static Ptr substitute(Ptr in, Ptr a, Ptr b)
 
-   .. cpp:function:: virtual void AST::setChild(int i, AST::Ptr c)
+    Substitutes every occurrence of ``a`` with ``b`` in AST ``in``.
 
-     Set the ``i``\ th child of this node to ``c``.
+    Returns a new AST after the substitution.
+
+  .. cpp:function:: virtual ID getID() const
+
+    Returns the class type ID of this node.
+
+  .. cpp:function:: virtual Ptr accept(ASTVisitor *v)
+
+    Applies visitor ``v`` to this node.
+
+    .. Note:: This method will not automatically apply the visitor to its children.
+
+  .. cpp:function:: Ptr ptr()
+
+    Returns the current instance as a ``Ptr``.
+
+  .. cpp:function:: virtual void setChild(int i, Ptr c)
+
+    Sets the ``i``\ th child of this node to ``c``.
 
 .. cpp:class:: ASTVisitor
 
-  An AST for each AST node type. Users can inherit from this class to
-  write customized analyses for ASTs.
+  **An AST visitor for each AST node type**
+
+  Users can inherit from this class to write customized analyses for ASTs.
 
   .. cpp:type:: boost::shared_ptr<AST> ASTVisitor::ASTPtr
   .. cpp:function:: virtual ASTVisitor::ASTPtr ASTVisitor::visit(AST *)
@@ -88,5 +105,5 @@ DynAST.h
   .. cpp:function:: virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *)
   .. cpp:function:: virtual ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *)
 
-    Callback functions for visiting each type of AST node. The default
-    behavior is to return the input parameter.
+ Callback functions for visiting each type of AST node. The default
+ behavior is to return the input parameter.

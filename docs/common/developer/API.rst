@@ -24,6 +24,7 @@ Classes and features shared among many parts of Dyninst.
    concurrent.h
    debug_common.h
    dthread.h
+   DynAST.h
    dyn_register.h
    dyn_syscalls.h
    dyntypes.h
