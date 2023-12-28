@@ -74,7 +74,8 @@ namespace Dyninst { namespace InstructionAPI {
     // The iterator form of disassembly allows reuse of the instruction object, reducing
     // the number of memory allocations.
     if(!cs_disasm_iter(dis.handle, &code, &codeSize, &cap_addr, dis.insn)) {
-      decode_printf("Failed to disassemble instruction at %p: %s\n", code, cs_strerror(cs_errno(dis.handle)));
+      decode_printf("Failed to disassemble instruction at %p: %s\n", static_cast<void const*>(code),
+                    cs_strerror(cs_errno(dis.handle)));
       return;
     }
     decode_operands(insn, dis);
@@ -91,7 +92,8 @@ namespace Dyninst { namespace InstructionAPI {
     // The iterator form of disassembly allows reuse of the instruction object, reducing
     // the number of memory allocations.
     if(!cs_disasm_iter(dis.handle, &code, &codeSize, &cap_addr, dis.insn)) {
-      decode_printf("Failed to disassemble instruction at %p: %s\n", code, cs_strerror(cs_errno(dis.handle)));
+      decode_printf("Failed to disassemble instruction at %p: %s\n", static_cast<void const*>(code),
+                    cs_strerror(cs_errno(dis.handle)));
       m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
       return;
     }
