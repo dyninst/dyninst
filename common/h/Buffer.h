@@ -37,17 +37,6 @@
 #include "unaligned_memory_access.h"
 namespace Dyninst {
 
-// A class to support multiple forms of code generation. The design of this class is as 
-// a tiered model:
-
-// Tier 1: A buffer of bytes that represent position-dependent executable code
-// Tier 2: A buffer that supports linker-style relocations of raw instructions
-// Tier 3: A buffer that supports relocatable and optimizer-friendly instruction objects
-
-// The current implementation supports tier 1. In that, it is a cut-down version of the
-// Dyninst internal codeGen structure that aims to be more user-friendly. Tiers 2 and 3 
-// are TODO. 
-
 class COMMON_EXPORT Buffer {
   public:
    Buffer(Address addr, unsigned initial_size);

@@ -24,10 +24,6 @@ Buffer.h
 
   .. cpp:function:: template <class Input> void push_back(const Input &)
 
-  .. cpp:class:: template <class storage> iterator
-
-    Helper class modelling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
-
   .. cpp:type:: iterator<unsigned char> byte_iterator
   .. cpp:type:: iterator<unsigned int> word_iterator
   .. cpp:type:: iterator<unsigned long> long_iterator
@@ -62,3 +58,7 @@ Buffer.h
 
   .. cpp:function:: Address startAddr() const
   .. cpp:function:: Address curAddr() const
+
+.. cpp:class:: template <class storage> Buffer::iterator
+
+  Helper class modeling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
