@@ -7,7 +7,7 @@ VariableLocation.h
 
 .. cpp:class:: VariableLocation
 
-  An encoding of the location of a variable in memory or registers.
+  **Encoding of the location of a variable in memory or registers**
 
   A VariableLocation is valid within the address range represented by :cpp:member:`lowPC`
   and :cpp:member:`hiPC`. If these are 0 and -1, respectively, it is always valid.
@@ -20,33 +20,46 @@ VariableLocation.h
   .. cpp:member:: Address lowPC
   .. cpp:member:: Address hiPC
 
-  .. cpp:enum:: storageClass
+.. cpp:enum:: storageClass
 
-    Encodes how a variable is stored.
+  Encodes how a variable is stored.
 
-    .. cpp:enumerator:: storageClass::storageUnset
-    .. cpp:enumerator:: storageClass::storageAddr
+  .. cpp:enumerator:: storageClass::storageUnset
 
-      Absolute address of variable.
+    Default state.
 
-    .. cpp:enumerator:: storageClass::storageReg
+  .. cpp:enumerator:: storageClass::storageAddr
 
-      Register which holds variable value.
+    Absolute address of variable.
 
-    .. cpp:enumerator:: storageClass::storageRegOffset
+  .. cpp:enumerator:: storageClass::storageReg
 
-      Address of variable = $reg + address.
+    Register which holds variable value.
 
-  .. cpp:enum:: storageRefClass
+  .. cpp:enumerator:: storageClass::storageRegOffset
 
-    Encodes if a variable can be accessed through a register/address.
+    Address of variable = $reg + address.
 
-    .. cpp:enumerator:: storageRefClass::storageRefUnset
-    .. cpp:enumerator:: storageRefClass::storageRef
+.. cpp:function:: const char *storageClass2Str(storageClass sc)
 
-      There is a pointer to variable.
+  Returns a string representation of ``sc``.
 
-    .. cpp:enumerator:: storageRefClass::storageNoRef
+.. cpp:enum:: storageRefClass
 
-      No reference. Value can be obtained using storageClass.
+  Encodes if a variable can be accessed through a register/address.
 
+  .. cpp:enumerator:: storageRefClass::storageRefUnset
+
+    Default state.
+
+  .. cpp:enumerator:: storageRefClass::storageRef
+
+    There is a pointer to variable.
+
+  .. cpp:enumerator:: storageRefClass::storageNoRef
+
+    No reference. Value can be obtained using storageClass.
+
+.. cpp:function:: const char *storageRefClass2Str(storageRefClass sc)
+
+  Returns a string representation of ``sc``.
