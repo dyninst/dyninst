@@ -31,6 +31,7 @@ Classes and features shared among many parts of Dyninst.
    Edge.h
    freebsdHeaders.h
    freebsdKludges.h
+   Graph.h
    headers.h
    ia32_locations.h
    IBSTree-fast.h

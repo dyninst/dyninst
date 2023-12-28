@@ -72,9 +72,6 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
  public:    
     typedef boost::shared_ptr<Graph> Ptr;
 
-    // Interface class for predicate-based searches. Users
-    // can inherit this class to specify the functor to use
-    // as a predicate...
     class NodePredicate {
 
     public:
@@ -138,21 +135,11 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
      
     static const Address INITIAL_ADDR;
     
-    // Create graph, add nodes.
     Graph();
-    
-    // We also need to point to all Nodes to keep them alive; we can't 
-    // pervasively use shared_ptr within the graph because we're likely
-    // to have cycles.
+
     NodeSet nodes_;
-    
     NodeMap nodesByAddr_;
-
-    // May be overridden by children; don't assume it exists.
-    // Arguably should be removed entirely.
     NodeSet entryNodes_;
-
-    // See the above ;)
     NodeSet exitNodes_;
 };
 
