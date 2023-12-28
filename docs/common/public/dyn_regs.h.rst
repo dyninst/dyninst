@@ -6,27 +6,6 @@ dyn_regs.h
 Representations of hardware registers on each supported architecture. We do not list the names of the registers here as the list is very long. See the file for those.
 
 .. cpp:namespace:: Dyninst
-.. cpp:type:: unsigned long MachRegisterVal
-
-.. cpp:enum:: Architecture
-
-   .. cpp:enumerator:: Architecture::Arch_none
-   .. cpp:enumerator:: Architecture::Arch_x86
-   .. cpp:enumerator:: Architecture::Arch_x86_64
-   .. cpp:enumerator:: Architecture::Arch_ppc32
-   .. cpp:enumerator:: Architecture::Arch_ppc64
-   .. cpp:enumerator:: Architecture::Arch_aarch32
-   .. cpp:enumerator:: Architecture::Arch_aarch64
-   .. cpp:enumerator:: Architecture::Arch_amdgpu_vega
-   .. cpp:enumerator:: Architecture::Arch_cuda
-   .. cpp:enumerator:: Architecture::Arch_amdgpu_gfx90a
-   .. cpp:enumerator:: Architecture::Arch_amdgpu_gfx908
-   .. cpp:enumerator:: Architecture::Arch_intelGen9
-
-.. cpp:function:: bool isSegmentRegister(int regClass)
-.. cpp:function:: unsigned getArchAddressWidth(Dyninst::Architecture arch)
-
-    The size of a pointer, in bytes, on the given architecture
 
 .. cpp:class:: MachRegister
 
