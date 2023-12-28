@@ -28,6 +28,7 @@ Classes and features shared among many parts of Dyninst.
    dyn_register.h
    dyn_syscalls.h
    dyntypes.h
+   Edge.h
    freebsdHeaders.h
    freebsdKludges.h
    headers.h

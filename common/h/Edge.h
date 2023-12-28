@@ -112,13 +112,7 @@ class COMMON_EXPORT EdgeIterator {
 
  protected:
 
-    // Main constructor
-    // The iter parameter becomes owned by the iterator and will be destroyed
-    // when the iterator is destroyed.
 
-
-    // We hide the internal iteration behavior behind a pointer. 
-    // This allows us to override (yay for virtual functions).
     EdgeIteratorImpl *iter_;
 };
 
