@@ -3,61 +3,60 @@
 dyn_regs.h
 ##########
 
-Representations of hardware registers on each supported architecture. We do not list the names of the registers here as the list is very long. See the file for those.
-
 .. cpp:namespace:: Dyninst
 
-.. cpp:class:: MachRegister
+.. _`sec:register-categories`:
 
-  .. cpp:function:: explicit MachRegister(signed int r)
-  .. cpp:function:: explicit MachRegister(signed int r, const char *n)
-  .. cpp:function:: explicit MachRegister(signed int r, std::string n)
-  .. cpp:function:: MachRegister getBaseRegister() const
+Register Categories
+===================
 
-    This function returns the largest register that may alias with the given register.
-    For example, ``x86_64::rax`` aliases ``x86_64::ah``.
+Register categories are used to group registers with common functionality. For example,
+general-purpose registers or vector registers associated with a specific ISA extensions.
 
-  .. cpp:function:: Architecture getArchitecture() const
-  .. cpp:function:: bool isValid() const
+As an example on x86_64, the categories are
 
-    Returns ``true`` if this instance represents a valid register. Some API
-    functions may return invalid registers upon error.
+  .. code:: cpp
 
-  .. cpp:function:: MachRegisterVal getSubRegValue(const MachRegister& subreg, MachRegisterVal &orig) const
+    const signed int GPR    = 0x00010000;  // General-Purpose Registers
+    const signed int SEG    = 0x00020000;  // Segment Registers
+    const signed int FLAG   = 0x00030000;  // EFLAGS Register
+    const signed int MISC   = 0x00040000;  // Internal ProcControlAPI Register
+    const signed int CTL    = 0x00050000;  // Control Registers CR0-CR7
+    const signed int DBG    = 0x00060000;  // Debug Registers DR0-DR7
+    const signed int TST    = 0x00070000;  // Internal InstructionAPI Registers
+    const signed int X87    = 0x00080000;  // x87 FPU Registers
+    const signed int MMX    = 0x00090000;  // MM0-MM7 Registers
+    const signed int XMM    = 0x000A0000;  // XMM0-XMM7 Registers from SSE
+    const signed int YMM    = 0x000B0000;  // YMM0-YMM7 Registers from AVX2/FMA
+    const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM7 Registers from AVX-512
+    const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
+    const signed int FPCTL  = 0x000E0000;  // control/status Registers from x87, SSE, and AVX
 
-    Given a value for this register, orig, and a smaller aliased register, subreg, then this function
-    returns the value of the aliased register. For example, if this function were called on ``x86::eax``
-    with ``subreg`` as ``x86::al`` and an orig value of 0x11223344, then it would return 0x44.
+By comparison on aarch64, they are far fewer categories:
 
-  .. cpp:function:: std::string name() const
-  .. cpp:function:: unsigned int size() const
+  .. code:: cpp
 
-    Number of bytes the register can hold
+    const signed int GPR    = 0x00010000;
+    const signed int FPR    = 0x00020000;
+    const signed int FLAG   = 0x00030000;
+    const signed int FSR    = 0x00040000;
+    const signed int SPR    = 0x00080000;
+    const signed int SYSREG = 0x00100000;
 
-  .. cpp:function:: unsigned int regClass() const
+  .. Warning:: Users should never rely on the values of these constants!
 
-    Return the category of the MachRegister
 
-  .. cpp:function:: static MachRegister getPC(Dyninst::Architecture arch)
-  .. cpp:function:: static MachRegister getReturnAddress(Dyninst::Architecture arch)
-  .. cpp:function:: static MachRegister getFramePointer(Dyninst::Architecture arch)
-  .. ATTENTION:: If an architecture does not support a frame pointer (e.g., ppc64) then ``getFramePointer`` returns an invalid register.
+.. _`sec:abstract-registers`:
 
-  .. cpp:function:: static MachRegister getStackPointer(Dyninst::Architecture arch)
+Abstract Registers
+==================
 
-  .. cpp:function:: static MachRegister getSyscallNumberReg(Dyninst::Architecture arch)
-  .. cpp:function:: static MachRegister getSyscallNumberOReg(Dyninst::Architecture arch)
-  .. cpp:function:: static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch)
-  .. cpp:function:: static MachRegister getZeroFlag(Dyninst::Architecture arch)
+Abstract registers represent general concepts that do not map to a specific register for
+any given architecture.
 
-  .. cpp:function:: bool isPC() const
-  .. cpp:function:: bool isFramePointer() const
-  .. cpp:function:: bool isStackPointer() const
-  .. cpp:function:: bool isSyscallNumberReg() const
-  .. cpp:function:: bool isSyscallReturnValueReg() const
-  .. cpp:function:: bool isFlag() const
-  .. cpp:function:: bool isZeroFlag() const
-  .. cpp:function:: void getROSERegister(int &c, int &n, int &p)
-  .. cpp:function:: static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch)
-  .. cpp:function:: static MachRegister getArchRegFromAbstractReg(MachRegister abstract, Dyninst::Architecture arch)
-  .. cpp:function:: static MachRegister getArchReg(unsigned int regNum, Dyninst::Architecture arch)
+  .. csv-table:: abstract registers
+
+      InvalidReg, An invalid register. Used to indicate an error in :cpp:class:`MachRegister`.
+      FrameBase, The base register used as a stack frame pointer.
+      ReturnAddr, The location of the function return address.
+      StackTop, The top of the stack.
