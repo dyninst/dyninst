@@ -19,18 +19,11 @@ MachSyscall.h
 
   .. cpp:function:: static MachSyscall makeFromPlatform(Platform, SyscallIDIndependent)
 
-  Constructs a MachSyscall from a Platform and a platform-independent ID (e.g. ``dyn_getpid``).
-  The platform-independent syscall IDs may be found in `common/h/dyn_syscalls.h`.
+    Constructs a MachSyscall from a Platform and a platform-independent ID (e.g. ``dyn_getpid``).
+    The platform-independent syscall IDs may be found in :ref:`sec-dev:dyn_syscalls.h`.
 
   .. cpp:function:: SyscallIDPlatform num() const
 
-  The platform-specific number for this system call
+    The platform-specific number for this system call
 
   .. cpp:function:: SyscallName name() const
-
-.. cpp:namespace-push:: ProcControlAPI
-    
-.. cpp:function:: MachSyscall makeFromEvent(const EventSyscall * ev)
-.. cpp:function:: MachSyscall makeFromID(boost::shared_ptr<Process> proc, unsigned long id)
-
-.. cpp:namespace-pop::
