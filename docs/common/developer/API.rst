@@ -48,6 +48,7 @@ Classes and features shared among many parts of Dyninst.
    parseauxv.h
    pathName.h
    pool_allocators.h
+   ProcReader.h
    registers/MachRegister.h
    sha1.h
    singleton_object_pool.h

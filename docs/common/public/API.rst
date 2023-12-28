@@ -20,7 +20,6 @@ Classes and features shared among many parts of Dyninst.
    Graph.h
    MachSyscall.h
    Node.h
-   ProcReader.h
    registers/MachRegister.h
    SymReader.h
    VariableLocation.h
