@@ -9,6 +9,7 @@ StackwalkAPI
   :maxdepth: 1
 
   aarch64-swk.h
+  addrRange.h
   analysis_stepper.h
   dbgstepper-impl.h
   framestepper_pimple.h

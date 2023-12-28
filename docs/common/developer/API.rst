@@ -11,7 +11,6 @@ Classes and features shared among many parts of Dyninst.
    :hidden:
    :maxdepth: 1
    
-   addrRange.h
    addrtranslate.h
    addrtranslate-sysv.h
    Annotatable.h
