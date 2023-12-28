@@ -5,14 +5,15 @@ SymReader.h
 
 .. cpp:namespace:: Dyninst
 
+Any class derived from :cpp:class:`SymReader` can use a ``Symbol_t`` to represent
+a symbol handle.  Some symbol readers may not want to store the objects behind a
+``void*`` on the heap, so it is big enough to act as a full symbol handle.  Or a
+SymReader could just choose fill in one of the void pointers as a handle to a heap
+object, if it's comfortable doing so.
+
 .. cpp:class:: Symbol_t
 
-    Symbol_t is an anonymous struct that any SymReader can use for a symbol 
-    handle.  Some symbol readers may not want to store the objects behind a 
-    ``void*`` on the heap, so we're making Symbol_t big enough that it could 
-    act as a full symbol handle.  Or a SymReader could just choose fill in one
-    of the void pointers as a handle to a heap object, if it's comfortable
-    doing so.
+  **A generic symbol handle**
 
   .. cpp:member:: void *v1
   .. cpp:member:: void *v2
@@ -36,6 +37,10 @@ SymReader.h
   .. cpp:member:: int perms
 
 .. cpp:class:: SymReader
+
+  **An abstract class defining a symbol reader interface**
+
+  .. Note:: This class is re-enterant, so it may be called from a signal handler.
 
   .. cpp:function:: virtual Symbol_t getSymbolByName(std::string symname) = 0
   .. cpp:function:: virtual Symbol_t getContainingSymbol(Dyninst::Offset offset) = 0
@@ -68,3 +73,5 @@ SymReader.h
   .. cpp:function:: virtual SymReader *openSymbolReader(const char *buffer, unsigned long size) = 0
   .. cpp:function:: virtual bool closeSymbolReader(SymReader *sr) = 0
   .. cpp:function:: Dyninst::SymbolReaderFactory *getSymReaderFactory()
+
+.. cpp:function:: SymbolReaderFactory *getSymReaderFactory()
