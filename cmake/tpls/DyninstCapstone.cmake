@@ -25,7 +25,7 @@ if(capstone_ROOT_DIR)
 endif()
 
 if(Capstone_ROOT_DIR)
-  set(CAPSTONE_ROOT ${Capstone_ROOT_DIR})
+  set(capstone_ROOT ${Capstone_ROOT_DIR})
   mark_as_advanced(CAPSTONE_ROOT)
   set(capstone_DIR ${Capstone_ROOT_DIR})
   mark_as_advanced(capstone_DIR)
