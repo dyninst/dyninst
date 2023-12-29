@@ -31,52 +31,6 @@
 #ifndef COMPILER_DIAGNOSTICS_H
 #define COMPILER_DIAGNOSTICS_H
 
-// This file defines macros to suppress compiler diagnostics for a region of
-// code.  They are used to suppress diagnostic that are due to 1) non-standard
-// code and 2) the compiler produced false positives.  They expand to nothing
-// if not applicable with the current compiler.
-//
-// The macros to begin and end the region take the form:
-//
-//      DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_<code>
-//      DYNINST_DIAGNOSTIC_END_SUPPRESS_<code>
-//
-// They should be place on a lines of their own without trailing '()' or ';'.
-//
-// Currently defined value for <code> are
-//
-//      FLEX_ARRAY
-//              warning about C flexible arrays in C++
-//      VLA
-//              warning about C VLAs (variable length arrays) in C++
-//      VLA_EXTENSION
-//              clang warning about C VLAs in C++ if VLA is suppressed
-//      VLA_ALL`
-//              both of the above
-//      VLA_GCC_PRAGMA_BUG
-//              gcc <9, 11.0, and 11.1 workaround macro
-//      LOGICAL_OP
-//              warning about duplicate subexpressions in a logical expression
-//              Is a false positive due compiler checks after macro/constant
-//              propagation (eg. (x == a && x == b) if a and b are distinct
-//              constants with the same physical value. Only gcc 6-8.
-//      DUPLICATED_BRANCHES
-//              similar to LOGICAL_OP except the expressions are the
-//              conditionals of a chain of if/then/else's. Only gcc 7-8.
-//      UNUSED_VARIABLE
-//              clang <10 warns about variables defined solely for RIAA (locks)
-//      MAYBE_UNINITIALIZED
-//              gcc 12 warns that boost::optional::value_or may use an
-//              unitialized value when value_or checks if it is initialized.
-//
-// Macros to silence unused variable warnings
-//
-//      DYNINST_SUPPRESS_UNUSED_VARIABLE(var)
-//              indicate that variable var OK to be unused
-//
-// Define DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS to prevents suppressions.
-
-
 // Define compiler specific suppression codes, an undefined value represents no
 // suppression required.  Suppression code  macro names have the form
 //
