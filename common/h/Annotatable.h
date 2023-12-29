@@ -133,12 +133,6 @@ class COMMON_EXPORT AnnotatableDense
 {
 	typedef void *anno_list_t;
 
-	/**
-    * Inheriting from this class adds a pointer to each object.  Multiple
-    * types of annotations are stored under this pointer in a 
-    * annotation_type -> anno_list_t map.
-    **/
-
    private:
 
       typedef anno_list_t anno_map_t;
