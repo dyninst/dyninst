@@ -35,7 +35,7 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include "common/src/addrRange.h"
+#include "addrRange.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/walker.h"

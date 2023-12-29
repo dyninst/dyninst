@@ -14,6 +14,7 @@ set(_public_headers
     h/walker.h)
 
 set(_private_headers
+    src/addrRange.h
     src/aarch64-swk.h
     src/analysis_stepper.h
     src/dbgstepper-impl.h
