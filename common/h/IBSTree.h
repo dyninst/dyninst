@@ -33,10 +33,6 @@
 #ifndef _IBSTree_h_
 #define _IBSTree_h_
 
-/*******************************************************/
-/*		header files 			       */
-/*******************************************************/
-
 #include <assert.h>
 #include "dyntypes.h"
 #include "concurrent.h"
@@ -46,33 +42,6 @@
 #include <set>
 #include <limits>
 #include <iostream>
-
-/** Template class for Interval Binary Search Tree. The implementation is
-  * based on a red-black tree (derived from our codeRange implementation)
-  * to control the tree height and thus insertion and search cost.
-  *
-  * Unlike our codeRangeTree, this data structure can represent overlapping
-  * intervals. It is useful for executing stabbing queries and more
-  * generally for finding invervals that overlap a particular interval.
-  * A stabbing query requires O(log(N) + L) time in the worst case, where
-  * L is the number of overlapping intervals, and insertion requires
-  * O(log^2(N)) time (compare to O(log(N)) for a standard RB-tree).
-  *
-  * This class requires a worst case storage O(N log(N))
-  *
-  * For more information:
-  *
-  * @TECHREPORT{Hanson90theibs-tree:,
-  *     author = {Eric N. Hanson and Moez Chaabouni},
-  *     title = {The IBS-tree: A data structure for finding all intervals that overlap a point},
-  *     institution = {},
-  *     year = {1990}
-  * }
-  **/
-
-/** EXTREMELY IMPORTANT XXX: Assuming that all intervals have lower bound
-    predicate <= and upper bound predicate > ; that is, intervals are 
-    [a,b) **/
 
 // windows.h defines min(), max() macros that interfere with numeric_limits
 #undef min
