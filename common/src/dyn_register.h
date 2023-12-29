@@ -32,8 +32,6 @@
 #define DYNINST_REGISTER
 
 namespace Dyninst {
-/* This needs to be an int since it is sometimes used to pass offsets
-   to the code generator (i.e. if-statement) - jkh 5/24/99 */
 
 /* a register number, e.g., [0..31]  */
 typedef unsigned int Register;
@@ -41,7 +39,6 @@ typedef unsigned int Register;
 /* register content 64-bit */
 typedef long long int RegValue;
 
-/* '255' */
 constexpr Register Null_Register{static_cast<unsigned int>(-1)};
 
 }
