@@ -13,4 +13,3 @@ freebsdKludges.h
 .. cpp:function:: map_entries *getVMMaps(int pid, unsigned &maps_size)
 .. cpp:function:: bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid)
 .. cpp:function:: bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid)
->>>>>>> 3f49679 freebsd -- rebase
