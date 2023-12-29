@@ -37,7 +37,7 @@ Various values used throughout the codebase. These can have different underlying
 
 .. cpp:enum:: OSType
 
-  .. cpp:enumerator:: OSType::OSNone
-  .. cpp:enumerator:: OSType::Linux
-  .. cpp:enumerator:: OSType::FreeBSD
-  .. cpp:enumerator:: OSType::Windows
+  .. cpp:enumerator:: OSNone
+  .. cpp:enumerator:: Linux
+  .. cpp:enumerator:: FreeBSD
+  .. cpp:enumerator:: Windows
