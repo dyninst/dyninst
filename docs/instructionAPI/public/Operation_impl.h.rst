@@ -1,7 +1,7 @@
 Operation_impl.h
 ================
 
-.. cpp:namespace:: Dyninst::instructionAPI
+.. cpp:namespace:: Dyninst::InstructionAPI
 
 Operation Class
 ---------------

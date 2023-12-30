@@ -1,5 +1,5 @@
 InstructionDecoderImpl.h
 ========================
 
-.. cpp:namespace:: Dyninst::instructionAPI
+.. cpp:namespace:: Dyninst::InstructionAPI
 

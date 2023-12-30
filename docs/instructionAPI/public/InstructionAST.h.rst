@@ -1,7 +1,7 @@
 InstructionAST.h
 ================
 
-.. cpp:namespace:: Dyninst::instructionAPI
+.. cpp:namespace:: Dyninst::InstructionAPI
 
 InstructionAST Class
 --------------------
