@@ -3,5 +3,4 @@
 symbolDemangleWithCache.h
 #########################
 
-.. cpp:namespace:: Dyninst
-
+.. cpp:function:: std::string const& symbol_demangle_with_cache(const std::string &symName, bool includeParams)
