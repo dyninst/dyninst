@@ -3,5 +3,4 @@
 symbolDemangle.h
 ################
 
-.. cpp:namespace:: Dyninst
-
+.. cpp:function:: char *symbol_demangle(const char *symName, int includeParams)
