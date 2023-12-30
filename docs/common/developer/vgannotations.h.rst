@@ -3,6 +3,8 @@
 vgannotations.h
 ###############
 
+**Valgrind annotation features**
+
 Use the CMake option ``-DADD_VALGRIND_ANNOTATIONS=ON`` to enable.
 
 One or two places use function-scoped static variables for lazy singleton
