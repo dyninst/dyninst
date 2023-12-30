@@ -33,7 +33,6 @@
 ************************************************************************/
 
 
-
 
 
 #if !defined(_lprintf_h_)
@@ -41,7 +40,6 @@
 #include "compiler_annotations.h"
 
 
-
 
 
 /************************************************************************
@@ -54,7 +52,6 @@ extern COMMON_EXPORT void log_printf(void (*)(const char *), const char *, ...)
 extern COMMON_EXPORT void log_perror(void (*)(const char *), const char *);
 
 
-
 
 
 #endif /* !defined(_lprintf_h_) */
