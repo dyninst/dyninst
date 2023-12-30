@@ -1,79 +1,66 @@
+.. _`sec:BinaryFunction.h`:
+
 BinaryFunction.h
-================
+################
 
-.. cpp:namespace:: Dyninst::instructionAPI
+.. cpp:namespace:: Dyninst::InstructionAPI
 
-BinaryFunction Class
---------------------
+.. cpp:class:: BinaryFunction : public Expression
 
-A ``BinaryFunction`` object represents a function that can combine two
-``Expression``\ s and produce another ``ValueComputation``.
+  **Evaluates two Expressions into a single Result**
 
-For the purposes of representing a single operand of an instruction, the
-``BinaryFunction``\ s of interest are addition and multiplication of
-integer values; this allows an ``Expression`` to represent all
-addressing modes on the architectures currently supported by the
-Instruction API.
+  The operations of interest are :cpp:class:`addition <addResult>`,
+  :cpp:class:`multiplication <multResult>`, :cpp:class:`left shift <leftShiftResult>`,
+  :cpp:class:`right arithmetic shift <rightArithmeticShiftResult>`,
+  :cpp:class:`bitwise and <andResult>`, :cpp:class:`bitwise or <orResult>`,
+  :cpp:class:`right logical shift <rightLogicalShiftResult>`, and
+  :cpp:class:`right rotate <rightRotateResult>`\ . These allow an
+  :cpp:class:`Expression` to represent all addressing modes on all supported
+  architectures.
 
-.. code-block:: cpp
+  .. cpp:function:: BinaryFunction(Expression::Ptr arg1, Expression::Ptr arg2, Result_Type result_type, \
+                                   funcT::Ptr func)
 
-    BinaryFunction(Expression::Ptr arg1, Expression::Ptr arg2, Result_Type result_type, funcT:Ptr func)
+    Constructs an :cpp:class:`AST` evaluator using the behavior of ``func`` that takes
+    two parameters ``arg1`` and ``arg2`` (preserving order) and returns ``result_type``.
 
-The constructor for a ``BinaryFunction`` may take a reference-counted
-pointer or a plain C++ pointer to each of the child ``Expression``\ s
-that represent its arguments. Since the reference-counted implementation
-requires explicit construction, we provide overloads for all four
-combinations of plain and reference-counted pointers. Note that
-regardless of which constructor is used, the pointers ``arg1`` and
-``arg2`` become owned by the ``BinaryFunction`` being constructed, and
-should not be deleted. They will be cleaned up when the
-``BinaryFunction`` object is destroyed.
+  .. cpp:function:: const Result& eval() const
 
-The ``func`` parameter is a binary functor on two ``Result``\ s. It
-should be derived from ``funcT``. ``addResult`` and ``multResult``,
-which respectively add and multiply two ``Result``\ s, are provided as
-part of the InstructionAPI, as they are necessary for representing
-address calculations. Other ``funcTs`` may be implemented by the user if
-desired. ``funcTs`` have names associated with them for output and
-debugging purposes. The addition and multiplication functors provided
-with the Instruction API are named "+" and "*", respectively.
+    Returns the evaluation of the contained expressions.
 
-.. code-block:: cpp
+    This result is cached after its initial calculation; the caching mechanism also
+    allows outside information to override the results of the ``BinaryFunction``\ ’s
+    internal computation. If the cached result exists, it is guaranteed to be returned
+    even if the arguments or the function cannot be evaluated.
 
-    const Result & eval () const
+  .. cpp:function:: void getChildren(vector<InstructionAST::Ptr>& children) const
 
-The ``BinaryFunction`` version of ``eval`` allows the ``eval`` mechanism
-to handle complex addressing modes. Like all of the ``ValueComputation``
-implementations, a ``BinaryFunction``\ ’s ``eval`` will return the
-result of evaluating the expression it represents if possible, or an
-empty ``Result`` otherwise. A ``BinaryFunction`` may have arguments that
-can be evaluated, or arguments that cannot. Additionally, it may have a
-real function pointer, or it may have a null function pointer. If the
-arguments can be evaluated and the function pointer is real, a result
-other than an empty ``Result`` is guaranteed to be returned. This result
-is cached after its initial calculation; the caching mechanism also
-allows outside information to override the results of the
-``BinaryFunction``\ ’s internal computation. If the cached result
-exists, it is guaranteed to be returned even if the arguments or the
-function are not evaluable.
+    Appends the two contained expressions to ``children``.
 
-.. code-block:: cpp
+  .. cpp:function:: void getUses(set<InstructionAST::Ptr> & uses)
 
-    void getChildren (vector< InstructionAST::Ptr > & children) const
+    Appends the union of the use sets of its children to ``uses``.
 
-The children of a ``BinaryFunction`` are its two arguments. Appends the
-children of this BinaryFunction to ``children``.
+  .. cpp:function:: bool isUsed(InstructionAST::Ptr expr) const
 
-.. code-block:: cpp
+    Checks if ``expr`` is an argument of either contained argument,
+    or if it is in the use set of either argument.
 
-    void getUses (set< InstructionAST::Ptr > & uses)
+  .. cpp:function:: protected virtual bool isStrictEqual(const InstructionAST& rhs) const
 
-The use set of a ``BinaryFunction`` is the union of the use sets of its
-children. Appends the use set of this ``BinaryFunction`` to ``uses``.
+.. cpp:class:: BinaryFunction::funcT
 
-.. code-block:: cpp
+  .. cpp:type:: boost::shared_ptr<funcT> Ptr
 
-    bool isUsed (InstructionAST::Ptr findMe) const
+  .. cpp:function:: funcT(std::string name)
+  .. cpp:function:: virtual Result operator()(const Result& arg1, const Result& arg2) const = 0
+  .. cpp:function:: std::string format() const
 
-``isUsed`` returns ``true`` if ``findMe`` is an argument of this
-``BinaryFunction``, or if it is in the use set of either argument.
+.. cpp:class:: BinaryFunction::addResult : public funcT
+.. cpp:class:: BinaryFunction::multResult : public funcT
+.. cpp:class:: BinaryFunction::leftShiftResult : public funcT
+.. cpp:class:: BinaryFunction::rightArithmeticShiftResult : public funcT
+.. cpp:class:: BinaryFunction::andResult : public funcT
+.. cpp:class:: BinaryFunction::orResult : public funcT
+.. cpp:class:: BinaryFunction::rightLogicalShiftResult : public funcT
+.. cpp:class:: BinaryFunction::rightRotateResult : public funcT
