@@ -32,15 +32,6 @@
 #define unaligned_memory_access_h_
 
 
-/*
- * Routines to access data at an arbitrary memory location (that is possibly
- * unaligned for the data type) via char*-like pointer with no alignment
- * restrictions.  The set of functions range from safe read and write of memory
- * cast to a type; to functions that cast to a pointer with more restrictive
- * alignment (caller is responsible for addr's alignment correctness).
- */
-
-
 #ifdef __cplusplus
 
 #include <cstring>
@@ -48,12 +39,6 @@
 
 namespace Dyninst {
 
-/*
- * read_memory_as<TYPE>(addr)
- *
- * Return an object of TYPE created by reading sizeof(TYPE) bytes at addr.
- * The address addr does not have to be properly aligned for the type.
- */
 template <typename ResultType>
 inline ResultType read_memory_as(const void *addr)
 {
@@ -63,13 +48,6 @@ inline ResultType read_memory_as(const void *addr)
 }
 
 
-/*
- * write_memory_as<TYPE>(adrr, &data)
- *
- * Write sizeof(TYPE) bytes to the memory pointed to by addr by copying the
- * bytes of the supplied parameter.  The address addr does not have to be
- * properly aligned for the type.
- */
 template <typename DataType>
 inline void write_memory_as(void *addr, const DataType &data)
 {
@@ -77,13 +55,6 @@ inline void write_memory_as(void *addr, const DataType &data)
 }
 
 
-/*
- * append_memory_as<TYPE>(adrr, &data)
- *
- * Write sizeof(TYPE) bytes to the memory pointed to by addr by copying the
- * bytes of the supplied parameter, and adjust addr by sizeof(TYPE).  The
- * address addr does not have to be properly aligned for the type.
- */
 template <typename PointerType, typename DataType>
 inline void append_memory_as(PointerType *&addr, const DataType &data)
 {
@@ -92,12 +63,6 @@ inline void append_memory_as(PointerType *&addr, const DataType &data)
 }
 
 
-/*
- * append_memory_as_byte(adrr, data)
- *
- * Convenience function to avoid uint8_t cast when calling append_memory_as
- * with a uint8_t type.
- */
 template <typename PointerType>
 inline void append_memory_as_byte(PointerType *&addr, std::uint8_t data)
 {
@@ -105,19 +70,6 @@ inline void append_memory_as_byte(PointerType *&addr, std::uint8_t data)
 }
 
 
-/*
- * alignas_cast<TYPE>(addr)
- *
- * Convert the addr pointer to TYPE*, that avoids triggering a warning that the
- * alignment of the new pointer type is larger than the current pointer type.
- *
- * WARNING:  The caller is responsible to ensure that the alignment is correct
- * if the pointer is dereferenced.  Uncomment the assert to audit proper
- * alignment of addr.
- *
- * Use read_memory_as or write_memory_as if possible and definitely if the
- * alignment of addr can not be guaranteed.
- */
 template <typename DataType>
 inline DataType* alignas_cast(const void *addr)
 {
@@ -142,15 +94,6 @@ inline DataType* alignas_cast(void *addr)
  * C language - functions
  */
 
-/* CAST_WITHOUT_ALIGNMENT_WARNING(toType, addr)
- *
- * C language macro that casts the expression addr to type toType
- * without producing a warning that alignment of the new pointer type is
- * larger than the current pointer type.
- *
- * WARNING:  The caller is responsible to ensure that the alignment is
- * correct or use memcpy if the pointer is dereferenced.
- */
 #define CAST_WITHOUT_ALIGNMENT_WARNING(toType, addr) (toType)(void*)(addr)
 
 
