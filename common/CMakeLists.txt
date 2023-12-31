@@ -71,7 +71,6 @@ set(_private_headers
     src/linuxKludges.h
     src/lprintf.h
     src/lru_cache.h
-    src/machineType.h
     src/MappedFile.h
     src/NodeIterator.h
     src/ntHeaders.h
