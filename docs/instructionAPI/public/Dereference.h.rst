@@ -5,7 +5,7 @@ Dereference.h
 
 .. cpp:namespace:: Dyninst::InstructionAPI
 
-.. cpp:class:: Dereference
+.. cpp:class:: Dereference : public Expression
 
   **Expression for an effective address**
 
@@ -64,6 +64,8 @@ Dereference.h
 
     Checks if this expression is the same as ``rhs``.
 
+.. _`sec:dereference-notes`:
+
 
 Notes
 =====
@@ -78,7 +80,7 @@ as follows:
 2. Perform analysis to determine the contents of that address.
 
 3. If necessary, fill in the ``Dereference`` node with the contents of
-   that addresss, using :cpp:func:`setValue`.
+   that addresss, using :cpp:func:`Expression::setValue`.
 
 The type associated with a ``Dereference`` node will be the type of the
 value *read from memory*, not the type used for the address
@@ -98,3 +100,10 @@ remain unchanged.
   :align: center
 
   Applying eval to a Dereference tree with two registers having user-provided values.
+
+This concept is demonstrated in the operand represented as ``[ ebx + 4 eax ]``.
+The contents of ebx and eax have been determined through some outside mechanism, and have
+been defined with :cpp:func:`Expression::setValue`. Evaluation proceeds to
+determine the address being read since this information can be determined given the contents
+of the registers. This address is available from the Dereference through its child in the tree,
+even though calling ``eval`` on the Dereference returns a result with an undefined value.
