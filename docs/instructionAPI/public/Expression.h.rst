@@ -70,10 +70,6 @@ address is available from the Dereference through its child in the tree,
 even though calling ``eval`` on the Dereference returns a ``Result``
 with an undefined value.
 
-.. figure:: fig/deref-eval.pdf
-   :alt: Applying eval to a Dereference tree with two registers having user-provided values.
-   :name: fig:deref-eval
-
 .. code-block:: cpp
 
     typedef boost::shared_ptr<Expression> Ptr
