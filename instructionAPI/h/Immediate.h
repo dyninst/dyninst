@@ -40,12 +40,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    /// The %Immediate class represents an immediate value in an operand
-    ///
-    /// Since an %Immediate represents a constant value, the \c setValue
-    /// and \c clearValue interface are disabled on %Immediate objects.
-    /// If an immediate value is being modified, a new %Immediate object should
-    /// be created to represent the new value.
     class INSTRUCTION_EXPORT Immediate : public Expression
     {
     public:
@@ -53,16 +47,11 @@ namespace Dyninst
       
       virtual ~Immediate();
 
-      /// By definition, an %Immediate has no children.
       virtual void getChildren(vector<InstructionAST::Ptr>& /*children*/) const;
       virtual void getChildren(vector<Expression::Ptr>& /*children*/) const;
 
-      /// By definition, an %Immediate uses no registers.
       virtual void getUses(set<InstructionAST::Ptr>& /*uses*/);
 
-      /// \c isUsed, when called on an %Immediate, will return true if \c findMe represents an %Immediate with the same value.
-      /// While this convention may seem arbitrary, it allows \c isUsed to follow a natural rule: an %InstructionAST is used 
-      /// by another %InstructionAST if and only if the first %InstructionAST is a subtree of the second one.
       virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
       virtual std::string format(Architecture, formatStyle) const;

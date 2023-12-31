@@ -1,37 +1,57 @@
+.. _`sec:Immediate.h`:
+
 Immediate.h
-===========
+###########
 
 .. cpp:namespace:: Dyninst::InstructionAPI
 
-Immediate Class
----------------
+.. cpp:class:: Immediate : public Expression
 
-The Immediate class represents an immediate value in an operand.
+  **An immediate value in an operand**
 
-Since an Immediate represents a constant value, the ``setValue`` and
-``clearValue`` interface are disabled on Immediate objects. If an
-immediate value is being modified, a new Immediate object should be
-created to represent the new value.
+  Since an Immediate represents a constant value, :cpp:func:`Expression::setValue` and
+  :cpp:func:`Expression::clearValue` are not implemented. If an
+  immediate value is being modified, a new object should be
+  created to represent the new value.
 
-.. code-block:: cpp
+  .. cpp:function:: static Immediate::Ptr makeImmediate(const Result& val)
 
-    virtual bool isUsed(InstructionAST::Ptr findMe) const
-    void getChildren(vector<InstructionAST::Ptr> &) const
+    A convenience function to construct an immediate.
 
-By definition, an ``Immediate`` has no children.
+  .. cpp:function:: Immediate(const Result& val)
 
-.. code-block:: cpp
+    Constructs an immediate with the value ``val``.
 
-    void getUses(set<InstructionAST::Ptr> &)
+  .. cpp:function:: virtual void getChildren(vector<InstructionAST::Ptr>&) const
 
-By definition, an ``Immediate`` uses no registers.
+      Does nothing because an immediate has no children.
 
-.. code-block:: cpp
- 
-    bool isUsed(InstructionAPI::Ptr findMe) const
+  .. cpp:function:: virtual void getChildren(vector<Expression::Ptr>&) const
 
-``isUsed``, when called on an Immediate, will return true if ``findMe``
-represents an Immediate with the same value. While this convention may
-seem arbitrary, it allows ``isUsed`` to follow a natural rule: an
-``InstructionAST`` is used by another ``InstructionAST`` if and only if
-the first ``InstructionAST`` is a subtree of the second one.
+      Does nothing because an immediate has no children.
+
+  .. cpp:function:: virtual void getUses(set<InstructionAST::Ptr>&)
+
+    Does nothing because an immediate uses no registers or memory.
+
+  .. cpp:function:: virtual bool isUsed(InstructionAST::Ptr i) const
+
+    Checks if ``i`` represents an Immediate with the same value as this object.
+
+    While this convention may seem arbitrary, it allows ``isUsed`` to follow a natural
+    rule: an ``InstructionAST`` is used by another ``InstructionAST`` if and only if
+    the first is a subtree of the second one.
+
+  .. cpp:function:: virtual std::string format(formatStyle) const
+
+    Returns a string representation of this expression using the style ``formatStyle``.
+
+  .. cpp:function:: virtual std::string format(Architecture arch, formatStyle) const
+
+    Returns a string representation of this expression using the :cpp:class:`ArchSpecificFormatter`
+    associated with ``arch``. ``formatStyle`` is ignored.
+
+  .. cpp:function:: virtual void apply(Visitor* v)
+
+    Applies ``v`` in a postfix-order traversal of contained expressions (as :cpp:class:`AST`\ s)
+    with user-defined actions performed at each node of the tree.
