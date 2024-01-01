@@ -1,31 +1,27 @@
 .. _`sec:instruction-intro`:
 
-==============
 InstructionAPI
-==============
+##############
 
 When analyzing and modifying binary code, it is necessary to translate
 between raw binary instructions and an abstract form that describes the
-semantics of the instructions. As a part of the Dyninst project, we have
-developed the Instruction API, an API and library for decoding and
-representing machine instructions in a platform-independent manner. The
-Instruction API includes methods for decoding machine language,
-convenient abstractions for its analysis, and methods to produce
-disassembly from those abstractions. The current implementation supports
-the x86, x86-64, ARMv8-64, PowerPC-32, and PowerPC-64 instruction sets.
+semantics of the instructions. The Instruction API includes methods for
+decoding machine language, convenient abstractions for its analysis, and
+methods to produce disassembly from those abstractions.
+
 The Instruction API has the following basic capabilities:
 
--  Decoding: interpreting a sequence of bytes as a machine instruction
-   in a given machine language.
+  -  Decoding: interpreting a sequence of bytes as a machine instruction
+     in a given machine language.
 
--  Abstract representation: representing the behavior of that
-   instruction as an abstract syntax tree.
+  -  Abstract representation: representing the behavior of that
+     instruction as an abstract syntax tree.
 
--  Disassembly: translating an abstract representation of a machine
-   instruction into a string representation of the corresponding
-   assembly language instruction.
+  -  Disassembly: translating an abstract representation of a machine
+     instruction into a string representation of the corresponding
+     assembly language instruction.
 
-Our goal in designing the Instruction API is to provide a representation
+The goal of the Instruction API is to provide a representation
 of machine instructions that can be manipulated by higher-level
 algorithms with minimal knowledge of platform-specific details. In
 addition, users who need platform-specific information should be able to
@@ -42,7 +38,7 @@ computation.
 .. _`sec:instruction-abstractions`:
 
 Abstractions
-============
+************
 
 The Instruction API contains three major components: the top-level
 instruction representation, the abstract syntax trees representing the
@@ -52,7 +48,7 @@ each of these three components, followed by an example of how the
 Instruction API can be applied to binary analysis.
 
 Instruction Interface
----------------------
+=====================
 
 The Instruction API represents a machine language instruction as an
 Instruction object, which contains an Operation and a collection of
@@ -76,7 +72,7 @@ operations required to compute the value of the operand.
 Figure `1 <#fig:ownership-graph>`__ depicts these ownership
 relationships within an Instruction.
 
-.. figure:: fig/ownership_graph.pdf
+.. figure:: fig/ownership_graph.png
    :alt: An Instruction and the objects it owns
    :name: fig:ownership-graph
 
@@ -101,7 +97,7 @@ using just this second interface (namely the ``getReadSet`` and
 ``getWriteSet`` functions).
 
 Instruction Decoding
---------------------
+====================
 
 An InstructionDecoder interprets a sequence of bytes according to a
 given machine language and transforms them into an instruction
@@ -110,7 +106,7 @@ translates that opcode to an Operation object, uses that Operation to
 determine how to decode the instruction’s Operands, and produces a
 decoded Instruction.
 
-.. figure:: fig/decoder_use.pdf
+.. figure:: fig/decoder_use.png
    :alt: The InstructionDecoder’s inputs and outputs
    :name: fig:decoder-use
 
@@ -133,7 +129,7 @@ platform-independent manner.
 .. _`subsec:hierarchy`:
 
 InstructionAST Hierarchy
-------------------------
+========================
 
 The AST representation of an operand encapsulates the operations
 performed on registers and immediates to produce an operand for the
@@ -142,7 +138,7 @@ machine language instruction.
 The inheritance hierarchy of the AST classes is shown in
 Figure `3 <#fig:inheritance>`__.
 
-.. figure:: fig/full_inheritance_graph.pdf
+.. figure:: fig/full_inheritance_graph.png
    :alt: The InstructionAST inheritance hierarchy
    :name: fig:inheritance
 
@@ -158,13 +154,13 @@ relationships within a given tree, and
 Figure `5 <#fig:representation>`__ shows how an example IA32 instruction
 is represented using these objects.
 
-.. figure:: fig/ast_ownership.pdf
+.. figure:: fig/ast_ownership.png
    :alt: InstructionAST intermediate node types and the objects they own
    :name: fig:ownership
 
    InstructionAST intermediate node types and the objects they own
 
-.. figure:: fig/instruction_representation.pdf
+.. figure:: fig/instruction_representation.png
    :alt: The decomposition of mov %eax, (%esi)
    :name: fig:representation
 
@@ -181,7 +177,7 @@ known at the time an instruction is decoded. More details on this
 mechanism may be found in Section `3.5 <#sec:expression>`__.
 
 Visitor Paradigm
-----------------
+================
 
 An alternative to the bind/eval mechanism is to use a *visitor*
 over an expression tree. The visitor concept applies a user-specified

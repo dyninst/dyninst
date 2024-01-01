@@ -17,4 +17,4 @@ digraph eval_example
   SIBexpr [label = "{u32:+ | {<arg1> u32:0xB000|<arg2>u32:0x80} }"];
   deref [label = "{{u16:deref}|u32:0xB080}"];
   result [label="u16:UNKNOWN"];
-};
+}
