@@ -20,7 +20,6 @@ InstructionAPI
   Operand.h
   Operation_impl.h
   Register.h
-  RegisterIDs.h
   Result.h
   Ternary.h
   Visitor.h
