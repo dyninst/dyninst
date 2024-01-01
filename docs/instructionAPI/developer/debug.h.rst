@@ -3,6 +3,6 @@
 debug.h
 #######
 
-.. cpp:namespace:: Dyninst::InstructionAPI::dev
+.. cpp:namespace:: Dyninst::InstructionAPI
 
 .. cpp:function:: void decode_printf(const char *format, ...)
