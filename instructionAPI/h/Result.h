@@ -181,57 +181,6 @@ namespace Dyninst
             typedef unsigned char type;
         };
 
-        /// A %Result object represents a value computed by a %Expression AST.
-        ///
-        /// The %Result class is a tagged-union representation of the results that
-        /// %Expressions can produce.  It includes 8, 16, 32, 48, and 64 bit integers
-        /// (signed and unsigned), bit values, and single and double precision floating point values.
-        /// For each of these types, the value of a %Result may be undefined, or it may be a value within
-        /// the range of the type.
-        ///
-        /// The \c type field is an enum that may contain any of the following values:
-        /// - \c bit_flag: a single bit (individual flags)
-        /// - \c u8: an unsigned 8-bit integer
-        /// - \c s8: a signed 8-bit integer
-        /// - \c u16: an unsigned 16-bit integer
-        /// - \c s16: a signed 16-bit integer
-        /// - \c u24: an unsigned 24-bit integer
-        /// - \c u32: an unsigned 32-bit integer
-        /// - \c s32: a signed 32-bit integer
-        /// - \c u48: an unsigned 48-bit integer
-        /// - \c s48: a signed 48-bit integer
-        /// - \c u64: an unsigned 64-bit integer
-        /// - \c s64: a signed 64-bit integer
-        /// - \c sp_float: a single-precision float
-        /// - \c dp_float: a double-precision float
-        /// - \c dbl128: a 128-bit integer, which often contains packed floating point values
-        /// - \c m14: a 14 byte memory value
-        /// - \c m32: a 32-bit memory value
-        /// - \c m64: a 64-bit memory value
-        /// - \c m80: an 80-bit memory value
-        /// - \c m96: a 96-bit memory value
-        /// - \c m128: a 128-bit memory value
-        /// - \c m160: a 160-bit memory value
-        /// - \c m192: a 192-bit memory value
-        /// - \c m224: a 224-bit memory value
-        /// - \c m256: a 256-bit memory value
-        /// - \c m288: a 288-bit memory value
-        /// - \c m320: a 320-bit memory value
-        /// - \c m352: a 352-bit memory value
-        /// - \c m384: a 384-bit memory value
-        /// - \c m416: a 416-bit memory value
-        /// - \c m448: a 448-bit memory value
-        /// - \c m480: a 480-bit memory value
-        /// - \c m512: a 512-bit memory value
-
-        // The %Instruction API's model of %Results is a simple one, and may seem overly aggressive about
-        // making an %Expression's %Result undefined.  It follows the same basic rule as the rest of the API:
-        // a decoded %Instruction object represents only the information that may be obtained from the machine
-        // instruction that was decoded.  As discussed in the Expression section, the \c setValue
-        // and \c eval interface allows you to determine the possible %Results of an %Expression when evaluated over various
-        // machine states.  From this, you may construct abstractions to represent the set of possible results.
-        // Alternately, you may use instrumentation to determine the exact machine state at the time an
-        // instruction executes, which will allow you to evaluate the %Result of an %Expression in its actual context.
         class INSTRUCTION_EXPORT Result
         {
             public:
@@ -257,19 +206,12 @@ namespace Dyninst
                     return *this;
                 }
 
-                /// A %Result may be constructed from a type without providing a value.
-                /// This constructor creates a %Result of type \c t with undefined contents.
                 Result(Result_Type t) :
                     type(t), defined(false)
             {
                 val.u32val = 0;
             }
 
-                /// A %Result may be constructed from a type and any value convertible to the type that the
-                /// tag represents.
-                /// This constructor creates a %Result of type \c t and contents \c v for any \c v that is implicitly
-                /// convertible to type \c t.  Attempting to construct a %Result with a value that is incompatible with
-                /// its type will result in a compile-time error.
                 template<typename T>
                     Result(Result_Type t, T v) :
                         type(t), defined(true)
@@ -507,19 +449,11 @@ namespace Dyninst
                     return false;
                 }
 
-                /// Two %Results are equal if any of the following hold:
-                /// - Both %Results are of the same type and undefined
-                /// - Both %Results are of the same type, defined, and have the same value
-                ///
-                /// Otherwise, they are unequal (due to having different types, an undefined %Result compared to a defined %Result,
-                /// or different values).
                 bool operator==(const Result& o) const
                 {
                     return !((*this < o) || (o < *this));
                 }
 
-                /// %Results are formatted as strings containing their contents, represented as hexadecimal.
-                /// The type of the %Result is not included in the output.
                 std::string format() const
                 {
                     if(!defined)
@@ -701,7 +635,7 @@ namespace Dyninst
                     }
 
 
-                /// Returns the size of the contained type, in bytes
+                // Returns the size of the contained type in _bytes_
                 int size() const
                 {
                     switch(type)
