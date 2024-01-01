@@ -13,3 +13,4 @@ InstructionAPI
   InstructionDecoderImpl.h
   InstructionDecoder-power.h
   InstructionDecoder-x86.h
+  Register.h

@@ -1,84 +1,72 @@
+.. _`sec:Register.h`:
+
 Register.h
-==========
+##########
 
 .. cpp:namespace:: Dyninst::InstructionAPI
 
-RegisterAST Class
------------------
+.. cpp:class:: RegisterAST : public Expression
 
-A ``RegisterAST`` object represents a register contained in an operand.
-As a ``RegisterAST`` is an ``Expression``, it may contain the physical
-register’s contents if they are known.
+  **A register contained in an operand**
 
-.. code-block:: cpp
+  .. Note:: This class satisfies the `Compare <https://en.cppreference.com/w/cpp/named_req/Compare>`_ concept.
 
-    typedef dyn_detail::boost::shared_ptr<RegisterAST> Ptr
+  .. cpp:type:: boost::shared_ptr<RegisterAST> Ptr
 
-A type definition for a reference-counted pointer to a ``RegisterAST``.
+  .. cpp:function:: RegisterAST(MachRegister r)
 
-.. code-block:: cpp
+      Creates a register based on the machine register ``r``.
 
-    RegisterAST (MachRegister r)
+  .. cpp:function:: RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, uint32_t num_elements = 1)
 
-Construct a register using the provided register object ``r``. The
-``MachRegister`` datatype is Dyninst’s register representation and
-should not be constructed manually.
+  .. cpp:function:: RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType, uint32_t num_elements = 1)
 
-.. code-block:: cpp
+  .. cpp:function:: void getChildren(vector<InstructionAST::Ptr>& children) const
 
-    void getChildren (vector< InstructionAST::Ptr > & children) const
+      Does nothing because a register has no children.
 
-By definition, a ``RegisterAST`` object has no children. Since a
-``RegisterAST`` has no children, the ``children`` parameter is unchanged
-by this method.
+  .. cpp:function:: virtual void getChildren(vector<Expression::Ptr>& children) const
 
-.. code-block:: cpp
+      Does nothing because a register has no children.
 
-    void getUses (set< InstructionAST::Ptr > & uses)
+  .. cpp:function:: void getUses(set<InstructionAST::Ptr>& uses)
 
-By definition, the use set of a ``RegisterAST`` object is itself. This
-``RegisterAST`` will be inserted into ``uses``.
+      Appends the set of used registers to ``uses``.
 
-.. code-block:: cpp
+      By definition, the use set of a register is only itself.
 
-    bool isUsed (InstructionAST::Ptr findMe) const
+  .. cpp:function:: bool isUsed(InstructionAST::Ptr findMe) const
 
-``isUsed`` returns ``true`` if ``findMe`` is a ``RegisterAST`` that
-represents the same register as this ``RegisterAST``, and ``false``
-otherwise.
+      Checks if ``i`` represents the same register.
 
-.. code-block:: cpp
+  .. cpp:function:: std::string format(formatStyle how = defaultStyle) const
 
-     std::string format (formatStyle how = defaultStyle) const
+      Returns a string representation of this expression using the style ``formatStyle``.
 
-The format method on a ``RegisterAST`` object returns the name
-associated with its ID.
+  .. cpp:function:: static RegisterAST makePC(Dyninst::Architecture arch)
 
-.. code-block:: cpp
- 
-    RegisterAST makePC (Dyninst::Architecture arch) [static]
+      Returns the program counter (PC) for the architecture ``arch``.
 
-Utility function to get a ``Register`` object that represents the
-program counter. ``makePC`` is provided to support platform-independent
-control flow analysis.
+  .. cpp:function:: MachRegister getID() const
 
-.. code-block:: cpp
+      Returns the underlying register represented by this AST.
 
-    bool operator< (const RegisterAST & rhs) const
+  .. cpp:function:: unsigned int lowBit() const
+  .. cpp:function:: unsigned int highBit() const
 
-We define a partial ordering on registers by their register number so
-that they may be placed into sets or other sorted containers.
+  .. cpp:function:: static RegisterAST::Ptr promote(const InstructionAST::Ptr reg)
 
-.. code-block:: cpp
-    
-    MachRegister getID () const
+      Hides aliasing complexity on platforms that allow addressing part or all of a register.
 
-The ``getID`` function returns underlying register represented by this
-AST.
+  .. cpp:function:: static RegisterAST::Ptr promote(const RegisterAST* reg)
 
-.. code-block:: cpp
+    Hides aliasing complexity on platforms that allow addressing part or all of a register.
 
-    RegisterAST::Ptr promote (const InstructionAST::Ptr reg) [static]
+  .. cpp:function:: virtual void apply(Visitor* v)
 
-Utility function to hide aliasing complexity on platforms (IA-32) that
-allow addressing part or all of a register
+    Applies ``v``.
+
+  .. cpp:function:: virtual bool bind(Expression* e, const Result& val)
+
+    Forwards to :cpp:func:`Expression::bind`.
+
