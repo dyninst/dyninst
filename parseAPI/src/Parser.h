@@ -119,10 +119,8 @@ namespace Dyninst {
 
             ~Parser();
 
-            /** Initialization & hints **/
             void add_hint(Function *f);
 
-            // functions
             Function *findFuncByEntry(CodeRegion *cr, Address entry);
 
             int findFuncsByBlock(CodeRegion *cr, Block *b, set<Function*> &funcs);
@@ -131,12 +129,10 @@ namespace Dyninst {
 
             int findFuncs(CodeRegion *cr, Address start, Address end, set<Function *> &funcs);
 
-            // blocks
             Block *findBlockByEntry(CodeRegion *cr, Address entry);
 
             int findBlocks(CodeRegion *cr, Address addr, set<Block *> &blocks);
 
-            // returns current blocks without parsing.
             int findCurrentBlocks(CodeRegion *cr, Address addr, std::set<Block *> &blocks);
 
             int findCurrentFuncs(CodeRegion *cr, Address addr, set<Function *> &funcs);
@@ -159,7 +155,6 @@ namespace Dyninst {
 
             CodeObject &obj() { return _obj; }
 
-            // removal
             void remove_block(Block *);
 
             void remove_func(Function *);
