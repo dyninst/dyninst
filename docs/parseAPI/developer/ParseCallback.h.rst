@@ -1,7 +1,7 @@
-.. _`sec:parseapi-ParseCallback.h.rst`:
+.. _`sec:ParseCallback.h`:
 
 ParseCallback.h
-===============
+###############
 
 .. cpp:namespace:: Dyninst::ParseAPI
 
@@ -114,9 +114,3 @@ Defensive-mode notifications:
   - Notify every time a block is split, after the initial parse of the function
   - Notify of the x86 obfuscation that performs a short jmp -1 (eb ff) so that dyninst can patch
     the opcode with a nop (0x90), which will keep code generation from doing bad things
-
-
-
-
-
-
