@@ -15,7 +15,6 @@ ParseAPI
   InstructionAdapter.h
   InstructionSource.h
   Location.h
-  LockFreeQueue.h
   ParseCallback.h
   ParseContainers.h
   SymLiteCodeSource.h
