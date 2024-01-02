@@ -13,6 +13,7 @@ ParseAPI
   CFG.h
   CFGFactory.h
   CFGModifier.h
+  CodeObject.h
   debug_parse.h
   dominator.h
   IA_aarch64.h
