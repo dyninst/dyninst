@@ -102,29 +102,29 @@ InsnLoc(Block *const b,  Offset o, const InstructionAPI::Instruction& i) :
 struct Location {
 
 Location() : func(NULL), block(NULL), offset(0), edge(NULL), untrusted(false), type(illegal_) {}
-   // Function
+
 Location(Function *f) : func(f), block(NULL), offset(0), edge(NULL), untrusted(false), type(function_) {}
 Location(EntrySite e) : func(e.func), block(e.block), offset(0), edge(NULL), untrusted(false), type(entry_) {}
 Location(CallSite c) : func(c.func), block(c.block), offset(0), edge(NULL), untrusted(false), type(call_) {}
 Location(ExitSite e) : func(e.func), block(e.block), offset(0), edge(NULL), untrusted(false), type(exit_) {}
-   // A block in a particular function
+
 Location(Function *f, Block *b) : func(f), block(b), offset(0), edge(NULL), untrusted(true), type(blockInstance_) {}
-   // A block of a function
+
 Location(BlockSite b): func(b.func), block(b.block), offset(0), edge(NULL), untrusted(false), type(blockInstance_) {}
-   // A trusted instruction (in a particular function)
+
 Location(Function *f, InsnLoc l) : func(f), block(l.block), offset(l.offset), insn(l.insn), edge(NULL), untrusted(false), type(instructionInstance_) {}
-   // An untrusted (raw) instruction (in a particular function)
+
 Location(Function *f, Block *b, Offset o, InstructionAPI::Instruction i) : func(f), block(b), offset(o), insn(i), edge(NULL), untrusted(true), type(instructionInstance_) {}
-   // An edge (in a particular function)
+
 Location(Function *f, Edge *e) : func(f), block(NULL), offset(0), edge(e), untrusted(true), type(edge_) {}
 Location(EdgeLoc e): func(e.func), block(NULL), offset(0), edge(e.edge), untrusted(false), type(edge_){}
-   // A block in general
+
 Location(Block *b) : func(NULL), block(b), offset(0), edge(NULL), untrusted(false), type(block_) {}
-   // A trusted instruction in general
+
 Location(InsnLoc l) : func(NULL), block(l.block), offset(l.offset), insn(l.insn), edge(NULL), untrusted(false), type(instruction_) {}
-   // An untrusted (raw) instruction
+
 Location(Block *b, Offset o) : func(NULL), block(b), offset(o), edge(NULL), untrusted(true), type(instruction_) {}
-   // An edge
+
 Location(Edge *e) : func(NULL), block(NULL), offset(0), edge(e), untrusted(false), type(edge_) {}
 
    typedef enum {
