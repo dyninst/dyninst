@@ -24,6 +24,7 @@ ParseAPI
   IA_x86.h
   IndirectAnalyzer.h
   IndirectASTVisitor.h
+  InstructionAdapter.h
   JumpTableFormatPred.h
   JumpTableIndexPred.h
   LoopAnalyzer.h

@@ -46,12 +46,7 @@
 
 #if !defined(ESSENTIAL_PARSING_ENUMS)
 #define ESSENTIAL_PARSING_ENUMS
-// There are three levels of function-level "instrumentability":
-// 1) The function can be instrumented normally with no problems (normal case)
-// 2) The function contains unresolved indirect branches; we have to assume
-//    these can go anywhere in the function to be safe, so we must instrument
-//    safely (e.g., with traps)
-// 3) The function is flatly uninstrumentable and must not be touched.
+
 enum InstrumentableLevel {
     NORMAL,
     HAS_BR_INDIR,
@@ -120,7 +115,6 @@ const;
     virtual bool isTailCall(const ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns,
                             const std::set<Address> &) const = 0;
     protected:
-    	// Uses pattern heuristics or backward slicing to determine if a blr instruction is a return or jump table
         virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const = 0;
         virtual bool isRealCall() const = 0;
         Address current;
@@ -134,7 +128,6 @@ const;
     ParseAPI::CodeObject * _obj;
     ParseAPI::CodeRegion * _cr;
     InstructionSource * _isrc;
-    // Block associated with the instruction adapter. This is required for powerpc slicing to determine the return address of a function
     ParseAPI::Block * _curBlk;
 };
 
