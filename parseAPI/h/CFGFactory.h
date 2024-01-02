@@ -66,11 +66,6 @@ private:
 };
 
 
-/** An implementation of CFGFactory is responsible for allocation and
-    deallocation of CFG objects like Blocks, Edges, and Functions.
-    Overriding the default methods of this interface allows the parsing
-    routines to generate and work with extensions of the base types **/
-
 enum EdgeState {
     created,
     destroyed_cb,
