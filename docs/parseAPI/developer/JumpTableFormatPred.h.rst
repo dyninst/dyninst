@@ -3,8 +3,6 @@
 JumpTableFormatPred.h
 #####################
 
-.. cpp:namespace:: Dyninst::parseAPI
-
 .. cpp:class:: JumpTableFormatPred : public Slicer::Predicates
 
   .. cpp:function:: JumpTableFormatPred(ParseAPI::Function *f, ParseAPI::Block *b, ReachFact &r, ThunkData &t, SymbolicExpression &sym)

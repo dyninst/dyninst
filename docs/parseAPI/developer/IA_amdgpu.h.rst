@@ -3,7 +3,7 @@
 IA_amdgpu.h
 ###########
 
-.. cpp:namespace:: Dyninst::ParseAPI
+.. cpp:namespace:: Dyninst::InsnAdapter
 
 .. cpp:class:: IA_amdgpu : public IA_IAPI
 

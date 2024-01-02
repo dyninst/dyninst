@@ -3,8 +3,6 @@
 IndirectAnalyzer.h
 ##################
 
-.. cpp:namespace:: Dyninst::ParseAPI
-
 .. cpp:class:: IndirectControlFlowAnalyzer
 
   .. cpp:function:: bool NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges)

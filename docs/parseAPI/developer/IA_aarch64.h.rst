@@ -3,7 +3,7 @@
 IA_aarch64.h
 ############
 
-.. cpp:namespace:: Dyninst::ParseAPI
+.. cpp:namespace:: Dyninst::InsnAdapter
 
 .. cpp:class:: IA_aarch64 : public IA_IAPI
 

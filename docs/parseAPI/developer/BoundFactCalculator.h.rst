@@ -3,8 +3,6 @@
 BoundFactCalculator.h
 #####################
 
-.. cpp:namespace:: Dyninst::ParseAPI
-
 .. code:: c
 
   // To avoid the bound fact calculation from deadlock

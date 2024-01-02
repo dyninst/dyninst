@@ -1,8 +1,6 @@
 IndirectASTVisitor.h
 ====================
 
-.. cpp:namespace:: Dyninst::parseAPI
-
 .. code:: c
 
   #define SIGNEX_64_32 0xffffffff00000000LL

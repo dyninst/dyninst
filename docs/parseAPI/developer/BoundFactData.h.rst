@@ -3,8 +3,6 @@
 BoundFactData.h
 ###############
 
-.. cpp:namespace:: Dyninst::ParseAPI
-
 .. cpp:struct:: StridedInterval
 
   .. cpp:member:: static const int64_t minValue = LLONG_MIN

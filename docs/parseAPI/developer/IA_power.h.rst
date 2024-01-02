@@ -3,7 +3,7 @@
 IA_power.h
 ##########
 
-.. cpp:namespace:: Dyninst::ParseAPI
+.. cpp:namespace:: Dyninst::InsnAdapter
 
 .. cpp:class:: IA_power : public IA_IAPI
 

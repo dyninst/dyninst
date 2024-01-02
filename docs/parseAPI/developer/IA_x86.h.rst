@@ -3,7 +3,7 @@
 IA_x86.h
 ########
 
-.. cpp:namespace:: Dyninst::ParseAPI
+.. cpp:namespace:: Dyninst::InsnAdapter
 
 .. cpp:class:: IA_x86 : public IA_IAPI
 

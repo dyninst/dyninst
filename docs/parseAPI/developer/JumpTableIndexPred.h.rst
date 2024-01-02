@@ -1,5 +1,4 @@
 JumpTableIndexPred.h
 ====================
 
-.. cpp:namespace:: Dyninst::parseAPI
-
+.. cpp:class:: JumpTableIndexPred : public Slicer::Predicates
