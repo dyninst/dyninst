@@ -37,5 +37,6 @@ ParseAPI
   ProbabilisticParser.h
   StackTamperVisitor.h
   SymbolicExpression.h
+  SymLiteCodeSource.h
   ThunkData.h
   util.h

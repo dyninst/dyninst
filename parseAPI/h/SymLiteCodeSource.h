@@ -44,10 +44,6 @@ namespace ParseAPI {
 
 class CFGModifier;
 
-/** SymReaderCodeRegion and SymReaderCodeSource implement CodeSource for program
-    binaries supported by the SymReaderAPI 
-**/
-
 class SymReaderCodeRegion : public CodeRegion {
  private:
     SymReader * _symtab;
