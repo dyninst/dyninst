@@ -30,6 +30,7 @@ ParseAPI
   LockFreeQueue.h
   LoopAnalyzer.h
   ParseCallback.h
+  ParseContainers.h
   ParseData.h
   ParserDetails.h
   Parser.h
