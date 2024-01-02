@@ -59,9 +59,6 @@ class ParseCallback {
   ParseCallback() { }
   virtual ~ParseCallback() { }
 
-  /*
-   * Notify when control transfers have run `off the rails' 
-   */
   struct default_details {
     default_details(unsigned char*b,size_t s, bool ib) : ibuf(b), isize(s), isbranch(ib) { }
     unsigned char * ibuf;
@@ -69,9 +66,6 @@ class ParseCallback {
     bool isbranch;
   };
 
-  /*
-   * Notify for interprocedural control transfers
-   */
   struct interproc_details {
     typedef enum {
         ret,
@@ -121,22 +115,11 @@ class ParseCallback {
    */
   virtual void overlapping_blocks(Block*,Block*) { }
 
-  /*
-   * Defensive-mode notifications:
-   * - Notify when a function's parse is finalized so Dyninst can 
-       save its initial return status
-   * - Notify every time a block is split, after the initial parse
-   *   of the function
-   * - Notify of the x86 obfuscation that performs a short jmp -1 (eb ff)
-   *   so that dyninst can patch the opcode with a nop (0x90), which will
-   *   keep code generation from doing bad things
-   */
   virtual void newfunction_retstatus(Function*) { }
   virtual void patch_nop_jump(Address) { }
   virtual bool updateCodeBytes(Address) { return false; }
   virtual void abruptEnd_cf(Address, Block *,default_details*) { }
 
-  // returns the load address of the code object containing an absolute address
   virtual bool absAddr(Address /*absolute*/, 
                        Address & /*loadAddr*/, 
                        CodeObject *& /*containerObject*/) 
@@ -144,8 +127,6 @@ class ParseCallback {
   virtual bool hasWeirdInsns(const Function*) const { return false; }
   virtual void foundWeirdInsns(Function*) {}
 
-  // User override time
-  // (orig, new split block)
   virtual void split_block_cb(Block *, Block *) {}
 
   virtual void destroy_cb(Block *) {}
