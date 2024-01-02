@@ -169,7 +169,7 @@ Unknown Instructions
 ====================
 
 For very new binaries that have an ISA Dyninst does not yet support, it is possible to hook in
-a user-level decoder to provide information to Dyninst about these instructions/
+a user-level decoder to provide information to Dyninst about these instructions.
 
 ..  rli:: https://raw.githubusercontent.com/dyninst/examples/master/disassemble/unknown_instruction.cpp
     :language: cpp
@@ -179,18 +179,15 @@ a user-level decoder to provide information to Dyninst about these instructions/
 Visitor
 =======
 
-  The following code prints out the name of each type of :cpp:class:`AST` visited.
+The following code prints out the name of each type of :cpp:class:`AST` visited.
 
-  ..
-    rli:: https://raw.githubusercontent.com/dyninst/examples/master/instructionAPI/stateless_visitor.cpp
+..  rli:: https://raw.githubusercontent.com/dyninst/examples/master/instructionAPI/stateless_visitor.cpp
     :language: cpp
     :linenos:
 
+Visitors may also set and use internal state. For example, the following
+tracks which type of AST it has most-recently seen.
 
-  Visitors may also set and use internal state. For example, the following
-  tracks which type of AST it has most-recently seen.
-
-  ..
-    rli:: https://raw.githubusercontent.com/dyninst/examples/master/instructionAPI/stateful_visitor.cpp
+..  rli:: https://raw.githubusercontent.com/dyninst/examples/master/instructionAPI/statefull_visitor.cpp
     :language: cpp
     :linenos:
