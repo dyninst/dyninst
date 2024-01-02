@@ -11,6 +11,8 @@ ParseAPI
   BoundFactCalculator.h
   BoundFactData.h
   CFG.h
+  CFGFactory.h
+  CFGModifier.h
   debug_parse.h
   dominator.h
   IA_aarch64.h

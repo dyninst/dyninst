@@ -8,9 +8,7 @@ ParseAPI
   :hidden:
   :maxdepth: 1
 
-  CFGFactory.h
   CFG.h
-  CFGModifier.h
   CodeObject.h
   CodeSource.h
   GraphAdapter.h

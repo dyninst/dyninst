@@ -34,10 +34,6 @@
 #include <vector>
 #include "dyntypes.h"
 
-// A collection of methods for user-triggered modification of a ParseAPI CFG. 
-// Implemented here so that we can make it a friend class of the CFG; it also
-// needs internal information about CFG objects. 
-
 #include "CodeSource.h"
 
 
@@ -52,36 +48,19 @@ namespace ParseAPI {
 
 class CFGModifier {
   public:
-   // These are all static methods as this class has no state; so really, 
-   // it's just a namespace. 
 
-   // Redirect the target of an existing edge. 
    PARSER_EXPORT static bool redirect(Edge *edge, Block *target);
 
-   // Split a block at a provided point.; we double-check whether the address
-   // is a valid instruction boundary unless trust is true. 
-   // Newlast is the new "last insn" of the original block; provide it if
-   // you don't want to waste time disassembling to figure it out.
    PARSER_EXPORT static Block *split(Block *, Address, bool trust = false, Address newlast = -1);
    
-   // Parse and add a new region of code to a CodeObject
-   // The void * becomes "owned" by the CodeObject, as it's used
-   // as a backing store; it cannot be ephemeral.
-   // Returns the new entry block. 
    PARSER_EXPORT static InsertedRegion *insert(CodeObject *obj, 
                                                Address base, void *data, 
                                                unsigned size);
 
-   // Remove blocks from the CFG; the block must be unreachable
-   // (that is, have no in-edges) unless force is true.
    PARSER_EXPORT static bool remove(std::vector<Block *> &, bool force = false);
 
-   // As the above, but for functions. 
    PARSER_EXPORT static bool remove(Function *);
 
-   // Label a block as the entry of a new function. If the block is already an
-   // entry that function is returned; otherwise we create a new function and
-   // return it.
    PARSER_EXPORT static Function *makeEntry(Block *);
 };
 
