@@ -29,6 +29,7 @@ ParseAPI
   JumpTableIndexPred.h
   LockFreeQueue.h
   LoopAnalyzer.h
+  ParseCallback.h
   ParseData.h
   ParserDetails.h
   Parser.h

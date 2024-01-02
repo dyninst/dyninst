@@ -15,6 +15,5 @@ ParseAPI
   InstructionAdapter.h
   InstructionSource.h
   Location.h
-  ParseCallback.h
   ParseContainers.h
   SymLiteCodeSource.h
