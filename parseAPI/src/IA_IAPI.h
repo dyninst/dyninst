@@ -141,14 +141,6 @@ protected:
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
 
-        /*
-         * Decoded instruction cache: contains the linear
-         * sequence of instructions decoded by the decoder
-         * underlying this adapter.
-         * 
-         * - curInsnIter == *(allInsns.end()-1)
-         * - (super)->current = curInsnIter->first
-         */
 public:
         typedef std::vector< 
             std::pair<Address, 
