@@ -33,7 +33,6 @@ public:
     set<Address> constAddr;
     dyn_hash_map<Assignment::Ptr, std::pair<AST::Ptr, AST::Ptr>, Assignment::AssignmentPtrHasher> aliases;
 
-    // On ppc 64, r2 is reserved for storing the address of the global offset table 
     Address toc_address;
 
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
