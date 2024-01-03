@@ -1,33 +1,21 @@
+.. _`sec:CFGMaker.h`:
+
 CFGMaker.h
-==========
+##########
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-CFGMaker
-========
+.. cpp:class:: CFGMaker
 
-**Declared in**: CFGMaker.h
+  **A factory for constructing CFGs**
 
-The CFGMaker class is a factory class that constructs the above CFG
-structures (PatchFunction, PatchBlock, and PatchEdge). The methods in
-this class are used by PatchObject. Programmers can extend
-PatchFunction, PatchBlock and PatchEdge by annotating their own data,
-and then use this class to instantiate these CFG structures.
+  It can make objects of type :cpp:class:`PatchFunction`, :cpp:class:`PatchBlock`,
+  and :cpp:class:`PatchEdge` used by :cpp:class:`PatchObject`.
 
-.. code-block:: cpp
-    
-    virtual PatchFunction* makeFunction(ParseAPI::Function* func,
-    PatchObject* obj); virtual PatchFunction* copyFunction(PatchFunction*
-    func, PatchObject* obj);
-
-    virtual PatchBlock* makeBlock(ParseAPI::Block* blk, PatchObject*
-    obj); virtual PatchBlock* copyBlock(PatchBlock* blk, PatchObject*
-    obj);
-
-    virtual PatchEdge* makeEdge(ParseAPI::Edge* edge, PatchBlock* src,
-    PatchBlock* trg, PatchObject* obj); virtual PatchEdge*
-    copyEdge(PatchEdge* edge, PatchObject* obj);
-
-Programmers implement the above virtual methods to instantiate a CFG
-structure (either a PatchFunction, a PatchBlock, or a PatchEdge) or to
-copy (e.g., when forking a new process).
+  .. cpp:function:: CFGMaker()
+  .. cpp:function:: virtual PatchFunction* makeFunction(ParseAPI::Function*, PatchObject*)
+  .. cpp:function:: virtual PatchFunction* copyFunction(PatchFunction*, PatchObject*)
+  .. cpp:function:: virtual PatchBlock* makeBlock(ParseAPI::Block*, PatchObject*)
+  .. cpp:function:: virtual PatchBlock* copyBlock(PatchBlock*, PatchObject*)
+  .. cpp:function:: virtual PatchEdge* makeEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*, PatchObject*)
+  .. cpp:function:: virtual PatchEdge* copyEdge(PatchEdge*, PatchObject*)
