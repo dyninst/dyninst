@@ -7,7 +7,7 @@ CodeSource.h
 
 .. cpp:class:: CodeSource : public Dyninst::InstructionSource
 
-  ** Retrieve binary code from an executable, library, or other binary code object**
+  **Retrieve binary code from an executable, library, or other binary code object**
 
   It also can provide hints of function entry points (such as those derived from debugging
   symbols) to seed the parser.
