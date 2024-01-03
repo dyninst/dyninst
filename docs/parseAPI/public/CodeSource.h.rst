@@ -67,55 +67,49 @@ CodeSource.h
   .. cpp:member:: std::string _name
 
   .. cpp:function:: Hint(Addr, CodeRegion*, std::string)
-  .. cpp:function:: std::vector< Hint > const& hints()
+  .. cpp:function:: Hint(Address a, int size, CodeRegion * r, std::string s)
 
-      Returns the currently-defined function entry hints.
+.. cpp:class:: SymtabCodeSource : public CodeSource, public boost::lockable_adapter<boost::recursive_mutex>
 
-  .. cpp:function:: std::vector<CodeRegion *> const& regions()
+  .. cpp:function:: SymtabCodeSource(SymtabAPI::Symtab*, hint_filt, bool allLoadedRegions=false)
+  .. cpp:function:: SymtabCodeSource(SymtabAPI::Symtab*)
+  .. cpp:function:: SymtabCodeSource(const char*)
+  .. cpp:function:: bool nonReturning(Address func_entry)
+  .. cpp:function:: bool nonReturningSyscall(int num)
+  .. cpp:function:: bool resizeRegion(SymtabAPI::Region*, Address newDiskSize)
+  .. cpp:function:: Address baseAddress() const
+  .. cpp:function:: Address loadAddress() const
+  .. cpp:function:: Address getTOC(Address addr) const
+  .. cpp:function:: SymtabAPI::Symtab* getSymtabObject()
+  .. cpp:function:: bool isValidAddress(const Address) const
+  .. cpp:function:: void* getPtrToInstruction(const Address) const
+  .. cpp:function:: void* getPtrToData(const Address) const
+  .. cpp:function:: unsigned int getAddressWidth() const
+  .. cpp:function:: bool isCode(const Address) const
+  .. cpp:function:: bool isData(const Address) const
+  .. cpp:function:: bool isReadOnly(const Address) const
+  .. cpp:function:: Address offset() const
+  .. cpp:function:: Address length() const
+  .. cpp:function:: Architecture getArch() const
+  .. cpp:function:: void removeHint(Hint)
+  .. cpp:function:: static void addNonReturning(std::string func_name)
+  .. cpp:function:: void print_stats() const
+  .. cpp:function:: bool have_stats() const
+  .. cpp:function:: void incrementCounter(const std::string& name) const
+  .. cpp:function:: void addCounter(const std::string& name, int num) const
+  .. cpp:function:: void decrementCounter(const std::string& name) const
+  .. cpp:function:: void startTimer(const std::string& name) const
+  .. cpp:function:: void stopTimer(const std::string& name) const
+  .. cpp:function:: bool findCatchBlockByTryRange(Address, std::set<Address>&) const
 
-      Returns a read-only vector of code regions within the binary represented
-      by this code source.
+.. cpp:struct:: SymtabCodeSource::hint_filt
 
-  .. cpp:function:: int findRegions(Address addr, set<CodeRegion *> & ret)
+  .. cpp:function:: virtual bool operator()(SymtabAPI::Function* f)=0
 
-      Finds all CodeRegion objects that overlap the provided address. Some
-      code sources (e.g. archive files) may have several regions with
-      overlapping address ranges; others (e.g. ELF binaries) do not.
+.. cpp:struct:: SymtabCodeSource::try_block
 
-  .. cpp:function:: bool regionsOverlap()
+  .. cpp:member:: Address tryStart
+  .. cpp:member:: Address tryEnd
+  .. cpp:member:: Address catchStart
 
-      Indicates whether the CodeSource contains overlapping regions.
-
-.. cpp:class:: CodeRegion
-
-  **Divide a CodeSource into distinct regions**
-
-  This interface is mostly of interest to CodeSource implementors.
-
-  .. cpp:function:: void names(Address addr, vector<std::string>& names)
-
-      Retrieves the names associated with the function address ``addr`` in the
-      region, e.g. symbol names in an ELF or PE binary.
-
-  .. cpp:function:: virtual bool findCatchBlock(Address addr, Address & catchStart)
-
-      Finds the exception handler associated with the address ``addr``, if one exists.
-
-      This routine is only implemented for binary code sources that support structured
-      exception handling.
-
-  .. cpp:function:: Address low()
-
-      Returns the lower bound of the interval of the address space covered by this region.
-
-  .. cpp:function:: Address high()
-
-      Returns the upper bound of the interval of the address space covered by this region.
-
-  .. cpp:function:: bool contains(Address addr)
-
-      Checks if :cpp:func:`low` :math:`\le` ``addr`` :math:`\lt` :cpp:func:`high`.
-
-  .. cpp:function:: virtual bool wasUserAdded() const
-
-      Return true if this region was added by the user, false otherwise.
+  .. cpp:function:: try_block(Address ts, Address te, Address c)
