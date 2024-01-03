@@ -37,17 +37,6 @@ namespace Dyninst {
 namespace ParseAPI {
 
 namespace {
-/*
- * The isCode queries into CodeSource objects with
- * disjoint regions involve expensive range lookups.
- * Because most often isCode is called on addresses
- * within the current function's region, this code
- * short circuits the expensive case.
- *
- * NB for overlapping region CodeSources, the two
- * cases in this function are identical. We'll pay
- * extra in this (uncommon) case.
- */
 static inline bool is_code(Function * f, Address addr)
 {
     return f->region()->isCode(addr) ||
@@ -58,36 +47,9 @@ static inline bool is_code(Function * f, Address addr)
 
 class ParseWorkBundle;
 
-// Seems to be an edge whose target (?) needs parsing
-
 class ParseWorkElem
 {
  public:
-    /*
-     * NOTE: The order of elements in this enum is critical to parsing order.
-     * The earier an element appear in the enum, the sooner the corresponding 
-     * edges are going to be parsed.
-     *
-     * 1. Our current implementation of non-returning function analysis 
-     * WORK IFF call is prioritized over call_fallthrough.
-     *
-     * 2. We have a tail call heuristics that a jump to its own block is not a tail call.
-     * For this heuristics to be more effective, we want to traverse 
-     * certain intraprocedural edges such as call_fallthrough and cond_not_taken
-     * over potential tail call edges such as cond_taken, br_direct, and br_indirect.
-     *
-     * 3. Jump table analysis would like to have as much intraprocedural control flow
-     * as possible to resolve an indirect jump. So resolve_jump_table is delayed.
-     *
-     * 4. Parsing cond_not_taken edges over cond_taken edges. This is because cond_taken
-     * edges may split a block. In special cases, the source block of the edge is split.
-     * The cond_not_taken edge work element would still have the unsplit block, which is 
-     * now the upper portion after spliting.
-     *
-     * Please make sure to update this comment 
-     * if you change the order of the things appearing in the enum
-     *
-     */
     enum parse_work_order {
         seed_addr = 0,
         ret_fallthrough, /* conditional returns */
@@ -107,7 +69,6 @@ class ParseWorkElem
         __parse_work_end__
     };
 
-    // allow direct access to setting order/frame type..
     ParseWorkElem(
             ParseWorkBundle *b, 
             parse_work_order o,
@@ -202,8 +163,6 @@ class ParseWorkElem
           _shared_func(NULL)
     { } 
 
-    // This work element is a continuation of
-    // parsing jump tables
     ParseWorkElem(ParseWorkBundle *bundle, Block *b, const InsnAdapter::IA_IAPI* ah)
          : _bundle(bundle),
           _edge(NULL),
@@ -288,8 +247,6 @@ class ParseWorkElem
     InsnAdapter::IA_IAPI* _ah{};
     Function * _shared_func{};
 };
-
-// ParseWorkElem container
 
 class ParseWorkBundle
 {
