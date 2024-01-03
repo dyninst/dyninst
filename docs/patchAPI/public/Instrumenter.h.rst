@@ -1,157 +1,105 @@
+.. _`sec:Instrumenter.h`:
+
 Instrumenter.h
-==============
+##############
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-Instrumenter
-============
+.. cpp:class:: Instrumenter
 
-**Declared in**: Command.h
+  **Relocate the original code and generate snippet binary code in mutatee's address space**
 
-The Instrumenter class inherits BatchCommand to encapsulate the core
-code patching logic, which includes binary code generation. Instrumenter
-would contain several logical steps that are individual Commands.
+  .. cpp:function:: protected explicit Instrumenter(AddrSpace* as)
 
-    ``CommandList user_commands_``
+      Creates an instrumenter for the address space ``as``.
 
-This class has a protected data member *user_commands\_* that contains
-all Commands issued by users, e.g., snippet insertion. This is to
-facilitate the implementation of the instrumentation engine.
+  .. cpp:function:: protected Instrumenter()
 
-.. code-block:: cpp
-    
-    static InstrumenterPtr create(AddrSpacePtr as)
+      Creates an empty instrumenter.
 
-Returns an instance of Instrumenter, and it takes input the address
-space *as* that is going to be instrumented.
+  .. cpp:member:: protected AddrSpace* as_
+  .. cpp:member:: protected CommandList user_commands_
+  .. cpp:member:: protected FuncModMap functionReplacements_
+  .. cpp:member:: protected FuncWrapMap functionWraps_
+  .. cpp:member:: protected CallModMap callModifications_
 
-.. code-block:: cpp
-    
-    virtual bool replaceFunction(PatchFunction* oldfunc, PatchFunction* newfunc)
+  .. cpp:function:: static Instrumenter* create(AddrSpace* as)
 
-Replaces a function *oldfunc* with a new function *newfunc*.
+      Helper for creating a ``Instrumenter``.
 
-It returns true on success otherwise, it returns false.
+  .. cpp:function:: virtual bool replaceFunction(PatchFunction* oldfunc, PatchFunction* newfunc)
 
-.. code-block:: cpp
-    
-    virtual bool revertReplacedFunction(PatchFunction* oldfunc)
+      Replaces ``oldfunc`` with a new function ``newfunc``.
 
-Undoes the function replacement for *oldfunc*.
+      Returns ``false`` on error.
 
-It returns true on success otherwise, it returns false.
+  .. cpp:function:: virtual bool revertReplacedFunction(PatchFunction* oldfunc)
 
-.. code-block:: cpp
-    
-    typedef std::map<PatchFunction*, PatchFunction*> FuncModMap
+      Undoes the function replacement for ``oldfunc``.
 
-The type FuncModMap contains mappings from an PatchFunction to another
-PatchFunction.
+      Returns ``false`` on error.
 
-.. code-block:: cpp
-    
-    virtual FuncModMap& funcRepMap()
+  .. cpp:function:: virtual FuncModMap& funcRepMap()
 
-Returns the FuncModMap that contains a set of mappings from an old
-function to a new function, where the old function is replaced by the
-new function.
+      Returns the mappings from an old function to a new one where the old one is replaced by the
+      new one.
 
-.. code-block:: cpp
-    
-    virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name)
+  .. cpp:function:: virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name)
 
-Replaces all calls to *oldfunc* with calls to wrapper *newfunc* (similar
-to function replacement). However, we create a copy of original using
-the *name* that can be used to call the original. The wrapper code would
-look like follows:
+      Replaces all calls to ``oldfunc`` with calls to wrapper ``newfunc`` (similar
+      to function replacement).
 
-.. code-block:: cpp
+      Create a copy of original using the ``name`` that can be used to call the original.
 
-   void *malloc_wrapper(int size) {
-     // do stuff
-     void *ret = malloc_clone(size)
-     // do more stuff
-     return ret
-   }
+  .. cpp:function:: virtual bool revertWrappedFunction(PatchFunction* oldfunc)
 
-This interface requires the user to give us a name (as represented by
-clone) for the original function. This matches current techniques and
-allows users to use indirect calls (function pointers).
+      Undoes the function wrapping for ``oldfunc``.
 
-.. code-block:: cpp
-    
-    virtual bool revertWrappedFunction(PatchFunction* oldfunc)
+      Returns ``false`` on error.
 
-Undoes the function wrapping for *oldfunc*.
+  .. cpp:function:: virtual FuncModMap& funcWrapMap()
 
-It returns true on success otherwise, it returns false.
+      Returns the mappings from an old function to a new one where the old one is wrapped by the
+      new one.
 
-.. code-block:: cpp
-    
-    virtual FuncModMap& funcWrapMap()
+  .. cpp:function:: bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee, PatchFunction *context = NULL)
 
-The type FuncModMap contains mappings from the original PatchFunction to
-the wrapper PatchFunction.
+      Replaces the function invoked in the basic block ``callBlock`` with the function ``newCallee``.
 
-.. code-block:: cpp
-    
-    bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee, PatchFunction *context = NULL)
+      If multiple functions contain the same ``callBlock``, then ``context`` is used to determine
+      which function to modify. If ``context`` is ``NULL``, then the ``callBlock`` is modified in all functions
+      that contain it. If the ``newCallee`` is NULL, then the ``callBlock`` is removed.
 
-Replaces the function that is invoked in the basic block *callBlock*
-with the function *newCallee*. There may be multiple functions
-containing the same *callBlock*, so the *context* parameter specifies in
-which function the *callBlock* should be modified. If *context* is NULL,
-then the *callBlock* would be modified in all PatchFunctions that
-contain it. If the *newCallee* is NULL, then the *callBlock* is removed.
+      Returns ``false`` on error.
 
-It returns true on success otherwise, it returns false.
+  .. cpp:function:: bool revertModifiedCall(PatchBlock *callBlock, PatchFunction *context = NULL)
 
-.. code-block:: cpp
-    
-    bool revertModifiedCall(PatchBlock *callBlock, PatchFunction *context = NULL)
+      Undoes the function call modification for ``oldfunc``.
 
-Undoes the function call modification for *oldfunc*. There may be
-multiple functions containing the same *callBlock*, so the *context*
-parameter specifies in which function the *callBlock* should be
-modified. If *context* is NULL, then the *callBlock* would be modified
-in all PatchFunctions that contain it.
+      If multiple functions contain the same ``callBlock``, then ``context`` is used to determine
+      which function to modify. If ``context`` is ``NULL``, then the ``callBlock`` is modified
+      in all functions that contain it.
 
-It returns true on success otherwise, it returns false.
+      Returns ``false`` on error.
 
-.. code-block:: cpp
-    
-    bool removeCall(PatchBlock *callBlock, PatchFunction *context = NULL)
+  .. cpp:function:: bool removeCall(PatchBlock *callBlock, PatchFunction *context = NULL)
 
-Removes the *callBlock*, where a function is invoked. There may be
-multiple functions containing the same *callBlock*, so the *context*
-parameter specifies in which function the *callBlock* should be
-modified. If *context* is NULL, then the *callBlock* would be modified
-in all PatchFunctions that contain it.
+      Removes the ``callBlock`` where a function is invoked.
 
-It returns true on success otherwise, it returns false.
+      If multiple functions contain the same ``callBlock``, then ``context`` is used to determine
+      which function to modify. If ``context`` is ``NULL``, then the ``callBlock`` is modified
+      in all functions that contain it.
 
-.. code-block:: cpp
-    
-    typedef map<PatchBlock*, // B : A call block map<PatchFunction*, // F_c:
-    Function context PatchFunction*> // F : The function to be replaced >
-    CallModMap
+      Returns ``false`` on error.
 
-The type CallModMap maps from B -> F\ :math:`_c` -> F, where B
-identifies a call block, and F\ :math:`_c` identifies an (optional)
-function context for the replacement. If F\ :math:`_c` is not specified,
-we use NULL. F specifies the replacement callee if we want to remove
-the call entirely, we use NULL.
+  .. cpp:function:: CallModMap& callModMap()
 
-.. code-block:: cpp
-    
-    CallModMap& callModMap()
+      Returns the mapping of function calls that are to be replaced or removed.
 
-Returns the CallModMap for function call replacement / removal.
+  .. cpp:function:: AddrSpacePtr as() const
 
-.. code-block:: cpp
-    
-    AddrSpacePtr as() const
+      Returns the address space associated with this Instrumenter.
 
-Returns the address space associated with this Instrumenter.
+  .. cpp:function:: virtual bool isInstrumentable(PatchFunction *f)
 
-.. _sec-3.2.6:
+      Checks if ``f`` is instrumentable.
