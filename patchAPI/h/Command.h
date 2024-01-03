@@ -38,10 +38,6 @@
 namespace Dyninst {
 namespace PatchAPI {
 
-/* Interface to support transactional semantics, by implementing an
-   instrumentation request (public interface) or an internal step of
-   instrumentation (plugin interface) */
-
 class PATCHAPI_EXPORT Command {
   public:
     Command() {}
@@ -52,9 +48,6 @@ class PATCHAPI_EXPORT Command {
     virtual bool run() = 0;
     virtual bool undo() = 0;
 };
-
-/* A BatchCommand is in fact a list of Commands, and is to iterate all Commands
-   in the list to run() or undo(). */
 
 class PATCHAPI_EXPORT BatchCommand : public Command {
   public:
@@ -76,10 +69,6 @@ class PATCHAPI_EXPORT BatchCommand : public Command {
 
 };
 
-/* A Patcher is a special BatchCommand, which implicitly execute Instrumenter
-   after executing all Commands in its list. Instrumenter is for code relocation
-   and code generation. */
-
 class PATCHAPI_EXPORT Patcher : public BatchCommand {
   public:
    using Ptr = boost::shared_ptr<Patcher>;
@@ -93,8 +82,6 @@ class PATCHAPI_EXPORT Patcher : public BatchCommand {
   private:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
 };
-
-/* Default implementation of some basic instrumentation Commands */
 
 class PATCHAPI_EXPORT PushFrontCommand : public Command {
   public:

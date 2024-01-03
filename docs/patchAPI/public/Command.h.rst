@@ -1,361 +1,228 @@
+.. _`sec:Command.h`:
+
 Command.h
-=========
+#########
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-Command
-=======
+.. cpp:class:: Command
 
-**Declared in**: Command.h
+  **An instrumentation request**
 
-The Command class represents an instrumentation request (e.g., snippet
-insertion or removal), or an internal logical step in the code patching
-(e.g., install instrumentation).
+  Snippet insertion or removal, or an internal logical step in the code patching
+  (e.g., install instrumentation).
 
-.. code-block:: cpp
-    
-    virtual bool run() = 0;
+  .. cpp:function:: virtual bool run() = 0
 
-Executes the normal operation of this Command.
+      Executes the normal operation of this Command.
 
-It returns true on success; otherwise, it returns false.
+      Returns ``false`` on error.
 
-.. code-block:: cpp
-    
-    virtual bool undo() = 0;
+  .. cpp:function:: virtual bool undo() = 0
 
-Undoes the operation of this Command.
+      Undoes the operation of this Command.
 
-.. code-block:: cpp
-    
-    virtual bool commit();
+      Returns ``false`` on error.
 
-Implements the transactional semantics: all succeed, or all fail.
-Basically, it performs such logic:
+  .. cpp:function:: virtual bool commit()
 
-.. code-block:: cpp
-   
-   if (run()) {
-     return true;
-   } else {
-     undo();
-     return false;
-   }
+      Implements the transactional semantics: all succeed, or all fail.
 
-BatchCommand
-============
+      Returns ``false`` on error.
 
-**Declared in**: Command.h
 
-The BatchCommand class inherits from the Command class. It is actually a
-container of a list of Commands that will be executed in a transaction:
-all Commands will succeed, or all will fail.
+.. cpp:class:: BatchCommand : public Command
 
-.. code-block:: cpp
-    
-    typedef std::list<CommandPtr> CommandList;
-    CommandList to_do_; CommandList done_;
+  **A sequence of commands**
 
-This class has two protected members *to_do\_* and *done\_*, where
-*to_do\_* is a list of Commands to execute, and *done\_* is a list of
-Commands that are executed.
+  .. cpp:type:: std::list<CommandPtr> CommandList
 
-.. code-block:: cpp
-    
-    virtual bool run(); virtual bool undo();
+  .. cpp:member:: protected CommandList to_do_
 
-The method run() of BatchCommand invokes the run() method of each
-Command in *to_do\_* in order, and puts the finished Commands in
-*done\_*. The method undo() of BatchCommand invokes the undo() method of
-each Command in *done \_* in order.
+      The list of Commands to execute.
 
-.. code-block:: cpp
-    
-    void add(CommandPtr command);
+  .. cpp:member:: protected CommandList done_
 
-This method adds a Command into *to_do\_*.
+      The list of Commands that have been executed.
 
-.. code-block:: cpp
-    
-    void remove(CommandList::iterator iter);
+  .. cpp:function:: virtual bool run()
 
-This method removes a Command from *to_do\_*.
+      Runs all commands.
 
-Instrumenter
-============
+  .. cpp:function:: virtual bool undo()
 
-**Declared in**: Command.h
+      Undoes all commands in the order they were executed.
 
-The Instrumenter class inherits BatchCommand to encapsulate the core
-code patching logic, which includes binary code generation. Instrumenter
-would contain several logical steps that are individual Commands.
+  .. cpp:function:: void add(CommandPtr command)
 
-    ``CommandList user_commands_;``
+      Adds ``command`` to the list of commands to be executed.
 
-This class has a protected data member *user_commands\_* that contains
-all Commands issued by users, e.g., snippet insertion. This is to
-facilitate the implementation of the instrumentation engine.
+  .. cpp:function:: void remove(CommandList::iterator iter)
 
-.. code-block:: cpp
-    
-    static InstrumenterPtr create(AddrSpacePtr as);
+      Removes the command pointed to by ``iter`` from the list of
+      commands to be executed.
 
-Returns an instance of Instrumenter, and it takes input the address
-space *as* that is going to be instrumented.
 
-.. code-block:: cpp
-    
-    virtual bool replaceFunction(PatchFunction* oldfunc, PatchFunction* newfunc);
+.. cpp:class:: Patcher : public BatchCommand
 
-Replaces a function *oldfunc* with a new function *newfunc*.
+  **Special BatchCommand that implicitly executes the instrumentation**
 
-It returns true on success; otherwise, it returns false.
+  Accepts instrumentation :cpp:class:`Command` requests from users and
+  implicitly adds an instance of :cpp:class:`Instrumenter` to the end of the
+  command list to generate binary code and install the instrumentation.
 
-.. code-block:: cpp
-    
-    virtual bool revertReplacedFunction(PatchFunction* oldfunc);
+  .. cpp:type:: Ptr = boost::shared_ptr<Patcher>
 
-Undoes the function replacement for *oldfunc*.
+  .. cpp:function:: Patcher(PatchMgrPtr mgr)
 
-It returns true on success; otherwise, it returns false.
+      Creates a new patcher managed by ``mgr``.
 
-.. code-block:: cpp
-    
-    typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
+  .. cpp:function:: static Ptr create(PatchMgrPtr mgr)
 
-The type FuncModMap contains mappings from an PatchFunction to another
-PatchFunction.
+      Helper for creating a ``Patcher``.
 
-.. code-block:: cpp
-    
-    virtual FuncModMap& funcRepMap();
+  .. cpp:function:: virtual bool run()
 
-Returns the FuncModMap that contains a set of mappings from an old
-function to a new function, where the old function is replaced by the
-new function.
+    Runs all commands.
 
-.. code-block:: cpp
-    
-    virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name);
+    It also implicitly adds an :cpp:class:`Instrumenter` to the end of
+    the list of commands to execute.
 
-Replaces all calls to *oldfunc* with calls to wrapper *newfunc* (similar
-to function replacement). However, we create a copy of original using
-the *name* that can be used to call the original. The wrapper code would
-look like follows:
+.. cpp:class:: PushFrontCommand : public Command
 
-.. code-block:: cpp
+  **Adds a snippet to the front of the list of commands to be executed**
 
-   void *malloc_wrapper(int size) {
-     // do stuff
-     void *ret = malloc_clone(size);
-     // do more stuff
-     return ret;
-   }
+  .. cpp:function:: PushFrontCommand(Point* pt, SnippetPtr snip)
 
-This interface requires the user to give us a name (as represented by
-clone) for the original function. This matches current techniques and
-allows users to use indirect calls (function pointers).
+      Creates a command to insert ``snip`` at the point ``pt``.
 
-.. code-block:: cpp
-    
-    virtual bool revertWrappedFunction(PatchFunction* oldfunc);
+      The point maintains a list of snippet instances.
 
-Undoes the function wrapping for *oldfunc*.
+  .. cpp:function:: static PushFrontCommand* create(Point* pt, SnippetPtr snip)
 
-It returns true on success; otherwise, it returns false.
+      Helper for creating a ``PushFrontCommand``.
 
-.. code-block:: cpp
-    
-    virtual FuncModMap& funcWrapMap();
+  .. cpp:function:: virtual bool run()
 
-The type FuncModMap contains mappings from the original PatchFunction to
-the wrapper PatchFunction.
+      The same as :cpp:func:`Command::run`.
 
-.. code-block:: cpp
-    
-    bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee, PatchFunction *context = NULL);
+  .. cpp:function:: virtual bool undo()
 
-Replaces the function that is invoked in the basic block *callBlock*
-with the function *newCallee*. There may be multiple functions
-containing the same *callBlock*, so the *context* parameter specifies in
-which function the *callBlock* should be modified. If *context* is NULL,
-then the *callBlock* would be modified in all PatchFunctions that
-contain it. If the *newCallee* is NULL, then the *callBlock* is removed.
+      The same as :cpp:func:`Command::undo`.
 
-It returns true on success; otherwise, it returns false.
+  .. cpp:function:: InstancePtr instance()
 
-.. code-block:: cpp
-    
-    bool revertModifiedCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+      Returns the snippet instance that is inserted at the point.
 
-Undoes the function call modification for *oldfunc*. There may be
-multiple functions containing the same *callBlock*, so the *context*
-parameter specifies in which function the *callBlock* should be
-modified. If *context* is NULL, then the *callBlock* would be modified
-in all PatchFunctions that contain it.
+.. cpp:class:: PushBackCommand : public Command
 
-It returns true on success; otherwise, it returns false.
+  **Adds a snippet to the end of the list of commands to be executed**
 
-.. code-block:: cpp
-    
-    bool removeCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+  .. cpp:function:: PushBackCommand(Point* pt, SnippetPtr snip)
 
-Removes the *callBlock*, where a function is invoked. There may be
-multiple functions containing the same *callBlock*, so the *context*
-parameter specifies in which function the *callBlock* should be
-modified. If *context* is NULL, then the *callBlock* would be modified
-in all PatchFunctions that contain it.
+      Creates a command to insert ``snip`` at the point ``pt``.
 
-It returns true on success; otherwise, it returns false.
+      The point maintains a list of snippet instances.
 
-.. code-block:: cpp
-    
-    typedef map<PatchBlock*, // B : A call block map<PatchFunction*, // F_c:
-    Function context PatchFunction*> // F : The function to be replaced >
-    CallModMap;
+  .. cpp:function:: static PushBackCommand* create(Point* pt, SnippetPtr snip)
 
-The type CallModMap maps from B -> F\ :math:`_c` -> F, where B
-identifies a call block, and F\ :math:`_c` identifies an (optional)
-function context for the replacement. If F\ :math:`_c` is not specified,
-we use NULL. F specifies the replacement callee; if we want to remove
-the call entirely, we use NULL.
+      Helper for creating a ``PushBackCommand``.
 
-.. code-block:: cpp
-    
-    CallModMap& callModMap();
+  .. cpp:function:: virtual bool run()
 
-Returns the CallModMap for function call replacement / removal.
+      The same as :cpp:func:`Command::run`.
 
-.. code-block:: cpp
-    
-    AddrSpacePtr as() const;
+  .. cpp:function:: virtual bool undo()
 
-Returns the address space associated with this Instrumenter.
+      The same as :cpp:func:`Command::undo`.
 
-.. _sec-3.2.6:
+.. cpp:class:: RemoveSnippetCommand : public Command
 
-Patcher
-=======
+  **Removes a snippet from the list of commands to be executed**
 
-**Declared in**: Command.h
+  .. cpp:function:: RemoveSnippetCommand(InstancePtr instance)
 
-The class Patcher inherits from the class BatchCommand. It accepts
-instrumentation requests from users, where these instrumentation
-requests are Commands (e.g., snippet insertion). Furthermore, Patcher
-implicitly adds an instance of Instrumenter to the end of the Command
-list to generate binary code and install the instrumentation.
+      Creates a command to remove the snippet ``instance``.
 
-.. code-block:: cpp
-    
-    Patcher(PatchMgrPtr mgr)
+      The point maintains a list of snippet instances.
 
-The constructor of Patcher takes input the relevant PatchMgr *mgr*.
+  .. cpp:function:: static RemoveSnippetCommand* create(InstancePtr instance)
 
-.. code-block:: cpp
-    
-    virtual bool run();
+      Helper for creating a ``RemoveSnippetCommand``.
 
-Performs the same logic as BatchCommand::run(), except that this
-function implicitly adds an internal Command – Instrumenter, which is
-executed after all other Commands in the *to_do\_*.
+  .. cpp:function:: virtual bool run()
 
-PushFrontCommand and PushBackCommand
-====================================
+      The same as :cpp:func:`Command::run`.
 
-**Declared in**: Command.h
+  .. cpp:function:: virtual bool undo()
 
-The class PushFrontCommand and the class PushBackCommand inherit from
-the Command class. They are to insert a snippet to a point. A point
-maintains a list of snippet instances. PushFrontCommand would add the
-new snippet instance to the front of the list, while PushBackCommand
-would add to the end of the list.
+      The same as :cpp:func:`Command::undo`.
 
-.. code-block:: cpp
-    
-    static Ptr create(Point* pt, SnippetPtr snip);
+.. cpp:class:: RemoveCallCommand : public Command
 
-This static method creates an object of PushFrontCommand or
-PushBackCommand.
+  **Remove a function call**
 
-.. code-block:: cpp
-    
-    InstancePtr instance();
+  .. cpp:function:: RemoveCallCommand(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* context)
 
-Returns a snippet instance that is inserted at the point.
+      Creates a command to remove the function in ``context`` from the block at ``call_block`` owned by ``mgr``.
 
-.. _sec-3.3.2:
+      There may be multiple functions containing the same ``call_block``. If the ``context`` is
+      ``NULL``, then the ``call_block`` is deleted from all ``PatchFunctions`` that contain it.
+      Otherwise, it is only deleted ``context``.
 
-RemoveSnippetCommand
-====================
+  .. cpp:function:: static RemoveCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* context = NULL)
 
-**Declared in**: Command.h
+      A helper for creating a ``RemoveCallCommand``.
 
-The class RemoveSnippetCommand inherits from the Command class. It is to
-delete a snippet Instance.
+  .. cpp:function:: virtual bool run()
 
-.. code-block:: cpp
-    
-    static Ptr create(InstancePtr instance);
+      The same as :cpp:func:`Command::run`.
 
-This static function creates an instance of RemoveSnippetCommand.
+  .. cpp:function:: virtual bool undo()
 
-.. _sec-3.3.3:
+      The same as :cpp:func:`Command::undo`.
 
-RemoveCallCommand
-=================
+.. cpp:class:: ReplaceCallCommand : public Command
 
-**Declared in**: Command.h
+  **Replace a function call with another one**
 
-The class RemoveCallCommand inherits from the class Command. It is to
-remove a function call.
+  .. cpp:function:: ReplaceCallCommand(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* new_callee, PatchFunction* context)
 
-.. code-block:: cpp
-    
-    static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block,
-    PatchFunction* context = NULL);
+      Creates a command to replace the function in ``context`` from the block at ``call_block`` owned by ``mgr``
+      with the function ``new_callee``.
 
-This static method takes input the relevant PatchMgr *mgr*, the
-*call_block* that contains the function call to be removed, and the
-PatchFunction *context*. There may be multiple PatchFunctions containing
-the same *call_block*. If the *context* is NULL, then the *call_block*
-would be deleted from all PatchFunctions that contains it; otherwise,
-the *call_block* would be deleted only from the PatchFuncton *context*.
+      There may be multiple functions containing the same ``call_block``. If the ``context`` is
+      ``NULL``, then the ``call_block`` is deleted from all ``PatchFunctions`` that contain it.
+      Otherwise, it is only deleted ``context``.
 
-.. _sec-3.3.4:
+  .. cpp:function:: static ReplaceCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* new_callee, PatchFunction* context)
 
-ReplaceCallCommand
-==================
+        Helper for creating a ``ReplaceCallCommand``.
 
-**Declared in**: Command.h
+  .. cpp:function:: virtual bool run()
 
-The class ReplaceCallCommand inherits from the class Command. It is to
-replace a function call with another function.
+      The same as :cpp:func:`Command::run`.
 
-.. code-block:: cpp
-    
-    static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block,
-    PatchFunction* new_callee, PatchFunction* context);
+  .. cpp:function:: virtual bool undo()
 
-This Command replaces the *call_block* with the new PatchFunction
-*new_callee*. There may be multiple functions containing the same
-*call_block*, so the *context* parameter specifies in which function the
-*call_block* should be replaced. If *context* is NULL, then the
-*call_block* would be replaced in all PatchFunctions that contains it.
+      The same as :cpp:func:`Command::undo`.
 
-.. _sec-3.3.5:
+.. cpp:class:: ReplaceFuncCommand : public Command
 
-ReplaceFuncCommand
-==================
+  **Replace an old function with the new one**
 
-**Declared in**: Command.h
+  .. cpp:function:: ReplaceFuncCommandcreate(PatchMgrPtr mgr, PatchFunction* old_func, PatchFunction* new_func)
 
-The class ReplaceFuncCommand inherits from the class Command. It is to
-replace an old function with the new one.
+      Creates a command to replace the ``old_func`` with ``new_func``, owned by ``mgr``.
 
-.. code-block:: cpp
-    
-    static Ptr create(PatchMgrPtr mgr, PatchFunction* old_func,
-    PatchFunction* new_func);
+  .. cpp:function:: static ReplaceFuncCommand* create(PatchMgrPtr mgr, PatchFunction* old_func, PatchFunction* new_func)
 
-This Command replaces the old PatchFunction *old_func* with the new
-PatchFunction *new_func*.
+      A helper for created a ``ReplaceFuncCommandcreate``.
+
+  .. cpp:function:: virtual bool run()
+
+      The same as :cpp:func:`Command::run`.
+
+  .. cpp:function:: virtual bool undo()
+
+      The same as :cpp:func:`Command::undo`.
