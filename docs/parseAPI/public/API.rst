@@ -15,4 +15,3 @@ ParseAPI
   InstructionAdapter.h
   InstructionSource.h
   Location.h
-  SymLiteCodeSource.h
