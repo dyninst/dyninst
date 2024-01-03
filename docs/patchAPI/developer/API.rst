@@ -8,4 +8,5 @@ PatchAPI
   :hidden:
   :maxdepth: 1
 
+  AddrSpace.h
   ParseCallback.h

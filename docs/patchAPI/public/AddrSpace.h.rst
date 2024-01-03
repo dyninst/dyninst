@@ -1,95 +1,102 @@
+.. _`sec:AddrSpace.h`:
+
 AddrSpace.h
-===========
+###########
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-AddrSpace
-=========
+.. cpp:class:: AddrSpace
 
-**Declared in**: AddrSpace.h
+  **The address space of a Mutatee**
 
-The AddrSpace class represents the address space of a **Mutatee**, where
-it contains a collection of **PatchObjects** that represent shared
-libraries or a binary executable. In addition, programmers implement
-some memory management interfaces in the AddrSpace class to determine
-the type of the code patching - 1st party, 3rd party, or binary
-rewriting.
+  Contains a collection of :cpp:class::`PatchObject`\ s that represent shared
+  libraries or a binary executable. Programmers implement
+  some memory management interfaces in the AddrSpace class to determine
+  the type of the code patching - 1st party, 3rd party, or binary
+  rewriting.
 
-.. code-block:: cpp
-    
-    virtual bool write(PatchObject* obj, Address to, Address from, size_t size);
+  .. cpp:type:: std::map<const CodeObject*, PatchObject*> ObjMap
 
-This method copies *size*-byte data stored at the address *from* on the
-**Mutator** side to the address *to* on the **Mutatee** side. The
-parameter *to* is the relative offset for the PatchObject *obj*, if the
-instrumentation is for binary rewriting; otherwise *to* is an absolute
-address.
+  .. cpp:function:: virtual bool write(PatchObject* obj, Address to, Address from, size_t size)
 
-If the write operation succeeds, this method returns true; otherwise,
-false.
+      Copies ``size`` bytes from the source address ``from`` in the
+      mutator to the destination address ``to`` in the mutatee.
 
-.. code-block:: cpp
-    
-    virtual Address malloc(PatchObject* obj, size_t size, Address near);
+      If the instrumentation is for binary rewriting, the source address is the relative offset
+      for ``obj``. Otherwise, it's an absolute address.
 
-This method allocates a buffer of *size* bytes on the **Mutatee** side.
-The address *near* is a relative address in the object *obj*, if the
-instrumentation is for binary rewriting; otherwise, *near* is an
-absolute address, where this method tries to allocate a buffer near the
-address *near*.
+      Returns ``false`` on error.
 
-If this method succeeds, it returns a non-zero address; otherwise, it
-returns 0.
+  .. cpp:function:: virtual Address malloc(PatchObject* obj, size_t size, Address near)
 
-.. code-block:: cpp
-    
-    virtual Address realloc(PatchObject* obj, Address orig, size_t size);
+      Allocates a buffer of ``size`` bytes in the mutatee.
 
-This method reallocates a buffer of *size* bytes on the **Mutatee**
-side. The original buffer is at the address *orig*. This method tries to
-reallocate the buffer near the address *orig*, where *orig* is a
-relative address in the PatchObject *obj* if the instrumentation is for
-binary rewriting; otherwise, *orig* is an absolute address.
+      The address ``near`` is a relative address in the object ``obj``, if the
+      instrumentation is for binary rewriting; otherwise, ``near`` is an
+      absolute address, where this method tries to allocate a buffer near the
+      address ``near``.
 
-If this method succeeds, it returns a non-zero address; otherwise, it
-returns 0.
+      Returns 0 on failure.
 
-.. code-block:: cpp
-    
-    virtual bool free(PatchObject* obj, Address orig);
+  .. cpp:function:: virtual Address realloc(PatchObject* obj, Address orig, size_t size)
 
-This method deallocates a buffer on the **Mutatee** side at the address
-*orig*. If the instrumentation is for binary rewriting, then the
-parameter *orig* is a relative address in the object *obj*; otherwise,
-*orig* is an absolute address.
+      Reallocates a buffer of ``size`` bytes in the mutatee.
 
-If this method succeeds, it returns true; otherwise, it returns false.
+      The original buffer is at the address ``orig``. This method tries to
+      reallocate the buffer near the address ``orig``, where ``orig`` is a
+      relative address in the PatchObject. If the instrumentation is for binary
+      rewriting, the source address is the relative offset for ``obj``. Otherwise,
+      it's an absolute address.
 
-.. code-block:: cpp
-    
-    virtual bool loadObject(PatchObject* obj);
+      Returns 0 on failure.
 
-This method loads a PatchObject into the address space. If this method
-succeeds, it returns true; otherwise, it returns false.
+  .. cpp:function:: virtual bool free(PatchObject* obj, Address orig)
 
-.. code-block:: cpp
-    
-    typedef std::map<const ParseAPI::CodeObject*, PatchObject*> AddrSpace::ObjMap;
-    ObjMap& objMap();
+      Deallocates a buffer in the mutatee at the address ``orig``.
 
-Returns a set of mappings from ParseAPI::CodeObjects to PatchObjects,
-where PatchObjects in all mappings represent all binary objects (either
-executable or libraries loaded) in this address space.
+      If the instrumentation is for binary rewriting, the source address is the relative
+      offset for ``obj``. Otherwise, it's an absolute address.
 
-.. code-block:: cpp
-    
-    PatchObject* executable();
+      If this method succeeds, it returns true; otherwise, it returns false.
 
-Returns the PatchObject of the executable of the **Mutatee**.
+  .. cpp:function:: virtual bool loadObject(PatchObject* obj)
 
-.. code-block:: cpp
-    
-    PatchMgrPtr mgr();
+      Loads ``obj`` into the address space.
 
-Returns the PatchMgr’s pointer, where the PatchMgr contains this address
-space.
+      Returns ``false`` on error.
+
+  .. cpp:type:: ObjMap& objMap()
+
+      Returns a mapping from code objects to patch objects.
+
+      The ``PatchObject``\ s in all mappings represent all binary objects (either
+      executable or libraries loaded) in this address space.
+
+  .. cpp:function:: PatchObject* findObject(const ParseAPI::CodeObject* obj) const
+
+      Find the patch corresponding to ``obj`` in the address space.
+
+      Returns ``NULL`` if ``obj`` does not correspond to any patch.
+
+  .. cpp:function:: template <class Iter> void objs(Iter iter)
+
+      Writes all of the patch objects into ``iter``.
+
+      ``Iter`` must be at least a C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_.
+
+  .. cpp:function:: PatchObject* executable()
+
+      Returns the PatchObject of the executable of the mutatee.
+
+  .. cpp:function:: PatchMgrPtr mgr()
+
+      Returns the PatchMgr’s pointer, where the PatchMgr contains this address
+      space.
+
+  .. cpp:function:: std::string format() const
+
+      Returns a string representation of the starting address of the address space.
+
+  .. cpp:function:: bool consistency(const PatchMgr *mgr) const
+
+      Checks if all contained patches are managed by ``mgr``.
