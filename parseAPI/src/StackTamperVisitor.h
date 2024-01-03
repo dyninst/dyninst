@@ -42,9 +42,6 @@
 #include "parseAPI/h/CFG.h"
 
 
-// A representation of a variable x = x + var1 + var2 + var3 + ...
-// where int is an integer and var1...varN are unknown variables.
-
 namespace Dyninst {
 
 template <typename T>
@@ -222,7 +219,6 @@ typedef enum {
   MaxPriority } Priority;
  
 
-// ROSE symeval AST types
 namespace SymbolicEvaluation {
  class BottomAST;
  class ConstantAST;
