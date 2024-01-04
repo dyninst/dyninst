@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Public Interface */
 
 #ifndef PATCHAPI_H_POINT_H_
 #define PATCHAPI_H_POINT_H_
@@ -71,8 +70,6 @@ InsnLoc_t(PatchBlock *b, Dyninst::Address a, InstructionAPI::Instruction i) :
 };
       
      
-// Uniquely identify the location of a point; this + a type
-// uniquely identifies a point.
 struct Location {
    static Location Function(PatchFunction *f) { 
       return Location(f, NULL, 0, InstructionAPI::Instruction(), NULL, true, Function_);
@@ -154,14 +151,8 @@ Location(PatchFunction *f, PatchBlock *b, Dyninst::Address a, InstructionAPI::In
 
 };
 
-// Used in PointType definition
 #define type_val(seq) (0x00000001u << seq)
 
-
-/* A location on the CFG that acts as a container of inserted instances.  Points
-   of different types are distinct even the underlying code relocation and
-   generation engine happens to put instrumentation from them at the same
-   place */
 
 class PATCHAPI_EXPORT Point {
   friend class PatchMgr;
@@ -169,8 +160,6 @@ class PATCHAPI_EXPORT Point {
   friend class PatchFunction;
 
   public:
-    // If you want to extend Type, please increment the argument passed
-    // to type_val.
     enum Type {
       PreInsn = type_val(0),
       PostInsn = type_val(1),
@@ -208,20 +197,18 @@ class PATCHAPI_EXPORT Point {
     }
     Point() {}
 
-    // Block instrumentation /w/ optional function context
     Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, PatchFunction * = NULL);
-    // Insn instrumentation /w/ optional function context
+
     Point(Point::Type t, PatchMgrPtr mgr, PatchBlock *, Dyninst::Address, InstructionAPI::Instruction, PatchFunction * = NULL);
-    // Function entry or during
+
     Point(Point::Type t, PatchMgrPtr mgr, PatchFunction *);
-    // Function call or exit site
+
     Point(Point::Type t, PatchMgrPtr mgr, PatchFunction *, PatchBlock *);
-    // Edge
+
     Point(Point::Type t, PatchMgrPtr mgr, PatchEdge *, PatchFunction * = NULL);
 
     virtual ~Point();
 
-    // Point as a snippet container
     typedef std::list<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
@@ -229,10 +216,8 @@ class PATCHAPI_EXPORT Point {
     virtual InstancePtr pushFront(SnippetPtr);
     bool remove(InstancePtr);
 
-    // Remove all snippets in this point
     void clear();
 
-    // Getters
     size_t size();
     Dyninst::Address addr() const { return addr_; }
     Type type() const {return type_;}
@@ -248,13 +233,12 @@ class PATCHAPI_EXPORT Point {
     PatchEdge *edge() const { return the_edge_; }
     PatchMgrPtr mgr() const { return mgr_; }
 
-    // Point type utilities
     
-    // Test whether the type contains a specific type.
+
     static bool TestType(Point::Type types, Point::Type trg);
-    // Add a specific type to a set of types
+
     static void AddType(Point::Type& types, Point::Type trg);
-    // Remove a specific type from a set of types
+
     static void RemoveType(Point::Type& types, Point::Type trg);
 
     PatchCallback *cb() const;
@@ -283,7 +267,7 @@ inline Point::Type operator|(Point::Type a, Point::Type b) {
   return types;
 }
 
-// Type: enum => string
+
 inline const char* type_str(Point::Type type) {
   if (type&Point::PreInsn) return "PreInsn ";
   if (type&Point::PostInsn) return "PostInsn ";
@@ -321,8 +305,6 @@ enum SnippetState {
   INSERTED
 };
 
-/* A representation of a particular snippet inserted at a
-   particular point */
 class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance> {
   public:
    typedef boost::shared_ptr<Instance> Ptr;
@@ -333,7 +315,6 @@ class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance>
     static InstancePtr create(Point*, SnippetPtr,
                         SnippetType type = SYSTEM, SnippetState state = PENDING);
 
-    // Getters and Setters
     SnippetState state() const { return state_;}
     SnippetType type() const {return type_;}
     Point* point() const {return point_;}
@@ -343,8 +324,6 @@ class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance>
     void disableRecursiveGuard() { guarded_ = false; }
     bool recursiveGuardEnabled() const { return guarded_; }
 
-    // Destroy itself
-    // return false if this snipet instance is not associated with a point
     bool destroy();
 
   protected:
@@ -355,8 +334,6 @@ class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance>
     bool guarded_;
 };
 
-/* Factory class for creating a point that could be either PatchAPI::Point or
-   the subclass of PatchAPI::Point.   */
 class PATCHAPI_EXPORT PointMaker {
    friend class PatchMgr;
   public:
@@ -381,7 +358,6 @@ class PATCHAPI_EXPORT PointMaker {
     PatchMgrPtr mgr_;
 };
 
-// Collection classes
 typedef std::map<Dyninst::Address, Point *> InsnPoints;
 
 

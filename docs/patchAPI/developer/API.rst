@@ -14,3 +14,4 @@ PatchAPI
   PatchCommon.h
   PatchMgr.h
   PatchObject.h
+  Point.h
