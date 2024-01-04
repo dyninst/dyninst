@@ -1,113 +1,91 @@
+.. _`sec:PatchObject.h`:
+
 PatchObject.h
-=============
+#############
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-PatchObject
-===========
+.. cpp:class:: PatchObject
 
-**Declared in**: PatchObject.h
+  **Wrapper around a ParseAPI::CodeObject**
 
-The PatchObject class is a wrapper of ParseAPI’s CodeObject class
-(has-a), which represents an individual binary code object, such as an
-executable or a library.
+  Represents an individual binary code object, such as an executable or a library.
 
-.. code-block:: cpp
-    
-    static PatchObject* create(ParseAPI::CodeObject* co, Address base,
-    CFGMaker* cm = NULL, PatchCallback *cb = NULL);
+  .. cpp:type:: std::vector<PatchFunction*> funclist
+  .. cpp:type:: std::map<const ParseAPI::Function*, PatchFunction*> FuncMap
+  .. cpp:type:: std::map<const ParseAPI::Block*, PatchBlock*> BlockMap
+  .. cpp:type:: std::map<const ParseAPI::Edge*, PatchEdge*> EdgeMap
 
-Creates an instance of PatchObject, which has *co* as its on-disk
-representation (ParseAPI::CodeObject), and *base* as the base address
-where this object is loaded in the memory. For binary rewriting, base
-should be 0. The *cm* and *cb* parameters are for registering plugins.
-If *cm* or *cb* is NULL, then we use the default implementation of
-CFGMaker or PatchCallback.
+  .. cpp:function:: static PatchObject* create(ParseAPI::CodeObject* co, Address base, CFGMaker* cm = NULL, PatchCallback* cb = NULL)
 
-.. code-block:: cpp
-    
-    static PatchObject* clone(PatchObject* par_obj, Address base,
-    CFGMaker* cm = NULL, PatchCallback *cb = NULL);
+      Creates patch in the on-disk object ``co`` loaded in mmeory at address ``base`` using the CFG factory ``cm`` and
+      the callback ``cb``.
 
-Returns a new object that is copied from the specified object *par_obj*
-at the loaded address *base* in the memory. For binary rewriting, base
-should be 0. The *cm* and *cb* parameters are for registering plugins.
-If *cm* or *cb* is NULL, then we use the default implementation of
-CFGMaker or PatchCallback.
+      For binary rewriting, ``base`` should be 0.
 
-.. code-block:: cpp
-    
-    Address codeBase();
+  .. cpp:function:: static PatchObject* clone(PatchObject* par_obj, Address base, CFGMaker* cm = NULL, PatchCallback* cb = NULL)
 
-Returns the base address where this object is loaded in memory.
+      Creates a deep copy of the patch ``par_obj`` in the on-disk object ``co`` loaded in mmeory at address ``base`` using
+      the CFG factory ``cm`` and the callback ``cb``.
 
-.. code-block:: cpp
-    
-    PatchFunction *getFunc(ParseAPI::Function *func, bool create = true);
+      For binary rewriting, ``base`` should be 0.
 
-Returns an instance of PatchFunction in this object, based on the *func*
-parameter. PatchAPI creates a PatchFunction on-demand, so if there is
-not any PatchFunction created for the ParseAPI function *func*, and the
-*create* parameter is false, then no any instance of PatchFunction will
-be created.
+  .. cpp:function:: Address codeBase()
 
-It returns NULL in two cases. First, the function *func* is not in this
-PatchObject. Second, the PatchFunction is not yet created and the
-*create* is false. Otherwise, it returns a PatchFunction.
+      Returns the base address where this object is loaded in memory.
 
-.. code-block:: cpp
-    
-    template <class Iter> void funcs(Iter iter);
+  .. cpp:function:: Address codeOffsetToAddr(Address offset) const
+  .. cpp:function:: Address addrMask() const
+  .. cpp:function:: ParseAPI::CodeObject* co() const
+  .. cpp:function:: PatchMgrPtr mgr() const
 
-Outputs all instances of PatchFunction in this PatchObject to the STL
-inserter *iter*.
+  .. cpp:function:: PatchFunction* getFunc(ParseAPI::Function* func, bool create = true)
 
-.. code-block:: cpp
-    
-    PatchBlock *getBlock(ParseAPI::Block* blk, bool create = true);
+      Returns the patch function that wraps the ParseAPI function ``func``. The function is
+      created when it's not found and ``create`` is ``true``.
 
-Returns an instance of PatchBlock in this object, based on the *blk*
-parameter. PatchAPI creates a PatchBlock on-demand, so if there is not
-any PatchBlock created for the ParseAPI block *blk*, and the *create*
-parameter is false, then no any instance of PatchBlock will be created.
+      Returns ``NULL`` in two cases: 1) ``func`` is not in this object, 2) ``func`` does not exist
+      in *any* object and ``create`` is ``false``.
 
-It returns NULL in two cases. First, the ParseAPI block *blk* is not in
-this PatchObject. Second, the PatchBlock is not yet created and the
-*create* is false. Otherwise, it returns a PatchBlock.
+  .. cpp:function:: template <class Iter> void funcs(Iter iter)
 
-.. code-block:: cpp
-    
-    template <class Iter> void blocks(Iter iter);
+      Writes all functions in this object into ``iter``.
 
-Outputs all instances of PatchBlock in this object to the STL inserter
-*iter*.
+      .. Note:: ``Iter`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
-.. code-block:: cpp
-    
-     PatchEdge *getEdge(ParseAPI::Edge* edge, PatchBlock* src,
-     PatchBlock* trg, bool create = true);
+  .. cpp:function:: PatchBlock* getBlock(ParseAPI::Block* blk, bool create = true)
 
-Returns an instance of PatchEdge in this object, according to the
-parameters ParseAPI::Edge *edge*, source PatchBlock *src*, and target
-PatchBlock *trg*. PatchAPI creates a PatchEdge on-demand, so if there is
-not any PatchEdge created for the ParseAPI *edge*, and the *create*
-parameter is false, then no any instance of PatchEdge will be created.
+      Returns the patch block that wraps the ParseAPI block ``blk``. The function is
+      created when it's not found and ``create`` is ``true``.
 
-It returns NULL in two cases. First, the ParseAPI *edge* is not in this
-PatchObject. Second, the PatchEdge is not yet created and the *create*
-is false. Otherwise, it returns a PatchEdge.
 
-.. code-block:: cpp
-    
-    template <class Iter> void edges(Iter iter);
+      Returns ``NULL`` in two cases: 1) ``blk`` is not in this object, 2) ``blk`` does not exist
+      in *any* object and ``create`` is ``false``.
 
-Outputs all instances of PatchEdge in this object to the STL inserter
-*iter*.
+  .. cpp:function:: template <class Iter> void blocks(Iter iter)
 
-.. code-block:: cpp
-    
-   PatchCallback *cb() const;
+      Writes all blocks in this object into ``iter``.
 
-Returns the PatchCallback object associated with this PatchObject.
+      .. Note:: ``Iter`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
-.. _sec-3.2.9:
+  .. cpp:function:: PatchEdge* getEdge(ParseAPI::Edge* edge, PatchBlock* src, PatchBlock* trg, bool create = true)
+
+      Returns the patch edge that wraps the ParseAPI edge ``edge`` between ``src`` and ``trg``. The function is
+      created when it's not found and ``create`` is ``true``.
+
+      Returns ``NULL`` in two cases: 1) ``func`` is not in this object, 2) ``func`` does not exist
+      in *any* object and ``create`` is ``false``.
+
+  .. cpp:function:: template <class Iter> void edges(Iter iter)
+
+      Writes all edges in this object into ``iter``.
+
+      .. Note:: ``Iter`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
+
+  .. cpp:function:: PatchCallback* cb() const;
+
+      Returns the PatchCallback object associated with this PatchObject.
+
+  .. cpp:function:: std::string format() const
+
+      Returns a string representation of this object.

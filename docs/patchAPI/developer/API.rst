@@ -13,3 +13,4 @@ PatchAPI
   PatchCFG.h
   PatchCommon.h
   PatchMgr.h
+  PatchObject.h
