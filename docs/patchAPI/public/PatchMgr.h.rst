@@ -1,212 +1,198 @@
+.. _`sec:PatchMgr.h`:
+
 PatchMgr.h
-==========
+##########
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-PatchMgr
-========
+.. cpp:class:: PatchMgr : public boost::enable_shared_from_this<PatchMgr>
 
-**Declared in**: PatchMgr.h
+  **Interface for finding instrumentation Points, inserting or deleting Snippets, and registering user-provided plugins**
 
-The PatchMgr class is the top-level class for finding instrumentation
-**Points**, inserting or deleting **Snippets**, and registering
-user-provided plugins.
+  .. cpp:type:: boost::shared_ptr<PatchMgr> Ptr
+  .. cpp:type:: std::pair<Location, Point::Type> Candidate
+  .. cpp:type:: std::vector<Candidate> Candidates
 
-.. code-block:: cpp
-    
-    static PatchMgrPtr create(AddrSpace* as, Instrumenter* inst = NULL, PointMaker* pm = NULL);
+  .. cpp:function:: PatchMgr(AddrSpace* as, Instrumenter* inst, PointMaker* pf)
 
-This factory method creates a new PatchMgr object that performs binary
-code patching. It takes input three plugins, including AddrSpace *as*,
-Instrumenter *inst*, and PointMaker *pm*. PatchAPI uses default plugins
-for PointMaker and Instrumenter, if *pm* and *inst* are not specified
-(NULL by default).
+      Creates a patch manager spanning the address space ``as`` using the factories
+      ``inst`` and ``pf`` for creating instrumentation and points, respectively.
 
-This method returns PatchMgrPtr() if it was unable to create a new
-PatchMgr object.
+  .. cpp:function:: static PatchMgrPtr create(AddrSpace* as, Instrumenter* inst = NULL, PointMaker* pm = NULL)
 
-.. code-block:: cpp
-    
-    Point *findPoint(Location loc, Point::Type type, bool create = true);
+      A helper for creating a ``PatchMgr``.
 
-This method returns a unique Point according to a Location *loc* and a
-Type *type*. The Location structure is to specify a physical location of
-a Point (e.g., at function entry, at block entry, etc.), details of
-Location will be covered in Section `4.2.2 <#sec-3.1.2>`__. PatchAPI
-creates Points on demand, so if a Point is not yet created, the *create*
-parameter is to indicate whether to create this Point. If the Point we
-want to find is already created, this method simply returns a pointer to
-this Point from a buffer, no matter whether *create* is true or false.
-If the Point we want to find is not yet created, and *create* is true,
-then this method constructs this Point and put it in a buffer, and
-finally returns a Pointer to this Point. If the Point creation fails,
-this method also returns false. If the Point we want to find is not yet
-created, and *create* is false, this method returns NULL. The basic
-logic of finding a point can be found in the
-Listing `[findpt] <#findpt>`__.
+  .. cpp:function:: Point* findPoint(Location loc, Point::Type type, bool create = true)
 
-.. code-block:: cpp
-    
-   if (point is in the buffer) {
-     return point;
-   } else {
-     if (create == true) {
-       create point
-       if (point creation fails) return NULL;
-       put the point in the buffer
-     } else {
-       return NULL;
-     }
-   }
+      Returns a unique Point at ``loc`` and type ``type``. The point is created when
+      ``create`` is ``true``.
 
-.. code-block:: cpp
-    
+      The Location specifies a physical location of a Point (e.g., at function entry,
+      at block entry, etc.). If the Point already exists, it is always used, regardless
+      of the value of ``create``.
 
-    template <class OutputIterator> bool findPoint(Location loc, Point::Type type, OutputIterator outputIter, bool create = true);
+      Returns ``NULL`` on failure.
 
-This method finds a Point at a physical Location *loc* with a *type*. It
-adds the found Point to *outputIter* that is a STL inserter. The point
-is created on demand. If the Point is already created, then this method
-outputs a pointer to this Point from a buffer. Otherwise, the *create*
-parameter indicates whether to create this Point.
+  .. cpp:function:: template <class OutputIterator> \
+                    bool findPoint(Location loc, Point::Type type, \
+                    OutputIterator outputIter, bool create = true)
 
-This method returns true if a point is found, or the *create* parameter
-is false; otherwise, it returns false.
+      Writes a unique Point at ``loc`` and type ``type`` into ``outputIter``. The point is created when
+      ``create`` is ``true``.
 
-.. code-block:: cpp
-    
-    template <class OutputIterator> bool findPoints(Location loc,
-    Point::Type types, OutputIterator outputIter, bool create = true);
+      .. Note:: ``OutputIterator`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
-This method finds Points at a physical Location *loc* with composite
-*types* that are combined using the overloaded operator “\|”. This
-function outputs Points to the STL inserter *outputIter*. The point is
-created on demand. If the Point is already created, then this method
-outputs a pointer to this Point from a buffer. Otherwise, the *create*
-parameter indicates whether to create this Point.
+      The Location specifies a physical location of a Point (e.g., at function entry,
+      at block entry, etc.). If the Point already exists, it is always used, regardless
+      of the value of ``create``.
 
-This method returns true if a point is found, or the *create* parameter
-is false; otherwise, it returns false.
+      Returns ``false`` on failure.
 
-.. code-block:: cpp
-    
-    template <class FilterFunc, class FilterArgument, class OutputIterator>
-    bool findPoints(Location loc, Point::Type types, FilterFunc filter_func,
-    FilterArgument filter_arg, OutputIterator outputIter, bool create = true);
+  .. cpp:function:: template <class OutputIterator> \
+                    bool findPoints(Location loc, Point::Type types, \
+                    OutputIterator outputIter, bool create = true)
 
-This method finds Points at a physical Location *loc* with composite
-*types* that are combined using the overloaded operator “\|”. Then, this
-method applies a filter functor *filter_func* with an argument
-*filter_arg* on each found Point. The method outputs Points to the
-inserter *outputIter*. The point is created on demand. If the Point is
-already created, then this method returns a pointer to this Point from a
-buffer. Otherwise, the *create* parameter indicates whether to create
-this Point.
+      Writes all Points at ``loc`` with composite types ``type`` into ``outputIter``. The point is created when
+      ``create`` is ``true``.
 
-If no any Point is created, then this method returns false; otherwise,
-true is returned. The code below shows the prototype of an example
-functor.
+      .. Note:: ``OutputIterator`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
-.. code-block:: cpp
-    
-   template <class T>
-   class FilterFunc {
-     public:
-       bool operator()(Point::Type type, Location loc, T arg) {
-         // The logic to check whether this point is what we need
-         return true;
-       }
-   };
+      The Location specifies a physical location of a Point (e.g., at function entry,
+      at block entry, etc.). If the Point already exists, it is always used, regardless
+      of the value of ``create``. It is assumed ``types`` is some number of ``Point::Type``\ s
+      combined using ``operator |``.
 
-In the functor FilterFunc above, programmers check each candidate Point
-by looking at the Point::Type, Location, and the user-specified
-parameter *arg*. If the return value is true, then the Point being
-checked will be put in the STL inserter *outputIter*; otherwise, this
-Point will be discarded.
+      Returns ``false`` on failure.
 
-.. code-block:: cpp
-    
-    struct Scope Scope(PatchBlock *b); Scope(PatchFunction *f, PatchBlock *b); Scope(PatchFunction *f);;
+  .. cpp:function:: template <class FilterFunc, class FilterArgument, class OutputIterator> \
+                    bool findPoints(Location loc, Point::Type types, FilterFunc filter_func, \
+                    FilterArgument filter_arg, OutputIterator outputIter, bool create = true)
 
-The Scope structure specifies the scope to find points, where a scope
-could be a function, or a basic block. This is quite useful if
-programmers don’t know the exact Location, then they can use Scope as a
-wildcard. A basic block can be contained in multiple functions. The
-second constructor only specifies the block *b* in a particular function
-*f*.
+      Writes all Points at ``loc`` with composite types ``type`` into ``outputIter`` satisfying the filter
+      predicate ``fulter_func(filter_arg)``. The point is created when ``create`` is ``true``.
 
-.. code-block:: cpp
-    
-    template <class FilterFunc, class FilterArgument, class OutputIterator>
-    bool findPoints(Scope scope, Point::Type types, FilterFunc filter_func,
-    FilterArgument filter_arg, OutputIterator output_iter, bool create = true);
+      .. Note:: ``OutputIterator`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
-This method finds points in a *scope* with certain *types* that are
-combined together by using the overloaded operator “\|”. Then, this
-method applies the filter functor *filter_func* on each found Point. It
-outputs Points where *filter_func* returns true to the STL inserter
-*output_iter*. Points are created on demand. If some points are already
-created, then this method outputs pointers to them from a buffer.
-Otherwise, the *create* parameter indicates whether to create Points.
+      The Location specifies a physical location of a Point (e.g., at function entry,
+      at block entry, etc.). If the Point already exists, it is always used, regardless
+      of the value of ``create``. It is assumed ``types`` is some number of ``Point::Type``\ s
+      combined using ``operator |``.
 
-If no any Point is created, then this function returns false; otherwise,
-true is returned.
+      Returns ``false`` on failure.
 
-.. code-block:: cpp
-    
-    template <class OutputIterator> bool findPoints(Scope scope, Point::Type types, OutputIterator output_iter, bool create = true);
+  .. cpp:function:: template <class FilterFunc, class FilterArgument, class OutputIterator> \
+                    bool findPoints(Scope scope, Point::Type types, FilterFunc filter_func, \
+                    FilterArgument filter_arg, OutputIterator output_iter, bool create = true)
 
-This method finds points in a *scope* with certain *types* that are
-combined together by using the overloaded operator “\|”. It outputs the
-found points to the STL inserter *output_iter*. If some points are
-already created, then this method outputs pointers to them from a
-buffer. Otherwise, the *create* parameter indicates whether to create
-Points.
+      Writes all Points in the scope ``scope`` with composite types ``type`` into ``outputIter`` satisfying the filter
+      predicate ``fulter_func(filter_arg)``. The point is created when ``create`` is ``true``.
 
-If no any Point is created, then this method returns false; otherwise,
-true is returned.
+      .. Note:: ``OutputIterator`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
-.. code-block:: cpp
-    
-    bool removeSnippet(InstancePtr);
+      If the Point already exists, it is always used, regardless
+      of the value of ``create``. It is assumed ``types`` is some number of ``Point::Type``\ s
+      combined using ``operator |``.
 
-This method removes a snippet Instance.
+      Returns ``false`` if no point is created.
 
-It returns false if the point associated with this Instance cannot be
-found; otherwise, true is returned.
+  .. cpp:function:: template <class OutputIterator> \
+                    bool findPoints(Scope scope, Point::Type types, OutputIterator output_iter, \
+                    bool create = true)
 
-.. code-block:: cpp
-    
-    template <class FilterFunc, class FilterArgument> bool
-    removeSnippets(Scope scope, Point::Type types, FilterFunc filter_func,
-    FilterArgument filter_arg);
+      Writes all Points in the scope ``scope`` with composite types ``types``. The point is created when ``create`` is ``true``.
 
-This method deletes ALL snippet instances at certain points in certain
-*scope* with certain *types*, and those points pass the test of
-*filter_func*.
+      .. Note:: ``OutputIterator`` must support the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
-If no any point can be found, this method returns false; otherwise, true
-is returned.
+      If the Point already exists, it is always used, regardless
+      of the value of ``create``. It is assumed ``types`` is some number of ``Point::Type``\ s
+      combined using ``operator |``.
 
-.. code-block:: cpp
-    
-    bool removeSnippets(Scope scope, Point::Type types);
+      Returns ``false`` if no point is created.
 
-This method deletes ALL snippet instances at certain points in certain
-*scope* with certain *types*.
+  .. cpp:function:: bool removeSnippet(InstancePtr i)
 
-If no any point can be found, this method returns false; otherwise, true
-is returned.
+      Removes the snippet ``i``.
 
-.. code-block:: cpp
-    
-    void destroy(Point *point);
+      Returns ``false`` on error.
 
-This method is to destroy the specified *Point*.
+  .. cpp:function:: template <class FilterFunc, class FilterArgument> \
+                    bool removeSnippets(Scope scope, Point::Type types, FilterFunc filter_func, \
+                    FilterArgument filter_arg)
 
-.. code-block:: cpp
-    
-    AddrSpace* as() const; PointMaker* pointMaker() const; Instrumenter* instrumenter() const;
+      Deletes **ALL** snippets in the scope ``scope`` with composite types ``types`` satisfying the filter
+      predicate ``fulter_func(filter_arg)``.
 
-The above three functions return the corresponding plugin: AddrSpace,
-PointMaker, Instrumenter.
+      It is assumed ``types`` is some number of ``Point::Type``\ s combined using ``operator |``.
+
+      Returns ``false`` if no point is found.
+
+  .. cpp:function:: bool removeSnippets(Scope scope, Point::Type types)
+
+      Deletes **ALL** snippets in the scope ``scope`` with composite types ``types``
+
+      Returns ``false`` if no point is found.
+
+  .. cpp:function:: void destroy(Point *point)
+
+      Destroys the point ``point``.
+
+  .. cpp:function:: AddrSpace* as() const
+
+      Returns the underlying address space.
+
+  .. cpp:function:: PointMaker* pointMaker() const
+
+      Returns the underlying point factory.
+
+  .. cpp:function:: Instrumenter* instrumenter() const
+
+      Returns the underlying instrumentation factory.
+
+  .. cpp:function:: bool getCandidates(Scope &s, Point::Type types, Candidates& ret)
+
+      Fills ``ret`` with the points from the scope ``s`` having composite type ``types``.
+
+      It is assumed ``types`` is some number of ``Point::Type``\ s combined using ``operator |``.
+
+      | Mapping order: Scope -> Type -> Point Set
+      |   The Scope x Type provides us a list of matching locations;
+      |   we then filter those locations. Points are stored in
+      |   their contexts (e.g., Functions or Blocks).
+
+      Returns ``false`` if no point is found.
+
+  .. cpp:function:: bool consistency() const
+
+
+.. cpp:class:: template <class T> PatchMgr::IdentityFilterFunc
+
+  .. cpp:function:: bool operator()(Point::Type, Location l, T t)
+
+
+.. cpp:struct:: Scope
+
+  **The scope to find points**
+
+  A scope could be a function or a basic block. In the case that the exact location
+  is not known, then a Scope can be used as a wildcard.
+
+  .. cpp:function:: Scope(PatchBlock *b)
+
+      Creates a scope for the block ``b``.
+
+      A basic block can be contained in multiple functions.
+
+  .. cpp:function:: Scope(PatchFunction *f, PatchBlock *b)
+
+      Creates a scope for the block ``b`` in the function ``f``.
+
+      A basic block can be contained in multiple functions.
+
+  .. cpp:function:: Scope(PatchFunction *f)
+
+      Creates a scope for the function ``f``; including all basic blocks.
+
+  .. cpp:member:: PatchObject *obj
+  .. cpp:member:: PatchFunction *func
+  .. cpp:member:: PatchBlock *block
+  .. cpp:member:: bool wholeProgram

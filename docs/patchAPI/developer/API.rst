@@ -12,3 +12,4 @@ PatchAPI
   ParseCallback.h
   PatchCFG.h
   PatchCommon.h
+  PatchMgr.h
