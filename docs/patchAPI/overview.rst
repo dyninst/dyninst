@@ -5,6 +5,8 @@
 PatchAPI
 ########
 
+A natural loop has a single entry block and an irreducible loop has multiple.
+
 This manual describes PatchAPI, a programming interface and library for
 binary code patching. A programmer uses PatchAPI to instrument (insert
 code into) and modify a binary executable or library by manipulating the

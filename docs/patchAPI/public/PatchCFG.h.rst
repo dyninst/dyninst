@@ -1,525 +1,379 @@
+.. _`sec:PatchCFG.h`:
+
 PatchCFG.h
-==========
+##########
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-PatchFunction
-=============
+.. cpp:class:: PatchFunction
 
-**Declared in**: PatchCFG.h
+  **Wraps a ParseAPI function**
 
-The PatchFunction class is a wrapper of ParseAPI’s Function class
-(has-a), which represents a function.
+  .. cpp:function:: PatchFunction(ParseAPI::Function *f, PatchObject* o)
+  .. cpp:function:: PatchFunction(const PatchFunction* parFunc, PatchObject* child)
+  .. cpp:function:: static PatchFunction *create(ParseAPI::Function *, PatchObject*)
 
-.. code-block:: cpp
-    
-    const string &name();
+  .. cpp:type:: std::set<PatchBlock*, compare> PatchFunction::Blockset
 
-Returns the function’s mangled name.
+  .. cpp:function:: const string& name()
 
-.. code-block:: cpp
-    
-    Address addr() const;
+      Returns the function’s mangled name.
 
-Returns the address of the first instruction in this function.
+  .. cpp:function:: Address addr() const
 
-.. code-block:: cpp
-    
-    ParseAPI::Function *function();
+      Returns the address of the first instruction in this function.
 
-Returns the ParseAPI::Function associated with this PatchFunction.
+  .. cpp:function:: ParseAPI::Function* function()
 
-.. code-block:: cpp
-    
-    PatchObject* obj();
+      Returns the ParseAPI::Function associated with this PatchFunction.
 
-Returns the PatchObject associated with this PatchFunction.
+  .. cpp:function:: PatchObject* obj()
 
-.. code-block:: cpp
-    
-    typedef std::set<PatchBlock *> PatchFunction::Blockset;
-    const Blockset &blocks();
+      Returns the PatchObject associated with this PatchFunction.
 
-Returns a set of all PatchBlocks in this PatchFunction.
+  .. cpp:function:: PatchBlock* entry()
 
-.. code-block:: cpp
-    
-    PatchBlock *entry();
+      Returns the entry block of this PatchFunction.
 
-Returns the entry block of this PatchFunction.
+  .. cpp:function:: const Blockset& blocks()
 
-.. code-block:: cpp
-    
-    const Blockset &exitBlocks();
+      Returns a set of all PatchBlocks in this PatchFunction.
 
-Returns a set of exit blocks of this PatchFunction.
+  .. cpp:function:: const Blockset& exitBlocks()
 
-.. code-block:: cpp
-    
-    const Blockset &callBlocks();
+      Returns a set of exit blocks of this PatchFunction.
 
-Returns a set of all call blocks of this PatchFunction.
+  .. cpp:function:: const Blockset& callBlocks()
 
-.. code-block:: cpp
-    
-    PatchCallback *cb() const;
+      Returns a set of all call blocks of this PatchFunction.
 
-Returns the PatchCallback object associated with this PatchFunction.
+  .. cpp:function:: PatchCallback* cb() const
 
-.. code-block:: cpp
-    
-    PatchLoopTreeNode* getLoopTree()
+      Returns the PatchCallback object associated with this PatchFunction.
 
-Return the nesting tree of the loops in the function. See class
-``PatchLoopTreeNode`` for more details
+  .. cpp:function:: PatchLoopTreeNode* getLoopTree()
 
-.. code-block:: cpp
-    
-    PatchLoop* findLoop(const char *name)
+      Return the nesting tree of the loops in the function. See class
+      ``PatchLoopTreeNode`` for more details
 
-Return the loop with the given nesting name. See class
-``PatchLoopTreeNode`` for more details about how loop nesting names are
-assigned.
+  .. cpp:function:: PatchLoop* findLoop(const char* name)
 
-.. code-block:: cpp
-    
-    bool getLoops(vector<PatchLoop*> &loops);
+      Return the loop with the given nesting name. See class
+      ``PatchLoopTreeNode`` for more details about how loop nesting names are
+      assigned.
 
-Fill ``loops`` with all the loops in the function
+  .. cpp:function:: bool getLoops(vector<PatchLoop*>& loops)
 
-.. code-block:: cpp
-    
-    bool getOuterLoops(vector<PatchLoop*> &loops);
+      Fill ``loops`` with all the loops in the function
 
-Fill ``loops`` with all the outermost loops in the function
+  .. cpp:function:: bool getOuterLoops(vector<PatchLoop*>& loops)
 
-.. code-block:: cpp
-    
-    bool dominates(PatchBlock* A, PatchBlock *B);
+      Fill ``loops`` with all the outermost loops in the function
 
-Return true if block ``A`` dominates block ``B``
+  .. cpp:function:: bool dominates(PatchBlock* A, PatchBlock* B)
 
-.. code-block:: cpp
-    
-    PatchBlock* getImmediateDominator(PatchBlock *A);
+      Return true if block ``A`` dominates block ``B``
 
-Return the immediate dominator of block ``A``\ ，\ ``NULL`` if the block
-``A`` does not have an immediate dominator.
+  .. cpp:function:: PatchBlock* getImmediateDominator(PatchBlock* A)
 
-.. code-block:: cpp
-    
-    void getImmediateDominates(PatchBlock *A, set<PatchBlock*> &imm);
+      Return the immediate dominator of block ``A``\ ，\ ``NULL`` if the block
+      ``A`` does not have an immediate dominator.
 
-Fill ``imm`` with all the blocks immediate dominated by block ``A``
+  .. cpp:function:: void getImmediateDominates(PatchBlock* A, set<PatchBlock*>& imm)
 
-.. code-block:: cpp
-    
-    void getAllDominates(PatchBlock *A, set<PatchBlock*> &dom);
+      Fill ``imm`` with all the blocks immediate dominated by block ``A``
 
-Fill ``dom`` with all the blocks dominated by block ``A``
+  .. cpp:function:: void getAllDominates(PatchBlock* A, set<PatchBlock*>& dom)
 
-.. code-block:: cpp
-    
-    bool postDominates(PatchBlock* A, PatchBlock *B);
+      Fill ``dom`` with all the blocks dominated by block ``A``
 
-Return true if block ``A`` post-dominates block ``B``
+  .. cpp:function:: bool postDominates(PatchBlock* A, PatchBlock* B)
 
-.. code-block:: cpp
-    
-    PatchBlock* getImmediatePostDominator(PatchBlock *A);
+      Return true if block ``A`` post-dominates block ``B``
 
-Return the immediate post-dominator of block ``A``\ ，\ ``NULL`` if the
-block ``A`` does not have an immediate post-dominator.
+  .. cpp:function:: PatchBlock* getImmediatePostDominator(PatchBlock* A)
 
-.. code-block:: cpp
-    
-    void getImmediatePostDominates(PatchBlock *A, set<PatchBlock*> &imm);
+      Return the immediate post-dominator of block ``A``\ ，\ ``NULL`` if the
+      block ``A`` does not have an immediate post-dominator.
 
-Fill ``imm`` with all the blocks immediate post-dominated by block ``A``
+  .. cpp:function:: void getImmediatePostDominates(PatchBlock* A, set<PatchBlock*>& imm)
 
-.. code-block:: cpp
-    
-    void getAllPostDominates(PatchBlock *A, set<PatchBlock*> &dom);
+      Fill ``imm`` with all the blocks immediate post-dominated by block ``A``
 
-Fill ``dom`` with all the blocks post-dominated by block ``A``
+  .. cpp:function:: void getAllPostDominates(PatchBlock* A, set<PatchBlock*>& dom)
 
-PatchBlock
-==========
+      Fill ``dom`` with all the blocks post-dominated by block ``A``
 
-**Declared in**: PatchCFG.h
+  .. cpp:function:: virtual void markModified()
 
-The PatchBlock class is a wrapper of ParseAPI’s Block class (has-a),
-which represents a basic block.
+.. cpp:struct:: PatchFunction::compare
 
-.. code-block:: cpp
-    
-    Address start() const;
+  **Orders PatchBlocks by starting address**
 
-Returns the lower bound of this block (the address of the first
-instruction).
+  .. cpp:function:: bool operator()(PatchBlock * const &b1, PatchBlock * const &b2)
 
-.. code-block:: cpp
-    
-    Address end() const;
+.. cpp:class:: PatchBlock
 
-Returns the upper bound (open) of this block (the address immediately
-following the last byte in the last instruction).
+  **A wrapper around a ParseAPI::Block**.
 
-.. code-block:: cpp
-    
-    Address last() const;
+  .. cpp:type:: std::map<Address, InstructionAPI::Instruction::Ptr> Insns
+  .. cpp:type:: std::vector<PatchEdge*> edgelist
 
-Returns the address of the last instruction in this block.
+  .. cpp:function:: PatchBlock(const PatchBlock *parblk, PatchObject *child)
+  .. cpp:function:: PatchBlock(ParseAPI::Block *block, PatchObject *obj)
+  .. cpp:function:: static PatchBlock *create(ParseAPI::Block *, PatchFunction *)
 
-.. code-block:: cpp
-    
-    Address size() const;
+  .. cpp:function:: Address start() const
 
-Returns end() - start().
+      Returns the lower bound of this block (the address of the first instruction).
 
-.. code-block:: cpp
-    
-    bool isShared();
+  .. cpp:function:: Address end() const
 
-Indicates whether this block is contained by multiple functions.
+      Returns the upper bound (open) of this block (the address immediately
+      following the last byte in the last instruction).
 
-.. code-block:: cpp
-    
-    int containingFuncs() const;
+  .. cpp:function:: Address last() const
 
-Returns the number of functions that contain this block.
+      Returns the address of the last instruction in this block.
 
-.. code-block:: cpp
-    
-    typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns; void getInsns(Insns &insns) const;
+  .. cpp:function:: Address size() const
 
-This function outputs Instructions that are in this block to *insns*.
+      Returns end() - start().
 
-.. code-block:: cpp
-    
-    InstructionAPI::Instruction::Ptr getInsn(Address a) const;
+  .. cpp:function:: PatchFunction* getFunction(ParseAPI::Function* f)
 
-Returns an Instruction that has the address *a* as its starting address.
-If no any instruction can be found in this block with the starting
-address *a*, it returns InstructionAPI::Instruction::Ptr().
+      Returns the underlying ParseAPI function.
 
-.. code-block:: cpp
-    
-    std::string disassemble() const;
+  .. cpp:function:: bool isShared()
 
-Returns a string containing the disassembled code for this block. This
-is mainly for debugging purpose.
+      Checks if this block is contained by multiple functions.
 
-.. code-block:: cpp
-    
-    bool containsCall();
+  .. cpp:function:: int containingFuncs() const
 
-Indicates whether this PatchBlock contains a function call instruction.
+      Returns the number of functions that contain this block.
 
-.. code-block:: cpp
-    
-    bool containsDynamicCall();
+  .. cpp:function:: void getInsns(Insns& insns) const
 
-Indicates whether this PatchBlock contains any indirect function call,
-e.g., via function pointer.
+      Stores all instructions in this block in ``insns``.
 
-.. code-block:: cpp
-    
-    PatchFunction* getCallee();
+  .. cpp:function:: InstructionAPI::Instruction getInsn(Address a) const
 
-Returns the callee function, if this PatchBlock contains a function
-call; otherwise, NULL is returned.
+      Returns the instruction starting at address ``a``.
 
-.. code-block:: cpp
-    
-    PatchFunction *function() const;
+  .. cpp:function:: std::string disassemble() const
 
-Returns a PatchFunction that contains this PatchBlock. If there are
-multiple PatchFunctions containing this PatchBlock, then a random one of
-them is returned.
+      Returns a string representing the disassembled code for this block.
 
-.. code-block:: cpp
-    
-    ParseAPI::Block *block() const;
+  .. cpp:function:: bool containsCall()
 
-Returns the ParseAPI::Block associated with this PatchBlock.
+      Checks if this PatchBlock contains a function call.
 
-.. code-block:: cpp
-    
-    PatchObject* obj() const;
+  .. cpp:function:: bool containsDynamicCall()
 
-Returns the PatchObject that contains this block.
+      Checks if this PatchBlock contains any indirect function call, e.g., via function pointer.
 
-.. code-block:: cpp
-    
-    typedef std::vector<PatchEdge*> PatchBlock::edgelist;
-    const edgelist &sources();
+  .. cpp:function:: std::string format() const
 
-Returns a list of the source PatchEdges. This PatchBlock is the target
-block of the returned edges.
+      Returns a string representation of this block.
 
-.. code-block:: cpp
-    
-    const edgelist &targets();
+  .. cpp:function:: std::string long_format() const
 
-Returns a list of the target PatchEdges. This PatchBlock is the source
-block of the returned edges.
+      Returns a string representation of this block and its contained instructions.
 
-.. code-block:: cpp
-    
-    template <class OutputIterator> void getFuncs(OutputIterator result);
+  .. cpp:function:: PatchFunction* getCallee()
 
-Outputs all functions containing this PatchBlock to the STL inserter
-*result*.
+      Returns the callee function.
 
-.. code-block:: cpp
-    
-    PatchCallback *cb() const;
+      If this PatchBlock does not contain a function call, returns ``NULL``.
 
-Returns the PatchCallback object associated with this PatchBlock.
+  .. cpp:function:: ParseAPI::Block* block() const
 
-.. _sec-3.2.11:
+      Returns the ParseAPI::Block associated with this PatchBlock.
 
-PatchEdge
-=========
+  .. cpp:function:: PatchObject* object() const
 
-**Declared in**: PatchCFG.h
+      Returns the PatchObject that contains this block.
 
-The PatchEdge class is a wrapper of ParseAPI’s Edge class (has-a), which
-joins two PatchBlocks in the CFG, indicating the type of control flow
-transfer instruction that joins the basic blocks to each other.
+  .. cpp:function:: PatchObject* obj() const
 
-.. code-block:: cpp
-    
-    ParseAPI::Edge *edge() const;
+      Synonym for :cpp:func:`object`.
 
-Returns a ParseAPI::Edge associated with this PatchEdge.
+  .. cpp:function:: const edgelist& sources()
 
-.. code-block:: cpp
-    
-    PatchBlock *src();
+      Returns the source edges that target this block (i.e., the inbound edges).
 
-Returns the source PatchBlock.
+  .. cpp:function:: const edgelist& targets()
 
-.. code-block:: cpp
-    
-    PatchBlock *trg();
+      Returns the target edges of this block (i.e., the outbound edges).
 
-Returns the target PatchBlock.
+  .. cpp:function:: PatchEdge* findSource(ParseAPI::EdgeTypeEnum type)
 
-.. code-block:: cpp
-    
-    ParseAPI::EdgeTypeEnum type() const;
+      Find the source edge for this block of type ``type``.
 
-Returns the edge type (ParseAPI::EdgeTypeEnum, please see `ParseAPI
-Manual <ftp://ftp.cs.wisc.edu/paradyn/releases/release7.0/doc/parseapi.pdf>`__).
+  .. cpp:function:: PatchEdge* findTarget(ParseAPI::EdgeTypeEnum type)
 
-.. code-block:: cpp
-    
-    bool sinkEdge() const;
+      Find the target edge for this block of type ``type``.
 
-Indicates whether this edge targets the special sink block, where a sink
-block is a block to which all unresolvable control flow instructions
-will be linked.
+  .. cpp:function:: template <class OutputIterator> void getFuncs(OutputIterator result)
 
-.. code-block:: cpp
-    
-    bool interproc() const;
+      Writes all functions containing this PatchBlock to ``result``.
 
-Indicates whether the edge should be interpreted as interprocedural
-(e.g., calls, returns, direct branches under certain circumstances).
+      ``OutputIterator`` must be at least a C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_.
 
-.. code-block:: cpp
-    
-    PatchCallback *cb() const;
+.. cpp:class:: PatchEdge
 
-Returns a Patchcallback object associated with this PatchEdge.
+  **A wrapper around a ParseAPI::Edge**
 
-.. _sec-3.2.12:
+  .. cpp:function:: PatchEdge(ParseAPI::Edge* internalEdge, PatchBlock* source, PatchBlock* target)
 
-PatchLoop
-=========
+      Creates a wrapper around ``internalEdge`` between ``source`` and ``target``.
 
-**Declared in**: PatchCFG.h
+  .. cpp:function:: PatchEdge(const PatchEdge* parent, PatchBlock* child_src, PatchBlock* child_trg)
 
-The PatchLoop class is a wrapper of ParseAPI’s Loop class (has-a). It
-represents code structure that may execute repeatedly.
+      Creates a wrapper around ``parent`` that adds the blocks ``source`` and ``target`` as children to it.
 
-.. code-block:: cpp
-    
-    PatchLoop* parent
+  .. cpp:function:: static PatchEdge* create(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg)
 
-Returns the loop which directly encloses this loop. NULL if no such
-loop.
+      Helper to create a ``PatchEdge``.
 
-.. code-block:: cpp
-    
-    bool containsAddress(Address addr)
+  .. cpp:function:: ParseAPI::Edge* edge() const
 
-Returns true if the given address is within the range of this loop’s
-basic blocks.
+      Returns a ParseAPI::Edge associated with this PatchEdge.
 
-.. code-block:: cpp
-    
-    bool containsAddressInclusive(Address addr)
+  .. cpp:function:: PatchBlock* src()
 
-Returns true if the given address is within the range of this loop’s
-basic blocks or its children.
+      Returns the source PatchBlock.
 
-.. code-block:: cpp
-    
-    int getLoopEntries(vector<PatchBlock*>& entries);
+  .. cpp:function:: PatchBlock* trg()
 
-Fills ``entries`` with the set of entry basic blocks of the loop. Return
-the number of the entries that this loop has
+      Returns the target PatchBlock.
 
-.. code-block:: cpp
-    
-    int getBackEdges(vector<PatchEdge*> &edges)
+  .. cpp:function:: ParseAPI::EdgeTypeEnum type() const
 
-Sets ``edges`` to the set of back edges in this loop. It returns the
-number of back edges that are in this loop.
+      Returns the edge type.
 
-.. code-block:: cpp
-    
-    bool getContainedLoops(vector<PatchLoop*> &loops)
+  .. cpp:function:: bool sinkEdge() const
 
-Returns a vector of loops that are nested under this loop.
+      Checks if this edge targets the special sink block, where a sink
+      block is a block to which all unresolvable control flow instructions
+      will be linked.
 
-.. code-block:: cpp
-    
-    bool getOuterLoops(vector<PatchLoop*> &loops)
+  .. cpp:function:: bool interproc() const
 
-Returns a vector of loops that are directly nested under this loop.
+      Checks if the edge should be interpreted as interprocedural
+      (e.g., calls, returns, direct branches under certain circumstances).
 
-.. code-block:: cpp
-    
-    bool getLoopBasicBlocks(vector<PatchBlock*> &blocks)
+  .. cpp:function:: bool intraproc() const
 
-Fills ``blocks`` with all basic blocks in the loop
+      The opposite of :cpp:func:`interproc`;
 
-.. code-block:: cpp
-    
-    bool getLoopBasicBlocksExclusive(vector<PatchBlock*> &blocks)
+  .. cpp:function:: std::string format() const
 
-Fills ``blocks`` with all basic blocks in this loop, excluding the
-blocks of its sub loops.
+      Returns a string representation of this edge.
 
-.. code-block:: cpp
-    
-    bool hasBlock(PatchBlock *b);
+.. cpp:class:: PatchLoop
 
-Returns ``true`` if this loop contains basic block ``b``.
+  **A wrapper around a ParseAPI::Loop**
 
-.. code-block:: cpp
-    
-    bool hasBlockExclusive(PatchBlock *b);
+  .. cpp:member:: PatchLoop* parent
 
-Returns ``true`` if this loop contains basic block ``b`` and ``b`` is
-not in its sub loops.
+      The loop that directly encloses this loop.
 
-.. code-block:: cpp
-    
-    bool hasAncestor(PatchLoop *loop)
+  .. cpp:function:: bool containsAddress(Address addr)
 
-Returns true if this loop is a descendant of the given loop.
+      Checks if ``addr`` is contained in the range of this loop’s basic blocks.
 
-.. code-block:: cpp
-    
-    PatchFunction * getFunction();
+  .. cpp:function:: bool containsAddressInclusive(Address addr)
 
-Returns the function that this loop is in.
+      Checks if ``addr`` is contained in the range of this loop’s basic blocks or its children.
 
-.. _sec-3.2.13:
+  .. cpp:function:: int getLoopEntries(vector<PatchBlock*>& entries)
 
-PatchLoopTreeNode
-=================
+      Inserts the entry basic blocks of the loop into ``entries``.
 
-**Declared in**: PatchCFG.h
+      Returns the number of the entries added.
 
-The PatchLoopTreeNode class provides a tree interface to a collection of
-instances of class PatchLoop contained in a function. The structure of
-the tree follows the nesting relationship of the loops in a function.
-Each PatchLoopTreeNode contains a pointer to a loop (represented by
-PatchLoop), and a set of sub-loops (represented by other
-PatchLoopTreeNode objects). The ``loop`` field at the root node is
-always ``NULL`` since a function may contain multiple outer loops. The
-``loop`` field is never ``NULL`` at any other node since it always
-corresponds to a real loop. Therefore, the outer most loops in the
-function are contained in the vector of ``children`` of the root.
+  .. cpp:function:: int getBackEdges(vector<PatchEdge*>& edges)
 
-Each instance of PatchLoopTreeNode is given a name that indicates its
-position in the hierarchy of loops. The name of each outermost loop
-takes the form of ``loop_x``, where ``x`` is an integer from 1 to n,
-where n is the number of outer loops in the function. Each sub-loop has
-the name of its parent, followed by a ``.y``, where ``y`` is 1 to m,
-where m is the number of sub-loops under the outer loop. For example,
-consider the following C function:
+      Inserts the back edges in this loop into ``edges``.
 
-.. code-block:: cpp
-    
-   void foo() {
-     int x, y, z, i;
-     for (x=0; x<10; x++) {
-       for (y = 0; y<10; y++)
-         ...
-       for (z = 0; z<10; z++)
-         ...
-     }
-     for (i = 0; i<10; i++) {
-        ...
-     }
-   }
+      Returns the number of back edges added.
 
-The ``foo`` function will have a root PatchLoopTreeNode, containing a
-NULL loop entry and two PatchLoopTreeNode children representing the
-functions outermost loops. These children would have names ``loop_1``
-and ``loop_2``, respectively representing the ``x`` and ``i`` loops.
-``loop_2`` has no children. ``loop_1`` has two child PatchLoopTreeNode
-objects, named ``loop_1.1`` and ``loop_1.2``, respectively representing
-the ``y`` and ``z`` loops.
+  .. cpp:function:: bool getContainedLoops(vector<PatchLoop*>& loops)
 
+      Inserts the loops nested under this loop into ``loops``.
 
-.. code-block:: cpp
-    
-    PatchLoop *loop;
+      Returns ``false`` on error.
 
-The PatchLoop instance it points to.
+  .. cpp:function:: bool getOuterLoops(vector<PatchLoop*>& loops)
 
-.. code-block:: cpp
-    
-    std::vector<PatchLoopTreeNode *> children;
+      Inserts the loops that contain this loop into ``loops``.
 
-The PatchLoopTreeNode instances nested within this loop.
+      Returns ``false`` on error.
 
-.. code-block:: cpp
-    
-    const char * name();
+  .. cpp:function:: bool getLoopBasicBlocks(vector<PatchBlock*>& blocks)
 
-Returns the hierarchical name of this loop.
+      Inserts the basic blocks under this loop into ``blocks``.
 
-.. code-block:: cpp
-    
-    const char * getCalleeName(unsigned int i)
+      Returns ``false`` on error.
 
-Returns the function name of the ith callee.
+  .. cpp:function:: bool getLoopBasicBlocksExclusive(vector<PatchBlock*>& blocks)
 
-.. code-block:: cpp
-    
-    unsigned int numCallees()
+      Inserts the basic blocks under this loop into ``blocks``, excluding the
+      blocks of its sub loops.
 
-Returns the number of callees contained in this loop’s body.
+      Returns ``false`` on error.
 
-.. code-block:: cpp
-    
-    bool getCallees(vector<PatchFunction *> &v);
+  .. cpp:function:: bool hasBlock(PatchBlock* b)
 
-Fills ``v`` with a vector of the functions called inside this loop.
+      Checks if this loop or its children contains basic block ``b``.
 
-.. code-block:: cpp
-    
-    PatchLoop * findLoop(const char *name);
+  .. cpp:function:: bool hasBlockExclusive(PatchBlock* b)
 
-Looks up a loop by the hierarchical name
+      Checks if this loop contains basic block ``b``, and ``b`` is not in its sub loops.
 
-.. _sec-3.1:
+  .. cpp:function:: bool hasAncestor(PatchLoop* loop)
+
+      Checks if this loop is a descendant of ``loop``.
+
+  .. cpp:function:: PatchFunction*  getFunction()
+
+      Returns the function that this loop is in.
+
+  .. cpp:function:: std::string format() const
+
+      Returns a string representation of this loop.
+
+.. cpp:class:: PatchLoopTreeNode
+
+  .. cpp:member:: PatchLoop* loop
+
+      The PatchLoop instance it points to.
+
+  .. cpp:member:: std::vector<PatchLoopTreeNode*> children
+
+      The PatchLoopTreeNode instances nested within this loop.
+
+  .. cpp:function:: PatchLoopTreeNode(PatchObject *obj, ParseAPI::LoopTreeNode *l, std::map<ParseAPI::Loop*, PatchLoop*>&)
+
+      Creates a loop tree node for Loop with name ``n``.
+
+  .. cpp:function:: const char* name()
+
+      Returns the hierarchical name of this loop.
+
+  .. cpp:function:: const char* getCalleeName(unsigned int i)
+
+      Returns the function name of the ith callee.
+
+  .. cpp:function:: unsigned int numCallees()
+
+      Returns the number of callees contained in this loop’s body.
+
+  .. cpp:function:: bool getCallees(vector<PatchFunction* >& v)
+
+      Fills ``v`` with a vector of the functions called inside this loop.
+
+  .. cpp:function:: PatchLoop*  findLoop(const char* name)
+
+      Looks up a loop by the hierarchical name

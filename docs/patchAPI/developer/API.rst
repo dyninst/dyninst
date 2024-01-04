@@ -10,3 +10,4 @@ PatchAPI
 
   AddrSpace.h
   ParseCallback.h
+  PatchCFG.h
