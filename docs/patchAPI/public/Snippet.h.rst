@@ -1,30 +1,22 @@
+.. _`sec:Snippet.h`:
+
 Snippet.h
-=========
+#########
 
-.. cpp:namespace:: Dyninst::patchAPI
+.. cpp:namespace:: Dyninst::PatchAPI
 
-Snippet
-=======
+.. cpp:class:: Snippet
 
-**Declared in**: Snippet.h
+  **Custom snippet representation and corresponding mini-compiler for translation into binary code**
 
-The Snippet class allows programmers to customize their own snippet
-representation and the corresponding mini-compiler to translate the
-representation into the binary code.
+  .. cpp:type:: boost::shared_ptr<Snippet> Ptr
 
-.. code-block:: cpp
-    
-    static Ptr create(Snippet* a);
+  .. cpp:function:: static Ptr create(Snippet* a)
 
-Creates an object of the Snippet.
+      Creates an object of the Snippet.
 
-.. code-block:: cpp
-    
-    virtual bool generate(Point *pt, Buffer &buf);
+  .. cpp:function:: virtual bool generate(Point* p, Buffer& b) = 0
 
-Users should implement this virtual function for generating binary code
-for the snippet.
+      Generates binary code from this snippet at point ``p``, and writes it into ``b``.
 
-Returns false if code generation failed catastrophically. Point *pt* is
-an in-param that identifies where the snippet is being generated. Buffer
-*buf* is an out-param that holds the generated code.
+      Returns false if code generation fails.
