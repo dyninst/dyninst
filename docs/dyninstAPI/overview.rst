@@ -1,8 +1,7 @@
 .. _sec:dyninstapi-intro:
 
-==========
 DyninstAPI
-==========
+##########
 
 The key features of this interface are the abilities to:
 
@@ -25,7 +24,7 @@ to insert into the application.
    inserted at runtime via this interface.
 
 Abstractions
-============
+************
 
 The DyninstAPI library provides an interface for instrumenting and
 working with binaries and processes. The user writes a *mutator*, which
@@ -86,7 +85,7 @@ instrumentation is inserted into a location that exists in multiple
 functions.
 
 Usage
-=====
+*****
 
 We refer to the application process or binary that is being modified as the
 mutatee, and the program that uses the API to modify the application as
@@ -94,7 +93,7 @@ the mutator. The mutator is a separate process from the application
 process.
 
 Instrumenting a function
-------------------------
+========================
 
 A mutator program must create a single instance of the class BPatch.
 This object is used to access functions and information that are global
@@ -225,7 +224,7 @@ or
 
 
 Binary Analysis
----------------
+===============
 
 This example will illustrate how to use Dyninst to iterate over a
 function’s control flow graph and inspect instructions. These are steps
@@ -294,7 +293,7 @@ checks whether this instruction accesses memory:
    }
 
 Instrumenting Memory Accesses
------------------------------
+=============================
 
 There are two snippets useful for memory access instrumentation:
 BPatch_effectiveAddressExpr and BPatch_bytesAccessedExpr. Both have
@@ -345,7 +344,7 @@ InterestingProcedure with a call to printf, one may write:
    app->insertSnippet(printfCall, *points);
 
 Using DyninstAPI with the component libraries
-=============================================
+*********************************************
 
 The component libraries (SymtabAPI, InstructionAPI, ParseAPI, and PatchAPI)
 often provide greater functionality and cleaner interfaces than Dyninst,
@@ -384,3 +383,108 @@ appropriate documentation.
    PatchAPI::SnippetPtr PatchAPI::convert(BPatch_snippet *);
    
    SymtabAPI::Type *SymtabAPI::convert(BPatch_type *);
+
+Differences Between DyninstAPI and PatchAPI
+*******************************************
+
+:ref:`DyninstAPI <sec:dyninstapi-intro>` and PatchAPI differ primarily in their CFG
+representations and instrumentation point abstractions. In general,
+PatchAPI is more powerful and can better represent complex binaries
+(e.g., highly optimized code or malware). In order to maintain backwards
+compatibility, the DyninstAPI interface has not been extended to match
+the PatchAPI. As a result, there are some caveats.
+
+PatchAPI uses the same CFG model as :ref:`ParseAPI <sec:parseapi-intro>`. The primary
+representation is an interprocedural graph of basic blocks and edges.
+Functions are defined on top of this graph as collections of blocks. **A
+block may be contained by more than one function;** we call this the
+*shared block* model. Functions are defined to have a single entry
+block, and functions may overlap if they contain the same blocks. Call
+and return edges exist in the graph, and therefore traversing the graph
+may enter different functions. PatchAPI users may specify instrumenting
+a particular block within a particular function (a *block instance*) by
+specifying both the block and the function.
+
+DyninstAPI uses a historic CFG model. The primary representation is
+the function. Functions contain a intraprocedural graph of blocks and
+edges. As a result, a basic block belongs to only one function, but two
+blocks from different functions may be *clones* of each other. No
+interprocedural edges are represented in the graph, and thus traversing
+the CFG from a particular function is guaranteed to remain inside that
+function.
+
+As a result, multiple DyninstAPI blocks may map to the same PatchAPI
+block. If instrumenting a particular block instance is desired, the user
+should provide both the DyninstAPI basic block and function.
+
+In addition, DyninstAPI uses a *module* abstraction, where a
+:cpp:class:`BPatch_module` represents a collection of functions from a particular
+source file (for the executable) or from an entire library (for all
+libraries). PatchAPI, like ParseAPI, instead uses an *object*
+representation, where a :cpp:class:`PatchObject` object represents a collection
+of functions from a file on disk (executable or libraries).
+
+The instrumentation point (*instPoint*) models also differ between
+DyninstAPI and PatchAPI. We classify an instPoint either as a *behavior*
+point (e.g., function entry) or *location* point (e.g., a particular
+instruction). PatchAPI fully supports both of these models, with the
+added extension that a location point explicitly specifies whether
+instrumentation will execute before or after the corresponding location.
+Dyninst does not support the behavior model, instead mapping behavior
+instPoints to a corresponding instruction. For example, if a user
+requests a function entry instPoint they instead receive an instPoint
+for the first instruction in the function. These may not always be the
+same (see `Bernat_AWAT <ftp://ftp.cs.wisc.edu/paradyn/papers/Bernat11AWAT.pdf>`__).
+In addition, location instPoints represent an instruction, and the user
+must later specify whether they wish to instrument before or after that
+instruction.
+
+As a result, there are complications for using both DyninstAPI and
+PatchAPI. We cannot emphasize enough, though, that users *can combine
+DyninstAPI and PatchAPI* with some care. Doing so offers several
+benefits:
+
+-  The ability to extend legacy code that is written for DyninstAPI.
+
+-  The ability to use the DyninstAPI extensions and plugins for
+   PatchAPI, including snippet-based or dynC-based code generation and
+   our instrumentation optimizer.
+
+We suggest the following best practices to be followed when coding for
+PatchAPI via Dyninst:
+
+-  For legacy code, do not attempt to map between DyninstAPI instPoints
+   and PatchAPI instPoints. Instead, use DyninstAPI CFG objects to
+   acquire PatchAPI CFG objects, and use a ``PatchMgr`` (acquired
+   through a ``BPatch_addressSpace``) to look up PatchAPI instPoints.
+
+-  For new code, acquire a ``PatchMgr`` directly from a
+   ``BPatch_addressSpace`` and use its methods to look up both CFG
+   objects and instPoints.
+
+PatchAPI accessor methods in DyninstAPI
+=======================================
+
+To access a PatchAPI class from a Dyninst class, use the
+:cpp:func:`PatchAPI::convert` function, as in the following example:
+
+.. code-block:: cpp
+    
+    BPatch_basicBlock *bp_block = ...;
+    PatchAPI::PatchBlock *block = PatchAPI::convert(bp_block);
+
+.. csv-table:: BPatch <-> PatchAPI mappings
+  :header: "From", "To"
+
+  "BPatch_function", "PatchFunction"
+  "BPatch_basicBlock", "PatchBlock"
+  "BPatch_edge", "PatchEdge"
+  "BPatch_module", "PatchObject"
+  "BPatch_image", "PatchMgr"
+  "BPatch_addressSpace", "PatchMgr"
+  "BPatch_snippet", "Snippet"
+
+We do not support a direct mapping between :cpp:class:`BPatch_point`\ s and
+:cpp:class:`PatchAPI::Point`\ s, as the failure of Dyninst to properly represent behavior
+instPoints leads to confusing results. Instead, use the PatchAPI point
+lookup methods.

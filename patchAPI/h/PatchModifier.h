@@ -35,10 +35,6 @@
 #include <vector>
 #include "dyntypes.h"
 
-// A collection of methods for user-triggered modification of a PatchAPI CFG,
-// including "canned" capabilities such as replacing a function or low-level
-// capabilities such as splitting blocks or redirecting edges. 
-
 #include "PatchMgr.h"
 #include "PatchCommon.h"
 

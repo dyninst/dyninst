@@ -35,7 +35,7 @@ to more effectively use different aspects of binary analysis for building their 
    Converts the machine code representation of a program, library, or code snippet into
    platform-independent abstractions such as instructions, basic blocks, functions, and loops
 
-:ref:`sec-patchapi-intro`
+:ref:`sec:patchapi-intro`
    Instrument (insert code into) and modify a binary executable or library by manipulating
    the binary’s control flow graph (CFG)
 
