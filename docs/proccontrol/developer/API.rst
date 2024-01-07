@@ -20,6 +20,7 @@ Documentation for the internal classes of the ProccontrolAPI toolkit.
    int_thread_db.h
    irpc.h
    linux.h
+   Mailbox.h
    memcache.h
    mmapalloc.h
    notify_pipe.h
