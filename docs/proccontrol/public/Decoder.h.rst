@@ -7,8 +7,8 @@ Decoder.h
 
 .. cpp:class:: Decoder
 
-   .. cpp:function:: virtual ~Decoder()
+  .. cpp:member:: static const unsigned int default_priority = 0x1000
 
-   .. cpp:function:: virtual unsigned getPriority() const = 0;
+  .. cpp:function:: virtual unsigned getPriority() const = 0
 
-   .. cpp:function:: virtual bool decode(ArchEvent *archE, std::vector<Event::ptr> &events) = 0;
+  .. cpp:function:: virtual bool decode(ArchEvent *archE, std::vector<Event::ptr> &events) = 0
