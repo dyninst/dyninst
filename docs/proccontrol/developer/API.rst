@@ -13,6 +13,7 @@ Documentation for the internal classes of the ProccontrolAPI toolkit.
    arm_process.h
    DecoderWindows.h
    freebsd.h
+   Generator.h
    GeneratorWindows.h
    int_event.h
    int_handler.h
