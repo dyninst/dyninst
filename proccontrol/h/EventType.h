@@ -68,15 +68,11 @@ class PC_EXPORT EventType
    static const int PreSyscall          = 26;
    static const int PostSyscall         = 27;
 
-   //These aren't completely real events.  They can have callbacks registered, but won't be delivered.
-   // Instead, a real event will be delivered to their callback.  E.g, a callback registered for 
-   // Terminate will actually get Exit or Crash events.
    static const int Terminate           = 400;
    static const int ThreadCreate        = 401;
    static const int ThreadDestroy       = 402;
    static const int AsyncIO             = 403;
 
-   //Users do not recieve CBs for the below event types--ProcControlAPI internal
    static const int InternalEvents      = 500;
    static const int BreakpointClear     = 500;
    static const int BreakpointRestore   = 501;
