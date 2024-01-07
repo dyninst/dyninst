@@ -66,20 +66,6 @@ typedef boost::shared_ptr<ThreadSet> ThreadSet_ptr;
 typedef boost::shared_ptr<const ProcessSet> ProcessSet_const_ptr;
 typedef boost::shared_ptr<const ThreadSet> ThreadSet_const_ptr;
 
-/**
- * AddressSet represents a set of Process/Address pairs.  It is used to 
- * denote the address of something that exists across multiple processes.
- *
- * AddressSet is like a std::multimap<Address, Process::ptr> object.
- * This means that it's easy to operate on the entire set, or to focus on an 
- * Address and operate on each process that shares that Address.
- *
- * Unlike a standard multimap, you can't have duplicates of the Address/Process
- * pairs.  In this way it behaves more like a set.
- *
- * Iteration over AddressSet is sorted by the Address. So, all Processes
- * that share an Address will appear together when iterating over the set.
- **/
 class PC_EXPORT AddressSet
 {
   private:
@@ -94,9 +80,7 @@ class PC_EXPORT AddressSet
    typedef boost::shared_ptr<AddressSet> ptr;
    typedef boost::shared_ptr<AddressSet> const_ptr;
    
-   /**
-    * Create new Address sets
-    **/
+
    static AddressSet::ptr newAddressSet();
    static AddressSet::ptr newAddressSet(ProcessSet_const_ptr ps, Dyninst::Address addr);
    static AddressSet::ptr newAddressSet(Process::const_ptr proc, Dyninst::Address addr);
@@ -106,9 +90,6 @@ class PC_EXPORT AddressSet
    static AddressSet::ptr newAddressSet(Process::ptr proc, Dyninst::Address addr);
    static AddressSet::ptr newAddressSet(ProcessSet_ptr ps, std::string library_name, Dyninst::Offset off = 0);
    
-   /**
-    * Standard iterators methods and container access
-    **/
    typedef std::pair<Address, Process::ptr> value_type;
    typedef std::multimap<Dyninst::Address, Process::ptr>::iterator iterator;
    typedef std::multimap<Dyninst::Address, Process::ptr>::const_iterator const_iterator;
@@ -159,11 +140,6 @@ class PC_EXPORT AddressSet
 };
 
 
-/**
- * A ProcessSet is a set of processes.  By grouping processes together we can
- * perform collective operations on the entire set, which may be more effecient
- * than the equivalent sequential operations.
- **/
 class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
 {
    friend class ThreadSet;
@@ -182,23 +158,16 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    typedef boost::weak_ptr<ProcessSet> weak_ptr;
    typedef boost::weak_ptr<const ProcessSet> const_weak_ptr;
 
-   /**
-    * Create new ProcessSets from existing Process objects
-    **/
    static ProcessSet::ptr newProcessSet();
    static ProcessSet::ptr newProcessSet(Process::const_ptr p);
    static ProcessSet::ptr newProcessSet(ProcessSet::const_ptr pp);
    static ProcessSet::ptr newProcessSet(const std::set<Process::const_ptr> &procs);
    static ProcessSet::ptr newProcessSet(AddressSet::const_iterator, AddressSet::const_iterator);
 
-   //These non-const factories may seem redundant, but gcc 4.1 gets confused without them
    static ProcessSet::ptr newProcessSet(Process::ptr p); 
    static ProcessSet::ptr newProcessSet(ProcessSet::ptr pp);
    static ProcessSet::ptr newProcessSet(const std::set<Process::ptr> &procs);
 
-   /**
-    * Create new ProcessSets by attaching/creating new Process objects
-    **/
    struct CreateInfo {
       std::string executable;
       std::vector<std::string> argv;
@@ -217,16 +186,10 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    };
    static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo);
 
-   /**
-    * Return a new set by performing these set operations with another set.
-    **/
    ProcessSet::ptr set_union(ProcessSet::ptr pp) const;
    ProcessSet::ptr set_intersection(ProcessSet::ptr pp) const;
    ProcessSet::ptr set_difference(ProcessSet::ptr pp) const;
 
-   /**
-    * Iterator and standard set utilities
-    **/
    class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ProcessSet;
      private:
@@ -286,10 +249,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    void clear();
 
    /**
-    * Error management.  
-    * 
-    * Return the subset of processes that had any error on the last operation, or
-    * group them into subsets based on unique error codes.
+    * Error management.
     **/
    ProcessSet::ptr getErrorSubset() const;
    void getErrorSubsets(std::map<ProcControlAPI::err_t, ProcessSet::ptr> &err_sets) const;
@@ -310,10 +270,6 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    bool allThreadsStopped() const;
    bool allThreadsRunning() const;
 
-   /**
-    * Create new ProcessSets that are subsets of this set, and only
-    * including processes with the specified state.
-    **/
    ProcessSet::ptr getTerminatedSubset() const;
    ProcessSet::ptr getExitedSubset() const;
    ProcessSet::ptr getCrashedSubset() const;
@@ -323,9 +279,6 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    ProcessSet::ptr getAllThreadStoppedSubset() const;
    ProcessSet::ptr getAnyThreadStoppedSubset() const;
 
-   /**
-    * Move all processes in set to specified state
-    **/
    bool continueProcs() const;
    bool stopProcs() const;
    bool detach(bool leaveStopped = false) const;
@@ -340,14 +293,6 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    bool mallocMemory(size_t size, AddressSet::ptr location) const;
    bool freeMemory(AddressSet::ptr addrs) const;
 
-   /**
-    * Read/Write memory
-    * - Use the AddressSet forms to read/write from the same memory location in each process
-    * - Use the read_t/write_t forms to read/write from different memory locations/sizes in each process
-    * - The AddressSet forms of readMemory need to have their memory free'd by the user.
-    * - The readMemory form that outputs 'std::map<void *, ProcessSet::ptr> &result' groups processes 
-    *   based on having the same memory contents.
-    **/
    struct write_t {
       void *buffer;
       Dyninst::Address addr;
@@ -376,21 +321,10 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    bool addBreakpoint(AddressSet::ptr addrs, Breakpoint::ptr bp) const;
    bool rmBreakpoint(AddressSet::ptr addrs, Breakpoint::ptr bp) const;
 
-   /**
-    * IRPC
-    * The user may pass multiple IRPCs, which are each posted to their respective processes.
-    * The user may pass a single example IRPC, copies of which are posted to each process and returned.
-    * The user may pass a single example IRPC and an AddressSet. Copies of that IRPC are posted to each
-    *  process at the addresses provided.
-    **/
    bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr> &rpcs) const;
    bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
    bool postIRPC(IRPC::ptr irpc, AddressSet::ptr addrs, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
 
-   /**
-    * Perform specific operations.  Interface objects will only be returned
-    * on appropriately supported platforms, others will return NULL.
-    **/
    LibraryTrackingSet *getLibraryTracking();
    ThreadTrackingSet *getThreadTracking();
    LWPTrackingSet *getLWPTracking();
@@ -404,6 +338,8 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    const RemoteIOSet *getRemoteIO() const;
    const MemoryUsageSet *getMemoryUsage() const;
 };
+
+ProcessSet::const_ptr getAllProcs();
 
 class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
   private:
@@ -421,25 +357,16 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
 
    int_threadSet *getIntThreadSet() const;
 
-   /**
-    * Create a new ThreadSet given existing threads
-    **/
    static ThreadSet::ptr newThreadSet();
    static ThreadSet::ptr newThreadSet(Thread::ptr thr);
    static ThreadSet::ptr newThreadSet(const ThreadPool &threadp);
    static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &threads);
    static ThreadSet::ptr newThreadSet(ProcessSet::ptr ps, bool initial_only = false);
 
-   /**
-    * Modify current set by performing these set operations with another set.
-    **/
    ThreadSet::ptr set_union(ThreadSet::ptr tp) const;
    ThreadSet::ptr set_intersection(ThreadSet::ptr tp) const;
    ThreadSet::ptr set_difference(ThreadSet::ptr tp) const;
 
-   /**
-    * Iterator and standard set utilities
-    **/
    class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadSet;
      protected:
@@ -511,25 +438,14 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
    ThreadSet::ptr getSingleStepSubset() const;
    ThreadSet::ptr getHaveUserThreadInfoSubset() const;
 
-   /**
-    * Query user thread info
-    **/
    bool getStartFunctions(AddressSet::ptr result) const;
    bool getStackBases(AddressSet::ptr result) const;
    bool getTLSs(AddressSet::ptr result) const;
 
-   /**
-    * Move all threads to a specified state.
-    **/
    bool stopThreads() const;
    bool continueThreads() const;
    bool setSingleStepMode(bool v) const;
 
-   /**
-    * Get and set individual registers.
-    * - The getRegister form that outputs 'std::map<Dyninst::MachRegisterVal, ThreadSet::ptr>' groups 
-    *   processes based on similar return values of registers.
-    **/
    bool getRegister(Dyninst::MachRegister reg, std::map<Thread::ptr, Dyninst::MachRegisterVal> &results) const;
    bool getRegister(Dyninst::MachRegister reg, std::map<Dyninst::MachRegisterVal, ThreadSet::ptr> &results) const;
    bool setRegister(Dyninst::MachRegister reg, const std::map<Thread::const_ptr, Dyninst::MachRegisterVal> &vals) const;
@@ -538,18 +454,9 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
    bool getAllRegisters(std::map<Thread::ptr, RegisterPool> &results) const;
    bool setAllRegisters(const std::map<Thread::const_ptr, RegisterPool> &reg_vals) const;
 
-   /**
-    * IRPC
-    * The user may pass multiple IRPCs, which are posted to their respective threads.
-    * The user may pass a single example IRPC, copies of which are posted to each process and returned.
-    **/
    bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const;
    bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL) const;
 
-   /**
-    * Perform specific operations.  Interface objects will only be returned
-    * on appropriately supported platforms, others will return NULL.
-    **/
    CallStackUnwindingSet *getCallStackUnwinding();
    const CallStackUnwindingSet *getCallStackUnwinding() const;
 };

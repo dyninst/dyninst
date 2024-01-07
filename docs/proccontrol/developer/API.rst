@@ -29,6 +29,7 @@ Documentation for the internal classes of the ProccontrolAPI toolkit.
    processplat.h
    procpool.h
    proc_service_wrapper.h
+   ProcessSet.h
    resp.h
    response.h
    snippets.h
