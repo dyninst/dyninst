@@ -266,7 +266,6 @@ class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
    boost::shared_ptr<const EventPostSyscall> getEventPostSyscall() const;
 
 
-   //Not meant for public consumption
    void setLastError(err_t ec, const char *es);
  protected:
    EventType etype;
@@ -490,15 +489,11 @@ class PC_EXPORT EventFork : public Event
 class PC_EXPORT EventSignal : public Event
 {
 public:
-   // causes of signal. unknown refers to all non-access violations.
-   // this is needed for defensve mode.
    enum Cause { Unknown, ReadViolation, WriteViolation, ExecuteViolation };
    friend void boost::checked_delete<EventSignal>(EventSignal *) CHECKED_DELETE_NOEXCEPT;
    friend void boost::checked_delete<const EventSignal>(const EventSignal *) CHECKED_DELETE_NOEXCEPT;
  private:
    int sig;
-   // address that caused the signal (if any), the cause, and
-   // whether this is a first-cause exception (windows access violations).
    Address addr;
    Cause cause;
    bool first;
@@ -514,7 +509,6 @@ public:
    void setThreadSignal(int newSignal) const;
    void clearThreadSignal() const;
 
-   // used to get information about windows access violations.
    Address getAddress() const { return addr; }
    Cause getCause() const { return cause; }
    bool isFirst() const { return first; }

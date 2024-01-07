@@ -96,3 +96,33 @@ that occurs after the process exits and the address space is cleaned.
 When using EventTypes to register for callback functions a special time value of Any can be used. This signifies
 that the callback function should trigger for both Pre and Post time events. ProcControlAPI will never deliver
 an Event that has an EventType with time code Any.
+
+Not all EventTypes are available on every platform - a checkmark under the
+specific OS column means that the EventType is available on that OS.
+
+.. csv-table:: EventType by OS
+   :header: "EventType", "Event Subclass", "Linux", "FreeBSD", "Windows"
+   :widths: 25, 25, 10, 10, 10
+
+    EventType,EventSubclass,Linux,FreeBSD,Windows
+    Stop,EventStop,X,,
+    Breakpoint,EventBreakpoint,X,X,X
+    Signal,EventSignal,X,X,X
+    UserThreadCreate,EventNewUserThread,X,X,
+    LWPCreate,EventNewLWP,X,,X
+    Pre-UserThreadDestroy,EventUserThreadDestroy,X,X,
+    Post-UserThreadDestroy,EventUserThreadDestroy,X,X,
+    Pre-LWPDestroy,EventLWPDestroy,X,,X
+    Post-LWPDestroy,EventLWPDestroy,X,,
+    Pre-Fork,EventFork,,,
+    Post-Fork,EventFork,X,,
+    Pre-Exec,EventExec,,,
+    Post-Exec,EventExec,X,X,
+    RPC,EventRPC,X,X,X
+    SingleStep,EventSingleStep,X,X,X
+    Breakpoint,EventBreakpoint,X,X,X
+    Library,EventLibrary,X,X,X
+    Pre-Exit,EventExit,X,,
+    Post-Exit,EventExit,X,X,X
+    Crash,EventCrash,X,X,X
+    ForceTerminate,EventForceTerminate,X,X,X
