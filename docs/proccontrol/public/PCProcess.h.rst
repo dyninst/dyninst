@@ -1,126 +1,84 @@
 .. _`sec:PCProcess.h`:
 
 PCProcess.h
-===========
+###########
 
 .. cpp:namespace:: Dyninst::ProcControlAPI
 
 .. cpp:class:: Breakpoint
 
-  For an overview of breakpoints, see :ref:`sec:proccontrol-intro-breakpoints`. 
+  For an overview of breakpoints, see :ref:`sec:proccontrol-intro-breakpoints`.
 
   .. cpp:type:: Breakpoint* ptr
   .. cpp:type:: Breakpoint const* const_ptr
 
-    Convenience typedefs used in interfaces.
-
   .. cpp:var:: static const int BP_X = 1
+
+      Set execute bit on hardware breakpoints.
+
   .. cpp:var:: static const int BP_W = 2
+
+      Set write bit on hardware breakpoints.
+
   .. cpp:var:: static const int BP_R = 4
 
-    Constants are used to set execute, write and read bits on hardware breakpoints.
+      Set read bit on hardware breakpoints.
 
   .. cpp:function:: Breakpoint::ptr newBreakpoint()
 
-    Creates a new software Breakpoint object.
+      Creates a new software Breakpoint object.
 
-    The Breakpoint is not inserted into a process until it is passed to :cpp:func:`Process::addBreakpoint()`.
+      The Breakpoint is not inserted into a process until it is passed to :cpp:func:`Process::addBreakpoint()`.
 
   .. cpp:function:: Breakpoint::ptr newTransferBreakpoint(Dyninst::Address ctrl_to)
 
-    Creates a new control transfer software breakpoint.
+      Creates a new control transfer software breakpoint.
 
-    Upon resumption after executing this Breakpoint,control will resume at the address specified by the ctrl_to parameter.
+      Upon resumption after executing this Breakpoint,control will resume at the address specified by the ctrl_to parameter.
 
   .. cpp:function:: Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size)
 
-    Creates a new hardware breakpoint.
+    Creates a breakpoint with read/write/execute bits compacted into ``mode`` as an OR combination the values
+    :cpp:member:`BP_X`, :cpp:member:`BP_W`, and :cpp:member:`BP_R` that monitors a range of memory of ``size`` bytes.
 
-    The ``mode`` parameter is a bitfield that contains an OR combination the values :cpp:member:`BP_X`,
-    :cpp:member:`BP_W`, and :cpp:member:`BP_R`. These control whether the breakpoint will trigger when its target
-    address is executed, written or read. The size parameter specifies a range of memory that this breakpoint
-    monitors. If memory is accessed between the target address and target
-    address + size, then the breakpoint will trigger.
+    ``mode`` controls whether the breakpoint will trigger when its target address is executed, written, or read. If
+    memory is accessed between the target address and target ``address + size``, then the breakpoint will trigger.
 
   .. cpp:function:: bool isCtrlTransfer() const
 
-    Returns ``true`` if the Breakpoint is a control transfer breakpoint (see :cpp:func:`newTransferBreakpoint`),
-    and ``false`` if it is a regular Breakpoint.
+      Checks if the breakpoint is a control transfer breakpoint (see :cpp:func:`newTransferBreakpoint`).
 
   .. cpp:function:: Dyninst::Address getToAddress() const
 
-    If this Breakpoint is a control transfer breakpoint, then returns the address to which
-    it transfers control. If this Breakpoint is not a control transfer breakpoint, then returns 0.
+    Returns the address to which this breakpoint transfers control, if it is a control-transfer breakpoint.
+
+    If this Breakpoint is not a control transfer breakpoint, then returns 0.
 
   .. cpp:function:: void setData(void *data) const
 
-    Sets the value of an opaque handle that is associated with each Breakpoint.
+      Sets the value of an opaque handle that is associated with each Breakpoint.
 
-    The opaque handle can point to any content, and is retrieved with :cpp:func:`getData`.
+      The opaque handle can point to any content, and is retrieved with :cpp:func:`getData`.
 
   .. cpp:function:: void* getData() const
 
-    Returns the value of the opaque handled that is associated with this Breakpoint.
+      Returns the value of the opaque handled that is associated with this Breakpoint.
 
   .. cpp:function:: void setSuppressCallbacks(bool val)
 
-    Toggle suppression of callbacks stemming from this breakpoint.
+      Toggles suppression of callbacks stemming from this breakpoint.
 
-    All other effects from this breakpoint will still occur, but it will not generate a callback.
-    By default, callbacks occur from every breakpoint.
+      All other effects from this breakpoint will still occur, but it will not generate a callback.
+      By default, callbacks occur from every breakpoint.
 
-    See :ref:`sec:proccontrol-intro-callbacks` for an overview of callbacks.
+      See :ref:`sec:proccontrol-intro-callbacks` for an overview of callbacks.
 
   .. cpp:function:: bool suppressCallbacks() const
 
-    Returns ``true`` if callbacks have been suppressed for this breakpoint (see :cpp:func:`setSuppressCallbacks`).
+      Checks if callbacks have been suppressed for this breakpoint.
 
-    See :ref:`sec:proccontrol-intro-callbacks` for an overview of callbacks.
+      See :ref:`sec:proccontrol-intro-callbacks` for an overview of callbacks.
 
-.. cpp:class:: EventNotify
-
-  Notifies the user when ProcControlAPI is ready to deliver a callback function.
-
-  See :ref:`sec:proccontrol-intro-callback-events` for an overview of callback events.
-
-  .. cpp:type:: void (*notify_cb_t)()
-
-    Function signature is used for light-weight notification callback.
-
-  .. cpp:function:: EventNotify *evNotify()
-
-    Returns the singleton instance of the EventNotify class.
-
-  .. cpp:function:: int getFD()
-
-    Returns a file descriptor.
-
-    ProcControlAPI will write a byte that will be available for reading on this file descriptor when a
-    callback function is ready to be invoked. Upon seeing that a byte has
-    been written to this file descriptor (likely via select or poll) the
-    user should call the :cpp:func:`Process::handleEvents` function. The user should
-    never actually read the byte from this file descriptor; ProcControlAPI
-    will handle clearing the byte after the callback function is invoked.
-
-    Returns -1 on error. The specific error can be retrieved from :cpp:func:`getLastError`.
-
-  .. cpp:function:: void registerCB(notify_cb_t cb)
-
-    Registers a light-weight callback function that will be invoked when ProcControlAPI notifies
-    the user when a callback function is ready to be invoked.
-
-    This light-weight callback may be called by a ProcControlAPI internal thread or from a signal handler; the
-    user is encouraged to keep its implementation appropriately safe for these circumstances.
-
-  .. cpp:function:: void removeCB(notify_cb_t cb)
-
-    Unregisters the light-weight callback previously registered with :cpp:func:`EventNotify::registerCB`.
-
-.. cpp:class:: ExecFileInfo
-
-  .. cpp:member:: void* fileHandle
-  .. cpp:member:: void* processHandle
-  .. cpp:member:: Dyninst::Address fileBase
 
 .. cpp:class:: IRPC
 
@@ -261,7 +219,7 @@ PCProcess.h
 
     .. cpp:class:: iterator
 
-      Helper class modelling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
+      Helper class modeling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
       The underlying ``value_type`` is :cpp:type:`Library::ptr` or :cpp:type:`Library::const_ptr`.
 
@@ -309,7 +267,8 @@ PCProcess.h
 
     If no library is found, a value equivalent to :cpp:func:`end()` is returned.
 
-.. cpp:class:: Process
+
+.. cpp:class:: Process : public boost::enable_shared_from_this<Process>
 
   The primary handle for operating on a single target process. ``Process`` objects may be
   created by calls to :cpp:func:`Process::createProcess` or :cpp:func:`Process::attachProcess`,
@@ -318,40 +277,20 @@ PCProcess.h
   .. cpp:type:: boost::shared_ptr<Process> ptr
   .. cpp:type:: boost::shared_ptr<const Process> const_ptr
 
-    Convenience typedefs used in interfaces
+  .. cpp:type:: cb_ret_t(*cb_func_t)(Event::const_ptr)
 
-  .. cpp:enum:: cb_action_t
-
-    .. cpp:enumerator:: cbDefault
-    .. cpp:enumerator:: cbThreadContinue
-    .. cpp:enumerator:: cbThreadStop
-    .. cpp:enumerator:: cbProcContinue
-    .. cpp:enumerator:: cbProcStop
-
-      The return type for callback functions registered through :cpp:func:`registerEventCallback`.
-      A callback function can specify whether the thread or process associated with its event
-      should be stopped or continued by respectively returning ``cbThreadContinue``,
-      ``cbThreadStop``, ``cbProcContinue``, or ``cbProcStop``. ``cbDefault`` returns a Process and
-      Thread to the original state before the event occurred.
-
-    .. cpp:struct:: cb_ret_t
-
-      .. cpp:member:: cb_action_t parent
-      .. cpp:member:: cb_action_t child
-
-        Some events, such as process spawn or thread create involve two
-        processes or threads. In this case the ProcControlAPI user can specify a
-        cb_action_t value for both the parent and child.
-
-    .. cpp:type:: cb_ret_t(*cb_func_t)(Event::const_ptr)
-
-      A function pointer type for functions that can handle event callbacks.
-      The parameter is the :cpp:class:`Event` that triggered the callback. The
-      return value indicates what action to take after handling the event.
+    A function pointer type for functions that can handle event callbacks.
+    The parameter is the :cpp:class:`Event` that triggered the callback. The
+    return value indicates what action to take after handling the event.
 
   .. cpp:type:: std::pair<Dyninst::Address, Dyninst::Address> MemoryRegion
 
     The start and end addresses of a region of allocated memory.
+
+  .. cpp:member:: static const unsigned int pc_read      = (1<<0)
+  .. cpp:member:: static const unsigned int pc_write     = (1<<1)
+  .. cpp:member:: static const unsigned int pc_irpc      = (1<<2)
+  .. cpp:member:: static const unsigned int pc_control   = (1<<3)
 
   .. cpp:function:: static Process::ptr createProcess(std::string executable,const std::vector<std::string> &argv,const std::vector<std::string> &envp = emptyEnv,const std::map<int,int> &fds = emptyFDs)
 
@@ -441,34 +380,23 @@ PCProcess.h
 
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
+  .. cpp:function:: void setData (void* p) const
+
+    Inserts an opaque handle to user-defined data.
+
+    The data is not interpreted by ProcControlAPI, but remains associated with the process.
+
   .. cpp:function:: Dyninst::PID getPid() const
 
     Returns an OS-specific handle referencing the process. On UNIX systems this is the pid of the process.
 
-  .. cpp:function:: Dyninst::Architecture getArchitecture() const
+  .. cpp:function:: ThreadPool const& threads() const
 
-    Returns the architecture of the target process.
+    Returns the underlying thread pool.
 
-  .. cpp:function:: Dyninst::OSType getOS () const
+  .. cpp:function:: ThreadPool& threads()
 
-    Returns the OS of the target process.
-
-  .. cpp:function:: bool supportsLWPEvents () const
-
-    Returns ``true`` if the target process can throw :cpp:type:`Dyninst::LWP` create and destroy events.
-
-  .. cpp:function:: bool supportsUserThreadEvents () const
-
-    Returns ``true`` if the target process can throw user thread create and destroy events.
-
-  .. cpp:function:: bool supportsFork () const
-
-    Returns ``true`` if the fork system call is supported in the target process.
-
-  .. cpp:function:: bool supportsExec () const
-
-    Returns ``true`` if the POSIX `exec <https://www.man7.org/linux/man-pages/man3/exec.3.html>`_ system call is
-    supported in the target process.
+    Returns the underlying thread pool.
 
   .. cpp:function:: bool isTerminated() const
 
@@ -479,15 +407,19 @@ PCProcess.h
 
     Returns ``true`` of the target process exited normally (e.g, calling the exit function or returning from main).
 
+  .. cpp:function:: bool isCrashed() const
+
+    Returns ``true`` if the target process exited because of a crash.
+
+  .. cpp:function:: bool isDetached() const
+
+    Checks if the process is in the detached state.
+
   .. cpp:function:: int getExitCode() const
 
     If a target process exited normally, then returns its exit code.
 
     .. warning:: The result of ``getExitCode`` is undefined if the process has not yet exited. See :cpp:func:`isExited`.
-
-  .. cpp:function:: bool isCrashed() const
-
-    Returns ``true`` if the target process exited because of a crash.
 
   .. cpp:function:: int getCrashSignal() const
 
@@ -523,6 +455,38 @@ PCProcess.h
 
     Returns ``true`` if **all** threads were running when the controller process attached to this process or
     if the target process was created instead of attached.
+
+  .. cpp:function:: unsigned int getCapabilities() const
+
+    Returns the current operations supported on this process.
+
+    It is a bitwise-OR'ed combination of :cpp:member:`pc_read`, :cpp:member:`pc_write`,
+    :cpp:member:`pc_irpc`, and :cpp:member:`pc_control`.
+
+  .. cpp:function:: Dyninst::Architecture getArchitecture() const
+
+    Returns the architecture of the target process.
+
+  .. cpp:function:: Dyninst::OSType getOS () const
+
+    Returns the OS of the target process.
+
+  .. cpp:function:: bool supportsLWPEvents () const
+
+    Returns ``true`` if the target process can throw :cpp:type:`Dyninst::LWP` create and destroy events.
+
+  .. cpp:function:: bool supportsUserThreadEvents () const
+
+    Returns ``true`` if the target process can throw user thread create and destroy events.
+
+  .. cpp:function:: bool supportsFork () const
+
+    Returns ``true`` if the fork system call is supported in the target process.
+
+  .. cpp:function:: bool supportsExec () const
+
+    Returns ``true`` if the POSIX `exec <https://www.man7.org/linux/man-pages/man3/exec.3.html>`_ system call is
+    supported in the target process.
 
   .. cpp:function:: bool continueProc()
 
@@ -562,6 +526,16 @@ PCProcess.h
 
     .. error:: It is an error to call this function from within a callback function
 
+  .. cpp:function:: bool terminate()
+
+    Forcefully terminates the target process.
+
+    On success, the target process will end execution. The :cpp:class:`Process` object will record the target process as having crashed.
+
+    Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
+
+    .. error:: It is an error to call this function from within a callback function
+
   .. cpp:function:: bool temporaryDetach()
 
     Temporarily detaches from the target process.
@@ -584,40 +558,6 @@ PCProcess.h
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
     .. error:: It is an error to call this function from within a callback function
-
-  .. cpp:function:: bool terminate()
-
-    Forcefully terminates the target process.
-
-    On success, the target process will end execution. The :cpp:class:`Process` object will record the target process as having crashed.
-
-    Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
-
-    .. error:: It is an error to call this function from within a callback function
-
-  .. cpp:function:: ThreadPool const& threads() const
-
-    Returns a reference to the internal :cpp:class:`ThreadPool` that can be used to iterate
-    over and query the :cpp:class:`Thread` objects.
-
-  .. cpp:function:: LibraryPool const& libraries() const
-
-    Returns a reference to the internal :cpp:class:`LibraryPool` that can be used to iterate
-    over and query the :cpp:class:`LibraryPool` objects.
-
-  .. cpp:function:: bool addLibrary(std::string libname)
-
-    Loads a library into the process' memory space. An event is triggered (and thus a user callback) for each
-    library loaded, including dependencies.
-
-  .. cpp:function:: void setData (void* p) const
-
-    Inserts an opaque handle to user-defined data. The data is not interpreted by ProcControlAPI, but
-    remains associated with the process.
-
-  .. cpp:function:: void* getData() const
-
-    Returns the value of the opaque handled inserted with :cpp:func:`setData`.
 
   .. cpp:function:: unsigned getMemoryPageSize() const
 
@@ -680,6 +620,10 @@ PCProcess.h
 
     .. error:: It is an error to call this function on a Process that does not have at least one :cpp:class:`Thread` in a stopped state.
 
+  .. cpp:function:: bool writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val = NULL) const
+  .. cpp:function:: bool readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val = NULL) const
+
+
   .. cpp:function:: bool getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights)
 
     Returns the memory permissions at the specified address.
@@ -695,6 +639,21 @@ PCProcess.h
 
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
+  .. cpp:function:: LibraryPool const& libraries() const
+
+    Returns a reference to the internal :cpp:class:`LibraryPool` that can be used to iterate
+    over and query the :cpp:class:`LibraryPool` objects.
+
+  .. cpp:function:: LibraryPool& libraries()
+
+    Returns a reference to the internal :cpp:class:`LibraryPool` that can be used to iterate
+    over and query the :cpp:class:`LibraryPool` objects.
+
+  .. cpp:function:: bool addLibrary(std::string libname)
+
+    Loads a library into the process' memory space. An event is triggered (and thus a user callback) for each
+    library loaded, including dependencies.
+
   .. cpp:function:: bool addBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 
     Inserts a :cpp:class:`Breakpoint` into the target process at address ``addr``.
@@ -709,6 +668,10 @@ PCProcess.h
 
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
+  .. cpp:function:: unsigned numHardwareBreakpointsAvail(unsigned mode)
+
+    Returns the number of remaining hardware breakpoints available to this process.
+
   .. cpp:function:: bool postIRPC(IRPC::ptr irpc) const
 
     Posts the given irpc to the process.
@@ -719,6 +682,14 @@ PCProcess.h
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
     .. error:: It is an error to attempt to post a single IRPC object multiple times.
+
+  .. cpp:function:: bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
+
+    Retrieves all IRPCs posted to this process.
+
+    This list does not include any IRPCs currently running (see :cpp:func:`Thread::getRunningIRPC()` for this functionality.
+
+    Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
   .. cpp:function:: bool runIRPCSync(IRPC::ptr irpc)
 
@@ -742,19 +713,26 @@ PCProcess.h
 
     .. error:: It is an error to call this function from within a callback function
 
-  .. cpp:function:: bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
-
-    Retrieves all IRPCs posted to this process.
-
-    This list does not include any IRPCs currently running (see :cpp:func:`Thread::getRunningIRPC()` for this functionality.
-
-    Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
+  .. cpp:function:: void setSymbolReader(SymbolReaderFactory *reader) const
+  .. cpp:function:: SymbolReaderFactory *getSymbolReader() const
+  .. cpp:function:: static SymbolReaderFactory *getDefaultSymbolReader()
+  .. cpp:function:: static void setDefaultSymbolReader(SymbolReaderFactory *reader)
 
   .. cpp:function:: LibraryTracking* getLibraryTracking()
 
     Returns platform-specific configuration for handling library events for the process.
 
+  .. cpp:function:: LibraryTracking const* getLibraryTracking() const
+
+    Returns platform-specific configuration for handling library events for the process.
+
   .. cpp:function:: ThreadTracking* getThreadTracking()
+
+    Returns platform-specific configuration for handling thread events for the process.
+
+    Return `nullptr`, if the specified feature is unsupported on the current platform.
+
+  .. cpp:function:: ThreadTracking const* getThreadTracking() const
 
     Returns platform-specific configuration for handling thread events for the process.
 
@@ -766,7 +744,19 @@ PCProcess.h
 
     Return `nullptr`, if the specified feature is unsupported on the current platform.
 
+  .. cpp:function:: LWPTracking const* getLWPTracking() const
+
+    Returns platform-specific configuration for handling LWP events for the process.
+
+    Return `nullptr`, if the specified feature is unsupported on the current platform.
+
   .. cpp:function:: FollowFork* getFollowFork()
+
+    Returns platform-specific configuration for handling fork events for the process.
+
+    Returns `nullptr`, if the specified feature is unsupported on the current platform.
+
+  .. cpp:function:: FollowFork const* getFollowFork() const
 
     Returns platform-specific configuration for handling fork events for the process.
 
@@ -778,139 +768,161 @@ PCProcess.h
 
     Returns `nullptr`, if the specified feature is unsupported on the current platform.
 
-  .. cpp:class:: mem_perm
+  .. cpp:function:: SignalMask const* getSignalMask() const
 
-    Represents general memory page permission for the given memory page in the process.
+    Returns platform-specific configuration for configuring signal masks for the process.
 
-    .. cpp:function:: mem_perm()
+    Returns `nullptr`, if the specified feature is unsupported on the current platform.
 
-      Initializes permissions to non-readable, non-writable, and non-executable.
+  .. cpp:function:: RemoteIO *getRemoteIO()
 
-    .. cpp:function:: mem_perm(bool r, bool w, bool x)
+    Returns platform-specific configuration for configuring remote IO for the process.
 
-      Initializes permissions for reading, `r`, writing, `w`, and execution, `x`.
+    Returns `nullptr`, if the specified feature is unsupported on the current platform.
 
-    .. cpp:function:: bool getR() const
+  .. cpp:function:: RemoteIO const* getRemoteIO() const
 
-      Returns ``true`` if the memory page is readable
+    Returns platform-specific configuration for configuring remote IO for the process.
 
-    .. cpp:function:: bool getW() const
+    Returns `nullptr`, if the specified feature is unsupported on the current platform.
 
-      Returns ``true`` if the memory page is writable
+  .. cpp:function:: MemoryUsage *getMemoryUsage()
 
-    .. cpp:function:: bool getX() const
+    Returns platform-specific configuration for configuring memory usage for the process.
 
-      Returns ``true`` if the memory page is executable
+    Returns `nullptr`, if the specified feature is unsupported on the current platform.
 
-    .. cpp:function:: bool isNone() const
+  .. cpp:function:: MemoryUsage const* getMemoryUsage() const
 
-      Returns ``true`` if the memory page is not accessible
+    Returns platform-specific configuration for configuring memory usage for the process.
 
-    .. cpp:function:: bool isR() const
+    Returns `nullptr`, if the specified feature is unsupported on the current platform.
 
-      Returns ``true`` if the memory page is readable
+  .. cpp:function:: ProcControlAPI::err_t getLastError() const
+  .. cpp:function:: const char* getLastErrorMsg() const
 
-    .. cpp:function:: bool isX() const
+  .. cpp:function:: ExecFileInfo* getExecutableInfo() const
 
-      Returns ``true`` if the memory page is executable
+.. cpp:class:: Process::mem_perm
 
-    .. cpp:function:: bool isRW() const
+  Represents general memory page permission for the given memory page in the process.
 
-      Returns ``true`` if the memory page is readable and writable
+  .. cpp:function:: mem_perm()
 
-    .. cpp:function:: bool isRX() const
+    Initializes permissions to non-readable, non-writable, and non-executable.
 
-      Returns ``true`` if the memory page is readable and executable
+  .. cpp:function:: mem_perm(bool r, bool w, bool x)
 
-    .. cpp:function:: bool isRWX() const
+    Initializes permissions for reading, `r`, writing, `w`, and execution, `x`.
 
-      Returns ``true`` if the memory page is readable, writable, and executable
+  .. cpp:function:: bool getR() const
 
-    .. cpp:function:: mem_perm& setR()
+    Returns ``true`` if the memory page is readable
 
-      Make the memory page readable. Returns a reference to itself.
+  .. cpp:function:: bool getW() const
 
-    .. cpp:function:: mem_perm& setW()
+    Returns ``true`` if the memory page is writable
 
-      Make the memory page writable. Returns a reference to itself.
+  .. cpp:function:: bool getX() const
 
-    .. cpp:function:: mem_perm& setX()
+    Returns ``true`` if the memory page is executable
 
-      Make the memory page executable. Returns a reference to itself.
+  .. cpp:function:: bool isNone() const
 
-    .. cpp:function:: mem_perm& clrR()
+    Returns ``true`` if the memory page is not accessible
 
-      Make the memory page unreadable. Returns a reference to itself.
+  .. cpp:function:: bool isR() const
 
-    .. cpp:function:: mem_perm& clrW()
+    Returns ``true`` if the memory page is readable
 
-      Make the memory page unwritable. Returns a reference to itself.
+  .. cpp:function:: bool isX() const
 
-    .. cpp:function:: mem_perm& clrX()
+    Returns ``true`` if the memory page is executable
 
-      Make the memory page unexecutable. Returns a reference to itself.
+  .. cpp:function:: bool isRW() const
 
-    .. cpp:function:: bool operator<(const mem_perm& p) const
+    Returns ``true`` if the memory page is readable and writable
 
-      Permissions are comparable in the sense that read, write, and execute permissions encode to the values in :cpp:var:`Breakpoint::BP_R`,
-      :cpp:var:`Breakpoint::BP_W`, and :cpp:var:`Breakpoint::BP_X`, respectively.
+  .. cpp:function:: bool isRX() const
 
-    .. cpp:function:: std::string getPermName()
+    Returns ``true`` if the memory page is readable and executable
 
-      Returns a string representation of the permissions.
+  .. cpp:function:: bool isRWX() const
 
-.. cpp:class:: RegisterPool
+    Returns ``true`` if the memory page is readable, writable, and executable
 
-  A collection of registers used to get or set all registers in a :cpp:class:`Thread` at once.
+  .. cpp:function:: mem_perm& setR()
 
-  .. cpp:class:: iterator
+    Make the memory page readable. Returns a reference to itself.
 
-    Helper class modelling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
+  .. cpp:function:: mem_perm& setW()
 
-    The underlying ``value_type`` is :cpp:texpr:`std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal>`.
+    Make the memory page writable. Returns a reference to itself.
 
-  .. cpp:class:: const_iterator
+  .. cpp:function:: mem_perm& setX()
 
-    A ``const`` version of :cpp:class:`iterator`.
+    Make the memory page executable. Returns a reference to itself.
 
-  .. cpp:function:: iterator begin()
+  .. cpp:function:: mem_perm& clrR()
 
-    Returns a ``const`` iterator pointing to the beginning of the pool.
+    Make the memory page unreadable. Returns a reference to itself.
 
-  .. cpp:function:: const_iterator begin() const
+  .. cpp:function:: mem_perm& clrW()
 
-    Returns an iterator pointing to the beginning of the pool.
+    Make the memory page unwritable. Returns a reference to itself.
 
-  .. cpp:function:: iterator end()
+  .. cpp:function:: mem_perm& clrX()
 
-    Returns an iterator marking the end of the pool.
+    Make the memory page unexecutable. Returns a reference to itself.
 
-  .. cpp:function:: const_iterator end() const
+  .. cpp:function:: bool operator<(const mem_perm& p) const
 
-    Returns a ``const`` iterator marking the end of the pool.
+    Permissions are comparable in the sense that read, write, and execute permissions encode to the values in :cpp:var:`Breakpoint::BP_R`,
+    :cpp:var:`Breakpoint::BP_W`, and :cpp:var:`Breakpoint::BP_X`, respectively.
 
-  .. cpp:function:: size_t size() const
+  .. cpp:function:: std::string getPermName()
 
-    Returns the number of elements in the pool.
+    Returns a string representation of the permissions.
 
-  .. cpp:function:: const_iterator find(Dyninst::MachRegister r) const
 
-    Returns an iterator that points to the element in the register pool that equals
-    register ``r``. If not found, then returns :cpp:func:`end()`.
+.. cpp:enum:: Process::thread_mode_t
 
-  .. cpp:function:: Dyninst::MachRegisterVal& operator[](Dyninst::MachRegister r)
+  .. cpp:enumerator:: NoThreads
+  .. cpp:enumerator:: GeneratorThreading
+  .. cpp:enumerator:: HandlerThreading
+  .. cpp:enumerator:: CallbackThreading
 
-    Returns a reference to the value associated with the register ``r`` in this register pool.
 
-    If ``r`` is not found, a default :cpp:type:`Dyninst::MachRegisterVal` is created and returned.
+.. cpp:enum:: Process::cb_action_t
 
-  .. cpp:function:: Dyninst::MachRegisterVal const& operator[](Dyninst::MachRegister r) const
+  **Event Management**
 
-    Returns a reference to the value associated with the register ``r`` in this register pool.
+  .. cpp:enumerator:: cbDefault
+  .. cpp:enumerator:: cbThreadContinue
+  .. cpp:enumerator:: cbThreadStop
+  .. cpp:enumerator:: cbProcContinue
+  .. cpp:enumerator:: cbProcStop
 
-    If ``r`` is not found, a default :cpp:type:`Dyninst::MachRegisterVal` is created and returned.
+    The return type for callback functions registered through :cpp:func:`registerEventCallback`.
+    A callback function can specify whether the thread or process associated with its event
+    should be stopped or continued by respectively returning ``cbThreadContinue``,
+    ``cbThreadStop``, ``cbProcContinue``, or ``cbProcStop``. ``cbDefault`` returns a Process and
+    Thread to the original state before the event occurred.
 
-.. cpp:class:: Thread
+
+.. cpp:struct:: Process::cb_ret_t
+
+  Some events, such as process spawn or thread create involve two
+  processes or threads. In this case the ProcControlAPI user can specify a
+  :cpp:class`cb_action_t` value for both the parent and child.
+
+  .. cpp:function:: cb_ret_t(cb_action_t p)
+  .. cpp:function:: cb_ret_t(cb_action_t p, cb_action_t c)
+  .. cpp:member:: cb_action_t parent
+  .. cpp:member:: cb_action_t child
+
+
+.. cpp:class:: Thread : public boost::enable_shared_from_this<Thread>
 
   Represents a single thread of execution in the target process. Any :cpp:class:`Process` has
   `at least` one Thread, and multi-threaded target processes may have more. Each Thread has an
@@ -920,8 +932,8 @@ PCProcess.h
 
   .. cpp:type:: boost::shared_ptr<Thread> ptr
   .. cpp:type:: boost::shared_ptr<const Thread> const_ptr
-
-    Convenience typedefs used in interfaces
+  .. cpp:type:: boost::weak_ptr<Thread> weak_ptr
+  .. cpp:type:: boost::weak_ptr<const Thread> const_weak_ptr
 
   .. cpp:function:: Dyninst::LWP getLWP() const
 
@@ -985,6 +997,27 @@ PCProcess.h
     Instead of calling this function, a callback can stop a thread by returning :cpp:enumerator:`Process::cb_action_t::cbThreadContinue` or
     :cpp:enumerator:`Process::cb_action_t::cbProcContinue`.
 
+  .. cpp:function:: void setSingleStepMode(bool mode) const
+
+    Toggle single-step mode for thread.
+
+    A thread in single-step mode will pause execution at each instruction
+    and trigger an :cpp:class:`EventSingleStep` event. After each ``EventSingleStep`` is
+    handled (and presuming the thread is still running and in single-step
+    mode) it will execute one more instruction and trigger another ``EventSingleStep``.
+
+  .. cpp:function:: bool getSingleStepMode() const
+
+    Returns ``true`` if the Thread is in single-step mode.
+
+  .. cpp:function:: bool setSyscallMode(bool s) const
+
+     Toggles syscall mode.
+
+  .. cpp:function:: bool getSyscallMode() const
+
+    Checks if this process is in syscall mode.
+
   .. cpp:function:: bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const
 
     Gets the value of a single register from this thread.
@@ -1009,7 +1042,7 @@ PCProcess.h
 
   .. cpp:function:: bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
 
-    Stores ``val`` in ``reg``. 
+    Stores ``val`` in ``reg``.
 
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
@@ -1026,40 +1059,8 @@ PCProcess.h
 
     .. error:: It is an error to call this function on a thread that is not in the stopped state.
 
-  .. cpp:function:: bool haveUserThreadInfo() const
-
-    Returns ``true`` if information about this Thread’s underlying
-    user-level thread is available.
-
-  .. cpp:function:: Dyninst::THR_ID getTID() const
-
-    Returns the unique identifier for the user-level thread.
-
-    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
-
-  .. cpp:function:: Dyninst::Address getStartFunction() const
-
-    Returns the address of the initial function for the user-level thread.
-
-    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
-
-  .. cpp:function:: Dyninst::Address getStackBase() const
-
-    Returns the address of the bottom of the user-level thread’s stack.
-
-    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
-
-  .. cpp:function:: unsigned long getStackSize() const
-
-    Returns the size in bytes of the user-level thread’s allocated stack.
-
-    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
-
-  .. cpp:function:: Dyninst::Address getTLS() const
-
-    Returns the address of the user-level thread’s thread local storage area.
-
-    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
+  .. cpp:function:: bool getAllRegistersAsync(RegisterPool &pool, void *opaque_val = NULL) const
+  .. cpp:function:: bool setAllRegistersAsync(RegisterPool &pool, void *opaque_val = NULL) const
 
   .. cpp:function:: bool readThreadLocalMemory(void* buffer, Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, size_t size) const
 
@@ -1108,6 +1109,43 @@ PCProcess.h
 
     .. error:: It is an error to call this function on a Thread that is not in a stopped state.
 
+  .. cpp:function:: bool haveUserThreadInfo() const
+
+    Returns ``true`` if information about this Thread’s underlying
+    user-level thread is available.
+
+  .. cpp:function:: Dyninst::THR_ID getTID() const
+
+    Returns the unique identifier for the user-level thread.
+
+    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
+
+  .. cpp:function:: Dyninst::Address getStartFunction() const
+
+    Returns the address of the initial function for the user-level thread.
+
+    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
+
+  .. cpp:function:: Dyninst::Address getStackBase() const
+
+    Returns the address of the bottom of the user-level thread’s stack.
+
+    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
+
+  .. cpp:function:: unsigned long getStackSize() const
+
+    Returns the size in bytes of the user-level thread’s allocated stack.
+
+    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
+
+  .. cpp:function:: Dyninst::Address getTLS() const
+
+    Returns the address of the user-level thread’s thread local storage area.
+
+    .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
+
+  .. cpp:function:: Dyninst::Address getThreadInfoBlockAddr() const
+
   .. cpp:function:: bool postIRPC(IRPC::ptr irpc) const
 
     Posts the given irpc to the thread.
@@ -1118,6 +1156,9 @@ PCProcess.h
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
     .. error:: It is an error to attempt to post a single IRPC object multiple times.
+
+  .. cpp:function:: bool runIRPCSync(IRPC::ptr irpc)
+  .. cpp:function::bool runIRPCAsync(IRPC::ptr irpc)
 
   .. cpp:function:: bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 
@@ -1133,18 +1174,7 @@ PCProcess.h
 
     If there is no IRPC actively running, then this function returns any empty :cpp:type:`IRPC::const_ptr`.
 
-  .. cpp:function:: void setSingleStepMode(bool mode) const
-
-    Toggle single-step mode for thread.
-
-    A thread in single-step mode will pause execution at each instruction
-    and trigger an :cpp:class:`EventSingleStep` event. After each ``EventSingleStep`` is
-    handled (and presuming the thread is still running and in single-step
-    mode) it will execute one more instruction and trigger another ``EventSingleStep``.
-
-  .. cpp:function:: bool getSingleStepMode() const
-
-    Returns ``true`` if the Thread is in single-step mode.
+  .. cpp:function:: CallStackUnwinding *getCallStackUnwinding()
 
   .. cpp:function:: void setData(void *p) const
 
@@ -1172,16 +1202,6 @@ PCProcess.h
     Thread objects (e.g, nothing that would lead to a segfault), but they do not guarantee that
     they will refer to live threads or even return all threads.
 
-  .. cpp:class:: iterator
-
-    Helper class modelling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
-
-    The underlying ``value_type`` is :cpp:type:`Thread::ptr`.
-
-  .. cpp:class:: const_iterator
-
-    A ``const`` version of :cpp:class:`iterator`.
-
   .. cpp:function:: iterator begin()
 
     Returns a ``const`` iterator pointing to the beginning of the pool.
@@ -1204,6 +1224,12 @@ PCProcess.h
 
     If not found, returns :cpp:func:`end`.
 
+  .. cpp:function:: const_iterator find(Dyninst::LWP lwp) const
+
+    Return an iterator to the thread with a :cpp:type:`Dyninst::LWP` equal to ``lwp``.
+
+    If not found, returns :cpp:func:`end`.
+
   .. cpp:function:: size_t size() const
 
     Returns the number of threads in the pool.
@@ -1212,8 +1238,95 @@ PCProcess.h
 
     Returns a pointer to the :cpp:class:`Process` that owns this pool.
 
+  .. cpp:function:: Process::const_ptr getProcess() const
+
+    Returns a pointer to the :cpp:class:`Process` that owns this pool.
+
   .. cpp:function:: Thread::ptr getInitialThread()
 
     Returns a pointer to the initial Thread in a Process.
 
     The initial thread is the thread that started execution of the process (i.e., the thread that called main).
+
+  .. cpp:function:: Thread::const_ptr getInitialThread() const
+
+    Returns a pointer to the initial Thread in a Process.
+
+    The initial thread is the thread that started execution of the process (i.e., the thread that called main).
+
+
+.. cpp:class:: ThreadPool::iterator
+
+  Helper class modelling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
+
+  The underlying ``value_type`` is :cpp:type:`Thread::ptr`.
+
+.. cpp:class:: ThreadPool::const_iterator
+
+  A ``const`` version of :cpp:class:`iterator`.
+
+
+.. cpp:class:: RegisterPool
+
+  A collection of registers used to get or set all registers in a :cpp:class:`Thread` at once.
+
+  .. cpp:function:: RegisterPool()
+
+  .. cpp:function:: iterator begin()
+
+    Returns a ``const`` iterator pointing to the beginning of the pool.
+
+  .. cpp:function:: const_iterator begin() const
+
+    Returns an iterator pointing to the beginning of the pool.
+
+  .. cpp:function:: iterator end()
+
+    Returns an iterator marking the end of the pool.
+
+  .. cpp:function:: const_iterator end() const
+
+    Returns a ``const`` iterator marking the end of the pool.
+
+  .. cpp:function:: iterator find(Dyninst::MachRegister r)
+
+    Returns an iterator that points to the element in the register pool that equals
+    register ``r``. If not found, then returns :cpp:func:`end()`.
+
+  .. cpp:function:: const_iterator find(Dyninst::MachRegister r) const
+
+    Returns an iterator that points to the element in the register pool that equals
+    register ``r``. If not found, then returns :cpp:func:`end()`.
+
+  .. cpp:function:: Dyninst::MachRegisterVal& operator[](Dyninst::MachRegister r)
+
+    Returns a reference to the value associated with the register ``r`` in this register pool.
+
+    If ``r`` is not found, a default :cpp:type:`Dyninst::MachRegisterVal` is created and returned.
+
+  .. cpp:function:: Dyninst::MachRegisterVal const& operator[](Dyninst::MachRegister r) const
+
+    Returns a reference to the value associated with the register ``r`` in this register pool.
+
+    If ``r`` is not found, a default :cpp:type:`Dyninst::MachRegisterVal` is created and returned.
+
+  .. cpp:function:: size_t size() const
+
+    Returns the number of elements in the pool.
+
+  .. cpp:function:: Thread::const_ptr getThread() const
+
+  .. cpp:function:: Thread::ptr getThread()
+
+
+
+.. cpp:class:: RegisterPool::iterator
+
+  Helper class modelling the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
+
+  The underlying ``value_type`` is :cpp:texpr:`std::pair<Dyninst::MachRegister, Dyninst::MachRegisterVal>`.
+
+.. cpp:class:: RegisterPool::const_iterator
+
+  A ``const`` version of :cpp:class:`iterator`.
+
