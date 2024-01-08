@@ -20,5 +20,4 @@ namespaces ``Dyninst`` and ``ProcControlAPI``.
    Mailbox.h
    PCErrors.h
    PCProcess.h
-   PlatFeatures.h
    ProcessSet.h

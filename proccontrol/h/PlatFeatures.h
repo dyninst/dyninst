@@ -304,7 +304,6 @@ typedef void* dyn_sigset_t;
 typedef sigset_t dyn_sigset_t;
 #endif
 
-//On posix system, the sigset referenced below is a pointer to a sigset_t
 class PC_EXPORT SignalMask
 {
    friend class ::int_process;
@@ -323,11 +322,6 @@ class PC_EXPORT SignalMask
    bool setSigMask(dyn_sigset_t s);
 };
 
-/**
- * This struct is copied from the GLIBC sources for 'struct stat64'.  It is 
- * recreated here because this header is supposed to compile without ifdefs 
- * across platforms that may not have 'struct stat64'
- **/
 extern "C" struct stat64_ret_t {
    unsigned long long st_dev;
    unsigned long long st_ino;
