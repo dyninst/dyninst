@@ -17,6 +17,10 @@ AddrSpace.h
 
   .. cpp:type:: std::map<const CodeObject*, PatchObject*> ObjMap
 
+  .. cpp:function:: static AddrSpace* create(PatchObject* obj)
+
+      Creates an address space containing ``obj``.
+
   .. cpp:function:: virtual bool write(PatchObject* obj, Address to, Address from, size_t size)
 
       Copies ``size`` bytes from the source address ``from`` in the
