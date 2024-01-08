@@ -10,6 +10,7 @@ Documentation for the internal classes of the ProccontrolAPI toolkit.
    :hidden:
    :maxdepth: 3
 
+   loadLibrary/API
    arm_process.h
    DecoderWindows.h
    Event.h
@@ -43,4 +44,3 @@ Documentation for the internal classes of the ProccontrolAPI toolkit.
    windows_process.h
    windows_thread.h
    x86_process.h
-   loadLibrary/API.rst
