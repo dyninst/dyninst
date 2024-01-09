@@ -88,17 +88,30 @@ jobs:
       is-clang: true
       extra-libs: "libomp-${{ matrix.version }}-dev"
 
-  gcc-cxx-standards:
+  gcc-cxx-standards-11-17:
     strategy:
       fail-fast: false
       matrix:
-         std: [11, 14, 17, 20, 23]
+         std: [11, 14, 17]
     uses: ./.github/workflows/build.yaml
     with:
       name: gcc-cxx-${{ matrix.std }}
       os: "ubuntu-22.04"
       c-compiler: "gcc-12"
       cxx-compiler: "g++-12"
+      extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
+
+  gcc-cxx-standards-20-23:
+    strategy:
+      fail-fast: false
+      matrix:
+         std: [20, 23]
+    uses: ./.github/workflows/build.yaml
+    with:
+      name: gcc-cxx-${{ matrix.std }}
+      os: "ubuntu-23.10"
+      c-compiler: "gcc-13"
+      cxx-compiler: "g++-13"
       extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
 
   clang-cxx-standards:
