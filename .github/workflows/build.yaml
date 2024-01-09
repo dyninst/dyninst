@@ -42,6 +42,11 @@ jobs:
         password: ${{ secrets.github_token }}
     name: ${{ inputs.name }} (${{ matrix.build-type }})
     steps:
+      # Clang doesn't allow for multiple libomp installations
+      - name: Clean libomp install
+        if: ${{ inputs.is-clang }}
+        run: apt remove --purge "libomp*"
+        
       - name: Install C compiler (${{ inputs.c-compiler }})
         run: |
           apt update -qq
