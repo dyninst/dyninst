@@ -21,7 +21,6 @@ function make_image {
   base="ghcr.io/dyninst/amd64/${distro}-${version}-base:latest"
   docker pull ${distro}:${version}   # Always use latest distro image; ignoring any cached versions
   docker build -f docker/Dockerfile.${distro} -t $base --build-arg build_jobs=${jobs} --build-arg version=${version} ${extra} .
-  docker build -f docker/Dockerfile -t ghcr.io/dyninst/amd64/${distro}-${version}:latest --build-arg build_jobs=${jobs} --build-arg base=${base} .
   
   if test "${push}" = "yes"; then
     docker push ${base}
