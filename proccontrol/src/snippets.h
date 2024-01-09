@@ -30,8 +30,6 @@
 #if !defined(SNIPPETS_H_)
 #define SNIPPETS_H_
 
-/* definitions for iRPC snippets */
-
 extern const unsigned int x86_64_mmap_flags_position;
 extern const unsigned int x86_64_mmap_size_position;
 extern const unsigned int x86_64_mmap_addr_position;
