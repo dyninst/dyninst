@@ -27,7 +27,6 @@ Documentation for the internal classes of the ProccontrolAPI toolkit.
    Mailbox.h
    memcache.h
    mmapalloc.h
-   notify_pipe.h
    PCProcess.h
    PlatFeatures.h
    ppc_process.h
