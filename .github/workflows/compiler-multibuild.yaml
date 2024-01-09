@@ -33,6 +33,19 @@ jobs:
       c-compiler: "gcc-${{ matrix.version }}"
       cxx-compiler: "g++-${{ matrix.version }}"
 
+  gcc-ubuntu-23_10:
+    strategy:
+      fail-fast: false
+      matrix:
+         version: [13]
+    uses: ./.github/workflows/build.yaml
+    with:
+      name: gcc-${{ matrix.version }}
+      os: "ubuntu-23.10"
+      c-compiler: "gcc-${{ matrix.version }}"
+      cxx-compiler: "g++-${{ matrix.version }}"
+
+
   clang-ubuntu-20_04:
     strategy:
       fail-fast: false
@@ -56,6 +69,20 @@ jobs:
     with:
       name: clang-${{ matrix.version }}
       os: "ubuntu-22.04"
+      c-compiler: "clang-${{ matrix.version }}"
+      cxx-compiler: "clang++-${{ matrix.version }}"
+      is-clang: true
+      extra-libs: "libomp-${{ matrix.version }}-dev"
+
+  clang-ubuntu-23_10:
+    strategy:
+      fail-fast: false
+      matrix:
+         version: [16, 17]
+    uses: ./.github/workflows/build.yaml
+    with:
+      name: clang-${{ matrix.version }}
+      os: "ubuntu-23.10"
       c-compiler: "clang-${{ matrix.version }}"
       cxx-compiler: "clang++-${{ matrix.version }}"
       is-clang: true
