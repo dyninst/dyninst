@@ -182,8 +182,7 @@ points.
 CFG Traversal
 ^^^^^^^^^^^^^
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/CFGTraversal.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/CFGTraversal.cpp
   :language: cpp
   :linenos:
 
@@ -191,8 +190,7 @@ CFG Traversal
 Finding Points
 ^^^^^^^^^^^^^^
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/findingPoints.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/findingPoints.cpp
   :language: cpp
   :linenos:
 
@@ -200,8 +198,7 @@ Finding Points
 Patching Code
 ^^^^^^^^^^^^^
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/nopPatching.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/nopPatching.cpp
   :language: cpp
   :linenos:
 
@@ -217,8 +214,7 @@ utilize these memory management methods during the code patching process. For ex
 instrumentation engine needs to malloc a buffer in a mutatee’s address space
 and then write the code snippet into this buffer.
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/addressSpace.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/addressSpace.cpp
   :language: cpp
   :linenos:
 
@@ -226,8 +222,7 @@ and then write the code snippet into this buffer.
 Custom CFG Generator
 ^^^^^^^^^^^^^^^^^^^^
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/CFGMaker.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/CFGMaker.cpp
   :language: cpp
   :linenos:
 
@@ -235,8 +230,7 @@ Custom CFG Generator
 Making Points
 ^^^^^^^^^^^^^
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/PointMaker.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/PointMaker.cpp
   :language: cpp
   :linenos:
 
@@ -255,8 +249,7 @@ Finally, modifications to the CFG are represented in that CFG, allowing
 users to iteratively combine multiple CFG transformations to achieve
 their goals.
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/PatchModifier.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/PatchModifier.cpp
   :language: cpp
   :linenos:
 
