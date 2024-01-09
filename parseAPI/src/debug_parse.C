@@ -68,18 +68,17 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
     va_list va;
     va_start(va,format);
 
-    auto ret = [&]() {
-      int v{};
-      #pragma omp critical
-      {
-        v = fprintf(stderr, "[thread %d] ", id);
-        if(v >= 0) {
-          v = vfprintf(stderr, format, va);
-        }
-        fflush(stderr);
+    auto ret = 0;
+
+    #pragma omp critical
+    {
+      ret = fprintf(stderr, "[thread %d] ", id);
+      if(ret >= 0) {
+        ret = vfprintf(stderr, format, va);
       }
-      return v;
-    }();
+      fflush(stderr);
+    }
+
     va_end(va);
     return ret;
 }
