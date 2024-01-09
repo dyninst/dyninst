@@ -67,7 +67,7 @@ namespace Dyninst
       /// \param written True if this operand is written
       // An instruction can be true predicated, false predicated, or not predicated at all
       explicit Operand(Expression::Ptr val = {}, bool read = false, bool written = false, bool implicit = false,
-              bool trueP = false, bool falseP = false):
+              bool trueP = false, bool falseP = false) noexcept :
           op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit), m_isTruePredicate(trueP), m_isFalsePredicate(falseP) {}
 
       /// \brief Get the registers read by this operand
