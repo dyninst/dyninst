@@ -45,7 +45,7 @@ jobs:
       # Clang doesn't allow for multiple libomp installations
       - name: Clean libomp install
         if: ${{ inputs.is-clang }}
-        run: apt remove --purge "libomp*"
+        run: apt remove --purge -y "libomp*"
         
       - name: Install C compiler (${{ inputs.c-compiler }})
         run: |
