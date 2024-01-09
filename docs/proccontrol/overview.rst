@@ -31,182 +31,141 @@ and other interesting aspects.
 Abstractions
 ************
 
-This section focuses on some of the more important concepts in ProcControlAPI.
-
 .. _`sec:proccontrol-intro-processes-threads`:
 
 Processes and Threads
-=====================
+  There are two central classes to ProcControlAPI, :cpp:class:`Process`
+  and :cpp:class:`Thread`.
+  Each class respectively represents a single target process or thread
+  running on the system. By performing operations on the Process and
+  Thread objects, a ProcControlAPI user is able to control the target
+  process and its threads.
 
-There are two central classes to ProcControlAPI, :cpp:class:`Dyninst::ProcControlAPI::Process`
-and :cpp:class:`Dyninst::ProcControlAPI::Thread`.
-Each class respectively represents a single target process or thread
-running on the system. By performing operations on the Process and
-Thread objects, a ProcControlAPI user is able to control the target
-process and its threads.
+  Each Process is guaranteed to have at least one Thread associated with
+  it. A multi-threaded process may have a Process object with more than
+  one Thread. Each process has an address space associated with it, which
+  can be written or read through the Process object. Each thread has a set
+  of registers associated with it, which can be access through the Thread
+  object.
 
-Each Process is guaranteed to have at least one Thread associated with
-it. A multi-threaded process may have a Process object with more than
-one Thread. Each process has an address space associated with it, which
-can be written or read through the Process object. Each thread has a set
-of registers associated with it, which can be access through the Thread
-object.
+  At any one time a Thread will be in either a *stopped* state or a
+  *running* state. A thread in a stopped state has had its execution
+  paused by ProcControlAPI - the OS will not schedule the thread to run. A
+  thread in a running state is allowed to execute as normal. A thread in a
+  running state may block for other reasons, e.g. blocking on IO calls,
+  but this does not affect ProcControlAPI’s view of the thread state. A
+  thread is only in the stopped state if ProcControlAPI has explicitly
+  stopped it.
 
-At any one time a Thread will be in either a *stopped state* or a
-*running state*. A thread in a stopped state has had its execution
-paused by ProcControlAPI - the OS will not schedule the thread to run. A
-thread in a running state is allowed to execute as normal. A thread in a
-running state may block for other reasons, e.g. blocking on IO calls,
-but this does not affect ProcControlAPI’s view of the thread state. A
-thread is only in the stopped state if ProcControlAPI has explicitly
-stopped it.
-
-A Process object is not considered to have a stopped or running
-state—only its Thread objects are stopped or running. A stop operation
-on a Process triggers a stop operation on each of its Threads, and
-similarly a continue operation on a Process triggers continue operations
-on each Thread.
+  A Process object is not considered to have a stopped or running
+  state—only its Thread objects are stopped or running. A stop operation
+  on a Process triggers a stop operation on each of its Threads, and
+  similarly a continue operation on a Process triggers continue operations
+  on each Thread.
 
 .. _`sec:proccontrol-intro-breakpoints`:
 
 Breakpoints
-===========
+  A :cpp:class:`Breakpoint` is a point in the code region of a target process that,
+  when executed, stops the process execution and notifies ProcControlAPI.
+  Upon being continued the process will resume execution at the point. A
+  Breakpoint object is a handle that can represents one or more
+  breakpoints in one or more processes. Upon receiving notification that a
+  breakpoint has executed, ProcControlAPI will deliver a callback with an
+  :cpp:class:`EventBreakpoint`.
 
-A :cpp:class:`Dyninst::ProcControlAPI::Breakpoint` is a point in the code region of a target process that,
-when executed, stops the process execution and notifies ProcControlAPI.
-Upon being continued the process will resume execution at the point. A
-Breakpoint object is a handle that can represents one or more
-breakpoints in one or more processes. Upon receiving notification that a
-breakpoint has executed, ProcControlAPI will deliver a callback with an
-:cpp:class:`Dyninst::ProcControlAPI::EventBreakpoint`.
+  Some Breakpoint objects can be created as *control-transfer
+  breakpoints*. When a process is continued after executing a
+  control-transfer the process will resume at an alternate location,
+  rather than at the breakpoint’s installation point.
 
-Some Breakpoint objects can be created as *control-transfer
-breakpoints*. When a process is continued after executing a
-control-transfer the process will resume at an alternate location,
-rather than at the breakpoint’s installation point.
+  A single Breakpoint can be inserted into multiple locations within a
+  target process. This can be useful when a user has wants to perform a
+  single action at multiple locations in a target process. For example, if
+  a user wants to insert a breakpoint at the entry to function foo, and
+  foo has multiple instantiations in a process, then a single Breakpoint
+  can be inserted at each instance of foo.
 
-A single Breakpoint can be inserted into multiple locations within a
-target process. This can be useful when a user has wants to perform a
-single action at multiple locations in a target process. For example, if
-a user wants to insert a breakpoint at the entry to function foo, and
-foo has multiple instantiations in a process, then a single Breakpoint
-can be inserted at each instance of foo.
+  A single Breakpoint object can be inserted into multiple target
+  processes at the same time. When a process does an operation that copies
+  an address space, such as fork on UNIX, the child process will receive
+  all Breakpoint objects that were installed in the parent process.
 
-A single Breakpoint object can be inserted into multiple target
-processes at the same time. When a process does an operation that copies
-an address space, such as fork on UNIX, the child process will receive
-all Breakpoint objects that were installed in the parent process.
+  Multiple Breakpoint objects can be inserted into the same location
+  with-in the same process. When this location is executed in the target
+  process a single callback will be delivered, and the EventBreakpoint
+  object will contain a reference to each Breakpoint inserted at the
+  location. At most one control-transfer breakpoint can be inserted at any
+  one point in a process.
 
-Multiple Breakpoint objects can be inserted into the same location
-with-in the same process. When this location is executed in the target
-process a single callback will be delivered, and the EventBreakpoint
-object will contain a reference to each Breakpoint inserted at the
-location. At most one control-transfer breakpoint can be inserted at any
-one point in a process.
+  Due to the many-to-many nature of Breakpoints and Processes, a single
+  installation of a Breakpoint can be identified by a Breakpoint, :cpp:class:`Process`,
+  :cpp:type:`Dyninst::Address` triple. The functions for inserting and removing breakpoints
+  (:cpp:func:`Process::addBreakpoint` and :cpp:func:`Process::rmBreakpoint`) need all three pieces
+  of information.
 
-Due to the many-to-many nature of Breakpoints and Processes, a single
-installation of a Breakpoint can be identified by a Breakpoint, :cpp:class:`Dyninst::ProcControlAPI::Process`,
-:cpp:type:`Dyninst::Address` triple. The functions for inserting and removing breakpoints
-(:cpp:func:`Dyninst::ProcControlAPI::Process::addBreakpoint` and :cpp:func:`Dyninst::ProcControlAPI::Process::rmBreakpoint`) need all three pieces
-of information.
-
-A breakpoint can be a hardware breakpoint or a software breakpoint. A
-hardware breakpoint is typically implemented by setting special debug
-register in the process and can trigger on code execution, data reads or
-data write. A software breakpoint is typically implemented by writing a
-special instruction into a code sequence and can only be triggered by
-code execution. There are typically a limited number of hardware
-breakpoints available at the same time.
+  A breakpoint can be a hardware breakpoint or a software breakpoint. A
+  hardware breakpoint is typically implemented by setting special debug
+  register in the process and can trigger on code execution, data reads or
+  data write. A software breakpoint is typically implemented by writing a
+  special instruction into a code sequence and can only be triggered by
+  code execution. There are typically a limited number of hardware
+  breakpoints available at the same time.
 
 .. _`sec:proccontrol-intro-callbacks`:
 
 Callbacks
-=========
+  In addition to controlling a target process through the Process and
+  Thread objects, a ProcControlAPI user can also receive notification of
+  events that happen in that process. Examples of these events would be a
+  new thread being created, a breakpoint being executed, or a process
+  exiting.
 
-In addition to controlling a target process through the Process and
-Thread objects, a ProcControlAPI user can also receive notification of
-events that happen in that process. Examples of these events would be a
-new thread being created, a breakpoint being executed, or a process
-exiting.
-
-The ProcControlAPI user receives notice of events through a callback
-system. The user can register callback function that will be called by
-ProcControlAPI whenever a particular type of event occurs. Details about
-the event are passed to the callback function via an Event object.
+  The ProcControlAPI user receives notice of events through a callback
+  system. The user can register callback function that will be called by
+  ProcControlAPI whenever a particular type of event occurs. Details about
+  the event are passed to the callback function via an Event object.
 
 .. _`sec:proccontrol-intro-callback-events`:
 
 Events
-------
+  Each event can be broken up into an EventType object and an Event
+  object. The EventType describes a type of event that can happen, and
+  Event describes a specific instance of an event happening. Each Event
+  will have one and only one EventType.
 
-Each event can be broken up into an EventType object and an Event
-object. The EventType describes a type of event that can happen, and
-Event describes a specific instance of an event happening. Each Event
-will have one and only one EventType.
+  Each :cpp:class:`EventType` has two primary fields:
+  its time and its code. The code
+  field of describes what type of event occurred, e.g. :cpp:member:`EventType::Exit`
+  represents a target process exiting. The time field of an EventType
+  represents whether the EventType is happening before or after will have
+  code and will have a value of :cpp:enumerator:`EventType::Time::Pre`,
+  :cpp:enumerator:`EventType::Tim::Post`, or :cpp:enumerator:`EventType::None`.
 
-Each :cpp:class:`Dyninst::ProcControlAPI::EventType` has two primary fields:
-its time and its code. The code
-field of describes what type of event occurred, e.g. :cpp:enumerator:`EventType::Exit`
-represents a target process exiting. The time field of an EventType
-represents whether the EventType is happening before or after will have
-code and will have a value of :cpp:enumerator:`EventType::Pre`,
-:cpp:enumerator:`EventType::Post`, or :cpp:enumerator:`EventType::None`.
+  For example, an EventType with time and code of :cpp:enumerator:`EventType::Time::Pre` and
+  :cpp:member:`EventType::Exit` will occur just before a target process exits, and a
+  code of :cpp:member:`EventType::Exec` with a time of :cpp:enumerator:`EventType::Post`
+  will occur after an exec system call occurs. In this document we will abbreviate
+  EventTypes such as these as pre-exit and post-exec. Some EventTypes do
+  not have a time associated with them, for example :cpp:member:`EventType::Breakpoint`
+  does not have an associated time and thus has a time value of :cpp:enumerator:`EventType::none`.
 
-For example, an EventType with time and code of :cpp:enumerator:`EventType::Pre` and
-:cpp:enumerator:`EventType::Exit` will occur just before a target process exits, and a
-code of :cpp:enumerator:`EventType::Exec` with a time of :cpp:enumerator:`EventType::Post`
-will occur after an exec system call occurs. In this document we will abbreviate
-EventTypes such as these as pre-exit and post-exec. Some EventTypes do
-not have a time associated with them, for example :cpp:enumerator:`EventType::Breakpoint`
-does not have an associated time and thus has a time value of :cpp:enumerator:`EventType::none`.
+  An Event represents an instance of an EventType occurring. In addition
+  to an EventType, each Event also has pointer to the Process and Thread
+  that it occurred on. Certain events may also have event specific
+  information associated with them, which is represented in a sub-class of
+  Event. Each EventType is associated with a specific sub-class of Event.
 
-An Event represents an instance of an EventType occurring. In addition
-to an EventType, each Event also has pointer to the Process and Thread
-that it occurred on. Certain events may also have event specific
-information associated with them, which is represented in a sub-class of
-Event. Each EventType is associated with a specific sub-class of Event.
-
-For example, :cpp:enumerator:`EventType::Library` is used to signify a shared library
-being loaded into the target process. When an ``EventType::Library`` occurs
-ProcControlAPI will deliver an object of type EventLibrary, which is a
-subclass of Event, to any registered callback functions. In addition to
-the information inherited from Event, the EventLibrary will contain
-extra information about the library that was loaded into the target
-process.
-
-Table 1 shows the Event subclass that is used for each EventType. Not
-all EventTypes are available on every platform—a checkmark under the
-specific OS column means that the EventType is available on that OS.
-
-.. csv-table:: EventType by OS
-   :header: "EventType", "Event Subclass", "Linux", "FreeBSD", "Windows"
-   :widths: 25, 25, 10, 10, 10
-
-    EventType,EventSubclass,Linux,FreeBSD,Windows
-    Stop,EventStop,X,,
-    Breakpoint,EventBreakpoint,X,X,X
-    Signal,EventSignal,X,X,X
-    UserThreadCreate,EventNewUserThread,X,X,
-    LWPCreate,EventNewLWP,X,,X
-    Pre-UserThreadDestroy,EventUserThreadDestroy,X,X,
-    Post-UserThreadDestroy,EventUserThreadDestroy,X,X,
-    Pre-LWPDestroy,EventLWPDestroy,X,,X
-    Post-LWPDestroy,EventLWPDestroy,X,,
-    Pre-Fork,EventFork,,,
-    Post-Fork,EventFork,X,,
-    Pre-Exec,EventExec,,,
-    Post-Exec,EventExec,X,X,
-    RPC,EventRPC,X,X,X
-    SingleStep,EventSingleStep,X,X,X
-    Breakpoint,EventBreakpoint,X,X,X
-    Library,EventLibrary,X,X,X
-    Pre-Exit,EventExit,X,,
-    Post-Exit,EventExit,X,X,X
-    Crash,EventCrash,X,X,X
-    ForceTerminate,EventForceTerminate,X,X,X
+  For example, :cpp:member:`EventType::Library` is used to signify a shared library
+  being loaded into the target process. When an ``EventType::Library`` occurs
+  ProcControlAPI will deliver an object of type EventLibrary, which is a
+  subclass of Event, to any registered callback functions. In addition to
+  the information inherited from Event, the EventLibrary will contain
+  extra information about the library that was loaded into the target
+  process.
 
 Callback Functions
-------------------
+******************
 
 Events are delivered via a callback function. A ProcControlAPI user can
 register callback functions for an EventType using the
@@ -232,11 +191,10 @@ Operations such as :cpp:func:`Process::stopProc`, :cpp:func:`Process::continuePr
 a callback function, but it would still be useful to perform these
 operations. ProcControlAPI allows the user to use the return value from
 a callback function to specify whether process or thread that triggered
-the event should be stopped or continued. More details on this can be
-found in the :cpp:struct:`Process::cb_ret_t` section of the API reference.
+the event should be stopped or continued.
 
 Callback Delivery
------------------
+*****************
 
 When ProcControlAPI needs to deliver a callback it must first gain
 control of a user visible thread in the controller process. This thread
@@ -274,7 +232,7 @@ callbacks, a long delay in notification could have a significant
 performance impact.
 
 Once the ProcControlAPI user knows that a callback is ready to be
-delivered they can call :cpp:func:Process::handleEvents`, which will invoke all
+delivered they can call :cpp:func:`Process::handleEvents`, which will invoke all
 callback functions. Alternatively, if the ProcControlAPI user does not
 need to handle events outside of ProcControlAPI, they can continue to
 block in :cpp:func:`Process::handleEvents` without going through the notification
@@ -352,6 +310,7 @@ to the listed names, e.g., ``x86::eax``.
 
 .. csv-table:: namespace x86
    :width: 5
+   :align: center
    
     eax,ebx,ecx,edx,ebp,esp,esi,edi
     oeax,eip,flags,cs,ds,es,fs,gs
@@ -359,6 +318,7 @@ to the listed names, e.g., ``x86::eax``.
 
 .. csv-table:: namespace x86_64
    :width: 5
+   :align: center
 
     rax,rbx,rcx,rdx,rbp,rsp,rsi,rdi
     r8,r9,r10,r11,r12,r13,r14,r15
@@ -367,6 +327,7 @@ to the listed names, e.g., ``x86::eax``.
 
 .. csv-table:: namespace ppc32
    :width: 5
+   :align: center
 
     r0,r1,r2,r3,r4,r5,r6,r7
     r8,r9,r10,r11,r12,r13,r14,r15
@@ -376,6 +337,7 @@ to the listed names, e.g., ``x86::eax``.
 
 .. csv-table:: namespace ppc64
    :width: 5
+   :align: center
 
     r0,r1,r2,r3,r4,r5,r6,r7
     r8,r9,r10,r11,r12,r13,r14,r15
@@ -385,6 +347,7 @@ to the listed names, e.g., ``x86::eax``.
 
 .. csv-table:: namespace aarch64
    :width: 5
+   :align: center
 
     x0,x1,x2,x3,x4,x5,x6,x7
     x8,x9,x10,x11,x12,x13,x14,x15
@@ -430,11 +393,11 @@ error handling and checking have been left out for brevity.
 
 3. After creating the new target process we register a callback
    function. We ask ProcControlAPI to call our function,
-   on_thread_create, when an event of type :ref:`eventtype-values`
+   on_thread_create, when an event of type :cpp:class:`EventType`
    occurs in the target process.
 
 4. The on_thread_create function takes a pointer to an object of type
-   Event and returns a :cpp:struct:`Process::cb_ret_t`. The Event describes the target
+   Event and returns a :cpp:class:`Process::cb_ret_t`. The Event describes the target
    process event that triggered this callback. In this case, it provides
    information about the new thread in the target process. It is worth
    noting that :cpp:type:`Event::const_ptr` is a not a regular pointer, but a
@@ -451,9 +414,9 @@ error handling and checking have been left out for brevity.
 6. In step 6, we’ve finished handling the new thread event and need to
    tell ProcControlAPI what to do in response to this event. For
    example, we could choose to stop the process from further execution
-   by returning a value of :cpp:enumerator:`Process::cbProcStop`. Instead, we choose let
+   by returning a value of :cpp:enumerator:`Process::cb_action_t::cbProcStop`. Instead, we choose let
    ProcControlAPI take its default action for an EventNewThread by
-   returning :cpp:enumerator:`Process::cbDefault`, which is to continue the process and
+   returning :cpp:enumerator:`Process::cb_action_t::cbDefault`, which is to continue the process and
    its new thread (which were both stopped before delivery of the
    callback).
 
