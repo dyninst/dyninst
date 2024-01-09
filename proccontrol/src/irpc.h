@@ -67,7 +67,6 @@ class iRPCAllocation
       size(0),
       start_offset(0),
       orig_data(NULL),
-	  // HACK: affirmatively set that we do need a data save. If we've just allocated space, why save the data?
       needs_datasave(false),
       have_saved_regs(false),
       ref_count(0)
@@ -87,7 +86,6 @@ class iRPCAllocation
    bool have_saved_regs;
    int ref_count;
 
-   //These are NULL if the user handed us memory to run the iRPC in.
    boost::weak_ptr<int_iRPC> creation_irpc;
    boost::weak_ptr<int_iRPC> deletion_irpc;
 };
@@ -226,7 +224,6 @@ class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
    void *user_data;
 };
 
-//Singleton class, only one of these across all processes.
 class iRPCMgr
 {
    friend class iRPC;
@@ -250,7 +247,6 @@ class iRPCMgr
 
 iRPCMgr *rpcMgr();
 
-//Runs after user callback
 class iRPCHandler : public Handler
 {
   public:
@@ -279,8 +275,6 @@ class iRPCLaunchHandler : public Handler
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
-//Wraps an int_iRPC::ptr so that the user level class IRPC doesn't
-//need to directly maintain a shared pointer into internal code.
 class rpc_wrapper
 {
   public:
