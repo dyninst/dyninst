@@ -117,8 +117,7 @@ Loop analysis
 The following code example shows how to get loop information using
 ParseAPI once we have an parsed Function object.
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/parseAPI/loopAnalysis.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/parseAPI/loopAnalysis.cpp
   :language: cpp
   :linenos:
 
@@ -134,8 +133,7 @@ function context, and ``NoSinkPredicate`` does not visit edges to the
 *sink* block. The following code traverses all of the basic blocks
 within a function:
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/parseAPI/edgePredicate.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/parseAPI/edgePredicate.cpp
   :language: cpp
   :linenos:
 
