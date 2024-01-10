@@ -1,0 +1,45 @@
+# Do a simple parse of all system libraries
+
+name: Parse sys libs
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'  # 1AM on Monday
+  workflow_dispatch:
+
+jobs:
+  parse:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+         os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-23.04', 'ubuntu-23.10', 'ubuntu-24.04', 'fedora-37', 'fedora-38', 'fedora-39']
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: ${{ matrix.os }}
+    steps:
+      - name: Build parser
+        run: |
+           git clone --depth=1 https://github.com/dyninst/external-tests
+           cd external-tests
+           mkdir build
+           cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake --build .
+           cp parseAPI/simpleParser /
+
+      - name: Run parser
+        run: |
+           cd /
+           export LD_LIBRARY_PATH=/dyninst/install/lib:$LD_LIBRARY_PATH
+           for dir in /usr/lib /usr/lib64; do                       \
+              for file in $(find $dir -type f -name "*.so.*"); do   \
+                echo $file;                                         \
+                ./simpleParser $file;                               \
+              done                                                  \
+            done
