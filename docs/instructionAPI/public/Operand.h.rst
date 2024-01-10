@@ -13,7 +13,7 @@ Operand.h
 
   .. cpp:function:: explicit Operand(Expression::Ptr val = {}, bool read = false, \
                                      bool written = false, bool implicit = false, \
-                                     bool trueP = false, bool falseP = false)
+                                     bool trueP = false, bool falseP = false) noexcept
 
       Creates an operand from an expression and flags describing its read/write properties.
 
