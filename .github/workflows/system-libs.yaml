@@ -25,7 +25,6 @@ jobs:
     steps:
       - name: Build parser
         run: |
-           ln -s $PWD/dyninst /dyninst
            git clone --depth=1 https://github.com/dyninst/external-tests
            cd external-tests
            mkdir build
