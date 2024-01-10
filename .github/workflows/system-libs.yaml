@@ -38,7 +38,7 @@ jobs:
            export LD_LIBRARY_PATH=/dyninst/install/lib:$LD_LIBRARY_PATH
            for dir in /usr/lib /usr/lib64; do                       \
               for file in $(find $dir -type f -name "*.so.*"); do   \
-                echo $file                                          \
-                ./simpleParser $file                                \
+                echo $file;                                         \
+                ./simpleParser $file;                               \
               done                                                  \
             done
