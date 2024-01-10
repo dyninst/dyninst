@@ -23,11 +23,6 @@ jobs:
         password: ${{ secrets.github_token }}
     name: ${{ matrix.os }}
     steps:
-      - name: Checkout Dyninst
-        uses: actions/checkout@v3
-        with:
-          path: dyninst/src
-
       - name: Build parser
         run: |
            ln -s $PWD/dyninst /dyninst
