@@ -59,6 +59,7 @@ jobs:
       - name: Build systemtap
         run: |
           cd systemtap
+          autoreconf
           mkdir build
           cd build
           ../configure --with-dyninst
