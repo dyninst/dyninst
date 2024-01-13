@@ -12,6 +12,7 @@ SymtabAPI
   Aggregate.h
   annotations.h
   Archive.h
+  Collections.h
   debug.h
   dwarfWalker.h
   emitElf.h

@@ -50,14 +50,6 @@ class Symtab;
 class localVar;
 class DwarfWalker;
 
-/*
- * This class contains a collection of local variables.
- * Each function will have one of these objects associated with it.
- * This object will store all the local variables within this function.
- * Note: This class is unaware of scope.
- */
-
-
 class SYMTAB_EXPORT localVarCollection {
 
   dyn_c_vector<localVar* > localVars;
@@ -74,10 +66,6 @@ public:
 
 
 
-/*
- * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
- * So we reference-count to make life easier.
- */
 class SYMTAB_EXPORT typeCollection
 {
     friend class Symtab;
@@ -91,13 +79,9 @@ class SYMTAB_EXPORT typeCollection
     dyn_c_hash_map<int, boost::shared_ptr<Type>> typesByID;
 
 
-    // DWARF:
-    /* Cache type collections on a per-image basis.  (Since
-       BPatch_functions are solitons, we don't have to cache them.) */
     static dyn_c_hash_map< void *, typeCollection * > fileToTypesMap;
     static bool doDeferredLookups(typeCollection *);
 
-    // DWARF...
     bool dwarfParsed_;
 
 	public:
@@ -109,7 +93,6 @@ public:
 
     static typeCollection *getModTypeCollection(Module *mod);
 
-    // DWARF...
     bool dwarfParsed() { return dwarfParsed_; }
     void setDwarfParsed() { dwarfParsed_ = true; }
 
@@ -132,11 +115,6 @@ public:
       addGlobalVariable(t->reshare());
     }
 
-    /* Some debug formats allow forward references.  Rather than
-       fill in forward in a second pass, generate placeholder
-       types, and fill them in as we go.  Because we require
-       One True Pointer for each type, when
-       updating a type, return that One True Pointer. */
     boost::shared_ptr<Type> findOrCreateType( const int ID, Type::do_share_t );
     Type* findOrCreateType(const int i) { return findOrCreateType(i, Type::share).get(); }
     template<class T>
@@ -170,16 +148,6 @@ public:
     }
     void clearNumberedTypes();
 };
-
-/*
- * This class defines the collection for the built-in Types
- * gnu use negative numbers to define other types
- * in terms of these built-in types.
- * This collection is global and built in the BPatch_image constructor.
- * This means that only one collection of built-in types is made
- * per image.  jdd 4/21/99
- *
- */
 
 class SYMTAB_EXPORT builtInTypeCollection {
 
