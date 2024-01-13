@@ -8,6 +8,7 @@ SymtabAPI
   :maxdepth: 1
 
   notes
+  Aggregate.h
   annotations.h
   debug.h
   dwarfWalker.h

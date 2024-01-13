@@ -33,9 +33,6 @@
 
 ************************************************************************/
 
-// Present a common superclass for all Symbol aggregates. 
-// We never create an Aggregate directly, but only via a child class.
-
 #if !defined(_Aggregate_h_)
 #define _Aggregate_h_
 
@@ -114,14 +111,12 @@ class SYMTAB_EXPORT Aggregate
       bool removeSymbolInt(Symbol *sym);
       virtual bool changeSymbolOffset(Symbol *sym);
 
-      // Offset comes from a symbol
-      // Module we keep here so we can have the correct "primary"
       Module *module_;
 
       mutable dyn_mutex lock_;
       std::vector<Symbol *> symbols_;
-      Symbol *firstSymbol;  // cached for speed
-      Offset offset_;       // cached for speed
+      Symbol *firstSymbol;
+      Offset offset_;
 
       bool addMangledNameInternal(std::string name, bool isPrimary, bool demangle);
 
