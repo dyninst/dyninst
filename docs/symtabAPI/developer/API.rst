@@ -11,6 +11,7 @@ SymtabAPI
   AddrLookup.h
   Aggregate.h
   annotations.h
+  Archive.h
   debug.h
   dwarfWalker.h
   emitElf.h

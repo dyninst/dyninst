@@ -8,7 +8,6 @@ SymtabAPI
   :maxdepth: 1
 
   Aggregate.h
-  Archive.h
   Collections.h
   ExceptionBlock.h
   Function.h
