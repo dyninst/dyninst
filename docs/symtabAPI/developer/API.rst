@@ -8,6 +8,7 @@ SymtabAPI
   :maxdepth: 1
 
   notes
+  AddrLookup.h
   Aggregate.h
   annotations.h
   debug.h

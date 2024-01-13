@@ -1,13 +1,22 @@
+.. _`sec:AddrLookup.h`:
+
 AddrLookup.h
-============
+############
 
 .. cpp:namespace:: Dyninst::SymtabAPI
 
-.. cpp:class:: AddressLookup
+.. cpp:struct:: LoadedLibrary
 
-  This class provides a mapping interface for determining
-  the address in a process where a SymtabAPI object is loaded. A single
-  dynamic library may load at different addresses in different processes.
+  .. cpp:member:: std::string name
+  .. cpp:member:: Address codeAddr
+  .. cpp:member:: Address dataAddr
+
+
+.. cpp:class:: AddressLookup : public AnnotatableSparse
+
+  **A mapping for determining the address in a process where a SymtabAPI object is loaded**
+
+  A single dynamic library may load at different addresses in different processes.
   The ‘address’ fields in a dynamic library’s symbol tables will contain
   offsets rather than absolute addresses. These offsets can be added to
   the library’s load address, which is computed at runtime, to determine
@@ -19,18 +28,6 @@ AddrLookup.h
   Each AddressLookup instance is associated with one process. An
   AddressLookup object can be created to work with the currently
   running process or a different process on the same system.
-
-  On the Linux, it needs to read from the
-  process’ address space to determine its shared objects and load
-  addresses. By default, it will attach to another process
-  using a debugger interface to read the necessary information, or simply
-  use ``memcpy`` if reading from the current process. This behavior
-  can be changed by implementing a custum reader derived from :cpp:class:`Dyninst::ProcessReader`.
-
-  When created for a running process, it takes a snapshot of the process’
-  loaded libraries and their addresses. These values can then be queried.
-  However, they are not automatically updated when the process loads or unloads libraries,
-  so users need to call :cpp:func:`refresh` to update them.
 
   .. cpp:function:: static AddressLookup* createAddressLookup(ProcessReader* reader = NULL)
 
@@ -63,39 +60,15 @@ AddrLookup.h
 
     Returns a null pointer on error.
 
-  .. cpp:function:: bool getLoadAddresses(std::vector<LoadedLibrary>& ll)
-
-    Retrieves libraries loaded in the process.
-
-    These libraries can then be used by :cpp:func:`createAddressLookup`
-    to create a new AddressLookup object. This function is
-    usually used as part of an off-line address lookup mechanism.
-
-    Returns ``false`` on error.
-
-  .. cpp:function:: bool refresh()
-
-    Update the snapshot of the process.
-
-    When a AddressLookup object is initially created it takes a snapshot
-    of the libraries currently loaded in a process, which is then used to
-    answer queries into this API. As the process runs more libraries may be
-    loaded and unloaded, and this snapshot may become out of date. An
-    AddressLookup’s view of a process can be updated by calling this
-    function which causes it to examine the process for loaded and unloaded
-    objects and update its data structures accordingly.
-
-    Returns ``false`` on error.
-
   .. cpp:function:: bool getAddress(Symtab* tab, Symbol* sym, Address& addr)
 
-    Retrieve the address where the symbol, ``sym``, is located in the process. 
+    Retrieve the address where the symbol, ``sym``, is located in the process.
 
     Returns `true` if an address was found.
 
   .. cpp:function:: bool getAddress(Symtab* tab, Offset off, Address& addr)
 
-    Retrieve the address at the offset, ``off``, in the process. 
+    Retrieve the address at the offset, ``off``, in the process.
 
     Returns `true` if an address was found.
 
@@ -111,12 +84,6 @@ AddrLookup.h
   .. cpp:function:: bool getOffset(Address addr, Symtab*& tab, Offset& off)
 
     Retrieve the offset and its :cpp:class:`Symtab` at the address, ``addr`` in the process.
-
-    Returns ``false`` on error.
-
-  .. cpp:function:: bool getOffset(Address addr, LoadedLibrary& lib, Offset& off)
-
-    Retrieve the offset and its :cpp:class:`LoadedLibrary` at the address, ``addr`` in the process.
 
     Returns ``false`` on error.
 
@@ -145,3 +112,55 @@ AddrLookup.h
     Like :cpp:func:`getLoadAddress`, but returns the address of the data section.
 
     Returns ``false`` on error.
+
+  .. cpp:function:: bool getLoadAddresses(std::vector<LoadedLibrary>& ll)
+
+    Retrieves libraries loaded in the process.
+
+    These libraries can then be used by :cpp:func:`createAddressLookup`
+    to create a new AddressLookup object. This function is
+    usually used as part of an off-line address lookup mechanism.
+
+    Returns ``false`` on error.
+
+  .. cpp:function:: bool getExecutable(LoadedLibrary &lib)
+
+  .. cpp:function:: bool getOffset(Address addr, LoadedLibrary& lib, Offset& off)
+
+    Retrieve the offset and its :cpp:class:`LoadedLibrary` at the address, ``addr`` in the process.
+
+    Returns ``false`` on error.
+
+  .. cpp:function:: bool refresh()
+
+    Update the snapshot of the process.
+
+    When a AddressLookup object is initially created it takes a snapshot
+    of the libraries currently loaded in a process, which is then used to
+    answer queries into this API. As the process runs more libraries may be
+    loaded and unloaded, and this snapshot may become out of date. An
+    AddressLookup’s view of a process can be updated by calling this
+    function which causes it to examine the process for loaded and unloaded
+    objects and update its data structures accordingly.
+
+    Returns ``false`` on error.
+
+  .. cpp:function:: Address getLibraryTrapAddrSysV()
+
+  .. cpp:function:: virtual ~AddressLookup()
+
+
+Notes
+=====
+
+On Linux, it needs to read from the
+process’ address space to determine its shared objects and load
+addresses. By default, it will attach to another process
+using a debugger interface to read the necessary information, or simply
+use ``memcpy`` if reading from the current process. This behavior
+can be changed by implementing a custum reader derived from :cpp:class:`Dyninst::ProcessReader`.
+
+When created for a running process, it takes a snapshot of the process’
+loaded libraries and their addresses. These values can then be queried.
+However, they are not automatically updated when the process loads or unloads libraries,
+so users need to call :cpp:func:`refresh` to update them.

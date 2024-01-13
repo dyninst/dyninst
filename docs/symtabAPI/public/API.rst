@@ -7,7 +7,6 @@ SymtabAPI
   :hidden:
   :maxdepth: 1
 
-  AddrLookup.h
   Aggregate.h
   Archive.h
   Collections.h
