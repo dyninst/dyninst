@@ -62,7 +62,7 @@ jobs:
           autoreconf
           mkdir build
           cd build
-          ../configure --with-dyninst
+          ../configure --with-dyninst --without-python3-probes
           make -j2
 
   llnl-stat:
