@@ -51,7 +51,7 @@ jobs:
           apt install -y git python3 libjson-c-dev m4 autoconf
       - name: Fetch systemtap
         run: |
-          git clone https://sourceware.org/git/systemtap.git
+          git clone --depth=1 https://sourceware.org/git/systemtap.git
       - name: Make symlinks
         run: |
           ln -s /dyninst/install/include /usr/include/dyninst
