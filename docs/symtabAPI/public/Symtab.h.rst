@@ -558,8 +558,6 @@ Adds the provided region to the file.
 Catch and Exception block lookup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. cpp:class:: ExceptionBlock
-
 .. code-block:: cpp
 
     bool getAllExceptions(vector<ExceptionBlock *> &exceptions)
