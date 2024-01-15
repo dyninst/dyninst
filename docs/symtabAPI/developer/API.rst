@@ -18,6 +18,7 @@ SymtabAPI
   emitElf.h
   emitElfStatic.h
   emitWin.h
+  Function.h
   indexed_modules.h
   LinkMap.h
   Object-elf.h

@@ -1,282 +1,193 @@
+.. _`sec:Function.h`:
+
 Function.h
-==========
+##########
 
 .. cpp:namespace:: Dyninst::SymtabAPI
 
-Class FunctionBase
-------------------
+.. cpp:class:: FunctionBase
 
-The ``FunctionBase`` class provides a common interface that can
-represent either a regular function or an inlined function.
+  **A common representation of a function**
 
-.. list-table:: FunctionBase Class
-   :widths: 30  35 35
-   :header-rows: 1
+  .. cpp:function:: boost::shared_ptr<Type> getReturnType(Type::do_share_t) const
 
-   * - Method name
-     - Return type
-     - Method description
-   * - getModule
-     - const Module *
-     - Module this function belongs to.
-   * - getSize
-     - unsigned
-     - Size encoded in the symbol table; may not be actual function size.
-   * - getRegion
-     - Region *
-     - Region containing this function.
-   * - getReturnType
-     - Type *
-     - Type representing the return type of the function.
-   * - getName
-     - std::string
-     - Returns primary name of the function (first mangled name or DWARF name).
+      Returns the return type of the function.
 
+  .. cpp:function:: Type* getReturnType() const
 
-.. code-block:: cpp
+      Returns the return type of the function.
 
-    bool setModule (Module *module)
+  .. cpp:function:: bool findLocalVariable(vector<localVar*> &vars, string name)
 
-This function changes the module to which the function belongs to
-``module``. Returns ``true`` if it succeeds.
+      Saves in ``vars`` all local variables in this function with name, ``name``.
 
-.. code-block:: cpp
+      Returns ``true`` if at least one variable was found.
 
-    bool setSize (unsigned size)
+  .. cpp:function:: bool getLocalVariables(vector<localVar*> &vars)
 
-This function changes the size of the function to ``size``. Returns
-``true`` if it succeeds.
+      Saves in ``vars`` all local variables in this function.
 
-.. code-block:: cpp
+      Returns ``false`` if there is no debugging information present.
 
-    bool setOffset (Offset offset)
+  .. cpp:function:: bool getParams(vector<localVar*> &params)
 
-The method changes the offset of the function to ``offset``. Returns
-``true`` if it succeeds.
+      Saves in ``params`` all parameters for this function.
 
-.. code-block:: cpp
+      Returns ``false`` if there is no debugging information present.
 
-    bool addMangledName(string name, bool isPrimary)
+  .. cpp:function:: bool operator==(const FunctionBase &f)
 
-This method adds a mangled name ``name`` to the function. If
-``isPrimary`` is ``true`` then it becomes the default name for the
-function. This method returns ``true`` on success and ``false`` on
-failure.
+      Checks if this function is equal to ``f``.
 
-.. code-block:: cpp
+      Two functions are considered equal if they have the same return type and
+      their underlying :cpp:class:`Aggregate`\ s are equal.
 
-    bool addPrettyName(string name, bool isPrimary)
+  .. cpp:function:: FunctionBase* getInlinedParent()
 
-This method adds a pretty name ``name`` to the function. If
-``isPrimary`` is ``true`` then it becomes the default name for the
-function. This method returns ``true`` on success and ``false`` on
-failure.
+      Returns the function that this function is inlined into.
 
-.. code-block:: cpp
+      Returns ``NULL`` if this function is not inlined.
 
-    bool addTypedName(string name, bool isPrimary)
+  .. cpp:function:: const InlineCollection& getInlines()
 
-This method adds a typed name ``name`` to the function. If ``isPrimary``
-is ``true`` then it becomes the default name for the function. This
-method returns ``true`` on success and ``false`` on failure.
+      Gets the set of functions inlined into this one (possibly empty).
 
-.. code-block:: cpp
+  .. cpp:function:: const FuncRangeCollection &getRanges()
 
-    bool getLocalVariables(vector<localVar *> &vars)
+      Returns the code ranges to which this function belongs.
 
-This method returns the local variables in the function. ``vars``
-contains the list of variables found. If there is no debugging
-information present then it returns ``false`` with the error code set to
-``NO_DEBUG_INFO`` accordingly. Otherwise it returns ``true``.
+  .. cpp:function:: std::vector<VariableLocation> &getFramePtr()
 
-.. code-block:: cpp
+      Returns the frame pointer offsets (abstract top of the stack) for this function.
 
-    std::vector<VariableLocation> &getFramePtr()
+  .. cpp:function:: void* getData()
 
-This method returns a list of frame pointer offsets (abstract top of the
-stack) for the function. See the ``VariableLocation`` class description
-for more information.
+      Retrieves the user-defined data.
 
-.. code-block:: cpp
-    
-    bool getParams(vector<localVar *> &params)
+      See :cpp:func:`setData`.
 
-This method returns the parameters to the function. ``params`` contains
-the list of parameters. If there is no debugging information present
-then it returns ``false`` with the error code set to ``NO_DEBUG_INFO``
-accordingly. Returns ``true`` on success.
+  .. cpp:function:: void setData(void* d)
 
-.. code-block:: cpp
+      Adds arbitrary user-defined data ``d`` to this function.
 
-    bool findLocalVariable(vector<localVar *> &vars, string name)
+  .. cpp:function:: virtual std::string getName() const = 0
 
-This method returns a list of local variables within a function that
-have name ``name``. ``vars`` contains the list of variables found.
-Returns ``true`` on success and ``false`` on failure.
+      Returns primary name of the function (first mangled name or DWARF name).
 
-.. code-block:: cpp
+  .. cpp:function:: virtual Offset getOffset() const = 0
 
-    FunctionBase* getInlinedParent()
+      Returns the starting position of this function.
 
-Gets the function that this function is inlined into, if any. Returns
-``NULL`` if there is no parent.
+  .. cpp:function:: virtual unsigned getSize() const = 0
 
-.. code-block:: cpp
+      Returns the size in *bytes* encoded in the symbol table; may not be actual function size.
 
-    const InlineCollection& getInlines()
+  .. cpp:function:: virtual Module* getModule() const = 0
 
-Gets the set of functions inlined into this one (possibly empty).
+      Returns the module this function belongs to.
 
-.. _Function:
+  .. cpp:function:: virtual ~FunctionBase()
 
-Symbtab Class Function
-----------------------
 
-The ``Function`` class represents a collection of symbols that have the
-same address and a type of ``ST_FUNCTION``. When appropriate, use this
-representation instead of the underlying ``Symbol`` objects.
+.. cpp:class:: FuncRange
 
-.. list-table:: Class Function
-   :widths: 30  35 35
-   :header-rows: 1
+  .. cpp:type:: Dyninst::Offset type
 
-   * - Method name
-     - Return type
-     - Method description
-   * - getModule
-     - const Module *
-     - Module this function belongs to.
-   * - getOffset
-     - Offset
-     - Offset in the file associated with the function.
-   * - getSize
-     - unsigned
-     - Size encoded in the symbol table; may not be actual function size.
-   * - mangled_names_begin
-     - Aggregate::name_iter
-     - Beginning of a range of unique names of symbols pointing to this function.
-   * - mangled_names_end
-     - Aggregate::name_iter
-     - End of a range of symbols pointing to this function.
-   * - pretty_names_begin
-     - Aggregate::name_iter
-     - As above, but prettified with the demangler.
-   * - pretty_names_end
-     - Aggregate::name_iter
-     - As above, but prettified with the demangler.
-   * - typed_names_begin
-     - Aggregate::name_iter
-     - As above, but including full type strings.
-   * - typed_names_end
-     - Aggregate::name_iter
-     - As above, but including full type strings.
-   * - getRegion
-     - Region *
-     - Region containing this function
-   * - getReturnType
-     - Type *
-     - Type representing the return type of the function.
+  .. cpp:member:: FunctionBase *container
 
-.. code-block:: cpp
+      The function to which this range belongs.
 
-    bool getSymbols(vector<Symbol *> &syms) const
+  .. cpp:member:: Dyninst::Offset off
 
-This method returns the vector of ``Symbol``\ s that refer to the
-function.
+      The starting position of this range.
 
-.. code-block:: cpp
+  .. cpp:member:: unsigned long size
 
-    bool setModule (Module *module)
+      The size in *bytes* of this range.
 
-This function changes the module to which the function belongs to
-``module``. Returns ``true`` if it succeeds.
+  .. cpp:function:: FuncRange(Dyninst::Offset off_, size_t size_, FunctionBase *cont_)
 
-.. code-block:: cpp
+      Creates a range starting at ``off_`` of ``size_`` bytes owned by ``cont``.
 
-    bool setSize (unsigned size)
+  .. cpp:function:: Dyninst::Offset low() const
 
-This function changes the size of the function to ``size``. Returns
-``true`` if it succeeds.
+      Returns the :cpp:member:`lower bound <off>` of the code region of this function.
 
-.. code-block:: cpp
+  .. cpp:function:: Dyninst::Offset high() const
 
-    bool setOffset (Offset offset)
+      Returns the upper bound of the code region of this function.
 
-The method changes the offset of the function to ``offset``. Returns
-``true`` if it succeeds.
+      This is :cpp:member:`off` ``+`` :cpp:member:`size`.
 
-.. code-block:: cpp
 
-    bool addMangledName(string name, bool isPrimary)
+.. cpp:class:: Function : public FunctionBase, public Aggregate
 
-This method adds a mangled name ``name`` to the function. If
-``isPrimary`` is ``true`` then it becomes the default name for the
-function. This method returns ``true`` on success and ``false`` on
-failure.
+  **A collection of symbols that have the same address and a type of ST_FUNCTION**
 
-.. code-block:: cpp
+  When appropriate, use this representation instead of the underlying :cpp:class:`Symbol`\ s.
 
-    bool addPrettyName(string name, bool isPrimary)
+  .. note::
 
-This method adds a pretty name ``name`` to the function. If
-``isPrimary`` is ``true`` then it becomes the default name for the
-function. This method returns ``true`` on success and ``false`` on
-failure.
+    This class can be derived from (e.g., ParseAPI::PLTFunction), but does not create an
+    interface separate from FunctionBase.
 
-.. code-block:: cpp
+  .. cpp:function:: Function()
 
-    bool addTypedName(string name, bool isPrimary)
+      Creates a skeleton function with no return type, variables, or associated code.
 
-This method adds a typed name ``name`` to the function. If ``isPrimary``
-is ``true`` then it becomes the default name for the function. This
-method returns ``true`` on success and ``false`` on failure.
+  .. cpp:function:: Function(Symbol *sym)
 
-.. code-block:: cpp
+      Creates a function representation of ``sym``.
 
-    bool getLocalVariables(vector<localVar *> &vars)
+  .. cpp:function:: virtual ~Function()
 
-This method returns the local variables in the function. ``vars``
-contains the list of variables found. If there is no debugging
-information present then it returns ``false`` with the error code set to
-``NO_DEBUG_INFO`` accordingly. Otherwise it returns ``true``.
+  .. cpp:function:: unsigned getSymbolSize() const
 
-.. code-block:: cpp
-    
-    std::vector<VariableLocation> &getFramePtr()
+      Returns the size of the underlying :cpp:class:`Symbol`.
 
-This method returns a list of frame pointer offsets (abstract top of the
-stack) for the function. See the ``VariableLocation`` class description
-for more information.
+  .. cpp:function:: unsigned getSize() const
 
-.. code-block:: cpp
+      See :cpp:func:`FunctionBase::getSize`.
 
-    bool getParams(vector<localVar *> &params)
+  .. cpp:function:: std::string getName() const
 
-This method returns the parameters to the function. ``params`` contains
-the list of parameters. If there is no debugging information present
-then it returns ``false`` with the error code set to ``NO_DEBUG_INFO``
-accordingly. Returns ``true`` on success.
+      See :cpp:func:`FunctionBase::getName`.
 
-.. code-block:: cpp
+  .. cpp:function:: Offset getOffset() const
 
-    bool findLocalVariable(vector<localVar *> &vars, string name)
+      See :cpp:func:`FunctionBase::getOffset`.
 
-This method returns a list of local variables within a function that
-have name ``name``. ``vars`` contains the list of variables found.
-Returns ``true`` on success and ``false`` on failure.
+  .. cpp:function:: Module* getModule() const
 
-.. _InlinedFunction:
+      See :cpp:func:`FunctionBase::getModule`.
 
-Class InlinedFunction
----------------------
 
-The ``InlinedFunction`` class represents an inlined function, as found
-in DWARF information. Its interface is almost entirely inherited from
-``FunctionBase``.
+.. cpp:class:: InlinedFunction : public FunctionBase
 
-.. code-block:: cpp
+  **An inlined function as found in DWARF information**
 
-    std::pair<std::string, Dyninst::Offset> getCallsite()
+  .. cpp:function:: InlinedFunction(FunctionBase *parent)
 
-Returns the file and line corresponding to the call site of an inlined
-function.
+      Creates a function inlined into ``parent``.
+
+  .. cpp:function:: virtual ~InlinedFunction()
+
+  .. cpp:function:: std::pair<std::string, Dyninst::Offset> getCallsite()
+
+      Returns the file and line corresponding to the call site of an inlined function.
+
+  .. cpp:function:: unsigned getSize() const
+
+      See :cpp:func:`FunctionBase::getSize`.
+
+  .. cpp:function:: std::string getName() const
+
+      See :cpp:func:`FunctionBase::getName`.
+
+  .. cpp:function:: Offset getOffset() const
+
+      See :cpp:func:`FunctionBase::getOffset`.
+
+  .. cpp:function:: Module* getModule() const
+
+      See :cpp:func:`FunctionBase::getModule`.
