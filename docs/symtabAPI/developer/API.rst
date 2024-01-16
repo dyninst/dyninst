@@ -28,4 +28,5 @@ SymtabAPI
   Object-nt.h
   Region.h
   relocationEntry.h
+  Statement.h
   Type-mem.h

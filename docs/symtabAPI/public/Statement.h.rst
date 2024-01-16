@@ -3,32 +3,45 @@
 Statement.h
 ###########
 
-.. cpp:namespace:: Dyninst
+.. cpp:namespace:: Dyninst::SymtabAPI
 
-Class Statement
----------------
+.. cpp:class:: Statement : public AddressRange
 
-A ``Statement`` is the base representation of line information.
+  **The base representation of line information**
 
-=========== ============ ==========================================
-Method name Return type  Method description
-=========== ============ ==========================================
-startAddr   Offset       Starting address of this line in the file.
-endAddr     Offset       Ending address of this line in the file.
-getFile     std::string  File that contains the line.
-getLine     unsigned int Line number.
-getColumn   unsigned int Starting column number.
-=========== ============ ==========================================
+  .. attention:: Users should not create or modify statements.
 
-For backwards compatibility, this class may also be referred to as a
-``LineNoTuple``, and provides the following legacy member variables.
-They should not be used and will be removed in a future version of
-SymtabAPI.
+  .. cpp:type:: Statement *Ptr
+  .. cpp:type:: const Statement *ConstPtr
 
-====== ============= ========================
-Member Return type   Method description
-====== ============= ========================
-first  const char *  Equivalent to getFile.
-second unsigned int  Equivalent to getLine.
-column unsigned int  Equivalent to getColumn.
-====== ============= ========================
+  .. cpp:function:: Statement()
+
+      Creates an empty statement covering no addresses.
+
+  .. cpp:function:: Offset startAddr() const
+
+      Returns the starting address of this line in the file.
+
+  .. cpp:function:: Offset endAddr() const
+
+      Returns the ending address of this line in the file.
+
+  .. cpp:function:: const std::string &getFile() const
+
+      Returns the name of the file that contains the statement.
+
+  .. cpp:function:: unsigned int getLine() const
+
+      Returns the line number for this statement.
+
+  .. cpp:function:: unsigned int getColumn() const
+
+      Returns the starting column number for this statement.
+
+
+Notes
+=====
+
+.. cpp:type:: Statement LineNoTuple
+
+  For backwards compatibility only. Do not use in new code.
