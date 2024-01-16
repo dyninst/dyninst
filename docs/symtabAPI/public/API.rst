@@ -15,7 +15,6 @@ SymtabAPI
   RangeLookup.h
   Region.h
   Statement.h
-  StringTable.h
   Symbol.h
   Symtab.h
   SymtabReader.h
