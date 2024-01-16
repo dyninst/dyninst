@@ -1,209 +1,188 @@
+.. _`sec:Region.h`:
+
 Region.h
-========
+########
 
 .. cpp:namespace:: Dyninst::SymtabAPI
 
-Class Region
-------------
+.. cpp:class:: Region : public AnnotatableSparse
 
-This class represents a contiguous range of code or data as encoded in
-the object file. For ELF, regions represent ELF sections.
+  **A contiguous range of code or data as encoded in an object file**
 
-.. container:: center
+  For ELF, regions represent ELF sections.
 
-   ====== ===============
-   perm_t Meaning
-   ====== ===============
-   RP_R   Read-only data
-   RP_RW  Read/write data
-   RP_RX  Read-only code
-   RP_RWX Read/write code
-   ====== ===============
+  .. attention:: Users should not create or manipulate regions.
 
-.. container:: center
+  .. cpp:function:: Region()
 
-   +-----------------+---------------------------------------------------+
-   | RegionType      | Meaning                                           |
-   +=================+===================================================+
-   | RT_TEXT         | Executable code                                   |
-   +-----------------+---------------------------------------------------+
-   | RT_DATA         | Read/write data                                   |
-   +-----------------+---------------------------------------------------+
-   | RT_TEXTDATA     | Mix of code and data                              |
-   +-----------------+---------------------------------------------------+
-   | RT_SYMTAB       | Static symbol table                               |
-   +-----------------+---------------------------------------------------+
-   | RT_STRTAB       | String table used by the symbol table             |
-   +-----------------+---------------------------------------------------+
-   | RT_BSS          | 0-initialized memory                              |
-   +-----------------+---------------------------------------------------+
-   | RT_SYMVERSIONS  | Versioning information for symbols                |
-   +-----------------+---------------------------------------------------+
-   | RT_SYMVERDEF    | Versioning information for symbols                |
-   +-----------------+---------------------------------------------------+
-   | RT_SYMVERNEEDED | Versioning information for symbols                |
-   +-----------------+---------------------------------------------------+
-   | RT_REL          | Relocation section                                |
-   +-----------------+---------------------------------------------------+
-   | RT_RELA         | Relocation section                                |
-   +-----------------+---------------------------------------------------+
-   | RT_PLTREL       | Relocation section for PLT (inter-library         |
-   |                 | references) entries                               |
-   +-----------------+---------------------------------------------------+
-   | RT_PLTRELA      | Relocation section for PLT (inter-library         |
-   |                 | references) entries                               |
-   +-----------------+---------------------------------------------------+
-   | RT_DYNAMIC      | Decription of library dependencies                |
-   +-----------------+---------------------------------------------------+
-   | RT_HASH         | Fast symbol lookup section                        |
-   +-----------------+---------------------------------------------------+
-   | RT_GNU_HASH     | GNU-specific fast symbol lookup section           |
-   +-----------------+---------------------------------------------------+
-   | RT_OTHER        | Miscellaneous information                         |
-   +-----------------+---------------------------------------------------+
+  .. cpp:function:: bool operator== (const Region &reg)
+
+      Checks if this region is equal to ``reg``.
+
+      Two regions are equal if
+
+  .. cpp:function:: unsigned getRegionNumber() const
+
+      Returns the index of the region in the file, starting at 0.
+
+  .. cpp:function:: std::string getRegionName() const
+
+      Returns the name of the region (e.g., .text, .data, etc.).
+
+  .. cpp:function:: Offset getDiskOffset() const
+
+      Returns the offset within the file where the region begins.
+
+  .. cpp:function:: unsigned long getDiskSize() const
+
+      Returns the size  in **bytes** of the region's data in the on-disk file.
+
+  .. cpp:function:: unsigned long getFileOffset()
+
+  .. cpp:function:: Offset getMemOffset() const
+
+      Returns the location where the region will be loaded into memory, modified by the file's
+      base load address.
+
+  .. cpp:function:: unsigned long getMemSize() const
+
+      Returns the size **in bytes** of the region in memory, including zero padding.
+
+  .. cpp:function:: unsigned long getMemAlignment() const
+
+  .. cpp:function:: bool isBSS() const
+
+      Checks if this region is for uninitialized data (zero disk size, non-zero memory size).
+
+  .. cpp:function:: bool isText() const
+
+      Checks if this region is for executable code.
+
+  .. cpp:function:: bool isData() const
+
+      Checks if this region is for initialized data.
+
+  .. cpp:function:: bool isTLS() const
+
+      Checks if this region is for thread-local storage.
+
+  .. cpp:function:: bool isOffsetInRegion(const Offset &offset) const
+
+      Return ``true`` if the offset falls within the region data.
+
+  .. cpp:function:: bool isLoadable() const
+
+      Checks if this region will be loaded into memory (e.g., code or data).
+
+  .. cpp:function:: bool isStandardCode()
+
+      Checks if this region conforms to the platform-specific (e.g., ELF, PE) notion of a code region.
+
+  .. cpp:function:: perm_t getRegionPermissions() const
+
+      Returns the permissions for the region.
+
+  .. cpp:function:: RegionType getRegionType() const
+
+      Returns the type of this region.
+
+  .. cpp:function:: std::ostream& operator<< (std::ostream &os)
+
+      Writes a string representation of this region to the stream ``os``.
+
+  .. cpp:function:: static const char *permissions2Str(perm_t p)
+
+      Returns a string representation of ``p``.
+
+  .. cpp:function:: static const char *regionType2Str(RegionType r)
+
+      Returns a string representation of ``p``.
 
 
-.. list-table::
-   :widths: 30  35 35
-   :header-rows: 1
+.. cpp:enum:: Region::perm_t
 
-   * - Method name
-     - Return type
-     - Method description
-   * - getRegionNumber
-     - unsigned
-     - Index of the region in the file, starting at 0.
-   * - getRegionName
-     - std::string
-     - Name of the region (e.g., .text, .data).
-   * - getPtrToRawData
-     - void *
-     - Read-only pointer to the region's raw data buffer.
-   * - getDiskOffset
-     - Offset
-     - Offset within the file where the region begins.
-   * - getDiskSize
-     - unsigned long
-     - Size of the region's data in the file.
-   * - getMemOffset
-     - Offset
-     - Location where the region will be loaded into memory, modified by the file's base load address.
-   * - getMemSize
-     - unsigned long
-     - Size of the region in memory, including zero padding.
-   * - isBSS
-     - bool
-     - Type query for uninitialized data regions (zero disk size, non-zero memory size).
-   * - isText
-     - bool
-     - Type query for executable code regions.
-   * - isData
-     - bool
-     - Type query for initialized data regions.
-   * - getRegionPermissions
-     - perm_t
-     - Permissions for the region; perm_t is defined above.
-   * - getRegionType
-     - RegionType
-     - Type of the region as defined above.
-   * - isLoadable
-     - bool
-     - True if the region will be loaded into memory (e.g., code or data) false otherwise (e.g., debug information).
-   * - isDirty
-     - bool
-     - True if the region's raw data buffer has been modified by the user.
+  .. cpp:enumerator:: RP_R
 
-.. code-block:: cpp
+    Read-only data
 
-    static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType, unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0, std::string name = "", char *rawDataPtr = NULL, bool isLoadable = false, bool isTLS = false, unsigned long memAlign =sizeof(unsigned))
+  .. cpp:enumerator:: RP_RW
 
-This factory method creates a new region with the provided arguments.
-The ``memOff`` and ``memSize`` parameters identify where the region
-should be loaded in memory (modified by the base address of the file);
-if ``memSize`` is larger than ``diskSize`` the remainder will be
-zero-padded (e.g., bss regions).
+    Read/write data
 
-.. code-block:: cpp
+  .. cpp:enumerator:: RP_RX
 
-    bool isOffsetInRegion(const Offset &offset) const
+    Read-only code
 
-Return ``true`` if the offset falls within the region data.
+  .. cpp:enumerator:: RP_RWX
 
-.. code-block:: cpp
+    Read/write code
 
-    void setRegionNumber(unsigned index) const
+.. cpp:enum:: Region::RegionType
 
-Sets the region index; the value must not overlap with any other regions
-and is not checked.
+  .. cpp:enumerator:: RT_TEXT
 
-.. code-block:: cpp
+    Executable code
 
-    bool setPtrToRawData(void *newPtr, unsigned long rawsize)
+  .. cpp:enumerator:: RT_DATA
 
-Set the raw data pointer of the region to ``newPtr``. ``rawsize``
-represents the size of the raw data buffer. Returns ``true`` if success
-or ``false`` when unable to set/change the raw data of the region.
-Implicitly changes the disk and memory sizes of the region.
+    Read/write data
 
-.. code-block:: cpp
+  .. cpp:enumerator:: RT_TEXTDATA
 
-    bool setRegionPermissions(perm_t newPerms)
+    Mix of code and data
 
-This sets the regions permissions to ``newPerms``. Returns ``true`` on
-success.
+  .. cpp:enumerator:: RT_SYMTAB
 
-.. code-block:: cpp
+    Static symbol table
 
-    bool setLoadable(bool isLoadable)
+  .. cpp:enumerator:: RT_STRTAB
 
-This method sets whether the region is loaded into memory at load time.
-Returns ``true`` on success.
+    String table used by the symbol table
 
-.. code-block:: cpp
+  .. cpp:enumerator:: RT_BSS
 
-    bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned
-    long relType, Region::RegionType rtype = Region::RT_REL)
+    0-initialized memory
 
-Creates and adds a relocation entry for this region. The symbol
-``dynref`` represents the symbol used by he relocation, ``relType`` is
-the (platform-specific) relocation type, and ``rtype`` represents
-whether the relocation is REL or RELA (ELF-specific).
+  .. cpp:enumerator:: RT_SYMVERSIONS
 
-.. code-block:: cpp
+    Versioning information for symbols
 
-    vector<relocationEntry> &getRelocations()
+  .. cpp:enumerator:: RT_SYMVERDEF
 
-Get the vector of relocation entries that will modify this region. The
-vector should not be modified.
+    Versioning information for symbols
 
-.. code-block:: cpp
+  .. cpp:enumerator:: RT_SYMVERNEEDED
 
-    bool addRelocationEntry(const relocationEntry& rel)
+    Versioning information for symbols
 
-Add the provided relocation entry to this region.
+  .. cpp:enumerator:: RT_REL
 
-.. code-block:: cpp
+    Relocation section
 
-    bool patchData(Offset off, void *buf, unsigned size);
+  .. cpp:enumerator:: RT_RELA
 
-Patch the raw data for this region. ``buf`` represents the buffer to be
-patched at offset ``off`` and size ``size``.
+    Relocation section
 
-REMOVED
-~~~~~~~
+  .. cpp:enumerator:: RT_PLTREL
 
-The following methods were removed since they were inconsistent and
-dangerous to use.
+    Relocation section for PLT (inter-library references) entries
 
-.. code-block:: cpp
+  .. cpp:enumerator:: RT_PLTRELA
 
-    Offset getRegionAddr() const
+    Relocation section for PLT (inter-library references) entries
 
-Please use ``getDiskOffset`` or ``getMemOffset`` instead, as
-appropriate.
+  .. cpp:enumerator:: RT_DYNAMIC
 
-.. code-block:: cpp
+    Decription of library dependencies
 
-    unsigned long getRegionSize() const
+  .. cpp:enumerator:: RT_HASH
 
-Please use ``getDiskSize`` or ``getMemSize`` instead, as appropriate.
+    Fast symbol lookup section
+
+  .. cpp:enumerator:: RT_GNU_HASH
+
+    GNU-specific fast symbol lookup section
+
+  .. cpp:enumerator:: RT_OTHER
+
+    Miscellaneous information

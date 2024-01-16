@@ -26,4 +26,5 @@ SymtabAPI
   Object-elf.h
   Object.h
   Object-nt.h
+  Region.h
   Type-mem.h
