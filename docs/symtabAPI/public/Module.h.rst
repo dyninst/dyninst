@@ -1,234 +1,170 @@
+.. _`sec:Module.h`:
+
 Module.h
-========
+########
 
 .. cpp:namespace:: Dyninst::SymtabAPI
 
-Class Module
-------------
+.. cpp:type:: SimpleInterval<Offset, Module*> ModRange
 
-This class represents the concept of a single source file. Currently,
-Modules are only identified for the executable file; each shared library
-is made up of a single Module, ignoring any source file information that
-may be present.
+.. cpp:class:: Module : public LookupInterface
 
-.. container:: center
+  **Represents the concept of a single source file**
 
-   ============================== ==============================
-   supportedLanguages             Meaning
-   ============================== ==============================
-   lang_Unknown                   Unknown source language
-   lang_Assembly                  Raw assembly code
-   lang_C                         C source code
-   lang_CPlusPlus                 C++ source code
-   lang_GnuCPlusPlus              C++ with GNU extensions
-   lang_Fortran                   Fortran source code
-   lang_Fortran_with_pretty_debug Fortran with debug annotations
-   lang_CMFortran                 Fortran with CM extensions
-   ============================== ==============================
+  .. cpp:function:: Module()
 
-.. list-table::
-   :widths: 30  35 35
-   :header-rows: 1
+      Creates an empty module with no associated file.
 
-   * - Method name
-     - Return type
-     - Method description
-   * - isShared
-     - bool
-     - True if the module is for a shared library, false for an executable.
-   * - fullName
-     - std::string &
-     - Name, including path, of the source file represented by the module.
-   * - fileName
-     - std::string &
-     - Name, not including path, of the source file represented by the module.
-   * - language
-     - supportedLanguages
-     - The source language used by the Module.
-   * - addr
-     - Offset
-     - Offset of the start of the module, as reported by the symbol table, assuming contiguous modules.
-   * - exec
-     - Symtab *
-     - Symtab object that contains the module.
-     
- 
-Function, Variable, Symbol lookup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  .. cpp:function:: Module(supportedLanguages lang, Offset addr, std::string fullNm, Symtab *img)
 
-.. code-block:: cpp
+      Creates a module in ``img`` associated with the file ``fullNm``, starting at offset ``addr``, and
+      the source language ``lang``.
 
-   bool findFunctionByEntryOffset(Function *&ret, const Offset offset)
+  .. cpp:function:: bool operator==(Module &mod)
 
-This method returns the ``Function`` object that begins at ``offset``.
-Returns ``true`` on success and ``false`` if there is no matching
-function. The error value is set to ``No_Such_Function``.
+      Checks if this module is equal to ``mod``.
 
-.. code-block:: cpp
+      Two modules are equal if they have the same :cpp:func:`fileName`, :cpp:func:`address <addr>`,
+      and :cpp:func:`language`.
 
-    typedef enum mangledName, prettyName, typedName, anyName NameType;
-    bool findFunctionsByName(vector<Function> &ret, const string name, Symtab::NameType nameType = anyName, bool isRegex = false, bool checkCase = true)
+  .. cpp:function:: const std::string &fileName() const
 
-This method finds and returns a vector of ``Functions`` whose names
-match the given pattern. The ``nameType`` parameter determines which
-names are searched: mangled, pretty, typed, or any. If the ``isRegex``
-flag is set a regular expression match is performed with the symbol
-names. ``checkCase`` is applicable only if ``isRegex`` has been set.
-This indicates if the case be considered while performing regular
-expression matching. ``ret`` contains the list of matching
-``Function``\ s, if any. Returns ``true`` if it finds functions that
-match the given name, otherwise returns ``false``. The error value is
-set to ``No_Such_Function``.
+      Alias for :cpp:func:`fullName`.
 
-.. code-block:: cpp
+  .. cpp:function:: const std::string &fullName() const
 
-    bool getAllFunctions(vector<Function *> &ret)
+      Name of the source file represented by the module.
 
-This method returns all functions in the object file. Returns ``true``
-on success and ``false`` if there are no modules. The error value is set
-to ``No_Such_Function``.
+  .. cpp:function:: supportedLanguages language() const
 
-.. code-block:: cpp
+      The source language used by the module.
 
-    bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset)
+  .. cpp:function:: Offset addr() const
 
-This method returns a vector of ``Variable``\ s with the specified
-offset. There may be more than one variable at an offset if they have
-different sizes. Returns ``true`` on success and ``false`` if there is
-no matching variable. The error value is set to ``No_Such_Variable``.
+      Returns the offset of the start of the module as reported by the symbol table assuming contiguous modules.
 
-.. code-block:: cpp
+  .. cpp:function:: bool isShared() const
 
-    bool findVariablesByName(vector<Function> &ret, const string &name, Symtab::NameType nameType, bool isRegex = false, bool checkCase = true)
+      Checks if the module is for a shared library.
 
-This method finds and returns a vector of ``Variable``\ s whose names
-match the given pattern. The ``nameType`` parameter determines which
-names are searched: mangled, pretty, typed, or any (note: a ``Variable``
-may not have a typed name). If the ``isRegex`` flag is set a regular
-expression match is performed with the symbol names. ``checkCase`` is
-applicable only if ``isRegex`` has been set. This indicates if the case
-be considered while performing regular expression matching. ``ret``
-contains the list of matching ``Variables``, if any. Returns ``true`` if
-it finds variables that match the given name, otherwise returns
-``false``. The error value is set to ``No_Such_Variable``.
+  .. cpp:function:: virtual bool findSymbol(std::vector<Symbol*> &ret, const std::string &name, Symbol::SymbolType sType = Symbol::ST_UNKNOWN, \
+                                            NameType nameType = anyName, bool isRegex = false, bool checkCase = false, bool includeUndefined = false)
 
-.. code-block:: cpp
+      Searches for a symbols withname ``name``, type ``sType``, and type of name ``nameType`` and stores them in ``ret``. If ``isRegex`` is ``true``,
+      then ``name`` is treated as a regular expression. If ``checkCase`` and ``isRegex`` are ``true``, then ``name`` is compared using a case-sensitive match.
+      If ``includeUndefined`` is ``true``, then symbols without a definition are also included.
 
-    bool getAllSymbols(vector<Symbol *> &ret)
+      Returns ``true`` if at least one symbol was found.
 
+  .. cpp:function:: virtual bool getAllSymbolsByType(std::vector<Symbol*> &ret, Symbol::SymbolType sType)
 
-This method returns all symbols. Returns ``true`` on success and
-``false`` if there are no symbols. The error value is set to
-``No_Such_Symbol``.
+      Returns all symbols in ``ret`` with type ``sType``.
 
-.. code-block:: cpp
+      Returns ``true`` if at least one symbol was found.
 
-    bool getAllSymbolsByType(vector<Symbol *> &ret, Symbol::SymbolType sType)
+  .. cpp:function:: virtual bool getAllSymbols(std::vector<Symbol*> &ret)
 
-This method returns all symbols whose type matches the given type
-``sType``. Returns ``true`` on success and ``false`` if there are no
-symbols with the given type. The error value is set to
-``No_Such_Symbol``.
+      Returns in ``ret`` all symbols contained in this module.
 
-.. _line-number-information-1:
+      Returns ``true`` if at least one symbol was found.
 
-Line number information for Symtab
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  .. cpp:function:: std::vector<Function*> getAllFunctions() const
 
-.. code-block:: cpp
+      Returns all functions in this module.
 
-    bool getAddressRanges(vector<pair<unsigned long, unsigned long> > & ranges, string lineSource, unsigned int lineNo)
+  .. cpp:function:: bool findVariablesByOffset(std::vector<Variable*> &ret, const Offset offset)
 
-This method returns the address ranges in ``ranges`` corresponding to
-the line with line number ``lineNo`` in the source file ``lineSource``.
-Searches only this module for the given source. Return ``true`` if at
-least one address range corresponding to the line number was found and
-returns false if none found.
+      Searches for variables with offset ``offset`` and stores them in ``ret``.
 
-.. code-block:: cpp
+      Returns ``true`` if at least one variable was found.
 
-    bool getSourceLines(vector<Statement *> &lines, Offset addressInRange)
+  .. cpp:function:: bool findVariablesByName(std::vector<Variable*> &ret, const std::string &name,\
+                                             NameType nameType = anyName, bool isRegex = false, bool checkCase = true)
 
-This method returns the source file names and line numbers corresponding
-to the given address ``addressInRange``. Searches only this module for
-the given source. Return ``true`` if at least one tuple corresponding to
-the offset was found and returns ``false`` if none found. The
-``Statement`` class used to be named ``LineNoTuple``; backwards
-compatibility is provided via typedef.
+      Searches for all variables in the same was as :cpp:func:`findSymbol`.
 
-.. code-block:: cpp
+  .. cpp:function:: virtual bool findType(boost::shared_ptr<Type> &type, std::string name)
 
-    LineInformation *getLineInformation() const
+      Searches for a contained type with name ``name`` and stores it in ``type``.
 
-This method returns the line map (section `7.1 <#LineInformation>`__)
-corresponding to the module. Returns ``NULL`` if there is no line
-information existing for the module.
+      Returns ``true`` if at least one type was found.
 
-.. code-block:: cpp
+  .. cpp:function:: bool findType(Type*& t, std::string n)
 
-    bool getStatements(std::vector<Statement *> &statements)
+      Searches for a contained type with name ``n`` and stores it in ``t``.
 
-Returns all line information (section `7.2 <#Statement>`__) available
-for the module.
+      Returns ``true`` if at least one type was found.
 
-.. _`subsubsec:typeInfo`:
+  .. cpp:function:: virtual bool findVariableType(boost::shared_ptr<Type> &type, std::string name)
 
-Type information Symtab
-~~~~~~~~~~~~~~~~~~~~~~~
+  .. cpp:function:: bool findVariableType(Type *&t, std::string n)
 
-.. code-block:: cpp
+      This method looks up a global variable with name ``name`` and returns
+      its type attribute. Returns ``true`` if a variable is found or returns
+      ``false`` with ``type`` set to ``NULL``.
 
-    bool findType(Type * &type, string name)
+  .. cpp:function:: void getAllTypes(std::vector<boost::shared_ptr<Type>>& types)
 
-This method performs a look up and returns a handle to the named
-``type``. This method searches all the built-in types, standard types
-and user-defined types within the module. Returns ``true`` if a type is
-found with type containing the handle to the type, else return
-``false``.
+      Returns in ``types`` all types in this module.
 
-.. code-block:: cpp
+  .. cpp:function:: std::vector<Type*> *getAllTypes()
 
-    bool findLocalVariable(vector<localVar *> &vars, string name)
+      Returns all types in this module.
 
-The method returns a list of local variables within the module with name
-``name``. Returns ``true`` with vars containing a list of ``localVar``
-objects corresponding to the local variables if found or else returns
-``false``.
+  .. cpp:function:: void getAllGlobalVars(std::vector<std::pair<std::string, boost::shared_ptr<Type>>> &vars)
 
+      Returns in ``vars`` all global variables in the module.
 
-.. code-block:: cpp
- 
-    bool findVariableType(Type *&type, std::string name)
+      The first element of the returned type is the name of the variable, and the second is its type.
 
-This method looks up a global variable with name ``name`` and returns
-its type attribute. Returns ``true`` if a variable is found or returns
-``false`` with ``type`` set to ``NULL``.
+  .. cpp:function:: std::vector<std::pair<std::string, Type*>> *getAllGlobalVars()
 
+        Returns all global variables in the module.
 
-Class Statement
----------------
+        The first element of the returned type is the name of the variable, and the second is its type.
 
-A ``Statement`` is the base representation of line information.
+  .. cpp:function:: typeCollection *getModuleTypes()
 
-=========== ============ ==========================================
-Method name Return type  Method description
-=========== ============ ==========================================
-startAddr   Offset       Starting address of this line in the file.
-endAddr     Offset       Ending address of this line in the file.
-getFile     std::string  File that contains the line.
-getLine     unsigned int Line number.
-getColumn   unsigned int Starting column number.
-=========== ============ ==========================================
+        Returns all types contained in this module.
 
-For backwards compatibility, this class may also be referred to as a
-``LineNoTuple``, and provides the following legacy member variables.
-They should not be used and will be removed in a future version of
-SymtabAPI.
+  .. cpp:function:: bool findLocalVariable(std::vector<localVar*> &vars, std::string name)
 
-====== ============= ========================
-Member Return type   Method description
-====== ============= ========================
-first  const char *  Equivalent to getFile.
-second unsigned int  Equivalent to getLine.
-column unsigned int  Equivalent to getColumn.
-====== ============= ========================
+      Returns in ``vars`` the local variable with name ``name``.
+
+      Returns ``true`` if at least one variable was found.
+
+  .. cpp:function:: bool getAddressRanges(std::vector<AddressRange> &ranges, std::string lineSource, \
+                                          unsigned int LineNo)
+
+      Returns in ``ranges`` the address ranges corresponding to the line with line number ``lineNo``
+      in the source file ``lineSource``.
+
+      Returns ``true`` if at least one range was found.
+
+  .. cpp:function:: bool getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
+
+      Returns in ``lines`` the source file names and line numbers covering the address ``addressInRange``.
+
+      Returns ``true`` if at least one range was found.
+
+  .. cpp:function:: bool getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+
+      Returns in ``lines`` the source file names and line numbers covering the address ``addressInRange``.
+
+      Returns ``true`` if at least one range was found.
+
+  .. cpp:function:: bool getStatements(std::vector<Statement::Ptr> &statements)
+
+      Returns in ``statements`` all statements in this module.
+
+  .. cpp:function:: LineInformation *getLineInformation()
+
+      Returns the line map for this module.
+
+  .. cpp:function:: LineInformation *parseLineInformation()
+
+      Parses the line map information for this module.
+
+      By default, module construction does not parse the line information until it is needed
+      or explicitly requested (by call this function).
+

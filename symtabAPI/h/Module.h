@@ -72,7 +72,6 @@ namespace Dyninst { namespace SymtabAPI {
     bool isShared() const;
     ~Module();
 
-    // Symbol output methods
     virtual bool findSymbol(std::vector<Symbol *> &ret, const std::string &name,
                             Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                             NameType nameType = anyName, bool isRegex = false,
@@ -80,16 +79,13 @@ namespace Dyninst { namespace SymtabAPI {
     virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType sType);
     virtual bool getAllSymbols(std::vector<Symbol *> &ret);
 
-    // Function based methods
     std::vector<Function*> getAllFunctions() const;
 
-    // Variable based methods
     bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset);
     bool findVariablesByName(std::vector<Variable *> &ret, const std::string &name,
                              NameType nameType = anyName, bool isRegex = false,
                              bool checkCase = true);
 
-    // Type output methods
     virtual bool findType(boost::shared_ptr<Type> &type, std::string name);
 
     bool findType(Type *&t, std::string n) {
@@ -132,10 +128,8 @@ namespace Dyninst { namespace SymtabAPI {
 
     typeCollection *getModuleTypes();
 
-    /***** Local Variable Information *****/
     bool findLocalVariable(std::vector<localVar *> &vars, std::string name);
 
-    /***** Line Number Information *****/
     bool getAddressRanges(std::vector<AddressRange> &ranges, std::string lineSource,
                           unsigned int LineNo);
     bool getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange);
@@ -146,7 +140,6 @@ namespace Dyninst { namespace SymtabAPI {
 
     bool setDefaultNamespacePrefix(std::string str);
 
-    //  Super secret private methods that aren't really private
     typeCollection *getModuleTypesPrivate();
 
     void setModuleTypes(typeCollection *tc) { typeInfo_ = tc; }

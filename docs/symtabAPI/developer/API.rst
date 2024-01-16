@@ -22,6 +22,7 @@ SymtabAPI
   indexed_modules.h
   LineInformation.h
   LinkMap.h
+  Module.h
   Object-elf.h
   Object.h
   Object-nt.h
