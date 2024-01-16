@@ -14,7 +14,6 @@ SymtabAPI
   Module.h
   RangeLookup.h
   Region.h
-  relocationEntry.h
   Statement.h
   StringTable.h
   Symbol.h
