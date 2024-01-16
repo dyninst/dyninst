@@ -30,4 +30,5 @@ SymtabAPI
   relocationEntry.h
   Statement.h
   StringTable.h
+  Symbol.h
   Type-mem.h
