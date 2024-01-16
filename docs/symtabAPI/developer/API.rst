@@ -31,4 +31,5 @@ SymtabAPI
   Statement.h
   StringTable.h
   Symbol.h
+  SymtabReader.h
   Type-mem.h
