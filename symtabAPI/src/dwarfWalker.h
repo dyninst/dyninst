@@ -55,8 +55,6 @@ namespace Dyninst {
 namespace Dyninst {
 namespace SymtabAPI {
 
-// A restructuring of walkDwarvenTree
-
 class Symtab;
 class Module;
 class Object;
@@ -250,12 +248,8 @@ public:
 
     bool parse();
 
-    // Takes current debug state as represented by dbg_;
     bool parseModule(Dwarf_Die is_info, Module *&fixUnknownMod);
 
-    // Non-recursive version of parse
-    // A Context must be provided as an _input_ to this function,
-    // whereas parse creates a context.
     bool parse_int(Dwarf_Die entry, bool parseSiblings,
             bool dissociate_context=false);
     
@@ -288,28 +282,18 @@ private:
     bool parseConstPackedVolatile();
     bool parseTypeReferences();
 
-    // These vary as we parse the tree
-
-
-    // This is a handy scratch space that is cleared for each parse.
     std::string &curName() { return name_; }
     bool isMangledName() { return is_mangled_name_; }
     void setMangledName(bool b) { is_mangled_name_ = b; }
     bool nameDefined() { return name_ != ""; }
-    // These are invariant across a parse
 
     StringTablePtr srcFiles() { return mod()->getStrings(); }
 
-    // For functions and variables with a separate specification, a
-    // pointer to that spec. For everyone else, this points to entry
-    // We might be able to fold this into specEntry and call it
-    // "authoritativeEntry" or something.
     bool hasRanges() { return ranges() != NULL; }
     size_t rangesSize() { return ranges()->size(); }
     range_set_t::iterator ranges_begin() { return ranges()->begin(); }
     range_set_t::iterator ranges_end() { return ranges()->end(); }
 
-    // A printable ID for a particular entry
     unsigned long id() { return (unsigned long) (offset() - compile_offset); }
 public:
     static bool buildSrcFiles(Dwarf* dbg, Dwarf_Die entry, StringTablePtr strings);
@@ -382,13 +366,11 @@ private:
             Address * initialStackValue = NULL);
 
 
-    // Map of Function* to bool (indicates function parsed)
     std::shared_ptr<ParsedFuncs> parsedFuncs;
 private:
     std::string name_;
     bool is_mangled_name_;
 
-    // Per-module info
     Address modLow;
     Address modHigh;
     size_t  cu_header_length;
@@ -406,21 +388,15 @@ private:
     Dwarf_Word typeoffset;
     Dwarf_Word next_cu_header;
 
-    // For debugging purposes; to match dwarfdump's output,
-    // we need to subtract a "header overall offset".
     Dwarf_Off compile_offset;
 
     typedef dyn_c_hash_map<type_key, typeId_t> type_map;
-    // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
-    // either .debug_info or .debug_types.
-    type_map info_type_ids_; // .debug_info offset -> id
-    type_map types_type_ids_; // .debug_types offset -> id
+    type_map info_type_ids_;
+    type_map types_type_ids_;
 
-    // is_sup indicates it's in the dwarf supplemental file
     typeId_t get_type_id(Dwarf_Off offset, bool is_info, bool is_sup);
-    typeId_t type_id(); // get_type_id() for the current entry
+    typeId_t type_id();
 
-    // Map to connect DW_FORM_ref_sig8 to type IDs.
     dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_;
 
     bool parseModuleSig8(bool is_info);
