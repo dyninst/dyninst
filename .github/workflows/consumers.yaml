@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-         os: ['ubuntu-20.04']
+         os: ['ubuntu-23.10']
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
@@ -48,10 +48,10 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y git python3 libjson-c-dev
+          apt install -y git python3 libjson-c-dev m4 autoconf
       - name: Fetch systemtap
         run: |
-          git clone https://sourceware.org/git/systemtap.git
+          git clone --depth=1 https://sourceware.org/git/systemtap.git
       - name: Make symlinks
         run: |
           ln -s /dyninst/install/include /usr/include/dyninst
@@ -59,9 +59,10 @@ jobs:
       - name: Build systemtap
         run: |
           cd systemtap
+          autoreconf
           mkdir build
           cd build
-          ../configure --with-dyninst
+          ../configure --with-dyninst --without-python3-probes
           make -j2
 
   llnl-stat:
