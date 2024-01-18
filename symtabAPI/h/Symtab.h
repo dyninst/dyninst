@@ -91,13 +91,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    friend class relocationEntry;
    friend class Object;
 
-   // Hide implementation details that are complex or add large dependencies
    const std::unique_ptr<symtab_impl> impl;
 
  public:
 
 
-   /***** Public Member Functions *****/
    public:
    static void version(int& major, int& minor, int& maintenance);
 
@@ -130,12 +128,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                                      MemRegReader *reader);
    bool hasStackwalkDebugInfo();
 
-   /**************************************
-    *** LOOKUP FUNCTIONS *****************
-    **************************************/
-
-   // Symbol
-
    virtual bool findSymbol(std::vector<Symbol *> &ret, 
                                          const std::string& name,
                                          Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
@@ -150,14 +142,10 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    std::vector<Symbol *> findSymbolByOffset(Offset);
 
-   // Return all undefined symbols in the binary. Currently used for finding
-   // the .o's in a static archive that have definitions of these symbols
    bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
 
-   // Inversely, return all non-undefined symbols in the binary
    bool getAllDefinedSymbols(std::vector<Symbol *> &ret);
 
-   // Function
 
    bool findFuncByEntryOffset(Function *&ret, const Offset offset);
    bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
@@ -167,20 +155,16 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getAllFunctions(std::vector<Function *>&ret);
    const std::vector<Function*>& getAllFunctionsRef() const { return everyFunction; }
 
-   //Searches for functions without returning inlined instances
    bool getContainingFunction(Offset offset, Function* &func);
-   //Searches for functions and returns inlined instances
+
    bool getContainingInlinedFunction(Offset offset, FunctionBase* &func);
 
-   // Variable
    bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset);
    bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
                                           NameType nameType = anyName, 
                                           bool isRegex = false, 
                                           bool checkCase = true);
    bool getAllVariables(std::vector<Variable *> &ret);
-
-   // Module
 
    bool getAllModules(std::vector<Module *>&ret);
    DYNINST_DEPRECATED("Use findModulesByOffset(Offset)") bool findModuleByOffset(Module *& ret, Offset off);
@@ -189,32 +173,24 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Module *getDefaultModule() const;
    Module* getContainingModule(Offset offset) const;
 
-   // Region
-
    bool getCodeRegions(std::vector<Region *>&ret);
    bool getDataRegions(std::vector<Region *>&ret);
    bool getAllRegions(std::vector<Region *>&ret);
    bool getAllNewRegions(std::vector<Region *>&ret);
-   //  change me to use a hash
+
    bool findRegion(Region *&ret, std::string regname);
    bool findRegion(Region *&ret, const Offset addr, const unsigned long size);
    bool findRegionByEntry(Region *&ret, const Offset offset);
    Region *findEnclosingRegion(const Offset offset);
 
-   // Exceptions
    bool findException(ExceptionBlock &excp,Offset addr);
    bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
    bool findCatchBlock(ExceptionBlock &excp, Offset addr, 
          unsigned size = 0);
 
-   // Relocation entries
    bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
    bool findPltEntryByTarget(Address target_address, relocationEntry &result) const;
    bool updateFuncBindingTable(Offset stub_addr, Offset plt_addr);
-
-   /**************************************
-    *** SYMBOL ADDING FUNCS **************
-    **************************************/
 
    bool addSymbol(Symbol *newsym);
    bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
@@ -225,7 +201,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool deleteVariable(Variable *var);
 
 
-   /*****Query Functions*****/
    bool isExec() const;
    bool isExecutable() const;
    bool isSharedLibrary() const;
@@ -238,7 +213,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 
-   /***** Line Number Information *****/
    bool getAddressRanges(std::vector<AddressRange> &ranges,
                          std::string lineSource, unsigned int LineNo);
    bool getSourceLines(std::vector<Statement::Ptr> &lines,
@@ -248,7 +222,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
    
-   /***** Type Information *****/
    virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
    bool findType(Type*& t, std::string n) {
      boost::shared_ptr<Type> tp;
@@ -290,10 +263,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    void parseTypesNow();
 
-   /***** Local Variable Information *****/
    bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
-   /***** Relocation Sections *****/
    bool hasRel() const;
    bool hasRela() const;
    bool hasReldyn() const;
@@ -303,7 +274,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    
    bool isStaticBinary() const;
 
-   /***** Write Back binary functions *****/
    bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
    bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
          std::string name, Region::RegionType rType_, bool loadable = false,
@@ -337,7 +307,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
-   /***** Data Member Access *****/
    std::string file() const;
    std::string name() const;
    std::string memberName() const;
@@ -381,7 +350,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    Archive *getParentArchive() const;
 
-   /***** Error Handling *****/
    static SymtabError getLastSymtabError();
    static void setSymtabError(SymtabError new_err);
    static std::string printError(SymtabError serr);
@@ -389,14 +357,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
 
-   /***** Private Member Functions *****/
    private:
 
    Symtab(std::string filename, bool defensive_bin, bool &err);
 
    bool extractInfo(Object *linkedFile);
-
-   // Parsing code
 
    bool extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms);
 
@@ -414,7 +379,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
 
-   // Change the type of a symbol after the fact
    bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 
    bool deleteSymbolFromIndices(Symbol *sym);
@@ -459,7 +423,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool addUserType(Type *newtypeg);
 
    void setTOCOffset(Offset offset);
-   /***** Private Data Members *****/
+
    private:
 
    static boost::shared_ptr<typeCollection> setupStdTypes();

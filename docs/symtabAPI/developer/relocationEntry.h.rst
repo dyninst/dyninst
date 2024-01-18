@@ -57,3 +57,48 @@ relocationEntry.h
   .. cpp:enumerator:: relative
   .. cpp:enumerator:: jump_slot
   .. cpp:enumerator:: absolute
+
+relocationEntry
+---------------
+
+This class represents object relocation information.
+
+.. code-block:: cpp
+
+    Offset target_addr() const
+
+Specifies the offset that will be overwritten when relocations are
+processed.
+
+.. code-block:: cpp
+
+    Offset rel_addr() const
+
+Specifies the offset of the relocation itself.
+
+.. code-block:: cpp
+
+    Offset addend() const
+
+Specifies the value added to the relocation; whether this value is used
+or not is specific to the relocation type.
+
+.. code-block:: cpp
+
+    const std::string name() const
+
+Specifies the user-readable name of the relocation.
+
+.. code-block:: cpp
+
+    Symbol *getDynSym() const
+
+Specifies the symbol whose final address will be used in the relocation
+calculation. How this address is used is specific to the relocation
+type.
+
+.. code-block:: cpp
+
+    unsigned long getRelType() const
+
+Specifies the platform-specific relocation type.

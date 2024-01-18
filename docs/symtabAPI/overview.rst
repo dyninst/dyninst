@@ -280,6 +280,30 @@ useful because libraries can load at different addresses in different
 processes. Each AddressLookup instance is associated with, and provides
 mapping for, one process.
 
+
+.. _`sec:symtabapi-defensive`:
+
+Defensive binaries
+==================
+
+Code reuse attacks are an increasingly popular technique for circumventing tra-
+ditional program protection mechanisms such as W ``xor`` X (e.g., Data Execution
+Prevention (DEP)), and the security community has proposed a wide range of
+approaches to protect against these attacks. However, many of these approaches
+provide ad hoc solutions, relying on observed attack characteristics that are not
+intrinsic to the class of attacks. In the continuing arms race against code reuse
+attacks, we must construct defenses using a more systematic approach: good
+engineering practices must combine with the best security techniques.
+Any such approach must be engineered to cover the complete spectrum of
+attack surfaces. While more general defensive techniques, such as Control Flow
+2 Detecting Code Reuse Attacks
+Integrity or host-based intrusion detection, provide good technical solutions,
+each is lacking in one or more features necessary to provide a comprehensive
+and adoptable solution. We must develop defenses that can be effectively
+applied to real programs.
+
+See `Jacboson et al. 2014 <https://paradyn.org/papers/Jacobson14ROPStop.pdf>`_ for details.
+
 .. _symtabapi-usage:
 
 Usage
