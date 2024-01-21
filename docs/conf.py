@@ -51,7 +51,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Dyninst"
-copyright = "1996-2022, Barton P. Miller"
+copyright = "1996-2024, Barton P. Miller"
 
 # TODO this should be derived from somewhere
 version = "12.3.0"
