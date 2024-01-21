@@ -68,9 +68,6 @@ class rangedType;
 class derivedType;
 class TypeMemManager;
 
-//TODO?? class BPatch(to be  ??)function;
-
-
 typedef enum {dataEnum,
               dataPointer,
               dataFunction,
@@ -98,16 +95,6 @@ typedef enum {
    visUnknown
 } visibility_t;
 
-/*
- * visibility: Accessibility of member data and functions
- * These values follow the 'fieldname:' after the '/' identifier.
- * visPrivate   == 0 gnu Sun -- private
- * visProtected == 1 gnu Sun -- protected
- * visPublic    == 2 gnu Sun -- public
- * visUnknown visibility not known or doesn't apply(ANSIC), the default
- *
- */
- 
 SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 				  
 #define TYPE_ANNOTATABLE_CLASS AnnotatableDense
@@ -117,8 +104,7 @@ class SYMTAB_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
    friend class typeCollection;
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
    
-   boost::weak_ptr<Type> self_;  // For carrying the reference count across
-                                 // the older pointer-based API.
+   boost::weak_ptr<Type> self_;
 
    public:
    
@@ -141,25 +127,15 @@ class SYMTAB_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
      self_ = sp;
    }
 
-   // Maximum memory needed to store any of the possible Types.
    static const std::size_t max_size;
 
  protected:
-   typeId_t ID_;           /* unique ID of type */
+   typeId_t ID_;
    std::string name_;
-   unsigned int  size_;    /* size of type */
+   unsigned int  size_;
    dataClass   type_;
    
-   /**
-    * We set updatingSize to true when we're in the process of
-    * calculating the size of container structures.  This helps avoid
-    * infinite recursion for self referencial types.  Getting a
-    * self-referencial type probably signifies an error in another
-    * part of the type processing code (or an error in the binary).
-    **/
    bool updatingSize;
-
-   // INTERNAL DATA MEMBERS
 
 protected:
    virtual void updateSize() {}
@@ -179,7 +155,6 @@ public:
    virtual ~Type() = default;
    Type& operator=(const Type&) = default;
 
-   // Fake unique_ptr type. TODO: Replace with std::unique_ptr for C++11
    class unique_ptr_Type {
       Type* ptr;
    public:
@@ -189,9 +164,9 @@ public:
       }
       operator Type*() { return ptr; }
    };
-   // A few convenience functions
+
    static unique_ptr_Type createFake(std::string name);
-   /* Placeholder for real type, to be filled in later */
+
    static unique_ptr_Type createPlaceholder(typeId_t ID, std::string name = "");
    
    typeId_t getID() const;
@@ -201,8 +176,6 @@ public:
    bool setName(std::string);
    dataClass getDataClass() const;
 
-   //Methods to dynamically cast generic Type Object to specific types.
-   
    typeEnum *getEnumType();
    typePointer *getPointerType();
    typeFunction *getFunctionType();
@@ -238,7 +211,6 @@ public:
    inline typeArray& asArrayType();
    inline bool isArrayType();
 
-   //Helper Functions for getting & updating unique USER_TYPE_ID
    typeId_t getUniqueTypeId();
    void updateUniqueTypeId(typeId_t);
 };
@@ -257,7 +229,6 @@ class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
    visibility_t  vis_;
    int offset_;
 
-   /* Method vars */
  protected:
    void copy(Field &);
 
@@ -268,7 +239,6 @@ class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
    Field(std::string n, Type* t, int ov = -1, visibility_t v = visUnknown)
       : Field(n, t ? t->reshare() : nullptr, ov, v) {}
    
-   // Copy constructor
    Field(Field &f);
    virtual ~Field();
 
@@ -282,10 +252,6 @@ class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
    void fixupUnknown(Module *);
    virtual bool operator==(const Field &) const;
 };
-
-// Interfaces to be implemented by intermediate subtypes
-// We have to do this thanks to reference types and C++'s lovely 
-// multiple inheritance
 
 class SYMTAB_EXPORT fieldListInterface {
  public:
@@ -310,8 +276,6 @@ class SYMTAB_EXPORT derivedInterface{
    Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
 };
 
-// Intermediate types (interfaces + Type)
-
 class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface 
 {
  private:
@@ -320,7 +284,7 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
    dyn_c_vector<Field *> fieldList;
    dyn_c_vector<Field *> *derivedFieldList;
    fieldListType(std::string &name, typeId_t ID, dataClass typeDes);
-   /* Each subclass may need to update its size after adding a field */
+
  public:
    fieldListType();
    ~fieldListType();
@@ -333,7 +297,6 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
    
    virtual void postFieldInsert(int nsize) = 0;
    
-   /* Add field for C++ struct or union */
    void addField(std::string fieldname, boost::shared_ptr<Type> type, int offsetVal = -1, visibility_t vis = visUnknown);
    void addField(std::string n, Type* t, int ov = -1, visibility_t v = visUnknown) {
       addField(n, t->reshare(), ov, v);
@@ -385,12 +348,10 @@ class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
 derivedType& Type::asDerivedType() { return dynamic_cast<derivedType&>(*this); }
 bool Type::isDerivedType() { return dynamic_cast<derivedType*>(this) != NULL; }
 
-// Derived classes from Type
-
 class SYMTAB_EXPORT typeEnum : public derivedType {
  private:  
    dyn_c_vector<std::pair<std::string, int> > consts;
-   bool is_scoped_{false}; // C++11 scoped enum (i.e., 'enum class')?
+   bool is_scoped_{false};
  public:
    struct scoped_t final {};
    typeEnum() = default;
@@ -412,7 +373,7 @@ class SYMTAB_EXPORT typeFunction : public Type {
  protected:
    void fixupUnknowns(Module *);
  private:
-   boost::shared_ptr<Type> retType_; /* Return type of the function */
+   boost::shared_ptr<Type> retType_;
    dyn_c_vector<boost::shared_ptr<Type>> params_;
  public:
    typeFunction();
@@ -447,7 +408,6 @@ class SYMTAB_EXPORT typeScalar : public Type {
 public:
   struct properties_t {
 	  // Summary properties
-	  // NB: See DwarfWalker::parseBaseType for how these are computed
 	  bool is_integral;
 	  bool is_floating_point;
 	  bool is_string;
@@ -522,11 +482,7 @@ class SYMTAB_EXPORT CBlock : public AnnotatableSparse
 {
    friend class typeCommon;
  private:
-   // the list of fields
    dyn_c_vector<Field *> fieldList;
-
-   // which functions use this list
-   //  Should probably be updated to use aggregates
    dyn_c_vector<Symbol *> functions;
 
  public:

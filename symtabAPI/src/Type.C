@@ -76,9 +76,6 @@ void Type::updateUniqueTypeId(typeId_t id)
   }
 }
 
-/* These are the wrappers for constructing a type.  Since we can create
-   types six ways to Sunday, let's do them all in one centralized place. */
-
 Type::unique_ptr_Type Type::createFake(std::string name) 
 {
    // Creating a fake type without a name is just silly
@@ -90,7 +87,6 @@ Type::unique_ptr_Type Type::createFake(std::string name)
    return t;
 }
 
-// Memory size of the maximum-sized subclass of Type we can possibly have.
 const std::size_t Type::max_size = std::max({
   sizeof(Type),
   sizeof(typeEnum),
@@ -117,12 +113,6 @@ Type::unique_ptr_Type Type::createPlaceholder(typeId_t ID, std::string name)
   return placeholder_type;
 }
 
-/*
- * Type::Type
- *
- * EMPTY Constructor for type.  
- * 
- */
 Type::Type(std::string name, typeId_t ID, dataClass dataTyp) :
    ID_(ID), 
    name_(name), 
@@ -290,9 +280,6 @@ bool Type::isCompatible(Type * /*oType*/)
    return true;
 }
 
-/*
- * ENUM
- */
 typeEnum::typeEnum(boost::shared_ptr<Type> underlying_type, std::string name, typeId_t ID) :
 		derivedType(name, ID, underlying_type->getSize(), dataEnum) {
 	baseType_ = underlying_type;
@@ -349,10 +336,6 @@ bool typeEnum::isCompatible(Type *otype)
    // Everything matched so they are the same
    return true;
 }
-
-/* 
- * POINTER
- */
 
 typePointer::typePointer(int ID, boost::shared_ptr<Type> ptr, std::string name) 
    : derivedType(name, ID, 0, dataPointer) {
@@ -427,10 +410,6 @@ void typePointer::fixupUnknowns(Module *module)
       baseType_ = tc->findType(baseType_->getID(), Type::share);
    }
 }
-
-/*
- * FUNCTION
- */
 
 typeFunction::typeFunction(typeId_t ID, boost::shared_ptr<Type> retType, std::string name) :
     Type(name, ID, dataFunction), 
@@ -520,11 +499,6 @@ void typeFunction::fixupUnknowns(Module *module)
    }	 
 }
 
-
-/*
- * RANGE
- */
-
 typeSubrange::typeSubrange(typeId_t ID, int size, long low, long hi, std::string name)
   : rangedType(name, ID, dataSubrange, size, low, hi)
 {
@@ -557,10 +531,6 @@ bool typeSubrange::isCompatible(Type *otype) {
 
    return getSize() == oRangetype->getSize();
 }
-
-/*
- * ARRAY
- */
 
 typeArray::typeArray(typeId_t ID,
 		boost::shared_ptr<Type> base,
@@ -702,10 +672,6 @@ void typeArray::fixupUnknowns(Module *module)
    }
 }
 
-/*
- * STRUCT
- */
-
 typeStruct::typeStruct(typeId_t ID, std::string name) :
     fieldListType(name, ID, dataStructure) 
 { 
@@ -828,10 +794,6 @@ void typeStruct::fixupUnknowns(Module *module)
       fieldList[i]->fixupUnknown(module);
 }
 
-/*
- * UNION
- */
-
 typeUnion::typeUnion(typeId_t ID, std::string name) :
     fieldListType(name, ID, dataUnion) 
 { 
@@ -949,9 +911,6 @@ void typeUnion::fixupUnknowns(Module *module) {
       fieldList[i]->fixupUnknown(module);
 }
 
-/*
- * SCALAR
- */
 typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
 {
    typeScalar *typ = new typeScalar(size, name);
@@ -1005,10 +964,6 @@ bool typeScalar::isCompatible(Type *otype) {
    }
    return false;
 }
-
-/* 
- * COMMON BLOCK
- */
 
 typeCommon::typeCommon(int ID, std::string name) :
     fieldListType(name, ID, dataCommon) 
@@ -1074,10 +1029,6 @@ dyn_c_vector<CBlock *> *typeCommon::getCblocks() const
 {
 	return const_cast<dyn_c_vector<CBlock*>*>(&cblocks);
 }
-
-/*
- * TYPEDEF
- */
 
 typeTypedef::typeTypedef(typeId_t ID, boost::shared_ptr<Type> base, std::string name, unsigned int sizeHint) :
     derivedType(name, ID, 0, dataTypedef) 
@@ -1149,10 +1100,6 @@ void typeTypedef::fixupUnknowns(Module *module)
    }
 }
 
-/*
- * REFERENCE
- */
-
 typeRef::typeRef(int ID, boost::shared_ptr<Type> refType, std::string name) :
     derivedType(name, ID, 0, dataReference) 
 {
@@ -1207,14 +1154,6 @@ void typeRef::fixupUnknowns(Module *module)
    }
 }
 		      
-/* 
- * Subclasses of class Type, with interfaces
- */
-
-/*
- * FIELD LIST Type
- */
-
 fieldListType::fieldListType(std::string &name, typeId_t ID, dataClass typeDes) :
     Type(name, ID, typeDes), derivedFieldList(NULL)
 {   
@@ -1295,12 +1234,6 @@ void fieldListType::fixupComponents()
    }
 }
 
-/*
- * void fieldListType::addField
- * Creates field object and adds it to the list of fields for this
- * type object.
- *     STRUCTS OR UNIONS
- */
 void fieldListType::addField(std::string fieldname, boost::shared_ptr<Type> type, int offsetVal, visibility_t vis)
 {
   Field * newField;
@@ -1358,10 +1291,6 @@ void fieldListType::addField(unsigned num, Field *fld)
   postFieldInsert(newField->getSize());
 }
 
-/*
- * DERIVED
- */
-
 derivedType::derivedType(std::string &name, typeId_t id, int size, dataClass typeDes)
    :Type(name, id, typeDes)
 {
@@ -1389,10 +1318,6 @@ bool derivedType::operator==(const Type &otype) const {
    }
 }
 
-
-/*
- * RANGED
- */
 
 rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, unsigned long low, unsigned long hi) :
    	Type(name, ID, typeDes), 
@@ -1461,13 +1386,7 @@ Field::Field() :
 	vis_(visUnknown),
 	offset_(-1)
 {}
-/*
- * Field::Field
- *
- * Constructor for Field.  Creates a Field object for 
- * an enumerated type.
- * type = offset = size = 0;
- */
+
 Field::Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal, visibility_t vis) :
 	FIELD_ANNOTATABLE_CLASS(),
    fieldName_(name), 
@@ -1535,10 +1454,6 @@ bool Field::operator==(const Field &f) const
 	if (offset_ != f.offset_) return false;
 	return true;
 }
-
-/**************************************************************************
- * CBlock
- *************************************************************************/
 
 void CBlock::fixupUnknowns(Module *module) 
 {

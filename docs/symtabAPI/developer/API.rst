@@ -7,7 +7,6 @@ SymtabAPI
   :hidden:
   :maxdepth: 1
 
-  notes
   AddrLookup.h
   Aggregate.h
   annotations.h
@@ -33,5 +32,6 @@ SymtabAPI
   Symbol.h
   Symtab.h
   SymtabReader.h
+  Type.h
   Type-mem.h
   Variable.h

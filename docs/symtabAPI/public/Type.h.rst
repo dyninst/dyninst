@@ -1,717 +1,618 @@
+.. _`sec:Type.h`:
+
 Type.h
-======
+######
 
 .. cpp:namespace:: Dyninst::SymtabAPI
 
-Class Type
-----------
+.. cpp:type:: int typeId_t
 
-The class ``Type`` represents the types of variables, parameters, return
-values, and functions. Instances of this class can represent language
-predefined types (e.g. ``int``, ``float``), already defined types in the
-Object File or binary (e.g., structures compiled into the binary), or
-newly created types (created using the create factory methods of the
-corresponding type classes described later in this section) that are
-added to SymtabAPI by the user.
+.. cpp:class:: Type : public AnnotatableDense
 
-As described in Section `2.2 <#subsec:typeInterface>`__, this class
-serves as a base class for all the other classes in this interface. An
-object of this class is returned from type look up operations performed
-through the Symtab class described in Section `6 <#sec:symtabAPI>`__.
-The user can then obtain the specific type object from the generic Type
-class object. The following example shows how to get the specific object
-from a given ``Type`` object returned as part of a look up operation.
+  **Language-level types for variables, parameters, return values, and functions**
 
-.. code-block:: cpp
+  These can represent language-defined types (e.g. ``int``, ``float``), types defined in a
+  binary (e.g., structures compiled into the binary), or user-defined types provided by extending
+  this class.
 
-   // Example shows how to retrieve a structure type object from a given Type object
-   using namespace Dyninst;
-   using namespace SymtabAPI;
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
 
-   //Obj represents a handle to a parsed object file using symtabAPI
-   //Find a structure type in the object file
-   Type *structType = obj->findType("structType1");
+      The same as :cpp:func:`virtual bool isCompatible(Type *oType)`.
 
-   // Get the specific typeStruct object
-   typeStruct *stType = structType->isStructType();
+  .. cpp:function:: virtual bool isCompatible(Type *oType)
 
+      Checks if this type is compatibility with ``oType``.
 
-.. code-block:: cpp
-    
-    string &getName()
+      Compatibility is determined by each type independently.
 
-This method returns the name associated with this type. Each of the
-types is represented by a symbolic name. This method retrieves the name
-for the type. For example, in the example above "structType1" represents
-the name for the ``structType`` object.
+  .. cpp:function:: typeId_t getID() const
 
-.. code-block:: cpp
+      Returns the ID associated with this type.
 
-    bool setName(string zname)
+      Each type is assigned a unique ID within the object file.
 
-This method sets the name of this type to name. Returns ``true`` on
-success and ``false`` on failure.
+  .. cpp:function:: unsigned int getSize()
 
-.. code-block:: cpp
+      Returns the total size in **bytes** occupied by the type.
 
-    typedef enumdataEnum, dataPointer, dataFunction, dataSubrange,
-    dataArray, dataStructure, dataUnion, dataCommon, dataScalar,
-    dataTypedef, dataReference, dataUnknownType, dataNullType, dataTypeClass
-    dataClass;
+  .. cpp:function:: std::string &getName()
 
+      Returns the name associated with this type.
 
-.. code-block:: cpp
+      Each type is represented by a symbolic name. For builtin language types (e.g., 'int'),
+      a default name is provided. For user-defined types (e.g., 'class myClass'), the name
+      from the debugging information is used, if present.
 
-    dataClass getDataClass()
+  .. cpp:function:: std::string specificType()
 
-This method returns the data class associated with the type. This value
-should be used to convert this generic type object to a specific type
-object which offers more functionality by using the corresponding query
-function described later in this section. For example, if this method
-returns ``dataStructure`` then the ``isStructureType()`` should be
-called to dynamically cast the ``Type`` object to the ``typeStruct``
-object.
+      Returns a string representation of the class name (e.g., "typeEnum").
 
-.. code-block:: cpp
+  .. cpp:function:: dataClass getDataClass() const
 
-    typeId_t getID()
+      Returns the data class associated with the type.
 
-This method returns the ID associated with this type. Each type is
-assigned a unique ID within the object file. For example an integer
-scalar built-in type is assigned an ID -1.
+      This value can be used to convert a generic type to a specific type.
 
-.. code-block:: cpp
+  ......
 
-    unsigned getSize()
+  .. rubric:: Down-cast conversions
 
-This method returns the total size in bytes occupied by the type.
+  .. cpp:function:: typeArray* getArrayType()
 
-.. code-block:: cpp
+      Returns the current type as an instance of :cpp:class:`typeArray`.
 
-    typeEnum *getEnumType()
+      Returns ``NULL`` if not convertible.
 
-If this ``Type`` hobject represents an enum type, then return the object
-casting the ``Type`` object to ``typeEnum`` otherwise return ``NULL``.
+  .. cpp:function:: inline typeArray& asArrayType()
 
-.. code-block:: cpp
+      The same as :cpp:func:`getArrayType`.
 
-    typePointer *getPointerType()
+  .. cpp:function:: inline bool isArrayType()
 
-If this ``Type`` object represents an pointer type, then return the
-object casting the ``Type`` object to ``typePointer`` otherwise return
-``NULL``.
+      Checks if this is an instance of :cpp:class:`typeArray`.
 
-.. code-block:: cpp
+  .. cpp:function:: typeCommon* getCommonType()
 
-    typeFunction *getFunctionType()
+      Returns the current type as an instance of :cpp:class:`typeCommon`.
 
-If this ``Type`` object represents an ``Function`` type, then return the
-object casting the ``Type`` object to ``typeFunction`` otherwise return
-``NULL``.
+      Returns ``NULL`` if not convertible.
 
-.. code-block:: cpp
+  .. cpp:function:: inline typeCommon& asCommonType()
 
-    typeRange *getSubrangeType()
+      The same as :cpp:func:`getCommonType`.
 
-If this ``Type`` object represents a ``Subrange`` type, then return the
-object casting the ``Type`` object to ``typeSubrange`` otherwise return
-``NULL``.
+  .. cpp:function:: inline bool isCommonType()
 
-.. code-block:: cpp
+      Checks if this is an instance of :cpp:class:`typeCommon`.
 
-    typeArray *getArrayType()
+  .. cpp:function:: inline derivedType& asDerivedType()
 
-If this ``Type`` object represents an ``Array`` type, then return the
-object casting the ``Type`` object to ``typeArray`` otherwise return
-``NULL``.
+      Returns the current type as an instance of :cpp:class:`derivedType`.
 
-.. code-block:: cpp
+      If the conversion fails, throws ``std::bad_cast``. Users should check
+      :cpp:func:`isDerivedType` before calling.
 
-    typeStruct *getStructType()
+  .. cpp:function:: inline bool isDerivedType()
 
-If this ``Type`` object represents a ``Structure`` type, then return the
-object casting the ``Type`` object to ``typeStruct`` otherwise return
-``NULL``.
+      Checks if this is an instance of :cpp:class:`derivedType`.
 
-.. code-block:: cpp
+  .. cpp:function:: typeEnum* getEnumType()
 
-    typeUnion *getUnionType()
+      Returns the current type as an instance of :cpp:class:`typeEnum`.
 
-If this ``Type`` object represents a ``Union`` type, then return the
-object casting the ``Type`` object to ``typeUnion`` otherwise return
-``NULL``.
+      Returns ``NULL`` if not convertible.
 
-.. code-block:: cpp
+  .. cpp:function:: inline typeEnum& asEnumType()
 
-    typeScalar *getScalarType()
+      The same as :cpp:func:`getEnumType`.
 
-If this ``Type`` object represents a ``Scalar`` type, then return the
-object casting the ``Type`` object to ``typeScalar`` otherwise return
-``NULL``.
+  .. cpp:function:: inline bool isEnumType()
 
-.. code-block:: cpp
+      Checks if this is an instance of :cpp:class:`typeEnum`.
 
-    typeCommon *getCommonType()
+  .. cpp:function:: inline fieldListType& asFieldListType()
 
-If this ``Type`` object represents a ``Common`` type, then return the
-object casting the ``Type`` object to ``typeCommon`` otherwise return
-``NULL``.
+      Returns the current type as an instance of :cpp:class:`fieldListType`.
 
-.. code-block:: cpp
+      If the conversion fails, throws ``std::bad_cast``. Users should check
+      :cpp:func:`isfieldListType` before calling.
 
-    typeTypedef *getTypedefType()
+  .. cpp:function:: inline bool isfieldListType()
 
-If this ``Type`` object represents a ``TypeDef`` type, then return the
-object casting the ``Type`` object to ``typeTypedef`` otherwise return
-``NULL``.
+      Checks if this is an instance of :cpp:class:`fieldListType`.
 
-.. code-block:: cpp
+  .. cpp:function:: typeFunction* getFunctionType()
 
-    typeRef *getRefType()
+      Returns the current type as an instance of :cpp:class:`typeFunction`.
 
-If this ``Type`` object represents a ``Reference`` type, then return the
-object casting the ``Type`` object to ``typeRef`` otherwise return
-``NULL``.
+      Returns ``NULL`` if not convertible.
 
-Class typeEnum
---------------
+  .. cpp:function:: inline typeFunction& asFunctionType()
 
-This class represents an enumeration type containing a list of constants
-with values. This class is derived from ``Type``, so all those member
-functions are applicable. ``typeEnum`` inherits from the ``Type`` class.
+      The same as :cpp:func:`getFunctionType`.
 
-.. code-block:: cpp
+  .. cpp:function:: typePointer* getPointerType()
 
-    static typeEnum *create(string &name, vector<pair<string, int> *>
-    &consts, Symtab *obj = NULL) static typeEnum *create(string &name,
-    vector<string> &constNames, Symtab *obj)
+      Returns the current type as an instance of :cpp:class:`typePointer`.
 
-These factory methods create a new enumerated type. There are two
-variations to this function. ``consts`` supplies the names and Ids of
-the constants of the enum. The first variant is used when user-defined
-identifiers are required; the second variant is used when system-defined
-identifiers will be used. The newly created type is added to the
-``Symtab`` object ``obj``. If ``obj`` is ``NULL`` the type is not added
-to any object file, but it will be available for further queries.
+      Returns ``NULL`` if not convertible.
 
-.. code-block:: cpp
+  .. cpp:function:: inline rangedType& asRangedType()
 
-    bool addConstant(const string &constname, int value)
+      Returns the current type as an instance of :cpp:class:`rangedType`.
 
-This method adds a constant to an enum type with name ``constName`` and
-value ``value``. Returns ``true`` on success and ``false`` on failure.
+      If the conversion fails, throws ``std::bad_cast``. Users should check
+      :cpp:func:`isRangedType` before calling.
 
-.. code-block:: cpp
+  .. cpp:function:: inline bool isRangedType()
 
-    std::vector<std::pair<std::string, int> > &getConstants();
+      Checks if this is an instance of :cpp:class:`rangedType`.
 
-This method returns the vector containing the enum constants represented
-by a (name, value) pair of the constant.
+  .. cpp:function:: typeRef* getRefType()
 
-.. code-block:: cpp
+      Returns the current type as an instance of :cpp:class:`typeRef`.
 
-    bool setName(const char* name)
+      Returns ``NULL`` if not convertible.
 
-This method sets the new name of the enum type to ``name``. Returns
-``true`` if it succeeds, else returns ``false``.
+  .. cpp:function:: typeScalar* getScalarType()
 
-.. code-block:: cpp
+      Returns the current type as an instance of :cpp:class:`typeScalar`.
 
-    bool isCompatible(Type *type)
+      Returns ``NULL`` if not convertible.
 
-This method returns ``true`` if the enum type is compatible with the
-given type ``type`` or else returns ``false``.
+  .. cpp:function:: typeStruct* getStructType()
 
-Class typeFunction
-------------------
+      Returns the current type as an instance of :cpp:class:`typeStruct`.
 
-This class represents a function type, containing a list of parameters
-and a return type. This class is derived from ``Type``, so all the
-member functions of class ``Type`` are applicable. ``typeFunction``
-inherits from the ``Type`` class.
+      Returns ``NULL`` if not convertible.
 
-.. code-block:: cpp
+  .. cpp:function:: inline bool isStructType()
 
-    static typeFunction *create(string &name, Type *retType, vector<Type*> &paramTypes, Symtab *obj = NULL)
+      Checks if this is an instance of :cpp:class:`typeStruct`.
 
+  .. cpp:function:: typeSubrange* getSubrangeType()
 
-This factory method creates a new function type with name ``name``.
-``retType`` represents the return type of the function and
-``paramTypes`` is a vector of the types of the parameters in order. The
-the newly created type is added to the ``Symtab`` object ``obj``. If
-``obj`` is ``NULL`` the type is not added to any object file, but it
-will be available for further queries.
+      Returns the current type as an instance of :cpp:class:`typeSubrange`.
 
-.. code-block:: cpp
+      Returns ``NULL`` if not convertible.
 
-    bool isCompatible(Type *type)
+  .. cpp:function:: typeTypedef* getTypedefType()
 
-This method returns ``true`` if the function type is compatible with the
-given type ``type`` or else returns ``false``.
+      Returns the current type as an instance of :cpp:class:`typeTypedef`.
 
-.. code-block:: cpp
+      Returns ``NULL`` if not convertible.
 
-    bool addParam(Type *type)
+  .. cpp:function:: typeUnion* getUnionType()
 
-This method adds a new function parameter with type ``type`` to the
-function type. Returns ``true`` if it succeeds, else returns ``false``.
+      Returns the current type as an instance of :cpp:class:`typeUnion`.
 
-.. code-block:: cpp
+      Returns ``NULL`` if not convertible.
 
-    Type *getReturnType() const
 
-This method returns the return type for this function type. Returns
-``NULL`` if there is no return type associated with this function type.
+.. cpp:enum:: Type::do_share_t
 
-.. code-block:: cpp
+  .. cpp:enumerator:: share
 
-    bool setRetType(Type *rtype)
+.. cpp:enum:: dataClass
 
-This method sets the return type of the function type to ``rtype``.
-Returns ``true`` if it succeeds, else returns ``false``.
+  .. cpp:enumerator:: dataEnum
+  .. cpp:enumerator:: dataPointer
+  .. cpp:enumerator:: dataFunction
+  .. cpp:enumerator:: dataSubrange
+  .. cpp:enumerator:: dataArray
+  .. cpp:enumerator:: dataStructure
+  .. cpp:enumerator:: dataUnion
+  .. cpp:enumerator:: dataCommon
+  .. cpp:enumerator:: dataScalar
+  .. cpp:enumerator:: dataTypedef
+  .. cpp:enumerator:: dataReference
+  .. cpp:enumerator:: dataUnknownType
+  .. cpp:enumerator:: dataNullType
+  .. cpp:enumerator:: dataTypeClass
 
-.. code-block:: cpp
 
-    bool setName(string &name)
+.. cpp:enum:: visibility_t
 
-This method sets the new name of the function type to ``name``. Returns
-``true`` if it succeeds, else returns ``false``.
+  **C++ access specifier for class members**
 
-.. code-block:: cpp
+  .. cpp:enumerator:: visPrivate
+  .. cpp:enumerator:: visProtected
+  .. cpp:enumerator:: visPublic
+  .. cpp:enumerator:: visUnknown
 
-    vector< Type *> &getParams() const
+    Unknown or doesn't apply (i.e., not C++)
 
-This method returns the vector containing the individual parameters
-represented by their types in order. Returns ``NULL`` if there are no
-parameters to the function type.
 
-Class typeScalar
-----------------
+.. cpp:class:: Type::unique_ptr_Type
 
-This class represents a scalar type. This class is derived from
-``Type``, so all the member functions of class ``Type`` are applicable.
-``typeScalar`` inherits from the Type class.
+  **Fake unique_ptr type**
 
-.. code-block:: cpp
+  unique_ptr_Type(Type* p)
+  operator boost::shared_ptr<Type>()
+  operator Type*()
 
-    static typeScalar *create(string &name, int size, Symtab *obj = NULL)
 
-This factory method creates a new scalar type. The ``name`` field is
-used to specify the name of the type, and the ``size`` parameter is used
-to specify the size in bytes of each instance of the type. The newly
-created type is added to the ``Symtab`` object ``obj``. If ``obj`` is
-``NULL`` the type is not added to any object file, but it will be
-available for further queries.
+.. cpp:function:: const char *dataClass2Str(dataClass dc)
+.. cpp:function:: const char *visibility2Str(visibility_t v)
 
-.. code-block:: cpp
 
-    bool isSigned()
+.. cpp:class:: typeArray : public rangedType
 
-This method returns ``true`` if the scalar type is signed or else
-returns ``false``.
+  **A sequence of values contiguous in memory**
 
-.. code-block:: cpp
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
 
-    bool isCompatible(Type *type)
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
 
-This method returns ``true`` if the scalar type is compatible with the
-given type ``type`` or else returns ``false``.
+  .. cpp:function:: bool isCompatible(Type *otype)
 
-Class Field
------------
+      Checks if ``otype`` is compatible with this type.
 
-This class represents a field in a container. For e.g. a field in a
-structure/union type.
+      Two arrays are compatible if they have the same number of elements and
+      have compatible base types.
 
-.. code-block:: cpp
+  .. cpp:function:: boost::shared_ptr<Type> getBaseType(Type::do_share_t) const
 
-    typedef enum visPrivate, visProtected, visPublic, visUnknown visibility_t;
+      The same as :cpp:func:`Type* getBaseType() const`.
 
-A handle for identifying the visibility of a certain ``Field`` in a
-container type. This can represent private, public, protected or
-unknown(default) visibility.
+  .. cpp:function:: Type* getBaseType() const
 
-.. code-block:: cpp
+      Returns the base type of this array.
 
-    Field(string &name, Type *type, visibility_t vis = visUnknown)
 
-This constructor creates a new field with name ``name``, type ``type``
-and visibility ``vis``. This newly created ``Field`` can be added to a
-container type.
+.. cpp:class:: typeCommon : public fieldListType
 
-.. code-block:: cpp
+  **A common block type in Fortran**
 
-    const string &getName()
+  .. cpp:function:: dyn_c_vector<CBlock*>* getCblocks() const
 
-This method returns the name associated with the field in the container.
+      Returns the common block objects.
 
-.. code-block:: cpp
+  .. cpp:function:: void beginCommonBlock()
+  .. cpp:function:: void endCommonBlock(Symbol *, void *baseAddr)
 
-    Type *getType()
 
-This method returns the type associated with the field in the container.
+.. cpp:class:: CBlock : public AnnotatableSparse
 
-.. code-block:: cpp
+  **An element of a common block in Fortran**
 
-    int getOffset()
+  .. cpp:function:: dyn_c_vector<Field*>* getComponents()
 
-This method returns the offset associated with the field in the
-container.
+      Returns the variables of the common block.
 
-.. code-block:: cpp
+  .. cpp:function:: dyn_c_vector<Symbol*>* getFunctions()
 
-    visibility_t getVisibility()
+      Returns the functions that can see this common block.
 
-This method returns the visibility associated with a field in a
-container. This returns ``visPublic`` for the variables within a common
-block.
 
-Class fieldListType
--------------------
+.. cpp:class:: derivedInterface
 
-This class represents a container type. It is one of the three
-categories of types as described in Section
-`2.2 <#subsec:typeInterface>`__. The structure and the union types fall
-under this category. This class is derived from ``Type``, so all the
-member functions of class ``Type`` are applicable. ``fieldListType``
-inherits from the ``Type`` class.
+  **Requirement for all derived types**
 
-.. code-block:: cpp
+  .. cpp:function:: virtual boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const = 0
 
-    vector<Field *> *getComponents()
+      The same as :cpp:func:`Type* getConstituentType() const`.
 
-This method returns the list of all fields present in the container.
-This gives information about the name, type and visibility of each of
-the fields. Returns ``NULL`` of there are no fields.
+  .. cpp:function:: Type* getConstituentType() const
 
-.. code-block:: cpp
+      Returns the underlying type.
 
-    void addField(std::string fieldname, Type *type, int offsetVal = -1,
-    visibility_t vis = visUnknown)
 
-This method adds a new field at the end to the container type with field
-name ``fieldname``, type ``type`` and type visibility ``vis``.
+.. cpp:class:: derivedType : public Type, public derivedInterface
 
-.. code-block:: cpp
+  **A reference to another type**
 
-    void addField(unsigned num, std::string fieldname, Type *type, int
-    offsetVal = -1, visibility_t vis = visUnknown)
+  Examples are pointers, references, and typedefs.
 
-This method adds a field after the field with number ``num`` with field
-name ``fieldname``, type ``type`` and type visibility ``vis``.
+  .. cpp:function:: Type* getConstituentType() const
 
-.. code-block:: cpp
+      Returns the type of the base type to which this type refers to.
 
-    void addField(Field *fld)
+  .. cpp:function:: boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const
 
-This method adds a new field ``fld`` to the container type.
+      The same as :cpp:func:`getConstituentType`.
 
-.. code-block:: cpp
 
-    void addField(unsigned num, Field *fld)
+.. cpp:class:: typeEnum : public derivedType
 
-This method adds a field ``fld`` after field ``num`` to the container
-type.
+  **A list of named constants with values**.
 
-Class typeStruct : public fieldListType
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  .. cpp:function:: bool is_scoped() const noexcept
 
-|  
-| This class represents a structure type. The structure type is a
-  special case of the container type. The fields of the structure
-  represent the fields in this case. As a subclass of class
-  ``fieldListType``, all methods in ``fieldListType`` are applicable.
+      Checks if this is a C++ scoped enum (aka 'enum class').
 
-.. code-block:: cpp
+  .. cpp:function:: dyn_c_vector<std::pair<std::string, int>>& getConstants()
 
-    static typeStruct *create(string &name, vector<pair<string, Type *>*> &flds, Symtab *obj = NULL)
+      ThisReturns the named constants and their values.
 
-This factory method creates a new struct type. The name of the structure
-is specified in the ``name`` parameter. The ``flds`` vector specifies
-the names and types of the fields of the structure type. The newly
-created type is added to the ``Symtab`` object ``obj``. If ``obj`` is
-``NULL`` the type is not added to any object file, but it will be
-available for further queries.
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
 
-.. code-block:: cpp
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
 
-    static typeStruct *create(string &name, vector<Field *> &fields, Symtab *obj = NULL)
+  .. cpp:function:: bool isCompatible(Type *otype)
 
-This factory method creates a new struct type. The name of the structure
-is specified in the ``name`` parameter. The ``fields`` vector specifies
-the fields of the type. The newly created type is added to the
-``Symtab`` object ``obj``. If ``obj`` is ``NULL`` the type is not added
-to any object file, but it will be available for further queries.
+      Checks if ``otype`` is compatible with this type.
 
-.. code-block:: cpp
+      Two enums are compatibile if they have the same underlying type, the same
+      number of elements, and each named constant and value is the same and in
+      the same order.
 
-    bool isCompatible(Type *type)
+.. cpp:struct:: typeEnum::scoped_t final
 
-This method returns ``true`` if the struct type is compatible with the
-given type ``type`` or else returns ``false``.
+  **A marker class for C++11 scoped enums**
 
-Class typeUnion
-~~~~~~~~~~~~~~~
 
-|  
-| This class represents a union type, a special case of the container
-  type. The fields of the union type represent the fields in this case.
-  As a subclass of class ``fieldListType``, all methods in
-  ``fieldListType`` are applicable. ``typeUnion`` inherits from the
-  ``fieldListType`` class.
+.. cpp:class:: typeFunction : public Type
 
-.. code-block:: cpp
+  **A block of executable code with a return type and an optional list of parameters**
 
-    static typeUnion *create(string &name, vector<pair<string, Type *>*> &flds, Symtab *obj = NULL)
+  .. cpp:function:: boost::shared_ptr<Type> getReturnType(Type::do_share_t) const
 
-This factory method creates a new union type. The name of the union is
-specified in the ``name`` parameter. The ``flds`` vector specifies the
-names and types of the fields of the union type. The newly created type
-is added to the ``Symtab`` object ``obj``. If ``obj`` is ``NULL`` the
-type is not added to any object file, but it will be available for
-further queries.
+      The same as :cpp:func:`Type *getReturnType() const`.
 
-.. code-block:: cpp
+  .. cpp:function:: Type *getReturnType() const
 
-    static typeUnion *create(string &name, vector<Field *> &fields, Symtab *obj = NULL)
+      Returns the return type for this function.
 
-This factory method creates a new union type. The name of the structure
-is specified in the ``name`` parameter. The ``fields`` vector specifies
-the fields of the type. The newly created type is added to the
-``Symtab`` object ``obj``. If ``obj`` is ``NULL`` the type is not added
-to any object file, but it will be available for further queries.
+  .. cpp:function:: dyn_c_vector<boost::shared_ptr<Type>> &getParams()
 
-.. code-block:: cpp
+      Returns the formal parameters.
 
-    bool isCompatible(Type *type)
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
 
-This method returns ``true`` if the union type is compatible with the
-given type ``type`` or else returns ``false``.
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
 
-Class typeCommon
-~~~~~~~~~~~~~~~~
+  .. cpp:function:: bool isCompatible(Type *otype)
 
-|  
-| This class represents a common block type in fortran, a special case
-  of the container type. The variables of the common block represent the
-  fields in this case. As a subclass of class ``fieldListType``, all
-  methods in ``fieldListType`` are applicable. ``typeCommon`` inherits
-  from the ``Type`` class.
+      Checks if ``otype`` is compatible with this type.
 
-.. code-block:: cpp
+      Two functions are compatible if their return types are compatible, they have the same
+      number of parameters, and each parameter's type is compatible.
 
-    vector<CBlocks *> *getCBlocks()
 
-This method returns the common block objects for the type. The methods
-of the ``CBlock`` can be used to access information about the members of
-a common block. The vector returned by this function contains one
-instance of ``CBlock`` for each unique definition of the common block.
+.. cpp:class:: fieldListInterface
 
-Class CBlock
-~~~~~~~~~~~~
+  **Requirement for all fieldList types**
 
-|  
-| This class represents a common block in Fortran. Multiple functions
-  can share a common block.
+  .. cpp:function:: virtual dyn_c_vector<Field*>* getComponents() const = 0
 
-.. code-block:: cpp
+      Returns all fields in the container type.
 
-    bool getComponents(vector<Field *> *vars)
 
-This method returns the vector containing the individual variables of
-the common block. Returns ``true`` if there is at least one variable,
-else returns ``false``.
+.. cpp:class:: fieldListType : public Type, public fieldListInterface
 
-.. code-block:: cpp
+  **A container type**
 
-    bool getFunctions(vector<Symbol *> *funcs)
+  Examples of container types are ``struct``, ``union``, and ``class``.
 
-This method returns the functions that can see this common block with
-the set of variables described in ``getComponents`` method above.
-Returns ``true`` if there is at least one function, else returns
-``false``.
+  .. cpp:function:: dyn_c_vector<Field*>* getComponents() const
 
-Class derivedType
------------------
+      Returns all fields in the container.
 
-This class represents a derived type which is a reference to another
-type. It is one of the three categories of types as described in Section
-`2.2 <#subsec:typeInterface>`__. The pointer, reference and the typedef
-types fall under this category. This class is derived from ``Type``, so
-all the member functions of class ``Type`` are applicable.
+  .. cpp:function:: dyn_c_vector<Field*> *getFields() const
 
-.. code-block:: cpp
+      The same as :cpp:func:`getComponents`.
 
-    Type *getConstituentType() const
 
-This method returns the type of the base type to which this type refers
-to.
+.. cpp:class:: Field : public AnnotatableDense
 
-Class typePointer
-~~~~~~~~~~~~~~~~~
+  **A field in a container**
 
-|  
-| This class represents a pointer type, a special case of the derived
-  type. The base type in this case is the type this particular type
-  points to. As a subclass of class ``derivedType``, all methods in
-  ``derivedType`` are also applicable.
+  For example, a data member of a struct or union type.
 
-.. code-block:: cpp
+  .. cpp:function:: std::string &getName()
 
-    static typePointer *create(string &name, Type *ptr, Symtab *obj = NULL) static typePointer *create(string &name, Type *ptr, int size, Symtab *obj = NULL)
+      Returns the field's name as it appears in the source code.
 
-These factory methods create a new type, named ``name``, which points to
-objects of type ``ptr``. The first form creates a pointer whose size is
-equal to sizeof(void*) on the target platform where the application is
-running. In the second form, the size of the pointer is the value passed
-in the ``size`` parameter. The newly created type is added to the
-``Symtab`` object ``obj``. If obj is ``NULL`` the type is not added to
-any object file, but it will be available for further queries.
+  .. cpp:function:: Type* getType()
 
-.. code-block:: cpp
+      Returns the field's type.
 
-    bool isCompatible(Type *type)
+  .. cpp:function:: int getOffset()
 
-This method returns ``true`` if the Pointer type is compatible with the
-given type ``type`` or else returns ``false``.
+      Returns the offset relative to the beginning of the container.
 
-.. code-block:: cpp
+  .. cpp:function:: visibility_t getVisibility()
 
-    bool setPtr(Type *ptr)
+      Returns the field's visibility.
 
-This method sets the pointer type to point to the type in ``ptr``.
-Returns ``true`` if it succeeds, else returns ``false``.
+      Note:: ``visPublic`` is used for variables within a common block.
 
-Class typeTypedef
-~~~~~~~~~~~~~~~~~
+  .. cpp:function:: boost::shared_ptr<Type> getType(Type::do_share_t)
 
-|  
-| This class represents a ``typedef`` type, a special case of the
-  derived type. The base type in this case is the ``Type``. This
-  particular type is typedefed to. As a subclass of class
-  ``derivedType``, all methods in ``derivedType`` are also applicable.
+      Returns this type in a sharable pointer.
 
-.. code-block:: cpp
+  .. cpp:function:: unsigned int getSize()
 
-    static typeTypedef *create(string &name, Type *ptr, Symtab *obj = NULL)
+      Returns the size in **bytes** of this type, as defined by the compiled source.
 
-This factory method creates a new type called ``name`` and having the
-type ``ptr``. The newly created type is added to the ``Symtab`` object
-``obj``. If ``obj`` is ``NULL`` the type is not added to any object
-file, but it will be available for further queries.
+      This is taken directly from the debugging information and may or may not take into
+      account the architecture-specific sizes and padding requirements.
 
-.. code-block:: cpp
 
-    bool isCompatible(Type *type)
+.. cpp:class:: typePointer : public derivedType
 
-This method returns ``true`` if the typedef type is compatible with the
-given type ``type`` or else returns ``false``.
+  **A pointer**
 
-Class typeRef
-~~~~~~~~~~~~~
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
 
-|  
-| This class represents a reference type, a special case of the derived
-  type. The base type in this case is the ``Type`` this particular type
-  refers to. As a subclass of class ``derivedType``, all methods in
-  ``derivedType`` are also applicable here.
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
 
+  .. cpp:function:: bool isCompatible(Type *otype)
 
-.. code-block:: cpp
+      Checks if ``otype`` is compatible with this type.
 
-    static typeRef *create(string &name, Type *ptr, Symtab * obj = NULL)
+      Two pointers are compatible if the types of the pointed-to objects are compatible.
 
-This factory method creates a new type, named ``name``, which is a
-reference to objects of type ``ptr``. The newly created type is added to
-the ``Symtab`` object ``obj``. If ``obj`` is ``NULL`` the type is not
-added to any object file, but it will be available for further queries.
 
-.. code-block:: cpp
+.. cpp:class:: rangedInterface
 
-    bool isCompatible(Type *type)
+  **Requirement for all ranged types**
 
-This method returns ``true`` if the ref type is compatible with the
-given type ``type`` or else returns ``false``.
+  .. cpp:function:: virtual unsigned long getLow() const = 0
 
-Class rangedType
-----------------
+      Returns the upper bound of the range.
 
-This class represents a range type with a lower and an upper bound. It
-is one of the three categories of types as described in section
-`2.2 <#subsec:typeInterface>`__. The sub-range and the array types fall
-under this category. This class is derived from ``Type``, so all the
-member functions of class ``Type`` are applicable.
+  .. cpp:function:: virtual unsigned long getHigh() const  = 0
 
-.. code-block:: cpp
+      Returns the lower bound of the range.
 
-    unsigned long getLow() const
 
-This method returns the lower bound of the range. This can be the lower
-bound of the range type or the lowest index for an array type.
+.. cpp:class:: rangedType : public Type, public rangedInterface
 
-.. code-block:: cpp
+  **A range with a lower and upper bound**
 
-    unsigned long getHigh() const
+  .. cpp:function:: unsigned long getLow() const
 
-This method returns the higher bound of the range. This can be the
-higher bound of the range type or the highest index for an array type.
+      Returns the lower bound of the range.
 
-Class typeSubrange
-~~~~~~~~~~~~~~~~~~
+      This can be the lower bound of the range type or the lowest index for an array type.
 
-|  
-| This class represents a sub-range type. As a subclass of class
-  ``rangedType``, all methods in ``rangedType`` are applicable here.
-  This type is usually used to represent a sub-range of another type.
-  For example, a ``typeSubrange`` can represent a sub-range of the array
-  type or a new integer type can be declared as a sub range of the
-  integer using this type.
+  .. cpp:function:: unsigned long getHigh() const
 
-.. code-block:: cpp
+      Returns the higher bound of the range.
 
-    static typeSubrange *create(string &name, int size, int low, int hi, symtab *obj = NULL)
+      This can be the higher bound of the range type or the highest index for an array type.
 
-This factory method creates a new sub-range type. The name of the type
-is ``name``, and the size is ``size``. The lower bound of the type is
-represented by ``low``, and the upper bound is represented by ``high``.
-The newly created type is added to the ``Symtab`` object ``obj``. If
-``obj`` is ``NULL`` the type is not added to any object file, but it
-will be available for further queries.
 
-.. code-block:: cpp
+.. cpp:class:: typeRef : public derivedType
 
-    bool isCompatible(Type *type)
+  **A C++ reference**
 
-This method returns ``true`` if this sub range type is compatible with
-the given type ``type`` or else returns ``false``.
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
 
-Class typeArray
-~~~~~~~~~~~~~~~
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
 
-|  
-| This class represents an ``Array`` type. As a subclass of class
-  ``rangedType``, all methods in ``rangedType`` are applicable.
+  .. cpp:function:: bool isCompatible(Type *otype)
 
-.. code-block:: cpp
+      Checks if ``otype`` is compatible with this type.
 
-    static typeArray *create(string &name, Type *type, int low, int hi, Symtab *obj = NULL)
+      Two references are compatible if the referred-to types are compatible.
 
-This factory method creates a new array type. The name of the type is
-``name``, and the type of each element is ``type``. The index of the
-first element of the array is ``low``, and the last is ``high``. The
-newly created type is added to the ``Symtab`` object ``obj``. If ``obj``
-is ``NULL`` the type is not added to any object file, but it will be
-available for further queries.
+  .. cpp:function:: bool is_rvalue() const noexcept
 
-.. code-block:: cpp
+      Checks if this reference is a C++ r-value reference.
 
-    bool isCompatible(Type *type)
 
-This method returns ``true`` if the array type is compatible with the
-given type ``type`` or else returns ``false``.
+.. cpp:class:: typeScalar : public Type
 
-.. code-block:: cpp
+  **Integral and floating-point types**
 
-    Type *getBaseType() const
+  .. cpp:function:: bool isSigned() const
 
-This method returns the base type of this array type.
+      Checks if this is a signed type.
+
+      The definition of signedness depends on the source language.
+
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
+
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
+
+  .. cpp:function:: bool isCompatible(Type *otype)
+
+      Checks if ``otype`` is compatible with this type.
+
+      Two scalars are compatible if their language-level types are compatible.
+
+  .. cpp:function:: properties_t const& properties() const
+
+      Returns the detailed properties of the scalar.
+
+      This can be used to differentiate the various integral and floating-point types supported
+      by the source language.
+
+
+.. cpp:struct:: typeScalar::properties_t
+
+  .. rubric:: Summary properties
+
+  .. cpp:member:: bool is_integral
+  .. cpp:member:: bool is_floating_point
+  .. cpp:member:: bool is_string
+
+      This is used for Pascal-style strings, not C-style null-terminated string.
+
+  .. rubric:: Detailed properties
+
+  .. cpp:member:: bool is_address
+  .. cpp:member:: bool is_boolean
+  .. cpp:member:: bool is_complex_float
+  .. cpp:member:: bool is_float
+  .. cpp:member:: bool is_imaginary_float
+  .. cpp:member:: bool is_decimal_float
+  .. cpp:member:: bool is_signed
+  .. cpp:member:: bool is_signed_char
+  .. cpp:member:: bool is_unsigned
+  .. cpp:member:: bool is_unsigned_char
+  .. cpp:member:: bool is_UTF
+
+
+.. cpp:class:: typeStruct : public fieldListType
+
+  **An algebraic product type**
+
+  The C ``struct`` is a common example.
+
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
+
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
+
+  .. cpp:function:: bool isCompatible(Type *otype)
+
+      Checks if ``otype`` is compatible with this type.
+
+      Two structs are compatible if they have the same number of fields and the
+      types of the fields are compatible.
+
+
+.. cpp:class:: typeSubrange : public rangedType
+
+  **A subsequence of a range**
+
+  This could be a subrange of an array.
+
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
+
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
+
+  .. cpp:function:: bool isCompatible(Type *otype)
+
+      Checks if ``otype`` is compatible with this type.
+
+      Two subranges are compatible if they have the same number of elements.
+
+
+.. cpp:class:: typeTypedef: public derivedType
+
+  **An alias name for a language-level type**
+
+  Represents a C ``typedef`` or C++ ``using`` alias.
+
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
+
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
+
+  .. cpp:function:: bool isCompatible(Type *otype)
+
+      Checks if ``otype`` is compatible with this type.
+
+      Two typedefs are compatible if their aliased types are compatible.
+
+
+.. cpp:class:: typeUnion : public fieldListType
+
+  **An algebraic sum type**
+
+  The C ``union`` is a common example.
+
+  .. cpp:function:: bool isCompatible(boost::shared_ptr<Type> x)
+
+      The same as :cpp:func:`bool isCompatible(Type *otype)`.
+
+  .. cpp:function:: bool isCompatible(Type *otype)
+
+      Checks if ``otype`` is compatible with this type.
+
+      Two unions are compatible if they have the same number of fields and the
+      types of the fields are compatible.
+
