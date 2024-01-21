@@ -54,7 +54,7 @@ project = "Dyninst"
 copyright = "1996-2022, Barton P. Miller"
 
 # TODO this should be derived from somewhere
-version = "12.1.0"
+version = "12.3.0"
 
 if os.environ.get("READTHEDOCS") == "True":
     # Because Read The Docs modifies conf.py, versioneer gives a "dirty"
