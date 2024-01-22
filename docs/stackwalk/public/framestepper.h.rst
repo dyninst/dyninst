@@ -1,51 +1,296 @@
+.. _`sec:framestepper.h`:
+
 framestepper.h
-==============
+##############
 
-.. cpp:namespace:: Dyninst::stackwalk
+.. cpp:namespace:: Dyninst::Stackwalker
 
-Class FrameStepper
-~~~~~~~~~~~~~~~~~~
+.. cpp:enum:: gcframe_ret_t
 
-**Defined in:** ``framestepper.h``
+  .. cpp:enumerator:: gcf_success
+  .. cpp:enumerator:: gcf_stackbottom
+  .. cpp:enumerator:: gcf_not_me
+  .. cpp:enumerator:: gcf_error
 
-The ``FrameStepper`` class is an interface that tells StackwalkerAPI how
-to walk through a specific type of stack frame. There may be many
-different ways of walking through a stack frame on a platform, e.g, on
-Linux/x86 there are different mechanisms for walking through system
-calls, signal handlers, regular functions, and frameless functions. A
-single ``FrameStepper`` describes how to walk through one of these types
-of stack frames.
 
-A user can create their own ``FrameStepper`` classes that tell
-StackwalkerAPI how to walk through new types of stack frames. A new
-``FrameStepper`` object must be added to a ``StepperGroup`` before it
-can be used.
+.. cpp:class:: FrameStepper
 
-In addition to walking through individual stack frames, a
-``FrameStepper`` tells its ``StepperGroup`` when it can be used. The
-``FrameStepper`` registers address ranges that cover objects in the
-target process’ code space (such as functions). These address ranges
-should contain the objects that will create stack frames through which
-the ``FrameStepper`` can walk. If multiple ``FrameStepper`` objects have
-overlapping address ranges, then a priority value is used to determine
-which ``FrameStepper`` should be attempted first.
+  **Controls how to walk through a specific type of stack frame**
 
-``FrameStepper`` is an interface class; it cannot be instantiated. Users
-who want to develop new ``FrameStepper`` objects should inherit from
-this class and implement the the desired virtual functions. The
-``getCallerFrame, getPriority``, and ``getName`` functions must be
-implemented; all others may be overridden if desired.
+  There may be many different ways of walking through a stack frame on a platform, e.g, on
+  Linux/x86 there are different mechanisms for walking through system calls, signal handlers,
+  regular functions, and frameless functions.
 
-.. code-block:: cpp
+  In addition to walking through individual stack frames, a stepper registers itself with a
+  :cpp:class:`StepperGroup` to indicate when it can be used. The stepper registers the
+  address ranges that cover objects in the target process' code space (such as functions).
+  These address ranges contain the objects that will create stack frames through which
+  the stepper can walk. If multiple steppers have overlapping address ranges, then a priority
+  value is used to determine which stepper should be attempted first.
 
-    typedef enum gcf_success, gcf_stackbottom, gcf_not_me, gcf_error gcframe_ret_t
-    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0
+  .. cpp:member:: static const unsigned stackbottom_priority = 0x10000
+  .. cpp:member:: static const unsigned dyninstr_priority = 0x10010
+  .. cpp:member:: static const unsigned sighandler_priority = 0x10020
+  .. cpp:member:: static const unsigned analysis_priority = 0x10058
+  .. cpp:member:: static const unsigned debugstepper_priority = 0x10040
+  .. cpp:member:: static const unsigned frame_priority = 0x10050
+  .. cpp:member:: static const unsigned wanderer_priority = 0x10060
 
-This method walks through a single stack frame and generates a Frame
-object that represents the caller’s stack frame. Parameter in will be a
-Frame object that this FrameStepper is capable of walking through.
-Parameter out is an output parameter that this method should set to the
-Frame object that called in.
+  .. cpp:function:: FrameStepper(Walker *w)
+
+      Creates a stepper associated with the walker ``w``.
+
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0
+
+      Returns in ``out`` the frame that contains the call to the frame ``in``.
+
+      Returns :cpp:enumerator:`gcframe_ret_t::gcf_stackbottom` if the bottom of the stack
+      is reached. Returns :cpp:enumerator:`gcframe_ret_t::gcf_not_me` if the frame is
+      not the correct type stepper and attempts to locate another stepper to handle
+      ``in`` or abort the stackwalk. Returns :cpp:enumerator:`gcframe_ret_t::gcf_error`
+      if there was an error and the stack walk should be aborted. Returns
+      :cpp:enumerator:`gcframe_ret_t::gcf_success` on success.
+
+  .. cpp:function:: virtual unsigned getPriority() const = 0
+
+      Returns the priority of this stepper, the lower the number the higher the priority.
+
+      This is used by the ``StepperGroup`` to decide which stepper to use if multiple
+      have been registered for the same address range.
+
+      .. important:: 
+
+        If two ``FrameStepper`` objects have an overlapping address range and the same
+        priority, then the order in which they are used is undefined.
+
+  .. cpp:function:: virtual ProcessState *getProcessState()
+
+      Return the ``ProcessState`` used by the ``FrameStepper``. Can be
+      overridden if the user desires.
+
+  .. cpp:function:: virtual Walker *getWalker()
+
+      Return the ``Walker`` associated with the ``FrameStepper``. Can be
+      overridden if the user desires.
+
+  .. cpp:function:: virtual void newLibraryNotification(LibAddrPair *libaddr, lib_change_t change)
+
+      This function is called when a new library is loaded by the process; it
+      should be implemented if the ``FrameStepper`` requires such information.
+
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+
+  .. cpp:function:: virtual const char *getName() const = 0
+
+      Returns a name for the ``FrameStepper``; must be implemented by the
+      user.
+
+
+.. cpp:class:: FrameFuncHelper
+
+  .. cpp:type:: std::pair<frame_type, frame_state> alloc_frame_t
+
+  .. cpp:function:: FrameFuncHelper(ProcessState *proc_)
+
+  .. cpp:function:: virtual alloc_frame_t allocatesFrame(Address addr) = 0
+
+      Walks through a single stack frame and generates the caller’s stack frame.
+
+      Returns a description of the :cpp:enum:`frame_type` and :cpp:enum:`frame_state`
+      of the function at ``addr`` when execution reached there.
+
+      If ``addr`` is invalid or an error occurs, returns ``unknown_t`` and
+      ``unknown_s``, respectively.
+
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *steppergroup)
+
+      Notifies a :cpp:class:`FrameStepper` when it is added to ``steppergroup``.
+
+      This can be used to initialize the ``FrameStepper``.
+
+  .. cpp:function:: virtual unsigned getPriority() const = 0
+
+
+.. cpp:enum:: FrameFuncHelper::frame_type
+
+  .. cpp:enumerator:: unknown_t
+  .. cpp:enumerator:: no_frame
+  .. cpp:enumerator:: standard_frame
+  .. cpp:enumerator:: savefp_only_frame
+
+
+.. cpp:enum:: FrameFuncHelper::frame_state
+
+  **Determines the current state of function with a stack frame at some point of execution**
+
+  A function may set up a standard stack frame and have a :cpp:enum:`frame_type` of
+  :cpp:enumerator:`frame_type::standard_frame`, but execution may be at the first instruction in the
+  function and the frame is not yet set up, in which case the ``frame_state`` will be
+  :cpp:enumerator:`unset_frame`.
+
+  If the function sets up a standard stack frame and the execution point is someplace where
+  the frame is completely setup, then the ``frame_state`` should be :cpp:enumerator:`set_frame`. If the
+  function sets up a standard frame and the execution point is at a point where the frame
+  does not yet exist or has been torn down, then ``frame_state`` should be :cpp:enumerator:`unset_frame`.
+  :cpp:enumerator:`halfset_frame` is currently only meaningful on the x86 family of architecture, and should
+  be used if the function has saved the old frame pointer, but not yet set up a new frame pointer.
+
+  .. cpp:enumerator:: unknown_s
+  .. cpp:enumerator:: unset_frame
+  .. cpp:enumerator:: halfset_frame
+  .. cpp:enumerator:: set_frame
+
+
+.. cpp:class:: FrameFuncStepper : public FrameStepper
+
+  *Walks a stack through an architecture-standard call frame**
+
+  For example, on x86 this will be used to walk through stack frames that are
+  set up with a ``push %ebp/mov %esp,%ebp`` prologue.
+
+  .. cpp:function:: FrameFuncStepper(Walker *w, FrameFuncHelper *helper = NULL)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: DebugStepper : public FrameStepper
+
+  **Walks a stack using debug information**
+
+  It depends on :ref:`sec:symtab-intro` to read debug information from a
+  binary, then uses that debug information to walk through a call frame.
+
+  Most binaries must be built with debug information in order to include debug
+  information used here. Some languages, such as C++, automatically include
+  stackwalking debug information for use by exceptions. This walker can also make
+  use of this kind of exception information.
+
+  .. cpp:function:: DebugStepper(Walker *w)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: WandererHelper
+
+  .. cpp:function:: WandererHelper(ProcessState *proc_)
+  .. cpp:function:: virtual bool isPrevInstrACall(Address addr, Address &target)
+  .. cpp:function:: virtual pc_state isPCInFunc(Address func_entry, Address pc)
+  .. cpp:function:: virtual bool requireExactMatch()
+
+
+.. cpp:enum:: WandererHelper::pc_state
+
+  .. cpp:enumerator:: unknown_s
+  .. cpp:enumerator:: in_func
+  .. cpp:enumerator:: outside_func
+
+
+.. cpp:class:: StepperWanderer : public FrameStepper
+
+  **Walks a stack using a heuristic approach**
+
+  Heuristics are used to find possible return addresses in the stack frame. If a return address
+  is found that matches a valid caller of the current function, it is assumed to be the actual return
+  address and a matching stack frame is created. Since this approach is heuristic, it can make mistakes
+  leading to incorrect stack information.
+
+  .. cpp:function:: StepperWanderer(Walker *w, WandererHelper *whelper = NULL, FrameFuncHelper *fhelper = NULL)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: SigHandlerStepper : public FrameStepper
+
+  **Walks through UNIX signal handlers found on the call stack**
+
+  On some systems a signal handler generates a special kind of stack frame that cannot be walked
+  through using normal stack walking techniques.
+
+  .. cpp:function:: SigHandlerStepper(Walker *w)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change)
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: BottomOfStackStepper : public FrameStepper
+
+  **Detect if the bottom of the call stack has been reached**
+
+  This doesn't walk through any type of call frame. When the bottom of the stack
+  is found, it reports :cpp:enumerator:`gcframe_ret_t::gcf_stackbottom` from its
+  ``getCallerFrame`` method. Otherwise it will report :cpp:enumerator:`gcframe_ret_t::gcf_not_me`.
+
+  This stepper runs with a higher priority than any other stepper.
+
+  .. cpp:function:: BottomOfStackStepper(Walker *w)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change)
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: DyninstInstrStepper : public FrameStepper
+
+  .. cpp:function:: DyninstInstrStepper(Walker *w)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual ~DyninstInstrStepper()
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: AnalysisStepper : public FrameStepper
+
+  **Walks a stack using dataflow analysis**
+
+  Dataflow is used to determine possible stack sizes at all locations in a function as
+  well as the location of the frame pointer. It is able to handle optimized code with
+  omitted frame pointers and overlapping code sequences.
+
+  .. cpp:function:: AnalysisStepper(Walker *w)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: DyninstDynamicHelper
+
+  .. cpp:function:: virtual bool isInstrumentation(Address ra, Address *orig_ra, unsigned *stack_height, bool *aligned, bool *entryExit) = 0
+  .. cpp:function:: virtual ~DyninstDynamicHelper()
+
+
+.. cpp:class:: DyninstDynamicStepper : public FrameStepper
+
+  .. cpp:function:: DyninstDynamicStepper(Walker *w, DyninstDynamicHelper *dihelper = NULL)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual ~DyninstDynamicStepper()
+  .. cpp:function:: virtual const char *getName() const
+
+
+.. cpp:class:: DyninstInstFrameStepper : public FrameStepper
+
+  .. cpp:function:: DyninstInstFrameStepper(Walker *w)
+  .. cpp:function:: virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out)
+  .. cpp:function:: virtual unsigned getPriority() const
+  .. cpp:function:: virtual void registerStepperGroup(StepperGroup *group)
+  .. cpp:function:: virtual ~DyninstInstFrameStepper()
+  .. cpp:function:: virtual const char *getName() const
+
+
+Notes
+*****
 
 There may be multiple ways of walking through a different types of stack
 frames. Each ``FrameStepper`` class should be able to walk through a
@@ -60,242 +305,3 @@ discover out’s FP or RA; perhaps the ``FrameStepper`` searches through
 the stack for the RA or performs analysis on the function that created
 the stack frame.
 
-If ``getCallerFrame`` successfully walks through in, it is required to
-set the following parameters in out. See
-Section `3.3.2 <#subsec:frame>`__ for more details on the values that
-can be set in a Frame object:
-
-Return Address (RA)
-   The RA should be set with the ``Frame::setRA`` method.
-
-Stack Pointer (SP)
-   The SP should be set with the ``Frame::setSP`` method.
-
-Frame Pointer (FP)
-   The FP should be set with the ``Frame::setFP`` method
-
-Optionally, getCallerFrame can also set any of following parameters in
-out:
-
-Return Address Location (RALocation)
-   The RALocation should be set with the ``Frame::setRALocation()``
-   method.
-
-Stack Pointer Location (SPLocation)
-   The SPLocation should be set with the ``Frame::setRALocation()``
-   method.
-
-Frame Pointer Location (FPLocation)
-   The FPLocation should be set with the ``Frame::setFPLocation()``
-   method.
-
-If a location field in out is not set, then the appropriate
-``Frame::getRALocation``, ``Frame::getSPLocation`` or
-``Frame::getFPLocation`` method will return ``loc_unknown``.
-
-``getCallerFrame`` should return ``gcf_success`` if it successfully
-walks through in and creates an ``out`` ``Frame`` object. It should
-return ``gcf_stackbottom`` if in is the bottom of the stack and there
-are no stack frames below it. It should return ``gcf_not_me`` if in is
-not the correct type of stack frame for this ``FrameStepper`` to walk
-through. StackwalkerAPI will then attempt to locate another
-``FrameStepper`` to handle ``in`` or abort the stackwalk. It should
-return ``gcf_error`` if there was an error and the stack walk should be
-aborted.
-
-.. code-block:: cpp
-
-    virtual void registerStepperGroup(StepperGroup *steppergroup)
-
-This method is used to notify a ``FrameStepper`` when StackwalkerAPI
-adds it to a ``StepperGroup``. The ``StepperGroup`` to which this
-``FrameStepper`` is being added is passed in parameter steppergroup.
-This method can be used to initialize the ``FrameStepper`` (in addition
-to any ``FrameStepper`` constructor).
-
-.. code-block:: cpp
-
-    virtual unsigned getPriority() const = 0
-
-This method is used by the ``StepperGroup`` to decide which
-``FrameStepper`` to use if multiple ``FrameStepper`` objects are
-registered over the same address range (see addAddressRanges in
-Section `3.6.3 <#subsec:steppergroup>`__ for more information about
-address ranges). This method returns an integer representing a priority
-level, the lower the number the higher the priority.
-
-The default ``FrameStepper`` objects provided by StackwalkerAPI all
-return priorities between ``0x1000`` and ``0x2000``. If two
-``FrameStepper`` objects have an overlapping address range, and they
-have the same priority, then the order in which they are used is
-undefined.
-
-.. code-block:: cpp
-
-    FrameStepper(Walker *w);
-
-Constructor definition for all ``FrameStepper`` instances.
-
-.. code-block:: cpp
-
-    virtual ProcessState *getProcessState();
-
-Return the ``ProcessState`` used by the ``FrameStepper``. Can be
-overridden if the user desires.
-
-.. code-block:: cpp
-
-    virtual Walker *getWalker();
-
-Return the ``Walker`` associated with the ``FrameStepper``. Can be
-overridden if the user desires.
-
-.. code-block:: cpp
-
-    typedef std::pair<std::string, Address> LibAddrPair; typedef enum
-    library_load, library_unload lib_change_t; virtual void
-    newLibraryNotification(LibAddrPair *libAddr, lib_change_t change);
-
-This function is called when a new library is loaded by the process; it
-should be implemented if the ``FrameStepper`` requires such information.
-
-.. code-block:: cpp
-
-    virtual const char *getName() const = 0;
-
-Returns a name for the ``FrameStepper``; must be implemented by the
-user.
-
-FrameSteppers
--------------
-
-StackwalkerAPI ships with numerous default implementations of the
-``FrameStepper`` class. Each of these ``FrameStepper`` implementations
-allow StackwalkerAPI to walk a type of call frames.
-Section `3.6.1 <#subsec:defaults>`__ describes which ``FrameStepper``
-implementations are available on which platforms. This sections gives a
-brief description of what each ``FrameStepper`` implementation does.
-Each of the following classes implements the ``FrameStepper`` interface
-described in Section `3.6.2 <#subsec:framestepper>`__, so we do not
-repeat the API description for the classes here.
-
-Several of the ``FrameStepper``\ s use helper classes (see
-``FrameFuncStepper`` as an example). Users can further customize the
-behavior of a ``FrameStepper`` by providing their own implementation of
-these helper classes.
-
-Class FrameFuncStepper
-~~~~~~~~~~~~~~~~~~~~~~
-
-This class implements stack walking through a call frame that is setup
-with the architectures standard stack frame. For example, on x86 this
-``FrameStepper`` will be used to walk through stack frames that are
-setup with a ``push %ebp/mov %esp,%ebp`` prologue.
-
-Class FrameFuncHelper
-~~~~~~~~~~~~~~~~~~~~~
-
-``FrameFuncStepper`` uses a helper class, ``FrameFuncHelper``, to get
-information on what kind of stack frame it’s walking through. The
-``FrameFuncHelper`` will generally use techniques such as binary
-analysis to determine what type of stack frame the ``FrameFuncStepper``
-is walking through. Users can have StackwalkerAPI use their own binary
-analysis mechanisms by providing an implementation of this
-``FrameFuncHelper``.
-
-There are two important types used by ``FrameFuncHelper`` and one
-important function: typedef enum unknown_t=0, no_frame, standard_frame,
-savefp_only_frame, frame_type;
-
-The ``frame_type`` describes what kind of stack frame a function uses.
-If it does not set up a stack frame then ``frame_type`` should be
-``no_frame``. If it sets up a standard frame then ``frame_type`` should
-be ``standard_frame``. The ``savefp_only_frame`` value currently only
-has meaning on the x86 family of systems, and means that a function
-saves the old frame pointer, but does not setup a new frame pointer (it
-has a ``push %ebp`` instruction, but no ``mov %esp,%ebp``). If the
-``FrameFuncHelper`` cannot determine the ``frame_type``, then it should
-be assigned the value ``unknown_t``.
-
-.. code-block:: cpp
-
-    typedef enum unknown_s=0, unset_frame, halfset_frame, set_frame frame_state;
-
-The ``frame_state`` type determines the current state of function with a
-stack frame at some point of execution. For example, a function may set
-up a standard stack frame and have a ``frame_type`` of
-``standard_frame``, but execution may be at the first instruction in the
-function and the frame is not yet setup, in which case the
-``frame_state`` will be ``unset_frame``.
-
-If the function sets up a standard stack frame and the execution point
-is someplace where the frame is completely setup, then the
-``frame_state`` should be ``set_frame``. If the function sets up a
-standard frame and the execution point is at a point where the frame
-does not yet exist or has been torn down, then ``frame_state`` should be
-``unset_frame``. The ``halfset_frame`` value of ``frame_state`` is
-currently only meaningful on the x86 family of architecture, and should
-if the function has saved the old frame pointer, but not yet set up a
-new frame pointer.
-
-.. code-block:: cpp
-
-    typedef std::pair<frame_type, frame_state> alloc_frame_t; virtual alloc_frame_t allocatesFrame(Address addr) = 0;
-
-The ``allocatesFrame`` function of ``FrameFuncHelper`` returns a
-``alloc_frame_t`` that describes the frame_type of the function at
-``addr`` and the ``frame_state`` of the function when execution reached
-``addr``.
-
-If ``addr`` is invalid or an error occurs, allocatedFrame should return
-``alloc_frame_t(unknown_t, unknown_s)``.
-
-Class SigHandlerStepper
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``SigHandlerStepper`` is used to walk through UNIX signal handlers
-as found on the call stack. On some systems a signal handler generates a
-special kind of stack frame that cannot be walked through using normal
-stack walking techniques.
-
-Class DebugStepper
-~~~~~~~~~~~~~~~~~~
-
-This class uses debug information found in a binary to walk through a
-stack frame. It depends on SymtabAPI to read debug information from a
-binary, then uses that debug information to walk through a call frame.
-
-Most binaries must be built with debug information (``-g`` with ``gcc``)
-in order to include debug information that this ``FrameStepper`` uses.
-Some languages, such as C++, automatically include stackwalking debug
-information for use by exceptions. The ``DebugStepper`` class will also
-make use of this kind of exception information if it is available.
-
-Class AnalysisStepper
-~~~~~~~~~~~~~~~~~~~~~
-
-This class uses dataflow analysis to determine possible stack sizes at
-all locations in a function as well as the location of the frame
-pointer. It is able to handle optimized code with omitted frame pointers
-and overlapping code sequences.
-
-Class StepperWanderer
-~~~~~~~~~~~~~~~~~~~~~
-
-This class uses a heuristic approach to find possible return addresses
-in the stack frame. If a return address is found that matches a valid
-caller of the current function, we conclude it is the actual return
-address and construct a matching stack frame. Since this approach is
-heuristic it can make mistakes leading to incorrect stack information.
-It has primarily been replaced by the ``AnalysisStepper`` described
-above.
-
-Class BottomOfStackStepper
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``BottomOfStackStepper`` doesn’t actually walk through any type of
-call frame. Instead it attempts to detect whether the bottom of the call
-stack has been reached. If so, ``BottomOfStackStepper`` will report
-``gcf_stackbottom`` from its ``getCallerFrame`` method. Otherwise it
-will report ``gcf_not_me``. ``BottomOfStackStepper`` runs with a higher
-priority than any other ``FrameStepper`` class.

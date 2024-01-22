@@ -12,6 +12,7 @@ Stackwalker
   analysis_stepper.h
   dbgstepper-impl.h
   frame.h
+  framestepper.h
   framestepper_pimple.h
   freebsd-swk.h
   get_trap_instruction.h

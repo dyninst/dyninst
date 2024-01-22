@@ -3,6 +3,8 @@ procstate.h
 
 .. cpp:namespace:: Dyninst::stackwalk
 
+std::pair<std::string, Address> LibAddrPair; typedef enum library_load, library_unload lib_change_t;
+
 Class ProcDebug
 ~~~~~~~~~~~~~~~
 
