@@ -143,10 +143,6 @@ class LVReader : public MemRegReader
    virtual ~LVReader() {}
 };
 
-/**
- * Given a StackwalkerAPI frame, return the SymtabAPI function
- * that created the frame.
- **/
 static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
 {
    Offset offset;
@@ -169,20 +165,6 @@ static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
    return func;
 }
 
-/**
- * Given a frame in a stackwalk, and a local variable, get the value
- * of that local variable in the frame.
- *
- * 'localVar' is the variable that we're getting the value of.
- * 'swalk' is a stackwalk from StackwalkerAPI
- * 'frame' is an index into swalk and notes the frame that we'll be reading
- *   the variable from.  localVar should be part of the frame defined by
- *   swalk[frame]
- * 'out_buffer' is a buffer where we will write the value of the local variable.
- * out_buffer_size should be the size of out_buffer, used to prevent buffer overflows
- *
- * getLocalVariableValue will return one of the following on success or error
- **/
 static int glvv_Success = 0;
 static int glvv_EParam = -1;
 static int glvv_EOutOfScope = -2;
