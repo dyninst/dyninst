@@ -1,8 +1,5 @@
-==============
-StackwalkerAPI
-==============
-
-This section gives an API reference for all classes, functions and types in StackwalkerAPI.
+Stackwalker
+###########
 
 .. toctree::
   :caption: Public API

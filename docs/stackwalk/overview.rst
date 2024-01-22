@@ -2,9 +2,8 @@
 
 .. cpp:namespace:: Dyninst::Stackwalker
 
-===========
 Stackwalker
-===========
+###########
 
 Stackwalker is a library for walking a call stack. The call stack
 (also known as the run-time stack) is a stack
