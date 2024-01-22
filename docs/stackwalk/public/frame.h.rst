@@ -69,8 +69,7 @@ memory address on a call stack.
       These methods return whether a ``Frame`` object is the top (e.g., most
       recently executing) or bottom of the stack walk.
 
-  .. cpp:type:: enum loc_address, loc_register, loc_unknown storage_t;
-          typedef struct union Dyninst::Address addr; Dyninst::MachRegister reg; val; storage_t location; location_t;
+  .. cpp:type:: FARTS f
 
       The ``location_t`` structure is used by the ``getRALocation``,
       ``getSPLocation``, and ``getFPLocation`` methods to describe where in
@@ -174,8 +173,6 @@ memory address on a call stack.
 
   .. cpp:function:: void setThread(THR_ID)
   .. cpp:function:: void setNonCall()
-  .. cpp:function:: bool isTopFrame() const
-  .. cpp:function:: bool isBottomFrame() const
   .. cpp:function:: bool isFrameComplete() const
   .. cpp:function:: const Frame *getPrevFrame() const
   .. cpp:function:: FrameStepper *getNextStepper() const

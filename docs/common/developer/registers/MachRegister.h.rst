@@ -7,6 +7,11 @@ MachRegister.h
 
 .. cpp:type:: unsigned long MachRegisterVal
 
+  A value that holds the contents of a register.
+
+  A MachRegister names a specific register, while a MachRegisterVal represents
+  the value that may be in that register.
+
 .. cpp:class:: MachRegister
 
   **A representation of a machine register**
