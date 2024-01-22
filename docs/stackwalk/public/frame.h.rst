@@ -5,84 +5,57 @@ frame.h
 
 .. cpp:namespace:: Dyninst::Stackwalker
 
-The ``Walker`` class returns a call stack as a vector of ``Frame``
-objects. As described in Section `3.1.1 <#subsec:definitions>`__, each
-Frame object represents a stack frame, and contains a return address
-(RA), stack pointer (SP) and frame pointer (FP). For each of these
-values, optionally, it stores the location where the values were found.
-Each Frame object may also be augmented with symbol information giving a
-function name (or a symbolic name, in the case of non-functions) for the
-object that created the stack frame.
-
-The Frame class provides a set of functions (getRALocation,
-getSPLocation and getFPLocation) that return the location in the target
-process’ memory or registers where the RA, SP, or FP were found. These
-functions may be used to modify the stack. For example, the DyninstAPI
-uses these functions to change return addresses on the stack when it
-relocates code. The RA, SP, and FP may be found in a register or in a
-memory address on a call stack.
-
 .. cpp:class:: Frame : public AnnotatableDense
+
+  **A stack frame containing a return address (RA), stack pointer (SP), and frame pointer (FP)**
+
+  Frames may be augmented with symbol information giving a function name (or a symbolic name,
+  in the case of non-functions) for the object that created the stack frame.
 
   .. cpp:function:: Frame()
   .. cpp:function:: Frame(Walker *walker)
 
-  .. cpp:function:: static Frame *newFrame(Dyninst::MachRegisterVal ra, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker)
+  .. cpp:function:: static Frame *newFrame(Dyninst::MachRegisterVal ra, Dyninst::MachRegisterVal sp, \
+                                           Dyninst::MachRegisterVal fp, Walker *walker)
 
-      This method creates a new ``Frame`` object and sets the mandatory data
-      members: RA, SP and FP. The new ``Frame`` object is associated with
-      ``walker``.
+      Creates a frame with return address ``ra``, stack pointer ``sp``, and frame pointer ``fp`` and stores
+      it in ``walker``.
 
-      The optional location fields can be set by the methods below.
+      .. attention:: A valid ``walker`` is required.
 
-      The new ``Frame`` object is created with the ``new`` operator, and the
-      user should be deallocate it with the ``delete`` operator when it is no
-      longer needed.
+      .. danger:: The user is responsible for deallocating the returned value.
 
   .. cpp:function:: Dyninst::MachRegisterVal getRA() const
 
-      This method returns this ``Frame`` object’s return address.
+      Returns the return address stored in the frame.
 
   .. cpp:function:: void setRA(Dyninst::MachRegisterVal val)
 
-      This method sets this ``Frame`` object’s return address to ``val``.
+      Sets the return address stored in the frame to ``val``.
 
   .. cpp:function:: Dyninst::MachRegisterVal getSP() const
 
-      This method returns this ``Frame`` object’s stack pointer.
+      Returns the stack pointer stored in the frame.
 
   .. cpp:function:: void setSP(Dyninst::MachRegisterVal val)
 
-      This method sets this ``Frame`` object’s stack pointer to ``val``.
+      Sets the stack pointer stored in the frame to ``val``.
 
   .. cpp:function:: Dyninst::MachRegisterVal getFP() const
 
-      This method returns this ``Frame`` object’s frame pointer.
+      Returns the frame pointer stored in the frame.
 
   .. cpp:function:: void setFP(Dyninst::MachRegisterVal val)
 
-      This method sets this ``Frame`` object’s frame pointer to ``val``.
+      Sets the frame pointer stored in the frame to ``val``.
 
   .. cpp:function:: bool isTopFrame() const
+
+      Checks if this is the most-recently executed frame in a stack walk.
+
   .. cpp:function:: bool isBottomFrame() const
 
-      These methods return whether a ``Frame`` object is the top (e.g., most
-      recently executing) or bottom of the stack walk.
-
-  .. cpp:type:: FARTS f
-
-      The ``location_t`` structure is used by the ``getRALocation``,
-      ``getSPLocation``, and ``getFPLocation`` methods to describe where in
-      the process a ``Frame`` object’s RA, SP, or FP were found. When walking
-      a call stack these values may be found in registers or memory. If they
-      were found in memory, the ``location`` field of ``location_t`` will
-      contain ``loc_address`` and the ``addr`` field will contain the address
-      where it was found. If they were found in a register the ``location``
-      field of ``location_t`` will contain ``loc_register`` and the ``reg``
-      field will refer to the register where it was found. If this ``Frame``
-      object was not created by a stackwalk (using the ``newframe`` factory
-      method, for example), and has not had a set location method called, then
-      location will contain ``loc_unknown``.
+      Checks if this is the least-recently executed frame in a stack walk.
 
   .. cpp:function:: location_t getRALocation() const
 
@@ -110,72 +83,69 @@ memory address on a call stack.
 
   .. cpp:function:: bool getName(std::string &str) const
 
-      This method returns a stack frame’s symbolic name. Most stack frames are
-      created by functions, or function-like objects such as signal handlers
-      or system calls. This method returns the name of the object that created
-      this stack frame. For stack frames created by functions, this symbolic
-      name will be the function name. A symbolic name may not always be
-      available for all ``Frame`` objects, such as in cases of stripped
-      binaries or special stack frames types.
+      Returns the stack frame’s symbolic name.
 
-      The function name is obtained by using this ``Frame`` object’s RA to
-      call the ``SymbolLookup`` callback. By default StackwalkerAPI will
-      attempt to use the ``SymtabAPI`` package to look up symbol names in
-      binaries. If ``SymtabAPI`` is not found, and no alternative
-      ``SymbolLookup`` object is present, then this method will return an
-      error.
+      Most stack frames are created by functions or function-like objects such as signal handlers
+      or system calls. This method returns the name of the object that created this stack frame.
+      For stack frames created by functions, this symbolic name will be the function name. A
+      symbolic name may not always be available (e.g., stripped binaries or special stack frame).
 
-      This method returns ``true`` on success and ``false`` on error.
+      .. note:: The function name is obtained by invoking the :cpp:class:`StackwalkSymLookup` callback.
+
+      Returns ``false`` on error.
 
   .. cpp:function:: bool getObject(void* &obj) const
 
-      In addition to returning a symbolic name (see ``getName``) the
-      ``SymbolLookup`` interface allows for an opaque object, a ``void*``, to
-      be associated with a ``Frame`` object. The contents of this ``void*`` is
-      determined by the ``SymbolLookup`` implementation. Under the default
-      implementation that uses SymtabAPI, the ``void*`` points to a Symbol
-      object or NULL if no symbol is found.
+      Returns an opaque handle associated with this frame.
 
-      This method returns ``true`` on success and ``false`` on error.
+      The contents are determined by the :cpp:class:`StackwalkSymLookup` implementation. Under
+      the default implementation that uses :ref:`sec:symtab-intro`, the handle points to a
+      :cpp:class:`Symbol` or ``NULL`` if no symbol is found.
+
+      Returns ``false`` on error.
 
   .. cpp:function:: Walker *getWalker() const;
 
-      This method returns the ``Walker`` object that constructed this stack
-      frame.
+      Returns the walker that constructed this stack frame.
 
   .. cpp:function:: THR_ID getThread() const;
 
-      This method returns the execution thread that the current ``Frame``
-      represents.
+      Returns the execution thread to which the current frame belongs.
 
   .. cpp:function:: FrameStepper* getStepper() const
 
-      This method returns the ``FrameStepper`` object that was used to
-      construct this ``Frame`` object in the ``stepper`` output parameter.
-      This method returns ``true`` on success and ``false`` on error.
+      Returns the stepper that was used to construct this frame.
 
   .. cpp:function:: bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const
 
-      This method returns the DSO (a library or executable) and an offset into
-      that DSO that points to the location within that DSO where this frame
-      was created. ``lib`` is the path to the library that was loaded, and
-      ``offset`` is the offset into that library. The return value of the
-      ``symtab`` parameter is dependent on the SymbolLookup implementation-by
-      default it will contain a pointer to a Dyninst::Symtab object for this
-      DSO. See the SymtabAPI Programmer’s Guide for more information on using
-      Dyninst::Symtab objects.
+      Returns the library and an offset into that library that points to the location where this frame
+      was created.
+
+      ``lib`` is the path to the library that was loaded and ``offset`` is the offset into that library.
+      The return of ``symtab`` depends on the :cpp:class:`StackwalkSymLookup` implementation. By
+      default, it will be the :cpp:class:`Symtab` for the library.
 
   .. cpp:function:: bool nonCall() const
 
-      This method returns whether a ``Frame`` object represents a function
-      call; if ``false``, the ``Frame`` may represent instrumentation, a
-      signal handler, or something else.
+      Checks if this frame represents a function call.
 
-  .. cpp:function:: void setThread(THR_ID)
+      If it returns ``false``, this frame may represent instrumentation, a signal handler, or something else.
+
   .. cpp:function:: void setNonCall()
+
+      Indicates this frame is **not** for a function call.
+
   .. cpp:function:: bool isFrameComplete() const
+
+      Checks if this frame processing is complete.
+
+      Completion is indicated when the frame's return address is explicitly set via :cpp:func:`setRA`.
+
   .. cpp:function:: const Frame *getPrevFrame() const
-  .. cpp:function:: FrameStepper *getNextStepper() const
+
+      Returns the frame immediately preceding this one in the stack walk.
+
+      If there is no such frame, returns ``NULL``.
 
 
 .. cpp:type:: bool (*frame_cmp_t)(const Frame &a, const Frame &b)
