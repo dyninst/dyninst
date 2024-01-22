@@ -1,373 +1,234 @@
+.. _`sec:procstate.h`:
+
 procstate.h
-===========
-
-.. cpp:namespace:: Dyninst::stackwalk
-
-std::pair<std::string, Address> LibAddrPair; typedef enum library_load, library_unload lib_change_t;
-
-Class ProcDebug
-~~~~~~~~~~~~~~~
+###########
 
-Access to StackwalkerAPI’s debugger is through the ``ProcDebug`` class,
-which inherits from the ``ProcessState`` interface. The easiest way to
-get at a ``ProcDebug`` object is to cast the return value of
-``Walker::getProcessState`` into a ``ProcDebug``. C++’s ``dynamic_cast``
-operation can be used to test if a ``Walker`` uses the ``ProcDebug``
-interface:
-
-.. code-block:: cpp
-
-   ProcDebug *debugger;
-   debugger = dynamic_cast<ProcDebug*>(walker->getProcessState());
-   if (debugger != NULL) {
-       //3rd party
-       ...
-   } else {
-       //1st party
-       ...
-   }
+.. cpp:namespace:: Dyninst::Stackwalker
 
-In addition to the handling of debug events, described in
-Section `4.1 <#subsec:debugger>`__, the ``ProcDebug`` class provides a
-process control interface; users can pause and resume process or
-threads, detach from a process, and test for events such as process
-death. As an implementation of the ``ProcessState`` class, ``ProcDebug``
-also provides all of the functionality described in
-Section `3.6.4 <#subsec:processstate>`__.
-
-.. code-block:: cpp
-
-    virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
-
-This method pauses a process or thread. The paused object will not
-resume execution until ``ProcDebug::resume`` is called. If the ``tid``
-parameter is not ``NULL_THR_ID`` then StackwalkerAPI will pause the
-thread specified by ``tid``. If ``tid`` is ``NULL_THR_ID`` then
-StackwalkerAPI will pause every thread in the process.
+.. cpp:class:: ProcessState
 
-When StackwalkerAPI collects a call stack from a running thread it first
-pauses the thread, collects the stack walk, and then resumes the thread.
-When collecting a call stack from a paused thread StackwalkerAPI will
-collect the stack walk and leave the thread paused. This method is thus
-useful for pausing threads before stack walks if the user needs to keep
-the returned stack walk synchronized with the current state of the
-thread.
+  **An abstract class for accessing a process**
 
-This method returns ``true`` if successful and ``false`` on error.
+  It allows access to registers and memory, and provides basic information about the
+  threads in the target process.
 
-.. code-block:: cpp
+  .. cpp:function:: static ProcessState* getProcessStateByPid(Dyninst::PID pid)
 
-    virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
+      Return the ``ProcessState`` for the process with id ``pid``.
 
-This method resumes execution on a paused process or thread. This method
-only resumes threads that were paused by the ``ProcDebug::pause`` call,
-using it on other threads is an error. If the ``tid`` parameter is not
-``NULL_THR_ID`` then StackwalkerAPI will resume the thread specified by
-``tid``. If ``tid`` is ``NULL_THR_ID`` then StackwalkerAPI will resume
-all paused threads in the process.
+  .. cpp:function:: virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, \
+                                             Dyninst::MachRegisterVal &val) = 0
 
-This method returns ``true`` if successful and ``false`` on error.
+      Returns in ``val`` the value contained in register ``reg`` in the thread with id ``thread``.
 
-.. code-block:: cpp
+      Returns ``false`` on error.
 
-    virtual bool detach(bool leave_stopped = false)
+  .. cpp:function:: virtual bool readMem(void *dest, Dyninst::Address source, size_t size) = 0
 
-This method detaches StackwalkerAPI from the target process.
-StackwalkerAPI will no longer receive debug events on this target
-process and will no longer be able to collect call stacks from it. This
-method invalidates the associated ``Walker`` and ``ProcState`` objects,
-they should be cleaned using C++’s ``delete`` operator after making this
-call. It is an error to attempt to do operations on these objects after
-a detach, and undefined behavior may result.
+      Stores in ``dest`` ``size`` *bytes* of the memory contents starting at ``source`` in the
+      target process.
+       
+      Returns ``false`` on error.
 
-If the ``leave_stopped`` parameter is ``true`` StackwalkerAPI will
-detach from the process but leave it in a paused state so that it does
-resume progress. This is useful for attaching another debugger back to
-the process for further analysis. The ``leave_stopped`` parameter is not
-supported on the Linux platform and its value will have no affect on the
-detach call.
+  .. cpp:function:: virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0
 
-This method returns ``true`` if successful and ``false`` on error.
+      Returns in ``threads`` the threads in this process with call stacks that can be walked.
+      
+      In some cases, such as with the default ``ProcDebug``, this method returns
+      all of the threads in the target process. In other cases, such as with
+      ``ProcSelf``, this method returns only the calling thread. The first thread in ``threads``
+      will be used as the default thread if the user requests a stackwalk without specifying a
+      thread.
 
-.. code-block:: cpp
+      Returns ``false`` on error.
 
-    virtual bool isTerminated()
+  .. cpp:function:: virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
 
-This method returns ``true`` if the associated target process has
-terminated and ``false`` otherwise. A target process may terminate
-itself by calling exit, returning from main, or receiving an unhandled
-signal. Attempting to collect stack walks or perform other operations on
-a terminated process is illegal an will lead to undefined behavior.
+      Returns in ``default_tid`` the thread representing the initial process.
 
-A process termination will also be signaled through the notification FD.
-Users should check processes for the isTerminated state after returning
-from handleDebugEvent.
+      Returns ``false`` on error.
 
-.. code-block:: cpp
+  .. cpp:function:: virtual Dyninst::PID getProcessId()
 
-    static int getNotificationFD()
+      Returns the process ID for the target process.
 
-This method returns StackwalkerAPI’s notification FD. The notification
-FD is a file descriptor that StackwalkerAPI will write a byte to
-whenever a debug event occurs that need. If the user code sees a byte on
-this file descriptor it should call ``handleDebugEvent`` to let
-StackwalkerAPI handle the debug event. Example code using
-``getNotificationFD`` can be found in
-Section `4.1 <#subsec:debugger>`__.
+  .. cpp:function:: virtual unsigned getAddressWidth() = 0
 
-StackwalkerAPI will only create one notification FD, even if it is
-attached to multiple 3rd party target processes.
+      Returns the number of bytes in a pointer for the target process.
+      
+      This is 4 for 32-bit platforms (x86, PowerPC-32) and 8 for 64-bit
+      platforms (x86-64, PowerPC-64).
 
-.. code-block:: cpp
+  .. cpp:function:: virtual Dyninst::Architecture getArchitecture() = 0
 
-    static bool handleDebugEvent(bool block = false)
+      Returns the architecture for the target process.
 
-When this method is called StackwalkerAPI will receive and handle all
-pending debug events from each 3rd party target process to which it is
-attached. After handling debug events each target process will be
-continued (unless it was explicitly stopped by the ProcDebug::pause
-method) and any bytes on the notification FD will be cleared. It is
-generally expected that users will call this method when a event is sent
-to the notification FD, although it can be legally called at any time.
+  .. cpp:function:: Walker *getWalker() const
 
-If the ``block`` parameter is ``true``, then ``handleDebugEvents`` will
-block until it has handled at least one debug event. If the block
-parameter is ``false``, then handleDebugEvents will handle any currently
-pending debug events or immediately return if none are available.
+      Returns the walker associated with the current process state.
 
-StackwalkerAPI may receive process exit events for target processes
-while handling debug events. The user should check for any exited
-processes by calling ``ProcDebug::isTerminated`` after handling debug
-events.
+  .. cpp:function:: virtual bool isFirstParty() = 0
 
-This method returns ``true`` if successful and ``false`` on error.
+      Checks if this is a first-party process.
 
+  .. cpp:function:: std::string getExecutablePath()
 
-**Defined in:** ``procstate.h``
+      Returns the name of the executable associated with the current process state.
 
-StackwalkerAPI provides an interface to access the addresses where
-libraries are mapped in the target process.
 
-.. code-block:: cpp
+.. cpp:class:: ProcSelf : public ProcessState
 
-    typedef std::pair<std::string, Address> LibAddrPair;
+  **State for first-party walkers**
+  
+  See :ref:`topic:stackwalk-first-party` for context.
 
-A pair consisting of a library filename and its base address in the
-target process.
+  .. cpp:function:: ProcSelf(std::string exe_path = std::string(""))
+  .. cpp:function:: void initialize()
+  .. cpp:function:: virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val)
+  .. cpp:function:: virtual bool readMem(void *dest, Dyninst::Address source, size_t size)
+  .. cpp:function:: virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads)
+  .. cpp:function:: virtual bool getDefaultThread(Dyninst::THR_ID &default_tid)
+  .. cpp:function:: virtual unsigned getAddressWidth()
+  .. cpp:function:: virtual bool isFirstParty()
+  .. cpp:function:: virtual Dyninst::Architecture getArchitecture()
+  .. cpp:function:: virtual ~ProcSelf()
 
-.. code-block:: cpp
 
-    class LibraryState
+.. cpp:class:: ProcDebug : public ProcessState
 
-Class providing interfaces for library tracking. Only the public query
-interfaces below are user-facing; the other public methods are callbacks
-that allow StackwalkerAPI to update its internal state.
+  **State for third-party walkers**
+  
+  See :ref:`topic:stackwalk-third-party` for context.
 
-.. code-block:: cpp
+  In addition to the handling of debug events, ``ProcDebug`` provides a
+  process control interface. Users can pause and resume process or
+  threads, detach from a process, and test for events such as process
+  death.
+
+  .. cpp:function:: static ProcDebug *newProcDebug(Dyninst::PID pid, std::string executable="")
+  .. cpp:function:: static ProcDebug *newProcDebug(Dyninst::ProcControlAPI::Process::ptr proc)
+  .. cpp:function:: static bool newProcDebugSet(const std::vector<Dyninst::PID> &pids, std::vector<ProcDebug *> &out_set)
+  .. cpp:function:: static ProcDebug *newProcDebug(std::string executable, const std::vector<std::string> &argv)
+
+  .. cpp:function:: virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val)
+  .. cpp:function:: virtual bool readMem(void *dest, Dyninst::Address source, size_t size)
+  .. cpp:function:: virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &thrds)
+  .. cpp:function:: virtual bool getDefaultThread(Dyninst::THR_ID &default_tid)
+  .. cpp:function:: virtual unsigned getAddressWidth()
+  .. cpp:function:: virtual bool preStackwalk(Dyninst::THR_ID tid)
+  .. cpp:function:: virtual bool postStackwalk(Dyninst::THR_ID tid)
 
-    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
+  .. cpp:function:: virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
 
-Given an address ``addr`` in the target process, returns ``true`` and
-sets ``lib`` to the name and base address of the library containing
-addr. Given an address outside the target process, returns ``false``.
+      Pauses the thread with id ``tid``.
+      
+      Execution doesn't resume until :cpp:func:`resume` is called. If no id
+      is given, then every thread in the process is paused.
 
-.. code-block:: cpp
+      When a call stack is collected from a running thread, it is automatically
+      paused and resumed. When a call stack is collected from a paused thread,
+      the thread is left in the paused state and **not** automatically resumed.
+      Explicitly pausing threads before stack walk can be useful for keeping
+      the returned stack walk synchronized with the current state of the thread.
 
-    virtual bool getLibraries(std::vector<LibAddrPair> &libs, bool allow_refresh = true) = 0;
+      Returns ``false`` on error.
 
-Fills ``libs`` with the libraries loaded in the target process. If
-``allow_refresh`` is true, this method will attempt to ensure that this
-list is freshly updated via inspection of the process; if it is false,
-it will return a cached list.
+  .. cpp:function:: virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
 
-.. code-block:: cpp
+      Resumes execution on a paused thread with id ``tid``.
+      
+      If no id is given, then every thread in the process is resumed.
 
-    virtual bool getLibc(LibAddrPair &lc);
+      Returns ``false`` on error.
+      
+      .. note::
+        Only threads paused by :cpp:func:`pause` are resumed. Using it on other threads
+        is an error.
 
-Convenience function to find the name and base address of the standard C
-runtime, if present.
+  .. cpp:function:: virtual bool isTerminated()
 
-.. code-block:: cpp
+      Checks if the associated process has terminated.
 
-    virtual bool getLibthread(LibAddrPair &lt);
+      A process termination will also be signaled through the notification FD.
+      Users should check processes for the isTerminated state after returning
+      from handleDebugEvent.
+      
+      .. attention::
+        A target process may terminate itself by calling exit, returning from main, or
+        receiving an unhandled signal. Attempting to collect stack walks or perform other
+        operations on a terminated process is illegal an will lead to undefined behavior.
 
-Convenience function to find the name and base address of the standard
-thread library, if present (e.g. pthreads).
+  .. cpp:function:: virtual bool detach(bool leave_stopped = false)
 
-.. code-block:: cpp
+      Detaches from the associated process.
 
-    virtual bool getAOut(LibAddrPair &ao) = 0;
+      If the ``leave_stopped`` is ``true``, the process is detached from but left in a
+      paused state so that it does resume progress. This is useful for attaching another
+      debugger back to the process for further analysis. This behavior is not
+      supported on the Linux platform and its value will have no affect on the
+      detach call.
+      
+      Debug events on this process can no longer receive signals, call stacks can no
+      longer be collected, and associated walker and procstate are invalidated. It is
+      an error to attempt to do operations on these objects after a detach, and
+      undefined behavior may result.
 
-Convenience function to find the name and base address of the
-executable.
+      Returns ``false`` on error.
 
-Class ProcessState
-~~~~~~~~~~~~~~~~~~
+  .. cpp:function:: Dyninst::ProcControlAPI::Process::ptr getProc()
+  
+        Returns the process associated with this state.
 
-**Defined in:** ``procstate.h``
+  .. cpp:function:: static int getNotificationFD()
 
-The ProcessState class is a virtual class that defines an interface
-through which StackwalkerAPI can access the target process. It allows
-access to registers and memory, and provides basic information about the
-threads in the target process. StackwalkerAPI provides two default types
-of ``ProcessState`` objects: ``ProcSelf`` does a first party stackwalk,
-and ``ProcDebug`` does a third party stackwalk.
+      Returns the internal notification file descriptor.
+      
+      The notification file descriptor is used to write a byte to
+      whenever a debug event occurs that need. If user code sees a byte on
+      this file descriptor it should call :cpp:func:`handleDebugEvent` to invoke
+      handling of the debug event.
 
-A new ``ProcessState`` class can be created by inheriting from this
-class and implementing the necessary methods.
+      Stackwalker will only create one notification FD, even if it is
+      attached to multiple 3rd party target processes.
 
-.. code-block:: cpp
+  .. cpp:function:: std::string getExecutablePath()
 
-    static ProcessState *getProcessStateByPid(Dyninst::PID pid)
+      The same as :cpp:func:`ProcessState::getExecutablePath`.
 
-Given a ``PID``, return the corresponding ``ProcessState`` object.
+  .. cpp:function:: static bool handleDebugEvent(bool block = false)
 
-.. code-block:: cpp
+      Receives and handles all pending debug events from each 3rd party target process to which
+      it is attached. If the ``block`` is ``true``, then execution is blocked until at least one
+      debug event is handled. Otherwise, any pending debug events are handled.
+      
+      After handling debug events each target process will be continued (unless it was
+      explicitly stopped by the :cpp:func:`ProcDebug::pause`) and any bytes on the
+      notification FD will be cleared. It is generally expected that users will call this
+      method when an event is sent to the notification FD, although it can be legally called
+      at any time.
 
-    virtual unsigned getAddressWidth() = 0;
+      Process exit events may be received while handling debug events. In this case, users
+      should check :cpp:func:`isTerminated` after handling debug events.
 
-Return the number of bytes in a pointer for the target process. This
-value is 4 for 32-bit platforms (x86, PowerPC-32) and 8 for 64-bit
-platforms (x86-64, PowerPC-64).
+      Returns ``false`` on error.
 
-.. code-block:: cpp
+  .. cpp:function:: virtual bool isFirstParty()
 
-    typedef enum Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 Architecture;
-    virtual Dyninst::Architecture getArchitecture() = 0;
+      The same as :cpp:func:`ProcessState::isFirstParty`.
 
-Return the appropriate architecture for the target process.
+  .. cpp:function:: virtual Dyninst::Architecture getArchitecture()
 
-.. code-block:: cpp
+      The same as :cpp:func:`ProcessState::getArchitecture`.
 
-    virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID
-    thread, Dyninst::MachRegisterVal &val) = 0
 
-This method takes a register name as input, ``reg``, and returns the
-value in that register in ``val`` in the thread thread.
+.. cpp:type:: std::pair<std::string, Dyninst::Address> LibAddrPair
 
-This method returns ``true`` on success and ``false`` on error.
+  The first field is the file path of the library that was loaded. The second is the load
+  address of that library in the process’ address space. The load address of a library can be
+  added to a symbol offset from the file in order to get its absolute address.
 
-.. code-block:: cpp
 
-    virtual bool readMem(void *dest, Address source, size_t size) = 0
+.. cpp:enum:: lib_change_t
 
-This method reads memory from the target process. Parameter ``dest``
-should point to an allocated buffer of memory at least ``size`` bytes in
-the host process. Parameter ``source`` should contain an address in the
-target process to be read from. If this method succeeds, ``size`` bytes
-of memory is copied from ``source``, stored in ``dest``, and ``true`` is
-returned. This method returns ``false`` otherwise.
-
-.. code-block:: cpp
-
-    virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0
-
-This method returns a list of threads whose call stacks can be walked in
-the target process. Thread are returned in the ``threads`` vector. In
-some cases, such as with the default ``ProcDebug``, this method returns
-all of the threads in the target process. In other cases, such as with
-``ProcSelf``, this method returns only the calling thread.
-
-The first thread in the ``threads`` vector (index 0) will be used as the
-default thread if the user requests a stackwalk without specifying an
-thread (see ``Walker::WalkStack``).
-
-This method returns ``true`` on success and ``false`` on error.
-
-.. code-block:: cpp
-
-    virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
-
-This method returns the thread representing the initial process in the
-``default_tid`` output parameter.
-
-This method returns ``true`` on success and ``false`` on error.
-
-.. code-block:: cpp
-
-    virtual Dyninst::PID getProcessId()
-
-This method returns a process ID for the target process. The default
-``ProcessState`` implementations (``ProcDebug`` and ``ProcSelf``) will
-return a PID on UNIX systems and a HANDLE object on Windows.
-
-.. code-block:: cpp
-
-    Walker *getWalker() const;
-
-Return the ``Walker`` associated with the current process state.
-
-.. code-block:: cpp
-
-    std::string getExecutablePath();
-
-Returns the name of the executable associated with the current process
-state.
-
-Class LibraryState
-~~~~~~~~~~~~~~~~~~
-
-**Defined in:** ``procstate.h``
-
-``LibraryState`` is a helper class for ``ProcessState`` that provides
-information about the current DSOs (libraries and executables) that are
-loaded into a process’ address space. FrameSteppers frequently use the
-LibraryState to get the DSO through which they are attempting to stack
-walk.
-
-Each ``Library`` is represented using a ``LibAddrPair`` object, which is
-defined as follows:
-
-.. code-block:: cpp
-
-    typedef std::pair<std::string, Dyninst::Address> LibAddrPair
-
-``LibAddrPair.first`` refers to the file path of the library that was
-loaded, and ``LibAddrPair.second`` is the load address of that library
-in the process’ address space. The load address of a library can be
-added to a symbol offset from the file in order to get the absolute
-address of a symbol.
-
-.. code-block:: cpp
-
-    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0
-
-This method returns a DSO, using the ``lib`` output parameter, that is
-loaded over address ``addr`` in the current process.
-
-This method returns ``false`` if no library is loaded over ``addr`` or
-an error occurs, and ``true`` if it successfully found a library.
-
-.. code-block:: cpp
-
-    virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0
-
-This method returns all DSOs that are loaded into the process’ address
-space in the output vector parameter, ``libs``.
-
-This method returns ``true`` on success and ``false`` on error.
-
-.. code-block:: cpp
-
-    virtual void notifyOfUpdate() = 0
-
-This method is called by the ``ProcessState`` when it detects a change
-in the process’ list of loaded libraries. Implementations of
-``LibraryStates`` should use this method to refresh their lists of
-loaded libraries.
-
-.. code-block:: cpp
-
-    virtual Address getLibTrapAddress() = 0
-
-Some platforms that implement the System/V standard (Linux) use a trap
-event to determine when a process loads a library. A trap instruction is
-inserted into a certain address, and that trap will execute whenever the
-list of loaded libraries change.
-
-On System/V platforms this method should return the address where a trap
-should be inserted to watch for libraries loading and unloading. The
-ProcessState object will insert a trap at this address and then call
-notifyOfUpdate when that trap triggers.
-
-On non-System/V platforms this method should return 0.
+  .. cpp:enumerator:: library_load
+  .. cpp:enumerator:: library_unload

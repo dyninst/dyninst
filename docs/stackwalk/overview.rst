@@ -127,16 +127,21 @@ Target Process
 Host Process
    The process in which StackwalkerAPI code is currently running.
 
+.. _`topic:stackwalk-first-party`:
+
 First Party Stackwalk
    StackwalkerAPI collects first party stackwalk when it walks a call
    stack in the same address space it is running in, i.e. the target
    process is the same as the host process.
+
+.. _`topic:stackwalk-third-party`:
 
 Third Party Stackwalk
    StackwalkerAPI collects third party stackwalk when it walks the call
    stack in a different address space from the one it is running in,
    i.e. the target process is different from the host process. A third
    party stackwalk is usually done through a debugger interface.
+
 
 Stackwalking Interface
 ----------------------
@@ -465,6 +470,10 @@ use the default implementations listed in Table `1 <#table:defaults>`__.
 These implementations are described in Section
 `4.2 <#sec:framesteppers>`__.
 
+StackwalkerAPI provides two default types
+  of ``ProcessState`` objects: ``ProcSelf`` does a first party stackwalk,
+  and ``ProcDebug`` does a third party stackwalk.
+
 .. container::
    :name: table:defaults
 
@@ -515,13 +524,13 @@ thread.
    :language: cpp
    :linenos:  
 
-StackwalkerAPI can walk a call stack in the same address space as where
-the StackwalkerAPI library lives (known as a first party stackwalk), or
-it can walk a call stack in another process (known as a third party
-stackwalk). To change the above example to perform a third party
-stackwalk, we would only need to pass a process identifier to newWalker,
-e.g:
+StackwalkerAPI can walk a call stack in the same address space as where the StackwalkerAPI library lives
+(known as a first party stackwalk), or it can walk a call stack in another process (known as a third party
+stackwalk). The easiest way to get at a :cpp:class:`ProcDebug` is to cast the return value of
+:cpp:func:`Walker::getProcessState`.
 
-.. code-block:: cpp
-
-   auto *walker = sw::Walker::newWalker(pid);
+..
+  rli:: https://raw.githubusercontent.com/dyninst/examples/master/stackwalker/determineWalkerParty.cpp
+  :language: cpp
+  :linenos:
+ 

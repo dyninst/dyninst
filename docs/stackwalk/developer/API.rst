@@ -19,6 +19,7 @@ Stackwalker
   libstate.h
   linuxbsd-swk.h
   linux-swk.h
+  procstate.h
   sw.h
   symtab-swk.h
   x86-swk.h
