@@ -120,9 +120,6 @@ protected:
   Walker *getWalker() const;
   THR_ID getThread() const;
 
-  // Dyninst instrumentation constructs "synthetic" frames that don't correspond
-  // to calls. We really need to know about these...
-  // Also, signal handlers. 
   bool nonCall() const;
 
   Frame& operator=(const Frame&) = default;
@@ -130,8 +127,7 @@ protected:
   ~Frame();
 };
 
-//Default FrameComparators, if none provided
-typedef bool (*frame_cmp_t)(const Frame &a, const Frame &b); //Return true if a < b, by some comparison
+typedef bool (*frame_cmp_t)(const Frame &a, const Frame &b);
 SW_EXPORT bool frame_addr_cmp(const Frame &a, const Frame &b); //Default
 SW_EXPORT bool frame_lib_offset_cmp(const Frame &a, const Frame &b);
 SW_EXPORT bool frame_symname_cmp(const Frame &a, const Frame &b);

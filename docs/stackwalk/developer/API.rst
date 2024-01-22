@@ -1,6 +1,5 @@
-============
-StackwalkAPI
-============
+Stackwalker
+###########
 
 .. toctree::
   :caption: Developer API
@@ -12,6 +11,7 @@ StackwalkAPI
   addrRange.h
   analysis_stepper.h
   dbgstepper-impl.h
+  frame.h
   framestepper_pimple.h
   freebsd-swk.h
   get_trap_instruction.h
