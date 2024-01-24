@@ -1,58 +1,55 @@
+.. _`sec:symlookup.h`:
+
 symlookup.h
-===========
+###########
 
-.. cpp:namespace:: Dyninst::stackwalk
+.. cpp:namespace:: Dyninst::Stackwalker
 
-Class SymbolLookup
-~~~~~~~~~~~~~~~~~~
+.. cpp:class:: SymbolLookup
 
-**Defined in:** ``symlookup.h``
+  **An abstract interface for associating a symbolic name with a stack frame**
 
-The ``SymbolLookup`` virtual class is an interface for associating a
-symbolic name with a stack frame. Each ``Frame`` object contains an
-address (the RA) pointing into the function (or function-like object)
-that created its stack frame. However, users do not always want to deal
-with addresses when symbolic names are more convenient. This class is an
-interface for mapping a ``Frame`` object’s RA into a name.
+  Each frame contains a return address pointing into the function (or function-like object)
+  that created its stack frame. However, users do not always want to deal
+  with addresses when symbolic names are more convenient. This class can also associate an opaque
+  object with a frame.
 
-In addition to getting a name, this class can also associate an opaque
-object (via a ``void*``) with a Frame object. It is up to the
-``SymbolLookup`` implementation what to return in this opaque object.
+  .. cpp:member:: protected Walker *walker
 
-The default implementation of ``SymbolLookup`` provided by
-StackwalkerAPI uses the ``SymLite`` tool to lookup symbol names. It
-returns a Symbol object in the anonymous ``void*``.
+  .. cpp:function:: SymbolLookup(std::string exec_path = "")
 
-.. code-block:: cpp
+      Constructor for a ``SymbolLookup`` object.
 
-    SymbolLookup(std::string exec_path = "");
+  .. cpp:function:: virtual ~SymbolLookup()
 
-Constructor for a ``SymbolLookup`` object.
+  .. cpp:function:: virtual bool lookupAtAddr(Dyninst::Address addr, std::string &out_name, \
+                                              void* &out_value) = 0
 
-.. code-block:: cpp
+      Returns in ``out_name`` the name of the function and the opaque data in ``out_value`` located
+      at the address ``addr``. 
+      
+      ``out_value`` can be any opaque value determined by ``SymbolLookup``. The
+      values returned are used by :cpp:func:`Frame::getName` and :cpp:func:`Frame::getObject`.
 
-    virtual bool lookupAtAddr(Address addr, string &out_name, void* &out_value) = 0
+      This method returns ``true`` on success and ``false`` on error.
 
-This method takes an address, ``addr``, as input and returns the
-function name, ``out_name``, and an opaque value, ``out_value``, at that
-address. Output parameter ``out_name`` should be the name of the
-function that contains ``addr``. Output parameter ``out_value`` can be
-any opaque value determined by the ``SymbolLookup`` implementation. The
-values returned are used by the ``Frame::getName`` and
-``Frame::getObject`` functions.
+  .. cpp:function:: virtual Walker *getWalker()
 
-This method returns ``true`` on success and ``false`` on error.
+      Returns the associated walker.
 
-.. code-block:: cpp
+  .. cpp:function:: virtual ProcessState *getProcessState()
 
-    virtual Walker *getWalker()
+      Returns the associated process state.
 
-This method returns the ``Walker`` object associated with this
-``SymbolLookup``.
+.. cpp:class:: SwkSymtab : public SymbolLookup
 
-.. code-block:: cpp
+  .. cpp:function:: SwkSymtab(std::string exec_name)
+  .. cpp:function:: virtual bool lookupAtAddr(Dyninst::Address addr, std::string &out_name, void* &out_value)
+  .. cpp:function:: virtual ~SwkSymtab()
 
-    virtual ProcessState *getProcessSate()
 
-This method returns the ``ProcessState`` object associated with this
-``SymbolLookup``.
+.. cpp:class:: SymDefaultLookup : public SymbolLookup
+
+  .. cpp:function:: SymDefaultLookup(std::string exec_name)
+  .. cpp:function:: virtual bool lookupAtAddr(Dyninst::Address addr, std::string &out_name, void* &out_value)
+  .. cpp:function:: virtual ~SymDefaultLookup()
