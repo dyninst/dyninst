@@ -24,3 +24,4 @@ Stackwalker
   swk_errors.h
   symtab-swk.h
   x86-swk.h
+  walker.h

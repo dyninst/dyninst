@@ -1,214 +1,156 @@
+.. _`sec:walker.h`:
+
 walker.h
-========
+########
 
-.. cpp:namespace:: Dyninst::stackwalk
+.. cpp:namespace:: Dyninst::Stackwalker
 
-Class Walker
-~~~~~~~~~~~~
+.. cpp:class:: Walker
 
-**Defined in:** ``walker.h``
+  **Walks call stacks and queries basic information about threads in a target process**
+  
+  Users should create a walker for each process from which they are walking call
+  stacks. Each walker is associated with one process, but may walk call stacks on
+  multiple threads within that process. This class allows users to query for the
+  threads available for walking, and it allows you to specify a particular thread
+  whose call stack should be walked.
 
-The ``Walker`` class returns a call stack as a vector of ``Frame``
-objects. As described in Section `3.1.1 <#subsec:definitions>`__, each
-Frame object represents a stack frame, and contains a return address
-(RA), stack pointer (SP) and frame pointer (FP). For each of these
-values, optionally, it stores the location where the values were found.
-Each Frame object may also be augmented with symbol information giving a
-function name (or a symbolic name, in the case of non-functions) for the
-object that created the stack frame.
+  Every walker contains a :cpp:class:`ProcessState`, a :cpp:class:`StepperGroup`,
+  and a :cpp:class:`SymbolLookup`. These are part of the Callback Interface and can
+  be used to customize StackwalkerAPI. The ``ProcessState`` tells the walker how to
+  access data in the target process and determines whether this walker collects first
+  party or third party stackwalks. ``Walker`` will pick an appropriate default
+  ``ProcessState`` based on which factory method the users calls. The ``StepperGroup``
+  is used to customize how the walker steps through stack frames. The ``SymbolLookup``
+  is used to customize how StackwalkerAPI looks up symbolic names of the function or
+  object that created a stack frame.
 
-The ``Walker`` class allows users to walk call stacks and query basic
-information about threads in a target process. The user should create a
-``Walker`` object for each process from which they are walking call
-stacks. Each ``Walker`` object is associated with one process, but may
-walk call stacks on multiple threads within that process. The ``Walker``
-class allows users to query for the threads available for walking, and
-it allows you to specify a particular thread whose call stack should be
-walked. Stackwalks are returned as a vector of Frame objects.
+  .. cpp:function:: static Walker *newWalker(std::string exec_name = std::string(""))
 
-Each Walker object contains three objects:
+      Creates a walker by launching a process for the executable ``exec_name``.
 
--  ProcessState
+      If ``exec_name`` is omitted, the current process is used.
 
--  StepperGroup
+  .. cpp:function:: static Walker *newWalker(Dyninst::PID pid, std::string executable)
 
--  SymbolLookup
+      Creates a third-party walker attached to the process with id ``pid`` and gives it the name ``executable``. 
 
-These objects are part of the Callback Interface and can be used to
-customize StackwalkerAPI. The ``ProcessState`` object tells ``Walker``
-how to access data in the target process, and it determines whether this
-``Walker`` collects first party or third party stackwalks. ``Walker``
-will pick an appropriate default ``ProcessState`` object based on which
-factory method the users calls. The ``StepperGroup`` object is used to
-customize how the ``Walker`` steps through stack frames. The
-``SymbolLookup`` object is used to customize how StackwalkerAPI looks up
-symbolic names of the function or object that created a stack frame.
+      .. danger:: The user is responsible for deallocating the returned value.
 
-.. code-block:: cpp
+  .. cpp:function:: static Walker *newWalker(Dyninst::PID pid)
+  
+      Creates a third-party walker attached to the process with id ``pid``.
+      
+      .. danger:: The user is responsible for deallocating the returned value.
 
-    static Walker *newWalker() static Walker *newWalker(Dyninst::PID pid)
-    static Walker *newWalker(Dyninst::PID pid, std::string executable)
-    static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
-    static Walker *newWalker(std::string executable, const
-    std::vector<std::string> &argv) static Walker *newWalker(ProcessState *proc, StepperGroup *steppergroup = NULL , SymbolLookup *lookup = NULL)
+  .. cpp:function:: static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc)
 
-These factory methods return new Walker objects:
+      Creates a third-party walker attached to the process ``proc``.
 
--  The first takes no arguments and returns a first-party stackwalker.
+      .. danger:: The user is responsible for deallocating the returned value.
 
--  The second takes a PID representing a running process and returns a
-   third-party stackwalker on that process.
+  .. cpp:function:: static bool newWalker(const std::vector<Dyninst::PID> &pids, std::vector<Walker *> &walkers_out, std::string executable)
 
--  The third takes the name of the executing binary in addition to the
-   PID and also returns a third-party stackwalker on that process.
+      For each id in ``pids``, returns in ``walkers_out`` a new third-party walker associated with that process and given the
+      name ``executable``.
+      
+      Returns ``false`` on error.
+      
+      .. danger:: The user is responsible for deallocating the returned values. 
 
--  The fourth takes a ProcControlAPI process object and returns a
-   third-party stackwalker.
+  .. cpp:function:: static bool newWalker(const std::vector<Dyninst::PID> &pids, std::vector<Walker *> &walkers_out)
 
--  The fifth takes the name of an executable and its arguments, creates
-   the process, and returns a third-party stackwalker.
+      For each id in ``pids``, returns in ``walkers_out`` a new third-party walker associated with that process.
+      
+      Returns ``false`` on error.
+      
+      .. danger:: The user is responsible for deallocating the returned values.
 
--  The sixth takes a ProcessState pointer representing a running process
-   as well as user-defined StepperGroup and SymbolLookup pointers. It
-   can return both first-party and third-party Walkers, depending on the
-   ProcessState parameter.
+  .. cpp:function:: static Walker *newWalker(std::string exec_name, const std::vector<std::string> &argv)
 
-Unless overriden with the sixth variant, the new Walker object uses the
-default StepperGroup and SymbolLookup callbacks for the current
-platform. First-party walkers use the ProcSelf callback for its
-ProcessState object. Third-party walkers use ProcDebug instead. See
-Section 3.5.1 for more information about defaults in the Callback
-Interface.
+      Creates a third-party walker by launching a process for the executable ``exec_name`` with arguments ``argv``.
 
-This method returns NULL if it was unable to create a new Walker object.
-The new Walker object was created with the new operator, and should be
-deallocated with the delete operator when it is no longer needed.
+      .. danger:: The user is responsible for deallocating the returned value.
 
-.. code-block:: cpp
+  .. cpp:function:: static Walker *newWalker(ProcessState *proc, StepperGroup *grp = NULL, SymbolLookup *lookup = NULL,\
+                                             bool default_steppers = true)
 
-    static bool newWalker(const std::vector<Dyninst::PID> &pids,
-    std::vector<Walker *> &walkers_out) static bool newWalker(const
-    std::vector<Dyninst::PID> &pids, std::vector<Walker *> &walkers_out,
-    std::string executable)
+      Creates a walker associated with a running process with state ``proc``, group ``grp``, and symbol lookup ``lookup``.
+      
+      Return either a first-party and third-party walker, depending on the configuration of ``proc``.
 
-This method attaches to a group of processes and returns a vector of
-Walker objects that perform third-party stackwalks. As above, the first
-variant takes a list of PIDs and attaches to those processes; the second
-variant also specifies the executable binary.
+      .. danger:: The user is responsible for deallocating the returned value.
 
-.. code-block:: cpp
+  .. cpp:function:: virtual ~Walker()
 
-    bool walkStack(std::vector<Frame> &stackwalk, Dyninst::THR_ID thread = NULL_THR_ID)
+  .. cpp:function:: static SymbolReaderFactory *getSymbolReader()
 
-This method walks a call stack in the process associated with this
-``Walker``. The call stack is returned as a vector of ``Frame`` objects
-in stackwalk. The top of the stack is returned in index 0 of stackwalk,
-and the bottom of the stack is returned in index ``stackwalk.size()-1``.
+      Returns a factory for creating process-specific symbol readers.
 
-A stackwalk can be taken on a specific thread by passing a value in the
-thread parameter. If ``thread`` has the value ``NULL_THR_ID``, then a
-default thread will be chosen. When doing a third party stackwalk, the
-default thread will be the process’ initial thread. When doing a first
-party stackwalk, the default thread will be the thread that called
-``walkStack``. The default StepperGroup provided to a Walker will
-support collecting call stacks from almost all types of functions,
-including signal handlers and optimized, frameless functions.
+  .. cpp:function:: static void setSymbolReader(SymbolReaderFactory *srf)
 
-This method returns ``true`` on success and ``false`` on failure.
+      Sets the symbol reader factory to ``srf``.
 
-.. code-block:: cpp
+  .. cpp:function:: bool walkStack(std::vector<Frame> &stackwalk, Dyninst::THR_ID thread = NULL_THR_ID)
 
-    bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
+      Returns in ``stackwalk`` the call stack in either the associated process.
+      
+      The top of the stack is the first element returned. The bottom of the stack is
+      the last element.
+      
+      If ``thread`` is provided, then only the thread with that id is walked. If it is
+      omitted, then a default thread will be chosen. When doing a third-party stackwalk, the
+      default thread will be the process’ initial thread. When doing a first-party stackwalk,
+      the default thread will be the thread that called this function. The default
+      ``StepperGroup`` provided to a Walker will support collecting call stacks from almost
+      all types of functions, including signal handlers and optimized, frameless functions.
 
-This method walks a call stack starting from the given stack frame,
-``frame``. The call stack will be output in the ``stackwalk`` vector,
-with frame stored in index 0 of ``stackwalk`` and the bottom of the
-stack stored in index ``stackwalk.size()-1``.
+      Returns ``false`` on failure.
 
-This method returns ``true`` on success and ``false`` on failure.
+  .. cpp:function:: bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
 
-.. code-block:: cpp
+      Returns in ``stackwalk`` the call stack starting from the stack frame, ``frame``.
 
-    bool walkSingleFrame(const Frame &in, Frame &out)
+      Returns ``false`` on failure.
 
-This methods walks through single frame, ``in``. Parameter ``out`` will
-be set to ``in``\ ’s caller frame.
+  .. cpp:function:: bool walkSingleFrame(const Frame &in, Frame &out)
 
-This method returns ``true`` on success and ``false`` on failure.
+      Walks the single frame ``in``. ``out`` is set to ``in``\ ’s caller frame.
 
-.. code-block:: cpp
+      Returns ``false`` on failure.
 
-    bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
+  .. cpp:function:: bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
 
-This method returns the ``Frame`` object on the top of the stack in
-parameter frame. Under ``walkStack``, ``frame`` would be the one
-returned in index 0 of the ``stackwalk`` vector. A stack frame can be
-found on a specific thread by passing a value in the thread parameter.
-If ``thread`` has the value ``NULL_THR_ID``, then a default thread will
-be chosen. When doing a third party stackwalk, the default thread will
-be the process’ initial thread. When doing a first party stackwalk, the
-default thread will be the thread that called ``getInitialFrame``.
+      Returns in ``frame`` the top of the stack for thread ``thread``.
+      
+      If ``thread`` is omitted, then a default thread is chosen. When doing a third-party walk,
+      the default thread is the process’ initial thread. For a first-party walk, the thread that
+      called this function is used.
 
-This method returns ``true`` on success and ``false`` on failure.
+      Returns ``false`` on error.
 
-.. code-block:: cpp
+  .. cpp:function:: bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads) const
 
-    bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
+      Returns in ``threads`` the threads in the target process that can be walked.
+      
+      The set of threads may be a subset of the actual threads in the process. For example,
+      when walking call stacks on the current process, it is only legal to walk the call stack on the
+      currently running thread. In this case, this function returns only the current thread.
 
-This method returns a vector of threads in the target process upon which
-StackwalkerAPI can walk call stacks. The threads are returned in output
-parameter ``threads``. Note that this method may return a subset of the
-actual threads in the process. For example, when walking call stacks on
-the current process, it is only legal to walk the call stack on the
-currently running thread. In this case, ``getAvailableThreads`` returns
-a vector containing only the current thread.
+      Returns ``false`` on error.
 
-This method returns ``true`` on success and ``false`` on failure.
+  .. cpp:function:: ProcessState *getProcessState() const
 
-.. code-block:: cpp
+      Returns the ProcessState associated with this walker.
 
-    ProcessState *getProcessState() const
+  .. cpp:function:: SymbolLookup *getSymbolLookup() const
 
-This method returns the ``ProcessState`` object associated with this
-``Walker``.
+      Returns the SymbolLookup associated with this walker.
 
-.. code-block:: cpp
+  .. cpp:function:: StepperGroup *getStepperGroup() const
 
-    StepperGroup *getStepperGroup() const
+      Returns the StepperGroup associated with this walker.
 
-This method returns the ``StepperGroup`` object associated with this
-``Walker``.
+  .. cpp:function:: bool addStepper(FrameStepper *stepper)
 
-.. code-block:: cpp
-
-    SymbolLookup *getSymbolLookup() const
-
-This method returns the ``SymbolLookup`` object associated with this
-``Walker``.
-
-.. code-block:: cpp
-
-    bool addStepper(FrameStepper *stepper)
-
-This method adds a provided FrameStepper to those used by the Walker.
-
-.. code-block:: cpp
-
-    static SymbolReaderFactory *getSymbolReader()
-
-This method returns a factory for creating process-specific symbol
-readers. Unlike the above methods it is global across all Walkers and is
-thus defined static.
-
-.. code-block:: cpp
-
-    static void setSymbolReader(SymbolReaderFactory *);
-
-Set the symbol reader factory used when creating ``Walker`` objects.
-
-.. code-block:: cpp
-
-    static void version(int &major, int &minor, int &maintenance)
-
-This method returns version information (e.g., 8, 0, 0 for the 8.0
-release).
+      Adds ``stepper`` to the stepper group for this walker.
