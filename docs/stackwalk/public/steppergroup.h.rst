@@ -1,102 +1,76 @@
+.. _`sec:steppergroup.h`:
+
 steppergroup.h
-==============
+##############
 
-.. cpp:namespace:: Dyninst::stackwalk
+.. cpp:namespace:: Dyninst::Stackwalker
 
-Class StepperGroup
-~~~~~~~~~~~~~~~~~~
+.. cpp:class:: StepperGroup
 
-**Defined in:** ``steppergroup.h``
+  **A collection of frame steppers criteria for their use**
 
-The ``StepperGroup`` class contains a collection of ``FrameStepper``
-objects. The ``StepperGroup``\ ’s primary job is to decide which
-``FrameStepper`` should be used to walk through a stack frame given a
-return address. The default ``StepperGroup`` keeps a set of address
-ranges for each ``FrameStepper``. If multiple ``FrameStepper`` objects
-overlap an address, then the default ``StepperGroup`` will use a
-priority system to decide.
+  The ``StepperGroup``\ ’s primary job is to decide which :cpp:class:`FrameStepper`
+  should be used to walk through a stack frame given a return address. The default
+  ``StepperGroup`` keeps a set of address ranges for each ``FrameStepper``. If multiple
+  ``FrameStepper`` objects overlap an address, then the default ``StepperGroup`` will use a
+  priority system to decide.
 
-``StepperGroup`` provides both an interface and a default implementation
-of that interface. Users who want to customize the ``StepperGroup``
-should inherit from this class and re-implement any of the below virtual
-functions.
+  .. cpp:member:: protected Walker *walker
+  .. cpp:member:: protected std::set<FrameStepper *> steppers
 
-.. code-block:: cpp
+  .. cpp:function:: StepperGroup(Walker *new_walker)
 
-    StepperGroup(Walker *walker)
+      Creates a group associated with ``new_walker``.
 
-This factory constructor creates a new ``StepperGroup`` object
-associated with ``walker``.
+  .. cpp:function:: virtual bool addStepper(FrameStepper *stepper, Address start, Address end) = 0
 
-.. code-block:: cpp
+      Adds the frame stepper ``stepper`` to the group and registers it to handle frames in the
+      range ``[start, end)``.
 
-    virtual bool addStepper(FrameStepper *stepper)
+  .. cpp:function:: virtual bool findStepperForAddr(Dyninst::Address addr, FrameStepper* &out, \
+                                                    const FrameStepper *last_tried = NULL) = 0
 
-This method adds a new ``FrameStepper`` to this ``StepperGroup``. The
-newly added stepper will be tracked by this ``StepperGroup``, and it
-will be considered for use when walking through stack frames.
+      Returns in ``out`` the stepper to use for the stack frame created by a function at
+      the address ``addr``.
 
-This method returns ``true`` if it successfully added the
-``FrameStepper``, and ``false`` on error.
+      It may be possible that the ``FrameStepper`` this method decides on is
+      unable to walk through the stack frame (it returns :cpp:enumerator:`gcframe_ret_t::gcf_not_me` from
+      :cpp:func:`FrameStepper::getCallerFrame`). In this case StackwalkerAPI will call
+      findStepperForAddr again with the last_tried parameter set to the failed
+      ``FrameStepper``. findStepperForAddr should then find another
+      ``FrameStepper`` to use. Parameter ``last_tried`` will be set to NULL
+      the first time getStepperToUse is called for a stack frame.
 
-.. code-block:: cpp
+      The default version of this method uses address ranges to decide which
+      ``FrameStepper`` to use. The address ranges are contained within the
+      process’ code space, and map a piece of the code space to a
+      ``FrameStepper`` that can walk through stack frames created in that code
+      range. If multiple ``FrameStepper`` objects share the same range, then
+      the one with the highest priority will be tried first.
 
-    virtual bool addStepper(FrameStepper *stepper, Address start, Address end) = 0;
+      Returns ``false`` on failure.
 
-Add the specified ``FrameStepper`` to the list of known steppers, and
-register it to handle frames in the range [``start``, ``end``).
+  .. cpp:function:: virtual Walker *getWalker() const
 
-.. code-block:: cpp
+      Returns the walker associated with this group.
 
-    virtual void registerStepper(FrameStepper *stepper);
+  .. cpp:function:: virtual void registerStepper(FrameStepper *stepper)
 
-Add the specified ``FrameStepper`` to the list of known steppers and use
-it over the entire address space.
+      Adds ``stepper`` to this group to be used over the entire address space.
 
-.. code-block:: cpp
+  .. cpp:function:: virtual void newLibraryNotification(LibAddrPair *libaddr, lib_change_t change)
 
-    virtual bool findStepperForAddr(Address addr, FrameStepper* &out, const FrameStepper *last_tried = NULL) = 0
+      Called by the StackwalkerAPI when a new library is loaded.
 
-Given an address that points into a function (or function-like object),
-addr, this method decides which ``FrameStepper`` should be used to walk
-through the stack frame created by the function at that address. A
-pointer to the ``FrameStepper`` will be returned in parameter ``out``.
+  .. cpp:function:: void getSteppers(std::set<FrameStepper *> &steppers)
 
-It may be possible that the ``FrameStepper`` this method decides on is
-unable to walk through the stack frame (it returns ``gcf_not_me`` from
-``FrameStepper::getCallerFrame``). In this case StackwalkerAPI will call
-findStepperForAddr again with the last_tried parameter set to the failed
-``FrameStepper``. findStepperForAddr should then find another
-``FrameStepper`` to use. Parameter ``last_tried`` will be set to NULL
-the first time getStepperToUse is called for a stack frame.
+      Returns in ``steppers`` all frame steppers in this group.
 
-The default version of this method uses address ranges to decide which
-``FrameStepper`` to use. The address ranges are contained within the
-process’ code space, and map a piece of the code space to a
-``FrameStepper`` that can walk through stack frames created in that code
-range. If multiple ``FrameStepper`` objects share the same range, then
-the one with the highest priority will be tried first.
 
-This method returns ``true`` on success and ``false`` on failure.
+.. cpp:class:: AddrRangeGroup : public StepperGroup
 
-.. code-block:: cpp
+  .. cpp:member:: protected AddrRangeGroupImpl *impl
+  .. cpp:function:: AddrRangeGroup(Walker *new_walker)
+  .. cpp:function:: virtual bool addStepper(FrameStepper *stepper, Address start, Address end)
+  .. cpp:function:: virtual bool findStepperForAddr(Dyninst::Address addr, FrameStepper* &out, const FrameStepper *last_tried = NULL)
 
-    typedef std::pair<std::string, Address> LibAddrPair; typedef enum
-    library_load, library_unload lib_change_t; virtual void
-    newLibraryNotification(LibAddrPair *libaddr, lib_change_t change);
-
-Called by the StackwalkerAPI when a new library is loaded.
-
-.. code-block:: cpp
-
-    Walker *getWalker() const
-
-This method returns the Walker object that associated with this
-StepperGroup.
-
-.. code-block:: cpp
-
-    void getSteppers(std::set<FrameStepper *> &);
-
-Fill in the provided set with all ``FrameSteppers`` registered in the
-``StepperGroup``.
