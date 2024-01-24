@@ -14,6 +14,7 @@ DyninstAPI
   baseTramp.h
   binaryEdit.h
   block.h
+  BPatch_addressSpace.h
   BPatch_collections.h
   BPatch_libInfo.h
   BPatch_memoryAccessAdapter.h
