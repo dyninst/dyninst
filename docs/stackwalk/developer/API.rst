@@ -21,5 +21,6 @@ Stackwalker
   linux-swk.h
   procstate.h
   sw.h
+  swk_errors.h
   symtab-swk.h
   x86-swk.h
