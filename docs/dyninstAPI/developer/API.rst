@@ -9,7 +9,6 @@ DyninstAPI
   :maxdepth: 1
 
   addressSpace.h
-  arch-forward-decl.h
   ast.h
   baseTramp.h
   binaryEdit.h
