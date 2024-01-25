@@ -16,6 +16,7 @@ DyninstAPI
   block.h
   BPatch_addressSpace.h
   BPatch_basicBlock.h
+  BPatch_basicBlockLoop.h
   BPatch_collections.h
   BPatch_libInfo.h
   BPatch_memoryAccessAdapter.h

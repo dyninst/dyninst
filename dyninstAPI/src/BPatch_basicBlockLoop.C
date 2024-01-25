@@ -220,14 +220,6 @@ BPatch_flowGraph* BPatch_basicBlockLoop::getFlowGraph()
 }
 
 
-//we did not implement this method yet. It needs some deeper
-//analysis and some sort of uniform dataflow framework. It is a method
-//that returns the iterator of the loop. To find it we have to do 
-//invariant code analysis which needs reaching definition information
-//live variable analysis etc. Since these algorithms are not
-//machine independent and needs more inner level machine dependent
-//functions and we do not need at this moment for our project we did not 
-//implement the function. It returns NULL for now.
 std::set<BPatch_variableExpr*>* BPatch_basicBlockLoop::getLoopIterators(){
 	cerr<<"WARNING : BPatch_basicBlockLoop::getLoopIterators is not";
 	cerr<<" implemented yet\n";
