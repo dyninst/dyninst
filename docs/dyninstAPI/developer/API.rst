@@ -1,13 +1,13 @@
-===========
+==========
 DyninstAPI
-===========
+==========
 
 .. toctree::
   :caption: Developer API
   :name: dyninstapi-developer-api
   :hidden:
   :maxdepth: 1
-  
+
   addressSpace.h
   arch-forward-decl.h
   ast.h
@@ -18,6 +18,7 @@ DyninstAPI
   BPatch_basicBlock.h
   BPatch_basicBlockLoop.h
   BPatch_collections.h
+  BPatch_dll.h
   BPatch_libInfo.h
   BPatch_memoryAccessAdapter.h
   BPatch_private.h

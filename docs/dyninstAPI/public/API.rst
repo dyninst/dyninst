@@ -15,7 +15,6 @@ Documentation for the DyninstAPI toolkit.
   BPatch_basicBlockLoop.h
   BPatch_binaryEdit.h
   BPatch_callbacks.h
-  BPatch_dll.h
   BPatch_edge.h
   BPatch_enums.h
   BPatch_flowGraph.h
