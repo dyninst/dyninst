@@ -111,6 +111,11 @@ Code Source
 Usage
 *****
 
+Traversing a CFG
+================
+
+See the :ref:`example:parseapi-cfg-traversal` example.
+
 Loop analysis
 =============
 
@@ -120,6 +125,7 @@ ParseAPI once we have an parsed Function object.
 .. rli:: https://raw.githubusercontent.com/dyninst/examples/master/parseAPI/loopAnalysis.cpp
   :language: cpp
   :linenos:
+
 
 Edge Predicates
 ===============
