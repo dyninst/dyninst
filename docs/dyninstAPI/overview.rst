@@ -105,8 +105,7 @@ Wrapping a function
 The following code wraps malloc with fastMalloc, while allowing functions to still access the original
 malloc function by calling origMalloc.
 
-..
-  rli:: https://raw.githubusercontent.com/dyninst/examples/master/dyninstAPI/wrapFunction.cpp
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/dyninstAPI/wrapFunction.cpp
    :language: cpp
    :linenos:
 
