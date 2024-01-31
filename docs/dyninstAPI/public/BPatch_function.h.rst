@@ -3,33 +3,151 @@
 BPatch_function.h
 #################
 
-.. cpp:class:: BPatch_function
+.. cpp:class:: BPatch_function : public BPatch_sourceObj, public Dyninst::AnnotatableSparse
    
-  An object of this class represents a function in the application. A
-  BPatch_image object (see description below) can be used to retrieve a
-  BPatch_function object representing a given function.
+  **A function in a binary**
 
-  .. cpp:function:: std::string getName();
+  .. cpp:function:: virtual ~BPatch_function()
 
-  .. cpp:function:: std::string getDemangledName();
+  .. cpp:function:: char * getName(char *s, int len)
 
-  .. cpp:function:: std::string getMangledName();
+    Returns <demangled> name of function
 
-  .. cpp:function:: std::string getTypedName();
+  .. cpp:function:: std::string getName()
+  .. cpp:function:: std::string getMangledName()
+  .. cpp:function:: std::string getDemangledName()
+  .. cpp:function:: std::string getTypedName()
+  .. cpp:function:: bool getNames(std::vector<std::string> &names)
+  .. cpp:function:: bool getDemangledNames(std::vector<std::string> &names)
+  .. cpp:function:: bool getMangledNames(std::vector<std::string> &names)
+  .. cpp:function:: bool getTypedNames(std::vector<std::string> &names)
+  .. cpp:function:: char * getMangledName(char *s, int len)
 
-  .. cpp:function:: void getNames(std::vector<std::string> &names);
+    Returns mangled name of function, same as getName for non-c++ mutatees
 
-  .. cpp:function:: void getDemangledNames(std::vector<std::string> &names);
+  .. cpp:function:: char * getTypedName(char *s, int len)
 
-  .. cpp:function:: void getMangledNames(std::vector<std::string> &names);
+    Returns demanged name of function (with type string), may be empty
 
-  .. cpp:function:: void getTypedNames(std::vector<std::string> &names);
+  .. cpp:function:: bool getNames(BPatch_Vector<const char *> &names)
+
+    Adds all names of the function (inc. weak symbols) to the provided vector.
+
+  .. cpp:function:: bool getMangledNames(BPatch_Vector<const char *> &names)
+
+    Adds all mangled names of the function (inc. weak symbols) to the provided vector.
+
+
 
   Return name(s) of the function. The getName functions return the primary
   name; this is typically the first symbol we encounter while parsing the
   program; getName is an alias for getDemangledName. The getNames
   functions return all known names for the function, including any names
   specified by weak symbols.
+
+
+
+
+
+  .. cpp:function:: void * getBaseAddr(void)
+
+    Returns base address of function
+
+  .. cpp:function:: BPatch_type * getReturnType()
+
+    Returns the <BPatch_type> return type of this function
+
+  .. cpp:function:: BPatch_module * getModule()
+
+    Returns the BPatch_module to which this function belongs
+
+  .. cpp:function:: BPatch_Vector<BPatch_localVar *> * getParams()
+
+    Returns a vector of BPatch_localVar, representing this function's parameters
+
+  .. cpp:function:: BPatch_Vector<BPatch_localVar *> * getVars()
+
+    Returns a vector of local variables in this functions
+
+  .. cpp:function:: BPatch_Vector<BPatch_point *> * findPoint(const BPatch_procedureLocation loc)
+
+    BPatch_function::findPoint  Returns a vector of inst points, corresponding to the given BPatch_procedureLocation
+
+  .. cpp:function:: BPatch_Vector<BPatch_point *> * findPoint(const BPatch_Set<BPatch_opCode>& ops)
+
+    BPatch_function::findPoint  Returns a vector of inst points, corresponding to the given set of op codes
+
+  .. cpp:function:: BPatch_Vector<BPatch_point *> * findPoint(const std::set<BPatch_opCode>& ops)
+  .. cpp:function:: BPatch_point * findPoint(Dyninst::Address addr)
+
+    BPatch_function::findPoint  Returns a BPatch_point that corresponds with the provided address. Returns NULL  if the address does not correspond with an instruction.
+
+  .. cpp:function:: BPatch_localVar * findLocalVar(const char * name)
+
+    BPatch_function::findLocalVar  Returns a BPatch_localVar, if a match for <name> is found
+
+  .. cpp:function:: BPatch_localVar * findLocalParam(const char * name)
+
+    BPatch_function::findLocalParam  Returns a BPatch_localVar, if a match for <name> is found
+
+  .. cpp:function:: BPatch_Vector<BPatch_variableExpr *> * findVariable(const char *name)
+
+    BPatch_function::findVariable  Returns a set of variables matching <name> at the scope of this function  -- or global scope, if nothing found in this scope
+
+  .. cpp:function:: bool findVariable(const char *name, BPatch_Vector<BPatch_variableExpr*> &vars)
+  .. cpp:function:: bool getVariables(BPatch_Vector<BPatch_variableExpr *> &vect)
+
+    BPatch_function::getVariables  This returns false, and should probably not exist.  See getVars.  is this defined, what variables should be returned??  FIXME (delete me)
+
+  .. cpp:function:: char * getModuleName(char *name, int maxLen)
+
+    BPatch_function::getModuleName  Returns name of module this function belongs to
+
+  .. cpp:function:: bool isInstrumentable()
+
+    BPatch_function::isInstrumentable   Returns true if the function is instrumentable.
+
+  .. cpp:function:: bool isSharedLib()
+
+    BPatch_function::isSharedLib  Returns true if this function lives in a shared library
+
+  .. cpp:function:: BPatch_flowGraph* getCFG()
+
+    BPatch_function::getCFG    method to create the control flow graph for the function
+
+  .. cpp:function:: const char * addName(const char *name, bool isPrimary = true, bool isMangled = false)
+  .. cpp:function:: operator Dyninst::ParseAPI::Function *() const
+
+    Return native pointer to the function.   Allocates and returns a special type of BPatch_variableExpr. Get all functions that share a block (or any code, but it will always be a block) with this function.  Get the underlying ParseAPI Function
+
+  .. cpp:function:: operator Dyninst::PatchAPI::PatchFunction *() const
+
+    Get the underlying PatchAPI Function
+
+  .. cpp:function:: bool getAddressRange(void * &start, void * &end)
+  .. cpp:function:: bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end)
+  .. cpp:function:: unsigned int getFootprint()
+  .. cpp:function:: BPatch_variableExpr *getFunctionRef()
+  .. cpp:function:: bool findOverlapping(BPatch_Vector<BPatch_function *> &funcs)
+  .. cpp:function:: bool addMods(std::set<StackMod*>)
+
+    Add stack modifications
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   .. cpp:function:: bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end)
 
@@ -87,18 +205,6 @@ BPatch_function.h
   buffer pointed to by name. Copies at most maxLen characters and returns
   a pointer to name.
 
-  .. cpp:enum:: BPatch_procedureLocation
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_entry
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_exit
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_subroutine
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_locInstruction
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_locBasicBlockEntry
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_locLoopEntry
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_locLoopExit
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_locLoopStartIter
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_locLoopStartExit
-  .. cpp:enumerator:: BPatch_procedureLocation::BPatch_allLocations
-
   .. cpp:function:: const std::vector<BPatch_point *> *findPoint(const BPatch_procedureLocation loc)
 
   Return the BPatch_point or list of BPatch_points associated with the
@@ -108,11 +214,6 @@ BPatch_function.h
   BPatch_subroutine returns the list of points where the procedure calls
   other procedures. If the lookup fails to locate any points of the
   requested type, NULL is returned.
-
-  .. cpp:enum:: BPatch_opCode
-  .. cpp:enumerator:: BPatch_opCode::BPatch_opLoad
-  .. cpp:enumerator:: BPatch_opCode::BPatch_opStore
-  .. cpp:enumerator:: BPatch_opCode::BPatch_opPrefetch
 
   .. cpp:function:: std::vector<BPatch_point *> *findPoint(const std::set<BPatch_opCode>&ops)
 

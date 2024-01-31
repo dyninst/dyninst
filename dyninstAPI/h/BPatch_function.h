@@ -111,7 +111,6 @@ private:
    BPatch_Vector<BPatch_localVar *> params;
 
   public:
-   //dynC internal use only
    bool hasParamDebugInfo();
 
 public:
@@ -154,24 +153,12 @@ public:
     void fixupUnknown(BPatch_module *);
     
 
-        // This isn't so much for internal use only, but it *should*
-        // remain undocumented for now.
     bool containsSharedBlocks();
 
 
 
-    // End of functions for internal use only
-    
-
-    // For users of the library:
-
-
-    //  BPatch_function::getName
-    //  Returns <demangled> name of function
-
     char * getName(char *s, int len);
 
-    // String interface to mangled name
     std::string getName();
     std::string getMangledName();
     std::string getDemangledName();
