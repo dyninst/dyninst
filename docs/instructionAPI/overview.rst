@@ -160,10 +160,8 @@ Basic Disassembly
 =================
 
 Using the :cpp:class:`InstructionDecoder`, it's possible to build a very basic disassembler.
+See the :ref:`example:instructionapi-func-disassem` example.
 
-..  rli:: https://raw.githubusercontent.com/dyninst/examples/master/disassemble/disassemble.cpp
-    :language: cpp
-    :linenos:
 
 Unknown Instructions
 ====================
