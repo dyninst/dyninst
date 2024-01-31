@@ -183,36 +183,7 @@ BPatch_snippet.h
     implemented on x86-64
 
     This constructor creates a snippet that allows the user to mimic the
-    effect of an existing instruction. In effect, the snippet "wraps" the
-    instruction and provides a handle to particular components of
-    instruction behavior. This is currently implemented for memory
-    operations, and provides two override methods: overrideLoadAddress and
-    overrideStoreAddress. Both methods take a BPatch_snippet as an argument.
-    Unlike other snippets, this snippet should be installed via a call to
-    BPatch_process­::replaceCode (to replace the original instruction). For
-    example:
-
-    .. code-block:: cpp
-
-       // Assume that access is of type BPatch_memoryAccess, as
-       // provided by a call to BPatch_point->getMemoryAccess. A
-       // BPatch_memoryAccess is a child of BPatch_instruction, and
-       // is a valid source of a BPatch_insnExpr.
-       BPatch_insnExpr insn(access);
-
-       // This example will modify a store by increasing the target
-       // address by 16.
-       BPatch_arithExpr newStoreAddr(BPatch_plus,
-       BPatch_effectiveAddressExpr(),
-       BPatch_constExpr(16));
-
-       // now override the original store address
-       insn.overrideStoreAddress(newStoreAddr)
-
-       // now replace the original instruction with the new one.
-       // Point is a BPatch_point corresponding to the desired location, and
-       // process is a BPatch_process.
-       process.replaceCode(point, insn);
+    effect of an existing instruction.
 
   .. cpp:function:: BPatch_nullExpr()
 

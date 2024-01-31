@@ -1,96 +1,41 @@
+.. _`example:dyninstapi-binary-analysis`:
 
-===============
 Binary Analysis
-===============
+###############
 
-.. code-block:: cpp
+This example is similar to :ref:`example:dyninstapi-instrumenting-memory-accesses`, but
+only one function is instrumented here.
 
-   #include "BPatch.h"
-   #include "BPatch_addressSpace.h"
-   #include "BPatch_binaryEdit.h"
-   #include "BPatch_flowGraph.h"
-   #include "BPatch_function.h"
-   #include "BPatch_process.h"
-   #include <stdio.h>
-   
-   using namespace std;
-   using namespace Dyninst;
-   
-   // Create an instance of class BPatch
-   BPatch bpatch;
-   
-   // Different ways to perform instrumentation
-   typedef enum { create, attach, open } accessType_t;
-   
-   BPatch_addressSpace *startInstrumenting(accessType_t accessType,
-                                           const char *name, int pid,
-                                           const char *argv[]) {
-     BPatch_addressSpace *handle = NULL;
-     switch (accessType) {
-     case create:
-       handle = bpatch.processCreate(name, argv);
-       if (!handle) {
-         fprintf(stderr, "processCreate failed\n");
-       }
-       break;
-     case attach:
-       handle = bpatch.processAttach(name, pid);
-       if (!handle) {
-         fprintf(stderr, "processAttach failed\n");
-       }
-       break;
-     case open:
-       // Open the binary file and all dependencies
-       handle = bpatch.openBinary(name, true);
-       if (!handle) {
-         fprintf(stderr, "openBinary failed\n");
-       }
-       break;
-     }
-     return handle;
-   }
-   
-   int binaryAnalysis(BPatch_addressSpace *app) {
-     BPatch_image *appImage = app->getImage();
-     int insns_access_memory = 0;
-     std::vector<BPatch_function *> functions;
-     appImage->findFunction("InterestingProcedure", functions);
-     if (functions.size() == 0) {
-       fprintf(stderr, "No function InterestingProcedure\n");
-       return insns_access_memory;
-     } else if (functions.size() > 1) {
-       fprintf(stderr, "More than one InterestingProcedure; using the first one\n");
-     }
-     BPatch_flowGraph *fg = functions[0]->getCFG();
-     std::set<BPatch_basicBlock *> blocks;
-     fg->getAllBasicBlocks(blocks);
-     for (auto block_iter = blocks.begin(); block_iter != blocks.end(); ++block_iter) {
-       BPatch_basicBlock *block = *block_iter;
-       std::vector<InstructionAPI::Instruction::Ptr> insns;
-       block->getInstructions(insns);
-       for (auto insn_iter = insns.begin(); insn_iter != insns.end(); ++insn_iter) {
-         InstructionAPI::Instruction::Ptr insn = *insn_iter;
-         if (insn->readsMemory() }} insn->writesMemory()) {
-           insns_access_memory++;
-         }
-       }
-     }
-     return insns_access_memory;
-   }
-   
-   int main() {
-     // Set up information about the program to be instrumented
-     const char *progName = "InterestingProgram";
-     int progPID = 42;
-     const char *progArgv[] = {"InterestingProgram", "-h", NULL};
-     accessType_t mode = create;
-     
-     // Create/attach/open a binary
-     BPatch_addressSpace *app = startInstrumenting(mode, progName, progPID, progArgv);
-     if (!app) {
-       fprintf(stderr, "startInstrumenting failed\n");
-       exit(1);
-     }
-     int memAccesses = binaryAnalysis(app);
-     fprintf(stderr, "Found %d memory accesses\n", memAccesses);
-   }
+This example illustrates how to use Dyninst to iterate over a
+function’s control flow graph and inspect instructions. These are steps
+that would usually be part of a larger data flow or control flow
+analysis. Specifically, this example collects every basic block in a
+function, iterates over them, and counts the number of instructions that
+access memory.
+
+A mutator program must create a single :cpp:class:`BPatch` instance.
+This object is used to access functions and information that are global
+to the library. It must not be destroyed until the mutator has completely
+finished using the library. All instrumentation is done through
+:cpp:class:`BPatch_addressSpace` that allows working with both dynamic and
+static instrumentation with the same mutator code. This is a key feature
+of Dyninst.
+
+This example demonstrates instrumentation by inserting a variable to count the
+number of times the function ``InterestingProcedure`` is called. This is similar
+to how a non-sampling code coverage tool might work.
+
+``startInstrumenting`` allows dynamic instrumentation by either creating or
+attaching to a running process as well as static instrumentation for a file
+from disk. In this example, a process is created for dynamic instrumentation.
+
+In ``binaryAnalysis``, the target function is looked up by name. Alternatively,
+it could be looked up by iterating over every function in :cpp:class:`BPatch_image`
+or :cpp:class:`BPatch_module`. After getting a handle to the CFG, the blocks are
+retrieved using :cpp:func:`BPatch_flowGraph::getAllBasicBlocks`. Each basic block has
+a list of instructions retrievable by :cpp:func:`BPatch_basicBlock::getInstructions`.
+Instructions that either read or write memory- that is, they **access** memory- are counted.
+
+.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/memoryAccessCounter/counter.cpp
+   :language: cpp
+   :linenos:

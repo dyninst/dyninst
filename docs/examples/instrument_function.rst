@@ -1,218 +1,46 @@
+.. _`example:dyninstapi-instr-func`:
 
-========================
-Instrumenting a function
-========================
+Instrumenting a Function
+########################
 
-.. code-block:: cpp
+A mutator program must create a single :cpp:class:`BPatch` instance.
+This object is used to access functions and information that are global
+to the library. It must not be destroyed until the mutator has completely
+finished using the library. All instrumentation is done through
+:cpp:class:`BPatch_addressSpace` that allows working with both dynamic and
+static instrumentation with the same mutator code. This is a key feature
+of Dyninst.
 
-   #include <stdio.h>
-   #include "BPatch.h"
-   #include "BPatch_addressSpace.h"
-   #include "BPatch_process.h"
-   #include "BPatch_binaryEdit.h"
-   #include "BPatch_point.h"
-   #include "BPatch_function.h"
-   
-   using namespace std;
-   using namespace Dyninst;
-   
-   // Create an instance of class BPatch
-   BPatch bpatch;
-   
-   // Different ways to perform instrumentation
-   typedef enum {
-     create,
-     attach,
-     open
-   } accessType_t;
-   
-   // Attach, create, or open a file for rewriting
-   BPatch_addressSpace* startInstrumenting(
-       accessType_t accessType,
-       const char* name,
-       int pid,
-       const char* argv[]) {
-   
-     BPatch_addressSpace* handle = NULL;
-     switch(accessType) {
-       case create:
-         handle = bpatch.processCreate(name, argv);
-         if (!handle) { fprintf(stderr, "processCreate failed\n"); }
-         break;
-   
-       case attach:
-         handle = bpatch.processAttach(name, pid);
-         if (!handle) { fprintf(stderr, "processAttach failed\n"); }
-         break;
-   
-       case open:
-         // Open the binary file and all dependencies
-         handle = bpatch.openBinary(name, true);
-         if (!handle) { fprintf(stderr, "openBinary failed\n"); }
-         break;
-     }
-     return handle;
-   }
-   
-   // Find a point at which to insert instrumentation
-   std::vector<BPatch_point*>* findPoint(
-       BPatch_addressSpace* app,
-       const char* name,
-       BPatch_procedureLocation loc) {
-   
-     std::vector<BPatch_function*> functions;
-     std::vector<BPatch_point*>* points;
-   
-     // Scan for functions named "name"
-     BPatch_image* appImage = app->getImage();
-     appImage->findFunction(name, functions);
-   
-     if (functions.size() == 0) {
-       fprintf(stderr, "No function %s\n", name);
-       return points;
-     } else if (functions.size() > 1) {
-       fprintf(stderr, "More than one %s; using the first one\n", name);
-     }
-   
-     // Locate the relevant points
-     points = functions[0]->findPoint(loc);
-     
-     return points;
-   }
-   
-   // Create and insert an increment snippet
-   bool createAndInsertSnippet(
-       BPatch_addressSpace* app,
-       std::vector<BPatch_point*>* points) {
-   
-     BPatch_image* appImage = app->getImage();
-   
-     // Create an increment snippet
-     BPatch_variableExpr* intCounter =
-     app->malloc(*(appImage->findType("int")), "myCounter");
-   
-     BPatch_arithExpr addOne(
-       BPatch_assign,
-       *intCounter,
-       BPatch_arithExpr(
-         BPatch_plus,
-         *intCounter,
-         BPatch_constExpr(1)
-       )
-     );
-   
-     // Insert the snippet
-     if (!app->insertSnippet(addOne, *points)) {
-       fprintf(stderr, "insertSnippet failed\n");
-       return false;
-     }
-     return true;
-   }
-   
-   // Create and insert a printf snippet
-   bool createAndInsertSnippet2(
-     BPatch_addressSpace* app,
-     std::vector<BPatch_point*>* points) {
-   
-     BPatch_image* appImage = app->getImage();
-   
-     // Create the printf function call snippet
-     std::vector<BPatch_snippet*> printfArgs;
-     BPatch_snippet* fmt = new BPatch_constExpr("InterestingProcedure called %d times\n");
-     printfArgs.push_back(fmt);
-     BPatch_variableExpr* var = appImage->findVariable("myCounter");
-   
-     if (!var) {
-       fprintf(stderr, "Could not find 'myCounter' variable\n");
-       return false;
-     } else {
-       printfArgs.push_back(var);
-     }
-   
-     // Find the printf function
-     std::vector<BPatch_function*> printfFuncs;
-     appImage->findFunction("printf", printfFuncs);
-   
-     if (printfFuncs.size() == 0) {
-       fprintf(stderr, "Could not find printf\n");
-       return false;
-     }
-   
-     // Construct a function call snippet
-     BPatch_funcCallExpr printfCall(*(printfFuncs[0]), printfArgs);
-   
-     // Insert the snippet
-     if (!app->insertSnippet(printfCall, *points)) {
-       fprintf(stderr, "insertSnippet failed\n");
-       return false;
-     }
-     return true;
-   }
-   
-   void finishInstrumenting(BPatch_addressSpace* app, const char*newName) {
-     BPatch_process* appProc = dynamic_cast<BPatch_process*>(app);
-     BPatch_binaryEdit* appBin = dynamic_cast<BPatch_binaryEdit*>(app);
-     
-     if (appProc) {
-       if (!appProc->continueExecution()) {
-         fprintf(stderr, "continueExecution failed\n");
-       }
-       
-       while (!appProc->isTerminated()) {
-         bpatch.waitForStatusChange();
-       }
-     } else if (appBin) {
-       if (!appBin->writeFile(newName)) {
-         fprintf(stderr, "writeFile failed\n");
-       }
-     }
-   }
-   
-   int main() {
-   
-     // Set up information about the program to be instrumented
-     const char* progName = "InterestingProgram";
-     int progPID = 42;
-     const char* progArgv[] = {"InterestingProgram", "-h", NULL};
-   
-     accessType_t mode = create;
-   
-     // Create/attach/open a binary
-     BPatch_addressSpace* app = startInstrumenting(mode, progName, progPID, progArgv);
-     if (!app) {
-       fprintf(stderr, "startInstrumenting failed\n");
-       exit(1);
-     }
-   
-     // Find the entry point for function InterestingProcedure
-     const char* interestingFuncName = "InterestingProcedure";
-     std::vector<BPatch_point*>* entryPoint = findPoint(app, interestingFuncName, BPatch_entry);
-     
-     if (!entryPoint || entryPoint->size() == 0) {
-       fprintf(stderr, "No entry points for %s\n", interestingFuncName);
-       exit(1);
-     }
-   
-     // Create and insert instrumentation snippet
-     if (!createAndInsertSnippet(app, entryPoint)) {
-       fprintf(stderr, "createAndInsertSnippet failed\n");
-       exit(1);
-     }
-   
-     // Find the exit point of main
-     std::vector<BPatch_point*>* exitPoint = findPoint(app, "main", BPatch_exit);
-     if (!exitPoint }} exitPoint->size() == 0) {
-       fprintf(stderr, "No exit points for main\n");
-       exit(1);
-     }
-   
-     // Create and insert instrumentation snippet 2
-     if (!createAndInsertSnippet2(app, exitPoint)) {
-     fprintf(stderr, "createAndInsertSnippet2 failed\n");
-     exit(1);
-     }
-   
-     // Finish instrumentation
-     const char* progName2 = "InterestingProgram-rewritten";
-     finishInstrumenting(app, progName2);
-   }
+This example demonstrates instrumentation by inserting a variable to count the
+number of times the function ``InterestingProcedure`` is called. This is similar
+to how a non-sampling code coverage tool might work.
+
+``startInstrumenting`` allows dynamic instrumentation by either creating or
+attaching to a running process as well as static instrumentation for a file
+from disk. In this example, a process is created for dynamic instrumentation.
+
+Once the address space has been created, ``findPoint`` searches for a place
+where Dyninst can insert instrumentation code. ``BPatch_entry`` tells Dyninst
+to insert code at the beginning of the function.
+
+``createAndInsertSnippet`` creates an AST snippet for a variable
+``myCounter`` of type ``int`` and another snippet for add 1 to the
+variable. This forms the C-like syntax ``int myCounter; myCounter++;``
+and inserts the relevant code into the binary. It is important to note
+that the AST abstraction works for *any* platform supported by Dyninst.
+A single mutator can work for many different combinations of binaries,
+computer architectures, and OSes.
+
+``findPoint`` is then used again to find an instrumentation point where
+the ``main`` function exits. ``createAndInsertSnippet2`` generates an
+AST snippet to insert a call to the C standard library ``printf`` function
+to display the value of ``myCounter`` previously inserted. Dyninst can
+readily generate code that results from interactions of separate snippets.
+
+``finishInstrumenting`` finalizes the instrumentation by either resuming
+execution of the process created or attached to in ``startInstrumenting``
+or by writing a new binary to disk (for static instrumentation).
+
+..  rli:: https://raw.githubusercontent.com/dyninst/examples/master/instrumentAFunction/instrumenting_a_function.cpp
+    :language: cpp
+    :linenos:

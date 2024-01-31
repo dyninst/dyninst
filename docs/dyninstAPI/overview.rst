@@ -92,139 +92,15 @@ mutatee, and the program that uses the API to modify the application as
 the mutator. The mutator is a separate process from the application
 process.
 
+
 Instrumenting a function
 ========================
 
-A mutator program must create a single instance of the class BPatch.
-This object is used to access functions and information that are global
-to the library. It must not be destroyed until the mutator has
-completely finished using the library. For this example, we assume that
-the mutator program has declared a global variable called bpatch of
-class BPatch.
-
-All instrumentation is done with a BPatch_addressSpace object, which
-allows us to write codes that work for both dynamic and static
-instrumentation. During initialization we use either BPatch_process to
-attach to or create a process, or BPatch_binaryEdit to open a file on
-disk. When instrumentation is completed, we will either run the
-BPatch_process, or write the BPatch_binaryEdit back onto the disk.
-
-The mutator first needs to identify the application to be modified. If
-the process is already in execution, this can be done by specifying the
-executable file name and process id of the application as arguments in
-order to create an instance of a process object:
-
-.. code-block:: cpp
-
-   BPatch_process *appProc = bpatch.processAttach(name, processId);
-
-This creates a new instance of the BPatch_process class that refers to
-the existing process. It had no effect on the state of the process
-(i.e., running or stopped). If the process has not been started, the
-mutator specifies the pathname and argument list of a program it seeks
-to execute:
-
-.. code-block:: cpp
-
-   BPatch_process *appProc = bpatch.processCreate(pathname, argv);
-
-If the mutator is opening a file for static binary rewriting, it
-executes:
-
-.. code-block:: cpp
-
-   BPatch_binaryEdit *appBin = bpatch.openBinary(pathname);
-
-The above statements create either a BPatch_process object or
-BPatch_binaryEdit object, depending on whether Dyninst is doing dynamic
-or static instrumentation. The instrumentation and analysis code can be
-made agnostic towards static or dynamic modes by using a
-BPatch_addressSpace object. Both BPatch_process and BPatch_binaryEdit
-inherit from BPatch_addressSpace, so we can use cast operations to move
-between the two:
-
-.. code-block:: cpp
-
-   BPatch_process *appProc = static_cast<BPatch_process *>(appAddrSpace)
-
-or
-
-.. code-block:: cpp
-
-   BPatch_binaryEdit *appBin = static_cast<BPatch_binaryEdit*>(appAddrSpace)
-
-Similarly, all instrumentation commands can be performed on a
-BPatch_addressSpace object, allowing similar codes to be used between
-dynamic instrumentation and binary rewriting:
-
-.. code-block:: cpp
-
-   BPatch_addressSpace *app = appProc;
-
-or
-
-.. code-block:: cpp
-
-   BPatch_addressSpace *app = appBin;
-
-Once the address space has been created, the mutator defines the snippet
-of code to be inserted and identifies where the points should be
-inserted.
-
-If the mutator wants to instrument the entry point of
-InterestingProcedure, it should get a BPatch_function from the
-application’s BPatch_image, and get the entry BPatch_point from that
-function:
-
-.. code-block:: cpp
-
-   std::vector<BPatch_function *> functions;
-   std::vector<BPatch_point *> *points;
-
-   BPatch_image *appImage = app->getImage();
-   appImage->findFunction("InterestingProcedure", functions);
-   points = functions[0]->findPoint(BPatch_locEntry);
-
-The mutator also needs to construct the instrumentation that it will
-insert at the BPatch_point. It can do this by allocating an integer in
-the application to store instrumentation results, and then creating a
-BPatch_snippet to increment that integer:
-
-.. code-block:: cpp
-
-   BPatch_variableExpr *intCounter = app->malloc(*(appImage->findType("int")));
-   BPatch_arithExpr addOne(
-         BPatch_assign, *intCounter,
-         BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
-
-The mutator can set the BPatch_snippet to be run at the BPatch_point by
-executing an insert­Snippet call:
-
-.. code-block:: cpp
-
-   app->insertSnippet(addOne, *points);
-
-Finally, the mutator should either continue the mutate process and wait
-for it to finish, or write the resulting binary onto the disk, depending
-on whether it is doing dynamic or static instrumentation:
-
-.. code-block:: cpp
-
-   appProc->continueExecution();
-
-   while (!appProc->isTerminated()) {
-      bpatch.waitForStatusChange();
-   }
-
-or
-
-.. code-block:: cpp
-
-   appBin->writeFile(newPath);
+See the :ref:`example:dyninstapi-instr-func` example.
 
 
 Wrapping a function
-^^^^^^^^^^^^^^^^^^^
+===================
 
 The following code wraps malloc with fastMalloc, while allowing functions to still access the original
 malloc function by calling origMalloc.
@@ -238,122 +114,14 @@ malloc function by calling origMalloc.
 Binary Analysis
 ===============
 
-This example will illustrate how to use Dyninst to iterate over a
-function’s control flow graph and inspect instructions. These are steps
-that would usually be part of a larger data flow or control flow
-analysis. Specifically, this example will collect every basic block in a
-function, iterate over them, and count the number of instructions that
-access memory.
+See the :ref:`example:dyninstapi-binary-analysis` example.
 
-Unlike the previous instrumentation example, this example will analyze a
-binary file on disk. Bear in mind, these techniques can also be applied
-when working with processes. This example makes use of InstructionAPI,
-details of which can be found in the InstructionAPI Reference Manual.
-
-Similar to the above example, the mutator will start by creating a
-BPatch object and opening a file to operate on:
-
-.. code-block:: cpp
-
-   BPatch bpatch;
-   BPatch_binaryEdit *binedit = bpatch.openBinary(pathname);
-
-The mutator needs to get a handle to a function to do analysis on. This
-example will look up a function by name; alternatively, it could have
-iterated over every function in BPatch_image or BPatch_module:
-
-.. code-block:: cpp
-
-   BPatch_image *appImage = binedit->getImage();
-   std::vector<BPatch_function *> funcs;
-   image->findFunction("InterestingProcedure", funcs);
-
-A function’s control flow graph is represented by the BPatch_flowGraph
-class. The BPatch_flowGraph contains, among other things, a set of
-BPatch_basicBlock objects connected by BPatch_edge objects. This example
-will simply collect a list of the basic blocks in BPatch_flowGraph and
-iterate over each one:
-
-.. code-block:: cpp
-
-   BPatch_flowGraph *fg = funcs[0]->getCFG();
-   std::set<BPatch_basicBlock *> blocks;
-   fg->getAllBasicBlocks(blocks);
-
-Each basic block has a list of instructions. Each instruction is
-represented by a ``Dyninst::InstructionAPI::Instruction::Ptr`` object.
-
-.. code-block:: cpp
-
-   for (BPatch_basicBlock *block : blocks) {
-      std::vector<Dyninst::InstructionAPI::Instruction::Ptr> insns;
-      block->getInstructions(insns);
-   }
-
-Given an Instruction object, which is described in the InstructionAPI
-Reference Manual, we can query for properties of this instruction.
-InstructionAPI has numerous methods for inspecting the memory accesses,
-registers, and other properties of an instruction. This example simply
-checks whether this instruction accesses memory:
-
-.. code-block:: cpp
-
-   for (auto insn : insns) {
-      if (insn->readsMemory() || insn->writesMemory()) {
-         insns_access_memory++;
-      }
-   }
 
 Instrumenting Memory Accesses
 =============================
 
-There are two snippets useful for memory access instrumentation:
-BPatch_effectiveAddressExpr and BPatch_bytesAccessedExpr. Both have
-nullary constructors; the result of the snippet depends on the
-instrumentation point where the snippet is inserted.
-BPatch_effectiveAddressExpr has type void*, while
-BPatch_bytesAccessedExpr has type int.
+See the :ref:`example:dyninstapi-instrumenting-memory-accesses` example.
 
-These snippets may be used to instrument a given instrumentation point
-if and only if the point has memory access information attached to it.
-In this release the only way to create instrumentation points that have
-memory access information attached is via
-BPatch_function.findPoint(const std::set<BPatch_opCode>&). For example,
-to instrument all the loads and stores in a function named
-InterestingProcedure with a call to printf, one may write:
-
-
-.. code-block:: cpp
-
-   BPatch_addressSpace *app = ...;
-   BPatch_image *appImage = proc->getImage();
-
-   // We’re interested in loads and stores
-   std::set<BPatch_opCode> axs;
-   axs.insert(BPatch_opLoad);
-   axs.insert(BPatch_opStore);
-
-   // Scan the function InterestingProcedure and create instrumentation points
-   std::vector<BPatch_function*> funcs;
-   appImage->findFunction("InterestingProcedure", funcs);
-   std::vector<BPatch_point*>* points = funcs[0]->findPoint(axs);
-
-   // Create the printf function call snippet
-   std::vector<BPatch_snippet*> printfArgs;
-   BPatch_snippet *fmt = new BPatch_constExpr("Access at: %p.\n");
-   printfArgs.push_back(fmt);
-   BPatch_snippet *eae = new BPatch_effectiveAddressExpr();
-   printfArgs.push_back(eae);
-
-   // Find the printf function
-   std::vector<BPatch_function *> printfFuncs;
-   appImage->findFunction("printf", printfFuncs);
-
-   // Construct the function call snippet
-   BPatch_funcCallExpr printfCall(*(printfFuncs[0]), printfArgs);
-
-   // Insert the snippet at the instrumentation points
-   app->insertSnippet(printfCall, *points);
 
 Using DyninstAPI with the component libraries
 *********************************************
