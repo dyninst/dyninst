@@ -5,19 +5,28 @@ BPatch_edge.h
 
 .. cpp:class:: BPatch_edge
    
-  The **BPatch_edge** class represents a control flow edge in a
-  BPatch_flowGraph.
+  **A an edge in a control flow graph**
 
-  .. cpp:function:: BPatch_point *getPoint()
+  .. cpp:function:: BPatch_edge(edge_instance *e, BPatch_flowGraph *fg)
+
+  .. cpp:function:: ~BPatch_edge()
+
+  .. cpp:function:: void dump()
+
+    Print internal data
+
+  .. cpp:function:: BPatch_basicBlock * getSource()
+
+    Return the source BPatch_basicBlock that this edge flows from.
+
+  .. cpp:function:: BPatch_basicBlock * getTarget()
+
+    Return the target BPatch_basicBlock that this edge flows to.
+
+  .. cpp:function:: BPatch_point * getPoint()
 
     Return an instrumentation point for this edge. This point can be passed
     to BPatch_process::insertSnippet to instrument the edge.
-
-  .. cpp:enum:: BPatch_edgeType
-  .. cpp:enumerator:: BPatch_edgeType::CondJumpTaken
-  .. cpp:enumerator:: BPatch_edgeType::CondJumpNottaken
-  .. cpp:enumerator:: BPatch_edgeType::UncondJump
-  .. cpp:enumerator:: BPatch_edgeType::NonJump
 
   .. cpp:function:: BPatch_edgeType getType()
 
@@ -29,14 +38,16 @@ BPatch_edge.h
     out of a basic block that does not end in a jump, but falls through into
     the next basic block.
 
-  .. cpp:function:: BPatch_basicBlock *getSource()
-
-    Return the source BPatch_basicBlock that this edge flows from.
-
-  .. cpp:function:: BPatch_basicBlock *getTarget()
-
-    Return the target BPatch_basicBlock that this edge flows to.
-
-  .. cpp:function:: BPatch_flowGraph *getFlowGraph()
+  .. cpp:function:: BPatch_flowGraph * getFlowGraph()
 
     Returns the CFG that contains the edge.
+
+
+.. cpp:enum:: BPatch_edgeType
+
+  .. cpp:enumerator:: CondJumpTaken
+  .. cpp:enumerator:: CondJumpNottaken
+  .. cpp:enumerator:: UncondJump
+  .. cpp:enumerator:: NonJump
+
+  .. note:: This ignores indirect jumps
