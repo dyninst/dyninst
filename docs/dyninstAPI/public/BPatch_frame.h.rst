@@ -5,50 +5,59 @@ BPatch_frame.h
 
 .. cpp:class:: BPatch_frame
    
-  A **BPatch_frame** object represents a stack frame. The getCallStack
-  member function of BPatch_thread returns a vector of BPatch_frame
-  objects representing the frames currently on the stack.
+  **Frame information needed for stack walking**
 
+  .. cpp:function:: BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp, bool isf = false, \
+                                 bool istr = false, BPatch_point *point = NULL, bool isSynth = false)
+
+  .. cpp:function:: BPatch_frame()
   .. cpp:function:: BPatch_frameType getFrameType()
 
-    Return the type of the stack frame. Possible types are:
+    Returns the type of the stack frame.
 
-    +------------------------+------------------------------------+
-    | **Frame Type**         | **Meaning**                        |
-    +------------------------+------------------------------------+
-    | BPatch_frameNormal     | A normal stack frame.              |
-    +------------------------+------------------------------------+
-    | BPatch_frameSignal     | A frame that represents a signal   |
-    |                        | invocation.                        |
-    +------------------------+------------------------------------+
-    | BPatch_frameTrampoline | A frame the represents a call into |
-    |                        | instrumentation code.              |
-    +------------------------+------------------------------------+
+  .. cpp:function:: bool isSynthesized()
 
-  .. cpp:function:: void *getFP()
+    Returns true if this frame was artificially created, false otherwise.
 
-    Return the frame pointer for the stack frame.
+    Per-frame method for determining  how the frame was created.
 
-  .. cpp:function:: void *getPC()
+    .. warning:: Only call if you know what you are doing!
 
-    Returns the program counter associated with the stack frame.
-
-  .. cpp:function:: BPatch_function *findFunction()
-
-    Returns the function associated with the stack frame.
-
-  .. cpp:function:: BPatch_thread *getThread()
+  .. cpp:function:: BPatch_thread * getThread()
 
     Returns the thread associated with the stack frame.
 
-  .. cpp:function:: BPatch_point *getPoint()
-
-  .. cpp:function:: BPatch_point *findPoint()
+  .. cpp:function:: BPatch_point * getPoint()
 
     For stack frames corresponding to inserted instrumentation, returns the
     instrumentation point where that instrumentation was inserted. For other
     frames, returns NULL.
 
-  .. cpp:function:: bool isSynthesized()
+  .. cpp:function:: void *getPC()
 
-    Returns true if this frame was artificially created, false otherwise.
+    Returns the program counter associated with the stack frame.
+
+  .. cpp:function:: void * getFP()
+
+    Return the frame pointer for the stack frame.
+
+  .. cpp:function:: BPatch_function * findFunction()
+
+    Returns the function corresponding to this stack frame, NULL if there is none
+
+  .. cpp:function:: BPatch_point * findPoint()
+
+
+.. cpp:enum:: BPatch_frameType
+
+  .. cpp:enumerator:: BPatch_frameNormal
+
+    for a stack frame for a function
+
+  .. cpp:enumerator:: BPatch_frameSignal
+
+    for the stack frame created when a signal is delivered
+
+  .. cpp:enumerator:: BPatch_frameTrampoline
+
+    for a stack frame created by internal Dyninst instrumentation

@@ -19,6 +19,7 @@ DyninstAPI
   BPatch_collections.h
   BPatch_dll.h
   BPatch_flowGraph.h
+  BPatch_frame.h
   BPatch_libInfo.h
   BPatch_memoryAccessAdapter.h
   BPatch_private.h
