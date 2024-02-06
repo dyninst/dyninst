@@ -11,7 +11,7 @@ function’s control flow graph and inspect instructions. These are steps
 that would usually be part of a larger data flow or control flow
 analysis. Specifically, this example collects every basic block in a
 function, iterates over them, and counts the number of instructions that
-access memory.
+read or write memory.
 
 A mutator program must create a single :cpp:class:`BPatch` instance.
 This object is used to access functions and information that are global
@@ -20,10 +20,6 @@ finished using the library. All instrumentation is done through
 :cpp:class:`BPatch_addressSpace` that allows working with both dynamic and
 static instrumentation with the same mutator code. This is a key feature
 of Dyninst.
-
-This example demonstrates instrumentation by inserting a variable to count the
-number of times the function ``InterestingProcedure`` is called. This is similar
-to how a non-sampling code coverage tool might work.
 
 ``startInstrumenting`` allows dynamic instrumentation by either creating or
 attaching to a running process as well as static instrumentation for a file
