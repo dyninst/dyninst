@@ -49,7 +49,6 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
   friend class BPatch_basicBlock;
 
  public:
-  // maximum number of memory accesses per instruction; platform dependent
    static const unsigned int nmaxacc_NP;
 
  protected:
@@ -58,10 +57,9 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
   internal_instruction *insn_;
   bool *isLoad;
   bool *isStore;
-  int *preFcn;       // prefetch function (-1 = none)
-  int *condition;    // -1 means no condition, all other values are machine specific
-                                // conditions, currently (8/13/02) the tttn field on x86
-  bool *nonTemporal; // non-temporal (cache non-polluting) write on x86
+  int *preFcn;
+  int *condition;
+  bool *nonTemporal;
 
   BPatch_basicBlock *parent;
   long unsigned int addr;
@@ -75,7 +73,6 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
 
   internal_instruction *insn();
 
-  // Not yet implemented
   char *getMnemonic() const { return NULL; }
 
   BPatch_point * getInstPoint();
