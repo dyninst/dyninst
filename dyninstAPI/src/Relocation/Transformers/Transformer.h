@@ -53,17 +53,6 @@ struct RelocEdge;
 struct RelocEdges;
 class RelocGraph;
 
-// One of the things a Transformer 'returns' (modifies, really) is 
-// a list of where we require patches (branches from original code
-// to new code). This list is prioritized - Required, 
-// Suggested, and Not Required. Required means we have proof
-// that a patch is necessary for correct control flow. Suggested means
-// that, assuming correct parsing, no patch is necessary. Not Required
-// means that even with incorrect parsing no patch is necessary.
-// ... not sure how we can have that, but hey, we might as well
-// design it in.
-
- 
 class Transformer {
  public:
   typedef boost::shared_ptr<Widget> WidgetPtr;
