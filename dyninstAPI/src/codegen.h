@@ -38,7 +38,10 @@
 #include "dyn_register.h"
 #include "dyninstAPI/src/patch.h"
 
-#if defined(DYNINST_CODEGEN_ARCH_POWER)
+/* Moving amdgpu first to fix x86 platform issues */
+#if defined(arch_amdgpu)
+#include "codegen-amdgpu.h"
+#elif defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "codegen-power.h"
 using namespace NS_power;
 #elif defined(i386_unknown_nt4_0) \

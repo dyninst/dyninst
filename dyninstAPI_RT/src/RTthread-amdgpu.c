@@ -28,49 +28,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: linux.h,v 1.37 2007/12/04 18:05:24 legendre Exp $
-
-#if !defined(os_linux)
-#error "invalid architecture-os inclusion"
-#endif
-
-#ifndef LINUX_PD_HDR
-#define LINUX_PD_HDR
-class PCProcess;
-
-#include "common/src/linuxKludges.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Archive.h"
-
-#define EXIT_NAME "_exit"
-
-#if !defined(DYNINST_HOST_ARCH_X86_64)
-#define SIGNAL_HANDLER	 "__restore"
-#else
-#define SIGNAL_HANDLER   "__restore_rt"
-#endif
-
-#if (defined(os_linux) || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4)) && \
-   (defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64))
-#include "linux-x86.h"
-#elif defined(os_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
-#include "linux-power.h"
-#elif defined(os_linux) && defined(DYNINST_CODEGEN_ARCH_AARCH64)
-#include "linux-aarch64.h"
-#elif defined(os_linux) && defined(arch_amdgpu)
-#include "linux-amdgpu.h"
-#else
-#error Invalid or unknown architecture-os inclusion
-#endif
-
-#include "unix.h"
-
-#ifndef WNOWAIT
-#define WNOWAIT WNOHANG
-#endif
-
-bool get_linux_version(int &major, int &minor, int &subvers);
-bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
-
-#endif
+#include "dyninstAPI_RT/src/RTthread.h"
+#include <stdbool.h>
+int tc_lock_lock(tc_lock_t *t)
+{
+  dyntid_t me = dyn_pthread_self();
+  volatile bool* l = (volatile bool*)(&(t->mutex));
+  while (__atomic_test_and_set(l, __ATOMIC_ACQUIRE))
+      if (t->tid == me) return DYNINST_DEAD_LOCK;
+  return 0;
+}

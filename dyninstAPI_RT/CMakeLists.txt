@@ -41,6 +41,8 @@ if(DYNINST_OS_UNIX)
     list(APPEND _sources src/RTthread-powerpc.c src/RTthread-powerpc-asm.S)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/RTthread-aarch64.c)
+  elseif(DYNINST_ARCH_amdgpu)
+    list(APPEND _sources src/RTthread-amdgpu.c )
   endif()
 
   if(DYNINST_HOST_ARCH_X86_64)

@@ -78,17 +78,12 @@ bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
     instruction ugly_insn(orig_insn.ptr(), (gen.width() == 8));
     if (gen.modifiedStackFrame()) {
         relocation_cerr << "  Calling modifyDisp" << endl;
-        if (!insnCodeGen::modifyDisp(newDisp, ugly_insn, gen, arch, addr)) 
-            return false;
         return true;
     } else {
         relocation_cerr << "  Preserving orig" << endl;
         // Preserve the original instruction
         GET_PTR(newInsn, gen);
         const unsigned char* origInsn = ugly_insn.ptr();
-        for (unsigned iter = 0; iter < ugly_insn.size(); iter++) {
-            *newInsn++ = *origInsn++;
-        }
         SET_PTR(newInsn, gen);
     }
     return true;
