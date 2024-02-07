@@ -21,13 +21,33 @@ BPatch_instruction.h
   .. cpp:function:: bool hasAStore() const
   .. cpp:function:: bool hasAPrefetch_NP() const
   .. cpp:function:: unsigned int getNumberOfAccesses() const
+
   .. cpp:function:: bool isALoad(int which = 0) const
+
+    Checks if the memory access is a load (memory is read into a register).
+
   .. cpp:function:: bool isAStore(int which = 0) const
+
+    Return true if the memory access is write. Some machine instructions may
+    both load and store.
+
   .. cpp:function:: bool isAPrefetch_NP(int which = 0) const
+
+    Return true if memory access is a prefetch (i.e, it has no observable
+    effect on user registers). It this returns true, the instruction is
+    considered neither load nor store. Prefetches are detected only on IA32.
+
+
   .. cpp:function:: bool isConditional_NP(int which = 0) const
   .. cpp:function:: bool isNonTemporal_NP(int which = 0) const
+
   .. cpp:function:: int prefetchType_NP(int which = 0) const
+
+    If the memory access is a prefetch, this method returns a platform
+    specific prefetch type.
+
   .. cpp:function:: int conditionCode_NP(int which = 0) const
+
 
 
 .. cpp:class:: BPatch_register

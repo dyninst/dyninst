@@ -3,42 +3,61 @@
 BPatch_memoryAccess_NP.h
 ########################
 
+.. cpp:class:: BPatch_memoryAccess : public BPatch_instruction
 
-Instrumentation points created through findPoint(const
-std::set<BPatch_opCode>& ops) get memory access information attached to
-them. This information is used by the memory access snippets, but is
-also available to the API user. The classes that encapsulate memory
-access information are contained in the BPatch_memoryAccess_NP.h header.
+  **A memory access abstraction**
 
-.. cpp:class:: BPatch_memoryAccess
-   
-  This class encapsulates a memory access abstraction. It contains
-  information that describes the memory access type: read, write,
+  It contains information that describes the memory access type: read, write,
   read/write, or prefetch. It also contains information that allows the
   effective address and the number of bytes transferred to be determined.
 
-  .. cpp:function:: bool isALoad()
+  .. cpp:member:: static BPatch_memoryAccess* const none
 
-    Return true if the memory access is a load (memory is read into a
-    register).
+  .. cpp:function:: static BPatch_Vector<BPatch_point*>* filterPoints(const BPatch_Vector<BPatch_point*> &points, unsigned int numMAs)
 
-  .. cpp:function:: bool isAStore()
+    Utility function to filter out the points that don't have a 2nd memory   access on x86
 
-    Return true if the memory access is write. Some machine instructions may
-    both load and store.
+  .. cpp:function:: const BPatch_addrSpec_NP *getStartAddr(int which = 0) const
+  .. cpp:function:: const BPatch_countSpec_NP *getByteCount(int which = 0) const
 
-  .. cpp:function:: bool isAPrefetch_NP()
+  .. cpp:function:: static BPatch_memoryAccess* init_tables()
+  .. cpp:function:: BPatch_memoryAccess(internal_instruction *, Dyninst::Address _addr, bool _isLoad, bool _isStore, unsigned int _bytes, long _imm, int _ra, int _rb, unsigned int _scale = 0, int _cond = -1, bool _nt = false)
 
-    Return true if memory access is a prefetch (i.e, it has no observable
-    effect on user registers). It this returns true, the instruction is
-    considered neither load nor store. Prefetches are detected only on IA32.
+    initializes only the first access #bytes is a constant
 
-  .. cpp:function:: short prefetchType_NP()
+  .. cpp:function:: BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr, bool _isinternal_Load, bool _isStore, long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, unsigned int _scale_c, int _cond, bool _nt, int _preFcn = -1)
 
-    If the memory access is a prefetch, this method returns a platform
-    specific prefetch type.
+    initializes only the first access #bytes is an expression wscale
 
-  .. cpp:function:: BPatch_addrSpec_NP getStartAddr_NP()
+  .. cpp:function:: BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr, bool _isLoad, bool _isStore, bool _isPrefetch, long _imm_s, int _ra_s, int _rb_s, long _imm_c, int _ra_c, int _rb_c, unsigned short _preFcn)
+
+    initializes only the first access #bytes is an expression
+
+  .. cpp:function:: BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr, bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s, long _imm_c, int _ra_c, int _rb_c)
+
+    initializes only the first access #bytes is an expression & not a prefetch
+
+  .. cpp:function:: void set2nd(bool _isLoad, bool _isStore, unsigned int _bytes, long _imm, int _ra, int _rb, unsigned int _scale = 0)
+
+    sets 2nd access #bytes is constant
+
+  .. cpp:function:: void set2nd(bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, unsigned int _scale_c, int _cond, bool _nt)
+
+    sets 2nd access #bytes is an expression wscale
+
+  .. cpp:function:: BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr, bool _isLoad, bool _isStore, unsigned int _bytes, long _imm, int _ra, int _rb, unsigned int _scale, bool _isLoad2, bool _isStore2, unsigned int _bytes2, long _imm2, int _ra2, int _rb2, unsigned int _scale2)
+
+    initializes both accesses #bytes is a constant
+
+  .. cpp:function:: BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr, bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, unsigned int _scale_c, bool _isLoad2, bool _isStore2, long _imm2_s, int _ra2_s, int _rb2_s, unsigned int _scale2_s, long _imm2_c, int _ra2_c, int _rb2_c, unsigned int _scale2_c)
+
+    initializes both accesses #bytes is an expression & not a prefetch
+
+  .. cpp:function:: virtual ~BPatch_memoryAccess()
+  .. cpp:function:: bool equals(const BPatch_memoryAccess* mp) const
+  .. cpp:function:: bool equals(const BPatch_memoryAccess& rp) const
+
+  .. cpp:function:: BPatch_addrSpec_NP getStartAddr_NP(int which = 0) const
 
     Return an address specification that allows the effective address of a
     memory reference to be computed. For example, on the x86 platform a
@@ -46,39 +65,7 @@ access information are contained in the BPatch_memoryAccess_NP.h header.
     register, a scaling value, and a constant base. The BPatch_addrSpec_NP
     describes each of these values.
 
-  .. cpp:function:: BPatch_countSpec_NP getByteCount_NP()
+  .. cpp:function:: BPatch_countSpec_NP getByteCount_NP(int which = 0) const
 
     Return a specification that describes the number of bytes transferred by
     the memory access.
-
-
-.. cpp:class:: BPatch_addrSpec_NP
-   
-  This class encapsulates the information required to determine an
-  effective address at runtime. The general representation for an address
-  is a sum of two registers and a constant; this may change in future
-  releases. Some architectures use only certain bits of a register (e.g.
-  bits 25:31 of XER register on the Power chip family); these are
-  represented as pseudo-registers. The numbering scheme for registers and
-  pseudo-registers is implementation dependent and should not be relied
-  upon; it may change in future releases.
-
-  .. cpp:function:: int getImm()
-
-    Return the constant offset. This may be positive or negative.
-
-  .. cpp:function:: int getReg(unsigned i)
-
-    Return the register number for the i\ :sup:`th` register in the sum,
-    where 0 ≤ i ≤ 2. Register numbers are positive; a value of -1 means no
-    register.
-
-  .. cpp:function:: int getScale()
-
-    Returns any scaling factor used in the memory address computation.
-
-
-.. cpp:class:: BPatch_countSpec_NP
-   
-  This class encapsulates the information required to determine the number
-  of bytes transferred by a memory access.

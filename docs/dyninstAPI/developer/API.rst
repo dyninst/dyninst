@@ -26,6 +26,7 @@ DyninstAPI
   BPatch_libInfo.h
   BPatch_loopTreeNode.h
   BPatch_memoryAccessAdapter.h
+  BPatch_memoryAccess_NP.h
   BPatch_private.h
   codegen-aarch64.h
   codegen.h
