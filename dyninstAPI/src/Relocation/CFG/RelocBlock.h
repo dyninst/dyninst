@@ -77,13 +77,9 @@ class RelocBlock {
       Instrumentation,
       Stub } Type;
 
-   // Standard creation
    static RelocBlock *createReloc(block_instance *block, func_instance *func);
-   // Instpoint creation
    static RelocBlock *createInst(instPoint *point, Address a, 
                         block_instance *block, func_instance *func);
-   // Stub creation; we're creating an empty RelocBlock associated
-   // with some other block/function/thing
    static RelocBlock *createStub(block_instance *block, func_instance *func);
 
    RelocBlock *next() { return next_; }
@@ -105,12 +101,10 @@ class RelocBlock {
    std::string format() const;
    Label getLabel() const;
    
-   // Non-const for use by transformer classes
    WidgetList &elements() { return elements_; }
    CFWidgetPtr &cfWidget() { return cfWidget_; }
    void setCF(CFWidgetPtr cf);
 
-   // Code generation
    bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);
    bool extractTrackers(CodeTracker &);
    bool generate(const codeGen &templ, CodeBuffer &buffer);
@@ -118,7 +112,6 @@ class RelocBlock {
    void setType(Type type);
    Type type() const { return type_; }
 
-   // Set up the CFWidget with our out-edges
    bool finalizeCF();
 
    RelocEdges *ins() { return &inEdges_; }
@@ -136,7 +129,7 @@ class RelocBlock {
       prev_(NULL),
       next_(NULL),
       type_(Relocated) {}
-   // Constructor for a trace inserted later
+
   RelocBlock(Address a, block_instance *b, func_instance *f)
       :origAddr_(a),
       block_(b),
@@ -183,7 +176,6 @@ class RelocBlock {
 
    Address origAddr_;
    block_instance *block_;
-   // If we're a func-specific copy
    func_instance *func_; 
 
    int id_;
@@ -191,18 +183,10 @@ class RelocBlock {
    bool origRelocBlock_;
    
    WidgetList elements_;
-   // This is convienient to avoid tons of dynamic_cast
-   // equivalents
    CFWidgetPtr cfWidget_;
 
-   // We're building a mini-CFG, so might as well make it obvious. 
-   // Also, this lets us reassign edges. We sort by edge type. 
    RelocEdges inEdges_;
    RelocEdges outEdges_;
-
-   // We use the standard code generation mechanism of having a doubly-linked
-   // list overlaid on a graph. Use the list to traverse in layout order; use the graph
-   // to traverse in control flow order.
 
    RelocBlock *prev_;
    RelocBlock *next_;
