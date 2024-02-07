@@ -31,30 +31,6 @@
 #if !defined(_CODE_BUFFER_H_)
 #define _CODE_BUFFER_H_
 
-
-
-// Infrastructure for the code generating Widgets; try to automate
-// as much of the handling as we can.
-//
-// Background
-//  An Widget can generate two types of code: PIC and non-PIC. PIC code can be treated
-//  as a sequence of bytes that can be freely copied around, whereas non-PIC code must
-//  be tweaked whenever its address changes as part of code generation. Note, it is safe
-//  treat PIC code as non-PIC (though less than optimal); the reverse is not true. For
-//  efficiency we want to bundle PIC code together and avoid re-generating it in every pass,
-//  while keeping callbacks for non-PIC code. 
-//
-//  Another requirement of this system is to build a tracking data structure that maps from
-//  address in the generated code to who generated that code, so we can maintain a mapping 
-//  between original addresses and moved (relocated) code. We also wish to do this automatically.
-//
-//  Thus, we provide an interface that automates these two functions as much as possible. We provide
-//  two ways of specifying code: copy and patch. Copy handles PIC code, and pulls in a buffer of bytes
-//  (e.g., memcpy). Patch registers a callback for later that will provide some code. 
-//
-//  With these two methods the user can specify a tracking data structure that specifies what kind
-//  of code they have provided.
-
 #include "common/h/dyntypes.h"
 #include <assert.h>
 #include <map>
@@ -67,12 +43,7 @@ class codeGen;
 namespace Dyninst {
 namespace Relocation {
         
-// The input grammar to the CodeBuffer is [PIC|nonPIC]*. However, it is safe to accumulate
-// between adjacent PICs, so we can simplify this to ((PIC*)nonPIC)*. This drives our internal
-// storage, which is a list of (buffer, patch) pairs; the buffer contains (PIC*) and the
-// patch represents a nonPIC entry. For each pair, we also associate a list of code trackers, 
-// since there is a 1:1 relationship between each element (PIC, nonPIC) and a tracker. 
-        
+
 class TrackerElement;
 struct Patch;
 class CodeTracker;
@@ -94,11 +65,6 @@ class CodeBuffer {
       Type type;
       Id id;
       int iteration;
-      // This is a bit of a complication. We want to estimate
-      // where a label will go pre-generation to try and
-      // reduce how many iterations we need to go through. Thus,
-      // addr may either be an absolute address,
-      // an offset, or an estimated address.
       Address addr;
 
       static const unsigned INVALID;
@@ -139,7 +105,6 @@ class CodeBuffer {
       Buffer buffer_;
       Patch *patch_{};
       unsigned labelID_{Label::INVALID};
-      // Here the Offset is an offset within the buffer, starting at 0.
       typedef std::map<Offset, TrackerElement *> Trackers;
       Trackers trackers_;
    };
