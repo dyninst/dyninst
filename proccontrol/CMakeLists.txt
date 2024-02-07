@@ -13,6 +13,10 @@ set(_public_headers
     h/PlatFeatures.h
     h/ProcessSet.h)
 
+set(_notyet_headers
+    src/amdgpu_process.h
+)
+
 set(_private_headers
     src/arm_process.h
     src/DecoderWindows.h
@@ -41,6 +45,10 @@ set(_private_headers
     src/windows_process.h
     src/windows_thread.h
     src/x86_process.h)
+
+set(_notyet_sources
+    src/amdgpu_process.C
+)
 
 set(_sources
     src/event.C

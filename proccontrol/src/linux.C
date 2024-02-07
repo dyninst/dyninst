@@ -72,6 +72,8 @@
 #include "common/src/linuxKludges.h"
 #include "common/src/parseauxv.h"
 
+#include "common/h/compiler_diagnostics.h"
+
 #include "boost/shared_ptr.hpp"
 
 #include "unaligned_memory_access.h"
@@ -753,10 +755,28 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #elif defined(arch_aarch64) || defined(arch_aarch32)
 #define DEFAULT_PROCESS_TYPE linux_arm_process
 #define DEFAULT_THREAD_TYPE linux_arm_thread
+#elif defined(arch_amdgpu)
+/* nothing yet, a placeholder for the future */
+/* XXX and, really seperate because once we have
+   AMDGPU on a host, we could either have a UNIX
+   process, or a GPU process which we are talking
+   to using different mechanisms.  */
 #endif
+
+/* XXX likely we should have cap_proccontrol, this is placeholder until
+   we determine what we really want and can do with GPU process control
+   and access in the future.   For now, it just compiles.
+   Make that cap_proc and cap_threads or something more detailed */
+
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
+#if defined(arch_amdgpu)
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(p);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(e);
+   perr_printf("no process creation on AMDGPU, crashing\n"); 
+   assert(0 && "no createProcess() on amdgpu");
+#else
    std::vector<std::string> a;
    std::map<int,int> f;
    std::vector<std::string> envp;
@@ -764,27 +784,49 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
    linux_process *newproc = new DEFAULT_PROCESS_TYPE(p, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
+#endif
 }
 
 int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp,
         std::map<int,int> f)
 {
+#if defined(arch_amdgpu)
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(e);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(a);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(envp);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(f);
+   perr_printf("no process creation on AMDGPU, crashing\n"); 
+   assert(0 && "no createProcess() on amdgpu");
+#else
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
    linux_process *newproc = new DEFAULT_PROCESS_TYPE(0, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
+#endif
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
 {
+#if defined(arch_amdgpu)
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(pid_);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(p);
+   perr_printf("no process creation on AMDGPU, crashing\n"); 
+   assert(0 && "no createProcess() on amdgpu");
+#else
    linux_process *newproc = new DEFAULT_PROCESS_TYPE(pid_, p);
    assert(newproc);
    return static_cast<int_process *>(newproc);
+#endif
 }
 
 int linux_process::computeAddrWidth()
 {
-
+#if defined(arch_amdgpu)
+   /* This will be a point of contention, but amdgpu is really a 
+      64 bit arch -- with half-width registers , and some full
+      width registers. */
+   int word_size = 64;		/* XXX hard coded for now */
+#else
    /**
     * It's surprisingly difficult to figure out the word size of a process
     * without looking at the files it loads (we want to avoid disk accesses).
@@ -828,6 +870,7 @@ int linux_process::computeAddrWidth()
 
    int word_size = (be_zero || le_zero) ? 8 : 4;
    pthrd_printf("computeAddrWidth: word size is %d\n", word_size);
+#endif
    return word_size;
 }
 
@@ -1551,12 +1594,21 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
                                          Dyninst::LWP lwp_id,
                                          bool initial_thrd)
 {
+#if defined(arch_amdgpu)
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(proc);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(thr_id);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(lwp_id);
+   DYNINST_SUPPRESS_UNUSED_VARIABLE(initial_thrd);
+   perr_printf("no thread platform on AMDGPU, crashing\n"); 
+   assert(0 && "no createTheradPlat() on amdgpu");
+#else
    if (initial_thrd) {
       lwp_id = proc->getPid();
    }
    linux_thread *lthrd = new DEFAULT_THREAD_TYPE(proc, thr_id, lwp_id);
    assert(lthrd);
    return static_cast<int_thread *>(lthrd);
+#endif
 }
 
 linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
@@ -2225,6 +2277,29 @@ static void init_dynreg_to_user()
    dynreg_to_user[aarch64::pc]         = make_pair(cur+=step, 8);
    dynreg_to_user[aarch64::pstate]     = make_pair(cur+=step, 8);
 
+#if defined(arch_amdgpu)
+   /* XXX if we are ever able to talk to GPU process to pull
+      instrumenation data from it while it is paused,
+      or to control it ... this is where we should
+      add the registers.   And we need to know the "user area"
+      equivalent for a GPU process -- which likely we will have
+      to fill in from the saved context of a GPU job.  */
+   /*
+      Wave fronts / whatever everyone else calls them will also
+      be something to consdier, and well we "don't know about those"
+      -- YET! 
+   */
+
+
+
+   /* XXX really the above code should be table generated from markups
+      for the architecture.  This hand-generated one-off is too old,
+      especially in the faceof change.  */
+
+#endif
+
+
+
    initialized = true;
 
    init_lock.unlock();
@@ -2247,9 +2322,9 @@ static void init_dynreg_to_user()
 //912 is currently the x86_64 size, 128 bytes for just-because padding
 #define MAX_USER_SIZE (912+128)
 #endif
+
 bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
-
 #if defined(MY_PTRACE_GETREGS)
    static bool have_getregs = true;
 #else
@@ -2267,7 +2342,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
        setLastError(err_exited, "Cannot retrieve registers from an exited thread");
        return false;
    }
-#endif
+#endif /* bug_registers_after_exit */
 
    volatile unsigned int sentinel1 = 0xfeedface;
    unsigned char user_area[MAX_USER_SIZE];
@@ -2297,7 +2372,9 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    }
    if (!have_getregs)
    {
-#if defined(arch_aarch64)
+#if defined(arch_amdgpu)
+	/* nothing here, but .... palceholder! */
+#elif defined(arch_aarch64)
         elf_gregset_t regs;
         struct iovec iovec;
         iovec.iov_base = &regs;
@@ -2315,7 +2392,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
             continue;
          long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) i->second.first, NULL);
          //errno == -1 is not sufficient here for aarch4
-         //if (errno == -1) {
+         //if (errno == -1)
          if (errno == -1 || result == -1) {
             int error = errno;
             perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
@@ -2337,7 +2414,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
             assert(0);
          }
       }
-#endif
+#endif /* arch specific !have_getregs */
    }
 
    //If a sentinel assert fails, then someone forgot to increase MAX_USER_SIZE
@@ -2376,6 +2453,10 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
         regpool.regs[reg] = val;
     }
     return true;
+#if defined(arch_amdgpu)
+	DYNINST_SUPPRESS_UNUSED_VARIABLE(regpool);
+	assert(0 && "linux_thread::plat_getAllRegisters(int_registerPool &regpool) NOT IMPLEMENTED");
+#endif
 }
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
@@ -2432,10 +2513,11 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 #endif
    //unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
 #if defined(arch_aarch64)
-   if (ret != 0) {
+   if (ret != 0)
 #else
-   if (result == -1 && errno != 0) {
+   if (result == -1 && errno != 0)
 #endif
+   {
       int error = errno;
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
       //pthrd_printf("ARM-Info: offset(%d-%d)\n", (void *)(unsigned long)offset, offset/8);
@@ -2507,7 +2589,10 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    if (!have_setregs)
    {
-#if defined(arch_aarch64)
+#if defined(arch_amdgpu)
+	DYNINST_SUPPRESS_UNUSED_VARIABLE(regpool);
+	assert(0 && "amdgpu linux_thread::plat_setAllRegisters(int_registerPool &regpool) NOT IMPLEMENTED");
+#elif defined(arch_aarch64)
         //pthrd_printf("ARM-info: setAllregisters.\n");
         elf_gregset_t regs;
         struct iovec iovec;

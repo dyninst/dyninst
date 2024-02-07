@@ -49,6 +49,12 @@ using namespace NS_x86;
 #elif defined(arch_aarch64)
 #include "arch-aarch64.h"
 using namespace NS_aarch64;
+#elif defined(arch_amdgpu)
+
+/* Lets see what we are missing, and we are trying
+ *    to isolate from the namespace crap */
+#include "arch-amdgpu.h"
+using namespace NS_amdgpu;
 #else
 #error "unknown architecture"
 

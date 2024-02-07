@@ -46,6 +46,13 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
+#if defined(arch_amdgpu)
+#  include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#endif
+
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 
@@ -136,8 +143,11 @@ ABI* ABI::getABI(int addr_width){
 	initialize32();
 #endif
 
+#if defined(arch_amdgpu)
+#else
 #ifdef arch_64bit
 	initialize64();
+#endif
 #endif
     }
     return (addr_width == 4) ? globalABI_ : globalABI64_;

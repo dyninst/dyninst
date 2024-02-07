@@ -46,6 +46,8 @@
 #include "debug_parse.h"
 #include "util.h"
 
+#include "common/h/compiler_diagnostics.h"
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -220,6 +222,16 @@ namespace hd {
     bool gap_heuristics(CodeObject *co,CodeRegion *cr,Address addr)
     {
         bool ret = false;
+
+/* XXX the instruction adapater for amdgpu should work-- Hsuan-Heng
+   implemented "No" functions for that,or at the very least 
+   least just work.   That needs to be tested.    For now... I'll just
+   make this compile w/out errors. */
+
+/* XXX gap heuiristic parsing is architecture independent, as it should
+   be able to aanlyze on all the platforms.   Same with stack check
+   isStackFramePrecheck_{gcc,msvs} */
+
 #if defined(arch_x86) || defined(arch_x86_64) || defined(i386_unknown_nt4_0)
 
   #if defined(os_windows)
@@ -227,6 +239,10 @@ namespace hd {
   #else
         ret = gap_heuristic_GCC(co,cr,addr);
   #endif
+#else
+	DYNINST_SUPPRESS_UNUSED_VARIABLE(co);
+	DYNINST_SUPPRESS_UNUSED_VARIABLE(cr);
+	DYNINST_SUPPRESS_UNUSED_VARIABLE(addr);
 #endif  
         return ret;
     }

@@ -497,6 +497,15 @@ class registerSpace {
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }
 #endif
+#if defined(arch_amdgpu)
+//#warning "Not verified yet!"
+	//31 GPRs, 32 FPRs
+    typedef enum { ignored } amdgpuRegisters_t;
+    static unsigned GPR(Dyninst::Register x) { return x; }
+    static unsigned FPR(Dyninst::Register x) { return x; }
+    int framePointer() { return 0; }
+#endif
+
     // Create a map of register names to register numbers
     std::map<std::string, Dyninst::Register> registersByName;
     // The reverse map can be handled by doing a rs[x]->name

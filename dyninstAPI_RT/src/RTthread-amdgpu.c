@@ -28,39 +28,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef ARCH_FORWARD_H
-#define ARCH_FORWARD_H
-
-// simple handling of architecture-specific forward declarations
-// from common/src/arch-*.h
-
-#if defined(arch_power)
-namespace NS_power {
-    class instruction;
+#include "dyninstAPI_RT/src/RTthread.h"
+#include <stdbool.h>
+int tc_lock_lock(tc_lock_t *t)
+{
+  dyntid_t me = dyn_pthread_self();
+  volatile bool* l = (volatile bool*)(&(t->mutex));
+  while (__atomic_test_and_set(l, __ATOMIC_ACQUIRE))
+      if (t->tid == me) return DYNINST_DEAD_LOCK;
+  return 0;
 }
-using namespace NS_power;
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-namespace NS_x86 {
-    class instruction;
-}
-using namespace NS_x86;
-#elif defined(arch_aarch64) \
-	 || defined(aarch64_unknown_linux)
-namespace NS_aarch64{
-		class instruction;
-}
-using namespace NS_aarch64;
-#elif defined(arch_amdgpu)
-namespace NS_amdgpu {
-    class instruction;
-}
-using namespace NS_amdgpu;
-#else
-#error "unknown architecture"
-
-#endif
-
-
-#endif 

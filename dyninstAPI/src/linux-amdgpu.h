@@ -28,39 +28,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef ARCH_FORWARD_H
-#define ARCH_FORWARD_H
 
-// simple handling of architecture-specific forward declarations
-// from common/src/arch-*.h
-
-#if defined(arch_power)
-namespace NS_power {
-    class instruction;
-}
-using namespace NS_power;
-#elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
-namespace NS_x86 {
-    class instruction;
-}
-using namespace NS_x86;
-#elif defined(arch_aarch64) \
-	 || defined(aarch64_unknown_linux)
-namespace NS_aarch64{
-		class instruction;
-}
-using namespace NS_aarch64;
-#elif defined(arch_amdgpu)
-namespace NS_amdgpu {
-    class instruction;
-}
-using namespace NS_amdgpu;
-#else
-#error "unknown architecture"
-
+#if !defined(os_linux) || !defined(arch_amdgpu)
+#error "invalid architecture-os inclusion"
 #endif
 
+#ifndef LINUX_AMDGPU_HDR
+#define LINUX_AMDGPU_HDR
 
-#endif 
+#include "dyntypes.h"
+
+// floor of inferior malloc address range within a single branch of x
+// for 32-bit ELF PowerPC mutatees
+extern Dyninst::Address region_lo(const Dyninst::Address x);
+
+// floor of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+extern Dyninst::Address region_lo_64(const Dyninst::Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 32-bit ELF PowerPC mutatees
+extern Dyninst::Address region_hi(const Dyninst::Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+extern Dyninst::Address region_hi_64(const Dyninst::Address x);
+
+#endif

@@ -47,15 +47,17 @@ if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
   set(DYNINST_OS_UNIX TRUE)
 endif()
 
-if(${_host_arch} IN_LIST _64bit_x86_arches)
-  set(DYNINST_ARCH_x86_64 TRUE)
-elseif(${_host_arch} STREQUAL "aarch64")
-  set(DYNINST_ARCH_aarch64 TRUE)
-elseif(${_host_arch} STREQUAL "ppc64le")
-  set(DYNINST_ARCH_ppc64le TRUE)
-elseif(${_host_arch} IN_LIST _32bit_x86_arches)
-  set(DYNINST_ARCH_i386 TRUE)
-endif()
+
+set(DYNINST_ARCH_amdgpu TRUE)
+#if(${_host_arch} STREQUAL "x86_64" OR ${_host_arch} STREQUAL "amd64")
+#  set(DYNINST_ARCH_x86_64 TRUE)
+#elseif(${_host_arch} STREQUAL "aarch64")
+#  set(DYNINST_ARCH_aarch64 TRUE)
+#elseif(${_host_arch} STREQUAL "ppc64le")
+#  set(DYNINST_ARCH_ppc64le TRUE)
+#elseif(${_host_arch} STREQUAL "i386")
+#  set(DYNINST_ARCH_i386 TRUE)
+#endif()
 
 # --- DEPRECATED ---
 # For legacy support in the testsuite ONLY
