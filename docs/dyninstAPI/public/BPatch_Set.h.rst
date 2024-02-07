@@ -3,12 +3,9 @@
 BPatch_Set.h
 ############
 
-.. cpp:class:: BPatch_Set
+.. cpp:class:: template<class Key, class Compare = comparison<Key>> BPatch_Set
    
-  **BPatch_Set** is another container class, similar to the set class in
-  the STL. THIS CLASS HAS BEEN DEPRECATED AND WILL BE REMOVED IN THE NEXT
-  RELEASE. In addition the methods provided by std::set, it provides the
-  following compatibility methods:
+  **A tree-like container**
 
   .. cpp:function:: BPatch_Set::BPatch_Set()
 
@@ -78,3 +75,9 @@ BPatch_Set.h
   .. cpp:function:: BPatch_Set<T,Compare> operator- (const BPatch_Set<T,Compare>&)
 
     Set difference operator.
+
+
+.. cpp:struct:: template <class T> comparison
+
+  .. cpp:function:: bool operator() (const T&l, const T&r) const
+
