@@ -8,7 +8,6 @@ Transformers
   :hidden:
   :maxdepth: 1
 
-  Include.h
   Instrumenter.h
   Modification.h
   Movement-adhoc.h
