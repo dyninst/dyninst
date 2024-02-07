@@ -51,9 +51,15 @@ namespace NS_aarch64 {
   class instruction;
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+namespace NS_amdgpu {
+  class instruction;
+}
+
+#if defined (arch_amdgpu)
+typedef NS_amdgpu::instruction arch_insn;
+#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 typedef NS_x86::instruction arch_insn;
-#elif defined(DYNINST_CODEGEN_ARCH_POWER) 
+#elif defined(DYNINST_CODEGEN_ARCH_POWER)
 typedef NS_power::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 typedef NS_aarch64::instruction arch_insn;
