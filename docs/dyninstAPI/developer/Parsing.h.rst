@@ -1,5 +1,5 @@
-Parsing.h
-=========
+.. _`sec:Parsing.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+Parsing.h
+#########
 

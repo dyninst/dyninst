@@ -1,5 +1,5 @@
-codegen-power.h
-===============
+.. _`sec:codegen-power.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+codegen-power.h
+###############
 

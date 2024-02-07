@@ -1,5 +1,5 @@
-emit-power.h
-============
+.. _`sec:emit-power.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+emit-power.h
+############
 

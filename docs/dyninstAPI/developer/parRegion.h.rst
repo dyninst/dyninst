@@ -1,5 +1,5 @@
-parRegion.h
-===========
+.. _`sec:parRegion.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+parRegion.h
+###########
 

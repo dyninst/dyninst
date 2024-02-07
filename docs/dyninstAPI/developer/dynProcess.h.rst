@@ -1,5 +1,5 @@
-dynProcess.h
-============
+.. _`sec:dynProcess.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+dynProcess.h
+############
 

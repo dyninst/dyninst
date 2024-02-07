@@ -1,5 +1,5 @@
-pcEventHandler.h
-================
+.. _`sec:pcEventHandler.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+pcEventHandler.h
+################
 

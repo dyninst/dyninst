@@ -1,5 +1,5 @@
-linux.h
-=======
+.. _`sec:dyninstAPI:linux.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+linux.h
+#######
 

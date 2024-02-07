@@ -1,5 +1,5 @@
-hybridAnalysis.h
-================
+.. _`sec:hybridAnalysis.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+hybridAnalysis.h
+################
 

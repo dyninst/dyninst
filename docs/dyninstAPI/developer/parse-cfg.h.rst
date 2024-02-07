@@ -1,5 +1,5 @@
-parse-cfg.h
-===========
+.. _`sec:parse-cfg.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+parse-cfg.h
+###########
 

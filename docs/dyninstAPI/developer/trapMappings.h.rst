@@ -1,5 +1,5 @@
-trapMappings.h
-==============
+.. _`sec:trapMappings.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+trapMappings.h
+##############
 

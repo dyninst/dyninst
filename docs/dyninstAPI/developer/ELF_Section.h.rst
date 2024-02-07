@@ -1,5 +1,5 @@
-ELF_Section.h
-=============
+.. _`sec:ELF_Section.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+ELF_Section.h
+#############
 

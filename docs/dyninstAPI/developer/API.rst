@@ -8,6 +8,10 @@ DyninstAPI
   :hidden:
   :maxdepth: 1
 
+  Relocation/API
+  StackMod/API
+
+  arch-forward-decl.h
   addressSpace.h
   ast.h
   baseTramp.h

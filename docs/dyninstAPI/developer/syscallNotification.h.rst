@@ -1,5 +1,5 @@
-syscallNotification.h
-=====================
+.. _`sec:syscallNotification.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+syscallNotification.h
+#####################
 

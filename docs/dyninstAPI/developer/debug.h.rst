@@ -1,5 +1,5 @@
-debug.h
-=======
+.. _`sec:debug.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+debug.h
+#######
 

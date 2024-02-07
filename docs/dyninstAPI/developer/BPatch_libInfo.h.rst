@@ -1,5 +1,5 @@
-BPatch_libInfo.h
-================
+.. _`sec:BPatch_libInfo.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+BPatch_libInfo.h
+################
 

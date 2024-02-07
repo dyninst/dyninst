@@ -1,5 +1,5 @@
-pcEventMuxer.h
-==============
+.. _`sec:pcEventMuxer.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+pcEventMuxer.h
+##############
 

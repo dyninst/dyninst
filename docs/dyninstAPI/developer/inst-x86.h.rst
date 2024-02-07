@@ -1,5 +1,5 @@
-inst-x86.h
-==========
+.. _`sec:inst-x86.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+inst-x86.h
+##########
 

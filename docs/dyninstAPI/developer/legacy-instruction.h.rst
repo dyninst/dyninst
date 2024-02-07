@@ -1,5 +1,5 @@
-legacy-instruction.h
-====================
+.. _`sec:legacy-instruction.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+legacy-instruction.h
+####################
 

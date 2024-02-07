@@ -1,5 +1,5 @@
-image.h
-=======
+.. _`sec:image.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+image.h
+#######
 

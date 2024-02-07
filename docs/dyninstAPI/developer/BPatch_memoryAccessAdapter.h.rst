@@ -1,5 +1,5 @@
-BPatch_memoryAccessAdapter.h
-============================
+.. _`sec:BPatch_memoryAccessAdapter.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+BPatch_memoryAccessAdapter.h
+############################
 

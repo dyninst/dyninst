@@ -1,5 +1,5 @@
-dynThread.h
-===========
+.. _`sec:dynThread.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+dynThread.h
+###########
 

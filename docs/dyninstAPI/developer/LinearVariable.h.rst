@@ -1,5 +1,5 @@
-LinearVariable.h
-================
+.. _`sec:LinearVariable.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+LinearVariable.h
+################
 

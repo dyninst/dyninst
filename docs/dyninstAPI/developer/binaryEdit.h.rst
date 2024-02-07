@@ -1,5 +1,5 @@
-binaryEdit.h
-============
+.. _`sec:binaryEdit.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+binaryEdit.h
+############
 

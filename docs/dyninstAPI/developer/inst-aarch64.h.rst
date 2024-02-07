@@ -1,5 +1,5 @@
-inst-aarch64.h
-==============
+.. _`sec:inst-aarch64.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+inst-aarch64.h
+##############
 

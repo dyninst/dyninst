@@ -1,5 +1,5 @@
-mapped_module.h
-===============
+.. _`sec:mapped_module.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+mapped_module.h
+###############
 

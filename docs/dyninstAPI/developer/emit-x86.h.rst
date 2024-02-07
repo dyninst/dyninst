@@ -1,5 +1,5 @@
-emit-x86.h
-==========
+.. _`sec:emit-x86.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+emit-x86.h
+##########
 

@@ -1,5 +1,5 @@
-linux-power.h
-=============
+.. _`sec:linux-power.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+linux-power.h
+#############
 

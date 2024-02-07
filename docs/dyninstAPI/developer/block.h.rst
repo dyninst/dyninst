@@ -1,5 +1,5 @@
-block.h
-=======
+.. _`sec:block.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+block.h
+#######
 

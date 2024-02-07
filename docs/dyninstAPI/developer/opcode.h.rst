@@ -1,5 +1,5 @@
-opcode.h
-========
+.. _`sec:opcode.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+opcode.h
+########
 

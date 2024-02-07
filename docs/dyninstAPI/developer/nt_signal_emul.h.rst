@@ -1,5 +1,5 @@
-nt_signal_emul.h
-================
+.. _`sec:nt_signal_emul.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+nt_signal_emul.h
+################
 

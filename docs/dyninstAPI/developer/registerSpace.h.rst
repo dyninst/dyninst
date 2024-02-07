@@ -1,5 +1,5 @@
-registerSpace.h
-===============
+.. _`sec:registerSpace.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+registerSpace.h
+###############
 

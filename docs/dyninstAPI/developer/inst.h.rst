@@ -1,5 +1,5 @@
-inst.h
-======
+.. _`sec:inst.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+inst.h
+######
 

@@ -1,5 +1,5 @@
-frameChecker.h
-==============
+.. _`sec:frameChecker.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+frameChecker.h
+##############
 

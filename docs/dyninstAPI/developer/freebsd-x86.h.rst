@@ -1,5 +1,5 @@
-freebsd-x86.h
-=============
+.. _`sec:freebsd-x86.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+freebsd-x86.h
+#############
 

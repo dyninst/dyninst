@@ -1,5 +1,5 @@
-codeRange.h
-===========
+.. _`sec:codeRange.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+codeRange.h
+###########
 

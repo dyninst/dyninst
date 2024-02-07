@@ -1,5 +1,5 @@
-emit-aarch64.h
-==============
+.. _`sec:emit-aarch64.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+emit-aarch64.h
+##############
 

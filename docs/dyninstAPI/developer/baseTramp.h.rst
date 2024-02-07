@@ -1,5 +1,5 @@
-baseTramp.h
-===========
+.. _`sec:baseTramp.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+baseTramp.h
+###########
 

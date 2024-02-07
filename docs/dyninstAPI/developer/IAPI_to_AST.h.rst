@@ -1,5 +1,5 @@
-IAPI_to_AST.h
-=============
+.. _`sec:IAPI_to_AST.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+IAPI_to_AST.h
+#############
 

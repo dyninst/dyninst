@@ -1,5 +1,5 @@
-instP.h
-=======
+.. _`sec:instP.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+instP.h
+#######
 

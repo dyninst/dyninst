@@ -1,5 +1,5 @@
-linux-aarch64.h
-===============
+.. _`sec:linux-aarch64.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+linux-aarch64.h
+###############
 

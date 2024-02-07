@@ -1,5 +1,5 @@
-pcrel.h
-=======
+.. _`sec:pcrel.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+pcrel.h
+#######
 

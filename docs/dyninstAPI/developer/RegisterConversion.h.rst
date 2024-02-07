@@ -1,5 +1,5 @@
-RegisterConversion.h
-====================
+.. _`sec:RegisterConversion.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+RegisterConversion.h
+####################
 

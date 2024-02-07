@@ -1,5 +1,5 @@
-emitter.h
-=========
+.. _`sec:emitter.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+emitter.h
+#########
 

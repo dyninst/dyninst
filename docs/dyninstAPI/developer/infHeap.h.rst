@@ -1,5 +1,5 @@
-infHeap.h
-=========
+.. _`sec:infHeap.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+infHeap.h
+#########
 

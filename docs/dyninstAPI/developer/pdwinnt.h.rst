@@ -1,5 +1,5 @@
-pdwinnt.h
-=========
+.. _`sec:pdwinnt.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+pdwinnt.h
+#########
 

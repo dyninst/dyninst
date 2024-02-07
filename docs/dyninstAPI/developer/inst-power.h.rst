@@ -1,5 +1,5 @@
-inst-power.h
-============
+.. _`sec:inst-power.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+inst-power.h
+############
 

@@ -1,5 +1,5 @@
-Patching.h
-==========
+.. _`sec:Patching.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+Patching.h
+##########
 

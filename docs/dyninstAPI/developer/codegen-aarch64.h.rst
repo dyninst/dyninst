@@ -1,5 +1,5 @@
-codegen-aarch64.h
-=================
+.. _`sec:codegen-aarch64.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+codegen-aarch64.h
+#################
 

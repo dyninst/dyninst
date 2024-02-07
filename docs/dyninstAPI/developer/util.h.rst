@@ -1,7 +1,5 @@
-.. _`sec:dyninstapi-util.h.rst`:
+.. _`sec:dyninstAPI:util.h`:
 
 util.h
-======
-
-.. cpp:namespace:: Dyninst::dyninstAPI
+######
 

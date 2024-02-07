@@ -1,5 +1,5 @@
-BPatch_private.h
-================
+.. _`sec:BPatch_private.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+BPatch_private.h
+################
 

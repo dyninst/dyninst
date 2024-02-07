@@ -1,7 +1,5 @@
-.. _`sec:dyninstapi-frame.h.rst`:
+.. _`sec:dyninstAPI:frame.h`:
 
 frame.h
-=======
-
-.. cpp:namespace:: Dyninst::dyninstAPI
+#######
 

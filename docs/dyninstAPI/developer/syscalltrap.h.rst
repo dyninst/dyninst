@@ -1,5 +1,5 @@
-syscalltrap.h
-=============
+.. _`sec:syscalltrap.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+syscalltrap.h
+#############
 

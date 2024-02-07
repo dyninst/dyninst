@@ -1,5 +1,5 @@
-codegen.h
-=========
+.. _`sec:dyninstAPI:codegen.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+codegen.h
+#########
 

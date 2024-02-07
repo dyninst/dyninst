@@ -1,5 +1,5 @@
-BPatch_collections.h
-====================
+.. _`sec:BPatch_collections.h`:
 
-.. cpp:namespace:: Dyninst::dyninstAPI
+BPatch_collections.h
+####################
 
