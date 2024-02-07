@@ -5,13 +5,16 @@ BPatch_sourceBlock.h
 
 .. cpp:class:: BPatch_sourceBlock
    
-  An object of this class represents a source code level block. Each
-  source block objects consists of a source file and a set of source lines
+  **A source code level block**
+
+  Each source block objects consists of a source file and a set of source lines
   in that source file. This class is used to fill source line information
   for each basic block in the control flow graph. For each basic block in
   the control flow graph there is one or more source block object(s) that
   correspond to the source files and their lines contributing to the
   instruction sequence of the basic block.
+  The source code basic blocks are calculated according to the
+  machine code basic blocks.
 
   .. cpp:function:: const char* getSourceFile()
 
