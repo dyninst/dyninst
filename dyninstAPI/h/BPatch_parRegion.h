@@ -59,40 +59,24 @@ class BPATCH_DLL_EXPORT BPatch_parRegion {
   void printDetails();
 
 
-  /** BPatch_basicBlock::getClause    */
-        
   int  getClause(const char * key);
 
-
-  /** BPatch_basicBlock::replaceOMPParameter    */
-        
   int  replaceOMPParameter(const char * key, int value);
 
-
-  /** BPatch_parRegion::getInstructions   */
-  /** return the instructions that belong to the block */
 
   BPatch_Vector<BPatch_instruction *> * getInstructions();
 
   bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>& insns);
 
 
-  /** BPatch_parRegion::size   */
-
   unsigned size() const;
-
-  /** BPatch_parRegion::getStartAddress   */
-  //these always return absolute address
 
   unsigned long getStartAddress() const;
 
-  /** BPatch_basicBlock::getEndAddress    */
-        
   unsigned long  getEndAddress() const;
 
    
  private:
-  /** the instructions within this region */
   BPatch_Vector<BPatch_instruction*> *instructions;
 
 };
