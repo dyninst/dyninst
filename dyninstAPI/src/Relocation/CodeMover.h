@@ -69,60 +69,32 @@ class CodeMover {
   typedef std::set<func_instance *> FuncSet;
   typedef std::set<block_instance *> BlockSet;
 
-  // A generic mover of code; an instruction, a basic block, or
-  // a function. This is the algorithm (fixpoint) counterpart
-  // of the classes described in relocation.h
-  
-  // Input: 
-  //  A structured description of code in terms of an instruction, a
-  //    block, a function, or a set of functions;
-  //  A starting address for the moved code 
-  //
-  // Output: a buffer containing the moved code 
-
-  // We take a CodeTracker as a reference parameter so that we don't 
-  // have to copy it on output; CodeMovers are designed to be discarded
-  // while CodeTrackers survive.
   static Ptr create(CodeTracker *);
   ~CodeMover();
 
   bool addFunctions(FuncSet::const_iterator begin, FuncSet::const_iterator end);
 
-  // Apply the given Transformer to all blocks in the Mover
   bool transform(Transformer &t);
   
-  // Does all the once-only work to generate code.
   bool initialize(const codeGen &genTemplate);
 
-  // Allocates an internal buffer and relocates the code provided
-  // to the constructor. Returns true for success or false for
-  // catastrophic failure.
-  // The codeGen parameter allows specification of various
-  // codeGen-carried information
   bool relocate(Address addr);
 
   bool finalize();
 
-  // Aaand debugging functionality
   void disassemble() const;
 
   void extractDefensivePads(AddressSpace *);
 
-  // Get a map from original addresses to new addresses
-  // for all blocks
   typedef std::map<Address, Address> EntryMap;
   const EntryMap &entryMap() { return entryMap_; }
 
-  // Not const so we can add others to it. 
+
   SpringboardMap &sBoardMap(AddressSpace *as);
-  // Not const so that Transformers can modify it...
   PriorityMap &priorityMap();
 
-  // Get either an estimate (pre-relocation) or actual
-  // size
   unsigned size() const;
 
-  // (void *) to start of code
   void *ptr() const;
 
   std::string format() const;
