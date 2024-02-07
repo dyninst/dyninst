@@ -103,3 +103,14 @@ BPatch_object.h
        function name. If this second search succeeds, functions with mangled
        names matching name are returned instead.
        
+  .. cpp:function:: BpatchSnippetHandle* insertInitCallback(Bpatch_snippet& callback)
+
+    This function inserts the snippet callback at the entry point of this
+    module’s init function (creating a new init function/section if
+    necessary).
+
+  .. cpp:function:: BpatchSnippetHandle* insertFiniCallback(Bpatch_snippet& callback)
+
+    This function inserts the snippet callback at the exit point of this
+    module’s fini function (creating a new fini function/section if
+    necessary).

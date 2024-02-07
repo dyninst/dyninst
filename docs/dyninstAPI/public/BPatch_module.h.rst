@@ -3,89 +3,29 @@
 BPatch_module.h
 ###############
 
-.. cpp:class:: BPatch_module
-   
-  An object of this class represents a program module, which is part of a
-  program’s executable image. A BPatch_module represents a source file in
-  either an executable or a shared library. Dyninst automatically creates
-  a default module in each executable to hold any objects
-  that it cannot match to a source file. BPatch_module objects are
-  obtained by calling the BPatch_image member function getModules.
+.. cpp:class:: BPatch_module: public BPatch_sourceObj
 
-  .. cpp:function:: std::vector<BPatch_function*> *findFunction( \
-       const char *name, \
-       std::vector<BPatch_function*> &funcs, \
-       bool notify_on_failure = true, \
-       bool regex_case_sensitive = true, \
-       bool incUninstrumentable = false)
+  **A program module**
 
-    Return a vector of BPatch_functions matching name, or NULL if the
-    function does not exist. If name contains a POSIX-extended regular
-    expression, a regex search will be performed on function names, and
-    matching BPatch_functions returned. [**NOTE**: The std::vector argument
-    funcs must be declared fully by the user before calling this function.
-    Passing in an uninitialized reference will result in undefined
-    behavior.]
+  A BPatch_module represents a source file in either an executable or a shared library. A
+  default module is created in each executable to hold any objects that it cannot match to
+  a source file.
 
-    If the incUninstrumentable flag is set, the returned table of procedures
-    will include uninstrumentable functions. The default behavior is to omit
-    these functions.
+  .. cpp:function:: char * getName(char *buffer, int length)
 
-    [**NOTE**: If name is not found to match any demangled function names in
-    the module, the search is repeated as if name is a mangled function
-    name. If this second search succeeds, functions with mangled names
-    matching name are returned instead.]
+    Returns file name associated with module
 
-  .. cpp:function:: BPatch_Vector<BPatch_function *> *findFunctionByAddress( \
-       void *addr, \
-       BPatch_Vector<BPatch_function *> &funcs, \
-       bool notify_on_failure = true, \
-       bool incUninstrumentable = false)
+  .. cpp:function:: char * getFullName(char *buffer, int length)
 
-    Return a vector of BPatch_functions that contains addr, or NULL if the
-    function does not exist. [**NOTE**: The std::vector argument funcs must
-    be declared fully by the user before calling this function. Passing in
-    an uninitialized reference will result in undefined behavior.]
+    Returns full path name of module, when available
 
-    If the incUninstrumentable flag is set, the returned table of procedures
-    will include uninstrumentable functions. The default behavior is to omit
-    these functions.
+  .. cpp:function:: const char * libraryName()
 
-  .. cpp:function:: BPatch_function *findFunctionByEntry(Dyninst::Address addr)
+    Returns name if library, if this module is a shared object
 
-    Returns the function that begins at the specified address addr.
+  .. cpp:function:: BPatch_object * getObject()
 
-  .. cpp:function:: BPatch_function *findFunctionByMangled( \
-       const char *mangled_name, \
-       bool incUninstrumentable = false)
-
-    Return a BPatch_function for the mangled function name defined in the
-    module corresponding to the invoking BPatch_module, or NULL if it does
-    not define the function.
-
-    If the incUninstrumentable flag is set, the functions searched will
-    include uninstrumentable functions. The default behavior is to omit
-    these functions.
-
-  .. cpp:function:: bool getAddressRanges( char * fileName, unsigned int lineNo, \
-       std::vector< std::pair< unsigned long, unsigned long > > & ranges )
-
-    Given a filename and line number, fileName and lineNo, this function
-    this function returns the ranges of mutatee addresses that implement the
-    code range in the output parameter ranges. In many cases a source code
-    line will only have one address range implementing it. However, compiler
-    optimizations may turn this into multiple, disjoint address ranges. This
-    information is only available if the mutatee was compiled with debug
-    information.
-
-    This function may be more efficient than the BPatch_process version of
-    this function. Calling BPatch_process::getAddressRange will cause
-    Dyninst to parse line information for all modules in a process. If
-    BPatch_module::getAddressRange is called then only the debug information
-    in this module will be parsed.
-
-    This function returns true if it was able to find any line information,
-    false otherwise.
+    Returns BPatch_object containing this file
 
   .. cpp:function:: size_t getAddressWidth()
 
@@ -93,88 +33,124 @@ BPatch_module.h
     systems this function will return 4, and on 64-bit systems this function
     will return 8.
 
-  .. cpp:function:: void *getBaseAddr()
+  .. cpp:function:: bool getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
 
-    Return the base address of the module. This address is defined as the
-    start of the first function in the module.
+    Fills a vector with the global variables that are specified in this module
 
-  .. cpp:function:: std::vector<BPatch_function *>* getProcedures( bool incUninstrumentable = false )
+  .. cpp:function:: BPatch_variableExpr* findVariable(const char* name)
 
-    Return a vector containing the functions in the module.
+    Find and return a global variable (NULL if not found)
 
-  .. cpp:function:: char *getFullName(char *buffer, int length)
+  .. cpp:function:: BPatch_Vector<BPatch_function*>* getProcedures(bool incUninstrumentable = false)
 
-    Fills buffer with the full path name of a module, up to length
-    characters when this information is available.
+    Returns a vector of all functions in this module
 
-  .. cpp:function:: BPatch_hybridMode getHybridMode()
+  .. cpp:function:: bool getProcedures(BPatch_Vector<BPatch_function*> &procs, bool incUninstrumentable = false)
 
-    Return the mutator’s analysis mode for the mutate; the default mode is
-    the normal mode.
+  .. cpp:function:: BPatch_Vector<BPatch_function*>* findFunction(const char *name, BPatch_Vector<BPatch_function *> &funcs,\
+                                                                  bool notify_on_failure =true, bool regex_case_sensitive =true,\
+                                                                  bool incUninstrumentable =false, bool dont_use_regex = false)
 
-  .. cpp:function:: char *getName(char *buffer, int len)
+    Returns a vector of BPatch_function matching specified <name>
 
-    This function copies the filename of the module into buffer, up to len
-    characters. It returns the value of the buffer parameter.
+    If name contains a POSIX-extended regular expression, a regex search will be performed on function names, and
+    matching BPatch_functions returned. If the incUninstrumentable flag is set, the returned table of procedures
+    will include uninstrumentable functions. The default behavior is to omit these functions.
 
-  .. cpp:function:: unsigned long getSize()
+    .. note::
+    
+      If name is not found to match any demangled function names in the module, the search is repeated as if name is
+      a mangled function name. If this second search succeeds, functions with mangled names matching name are returned
+      instead.
 
-    Return the size of the module. The size is defined as the end of the
-    last function minus the start of the first function.
+  .. cpp:function:: BPatch_function * findFunctionByEntry(Dyninst::Address entry)
 
-  .. cpp:function:: bool getSourceLines( unsigned long addr, std::vector<BPatch_statement> &lines )
+    Returns the function starting at the given address
 
-    This function returns the line information associated with the mutatee
-    address addr. The vector lines contain pairs of filenames and line
-    numbers that are associated with addr. In many cases only one filename
-    and line number is associated with an address, but certain compiler
-    optimizations may lead to multiple filenames and lines at an address.
-    This information is only available if the mutatee was compiled with
-    debug information.
+  .. cpp:function:: BPatch_Vector<BPatch_function*>* findFunctionByAddress(void* addr, BPatch_Vector<BPatch_function*>& funcs,\
+                                                                            bool notify_on_failure = true,\
+                                                                            bool incUninstrumentable = false)
 
-    This function may be more efficient than the BPatch_process version of
-    this function. Calling BPatch_process::getSourceLines will cause Dyninst
-    to parse line information for all modules in a process. If
-    BPatch_module::getSourceLines is called then only the debug information
-    in this module will be parsed.
+    Return a vector of BPatch_functions that contains addr, or NULL if the function does not exist.
 
-    This function returns true if it was able to find any line information
-    at addr, or false otherwise.
+    If the incUninstrumentable flag is set, the returned table of procedures will include uninstrumentable functions.
+    The default behavior is to omit these functions.
 
-  .. cpp:function:: char *getUniqueString(char *buffer, int length)
+  .. cpp:function:: BPatch_typeCollection *getModuleTypes()
 
-    Performs a lookup and returns a unique string for this image. Returns a
-    string the can be compared (via strcmp) to indicate if two images refer
-    to the same underlying object file (i.e., executable or library). The
-    contents of the string are implementation specific and defined to have
-    no semantic meaning.
+    get the module types member (instead of directly accessing)
 
-  .. cpp:function:: bool getVariables(std::vector<BPatch_variableExpr *> &vars)
+  .. cpp:function:: BPatch_function * findFunctionByMangled(const char * mangled_name, bool incUninstrumentable=false)
 
-    Fill the vector vars with the global variables that are specified in
-    this module. Returns false if no results are found and true otherwise.
+    Returns a function, if it exits, that matches the provided mangled name
 
-  .. cpp:function:: BpatchSnippetHandle* insertInitCallback(Bpatch_snippet& callback)
+    If the incUninstrumentable flag is set, the functions searched will include uninstrumentable functions.
+    The default behavior is to omit these functions.
 
-    This function inserts the snippet callback at the entry point of this
-    module’s init function (creating a new init function/section if
-    necessary).
+  .. cpp:function:: bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points)
 
-  .. cpp:function:: BpatchSnippetHandle* insertFiniCallback(Bpatch_snippet& callback)
-
-    This function inserts the snippet callback at the exit point of this
-    module’s fini function (creating a new fini function/section if
-    necessary).
-
-  .. cpp:function:: bool isExploratoryModeOn()
-
-    This function returns true if the mutator’s analysis mode sets to the
-    defensive mode or the exploratory mode.
-
-  .. cpp:function:: bool isMutatee()
-
-    This function returns true if the module is the mutatee.
+    Returns a vector of BPatch_points that correspond with the provided address, one per function that includes an
+    instruction at that address. Will have one element  if there is not overlapping code.
 
   .. cpp:function:: bool isSharedLib()
 
-    This function returns true if the module is part of a shared library.
+    Returns true if this module represents a shared library
+
+  .. cpp:function:: bool getAddressRanges(char* fileName, unsigned int lineNo, std::vector<Dyninst::SymtabAPI::AddressRange>& ranges)
+
+    Returns in ``ranges`` the addresses covering the source code in file ``fileName`` and line number ``lineNo``.
+
+    In many cases a source code line will only have one address range implementing it. However, compiler optimizations may turn
+    this into multiple, disjoint address ranges. This information is only available if the mutatee was compiled with debug information.
+
+    This function may be more efficient than the :cpp:func:`BPatch_process::getAddressRanges` as that version will cause
+    Dyninst to parse line information for all modules in a process.
+
+    Returns ``true`` if any line information was found.
+
+  .. cpp:function:: bool getSourceLines(unsigned long addr, BPatch_Vector<BPatch_statement> &lines)
+
+    Returns in ``lines`` the line information associated with the mutatee address ``addr``.
+
+    In many cases only one filename and line number is associated with an address, but certain compiler optimizations
+    may lead to multiple filenames and lines at an address. This information is only available if the mutatee was compiled
+    with debug information.
+
+    This function may be more efficient than :cpp:func:`BPatch_process::getSourceLines` as that version will cause Dyninst
+    to parse line information for all modules in a process.
+
+    Returns ``true`` any line information was found.
+
+  .. cpp:function:: bool getStatements(BPatch_Vector<BPatch_statement> &statements)
+
+    Fill supplied vector with all BPatch_statements from this module
+
+  .. cpp:function:: void* getBaseAddr()
+
+    Return the base address of the module.
+
+    This address is defined as the start of the first function in the module.
+
+  .. cpp:function:: Dyninst::Address getLoadAddr()
+
+  .. cpp:function:: unsigned long getSize()
+
+    Returns the size of the module defined as the end of the last function minus the start of the first function.
+
+  .. cpp:function:: bool isValid()
+
+  .. cpp:function:: BPatch_hybridMode getHybridMode()
+
+    Return the mutator’s analysis mode for the mutatee.
+
+  .. cpp:function:: void enableDefensiveMode(bool on)
+
+
+
+.. cpp:namespace-push:: Dyninst::SymtabAPI
+
+.. cpp:function:: Module *convert(const BPatch_module *)
+
+.. cpp:namespace-pop::
+ 
+.. cpp:var:: BPatch_builtInTypeCollection * builtInTypes
