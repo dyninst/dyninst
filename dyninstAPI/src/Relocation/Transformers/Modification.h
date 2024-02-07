@@ -49,14 +49,10 @@ namespace Relocation {
 
 class Modification : public Transformer {
   public:
-    // Mimics typedefs in CodeMover.h, but I don't want
-    // to include that file.
     typedef std::list<RelocBlock *> RelocBlockList;
     //typedef std::map<Address, RelocBlockList> RelocBlockMap;
 
-    // Block (IDing a call site) -> func
     typedef Dyninst::PatchAPI::CallModMap CallModMap;
-    // func -> func
     typedef Dyninst::PatchAPI::FuncModMap FuncModMap;
     typedef Dyninst::PatchAPI::FuncWrapMap FuncWrapMap;
 
