@@ -65,10 +65,8 @@ class InsnWidget : public Widget {
   InsnWidget(InstructionAPI::Instruction insn,
              Address addr);
 
-  // Pointer to the instruction we represent
   InstructionAPI::Instruction insn_;
 
-  // Original address of this instruction
   Address addr_;
 
 };
