@@ -50,7 +50,6 @@ class parse_func;
 
 namespace Dyninst {
 
-// ROSE symeval AST types
  namespace DataflowAPI {
  class BottomAST;
  class ConstantAST;
@@ -151,8 +150,6 @@ class PCSensitiveTransformer : public Transformer {
   long thunk_;
   long overApprox_;
 
-  // And for times we don't want the overhead - if non-defensive or
-  // system libraries
   adhocMovementTransformer adhoc;
   typedef std::pair<bool, bool> CacheData;
   typedef std::map<Address, CacheData> CacheEntry;
