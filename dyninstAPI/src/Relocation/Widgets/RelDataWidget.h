@@ -37,8 +37,6 @@ class block_instance;
 
 namespace Dyninst {
 namespace Relocation {
-// Represents generation for a PC-relative
-// memory load/store
 
 class RelDataWidget : public Widget {
  public:
@@ -66,8 +64,6 @@ class RelDataWidget : public Widget {
    InstructionAPI::Instruction insn_;
    Address addr_;
    Address target_;
-   // Read vs. write doesn't matter now but might
-   // in the future.
 };
 
 
