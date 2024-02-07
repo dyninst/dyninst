@@ -47,6 +47,11 @@ if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
   set(DYNINST_OS_UNIX TRUE)
 endif()
 
+# FIXME AMDGPU :
+# CHANGE THIS TO USE TARGET_ARCH
+set(DYNINST_ARCH_amdgpu TRUE)
+
+if (NOT DYNINST_ARCH_amdgpu)
 if(${_host_arch} IN_LIST _64bit_x86_arches)
   set(DYNINST_HOST_ARCH_X86_64 TRUE)
 elseif(${_host_arch} STREQUAL "aarch64")
@@ -55,6 +60,7 @@ elseif(${_host_arch} STREQUAL "ppc64le")
   set(DYNINST_HOST_ARCH_PPC64LE TRUE)
 elseif(${_host_arch} IN_LIST _32bit_x86_arches)
   set(DYNINST_HOST_ARCH_I386 TRUE)
+endif()
 endif()
 
 # --- DEPRECATED ---
