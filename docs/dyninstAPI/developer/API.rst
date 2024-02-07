@@ -32,6 +32,7 @@ DyninstAPI
   BPatch_private.h
   BPatch_process.h
   BPatch_snippet.h
+  BPatch_thread.h
   codegen-aarch64.h
   codegen.h
   codegen-power.h
