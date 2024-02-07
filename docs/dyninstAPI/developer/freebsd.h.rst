@@ -1,4 +1,4 @@
-.. _`sec:freebsd.h`:
+.. _`sec:dyninstAPI:freebsd.h`:
 
 freebsd.h
 #########
