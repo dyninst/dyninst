@@ -46,6 +46,13 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
+#if defined(arch_amdgpu)
+#  include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#endif
+
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 
@@ -79,6 +86,53 @@ std::map<MachRegister,int>* ABI::getIndexMap(){
 	return index;
 }
 
+ABI* ABI::getABI(Architecture arch){
+    if(globalABI_ == NULL){
+        globalABI_ = new ABI();
+        globalABI64_ = new ABI();
+        globalABI_ ->addr_width = 4;
+        globalABI_ -> addr_width = 8;
+        initialize64(arch);
+    }
+    return globalABI64_;
+}
+void ABI::initialize64(Architecture arch){
+    int sz;
+    switch(arch){
+        case Arch_amdgpu_gfx908:{
+            RegisterMap amdgpu_gfx908_map = machRegIndex_amdgpu_gfx908();
+            sz = amdgpu_gfx908_map.size();
+            globalABI_->index = &machRegIndex_amdgpu_gfx908();
+            globalABI64_->index = &machRegIndex_amdgpu_gfx908();
+            break;
+        }
+        case Arch_amdgpu_gfx90a:{
+            RegisterMap amdgpu_gfx90a_map = machRegIndex_amdgpu_gfx90a();
+            sz = amdgpu_gfx90a_map.size();
+            globalABI_->index = &machRegIndex_amdgpu_gfx90a();
+            globalABI64_->index = &machRegIndex_amdgpu_gfx90a();
+            break;
+        }
+        case Arch_amdgpu_gfx940:{
+            RegisterMap amdgpu_gfx940_map = machRegIndex_amdgpu_gfx940();
+            sz = amdgpu_gfx940_map.size();
+            globalABI_->index = &machRegIndex_amdgpu_gfx940();
+            globalABI64_->index = &machRegIndex_amdgpu_gfx940();
+            break;
+        }
+        default:
+        assert(0 && "This call is currently implemented for AMDGPU gfx908,gfx90a and gfx940 only");
+    }
+    returnRegs64_ = getBitArray(sz);
+    returnRead64_ = getBitArray(sz);
+    callParam64_ = getBitArray(sz);
+    callRead64_ = getBitArray(sz);
+    callWritten64_ = callRead64_;
+    syscallRead64_ = &getBitArray(sz)->set();
+    syscallWritten64_ = &getBitArray(sz)->set();
+    allRegs64_ = &getBitArray(sz)->set();
+}
+
 ABI* ABI::getABI(int addr_width){
     if (globalABI_ == NULL){
         globalABI_ = new ABI();
@@ -110,8 +164,11 @@ ABI* ABI::getABI(int addr_width){
 	initialize32();
 #endif
 
+#if defined(arch_amdgpu)
+#else
 #ifdef arch_64bit
 	initialize64();
+#endif
 #endif
     }
     return (addr_width == 4) ? globalABI_ : globalABI64_;

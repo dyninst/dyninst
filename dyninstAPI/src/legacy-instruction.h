@@ -49,7 +49,8 @@ using namespace NS_x86;
 
 #elif defined(arch_aarch64)
 using namespace NS_aarch64;
-
+#elif defined(arch_amdgpu)
+using namespace NS_amdgpu;
 #else
 #error "unknown architecture"
 

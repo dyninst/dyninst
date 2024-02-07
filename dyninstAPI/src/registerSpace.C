@@ -64,6 +64,10 @@
 #elif defined (arch_aarch64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
+#elif defined (arch_amdgpu)
+#include "dyninstAPI/src/inst-amdgpu.h"
+#include "dyninstAPI/src/emit-amdgpu.h"
+
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -750,6 +754,8 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
         break;
+
+#if defined(arch_x86) || defined(arch_x86_64) // framePointer only defined for x86 and x86_64
     case registerSlot::framePointer: {
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
@@ -761,6 +767,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return true;
         break;
     }
+#endif
     default:
         assert(0);
         return false;
@@ -798,6 +805,8 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
             gen.codeEmitter()->emitMoveRegToReg(source, destination, gen);
         return true;
         break;
+
+#if defined(arch_x86) || defined(arch_x86_64) // framePointer only defined for x86 and x86_64
     case registerSlot::framePointer: {
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
@@ -808,6 +817,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         return true;
         break;
     }
+#endif
     default:
         assert(0);
         return false;

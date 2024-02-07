@@ -786,5 +786,40 @@ RegisterMap &machRegIndex_aarch64() {
    return *mrmap;
 }
 
+RegisterMap &machRegIndex_amdgpu_gfx908() {
+    static dyn_tls RegisterMap* mrmap = NULL;
+    if (mrmap == NULL){
+        mrmap = new RegisterMap();
+        *mrmap = {
+#include "amdgpu_gfx908_machRegIndex.h" 
+        };
+    } 
+    return *mrmap;
+}
+
+RegisterMap &machRegIndex_amdgpu_gfx90a() {
+    static dyn_tls RegisterMap* mrmap = NULL;
+    if (mrmap == NULL){
+        mrmap = new RegisterMap();
+        *mrmap = {
+#include "amdgpu_gfx90a_machRegIndex.h" 
+        };
+    } 
+    return *mrmap;
+}
+
+RegisterMap &machRegIndex_amdgpu_gfx940() {
+    static dyn_tls RegisterMap* mrmap = NULL;
+    if (mrmap == NULL){
+        mrmap = new RegisterMap();
+        *mrmap = {
+#include "amdgpu_gfx940_machRegIndex.h" 
+        };
+    } 
+    return *mrmap;
+}
+
+
+
 }
 }
