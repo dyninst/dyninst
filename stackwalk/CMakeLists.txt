@@ -56,6 +56,10 @@ if(DYNINST_OS_UNIX)
     list(APPEND _sources src/linux-ppc-swk.C src/ppc-swk.C)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64-swk.C src/aarch64-swk.C src/dbginfo-stepper.C)
+
+  elseif(DYNINST_ARCH_amdgpu)
+    list(APPEND _sources src/linux-amdgpu-swk.C src/amdgpu-swk.C src/dbginfo-stepper.C)
+
   elseif(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     list(APPEND _sources src/linux-x86-swk.C src/linuxbsd-x86-swk.C src/dbginfo-stepper.C)
     if(DYNINST_OS_FreeBSD)

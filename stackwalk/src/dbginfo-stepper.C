@@ -344,7 +344,7 @@ DebugStepperImpl::~DebugStepperImpl()
 {
 }
 
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || defined(arch_amdgpu)
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                                    Frame &out, DwarfFrameParser::Ptr dinfo,
                                                    bool isVsyscallPage)

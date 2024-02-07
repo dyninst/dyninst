@@ -50,6 +50,7 @@ set(_private_headers
     src/BPatch_memoryAccessAdapter.h
     src/BPatch_private.h
     src/codegen-aarch64.h
+    src/codegen-amdgpu.h
     src/codegen.h
     src/codegen-power.h
     src/codegen-x86.h
@@ -58,6 +59,7 @@ set(_private_headers
     src/dynProcess.h
     src/dynThread.h
     src/emit-aarch64.h
+    src/emit-amdgpu.h
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
@@ -71,12 +73,14 @@ set(_private_headers
     src/image.h
     src/infHeap.h
     src/inst-aarch64.h
+    src/inst-amdgpu.h
     src/inst.h
     src/instPoint.h
     src/inst-power.h
     src/inst-x86.h
     src/LinearVariable.h
     src/linux-aarch64.h
+    src/linux-amdgpu.h
     src/linux.h
     src/linux-power.h
     src/linux-x86.h
@@ -201,7 +205,22 @@ if(cap_stack_mods_found GREATER -1)
     src/StackMod/TMap.C)
 endif()
 
-if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
+# FIXME AMDGPU:
+# USE TARGET_ARCH
+if(DYNINST_ARCH_amdgpu)
+  list(
+    APPEND
+    _sources
+    src/inst-amdgpu.C
+    src/emit-amdgpu.C
+    src/codegen-amdgpu.C
+    src/parse-amdgpu.C
+    src/RegisterConversion-amdgpu.C
+    src/stackwalk-amdgpu.C
+    src/Relocation/Widgets/CFWidget-amdgpu.C
+    src/Relocation/Widgets/PCWidget-amdgpu.C
+    )
+else if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
@@ -238,6 +257,19 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
+elseif(DYNINST_ARCH_amdgpu)
+  list(
+    APPEND
+    _sources
+    src/inst-amdgpu.C
+    src/emit-amdgpu.C
+    src/codegen-amdgpu.C
+    src/parse-amdgpu.C
+    src/RegisterConversion-amdgpu.C
+    src/stackwalk-amdgpu.C
+    src/Relocation/Widgets/CFWidget-amdgpu.C
+    src/Relocation/Widgets/PCWidget-amdgpu.C)
+
 endif()
 
 if(DYNINST_OS_FreeBSD)
@@ -264,6 +296,8 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
+  elseif(DYNINST_ARCH_amdgpu)
+    list(APPEND _sources src/linux-amdgpu.C)
   endif()
 elseif(DYNINST_OS_Windows)
   list(
