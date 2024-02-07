@@ -120,6 +120,14 @@ class Emitter {
 
     virtual bool emitTOCJump(block_instance *, codeGen &) { assert(0); return false; }
     virtual bool emitTOCCall(block_instance *, codeGen &) { assert(0); return false; }
+
+    virtual void emitNops(unsigned numNops, codeGen &gen) {}
+    virtual void emitEndProgram(codeGen &gen) {}
+    virtual void emitMovLiteral(Register reg, uint32_t value, codeGen &gen) {}
+    virtual void emitConditionalBranch(bool onConditionTrue, int16_t wordOffset,
+                                     codeGen &gen) {}
+    virtual void emitShortJump(int16_t wordOffset, codeGen &gen) {}
+    virtual void emitLongJump(Register reg, uint64_t toAddress, codeGen &gen) {}
 };
 
 #endif
