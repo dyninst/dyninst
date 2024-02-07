@@ -11,7 +11,6 @@ Widgets
   ASTWidget.h
   CallbackWidget.h
   CFWidget.h
-  Include.h
   InsnWidget.h
   InstWidget.h
   PCWidget.h
