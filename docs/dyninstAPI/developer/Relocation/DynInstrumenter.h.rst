@@ -3,7 +3,7 @@
 DynInstrumenter.h
 #################
 
-.. cpp:namespace:: Dyninst::Relocation
+.. cpp:namespace:: Dyninst::PatchAPI
 
 .. cpp:class:: DynInstrumenter : public Dyninst::PatchAPI::Instrumenter
 
