@@ -11,7 +11,6 @@ DyninstAPI
   Relocation/API
   StackMod/API
 
-  arch-forward-decl.h
   addressSpace.h
   ast.h
   baseTramp.h
