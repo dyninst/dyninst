@@ -30,11 +30,6 @@
 
 #ifndef DYNPROCESS_H
 #define DYNPROCESS_H
-/*
- * pcProcess.h
- *
- * A class that encapsulates a ProcControlAPI Process for the rest of Dyninst.
- */
 
 #include <assert.h>
 #include <list>
@@ -72,18 +67,8 @@ class DynSymReaderFactory;
 class PCEventMuxer;
 
 class PCProcess : public AddressSpace {
-    // Why PCEventHandler is a friend
-    // 
-    // PCProcess needs two interfaces: one that the rest of Dyninst sees and
-    // one that can be used to update the state of the PCProcess during event
-    // handling.
-    //
-    // The argument for having two different interfaces is that it will keep
-    // process control internals from bleeding out into the rest of Dyninst.
-    // This allows changes to the internals to have relatively low impact on the
-    // rest of Dyninst
     friend class PCEventHandler;
-	friend class PCEventMuxer; // Needed for some state queries that are protected
+	friend class PCEventMuxer;
 	friend class HybridAnalysis;
 
 public:
@@ -93,7 +78,6 @@ public:
         ps_running,
     } processState_t;
 
-    // Process creation and control
     static PCProcess *createProcess(const std::string file, std::vector<std::string> &argv,
                                     BPatch_hybridMode analysisMode,
                                     std::vector<std::string> &envp,
@@ -112,19 +96,17 @@ public:
     bool terminateProcess();
     bool detachProcess(bool cont);
 
-    // Process status
-    bool isBootstrapped() const; // true if Dyninst has finished it's initialization for the process
-    bool isAttached() const; // true if ok to operate on the process
-    bool isStopped() const; // true if the process is stopped
-    bool isForcedTerminating() const { return forcedTerminating_; } // true if we're in the middle of a forced termination
-    bool isTerminated() const; // true if the process is terminated ( either via normal exit or crash )
-    bool hasExitedNormally() const; // true if the process has exited (via a normal exit)
-    bool isExecing() const; // true if the process is in the middle of an exec
+    bool isBootstrapped() const;
+    bool isAttached() const;
+    bool isStopped() const;
+    bool isForcedTerminating() const { return forcedTerminating_; }
+    bool isTerminated() const;
+    bool hasExitedNormally() const;
+    bool isExecing() const;
     processState_t getDesiredProcessState() const;
     void setDesiredProcessState(processState_t ps);
 
-    // Memory access
-    bool dumpCore(std::string coreFile); // platform-specific
+    bool dumpCore(std::string coreFile);
     bool writeDataSpace(void *inTracedProcess,
                         u_int amount, const void *inSelf);
     bool writeDataWord(void *inTracedProcess,
@@ -150,7 +132,6 @@ public:
 
 public:
 
-    // Process properties and fields
     PCThread *getInitialThread() const;
     PCThread *getThread(dynthread_t tid) const;
     void getThreads(std::vector<PCThread* > &threads) const;
@@ -165,26 +146,22 @@ public:
     PCEventHandler *getPCEventHandler() const;
     int incrementThreadIndex();
 
-    // Stackwalking
     bool walkStacks(std::vector<std::vector<Frame> > &stackWalks);
     bool getAllActiveFrames(std::vector<Frame> &activeFrames);
 
-    // Inferior Malloc
     Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
                            Address near_=0, bool *err=NULL);
     void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
-                                   inferiorHeapType /* type */); // platform-specific
+                                   inferiorHeapType /* type */);
     virtual void inferiorFree(Dyninst::Address);
     virtual bool inferiorRealloc(Dyninst::Address, unsigned int);
 
-    // Instrumentation support
     bool mappedObjIsDeleted(mapped_object *obj);
     void installInstrRequests(const std::vector<instMapping*> &requests);
-    Address getTOCoffsetInfo(Address dest); // platform-specific
-    Address getTOCoffsetInfo(func_instance *func); // platform-specific
-    bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific
+    Address getTOCoffsetInfo(Address dest);
+    Address getTOCoffsetInfo(func_instance *func);
+    bool getOPDFunctionAddr(Address &opdAddr);
 
-    // iRPC interface
     bool postIRPC(AstNodePtr action,
                  void *userData,
                  bool runProcessWhenDone,
@@ -220,9 +197,6 @@ private:
                                
 
 public:
-    /////////////////////////////////////////////
-    // Begin Exploratory and Defensive mode stuff
-    /////////////////////////////////////////////
     BPatch_hybridMode getHybridMode();
 
 // TODO FIXME
@@ -231,26 +205,23 @@ public:
     bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
-    // code overwrites
     bool getOverwrittenBlocks
-      ( std::map<Address, unsigned char *>& overwrittenPages,//input
-        std::list<std::pair<Address,Address> >& overwrittenRegions,//output
-        std::list<block_instance *> &writtenBBIs);//output
+      ( std::map<Address, unsigned char *>& overwrittenPages,
+        std::list<std::pair<Address,Address> >& overwrittenRegions,
+        std::list<block_instance *> &writtenBBIs);
 
-    // synch modified mapped objects with current memory contents
     mapped_object *createObjectNoFile(Address addr);
     void updateCodeBytes( const std::list<std::pair<Address, Address> > &owRegions);
 
     bool isRuntimeHeapAddr(Address addr) const;
     bool isExploratoryModeOn() const;
 
-    bool hideDebugger(); // platform-specific
+    bool hideDebugger();
     void flushAddressCache_RT(Address start = 0, unsigned size = 0);
     void flushAddressCache_RT(codeRange *range) { 
         flushAddressCache_RT(range->get_address(), range->get_size());
     }
 
-    // Active instrumentation tracking
     typedef std::pair<Address, Address> AddrPair;
     typedef std::set<AddrPair> AddrPairSet;
     typedef std::set<Address> AddrSet;
@@ -268,33 +239,24 @@ public:
     bool patchPostCallArea(instPoint *point);
     func_instance *findActiveFuncByAddr(Address addr);
 
-    /////////////////////////////////////////////
-    // End Exploratory and Defensive mode stuff
-    /////////////////////////////////////////////
-
-    // No function is pushed onto return vector if address can't be resolved
-    // to a function
     std::vector<func_instance *> pcsToFuncs(std::vector<Frame> stackWalk);
 
-    // architecture-specific
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, 
 			   func_instance *&target_pdf, Address base_addr);
 
-    // AddressSpace implementations //
+
     virtual Address offset() const;
     virtual Address length() const;
     virtual Architecture getArch() const;
-    virtual bool multithread_capable(bool ignoreIfMtNotSet = false); // platform-specific
+    virtual bool multithread_capable(bool ignoreIfMtNotSet = false);
     virtual bool multithread_ready(bool ignoreIfMtNotSet = false);
     virtual bool needsPIC();
     virtual void addTrap(Address from, Address to, codeGen &gen);
     virtual void removeTrap(Address from);
 
-    // Miscellaneuous
     void debugSuicide();
     bool dumpImage(std::string outFile);
 
-    // Stackwalking internals
     bool walkStack(std::vector<Frame> &stackWalk, PCThread *thread);
     bool getActiveFrame(Frame &frame, PCThread *thread);
 
@@ -312,7 +274,7 @@ protected:
         bs_attached,
         bs_readyToLoadRTLib,
         bs_loadedRTLib,
-        bs_initialized // RT library has been loaded
+        bs_initialized
     } bootstrapState_t;
     
     typedef enum {
@@ -323,7 +285,6 @@ protected:
 
     static PCProcess *setupExecedProcess(PCProcess *proc, std::string execPath);
 
-    // Process create/exec constructor
     PCProcess(ProcControlAPI::Process::ptr pcProc, std::string file,
             BPatch_hybridMode analysisMode)
         : pcProc_(pcProc),
@@ -366,7 +327,6 @@ protected:
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
 
-    // Process attach constructor
     PCProcess(ProcControlAPI::Process::ptr pcProc, BPatch_hybridMode analysisMode)
         : pcProc_(pcProc),
           parent_(NULL),
@@ -409,7 +369,6 @@ protected:
 
     static PCProcess *setupForkedProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc);
 
-    // Process fork constructor
     PCProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc)
         : pcProc_(pcProc),
           parent_(parent),
@@ -450,12 +409,11 @@ protected:
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
 
-    // bootstrapping
     bool bootstrapProcess();
     bool hasReachedBootstrapState(bootstrapState_t state) const;
     void setBootstrapState(bootstrapState_t newState);
     bool createStackwalker();
-    bool createStackwalkerSteppers(); // platform-specific
+    bool createStackwalkerSteppers();
     void createInitialThreads();
     bool createInitialMappedObjects();
     bool getExecFileDescriptor(std::string filename,
@@ -464,18 +422,17 @@ protected:
     void findSignalHandler(mapped_object *obj);
     void setMainFunction();
     bool setAOut(fileDescriptor &desc);
-    bool hasPassedMain(); // OS-specific
+    bool hasPassedMain();
     bool insertBreakpointAtMain();
     ProcControlAPI::Breakpoint::ptr getBreakpointAtMain() const;
     bool removeBreakpointAtMain();
-    Address getLibcStartMainParam(PCThread *thread); // architecture-specific
+    Address getLibcStartMainParam(PCThread *thread);
     bool copyDanglingMemory(PCProcess *parent);
     void invalidateMTCache();
 
-    // RT library management
     bool loadRTLib();
 
-    AstNodePtr createUnprotectStackAST(); // architecture-specific
+    AstNodePtr createUnprotectStackAST();
     bool setRTLibInitParams();
     bool instrumentMTFuncs();
     bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);
@@ -489,39 +446,29 @@ protected:
     Address getRTEventArg3Addr();
     Address getRTTrapFuncAddr();
 
-    // Shared library managment
     void addASharedObject(mapped_object *newObj);
     void removeASharedObject(mapped_object *oldObj);
 
-    // Inferior heap management
     void addInferiorHeap(mapped_object *obj);
     bool skipHeap(const heapDescriptor &heap); // platform-specific
     bool inferiorMallocDynamic(int size, Address lo, Address hi);
 
-    // platform-specific
     inferiorHeapType getDynamicHeapType() const; 
     
-    // Hybrid Mode
     bool triggerStopThread(Address pointAddress, int callbackID, void *calculation);
     Address stopThreadCtrlTransfer(instPoint *intPoint, Address target);
     bool generateRequiredPatches(instPoint *callPt, AddrPairSet &);
     void generatePatchBranches(AddrPairSet &);
 
-    // Event Handling
     void triggerNormalExit(int exitcode);
 
-    // Misc
-
-    // platform-specific, populates the passed map, if the file descriptors differ
     static void redirectFds(int stdin_fd, int stdout_fd, int stderr_fd, 
             std::map<int, int> &result);
 
-    // platform-specific, sets LD_PRELOAD with RT library 
     static bool setEnvPreload(std::vector<std::string> &envp, std::string fileName);
 
     bool isInDebugSuicide() const;
 
-    // Event handling support
     void setReportingEvent(bool b);
     bool hasReportedEvent() const;
     void setExecing(bool b);
@@ -535,33 +482,23 @@ protected:
     void removeSyncRPCThread(Dyninst::ProcControlAPI::Thread::ptr thr);
     bool continueSyncRPCThreads();
 
-    // ProcControl doesn't keep around a process's information after it exits.
-    // However, we allow a Dyninst user to query certain information out of
-    // an exited process. Just make sure no operations are attempted on the
-    // ProcControl process
     void markExited();
 
-    // Debugging
     bool setBreakpoint(Address addr);
     void writeDebugDataSpace(void *inTracedProcess, u_int amount,
             const void *inSelf);
     bool launchDebugger();
-    bool startDebugger(); // platform-specific
+    bool startDebugger();
     static void initSymtabReader();
 
-    // Fields //
-
-    // Underlying ProcControl process
     ProcControlAPI::Process::ptr pcProc_;
     PCProcess *parent_;
 
-    // Corresponding threads
     std::map<dynthread_t, PCThread *> threadsByTid_;
     PCThread *initialThread_;
 
     ProcControlAPI::Breakpoint::ptr mainBrkPt_;
 
-    // Properties
     std::string file_;
     bool attached_;
     bool execing_;
@@ -573,21 +510,17 @@ protected:
     bootstrapState_t bootstrapState_;
     func_instance *main_function_;
     int curThreadIndex_;
-    // true when Dyninst has reported an event to ProcControlAPI for this process
-    bool reportedEvent_; // indicates the process should remain stopped
-    int savedPid_; // ProcControl doesn't keep around Process objects after exit
+    bool reportedEvent_;
+    int savedPid_;
     Dyninst::Architecture savedArch_;
 
-    // Hybrid Analysis
     BPatch_hybridMode analysisMode_;
 
-    // Active instrumentation tracking
     codeRangeTree signalHandlerLocations_;
     std::vector<mapped_object *> deletedObjects_;
     std::vector<heapItem *> dyninstRT_heaps_;
     Address RT_address_cache_addr_;
 
-    // Addresses of variables in RT library
     Address sync_event_id_addr_;
     Address sync_event_arg1_addr_;
     Address sync_event_arg2_addr_;
@@ -598,7 +531,6 @@ protected:
     Address thread_hash_indices;
     int thread_hash_size;
 
-    // The same PCEventHandler held by the BPatch layer
     PCEventHandler *eventHandler_;
     //Mutex<> eventCountLock_;
     int eventCount_;
@@ -607,9 +539,8 @@ protected:
 
     mt_cache_result_t mt_cache_result_;
 
-    bool isInDebugSuicide_; // Single stepping is only valid in this context
+    bool isInDebugSuicide_;
 
-    // Misc.
     baseTramp *irpcTramp_;
     bool inEventHandling_;
 	std::set<Dyninst::ProcControlAPI::Thread::ptr> syncRPCThreads_;
@@ -643,7 +574,7 @@ public:
     Address rpcStartAddr;
     Address rpcCompletionAddr;
 
-    Register resultRegister; // register that contains the return value
+    Register resultRegister;
     void *returnValue;
 
     bool runProcWhenDone;
@@ -651,7 +582,7 @@ public:
     bool deliverCallbacks;
     void *userData;
 	Dyninst::ProcControlAPI::Thread::ptr thread;
-    bool synchronous; // caller is responsible for cleaning up this object
+    bool synchronous;
     bool memoryAllocated;
 };
 
