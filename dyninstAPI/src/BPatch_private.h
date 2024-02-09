@@ -39,17 +39,13 @@ class BPatch_snippet;
 #include <vector>
 #include "BPatch_snippet.h"
 
-// TODO: this is bpatch-specific, move to BPatch_private.h?
 struct batchInsertionRecord {
-    // Thread-specific instru
     BPatch_thread *thread_;
-    // For delayed insertion; vector because there is a vector-insert technique
     std::vector<BPatch_point *> points_;
-    // This has to be vectorized to handle the multiple-point insertion + edges.
     std::vector<callWhen> when_;
     callOrder order_;
-    BPatch_snippet snip; // Make a copy so that the user doesn't have to.
-    BPatchSnippetHandle *handle_; // handle to fill in
+    BPatch_snippet snip;
+    BPatchSnippetHandle *handle_;
 
     bool trampRecursive_;
 };
