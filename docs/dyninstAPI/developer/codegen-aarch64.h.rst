@@ -3,6 +3,7 @@
 codegen-aarch64.h
 #################
 
+.. cpp:namespace:: dev::power
 
 .. cpp:class:: insnCodeGen
 
