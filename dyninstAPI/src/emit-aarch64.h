@@ -47,8 +47,6 @@ class registerSpace;
 
 class baseTramp;
 
-// class for encapsulating
-// platform dependent code generation functions
 class EmitterAARCH64 : public Emitter {
 
 public:
@@ -87,7 +85,6 @@ public:
 
     virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
 
-    // These implicitly use the stored original/non-inst value
     virtual void emitLoadOrigFrameRelative(Register, Address, codeGen &) { assert(0); }
 
     virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool);
@@ -116,7 +113,6 @@ public:
 
     virtual Address emitMovePCToReg(Register, codeGen &gen);
 
-    // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const std::vector <AstNodePtr> &,
                               bool, func_instance *);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
@@ -135,7 +131,6 @@ public:
 
     virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
 
-    // Built-in offset...
     virtual void emitRestoreFlagsFromStackSlot(codeGen &) { assert(0); }
 
     virtual bool emitBTSaves(baseTramp *, codeGen &) {
