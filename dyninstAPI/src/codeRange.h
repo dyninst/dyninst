@@ -34,22 +34,11 @@
 #ifndef _codeRangeTree_h_
 #define _codeRangeTree_h_
 
-/*******************************************************/
-/*		header files 			       */
-/*******************************************************/
-
 #include <assert.h>
 #include <stdlib.h>
 #include <vector>
 #include "dyntypes.h"
 #include "dyninstAPI/src/patch.h"
-
-/** template class for codeRangeTree. The implementation is based on red black
-  * tree implementation for efficiency concerns and for getting sorted
-  * elements easier.
-  * There are two template types, K (key) and V (value).
-  */
-
 
 class func_instance;
 class block_instance;
@@ -65,27 +54,15 @@ class parse_block;
 
 class codeRange : public patchTarget {
   public:
-    //These are now inherited from relocTarget
     //virtual Dyninst::Address get_address() const = 0;
     //virtual unsigned get_size() const = 0;
 
     virtual void *getPtrToInstruction(Dyninst::Address) const { assert(0); return NULL; }
 
-    // This returns a local pointer to the "beginning" of the
-    // code range - as opposed to get_address, which returns
-    // the "remote" address.
     virtual void *get_local_ptr() const { 
         assert(0); return NULL; }
 
 
-    // returns NULL if not of type
-    // so some people who don't like dynamic_cast don't have to be troubled
-    // by it's use
-    
-    // This is actually a fake; we don't have func_instances as
-    // code ranges. However, there are many times we want to know
-    // if we're in a function, and this suffices. We actually do a
-    // basic block lookup, then transform that into a function.
     func_instance *is_function();
     block_instance *is_basicBlock();
     block_instance *is_basicBlockInstance();
@@ -97,7 +74,6 @@ class codeRange : public patchTarget {
     signal_handler_location *is_signal_handler_location();
     inferiorRPCinProgress *is_inferior_rpc();
 
-    //Prints codeRange info to stderr.  
     void print_range(Dyninst::Address addr = 0);
 
     codeRange() = default;
