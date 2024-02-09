@@ -43,7 +43,6 @@ DyninstAPI
   codegen-power.h
   codegen-x86.h
   codeRange.h
-  debug.h
   dyninst.h
   dynProcess.h
   dynThread.h
