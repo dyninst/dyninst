@@ -91,66 +91,132 @@ bool IA_x86::isFrameSetupInsn(Instruction i) const
     return false;
 }
 
-class nopVisitor : public InstructionAPI::Visitor
-{
-    public:
-        nopVisitor() : foundReg(false), foundImm(false), foundBin(false), isNop(true) {}
-        virtual ~nopVisitor() {}
+class leaVisitor : public Visitor {
+public:
+  Immediate *imm{};
+  BinaryFunction *bf{};
 
-        bool foundReg;
-        bool foundImm;
-        bool foundBin;
-        bool isNop;
-
-        virtual void visit(BinaryFunction*)
-        {
-            if (foundBin) isNop = false;
-            if (!foundImm) isNop = false;
-            if (!foundReg) isNop = false;
-            foundBin = true;
-        }
-        virtual void visit(Immediate *imm)
-        {
-            if (imm != 0) isNop = false;
-            foundImm = true;
-        }
-        virtual void visit(RegisterAST *)
-        {
-            foundReg = true;
-        }
-        virtual void visit(Dereference *)
-        {
-            isNop = false;
-        }
+  void visit(BinaryFunction *bf_) override {
+    bf = bf_;
+  }
+  void visit(Immediate *imm_) override {
+    imm = imm_;
+  }
+  void visit(RegisterAST *) override {
+    // Don't care about registers
+  }
+  void visit(Dereference *) override {
+    // Can't have a deref in a lea calculation
+  }
 };
 
-bool isNopInsn(Instruction insn)
-{
-    // TODO: add LEA no-ops
-    if(insn.getOperation().getID() == e_nop)
-        return true;
-    if(insn.getOperation().getID() == e_lea)
-    {
-        std::set<Expression::Ptr> memReadAddr;
-        insn.getMemoryReadOperands(memReadAddr);
-        std::set<RegisterAST::Ptr> writtenRegs;
-        insn.getWriteSet(writtenRegs);
+bool isNopInsn(Instruction insn) {
+  if (insn.getOperation().getID() == e_nop)
+    return true;
 
-        if(memReadAddr.size() == 1 && writtenRegs.size() == 1)
-        {
-            if(**(memReadAddr.begin()) == **(writtenRegs.begin()))
-            {
-                return true;
-            }
-        }
-        // Check for zero displacement
-        nopVisitor visitor;
+  if (insn.getOperation().getID() == e_lea) {
+    // Get all registers read or written
+    std::set<RegisterAST::Ptr> readRegs;
+    insn.getReadSet(readRegs);
+    std::set<RegisterAST::Ptr> writtenRegs;
+    insn.getWriteSet(writtenRegs);
 
-	// We need to get the src operand
-        insn.getOperand(1).getValue()->apply(&visitor);
-        if (visitor.isNop) return true; 
+    // If more than one register is read or written, it can't be a nop
+    if(readRegs.size() != 1 || writtenRegs.size() != 1) {
+      return false;
     }
-    return false;
+
+    auto src_reg_ast = **(readRegs.begin());
+    auto dest_reg_ast = **(writtenRegs.begin());
+
+    // If source and destination are different, it's not a nop
+    if(!(src_reg_ast == dest_reg_ast)) {
+      return false;
+    }
+
+    auto is_index_identity = [](Immediate *imm) {
+      auto const index = imm->eval().convert<int64_t>();
+      if(index == 1LL) {
+        // gas doesn't allow 'index' to be negative or zero, but
+        // this requirement doesn't appear to be in the Intel SDM.
+        return true;
+      }
+      return false;
+    };
+
+    auto is_scale_identity = [](Immediate *imm) {
+      if(!imm) {
+        // Something went wrong
+        return false;
+      }
+      auto const scale = imm->eval().convert<int64_t>();
+      if(scale != 0LL) {
+        // Scale can be positive or negative
+        // [base*index+0x0] is a legal addressing form
+        return false;
+      }
+      return true;
+    };
+
+    auto is_nop_baseindex = [&is_index_identity](BinaryFunction *bf) {
+      // The AST could be [base*index] or [index*base], so check both
+      std::vector<Expression::Ptr> children;
+      bf->getChildren(children);
+
+      for(auto child : children) {
+        leaVisitor index;
+        child->apply(&index);
+        if(index.imm && is_index_identity(index.imm)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    auto is_nop_scale = [&is_scale_identity](BinaryFunction *bf) {
+      // The AST could be [bi+scale] or [scale+bi], so check both
+      std::vector<Expression::Ptr> children;
+      bf->getChildren(children);
+
+      for(auto child : children) {
+        leaVisitor scale;
+        child->apply(&scale);
+        if(scale.imm && is_scale_identity(scale.imm)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // The addressing form has the structure base*index+scale
+    leaVisitor whole_form;
+    insn.getOperand(1).getValue()->apply(&whole_form);
+
+    if(!whole_form.bf) {
+      // No index, no scale. Instruction is 'lea reg, [reg]'.
+      return true;
+    }
+
+    if(whole_form.bf->isMultiply()) {
+      // Form is definitely [base*index], check the index
+      if(!is_nop_baseindex(whole_form.bf)) {
+        // Instruction is 'lea reg, [reg * N]', N != 1
+        return false;
+      }
+    }
+
+    // Form is definitely [base*index+scale]
+    // Arbitrarily check the scale first
+    if(!is_nop_scale(whole_form.bf)) {
+      // Instruction is 'lea reg, [reg * N + M]', M != 0
+      return false;
+    }
+
+    // Form is definitely base*index+0x0, check the index
+    return is_nop_baseindex(whole_form.bf);
+  }
+
+  return false;
 }
 
 bool IA_x86::isNop() const
