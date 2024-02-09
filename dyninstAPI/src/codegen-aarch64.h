@@ -70,7 +70,6 @@ public:
         Offset
     };
 
-    // All of these write into a buffer
     static void generateTrap(codeGen &gen);
 
     static void generateIllegal(codeGen &gen);
@@ -93,17 +92,13 @@ public:
                                    Dyninst::Address to,
                                    bool isCall);
 
-    // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
                                       Dyninst::Address from,
                                       Dyninst::Address to,
                                       bool isCall);
 
-    // Generate conditional branch
     static void generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s);
 
-    // LDR/STR (immediate)
-    // immd in the range -256 to 255
     static void generateMemAccess(codeGen &gen, LoadStore accType, Dyninst::Register r1,
             Dyninst::Register r2, int immd, unsigned size, IndexMode im=Post);
 
@@ -125,7 +120,6 @@ public:
 
     static void restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im=Offset);
 
-    /** TODO **/
     static void generateLoadReg(codeGen &gen, Dyninst::Register rt,
                                 Dyninst::Register ra, Dyninst::Register rb);
 
@@ -169,8 +163,6 @@ public:
                             Dyninst::Address newAddr,
                             Dyninst::Register newLoadReg,
                             Dyninst::Register newStoreReg);
-
-    /** *** **/
 
     static void generateAddSubShifted(
             codeGen &gen, ArithOp op, int shift, int imm6, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
