@@ -33,3 +33,4 @@ SymtabAPI
   Symbol.h
   SymtabReader.h
   Type-mem.h
+  Variable.h

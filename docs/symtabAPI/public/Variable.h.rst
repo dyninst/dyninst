@@ -1,134 +1,57 @@
+.. _`sec:Variable.h`:
+
 Variable.h
-==========
+##########
 
 .. cpp:namespace:: Dyninst::SymtabAPI
 
-Class Variable
---------------
+.. cpp:class:: Variable : public Aggregate, public AnnotatableSparse
 
-The ``Variable`` class represents a collection of symbols that have the
-same address and represent data.
+  **A collection of symbols that have the same address and represent data**
 
-.. list-table:: Variable Class
-   :widths: 30  35 35
-   :header-rows: 1
 
-   * - Method name
-     - Return type
-     - Method description
-   * - getOffset
-     - Offset
-     - Offset associated with this variable.
-   * - getSize
-     - unsigned
-     - Size of this variable encoded in the symbol table.
-   * - mangled_names_begin
-     - Aggregate::name_iter
-     - Beginning of a range of unique names of symbols pointing to this variable.
-   * - mangled_names_end
-     - Aggregate::name_iter
-     - End of a range of unique names of symbols pointing to this variable.
-   * - getType
-     - Type *
-     - Type of this variable, if known.
-   * - getModule
-     - const Module *
-     - Module this variable belongs to.
-   * - getRegion
-     - Region *
-     - Region that contains this variable.
+  .. cpp:function:: Variable()
+  .. cpp:function:: boost::shared_ptr<Type> getType(Type::do_share_t)
 
-.. code-block:: cpp
+      Returns the type of this variable.
 
-    bool getSymbols(vector<Symbol *> &syms) const
+  .. cpp:function:: Type* getType()
 
-This method returns the vector of ``Symbol``\ s that refer to the
-variable.
+      Returns the type of this variable.
 
-.. code-block:: cpp
+  .. cpp:function:: std::ostream &operator<<(std::ostream &os, Variable const& v)
 
-    bool setModule (Module *module)
+      Writes a string representation of ``v`` into the stream ``os``.
 
-This method changes the module to which the variable belongs. Returns
-``true`` if it succeeds.
 
-.. code-block:: cpp
-   
-    bool setSize (unsigned size)
+.. cpp:class:: localVar : public AnnotatableSparse
 
-This method changes the size of the variable to ``size``. Returns
-``true`` if it succeeds.
+  **A local variable or parameter of a function**
 
-.. code-block:: cpp
+  .. cpp:function:: localVar()
+  .. cpp:function:: std::string &getName()
 
-    bool setOffset (Offset offset)
+      Returns the name of the local variable or parameter.
 
-The method changes the offset of the variable. Returns ``true`` if it
-succeeds.
+  .. cpp:function:: boost::shared_ptr<Type> getType(Type::do_share_t)
 
-.. code-block:: cpp
+      Returns the type of this variable.
 
-    bool addMangledName(string name, bool isPrimary)
+  .. cpp:function:: Type* getType()
 
-This method adds a mangled name ``name`` to the variable. If
-``isPrimary`` is ``true`` then it becomes the default name for the
-variable. This method returns ``true`` on success and ``false`` on
-failure.
+      Returns the type of this variable.
 
-.. code-block:: cpp
+  .. cpp:function:: int  getLineNum()
 
-    bool addPrettyName(string name, bool isPrimary)
+      Returns the line number where the variable was declared, if known.
 
-This method adds a pretty name ``name`` to the variable. If
-``isPrimary`` is ``true`` then it becomes the default name for the
-variable. This method returns ``true`` on success and ``false`` on
-failure.
+  .. cpp:function:: std::string &getFileName()
 
-.. code-block:: cpp
+      Returns the file where the variable was declared, if known.
 
-    bool addTypedName(string name, bool isPrimary)
+  .. cpp:function:: std::vector<VariableLocation> &getLocationLists()
 
-This method adds a typed name ``name`` to the variable. If ``isPrimary``
-is ``true`` then it becomes the default name for the variable. This
-method returns ``true`` on success and ``false`` on failure.
+      Returns the locations where this variable is referenced.
 
-.. code-block:: cpp
-
-    bool setType(Type *type)
-
-Sets the type of the variable to ``type``.
-
-Class localVar
---------------
-
-This represents a local variable or parameter of a function.
-
-.. list-table:: Class localVar
-   :widths: 30  35 35
-   :header-rows: 1
-
-   * - Method name
-     - Return type
-     - Method description
-   * - getName
-     - string &
-     - Name of the local variable or parameter.
-   * - getType
-     - Type *
-     - Type associated with the variable.
-   * - getFileName
-     - string &
-     - File where the variable was declared, if known.
-   * - getLineNum
-     - int
-     - Line number where the variable was declared, if known.
-
-.. code-block:: cpp
-
-    vector<VariableLocation> &getLocationLists()
-
-A local variable can be in scope at different positions and based on
-that it is accessible in different ways. Location lists provide a way to
-encode that information. The method retrieves the location list,
-specified in terms of ``VariableLocation`` structures (section
-`6.13 <#VariableLocation>`__) where the variable is in scope.
+      A local variable can be in scope at different positions and based on that it is accessible
+      in different ways. Location lists provide a way to encode that information.

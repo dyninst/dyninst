@@ -59,7 +59,7 @@ class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
    
  public:
    Variable();
-    /* Symbol management */
+
     bool removeSymbol(Symbol *sym);      
 
    void setType(boost::shared_ptr<Type> type);
@@ -91,9 +91,7 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
 	int lineNum_;
         FunctionBase *func_;
 	std::vector<VariableLocation> locs_;
-        // We start with an abstract location that may include "the frame
-        // pointer" as a register. Once a user requests the location list
-        // we concretize it and set this flag.
+
         bool locsExpanded_;
         
 	// scope_t scope;
@@ -104,7 +102,7 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
 	public:
 	localVar() :
         type_(NULL), lineNum_(-1), func_(NULL), locsExpanded_(false) {}
-	//  Internal use only
+
 	localVar(std::string name,  boost::shared_ptr<Type> typ, std::string fileName, 
             int lineNum, FunctionBase *f, 
             std::vector<VariableLocation> *locs = NULL);
@@ -112,14 +110,14 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
             std::vector<VariableLocation> *ls = NULL)
       : localVar(n, t->reshare(), fn, l, f, ls) {}
             
-	// Copy constructor
 	localVar(localVar &lvar);
+
 	bool addLocation(const VariableLocation &location);
 	~localVar();
 	void fixupUnknown(Module *);
 
 	public:
-	//  end of functions for internal use only
+
 	std::string &getName();
 	boost::shared_ptr<Type> getType(Type::do_share_t);
     Type* getType() { return getType(Type::share).get(); }
