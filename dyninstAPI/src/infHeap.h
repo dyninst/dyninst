@@ -43,11 +43,11 @@
 #include "util.h"
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
-// Bit pattern...
+
 typedef enum { textHeap=0x01,
                dataHeap=0x02,
-               uncopiedHeap=0x04, // not copied on fork
-               anyHeap=0x7, // OR of the previous three
+               uncopiedHeap=0x04,
+               anyHeap=0x7,
                lowmemHeap=0x1000 }
         inferiorHeapType;
 typedef std::vector<Dyninst::Address> addrVecType;
@@ -91,18 +91,13 @@ class heapItem {
   Dyninst::Address addr;
   unsigned length;
   inferiorHeapType type;
-  bool dynamic; // part of a dynamically allocated segment?
+  bool dynamic;
   heapStatus status;
 
-
-  // For local...
   void *buffer;
 };
 
 
-// disabledItem: an item on the heap that we are trying to free.
-// "pointsToCheck" corresponds to predecessor code blocks
-// (i.e. prior minitramp/basetramp code)
 class disabledItem {
  public:
   disabledItem() noexcept : block() {}
@@ -122,8 +117,8 @@ class disabledItem {
 
  ~disabledItem() {}
   
-  heapItem block;                    // inferior heap block
-  std::vector<addrVecType> pointsToCheck; // list of addresses to check against PCs
+  heapItem block;
+  std::vector<addrVecType> pointsToCheck;
 
   Dyninst::Address getPointer() const {return block.addr;}
   inferiorHeapType getHeapType() const {return block.type;}
@@ -131,11 +126,6 @@ class disabledItem {
   std::vector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
 };
 
-/* Dyninst heap class */
-/*
-  This needs a better name. Contains a name, and address, and a size.
-  Any ideas?
-*/
 class heapDescriptor {
  public:
   heapDescriptor(const std::string name,
@@ -164,17 +154,15 @@ class inferiorHeap {
   inferiorHeap() {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
-  inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
-                                          // of src (used on fork)
+  inferiorHeap(const inferiorHeap &src);
   inferiorHeap& operator=(const inferiorHeap &src);
-  std::unordered_map<Dyninst::Address, heapItem*> heapActive; // active part of heap
-  std::vector<heapItem*> heapFree;           // free block of data inferior heap 
-  std::vector<disabledItem> disabledList;    // items waiting to be freed.
-  int disabledListTotalMem;             // total size of item waiting to free
-  int totalFreeMemAvailable;            // total free memory in the heap
-  int freed;                            // total reclaimed (over time)
-
-  std::vector<heapItem *> bufferPool;        // distributed heap segments -- csserra
+  std::unordered_map<Dyninst::Address, heapItem*> heapActive;
+  std::vector<heapItem*> heapFree;
+  std::vector<disabledItem> disabledList;
+  int disabledListTotalMem;
+  int totalFreeMemAvailable;
+  int freed;
+  std::vector<heapItem *> bufferPool;
 };
  
 #endif
