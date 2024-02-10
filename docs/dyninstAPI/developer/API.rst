@@ -52,7 +52,6 @@ DyninstAPI
   emit-x86.h
   frameChecker.h
   frame.h
-  freebsd.h
   freebsd-x86.h
   function.h
   hybridAnalysis.h
