@@ -78,7 +78,6 @@ using namespace Dyninst;
 typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define RH_SEPERATOR '/'
 
-/* contents of line number field if line is unknown */
 #define UNKNOWN_LINE	0
 
 #define TAG_LIB_FUNC	0x1
@@ -87,7 +86,7 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define TAG_MSG_SEND	0x8
 #define TAG_MSG_RECV    0x10
 #define TAG_SYNC_FUNC	0x20
-#define TAG_CPU_STATE	0x40	/* does the func block waiting for ext. event */
+#define TAG_CPU_STATE	0x40
 #define TAG_MSG_FILT    0x80
 
 #define DYN_MODULE "DYN_MODULE"
@@ -113,20 +112,15 @@ class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
 
-// ParseAPI classes
 class DynCFGFactory;
 class DynParseCallback;
 
 class PCProcess;
 
-// File descriptor information
 class fileDescriptor {
  public:
-    // Vector requires an empty constructor
     fileDescriptor();
 
-    // Some platforms have split code and data. If yours is not one of them,
-    // hand in the same address for code and data.
     fileDescriptor(string file, Address code, Address data) : 
 #if defined(os_windows)
 		procHandle_(INVALID_HANDLE_VALUE),
@@ -139,7 +133,6 @@ class fileDescriptor {
         length_(0)
         {}
 
-    // ctor for non-files
     fileDescriptor(string file, Address code, Address data, 
                    Address length, void* ) :
 #if defined(os_windows)
@@ -161,7 +154,6 @@ class fileDescriptor {
          return !IsEqual(fd);
      }
 
-     // Not quite the same as above; is this the same on-disk file
      bool isSameFile(const fileDescriptor &fd) const {
          if ((file_ == fd.file_) &&
              (member_ == fd.member_))
@@ -183,8 +175,8 @@ class fileDescriptor {
      void setData(Address d) { data_ = d; }
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
-     Address length() const { return length_; } //only for non-files
-     void* rawPtr();                            //only for non-files
+     Address length() const { return length_; }
+     void* rawPtr();
 
 #if defined(os_windows)
 	 void setHandles(HANDLE proc, HANDLE file) {
@@ -207,7 +199,7 @@ private:
      Address code_;
      Address data_;
      int pid_;
-     Address length_;        // set only if this is not really a file
+     Address length_;
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };
@@ -245,8 +237,6 @@ int rawfuncscmp( parse_func*& pdf1, parse_func*& pdf2 );
 
 typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 
-//  Image class contains information about statically and 
-//  dynamically linked code belonging to a process
 class image : public codeRange {
    friend class image_variable;
    friend class DynCFGFactory;
@@ -255,10 +245,8 @@ class image : public codeRange {
                             BPatch_hybridMode mode,
                             bool parseGaps);
 
-   // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
 
-   // "I need another handle!"
    image *clone() {
       refCount++; 
       return this; 
@@ -272,27 +260,20 @@ class image : public codeRange {
    bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
-   // creates the module if it does not exist
    pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
 
  protected:
    ~image();
 
-   // 7JAN05: go through the removeImage call!
    int destroy();
  public:
-   // find the named module  
    pdmodule *findModule(const string &name, bool wildcard = false);
 
-   // Find the vector of functions associated with a (demangled) name
-   // Returns internal pointer, so label as const
    const std::vector <parse_func *> *findFuncVectorByPretty(const std::string &name);
    const std::vector <parse_func *> *findFuncVectorByMangled(const std::string &name);
-   // Variables: nearly identical
    const std::vector <image_variable *> *findVarVectorByPretty(const std::string &name);
    const std::vector <image_variable *> *findVarVectorByMangled(const std::string &name);
 
-   // Find the vector of functions determined by a filter function
    std::vector <parse_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
                                                     void *user_data, 
                                                     std::vector<parse_func *> *found);
@@ -300,30 +281,16 @@ class image : public codeRange {
                                                      void *user_data, 
                                                      std::vector<parse_func *> *found);
 
-   /*********************************************************************/
-   /**** Function lookup (by name or address) routines               ****/
-   /****                                                             ****/
-   /**** Overlapping region objects MUST NOT use these routines      ****/
-   /*********************************************************************/
-   // Find a function that begins at a particular address
    parse_func *findFuncByEntry(const Address &entry);
-   // Code sharing allows multiple functions to overlap a given point
    int findFuncs(const Address offset, set<ParseAPI::Function *> & funcs);
-   // Find the basic blocks that overlap the given address
    int findBlocksByAddr(const Address offset, set<ParseAPI::Block*> & blocks);
   
-   //Add an extra pretty name to a known function (needed for handling
-   //overloaded functions in paradyn)
    void addTypedPrettyName(parse_func *func, const char *typedName);
 
-   // Create an image variable (e.g., malloced variable). Creates the
-   // variable and adds to appropriate data structures.
    image_variable* createImageVariable(Address offset, std::string name, int size, pdmodule *mod);
 	
-   bool symbolExists(const std::string &); /* Check symbol existence */
-   void postProcess(const std::string);          /* Load .pif file */
-
-   // data member access
+   bool symbolExists(const std::string &);
+   void postProcess(const std::string);
 
    string file() const {return desc_.file();}
    string name() const { return name_;}
@@ -336,7 +303,6 @@ class image : public codeRange {
 
    void setImageLength(Address newlen);
 
-   // codeRange interface implementation
    Address get_address() const { return imageOffset(); }
    unsigned get_size() const { return imageLength(); }
 
@@ -355,28 +321,20 @@ class image : public codeRange {
 
    bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
 
-   // Return symbol table information
    SymtabAPI::Symbol *symbol_info(const std::string& symbol_name);
-   // And used for finding inferior heaps.... hacky, but effective.
    bool findSymByPrefix(const std::string &prefix, std::vector<SymtabAPI::Symbol *> &ret);
 
    const ParseAPI::CodeObject::funclist &getAllFunctions();
    const std::vector<image_variable*> &getAllVariables();
 
-   //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
-   // element removal
-
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
    const vector<parse_block*> & getNewBlocks() const;
    void clearNewBlocks();
-   // callback that updates our view the binary's raw code bytes
    void register_codeBytesUpdateCB(void *cb_arg0)
        { cb_arg0_ = cb_arg0; }
    void * cb_arg0() const { return cb_arg0_; }
 
-   // And when we parse, we might find more:
-   // FIXME might be convenient to access HINT-only functions easily
    // XXX const std::vector<parse_func *> &getCreatedFunctions();
 
    const std::vector<image_variable *> &getExportedVariables() const;
@@ -399,7 +357,6 @@ class image : public codeRange {
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif
 
-   // Object deletion (defensive mode)
    void destroy(ParseAPI::Block *);
    void destroy(ParseAPI::Edge *);
    void destroy(ParseAPI::Function *);
@@ -410,13 +367,6 @@ class image : public codeRange {
                        string &modName, Address &modAddr, 
                        const string &defName);
 
-   //
-   //  ****  PRIVATE MEMBERS FUNCTIONS  ****
-   //
-
-   // Platform-specific discovery of the "main" function
-   // FIXME There is a minor but fundamental design flaw that
-   //       needs to be resolved wrt findMain returning void.
    int findMain();
 
    bool determineImageType();
@@ -424,7 +374,6 @@ class image : public codeRange {
 
    void setModuleLanguages(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
 
-   // We have a _lot_ of lookup types; this handles proper entry
    void enterFunctionInTables(parse_func *func);
 
    bool buildFunctionLists(std::vector<parse_func *> &raw_funcs);
@@ -432,17 +381,12 @@ class image : public codeRange {
 
    void insertPLTParseFuncMap(const std::string&, parse_func*);
 
-   //
-   //  **** GAP PARSING SUPPORT  ****
    bool parseGaps() { return parseGaps_; }
 
-   //
-   //  ****  PRIVATE DATA MEMBERS  ****
-   //
  private:
-   fileDescriptor desc_; /* file descriptor (includes name) */
-   string name_;		 /* filename part of file, no slashes */
-   string pathname_;      /* file name with path */
+   fileDescriptor desc_;
+   string name_;
+   string pathname_;
 
    Address imageOffset_;
    unsigned imageLen_;
@@ -457,21 +401,19 @@ class image : public codeRange {
    //Address dataValidEnd_;
 
    bool is_libdyninstRT;
-   Address main_call_addr_; // address of call to main()
+   Address main_call_addr_;
 
-   // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
 #if defined(os_linux) || defined(os_freebsd)
    SymtabAPI::Archive *archive;
 #endif
 
-   // ParseAPI
    Dyninst::ParseAPI::CodeObject * obj_;
    Dyninst::ParseAPI::SymtabCodeSource * cs_;
    Dyninst::ParseAPI::SymtabCodeSource::hint_filt *filt;
    DynCFGFactory * img_fact_;
    DynParseCallback * parse_cb_;
-   void *cb_arg0_; // argument for mapped_object callback
+   void *cb_arg0_;
 
    map<SymtabAPI::Module *, pdmodule *> mods_;
 
@@ -480,17 +422,12 @@ class image : public codeRange {
    std::vector<image_variable *> createdVariables;
    std::vector<image_variable *> exportedVariables;
 
-   // This contains all parallel regions on the image
-   // These line up with the code generated to support OpenMP, UPC, Titanium, ...
    std::vector<image_parRegion *> parallelRegions;
 
-   // unique (by image) numbering of basic blocks
    int nextBlockID_;
 
    dyn_hash_map <string, pdmodule *> modsByFileName;
 
-   // "Function" symbol names that are PLT entries or the equivalent
-   // FIXME remove
    std::unordered_map<Address, std::string> *pltFuncs;
 
    std::unordered_map <Address, image_variable *> varsByAddr;
@@ -498,7 +435,6 @@ class image : public codeRange {
    vector<pair<string, Address> > codeHeaps_;
    vector<pair<string, Address> > dataHeaps_;
 
-   // new element tracking
    vector<parse_block*> newBlocks_;
    bool trackNewBlocks_;
 
@@ -527,13 +463,6 @@ class pdmodule {
 
    bool getVariables(std::vector<image_variable *> &vars);
 
-   /* We can see more than one function with the same mangled
-      name in the same object, because it's OK for different
-      modules in the same object to define the same (local) symbol.
-      However, we can't always determine module information
-      which means one of our
-      module classes may contain information about an entire object,
-      and therefore, multiple functons with the same mangled name. */
    bool findFunctionByMangled (const std::string &name,
                                std::vector<parse_func *> &found);
    bool findFunctionByPretty (const std::string &name,
