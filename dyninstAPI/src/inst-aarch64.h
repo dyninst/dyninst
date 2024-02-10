@@ -46,9 +46,8 @@
 #define REG_FP               29
 #define REG_LR               30
 #define REG_SP               31
-#define REG_TOC               2   /* TOC anchor                            */
-// REG_GUARD_OFFSET and REG_GUARD_VALUE could overlap.
-#define REG_GUARD_ADDR        5   /* Arbitrary                             */
+#define REG_TOC               2
+#define REG_GUARD_ADDR        5
 #define REG_GUARD_VALUE       6
 #define REG_GUARD_OFFSET      6
 
@@ -57,31 +56,18 @@
 
 #define REG_SCRATCH          10
 
-// #sasha This seemed to be copy and paste. Not sure if it all stands
-// for ARM.
-//
-// The stack grows down from high addresses toward low addresses.
-// There is a maximum number of bytes on the stack below the current
-// value of the stack frame pointer that a function can use without
-// first establishing a new stack frame.  When our instrumentation
-// needs to use the stack, we make sure not to write into this
-// potentially used area.  64-bit PowerPC ELF ABI Supplement,
-// Version 1.9, 2004-10-23, used by Linux, stated 288 bytes for this
-// area.
 #define STACKSKIP          288
 
-#define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
+#define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )
 
-//TODO Fix for ARM
 #define GPRSAVE_64  (31*GPRSIZE_64)
 #define FPRSAVE_64  (32*FPRSIZE_64)
 #define SPRSAVE_64  (1*8+3*4)
-// #sasha Are these necessary?
 #define FUNCSAVE_64 (32*8)
 #define FUNCARGS_64 (16*8)
 #define LINKAREA_64 (6*8)
 
-// #sasha Why is PowerPC stuff here?
+
 #if defined(os_linux)
 #define PARAM_OFFSET(mutatee_address_width)                         \
         (                                                           \
