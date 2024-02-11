@@ -3,3 +3,5 @@
 linux-x86.h
 ###########
 
+.. cpp:namespace:: dev::x86
+
