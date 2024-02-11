@@ -85,7 +85,6 @@ DyninstAPI
   RegisterConversion.h
   registerSpace.h
   syscallNotification.h
-  syscalltrap.h
   trapMappings.h
   unix.h
   util.h
