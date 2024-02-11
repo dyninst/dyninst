@@ -3,6 +3,65 @@
 CodeSource.h
 ############
 
+.. cpp:namespace:: Dyninst::ParseAPI
+
+
+.. cpp:class:: CodeRegion
+
+  **Divide a CodeSource into distinct regions**
+
+  This interface is mostly of interest to CodeSource implementors.
+
+  .. cpp:function:: void names(Address addr, vector<std::string>& names)
+
+      Retrieves the names associated with the function address ``addr`` in the
+      region, e.g. symbol names in an ELF or PE binary.
+
+  .. cpp:function:: virtual bool findCatchBlock(Address addr, Address & catchStart)
+
+      Finds the exception handler associated with the address ``addr``, if one exists.
+
+      This routine is only implemented for binary code sources that support structured
+      exception handling.
+
+  .. cpp:function:: Address low()
+
+      Returns the lower bound of the interval of the address space covered by this region.
+
+  .. cpp:function:: Address high()
+
+      Returns the upper bound of the interval of the address space covered by this region.
+
+  .. cpp:function:: bool contains(Address addr)
+
+      Checks if :cpp:func:`low` :math:`\le` ``addr`` :math:`\lt` :cpp:func:`high`.
+
+  .. cpp:function:: virtual bool wasUserAdded() const
+
+      Return true if this region was added by the user, false otherwise.
+
+.. cpp:class:: SymtabCodeRegion : public CodeRegion
+
+  .. cpp:function:: SymtabCodeRegion(SymtabAPI::Symtab*, SymtabAPI::Region*)
+  .. cpp:function:: SymtabCodeRegion(SymtabAPI::Symtab*, SymtabAPI::Region*, std::vector<SymtabAPI::Symbol*> &symbols)
+  .. cpp:function:: void names(Address, std::vector<std::string>&)
+  .. cpp:function:: bool findCatchBlock(Address addr, Address& catchStart)
+  .. cpp:function:: bool isValidAddress(const Address) const
+  .. cpp:function:: void* getPtrToInstruction(const Address) const
+  .. cpp:function:: void* getPtrToData(const Address) const
+  .. cpp:function:: unsigned int getAddressWidth() const
+  .. cpp:function:: bool isCode(const Address) const
+  .. cpp:function:: bool isData(const Address) const
+  .. cpp:function:: bool isReadOnly(const Address) const
+  .. cpp:function:: Address offset() const
+  .. cpp:function:: Address length() const
+  .. cpp:function:: Architecture getArch() const
+  .. cpp:function:: Address low() const
+  .. cpp:function:: Address high() const
+  .. cpp:function:: SymtabAPI::Region* symRegion() const
+
+
+
 .. cpp:namespace:: Dyninst::ParseAPI::dev
 
 .. cpp:class:: CodeSource
@@ -86,59 +145,7 @@ CodeSource.h
   .. cpp:function:: void addRegion(CodeRegion*)
   .. cpp:function:: void removeRegion(CodeRegion*)
 
-.. cpp:class:: CodeRegion
 
-  **Divide a CodeSource into distinct regions**
-
-  This interface is mostly of interest to CodeSource implementors.
-
-  .. cpp:function:: void names(Address addr, vector<std::string>& names)
-
-      Retrieves the names associated with the function address ``addr`` in the
-      region, e.g. symbol names in an ELF or PE binary.
-
-  .. cpp:function:: virtual bool findCatchBlock(Address addr, Address & catchStart)
-
-      Finds the exception handler associated with the address ``addr``, if one exists.
-
-      This routine is only implemented for binary code sources that support structured
-      exception handling.
-
-  .. cpp:function:: Address low()
-
-      Returns the lower bound of the interval of the address space covered by this region.
-
-  .. cpp:function:: Address high()
-
-      Returns the upper bound of the interval of the address space covered by this region.
-
-  .. cpp:function:: bool contains(Address addr)
-
-      Checks if :cpp:func:`low` :math:`\le` ``addr`` :math:`\lt` :cpp:func:`high`.
-
-  .. cpp:function:: virtual bool wasUserAdded() const
-
-      Return true if this region was added by the user, false otherwise.
-
-.. cpp:class:: SymtabCodeRegion : public CodeRegion
-
-  .. cpp:function:: SymtabCodeRegion(SymtabAPI::Symtab*, SymtabAPI::Region*)
-  .. cpp:function:: SymtabCodeRegion(SymtabAPI::Symtab*, SymtabAPI::Region*, std::vector<SymtabAPI::Symbol*> &symbols)
-  .. cpp:function:: void names(Address, std::vector<std::string>&)
-  .. cpp:function:: bool findCatchBlock(Address addr, Address& catchStart)
-  .. cpp:function:: bool isValidAddress(const Address) const
-  .. cpp:function:: void* getPtrToInstruction(const Address) const
-  .. cpp:function:: void* getPtrToData(const Address) const
-  .. cpp:function:: unsigned int getAddressWidth() const
-  .. cpp:function:: bool isCode(const Address) const
-  .. cpp:function:: bool isData(const Address) const
-  .. cpp:function:: bool isReadOnly(const Address) const
-  .. cpp:function:: Address offset() const
-  .. cpp:function:: Address length() const
-  .. cpp:function:: Architecture getArch() const
-  .. cpp:function:: Address low() const
-  .. cpp:function:: Address high() const
-  .. cpp:function:: SymtabAPI::Region* symRegion() const
 
 Notes
 =====
