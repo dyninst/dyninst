@@ -28,8 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// A representation of a variable x = x + var1 + var2 + var3 + ...
-// where int is an integer and var1...varN are unknown variables.
+
 
 #include <map>
 
