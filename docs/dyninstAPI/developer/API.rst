@@ -68,7 +68,6 @@ DyninstAPI
   linux-aarch64.h
   linux.h
   linux-power.h
-  linux-x86.h
   mapped_module.h
   mapped_object.h
   nt_signal_emul.h
