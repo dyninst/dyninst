@@ -101,81 +101,81 @@ void registerSpace::initialize() {
 
 /********************************* Private methods *********************************************/
 
-void EmitterAMDGPUSaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
-{
-    assert(scratchReg!=Null_Register);
-}
-
-
-void EmitterAMDGPUSaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
-    //Always performing save of the full FP register
-    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
-
-}
+// void EmitterAMDGPUSaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
+// {
+//     assert(scratchReg!=Null_Register);
+// }
+//
+//
+// void EmitterAMDGPUSaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
+//     //Always performing save of the full FP register
+//     insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
+//
+// }
 
 /********************************* Public methods *********************************************/
+//
+// unsigned EmitterAMDGPUSaveRegs::saveGPRegisters(
+//         codeGen &gen, registerSpace *theRegSpace, int offset, int numReqGPRs)
+// {
+//     int ret = 0;
+//     if(numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
+//
+//     for(int idx = 0; idx < numReqGPRs; idx++) {
+//         registerSlot *reg = theRegSpace->GPRs()[idx];
+//   // We always save FP and LR for stack walking out of instrumentation
+//         if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
+//             int offset_from_sp = offset + (reg->encoding() * gen.width());
+//             insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
+//             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
+//             ret++;
+//         }
+//     }
+//
+//     return ret;
+// }
 
-unsigned EmitterAMDGPUSaveRegs::saveGPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset, int numReqGPRs)
-{
-    int ret = 0;
-    if(numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
-
-    for(int idx = 0; idx < numReqGPRs; idx++) {
-        registerSlot *reg = theRegSpace->GPRs()[idx];
-	// We always save FP and LR for stack walking out of instrumentation
-        if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
-            int offset_from_sp = offset + (reg->encoding() * gen.width());
-            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
-            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
-            ret++;
-        }
-    }
-
-    return ret;
-}
-
-unsigned EmitterAMDGPUSaveRegs::saveFPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset)
-{
-    unsigned ret = 0;
-
-    for(int idx = 0; idx < theRegSpace->numFPRs(); idx++) {
-        registerSlot *reg = theRegSpace->FPRs()[idx];
-
-        //if(reg->liveState == registerSlot::live) {
-            int offset_from_sp = offset + (reg->encoding() * FPRSIZE_64);
-            saveFPRegister(gen, reg->number, offset_from_sp);
-            //reg->liveState = registerSlot::spilled;
-            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
-            ret++;
-        //}
-    }
-
-    return ret;
-}
-
-unsigned EmitterAMDGPUSaveRegs::saveSPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset, bool force_save)
-{
-    int ret = 0;
-
-    return ret;
-}
-
-void EmitterAMDGPUSaveRegs::createFrame(codeGen &gen) {
-    //Save link register
-    Register linkRegister = gen.rs()->getRegByName("r30");
-    insnCodeGen::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
-
-    //Save frame pointer
-    Register framePointer = gen.rs()->getRegByName("r29");
-    insnCodeGen::saveRegister(gen, framePointer, -2*GPRSIZE_64);
-
-    //Move stack pointer to frame pointer
-    Register stackPointer = gen.rs()->getRegByName("sp");
-    insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
-}
+// unsigned EmitterAMDGPUSaveRegs::saveFPRegisters(
+//         codeGen &gen, registerSpace *theRegSpace, int offset)
+// {
+//     unsigned ret = 0;
+//
+//     for(int idx = 0; idx < theRegSpace->numFPRs(); idx++) {
+//         registerSlot *reg = theRegSpace->FPRs()[idx];
+//
+//         //if(reg->liveState == registerSlot::live) {
+//             int offset_from_sp = offset + (reg->encoding() * FPRSIZE_64);
+//             saveFPRegister(gen, reg->number, offset_from_sp);
+//             //reg->liveState = registerSlot::spilled;
+//             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
+//             ret++;
+//         //}
+//     }
+//
+//     return ret;
+// }
+//
+// unsigned EmitterAMDGPUSaveRegs::saveSPRegisters(
+//         codeGen &gen, registerSpace *theRegSpace, int offset, bool force_save)
+// {
+//     int ret = 0;
+//
+//     return ret;
+// }
+//
+// void EmitterAMDGPUSaveRegs::createFrame(codeGen &gen) {
+//     //Save link register
+//     Register linkRegister = gen.rs()->getRegByName("r30");
+//     insnCodeGen::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
+//
+//     //Save frame pointer
+//     Register framePointer = gen.rs()->getRegByName("r29");
+//     insnCodeGen::saveRegister(gen, framePointer, -2*GPRSIZE_64);
+//
+//     //Move stack pointer to frame pointer
+//     Register stackPointer = gen.rs()->getRegByName("sp");
+//     insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
+// }
 
 /***********************************************************************************************/
 /***********************************************************************************************/
@@ -184,71 +184,71 @@ void EmitterAMDGPUSaveRegs::createFrame(codeGen &gen) {
 
 /********************************* Public methods *********************************************/
 
-unsigned EmitterAMDGPURestoreRegs::restoreGPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset)
-{
-    unsigned ret = 0;
-
-    for(int idx = theRegSpace->numGPRs()-1; idx >=0; idx--) {
-        registerSlot *reg = theRegSpace->GPRs()[idx];
-
-        if(reg->liveState == registerSlot::spilled) {
-            //#sasha this should be GPRSIZE_64 and not gen.width
-            int offset_from_sp = offset + (reg->encoding() * gen.width());
-            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
-            ret++;
-        }
-    }
-
-    return ret;
-}
-
-unsigned EmitterAMDGPURestoreRegs::restoreFPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset)
-{
-    unsigned ret = 0;
-
-    for(int idx = theRegSpace->numFPRs() - 1; idx >= 0; idx--) {
-        registerSlot *reg = theRegSpace->FPRs()[idx];
-
-        //if(reg->liveState == registerSlot::spilled) {
-            int offset_from_sp = offset + (reg->encoding() * FPRSIZE_64);
-            restoreFPRegister(gen, reg->number, offset_from_sp);
-            ret++;
-        //}
-    }
-
-    return ret;
-}
-
-unsigned EmitterAMDGPURestoreRegs::restoreSPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int, int force_save)
-{
-    int ret = 0;
-
-        return ret;
-}
-
-void EmitterAMDGPURestoreRegs::tearFrame(codeGen &gen) {
-    //Restore frame pointer
-    Register framePointer = gen.rs()->getRegByName("r29");
-    insnCodeGen::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
-
-    //Restore link register
-    Register linkRegister = gen.rs()->getRegByName("r30");
-    insnCodeGen::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
-}
+// unsigned EmitterAMDGPURestoreRegs::restoreGPRegisters(
+//         codeGen &gen, registerSpace *theRegSpace, int offset)
+// {
+//     unsigned ret = 0;
+//
+//     for(int idx = theRegSpace->numGPRs()-1; idx >=0; idx--) {
+//         registerSlot *reg = theRegSpace->GPRs()[idx];
+//
+//         if(reg->liveState == registerSlot::spilled) {
+//             //#sasha this should be GPRSIZE_64 and not gen.width
+//             int offset_from_sp = offset + (reg->encoding() * gen.width());
+//             insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
+//             ret++;
+//         }
+//     }
+//
+//     return ret;
+// }
+//
+// unsigned EmitterAMDGPURestoreRegs::restoreFPRegisters(
+//         codeGen &gen, registerSpace *theRegSpace, int offset)
+// {
+//     unsigned ret = 0;
+//
+//     for(int idx = theRegSpace->numFPRs() - 1; idx >= 0; idx--) {
+//         registerSlot *reg = theRegSpace->FPRs()[idx];
+//
+//         //if(reg->liveState == registerSlot::spilled) {
+//             int offset_from_sp = offset + (reg->encoding() * FPRSIZE_64);
+//             restoreFPRegister(gen, reg->number, offset_from_sp);
+//             ret++;
+//         //}
+//     }
+//
+//     return ret;
+// }
+//
+// unsigned EmitterAMDGPURestoreRegs::restoreSPRegisters(
+//         codeGen &gen, registerSpace *theRegSpace, int, int force_save)
+// {
+//     int ret = 0;
+//
+//         return ret;
+// }
+//
+// void EmitterAMDGPURestoreRegs::tearFrame(codeGen &gen) {
+//     //Restore frame pointer
+//     Register framePointer = gen.rs()->getRegByName("r29");
+//     insnCodeGen::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
+//
+//     //Restore link register
+//     Register linkRegister = gen.rs()->getRegByName("r30");
+//     insnCodeGen::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
+// }
 
 
 /********************************* Private methods *********************************************/
 
-void EmitterAMDGPURestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
-{
-}
-
-void EmitterAMDGPURestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
-    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Load, reg, REG_SP, save_off, 0, true);
-}
+// void EmitterAMDGPURestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
+// {
+// }
+//
+// void EmitterAMDGPURestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
+//     insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Load, reg, REG_SP, save_off, 0, true);
+// }
 
 /***********************************************************************************************/
 /***********************************************************************************************/
@@ -277,57 +277,57 @@ void popStack(codeGen &gen)
 /*********************************** Base Tramp ***********************************************/
 bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 {
-    regalloc_printf("========== baseTramp::generateSaves\n");
-
-    // Make a stack frame.
-    pushStack(gen);
-
-    EmitterAMDGPUSaveRegs saveRegs;
-    unsigned int width = gen.width();
-
-    saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
-    // After saving GPR, we move SP to FP to create the instrumentation frame.
-    // Note that Dyninst instrumentation frame has a different structure
-    // compared to stack frame created by the compiler.
+    // regalloc_printf("========== baseTramp::generateSaves\n");
     //
-    // Dyninst instrumentation frame makes sure that FP and SP are the same.
-    // So, during stack walk, the FP retrived from the previous frame is 
-    // the SP of the current instrumentation frame.
+    // // Make a stack frame.
+    // pushStack(gen);
     //
-    // Note: If the implementation of the instrumentation frame layout
-    // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
-    // in stackwalk/src/AMDGPU-swk.C also likely needs to be changed accordingly
-    insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
-    gen.markRegDefined(REG_FP);
-
-    bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
-                   (BPatch::bpatch->isSaveFPROn()      &&
-                    gen.rs()->anyLiveFPRsAtEntry()     &&
-                    this->saveFPRs());
-
-    if(saveFPRs) saveRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
-    this->savedFPRs = saveFPRs;
-
-    saveRegs.saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
-    //gen.rs()->debugPrint();
-
+    // EmitterAMDGPUSaveRegs saveRegs;
+    // unsigned int width = gen.width();
+    //
+    // saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+    // // After saving GPR, we move SP to FP to create the instrumentation frame.
+    // // Note that Dyninst instrumentation frame has a different structure
+    // // compared to stack frame created by the compiler.
+    // //
+    // // Dyninst instrumentation frame makes sure that FP and SP are the same.
+    // // So, during stack walk, the FP retrived from the previous frame is
+    // // the SP of the current instrumentation frame.
+    // //
+    // // Note: If the implementation of the instrumentation frame layout
+    // // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
+    // // in stackwalk/src/AMDGPU-swk.C also likely needs to be changed accordingly
+    // insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
+    // gen.markRegDefined(REG_FP);
+    //
+    // bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
+    //                (BPatch::bpatch->isSaveFPROn()      &&
+    //                 gen.rs()->anyLiveFPRsAtEntry()     &&
+    //                 this->saveFPRs());
+    //
+    // if(saveFPRs) saveRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
+    // this->savedFPRs = saveFPRs;
+    //
+    // saveRegs.saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
+    // //gen.rs()->debugPrint();
+    //
     return true;
 }
 
 bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
 {
-    EmitterAMDGPURestoreRegs restoreRegs;
-    unsigned int width = gen.width();
-
-    restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
-
-    if(this->savedFPRs)
-        restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
-
-    restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
-
-    // Tear down the stack frame.
-    popStack(gen);
+    // EmitterAMDGPURestoreRegs restoreRegs;
+    // unsigned int width = gen.width();
+    //
+    // restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
+    //
+    // if(this->savedFPRs)
+    //     restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
+    //
+    // restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+    //
+    // // Tear down the stack frame.
+    // popStack(gen);
 
     return true;
 }
@@ -410,37 +410,37 @@ that it calls, to a certain depth ... at which point we clobber everything
 Update-12/06, njr, since we're going to a cached system we are just going to
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
-bool EmitterAMDGPU::clobberAllFuncCall(registerSpace *rs,
-                                        func_instance *callee) {
-    if(!callee)
-        return true;
-
-    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-
-    if(callee->ifunc()->isLeafFunc()) {
-        std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
-        for(std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++)
-            rs->GPRs()[*itr]->beenUsed = true;
-
-        std::set<Register> *fpRegs = callee->ifunc()->usedFPRs();
-        for(std::set<Register>::iterator itr = fpRegs->begin(); itr != fpRegs->end(); itr++) {
-            if (*itr <= rs->FPRs().size())
-              rs->FPRs()[*itr]->beenUsed = true;
-            else
-              // parse_func::calcUsedRegs includes the subtype; we only want the regno
-              rs->FPRs()[*itr & 0xff]->beenUsed = true;
-        }
-    } else {
-        for(int idx = 0; idx < rs->numGPRs(); idx++)
-            rs->GPRs()[idx]->beenUsed = true;
-        for(int idx = 0; idx < rs->numFPRs(); idx++)
-            rs->FPRs()[idx]->beenUsed = true;
-    }
-
-    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-
-    return false;
-}
+// bool EmitterAmdgpuVega::clobberAllFuncCall(registerSpace *rs,
+//                                         func_instance *callee) {
+//     if(!callee)
+//         return true;
+//
+//     stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+//
+//     if(callee->ifunc()->isLeafFunc()) {
+//         std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
+//         for(std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++)
+//             rs->GPRs()[*itr]->beenUsed = true;
+//
+//         std::set<Register> *fpRegs = callee->ifunc()->usedFPRs();
+//         for(std::set<Register>::iterator itr = fpRegs->begin(); itr != fpRegs->end(); itr++) {
+//             if (*itr <= rs->FPRs().size())
+//               rs->FPRs()[*itr]->beenUsed = true;
+//             else
+//               // parse_func::calcUsedRegs includes the subtype; we only want the regno
+//               rs->FPRs()[*itr & 0xff]->beenUsed = true;
+//         }
+//     } else {
+//         for(int idx = 0; idx < rs->numGPRs(); idx++)
+//             rs->GPRs()[idx]->beenUsed = true;
+//         for(int idx = 0; idx < rs->numFPRs(); idx++)
+//             rs->FPRs()[idx]->beenUsed = true;
+//     }
+//
+//     stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+//
+//     return false;
+// }
 
 Register emitFuncCall(opCode, codeGen &, std::vector <AstNodePtr> &, bool, Address) {
     assert(0);
@@ -454,27 +454,27 @@ Register emitFuncCall(opCode op,
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
 
-Register EmitterAMDGPU::emitCallReplacement(opCode,
-                                             codeGen &,
-                                             bool,
-                                             func_instance *) {
-    assert(0); //Not implemented
-    return 0;
-}
+// Register EmitterAmdgpuVega::emitCallReplacement(opCode,
+//                                              codeGen &,
+//                                              bool,
+//                                              func_instance *) {
+//     assert(0); //Not implemented
+//     return 0;
+// }
 
 // There are four "axes" going on here:
 // 32 bit vs 64 bit
 // Instrumentation vs function call replacement
 // Static vs. dynamic
 
-Register EmitterAMDGPU::emitCall(opCode op,
-                                  codeGen &gen,
-                                  const std::vector<AstNodePtr> &operands,
-                                  bool,
-                                  func_instance *callee) 
-{
-    return 0;
-}
+// Register EmitterAmdgpuVega::emitCall(opCode op,
+//                                   codeGen &gen,
+//                                   const std::vector<AstNodePtr> &operands,
+//                                   bool,
+//                                   func_instance *callee)
+// {
+//     return 0;
+// }
 
 
 codeBufIndex_t emitA(opCode op, Register src1, Register, long dest,
@@ -898,13 +898,13 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
 }
 
 Emitter *AddressSpace::getEmitter() {
-    static EmitterAMDGPUStat emitter64Stat;
-    static EmitterAMDGPUDyn emitter64Dyn;
+    static EmitterAmdgpuVega vegaEmitter;
+    // static EmitterAMDGPUDyn emitter64Dyn;
 
-    if (proc())
-        return &emitter64Dyn;
+    // if (proc())
+        // return &emitter64Dyn;
 
-    return &emitter64Stat;
+    return &vegaEmitter;
 }
 
 #define GET_IP      0x429f0005
@@ -933,51 +933,51 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 }
 */
 
-bool EmitterAMDGPU::emitCallRelative(Register, Address, Register, codeGen &) {
-    assert(0); //Not implemented
-    return true;
-}
+// bool EmitterAmdgpuVega::emitCallRelative(Register, Address, Register, codeGen &) {
+//     assert(0); //Not implemented
+//     return true;
+// }
 
-bool EmitterAMDGPU::emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen) {
-    signed long long sOffset = (signed long long) offset;
-    if(sOffset >=-256 && sOffset <=255)
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-                baseReg, sOffset, size, insnCodeGen::Pre);
-    else{
-        std::vector<Register> exclude;
-        exclude.push_back(baseReg);
-        // mov sOffset to a reg
-        auto addReg = insnCodeGen::moveValueToReg(gen, labs(offset), &exclude);
-        // add/sub sOffset to baseReg
-        insnCodeGen::generateAddSubShifted(gen,
-                sOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-                0, 0, addReg, baseReg, baseReg, true);
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-                baseReg, 0, size, insnCodeGen::Pre);
-    }
+// bool EmitterAmdgpuVega::emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen) {
+//     signed long long sOffset = (signed long long) offset;
+//     if(sOffset >=-256 && sOffset <=255)
+//         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+//                 baseReg, sOffset, size, insnCodeGen::Pre);
+//     else{
+//         std::vector<Register> exclude;
+//         exclude.push_back(baseReg);
+//         // mov sOffset to a reg
+//         auto addReg = insnCodeGen::moveValueToReg(gen, labs(offset), &exclude);
+//         // add/sub sOffset to baseReg
+//         insnCodeGen::generateAddSubShifted(gen,
+//                 sOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+//                 0, 0, addReg, baseReg, baseReg, true);
+//         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+//                 baseReg, 0, size, insnCodeGen::Pre);
+//     }
+//
+//     gen.markRegDefined(dest);
+//     return true;
+// }
 
-    gen.markRegDefined(dest);
-    return true;
-}
 
-
-void EmitterAMDGPU::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
-    if((signed long long)offset <=255 && (signed long long)offset >=-256)
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-                base, offset, size, insnCodeGen::Pre);
-    else{
-        assert(0 && "offset in emitStoreRelative not in (-256,255)");
-        //insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-        //        base, offset, size, insnCodeGen::Pre);
-    }
-}
-
-bool EmitterAMDGPU::emitMoveRegToReg(registerSlot *,
-                                      registerSlot *,
-                                      codeGen &) {
-    assert(0); //Not implemented
-    return true;
-}
+// void EmitterAmdgpuVega::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
+//     if((signed long long)offset <=255 && (signed long long)offset >=-256)
+//         insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+//                 base, offset, size, insnCodeGen::Pre);
+//     else{
+//         assert(0 && "offset in emitStoreRelative not in (-256,255)");
+//         //insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+//         //        base, offset, size, insnCodeGen::Pre);
+//     }
+// }
+//
+// bool EmitterAmdgpuVega::emitMoveRegToReg(registerSlot *,
+//                                       registerSlot *,
+//                                       codeGen &) {
+//     assert(0); //Not implemented
+//     return true;
+// }
 
 /*
 bool EmitterAMDGPU32Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAddr) {
@@ -1045,10 +1045,10 @@ bool EmitterAMDGPUDyn::emitPIC(codeGen &gen, Address origAddr, Address relocAddr
 }
 */
 
-bool EmitterAMDGPUStat::emitPLTCommon(func_instance *, bool, codeGen &) {
-    assert(0); //Not implemented
-    return true;
-}
+// bool EmitterAMDGPUStat::emitPLTCommon(func_instance *, bool, codeGen &) {
+//     assert(0); //Not implemented
+//     return true;
+// }
 
 #if 0
 bool EmitterAMDGPUStat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
@@ -1133,208 +1133,208 @@ bool EmitterAMDGPUStat::emitPLTCommon(func_instance *callee, bool call, codeGen 
 }
 #endif
 
-bool EmitterAMDGPUDyn::emitTOCCommon(block_instance *, bool, codeGen &) {
-    assert(0); //Not implemented
-    return true;
-}
+// bool EmitterAMDGPUDyn::emitTOCCommon(block_instance *, bool, codeGen &) {
+//     assert(0); //Not implemented
+//     return true;
+// }
 
-bool EmitterAMDGPUStat::emitPLTCall(func_instance *callee, codeGen &gen) {
-    Address dest = getInterModuleFuncAddr(callee, gen);
-    long varOffset = dest - gen.currAddr();
+// bool EmitterAMDGPUStat::emitPLTCall(func_instance *callee, codeGen &gen) {
+//     Address dest = getInterModuleFuncAddr(callee, gen);
+//     long varOffset = dest - gen.currAddr();
+//
+//     Register baseReg = gen.rs()->getScratchRegister(gen, true);
+//     assert(baseReg != Null_Register && "cannot get a scratch register");
+//     emitMovePCToReg(baseReg, gen);
+//
+//     std::vector<Register> exclude;
+//     exclude.push_back(baseReg);
+//     // mov offset to a reg
+//     auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+//     // add/sub offset to baseReg
+//     insnCodeGen::generateAddSubShifted(gen,
+//             (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+//             0, 0, addReg, baseReg, baseReg, true);
+//     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
+//             baseReg, 0, 8, insnCodeGen::Offset);
+//
+//     // call instruction
+//     instruction branchInsn;
+//     branchInsn.clear();
+//     //Set bits which are 0 for both BR and BLR
+//     INSN_SET(branchInsn, 0, 4, 0);
+//     INSN_SET(branchInsn, 10, 15, 0);
+//     //Set register
+//     INSN_SET(branchInsn, 5, 9, baseReg);
+//     //Set other bits. Basically, these are the opcode bits.
+//     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
+//     INSN_SET(branchInsn, 16, 31, BRegOp);
+//     INSN_SET(branchInsn, 21, 21, 1);
+//     insnCodeGen::generate(gen, branchInsn);
+//
+//     return true;
+// }
 
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != Null_Register && "cannot get a scratch register");
-    emitMovePCToReg(baseReg, gen);
+// bool EmitterAMDGPUStat::emitPLTJump(func_instance *callee, codeGen &gen) {
+//     Address dest = getInterModuleFuncAddr(callee, gen);
+//     long varOffset = dest - gen.currAddr();
+//
+//     Register baseReg = gen.rs()->getScratchRegister(gen, true);
+//     assert(baseReg != Null_Register && "cannot get a scratch register");
+//     emitMovePCToReg(baseReg, gen);
+//
+//     std::vector<Register> exclude;
+//     exclude.push_back(baseReg);
+//     // mov offset to a reg
+//     auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+//     // add/sub offset to baseReg
+//     insnCodeGen::generateAddSubShifted(gen,
+//             (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+//             0, 0, addReg, baseReg, baseReg, true);
+//     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
+//             baseReg, 0, 8, insnCodeGen::Offset);
+//
+//     // jump instruction
+//     instruction branchInsn;
+//     branchInsn.clear();
+//     //Set bits which are 0 for both BR and BLR
+//     INSN_SET(branchInsn, 0, 4, 0);
+//     INSN_SET(branchInsn, 10, 15, 0);
+//     //Set register
+//     INSN_SET(branchInsn, 5, 9, baseReg);
+//     //Set other bits. Basically, these are the opcode bits.
+//     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
+//     INSN_SET(branchInsn, 16, 31, BRegOp);
+//     insnCodeGen::generate(gen, branchInsn);
+//
+//     return true;
+// }
 
-    std::vector<Register> exclude;
-    exclude.push_back(baseReg);
-    // mov offset to a reg
-    auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-    // add/sub offset to baseReg
-    insnCodeGen::generateAddSubShifted(gen,
-            (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-            0, 0, addReg, baseReg, baseReg, true);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-            baseReg, 0, 8, insnCodeGen::Offset);
-
-    // call instruction
-    instruction branchInsn;
-    branchInsn.clear();
-    //Set bits which are 0 for both BR and BLR
-    INSN_SET(branchInsn, 0, 4, 0);
-    INSN_SET(branchInsn, 10, 15, 0);
-    //Set register
-    INSN_SET(branchInsn, 5, 9, baseReg);
-    //Set other bits. Basically, these are the opcode bits.
-    //The only difference between BR and BLR is that bit 21 is 1 for BLR.
-    INSN_SET(branchInsn, 16, 31, BRegOp);
-    INSN_SET(branchInsn, 21, 21, 1);
-    insnCodeGen::generate(gen, branchInsn);
-
-    return true;
-}
-
-bool EmitterAMDGPUStat::emitPLTJump(func_instance *callee, codeGen &gen) {
-    Address dest = getInterModuleFuncAddr(callee, gen);
-    long varOffset = dest - gen.currAddr();
-
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != Null_Register && "cannot get a scratch register");
-    emitMovePCToReg(baseReg, gen);
-
-    std::vector<Register> exclude;
-    exclude.push_back(baseReg);
-    // mov offset to a reg
-    auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-    // add/sub offset to baseReg
-    insnCodeGen::generateAddSubShifted(gen,
-            (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-            0, 0, addReg, baseReg, baseReg, true);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-            baseReg, 0, 8, insnCodeGen::Offset);
-
-    // jump instruction
-    instruction branchInsn;
-    branchInsn.clear();
-    //Set bits which are 0 for both BR and BLR
-    INSN_SET(branchInsn, 0, 4, 0);
-    INSN_SET(branchInsn, 10, 15, 0);
-    //Set register
-    INSN_SET(branchInsn, 5, 9, baseReg);
-    //Set other bits. Basically, these are the opcode bits.
-    //The only difference between BR and BLR is that bit 21 is 1 for BLR.
-    INSN_SET(branchInsn, 16, 31, BRegOp);
-    insnCodeGen::generate(gen, branchInsn);
-
-    return true;
-}
-
-bool EmitterAMDGPUStat::emitTOCCall(block_instance *block, codeGen &gen) {
-    assert(0); //Not implemented
-    return emitTOCCommon(block, true, gen);
-}
-
-bool EmitterAMDGPUStat::emitTOCJump(block_instance *block, codeGen &gen) {
-    assert(0); //Not implemented
-    return emitTOCCommon(block, false, gen);
-}
-
-bool EmitterAMDGPUStat::emitTOCCommon(block_instance *, bool, codeGen &) {
-    assert(0); //Not implemented
-    return false;
-}
-
-bool EmitterAMDGPUStat::emitCallInstruction(codeGen &,
-                                             func_instance *,
-                                             bool, Address) {
-    assert(0); //Not implemented
-    return true;
-}
+// bool EmitterAMDGPUStat::emitTOCCall(block_instance *block, codeGen &gen) {
+//     assert(0); //Not implemented
+//     return emitTOCCommon(block, true, gen);
+// }
+//
+// bool EmitterAMDGPUStat::emitTOCJump(block_instance *block, codeGen &gen) {
+//     assert(0); //Not implemented
+//     return emitTOCCommon(block, false, gen);
+// }
+//
+// bool EmitterAMDGPUStat::emitTOCCommon(block_instance *, bool, codeGen &) {
+//     assert(0); //Not implemented
+//     return false;
+// }
+//
+// bool EmitterAMDGPUStat::emitCallInstruction(codeGen &,
+//                                              func_instance *,
+//                                              bool, Address) {
+//     assert(0); //Not implemented
+//     return true;
+// }
 
 // Generates call instruction sequence for all AMDGPU-based systems
 // under dynamic instrumentation.
 //
 // This should be able to stomp on the link register (LR) and TOC
 // register (r2), as they were saved by Emitter::emitCall() as necessary.
-bool EmitterAMDGPU::emitCallInstruction(codeGen &, func_instance *, bool, Address) {
-    assert(0); //Not implemented
-    return true;
-}
-
-void EmitterAMDGPU::emitLoadShared(opCode op, Register dest, const image_variable *var,
-        bool is_local, int size, codeGen &gen, Address offset)
-{
-    // create or retrieve jump slot
-    Address addr;
-    int stackSize = 0;
-
-    if(!var) {
-        addr = offset;
-    }
-    else if(!is_local) {
-        addr = getInterModuleVarAddr(var, gen);
-    }
-    else {
-        addr = (Address)var->getOffset();
-    }
-
-    // load register with address from jump slot
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != Null_Register && "cannot get a scratch register");
-
-    emitMovePCToReg(baseReg, gen);
-    Address varOffset = addr - gen.currAddr() + 4;
-
-    if (op ==loadOp ) {
-        if(!is_local && (var != NULL)){
-            emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
-            // Deference the pointer to get the variable
-            // emitLoadRelative(dest, 0, dest, size, gen);
-            // Offset mode to load back to itself
-            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8,
-                    insnCodeGen::Offset);
-        } else {
-            emitLoadRelative(dest, varOffset, baseReg, size, gen);
-        }
-    } else { //loadConstop
-        if(!is_local && (var != NULL)){
-            emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
-        } else {
-            std::vector<Register> exclude;
-            exclude.push_back(baseReg);
-            auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-            insnCodeGen::generateAddSubShifted(gen,
-                    (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-                    0, 0, addReg, baseReg, baseReg, true);
-            insnCodeGen::generateMove(gen, dest, baseReg, true);
-        }
-    }
-
-    assert(stackSize <= 0 && "stack not empty at the end");
-}
-
-void EmitterAMDGPU::emitStoreShared(Register source, const image_variable *var,
-        bool is_local, int size, codeGen &gen)
-{
-    // create or retrieve jump slot
-    Address addr;
-    int stackSize = 0;
-    if(!is_local) {
-        addr = getInterModuleVarAddr(var, gen);
-    }
-    else {
-        addr = (Address)var->getOffset();
-    }
-
-    // load register with address from jump slot
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    assert(baseReg != Null_Register && "cannot get a scratch register");
-
-    emitMovePCToReg(baseReg, gen);
-    Address varOffset = addr - gen.currAddr() + 4;
-
-    if(!is_local) {
-        std::vector<Register> exclude;
-        exclude.push_back(baseReg);
-        Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
-        assert(scratchReg1 != Null_Register && "cannot get a scratch register");
-        emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
-        emitStoreRelative(source, 0, scratchReg1, size, gen);
-    } else {
-        std::vector<Register> exclude;
-        exclude.push_back(baseReg);
-        // mov offset to a reg
-        auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-        // add/sub offset to baseReg
-        insnCodeGen::generateAddSubShifted(gen,
-                (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-                0, 0, addReg, baseReg, baseReg, true);
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-                baseReg, 0, size, insnCodeGen::Pre);
-    }
-
-    assert(stackSize <= 0 && "stack not empty at the end");
-}
+// bool EmitterAmdgpuVega::emitCallInstruction(codeGen &, func_instance *, bool, Address) {
+//     assert(0); //Not implemented
+//     return true;
+// }
+//
+// void EmitterAmdgpuVega::emitLoadShared(opCode op, Register dest, const image_variable *var,
+//         bool is_local, int size, codeGen &gen, Address offset)
+// {
+//     // create or retrieve jump slot
+//     Address addr;
+//     int stackSize = 0;
+//
+//     if(!var) {
+//         addr = offset;
+//     }
+//     else if(!is_local) {
+//         addr = getInterModuleVarAddr(var, gen);
+//     }
+//     else {
+//         addr = (Address)var->getOffset();
+//     }
+//
+//     // load register with address from jump slot
+//     Register baseReg = gen.rs()->getScratchRegister(gen, true);
+//     assert(baseReg != Null_Register && "cannot get a scratch register");
+//
+//     emitMovePCToReg(baseReg, gen);
+//     Address varOffset = addr - gen.currAddr() + 4;
+//
+//     if (op ==loadOp ) {
+//         if(!is_local && (var != NULL)){
+//             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
+//             // Deference the pointer to get the variable
+//             // emitLoadRelative(dest, 0, dest, size, gen);
+//             // Offset mode to load back to itself
+//             insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8,
+//                     insnCodeGen::Offset);
+//         } else {
+//             emitLoadRelative(dest, varOffset, baseReg, size, gen);
+//         }
+//     } else { //loadConstop
+//         if(!is_local && (var != NULL)){
+//             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
+//         } else {
+//             std::vector<Register> exclude;
+//             exclude.push_back(baseReg);
+//             auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+//             insnCodeGen::generateAddSubShifted(gen,
+//                     (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+//                     0, 0, addReg, baseReg, baseReg, true);
+//             insnCodeGen::generateMove(gen, dest, baseReg, true);
+//         }
+//     }
+//
+//     assert(stackSize <= 0 && "stack not empty at the end");
+// }
+//
+// void EmitterAmdgpuVega::emitStoreShared(Register source, const image_variable *var,
+//         bool is_local, int size, codeGen &gen)
+// {
+//     // create or retrieve jump slot
+//     Address addr;
+//     int stackSize = 0;
+//     if(!is_local) {
+//         addr = getInterModuleVarAddr(var, gen);
+//     }
+//     else {
+//         addr = (Address)var->getOffset();
+//     }
+//
+//     // load register with address from jump slot
+//     Register baseReg = gen.rs()->getScratchRegister(gen, true);
+//     assert(baseReg != Null_Register && "cannot get a scratch register");
+//
+//     emitMovePCToReg(baseReg, gen);
+//     Address varOffset = addr - gen.currAddr() + 4;
+//
+//     if(!is_local) {
+//         std::vector<Register> exclude;
+//         exclude.push_back(baseReg);
+//         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
+//         assert(scratchReg1 != Null_Register && "cannot get a scratch register");
+//         emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
+//         emitStoreRelative(source, 0, scratchReg1, size, gen);
+//     } else {
+//         std::vector<Register> exclude;
+//         exclude.push_back(baseReg);
+//         // mov offset to a reg
+//         auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+//         // add/sub offset to baseReg
+//         insnCodeGen::generateAddSubShifted(gen,
+//                 (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+//                 0, 0, addReg, baseReg, baseReg, true);
+//         insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+//                 baseReg, 0, size, insnCodeGen::Pre);
+//     }
+//
+//     assert(stackSize <= 0 && "stack not empty at the end");
+// }
 
 Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
     AddressSpace *addrSpace = gen.addrSpace();
@@ -1393,17 +1393,17 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) 
     return relocation_address;
 }
 
-Address EmitterAMDGPU::emitMovePCToReg(Register dest, codeGen &gen) {
-    instruction insn;
-    insn.clear();
-
-    INSN_SET(insn, 28, 28, 1);
-    INSN_SET(insn, 0, 4, dest);
-
-    insnCodeGen::generate(gen, insn);
-    Address ret = gen.currAddr();
-    return ret;
-}
+// Address EmitterAmdgpuVega::emitMovePCToReg(Register dest, codeGen &gen) {
+//     instruction insn;
+//     insn.clear();
+//
+//     INSN_SET(insn, 28, 28, 1);
+//     INSN_SET(insn, 0, 4, dest);
+//
+//     insnCodeGen::generate(gen, insn);
+//     Address ret = gen.currAddr();
+//     return ret;
+// }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     // from POWER64 getInterModuleFuncAddr
