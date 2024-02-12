@@ -49,12 +49,6 @@ namespace Dyninst { namespace DwarfDyninst {
       return name;
     }
 
-    /* The absolute path of `filename` relative to `base`
-     *
-     *  We could use boost::filesystem::absolute here, but we don't need to pay the cost of
-     *  its flexibility for multiple path separators since DWARF is currently only on
-     *  Unix-like platforms.
-     */
     inline std::string absolute_path(std::string const &filename, std::string const &base) {
       // If base is empty, don't make any conversion
       if (base.empty()) {
@@ -68,10 +62,6 @@ namespace Dyninst { namespace DwarfDyninst {
       return base + "/" + filename;
     }
 
-    /* The compilation directory for the CU
-     *
-     *  Returns an empty string if not found
-     */
     inline std::string comp_dir_name(Dwarf_Die cuDie) {
       Dwarf_Attribute attr;
       const char *comp_dir = dwarf_formstring(dwarf_attr(&cuDie, DW_AT_comp_dir, &attr));
@@ -80,9 +70,6 @@ namespace Dyninst { namespace DwarfDyninst {
       return comp_dir;
     }
 
-    /*
-     *  Make a string representation of the DIEs offset
-     */
     inline std::string die_offset(Dwarf_Die die) {
       auto off_die = dwarf_dieoffset(&die);
       std::stringstream suffix;
@@ -91,22 +78,8 @@ namespace Dyninst { namespace DwarfDyninst {
     }
   }
 
-  /* Check if the die is anonymous
-   *
-   *   True if it has no DW_AT_name attribute
-   *
-   *   This only checks if the immediate die has a name. We
-   *   don't care if any of its parents have a name.
-   */
   inline bool is_anonymous_die(Dwarf_Die die) { return !dwarf_hasattr(&die, DW_AT_name); }
 
-  /*  Detect if the current DIE has been marked as artificial
-   *
-   *   From the DWARF5 standard (2.11 Artificial Entries):
-   *
-   *     A compiler may wish to generate debugging information entries for objects
-   *     or types that were not actually declared in the source of the application.
-   */
   inline bool is_artificial_die(Dwarf_Die die) {
     bool has_art_attr = dwarf_hasattr(&die, DW_AT_artificial);
 
@@ -115,15 +88,6 @@ namespace Dyninst { namespace DwarfDyninst {
     return detail::die_name(die) == "<artificial>" || has_art_attr;
   }
 
-  /* The name of the die referred to by `die`
-   *
-   *   If the `die` is artificial, a unique name is returned.
-   *   If this case is important to the caller, then `is_artificial`
-   *   should be checked.
-   *
-   *   Anonymous DIEs are purposefully left unnamed because of explicit
-   *   checks in DwarfWalker::nameDefined.
-   */
   inline std::string die_name(Dwarf_Die die) {
 
     auto name = detail::die_name(die);
