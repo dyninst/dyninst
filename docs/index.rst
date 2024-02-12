@@ -144,6 +144,7 @@ Developed by
    dataflowAPI/developer/API
    dwarf/developer/API
    dyninstAPI/developer/API
+   elf/developer/API
    instructionAPI/developer/API
    parseAPI/developer/API
    patchAPI/developer/API
