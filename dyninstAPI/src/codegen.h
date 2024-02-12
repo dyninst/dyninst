@@ -41,6 +41,7 @@
 /* Moving amdgpu first to fix x86 platform issues */
 #if defined(arch_amdgpu)
 #include "codegen-amdgpu.h"
+using namespace NS_amdgpu;
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "codegen-power.h"
 using namespace NS_power;
