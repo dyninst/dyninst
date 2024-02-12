@@ -102,8 +102,9 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   gen.setRegisterSpace(rs);
 
   // Calculate the offset between current PC and original RA
-  EmitterAMDGPU* emitter = static_cast<EmitterAMDGPU*>(gen.emitter());
-  Address RAOffset = addr - emitter->emitMovePCToReg( 30 /* LR */ , gen) + 4;
+  EmitterAmdgpuVega* emitter = static_cast<EmitterAmdgpuVega*>(gen.emitter());
+  // This will definitely cause error. Implement emitMovePcToReg for AMDGPU
+  Address RAOffset = addr; // - emitter->emitMovePCToReg( 30 /* LR */ , gen) + 4;
   // Load the offset into a scratch register
   std::vector<Register> exclude;
   exclude.push_back(30 /* LR */);

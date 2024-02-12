@@ -31,7 +31,7 @@
 #include <string.h>
 #include <iostream>
 #include "proccontrol/src/amdgpu_process.h"
-#include "common/src/arch-aarch64.h"
+#include "common/src/arch-amdgpu.h"
 
 using namespace NS_aarch64;
 using namespace std;
