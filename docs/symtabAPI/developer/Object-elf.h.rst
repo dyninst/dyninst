@@ -3,10 +3,6 @@
 Object-elf.h
 ############
 
-.. cpp:namespace:: Dyninst::DwarfDyninst
-
-.. cpp:type:: boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr
-
 
 .. cpp:namespace:: Dyninst::SymtabAPI
 
