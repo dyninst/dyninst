@@ -142,6 +142,7 @@ Developed by
 
    common/developer/API
    dataflowAPI/developer/API
+   dwarf/developer/API
    dyninstAPI/developer/API
    instructionAPI/developer/API
    parseAPI/developer/API
