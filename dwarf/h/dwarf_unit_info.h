@@ -32,8 +32,6 @@
 #define DWARF_UNIT_INFO_H
 
 namespace Dyninst { namespace DwarfDyninst {
-  // We purposefully don't include DW_TAG_skeleton_unit here as
-  // libdw should merge those into a single CU for us.
   inline bool is_full_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_compile_unit; }
   inline bool is_partial_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_partial_unit; }
   inline bool is_type_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_type_unit; }
