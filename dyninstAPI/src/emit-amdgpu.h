@@ -29,8 +29,8 @@
  */
 
 
-#ifndef _EMITTER_AMDGPU_H
-#define _EMITTER_AMDGPU_H
+#ifndef _EMIT_AMDGPU_H
+#define _EMIT_AMDGPU_H
 
 #include <assert.h>
 #include <vector>
@@ -40,6 +40,7 @@
 #include "dyninstAPI/src/ast.h"
 
 #include "dyninstAPI/src/emitter.h"
+#include "dyninstAPI/src/amdgpu-vega-details.h"
 
 class codeGen;
 
@@ -47,215 +48,178 @@ class registerSpace;
 
 class baseTramp;
 
-// class for encapsulating
-// platform dependent code generation functions
-class EmitterAMDGPU : public Emitter {
-
+class EmitterAmdgpuVega : public Emitter {
 public:
-    virtual ~EmitterAMDGPU() {}
+  // emitIf semantics:
+  // if (expr_reg == 0)
+  //   jump to target address
+  //
 
-    virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &);
+  // emitIf implementation approach:
+  //
+  // if (expr_reg != 0)
+  //   jump to <else_block>
+  //
+  // jump_to_then_block (which jumps to target address)
+  //
+  // else_block:
+  //
 
-    virtual void emitOp(unsigned, Register, Register, Register, codeGen &);
+  // Actual instruction sequence:
+  //
+  // s_cmp_ne_u32 <expr_reg>, 0
+  // s_cbranch_scc0 0
+  //
+  // jump_to_then_block:
+  //   s_setpc_b64 [t:t+1]  (t, t+1 hold the target address)
+  //
+  // else_block:
 
-    virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,
-                           codeGen &) { assert(0); }
+  // The target address is held in an even aligned register pair
+  // Return the index of s_setpc_b64 in the codegen memory buffer.
+  // Note that RegControl is unused on AMDGPU, simply pass rc_no_control.
+  codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc,
+                  codeGen &gen);
 
-    virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &, bool);
+  void emitOp(unsigned opcode, Register dest, Register src1, Register src2,
+              codeGen &gen);
 
-    virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &, bool);
+  // What is opcode2?
+  void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest,
+                 Register src1, RegValue src2imm, codeGen &gen);
 
-    virtual void emitDiv(Register, Register, Register, codeGen &, bool) { assert(0); }
+  // SALU relational operations on AMDGPU use SOPC encoding, and destination is
+  // always SCC, have placeholder value as 0 for dest, mention in comment /*
+  // SCC_DUMMY = */ when calling this.
+  // ALSO FIXME: bool s seems like a redundant parameter
+  void emitRelOp(unsigned opcode, Register dest, Register src1, Register src2,
+                 codeGen &gen, bool s);
 
-    virtual void emitTimesImm(Register, Register, RegValue, codeGen &) { assert(0); }
+  void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
+                    codeGen &gen, bool s);
 
-    virtual void emitDivImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
+  void emitDiv(Register dest, Register src1, Register src2, codeGen &gen,
+               bool s);
 
-    virtual void emitLoad(Register, Address, int, codeGen &);
+  void emitTimesImm(Register dest, Register src1, RegValue src2imm,
+                    codeGen &gen);
 
-    virtual void emitLoadConst(Register, Address, codeGen &);
+  void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen,
+                  bool s);
 
-    virtual void emitLoadIndir(Register, Register, int, codeGen &);
+  // TODO: Implementation requires full 'codeGen' and 'registerSpace' class to
+  // allocate register. This method doesn't fit AMDGPU because addr needs to be
+  // stored in 2 additional registers. Use emitLoadConst followed by
+  // emitLoadIndir for the same effect.
+  void emitLoad(Register dest, Address addr, int size, codeGen &gen);
 
-    virtual bool emitCallRelative(Register, Address, Register, codeGen &);
+  // Consider dest, dest+1 pairs to load the value
+  // dest = lower 32 bits of imm (LSBs)
+  // dest + 1 = upper 32 bits of imm (MSBs)
+  void emitLoadConst(Register dest, Address imm, codeGen &gen);
 
-    virtual bool emitLoadRelative(Register, Address, Register, int, codeGen &);
+  // s_load_dword, x2, x4, x8, x16
+  void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
 
-    virtual void
-    emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen,
-                   Address offset);
+  bool emitCallRelative(Register, Address, Register, codeGen &);
 
-    virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
+  bool emitLoadRelative(Register dest, Address offset, Register base, int size,
+                        codeGen &gen);
 
-    // These implicitly use the stored original/non-inst value
-    virtual void emitLoadOrigFrameRelative(Register, Address, codeGen &) { assert(0); }
+  void emitLoadShared(opCode op, Register dest, const image_variable *var,
+                      bool is_local, int size, codeGen &gen, Address offset);
 
-    virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool);
+  void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
-    virtual void emitLoadOrigRegister(Address, Register, codeGen &);
+  // These implicitly use the stored original/non-inst value
+  void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
 
-    virtual void emitStore(Address, Register, int, codeGen &);
+  void emitLoadOrigRegRelative(Register dest, Address offset, Register base,
+                               codeGen &gen, bool store);
 
-    virtual void emitStoreIndir(Register, Register, int, codeGen &);
+  void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
 
-    virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
+  void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
 
-    virtual void emitStoreRelative(Register, Address, Register, int, codeGen &);
+  void emitStore(Address addr, Register src, int size, codeGen &gen);
 
-    virtual void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen);
+  void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
 
+  void emitStoreFrameRelative(Address offset, Register src, Register scratch,
+                              int size, codeGen &gen);
 
-    virtual void emitStoreOrigRegister(Address, Register, codeGen &) { assert(0); }
+  void emitStoreRelative(Register source, Address offset, Register base,
+                         int size, codeGen &gen);
 
-    virtual bool emitMoveRegToReg(Register, Register, codeGen &) {
-        assert(0);
-        return 0;
-    }
+  void emitStoreShared(Register source, const image_variable *var,
+                       bool is_local, int size, codeGen &gen);
 
-    virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
+  bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
 
-    virtual Address emitMovePCToReg(Register, codeGen &gen);
+  bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
-    // This one we actually use now.
-    virtual Register emitCall(opCode, codeGen &, const std::vector <AstNodePtr> &,
-                              bool, func_instance *);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
+  Register emitCall(opCode op, codeGen &gen,
+                    const std::vector<AstNodePtr> &operands, bool noCost,
+                    func_instance *callee);
 
-    virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
+  void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
 
-    virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
+  void emitGetRetAddr(Register dest, codeGen &gen);
 
-    virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool, codeGen &);
+  void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type,
+                    opCode op, bool addr_of, codeGen &gen);
 
-    virtual void emitASload(int, int, int, long, Register, int, codeGen &) { assert(0); }
+  void emitASload(int ra, int rb, int sc, long imm, Register dest,
+                  int stackShift, codeGen &gen);
 
-    virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
+  void emitCSload(int ra, int rb, int sc, long imm, Register dest,
+                  codeGen &gen);
 
-    virtual void emitPushFlags(codeGen &) { assert(0); }
+  void emitPushFlags(codeGen &gen);
 
-    virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
+  void emitRestoreFlags(codeGen &gen, unsigned offset);
+  // Built-in offset...
 
-    // Built-in offset...
-    virtual void emitRestoreFlagsFromStackSlot(codeGen &) { assert(0); }
+  void emitRestoreFlagsFromStackSlot(codeGen &gen);
 
-    virtual bool emitBTSaves(baseTramp *, codeGen &) {
-        assert(0);
-        return true;
-    }
+  bool emitBTSaves(baseTramp *bt, codeGen &gen);
 
-    virtual bool emitBTRestores(baseTramp *, codeGen &) {
-        assert(0);
-        return true;
-    }
+  bool emitBTRestores(baseTramp *bt, codeGen &gen);
 
-    virtual void emitStoreImm(Address, int, codeGen &, bool) { assert(0); }
+  // TODO: requires allocating / deallocating register (see next comment).
+  void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
 
-    virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
+  // TODO: Implementation requires full 'codeGen' and 'registerSpace' class to
+  // allocate register. ALSO FIXME: bool noCost seems like a redundant
+  // parameter.
+  void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
 
-    virtual int Register_DWARFtoMachineEnc(int) {
-        assert(0);
-        return 0;
-    }
+  bool emitPush(codeGen &, Register);
 
-    virtual bool emitPush(codeGen &, Register) {
-        assert(0);
-        return true;
-    }
+  bool emitPop(codeGen &, Register);
 
-    virtual bool emitPop(codeGen &, Register) {
-        assert(0);
-        return true;
-    }
+  bool emitAdjustStackPointer(int index, codeGen &gen);
 
-    virtual bool emitAdjustStackPointer(int, codeGen &) {
-        assert(0);
-        return true;
-    }
+  bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
 
-    virtual bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
+  // The additional interfaces
 
-protected:
-    virtual bool emitCallInstruction(codeGen &, func_instance *,
-                                     bool, Address);
+  // Emit numNops nops (numNops >= 1 & numNops <=16)
+  void emitNops(unsigned numNops, codeGen &gen);
 
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
-                                         func_instance *);
+  void emitEndProgram(codeGen &gen);
+
+  // Set 32-bit reg = 32-bit literal
+  void emitMovLiteral(Register reg, uint32_t literal, codeGen &gen);
+
+  // wordOffset can be positive or negetive 16 bit value
+  // conditionally set PC = PC + SignExtend(wordOffset * 4) + 4
+  void emitConditionalBranch(bool onConditionTrue, int16_t wordOffset,
+                             codeGen &gen);
+
+  // set PC = PC + SignExtend(wordOffset * 4) + 4
+  void emitShortJump(int16_t wordOffset, codeGen &gen);
+
+  void emitLongJump(Register reg, uint64_t toAddress, codeGen &gen);
 };
-
-class EmitterAMDGPUDyn : public EmitterAMDGPU {
-public:
-    virtual bool emitTOCCall(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, true, gen); }
-
-    virtual bool emitTOCJump(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, false, gen); }
-    
-    virtual ~EmitterAMDGPUDyn() {}
-
-private:
-    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
-
-};
-
-class EmitterAMDGPUStat : public EmitterAMDGPU {
-public:
-    virtual ~EmitterAMDGPUStat() {}
-
-    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
-
-    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
-
-    virtual bool emitTOCCall(block_instance *dest, codeGen &gen);
-
-    virtual bool emitTOCJump(block_instance *dest, codeGen &gen);
-
-protected:
-    virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
-                                     Address);
-
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
-                                         func_instance *) {
-        assert(0 && "emitCallReplacement not implemented for binary rewriter");
-    }
-
-private:
-    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
-
-    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
-};
-
-class EmitterAMDGPUSaveRegs {
-public:
-    virtual ~EmitterAMDGPUSaveRegs() {}
-
-    unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace,
-            int offset, int numReqGPRs = -1);
-
-    unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
-
-    unsigned saveSPRegisters(codeGen &gen, registerSpace *, int offset, bool force_save);
-
-    void createFrame(codeGen &gen);
-
-private:
-    void saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
-
-    void saveFPRegister(codeGen &gen, Register reg, int save_off);
-};
-
-class EmitterAMDGPURestoreRegs {
-public:
-    virtual ~EmitterAMDGPURestoreRegs() {}
-
-    unsigned restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
-
-    unsigned restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
-
-    unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int offset, int force_save);
-
-    void tearFrame(codeGen &gen);
-
-    void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
-
-    void restoreFPRegister(codeGen &gen, Register reg, int save_off);
-};
-
 #endif
