@@ -107,7 +107,10 @@ set(_private_headers
     src/syscallNotification.h
     src/trapMappings.h
     src/unix.h
-    src/util.h)
+    src/util.h
+
+    src/amdgpu-vega-details.h
+    )
 
 set(_sources
     src/addressSpace.C
@@ -194,7 +197,10 @@ set(_sources
     src/Relocation/Widgets/PCWidget.C
     src/Relocation/Widgets/RelDataWidget.C
     src/Relocation/Widgets/StackModWidget.C
-    src/Relocation/patchapi_debug.C)
+    src/Relocation/patchapi_debug.C
+
+    src/amdgpu-vega-details.cpp
+    )
 
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found GREATER -1)
