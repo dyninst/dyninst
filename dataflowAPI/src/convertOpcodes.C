@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// This file was automatically generated
-
 //#include "SymEval.h"
 //#include "SymEvalPolicy.h"
 #include "RoseInsnFactory.h"
@@ -2019,9 +2017,7 @@ ARMv8InstructionKind RoseInsnArmv8Factory::convertKind(entryID opcode) {
         default: return rose_aarch64_op_INVALID;
     }
 }
-// TODO:
 
-// This function should just translate each instructionAPI opcode to a rose equivalent version
 AMDGPUInstructionKind RoseInsnAMDGPUFactory::convertKind(entryID opcode) {
     switch(opcode) {
         case amdgpu_gfx908_op_S_SETPC_B64 : return rose_amdgpu_op_s_setpc_b64;
