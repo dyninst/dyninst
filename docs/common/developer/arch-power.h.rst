@@ -30,6 +30,9 @@ arch-power.h
   .. cpp:function:: static unsigned size()
   .. cpp:function:: Dyninst::Address getBranchOffset() const
   .. cpp:function:: void setBranchOffset(Dyninst::Address newOffset)
+
+    TODO: argument *needs* to be an int, or ``ABS()`` doesn't work.
+
   .. cpp:function:: static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width)
   .. cpp:function:: static unsigned jumpSize(Dyninst::Address disp, unsigned addr_width)
   .. cpp:function:: static unsigned maxJumpSize(unsigned addr_width)
