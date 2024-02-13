@@ -24,6 +24,12 @@ MachSyscall.h
 
   .. cpp:function:: SyscallIDPlatform num() const
 
-    The platform-specific number for this system call
+    Returns the platform-specific number for this system call
 
   .. cpp:function:: SyscallName name() const
+
+    Returns the name for this system call (e.g., "getpid")
+
+  .. cpp:function:: bool operator==(const MachSyscall &) const
+
+    Strict equality-based matching on Platforms and IDs

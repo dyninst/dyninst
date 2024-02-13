@@ -40,6 +40,7 @@ Classes and features shared among many parts of Dyninst.
    linuxKludges.h
    lprintf.h
    lru_cache.h
+   MachSyscall.h
    MappedFile.h
    NodeIterator.h
    ntHeaders.h
