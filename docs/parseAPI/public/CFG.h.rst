@@ -252,10 +252,10 @@ CFG.h
 
       Disassembles the block and stores the result in ``Insns``.
 
-  .. cpp:function:: InstructionAPI::Instruction::Ptr getInsn(Offset o) const
+  .. cpp:function:: InstructionAPI::Instruction getInsn(Offset o) const
 
       Returns the instruction starting at offset ``o`` within the block.
-      Returns ``InstructionAPI::Instruction::Ptr()`` if ``o`` is outside the
+      Returns ``InstructionAPI::Instruction()`` if ``o`` is outside the
       block, or if an instruction does not begin at ``o``.
 
   .. cpp:function:: Address start() const

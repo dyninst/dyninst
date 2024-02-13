@@ -10,7 +10,7 @@ AbslocInterface.h
   **Converts instructions to** :ref:`Abstract Regions <sec:dataflow-abstractions>`
 
   .. cpp:function:: AbsRegionConverter(bool cache, bool stack)
-  
+
     Creates a converter that can cache results can use stack analysis.
 
     When ``cache`` is ``true``, the conversion results are saved for reuse.
@@ -29,7 +29,7 @@ AbslocInterface.h
     expression. If PC appears in this expression, we assume the expression
     is at address ``addr`` and replace PC with a constant value ``addr``.
 
-  .. cpp:function:: void convertAll(InstructionAPI::Instruction::Ptr insn, Address addr, \
+  .. cpp:function:: void convertAll(InstructionAPI::Instruction const& insn, Address addr, \
                                     ParseAPI::Function *func, ParseAPI::Block *block, \
                                     std::vector<AbsRegion> &used, std::vector<AbsRegion> &defined)
 
@@ -58,13 +58,13 @@ AbslocInterface.h
     the function ``func``.
 
   .. cpp:function:: AbsRegion stack(Address addr, ParseAPI::Function *func, ParseAPI::Block *block, bool push)
-  
+
      Creates a :cpp:enumerator:`Absloc::Type::Stack` abstract region at address ``addr`` in block ``block``
      in function ``func``. If ``push`` is ``true``, the stack height is adjusted to allocate space
      for a word.
-     
+
   .. cpp:function:: AbsRegion frame(Address addr, ParseAPI::Function *func, ParseAPI::Block *block, bool push)
-  
+
      Creates a :cpp:enumerator:`Absloc::Type::Heap` abstract region at address ``addr`` in block ``block``
      in function ``func``. If ``push`` is ``true``, the stack height is adjusted to allocate space
      for a word.
@@ -76,12 +76,12 @@ AbslocInterface.h
   .. cpp:function:: AssignmentConverter(bool cache, bool stack)
 
     Creates a converter that can cache results can use stack analysis.
-    
+
     When ``cache`` is ``true``, the conversion results are saved for reuse.
     When ``stack`` is ``true``, stack analysis is used to distinguish stack variables at different offsets.
     When ``stack`` is ``false``, the stack is treated as a single memory region.
-    
-  .. cpp:function:: void convert(InstructionAPI::Instruction::Ptr insn, const Address &addr, \
+
+  .. cpp:function:: void convert(InstructionAPI::Instruction const& insn, const Address &addr, \
                                  ParseAPI::Function *func, ParseAPI::Block *blk, \
                                  std::vector<Assignment::Ptr> &assign)
 

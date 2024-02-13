@@ -105,7 +105,7 @@ Point.h
 
       Returns the object where this point resides.
 
-  .. cpp:function:: const InstructionAPI::Instruction::Ptr insn() const
+  .. cpp:function:: const InstructionAPI::Instruction insn() const
 
       Returns the instruction where this point resides.
 
