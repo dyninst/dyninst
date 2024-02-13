@@ -1509,8 +1509,15 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #endif
 	}
 	else {
+#if defined(arch_amdgpu)
+    assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
+	  range = regToMachReg32.equal_range(reg);
+		live = &live1;
+#else
 		range = regToMachReg64.equal_range(reg);
 		live = &live2;
+#endif
+
 	}
 	if (range.first == range.second) assert(0);
 	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter)

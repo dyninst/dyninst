@@ -144,6 +144,8 @@ ABI* ABI::getABI(int addr_width){
 #endif
 
 #if defined(arch_amdgpu)
+	globalABI64_->addr_width = 8;
+  initialize64(Arch_amdgpu_gfx908);
 #else
 #ifdef arch_64bit
 	initialize64();
