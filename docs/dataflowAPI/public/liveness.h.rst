@@ -18,28 +18,20 @@ liveness.h
 
      Creates an analyzer with an assumed address width ``w``.
 
-  .. cpp:enum:: Type
-
-    .. cpp:enumerator:: Before
-
-       Analyze liveness for registers before the current location.
-
-    .. cpp:enumerator:: After
-
-       Analyze liveness for registers after the current location.
-
-  .. cpp:function:: void analyze(ParseAPI::Function *func)
+  .. cpp:function:: void analyze(Dyninst::ParseAPI::Function *func)
 
      Calculate basic block summaries of liveness information for all basic blocks in ``func``.
 
-  .. cpp:function:: bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live)
+  .. cpp:function:: template <class OutputIterator> bool query(Dyninst::ParseAPI::Location loc, Type type, OutputIterator outIter)
+
+  .. cpp:function:: bool query(Dyninst::ParseAPI::Location loc, Type type, const Dyninst::MachRegister &machReg, bool& live)
 
      Calculates liveness for the register ``machReg`` at ``loc`` in the direction ``type`` and stores
      the result in ``live``.
 
      Returns ``false`` if no result could be found.
 
-  .. cpp:function:: bool query(ParseAPI::Location loc, Type type, bitArray &bitarray)
+  .. cpp:function:: bool query(Dyninst::ParseAPI::Location loc, Type type, bitArray &bitarray)
 
      Calculates liveness for all registers represented by ``bitarray`` starting at ``loc`` in the direction ``type``.
 
@@ -50,7 +42,9 @@ liveness.h
 
      Returns ``false`` if ``loc`` is not valid.
 
-  .. cpp:function:: void clean(ParseAPI::Function *func)
+  .. cpp:function:: ErrorType getLastError()
+
+  .. cpp:function:: void clean(Dyninst::ParseAPI::Function *func)
 
      Resets cached liveness information associated with ``func``.
 
@@ -58,10 +52,27 @@ liveness.h
 
      Resets all cached liveness information.
 
-  .. cpp:function:: int getIndex(MachRegister machReg)
+  .. cpp:function:: int getIndex(Dyninst::MachRegister machReg)
 
      Returns the cache index of the register ``machReg``.
 
   .. cpp:function:: Dyninst::ABI* getABI()
 
      Returns the :cpp:class:`Dyninst::ABI` associated with the current platform.
+
+
+.. cpp:enum:: LivenessAnalyzer::Type
+
+  .. cpp:enumerator:: Before
+
+     Analyze liveness for registers before the current location.
+
+  .. cpp:enumerator:: After
+
+     Analyze liveness for registers after the current location.
+
+
+.. cpp:enum:: LivenessAnalyzer::ErrorType
+
+  .. cpp:enumerator:: Invalid_Location
+

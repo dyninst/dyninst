@@ -11,6 +11,7 @@ Documentation for the internal classes of the DataflowAPI toolkit.
 
   debug_dataflow.h
   ExpressionConversionVisitor.h
+  liveness.h
   RegisterMap.h
   RoseInsnFactory.h
   stackanalysis.h
