@@ -39,7 +39,6 @@
 
 void DYNINSTtrapFunction(void);
 void DYNINSTbreakPoint(void);
-/* Use a signal that is safe if we're not attached. */
 void DYNINSTsafeBreakPoint(void);
 void DYNINSTinit(void);
 int DYNINSTreturnZero(void);
