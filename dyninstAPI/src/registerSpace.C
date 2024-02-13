@@ -252,7 +252,9 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
         switch (registers[i]->type) {
         case registerSlot::GPR: {
-	  bool physical = true;
+        case registerSlot::SGPR:
+        case registerSlot::VGPR:
+	        bool physical = true;
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 	  if (rs->addr_width == 4)
 	    physical = false;
