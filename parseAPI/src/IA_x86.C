@@ -44,6 +44,9 @@
 #include <deque>
 #include "Register.h"
 
+#include <boost/variant2/variant.hpp>
+#include <stack>
+
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Dyninst::InsnAdapter;
@@ -91,75 +94,120 @@ bool IA_x86::isFrameSetupInsn(Instruction i) const
     return false;
 }
 
-class nopVisitor : public InstructionAPI::Visitor
+
+/*
+ * Simplify an effective address calulation for 'lea' instruction
+ *
+ *  A common idiom for a multi-byte nop is to perform an effective address
+ *  calculation that results in storing the value of a register into itself.
+ *
+ * Examples:
+ *
+ *    lea rax, [rax]
+ *    lea rax, [rax*1 + 0]
+ *
+ * This visitor uses a stack and an RPN-style calculation to simplify instances
+ * of multiplicitive (1) and additive (0) identities.  If a binary expression
+ * with an identity operand is encountered the result is the other value of the
+ * expression. All other expressions result in the original expression.  The
+ * final result simplifies to either a register expression or some other
+ * expression.
+ *
+ * After applying the visitor to both operands, A NOP is then determined by
+ * testing if each visitor's result is a register and are identical.
+ *
+ * There are special cases that are handled implicitly.
+ *
+ * 1) The pseudoregister `riz` in `lea rsi, [rsi+riz*1+0x0]` is an assembly
+ * construct to indicate a SIB, is not present in the expression not considered
+ * to be read. This reduces the expression to `rsi+0x0`.
+ *
+ * 2) If the source and destination registers are different sizes, then the
+ * instruction is not considered a nop. For example, `lea eax, [rax]`.
+ *
+ */
+class leaSimplifyVisitor : public InstructionAPI::Visitor
 {
+        using ExprNodeValues = boost::variant2::variant<Expression*, RegisterAST*, int64_t>;
+        using ExprStack = std::stack<ExprNodeValues>;
+        ExprStack exprStack;
+
     public:
-        nopVisitor() : foundReg(false), foundImm(false), foundBin(false), isNop(true) {}
-        virtual ~nopVisitor() {}
+        void visit(BinaryFunction *bf) override {
+            auto op1 = exprStack.top();
+            exprStack.pop();
+            auto op2 = exprStack.top();
+            exprStack.pop();
 
-        bool foundReg;
-        bool foundImm;
-        bool foundBin;
-        bool isNop;
+            auto value = boost::variant2::get_if<int64_t>(&op1);
+            if (!value)  {
+                std::swap(op1, op2);  // op1 not an immediate, commute and try again
+                value = boost::variant2::get_if<int64_t>(&op1);
+            }
+            if (value && ((*value == 0 && bf->isAdd()) || (*value == 1 && bf->isMultiply())))  {
+                exprStack.push(op2);  // additive or multiplicative identity, simplify to op2
+            }  else  {
+                exprStack.push(bf);   // no simplification, use BinaryFunction expression
+            }
+        }
+        void visit(Immediate *imm) override {
+            auto const value = imm->eval().convert<int64_t>();
+            exprStack.push(value);
+        }
+        void visit(RegisterAST *reg) override {
+            exprStack.push(reg);
+        }
+        void visit(Dereference *deref) override {
+            parsing_printf("%s[%d]: malformed lea instruction, dereference expression encountered\n",
+                           FILE__, __LINE__);
+            exprStack.pop();         // pop the Dereference's child expression
+            exprStack.push(deref);   // replace with the Dereference exprression
+        }
 
-        virtual void visit(BinaryFunction*)
-        {
-            if (foundBin) isNop = false;
-            if (!foundImm) isNop = false;
-            if (!foundReg) isNop = false;
-            foundBin = true;
+        // return simplified result RegisterAST* or nullptr if not a registerAST*
+        const RegisterAST *getRegister() const {
+            auto value = boost::variant2::get_if<RegisterAST *>(&exprStack.top());
+            return value ? *value : nullptr;
         }
-        virtual void visit(Immediate *imm)
-        {
-            if (imm != 0) isNop = false;
-            foundImm = true;
-        }
-        virtual void visit(RegisterAST *)
-        {
-            foundReg = true;
-        }
-        virtual void visit(Dereference *)
-        {
-            isNop = false;
+        void reset()  {      // reset the visitor for reuse
+            exprStack = {};  // clear the stack
         }
 };
 
-bool isNopInsn(Instruction insn)
-{
-    // TODO: add LEA no-ops
-    if(insn.getOperation().getID() == e_nop)
+
+bool isNopInsn(Instruction insn) {
+    if (insn.getOperation().getID() == e_nop)  {
         return true;
-    if(insn.getOperation().getID() == e_lea)
-    {
-        std::set<Expression::Ptr> memReadAddr;
-        insn.getMemoryReadOperands(memReadAddr);
-        std::set<RegisterAST::Ptr> writtenRegs;
-        insn.getWriteSet(writtenRegs);
+    }  else if (insn.getOperation().getID() == e_lea)  {
+        std::vector<Operand> operands;
+        insn.getOperands(operands);
 
-        if(memReadAddr.size() == 1 && writtenRegs.size() == 1)
-        {
-            if(**(memReadAddr.begin()) == **(writtenRegs.begin()))
-            {
-                return true;
-            }
+        if (operands.size() != 2)  {
+            parsing_printf("%s[%d]: malformed lea instruction number of operands (%lu) not 2",
+                           FILE__, __LINE__, operands.size());
+            return false;
         }
-        // Check for zero displacement
-        nopVisitor visitor;
 
-	// We need to get the src operand
-        insn.getOperand(1).getValue()->apply(&visitor);
-        if (visitor.isNop) return true; 
+        leaSimplifyVisitor op1Visitor, op2Visitor;
+        operands[0].getValue()->apply(&op1Visitor);
+        operands[1].getValue()->apply(&op2Visitor);
+
+        auto op1Reg = op1Visitor.getRegister();
+        auto op2Reg = op2Visitor.getRegister();
+
+        // both operands simplify to registers and they are the same
+        return op1Reg && op2Reg && *op1Reg == *op2Reg;
     }
+
     return false;
 }
+
 
 bool IA_x86::isNop() const
 {
     Instruction ci = curInsn();
 
-
     return isNopInsn(ci);
-
 }
 
 /*
