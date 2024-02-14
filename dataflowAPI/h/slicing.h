@@ -27,8 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-// A simple forward slice using a search of the control flow graph.
-// Templated on a function that says when to stop slicing.
 
 #if !defined(_SLICING_H_)
 #define _SLICING_H_
@@ -77,9 +75,6 @@ typedef boost::shared_ptr<Graph> GraphPtr;
 
  class Slicer;
 
-// Used in temp slicer; should probably
-// replace OperationNodes when we fix up
-// the DDG code.
 class DATAFLOW_EXPORT SliceNode : public Node {
  public:
   typedef boost::shared_ptr<SliceNode> Ptr;
@@ -141,7 +136,6 @@ class Slicer {
   typedef std::pair<InstructionAPI::Instruction, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
 
-  // Instruction cache. The key is the basic block starting address.
   typedef dyn_hash_map<Address, InsnVec> InsnCache;
 
   DATAFLOW_EXPORT Slicer(AssignmentPtr a,
@@ -167,20 +161,10 @@ class Slicer {
   DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
 
   struct DATAFLOW_EXPORT ContextElement {
-    // We can implicitly find the callsite given a block,
-    // since calls end blocks. It's easier to look up 
-    // the successor this way than with an address.
-
     ParseAPI::Function *func;
 
-    // If non-NULL this must be an internal context
-    // element, since we have an active call site.
     ParseAPI::Block *block;
 
-    // To enter or leave a function we must be able to
-    // map corresponding abstract regions. 
-    // In particular, we need to know the depth of the 
-    // stack in the caller.
      int stackDepth;
 
   ContextElement(ParseAPI::Function *f) : 
@@ -192,13 +176,10 @@ class Slicer {
   typedef std::deque<ContextElement> Context;
 
 
-  // Where we are in a particular search...
   struct DATAFLOW_EXPORT Location {
-    // The block we're looking through
     ParseAPI::Function *func;
-    ParseAPI::Block *block; // current block
+    ParseAPI::Block *block;
 
-    // Where we are in the block
     InsnVec::iterator current;
     InsnVec::iterator end;
 
@@ -214,7 +195,6 @@ class Slicer {
   Location() : func(NULL), block(NULL), fwd(true) {}
   };
     
-  // A slice is composed of abstract regions called Elements
   struct DATAFLOW_EXPORT Element {
     Element(ParseAPI::Block * b,
         ParseAPI::Function * f,
@@ -226,7 +206,6 @@ class Slicer {
         ptr(p)
     { }
 
-    // basic comparator for ordering
     bool operator<(const Element& el) const { 
         if (ptr->addr() < el.ptr->addr()) { return true; }
         if (el.ptr->addr() < ptr->addr()) { return false; }
@@ -241,8 +220,6 @@ class Slicer {
     Assignment::Ptr ptr;
   };
 
-  // State for recursive slicing is a context, location pair
-  // and a list of AbsRegions that are being searched for.
   struct DATAFLOW_EXPORT SliceFrame {
     SliceFrame(
         Location const& l,
@@ -254,8 +231,6 @@ class Slicer {
     SliceFrame() : valid(true) { }
     SliceFrame(bool v) : valid(v) { }
 
-    // Active slice nodes -- describe regions
-    // that are currently under scrutiny
     std::map<AbsRegion, std::vector<Element> > active;
     typedef std::map<AbsRegion, std::vector<Element> > ActiveMap;
 
@@ -279,7 +254,6 @@ class Slicer {
     DATAFLOW_EXPORT bool searchForControlFlowDep() { return controlFlowDep; }
     DATAFLOW_EXPORT void setSearchForControlFlowDep(bool cfd) { controlFlowDep = cfd; }
 
-    // A negative number means that we do not bound slicing size.
     DATAFLOW_EXPORT virtual int slicingSizeLimitFactor() { return -1; }
 
     DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
@@ -306,10 +280,8 @@ class Slicer {
     }
     DATAFLOW_EXPORT virtual ~Predicates() {}
 
-    // Callback function when adding a new node to the slice.
     DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr,
                                                  std::set<ParseAPI::Edge*> &) { return true;}
-    // Callback function after adding a new node and corresponding new edges to the slice.
     DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr, Slicer*) {return true;} 						
     DATAFLOW_EXPORT virtual bool ignoreEdge(ParseAPI::Edge*) { return false;}
     DATAFLOW_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
@@ -326,32 +298,19 @@ class Slicer {
     forward,
     backward } Direction;
 
-
-  // Our slicing is context-sensitive; that is, if we enter
-  // a function foo from a caller bar, all return edges
-  // from foo must enter bar. This makes an assumption that
-  // the return address is not modified, but hey. 
-  // We represent this as a list of call sites. This is redundant
-  // with the image_instPoint data structure, but hopefully that
-  // one will be going away. 
-
   bool getStackDepth(ParseAPI::Function *func, ParseAPI::Block *block, Address callAddr, long &height);
 
-  // Add the newly called function to the given Context.
   void pushContext(Context &context,
 		   ParseAPI::Function *callee,
 		   ParseAPI::Block *callBlock,
 		   long stackDepth);
 
-  // And remove it as appropriate
   void popContext(Context &context);
 
   typedef std::queue<Location> LocList;
  
   bool ReachableFromBothBranches(ParseAPI::Edge *e, std::vector<Element> &newE);
 
-  // Used for keeping track of visited edges in the
-  // slicing search
   struct CacheEdge {
     CacheEdge(Address src, Address trg) : s(src), t(trg) { }
     Address s;
@@ -369,17 +328,6 @@ class Slicer {
     }
   };
 
-    /* 
-     * An element that is a slicing `def' (where
-     * def means `definition' in the backward case
-     * and `use' in the forward case, along with
-     * the associated AbsRegion that labels the slicing
-     * edge.
-     *
-     * These two pieces of information, along with an 
-     * element describing the other end of the dependency,
-     * are what you need to create a slice edge.
-     */
     struct Def {
       Def(Element const& e, AbsRegion const& r) : ele(e), data(r) { } 
       Element ele;
@@ -390,8 +338,6 @@ class Slicer {
 	      return Assignment::AssignmentPtrHasher()(o.ele.ptr);
 	  }
       };
-      // only the Assignment::Ptr of an Element matters
-      // for comparison
       bool operator<(Def const& o) const {
           if(ele.ptr < o.ele.ptr)
               return true;
@@ -409,26 +355,13 @@ class Slicer {
       }
     };
 
-    /*
-     * A cache from AbsRegions -> Defs.
-     *
-     * Each node that has been visited in the search
-     * has a DefCache that reflects the resolution of
-     * any AbsRegions down-slice. If the node is visited
-     * again through a different search path (if the graph
-     * has fork-join structure), this caching prevents
-     * expensive recursion
-     */
     class DefCache {
       public:
         DefCache() { }
         ~DefCache() { }
 
-        // add the values from another defcache
         void merge(DefCache const& o);
    
-        // replace mappings in this cache with those
-        // from another 
         void replace(DefCache const& o);
 
         std::set<Def> & get(AbsRegion const& r) { 
@@ -445,8 +378,6 @@ class Slicer {
     
     };
 
-    // For preventing insertion of duplicate edges
-    // into the slice graph
     struct EdgeTuple {
         EdgeTuple(SliceNode::Ptr src, SliceNode::Ptr dst, AbsRegion const& reg)
           : s(src), d(dst), r(reg) { }
@@ -474,23 +405,16 @@ class Slicer {
         AbsRegion r;
     };
 
-  // Shift an abs region by a given stack offset
   void shiftAbsRegion(AbsRegion const&callerReg,
 		      AbsRegion &calleeReg,
 		      long stack_depth,
 		      ParseAPI::Function *callee);
 
-    // Shift all of the abstract regions active in the current frame
     void shiftAllAbsRegions(
         SliceFrame & cur,
         long stack_depth,
         ParseAPI::Function *callee);
 
-  /*
-   * Internal slicing support routines follow. See the
-   * implementation file for descriptions of what these
-   * routines actually do to implement slicing.
-   */
     GraphPtr sliceInternal(Direction dir,
             Predicates &predicates);
     void sliceInternalAux(
@@ -551,8 +475,6 @@ class Slicer {
             SliceFrame const& cand,
             std::vector<SliceFrame> & newCands);
 
-    /* forward slicing */
-
     bool getSuccessors(
             Predicates &p,
             SliceFrame const& cand,
@@ -587,8 +509,6 @@ class Slicer {
             ParseAPI::Edge * e,
             SliceFrame & cur,
             bool & err);
-
-    /* backwards slicing */
 
     bool getPredecessors(
             Predicates &p,
@@ -632,10 +552,7 @@ class Slicer {
 			       std::vector<SliceFrame> & newCands,
 			       bool& err,
 			       SliceFrame& nf);
-  
 
-    /* general slicing support */
-  
     void constructInitialFrame(
             Direction dir, 
             SliceFrame & initFrame);
@@ -707,10 +624,8 @@ private:
   ParseAPI::Function *f_;
 
 
-  // Assignments map to unique slice nodes
   std::unordered_map<AssignmentPtr, SliceNode::Ptr, Assignment::AssignmentPtrHasher> created_;
 
-  // cache to prevent edge duplication
   struct EdgeTupleHasher {
     size_t operator() (const EdgeTuple& et) const {
         size_t seed = (size_t)(et.s.get());
@@ -720,15 +635,11 @@ private:
   };
   std::unordered_map<EdgeTuple, int, EdgeTupleHasher> unique_edges_;
 
-  // map of previous active maps. these are used to end recursion.
   typedef std::map<AbsRegion, std::set<Element> > PrevMap;
   std::map<Address, PrevMap> prev_maps;
 
-  // set of plausible entry/exit nodes.
   std::set<SliceNode::Ptr> plausibleNodes;
 
-  // a stack and set of addresses that mirror our recursion.
-  // these are used to detect loops and properly merge cache.
   std::deque<Address> addrStack;
   std::set<Address> addrSet;
 
@@ -737,9 +648,6 @@ private:
 
   SliceNode::Ptr widen_;
  public: 
-  // A set of edges that have been visited during slicing,
-  // which can be used for external users to figure out
-  // which part of code has been analyzed
   std::set<ParseAPI::Edge*> visitedEdges;
 };
 

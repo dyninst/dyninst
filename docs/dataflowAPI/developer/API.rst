@@ -14,6 +14,7 @@ Documentation for the internal classes of the DataflowAPI toolkit.
   liveness.h
   RegisterMap.h
   RoseInsnFactory.h
+  slicing.h
   stackanalysis.h
   SymbolicExpansion.h
   SymEval.h

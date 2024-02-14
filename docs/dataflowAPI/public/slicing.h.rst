@@ -82,6 +82,7 @@ stopping criteria for the slicer.
 
     Retrieve the location of the previous instruction encountered during slicing.
 
+
 .. cpp:struct:: Slicer::ContextElement
 
   **Description of an area of code under scrutiny for slicing**
@@ -151,12 +152,24 @@ stopping criteria for the slicer.
     Creates an element describing the abstract region ``r`` with a minimal context (the block ``b`` contained in the
     function ``f``). The assignment ``p`` relates to that region (uses or defines it, depending on slice direction).
 
+  .. cpp:function:: bool operator<(const Element &el) const
+
+    basic comparator for ordering
+
+  .. cpp:member:: ParseAPI::Block *block
+  .. cpp:member:: ParseAPI::Function *func
+  .. cpp:member:: AbsRegion reg
+  .. cpp:member:: Assignment::Ptr ptr
+
+
 .. cpp:struct:: SliceFrame
 
   **State for recursive slicing**
 
   It is a context/location pair and a list of AbsRegions that are being searched for. SliceFrames keep a list of
   the currently active elements that are at the 'leading edge' of the under-construction slice.
+
+  .. cpp:type:: std::map<AbsRegion, std::vector<Element> > ActiveMap
 
   .. cpp:function:: SliceFrame()
 
@@ -178,6 +191,11 @@ stopping criteria for the slicer.
 
     Returns the address of the current location.
 
+  .. cpp:member:: Location loc
+  .. cpp:member:: Context con
+  .. cpp:member:: bool valid
+
+
 .. cpp:class:: Slicer::Predicates
 
   **Stopping criteria of slicing**
@@ -188,10 +206,6 @@ stopping criteria for the slicer.
   functions are provided to allow dynamic control over the behavior of the
   :cpp:class:`Slicer`.
 
-  .. cpp:function:: Predicates()
-
-    Constructs a default predicate that only searches for intraprocedural dataflow dependencies.
-
   .. cpp:type:: std::pair<ParseAPI::Function *, int> StackDepth_t
 
     Stack depth of a function.
@@ -199,6 +213,10 @@ stopping criteria for the slicer.
   .. cpp:type:: std::stack<StackDepth_t> CallStack_t
 
     A collection of :cpp:type:`StackDepth_t` representing a complete call stack.
+
+  .. cpp:function:: Predicates()
+
+    Constructs a default predicate that only searches for intraprocedural dataflow dependencies.
 
   .. cpp:function:: bool searchForControlFlowDep()
 
@@ -258,6 +276,8 @@ stopping criteria for the slicer.
     The default is to continue.
 
   .. cpp:function:: virtual bool modifyCurrentFrame(SliceFrame &f, GraphPtr g, Slicer *s)
+
+    Callback function after adding a new node and corresponding new edges to the slice.
 
     Allows inspection of the current slice graph, ``p``, being inspected by the slicer ``s`` to determine
     which :ref:`Abstract Locations <sec:dataflow-abstractions>` need further slicing by modifying the current
