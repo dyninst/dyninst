@@ -180,7 +180,11 @@ namespace Dyninst { namespace SymtabAPI {
   }
 
   template <typename OS> OS &operator<<(OS &os, Module *m) {
-    os << m->fileName() << ": " << m->addr();
+    if (m)  {
+	os << m->fileName() << ": " << m->addr();
+    }  else  {
+	os << "null";
+    }
     return os;
   }
 
