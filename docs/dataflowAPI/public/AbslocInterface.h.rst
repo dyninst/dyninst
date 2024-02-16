@@ -9,6 +9,9 @@ AbslocInterface.h
 
   **Converts instructions to** :ref:`Abstract Regions <sec:dataflow-abstractions>`
 
+  Definition: the first AbsRegion represents the expression.
+  If it's a memory reference, any other AbsRegions represent registers used in this expression.
+
   .. cpp:function:: AbsRegionConverter(bool cache, bool stack)
 
     Creates a converter that can cache results can use stack analysis.

@@ -10,6 +10,7 @@ Documentation for the internal classes of the DataflowAPI toolkit.
   :maxdepth: 3
 
   AbsLoc.h
+  AbslocInterface.h
   debug_dataflow.h
   ExpressionConversionVisitor.h
   liveness.h
