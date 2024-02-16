@@ -122,6 +122,9 @@ Result.h
   .. cpp:member:: unsigned char bitval : 1
   .. cpp:member:: unsigned char u8val
   .. cpp:member:: signed char s8val
+
+    char can be signed or unsigned, must be signed for s8val
+
   .. cpp:member:: uint16_t u16val
   .. cpp:member:: int16_t s16val
   .. cpp:member:: uint32_t u24val:24
@@ -154,6 +157,9 @@ Result.h
   .. cpp:member:: void * m512val
 
 .. cpp:enum:: Result::Result_Type
+
+  .. warning::
+    The order of these enumerations is important. See 'operator==' and arithmetic operators.
 
   .. cpp:enumerator:: bit_flag
 
@@ -218,6 +224,8 @@ Result.h
   .. cpp:enumerator:: m14
 
        a 14 byte memory value
+
+       For historical reason m14 means 14 bytes. All other ``mX`` means ``X`` bits.
 
   .. cpp:enumerator:: m32
 

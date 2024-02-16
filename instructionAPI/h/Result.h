@@ -46,7 +46,6 @@ namespace Dyninst
         {
             unsigned char bitval : 1;
             unsigned char u8val;
-	    /* char can be signed or unsigned, must be signed for s8val */
             signed char s8val;
             uint16_t u16val;
             int16_t s16val;
@@ -80,8 +79,6 @@ namespace Dyninst
             void * m512val;
         };
 
-        // The order of these enumerations is important.
-        // See 'operator==' and arithmetic operators.
         enum Result_Type
         {
             bit_flag = 0,
@@ -98,7 +95,7 @@ namespace Dyninst
             u64,
             sp_float,
             dp_float,
-            m14,  // For historical reason m14 means 14 bytes. All other mX means X bits
+            m14,
             dbl128,
             m32,
             m64,
@@ -635,7 +632,6 @@ namespace Dyninst
                     }
 
 
-                // Returns the size of the contained type in _bytes_
                 int size() const
                 {
                     switch(type)
