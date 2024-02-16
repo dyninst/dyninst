@@ -35,8 +35,8 @@ routines to generate and work with extensions of the base types
   These methods are called by ParseAPI, and perform bookkeeping
   around the user-overridden creation/destruction methods.
 
-  .. cpp:function:: virtual Function * mkfunc(Address addr, FuncSource src, std::string name, \
-                                              CodeObject * obj, CodeRegion * region, \
+  .. cpp:function:: virtual Function* mkfunc(Address addr, FuncSource src, std::string name, \
+                                              CodeObject* obj, CodeRegion* region, \
                                               Dyninst::InstructionSource* isrc)
 
       Returns an object derived from Function as though the provided
@@ -45,29 +45,27 @@ routines to generate and work with extensions of the base types
       ``region`` parameters—that is, Functions are guaranteed to be unique by
       address within a region.
 
-  .. cpp:function:: virtual Block * mkblock(Function * func, CodeRegion * region, Address addr)
+  .. cpp:function:: virtual Block* mkblock(Function* func, CodeRegion* region, Address addr)
 
       Returns an object derived from Block as though the provided parameters
       had been passed to the Block constructor. The parser will never invoke
       ``mkblock()`` with identical ``addr`` and ``region`` parameters.
 
-  .. cpp:function:: virtual Edge * mkedge(Block * src, Block * trg, EdgeTypeEnum type)
+  .. cpp:function:: virtual Edge* mkedge(Block* src, Block* trg, EdgeTypeEnum type)
 
       Returns an object derived from Edge as though the provided parameters
       had been passed to the Edge constructor. The parser *may* invoke
       ``mkedge()`` multiple times with identical parameters.
 
-  .. cpp:function:: virtual Block * mksink(CodeObject *obj, CodeRegion *r)
+  .. cpp:function:: virtual Block* mksink(CodeObject *obj, CodeRegion *r)
 
       Returns a “sink” block derived from Block to which all unresolvable
       control flow instructions will be linked. Implementors may return a
       unique sink block per CodeObject or a single global sink.
 
       Implementors of extended CFG classes are required to override the
-      default implementations of the *mk** functions to allocate and return
+      default implementations of the ``mk*`` functions to allocate and return
       the appropriate derived types statically cast to the base type.
-      Implementors must also add all allocated objects to the following
-      internal lists:
 
   .. cpp:function:: virtual void free_func(Function* f)
   .. cpp:function:: virtual void free_block(Block* b)

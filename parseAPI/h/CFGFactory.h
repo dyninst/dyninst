@@ -58,7 +58,6 @@ public:
     queue.insert(new_elem);
   }
     
-  // iterators
   iterator begin() { return queue.begin(); }
   iterator end() { return queue.end(); }
 private:
@@ -78,10 +77,6 @@ class PARSER_EXPORT CFGFactory  {
     CFGFactory() {}
     virtual ~CFGFactory();
     
-    /*
-     * These methods are called by ParseAPI, and perform bookkeeping
-     * around the user-overridden creation/destruction methods.
-     */
     Function *_mkfunc(Address addr, FuncSource src,
                                     std::string name, CodeObject *obj,
                                     CodeRegion *region, InstructionSource *isrc);
@@ -103,11 +98,7 @@ class PARSER_EXPORT CFGFactory  {
             Address addr);
     virtual Edge * mkedge(Block * src, Block * trg, 
             EdgeTypeEnum type);
-    /*
-     * A `sink' block is the target of all unresolvable control
-     * flow in a parsing unit. Implementors may return a unique
-     * sink per CodeObject or a single global sink.
-     */
+
     virtual Block * mksink(CodeObject *obj, CodeRegion *r);
 
     virtual void free_func(Function * f);
