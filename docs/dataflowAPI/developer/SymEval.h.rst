@@ -230,3 +230,36 @@ SymEval.h
     .. cpp:enumerator:: extendMSBOp
 
       Extend the most significant bit operation
+
+
+.. cpp:class:: ExpandOrder
+
+  Optimal ordering for visiting the slicing nodes during expansion this is possible
+  to do because we have removed loops
+
+  .. cpp:function:: ExpandOrder()
+  .. cpp:function:: ~ExpandOrder()
+  .. cpp:function:: pair<SliceNode::Ptr, int> pop_next()
+
+    remove an element from the next-lowest queue and return it and its order
+
+  .. cpp:function:: bool remove(SliceNode::Ptr n)
+
+    removes a node from the structure returns true if the node was there
+
+  .. cpp:function:: void insert(SliceNode::Ptr n, bool force_done = false)
+
+    places a node in the structure -- its order is computed
+
+  .. cpp:function:: void mark_done(SliceNode::Ptr n)
+
+    Mark a node complete, updating its children. Removes the node from the data structure
+
+  .. cpp:function:: bool is_done(SliceNode::Ptr n) const
+  .. cpp:function:: set<Edge::Ptr> &skipEdges()
+
+
+.. cpp:struct:: ExpandOrder::order_queue
+
+  .. cpp:member:: int order
+  .. cpp:member:: set<SliceNode::Ptr> nodes
