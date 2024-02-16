@@ -62,7 +62,6 @@
 #endif
 #endif
 
-// These are _NOT_ in the Dyninst namespace...
 namespace Dyninst {
    namespace ParseAPI {
       class Function;
@@ -96,10 +95,6 @@ public:
       Definition() : addr(0), block(NULL), type(TOP) {}
 
       bool operator==(const Definition &other) const {
-         // FIXME: To pass checks in StackAnalysis::summarize(), we consider
-         // definitions equivalent as long as one is not BOTTOM and the other
-         // something else.  This is not proper.
-         //return type == other.type && block == other.block;
          if (type == BOTTOM && other.type != BOTTOM) return false;
          if (type != BOTTOM && other.type == BOTTOM) return false;
          return true;
@@ -129,7 +124,6 @@ public:
       }
    };
 
-   // This class represents offsets on the stack, which we call heights.
    class DATAFLOW_EXPORT Height {
    public:
       typedef signed long Height_t;
@@ -145,7 +139,6 @@ public:
         
       Height_t height() const { return height_; }
         
-      // FIXME if we stop using TOP == MAXINT and BOT == MININT...
       bool operator<(const Height &rhs) const noexcept {
          return (height_ < rhs.height_);
       }
@@ -253,62 +246,47 @@ public:
          return defHeights == other.defHeights;
       }
 
-      // Returns an iterator to the set of DefHeights
       std::set<DefHeight>::iterator begin() {
          return defHeights.begin();
       }
 
-      // Returns a constant iterator to the set of DefHeights
       std::set<DefHeight>::const_iterator begin() const {
          return defHeights.begin();
       }
 
-      // Returns an iterator to the end of the set of DefHeights
       std::set<DefHeight>::iterator end() {
          return defHeights.end();
       }
 
-      // Returns a constant iterator to the end of the set of DefHeights
       std::set<DefHeight>::const_iterator end() const {
          return defHeights.end();
       }
 
-      // Returns the size of this set
       std::set<DefHeight>::size_type size() const {
          return defHeights.size();
       }
 
-      // Inserts a DefHeight into this set
       void insert(const DefHeight &dh) {
          defHeights.insert(dh);
       }
 
-      // Returns true if this DefHeightSet is TOP
       bool isTopSet() const;
 
-      // Returns true if this DefHeightSet is BOTTOM
       bool isBottomSet() const;
 
-      // Sets this DefHeightSet to TOP
       void makeTopSet();
 
-      // Sets this DefHeightSet to BOTTOM
       void makeBottomSet();
 
-      // Populates this DefHeightSet with the corresponding information
       void makeNewSet(ParseAPI::Block *b, Address addr,
          const Absloc &origLoc, const Height &h);
 
-      // Adds to this DefHeightSet a new definition with height h
       void addInitSet(const Height &h);
 
-      // Updates all Heights in this set by the delta amount
       void addDeltaSet(long delta);
 
-      // Returns the result of computing a meet on all Heights in this set
       Height getHeightSet() const;
 
-      // Returns the result of computing a meet on all Definitions in this set
       Definition getDefSet() const;
 
    private:
@@ -386,7 +364,6 @@ public:
       bool retop;
       bool topBottom;
 
-      // Handle complex math from SIB functions
       std::map<Absloc, std::pair<long, bool> > fromRegs;
 
    private:
@@ -425,8 +402,6 @@ public:
    typedef std::map<ParseAPI::Block *, AbslocState> BlockState;
    typedef std::map<ParseAPI::Block *, TransferSet> BlockSummaryState;
 
-   // To build intervals, we must replay the effect of each instruction.
-   // To avoid sucking enormous time, we keep those transfer functions around...
    typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs> >
       InstructionEffects;
    typedef std::map<ParseAPI::Block *, std::map<Offset, TransferSet> >
@@ -449,7 +424,6 @@ public:
    DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr,
       std::vector<std::pair<Absloc, Height> >& heights);
-   // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
       std::vector<std::pair<Absloc, DefHeightSet> > &defHeights);
 
@@ -538,33 +512,27 @@ private:
 
    Height getStackCleanAmount(ParseAPI::Function *func);
 
-   // limit the number of definitions we track per register.
    static const unsigned DEF_LIMIT = 2;
 
    ParseAPI::Function *func;
 
-   // Map from call sites to PLT-resolved addresses
    std::map<Address, Address> callResolutionMap;
 
-   // Function summaries to utilize during analysis
    std::map<Address, TransferSet> functionSummaries;
 
    std::set<Address> toppableFunctions;
 
-   // SP effect tracking
-   BlockEffects *blockEffects;  // Pointer so we can make it an annotation
-   InstructionEffects *insnEffects;  // Pointer so we can make it an annotation
-   CallEffects *callEffects;  // Pointer so we can make it an annotation
+   BlockEffects *blockEffects;
+   InstructionEffects *insnEffects;
+   CallEffects *callEffects;
 
    BlockState blockInputs;
    BlockState blockOutputs;
 
-   // Like blockInputs and blockOutputs, but used for function summaries.
-   // Instead of tracking Heights, we track transfer functions.
    BlockSummaryState blockSummaryInputs;
    BlockSummaryState blockSummaryOutputs;
 
-   Intervals *intervals_; // Pointer so we can make it an annotation
+   Intervals *intervals_;
 
    FuncCleanAmounts funcCleanAmounts;
    int word_size;

@@ -33,18 +33,18 @@ stack heights mean.
 +-----------------------+---------------------------------------------+
 | BOTTOM                | There are three possible meanings:          |
 |                       |                                             |
-|                       | #. On at least one path to this             |
+|                       | 1. On at least one path to this             |
 |                       | instruction, StackAnalysis was unable to    |
 |                       | determine whether or not the specified      |
 |                       | abstract location points to the stack.      |
 |                       |                                             |
-|                       | #. On at least one path to this             |
+|                       | 2. On at least one path to this             |
 |                       | instruction, StackAnalysis determined       |
 |                       | that the specified abstract location        |
 |                       | points to the stack but could not           |
 |                       | determine the exact stack height.           |
 |                       |                                             |
-|                       | #. On at least two paths to this            |
+|                       | 3. On at least two paths to this            |
 |                       | instruction, the specified abstract         |
 |                       | location pointed to different parts of      |
 |                       | the stack.                                  |
@@ -103,19 +103,6 @@ stack heights mean.
     block ``b`` must be contained in the function used to create this
     StackAnalysis object.
 
-  .. cpp:function:: bool canGetFunctionSummary()
-
-    Returns ``true`` if the function associated with this StackAnalysis object
-    returns on some execution path.
-
-  .. cpp:function:: bool getFunctionSummary(TransferSet &summary)
-
-    Returns in ``summary`` a summary for the function associated with this
-    StackAnalysis object. Function summaries can then be passed to the
-    constructors for other StackAnalysis objects to enable interprocedural
-    analysis.
-
-    Returns ``true`` on success.
 
 .. cpp:class:: StackAnalysis::Height
 
