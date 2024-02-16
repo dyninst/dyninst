@@ -5,6 +5,218 @@ CFG.h
 
 .. cpp:namespace:: Dyninst::ParseAPI::dev
 
+.. cpp:class:: Function : public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex>
+
+  .. cpp:type:: std::map<Address, Block*> blockmap
+  .. cpp:type:: select2nd<blockmap::value_type> selector
+  .. cpp:type:: boost::transform_iterator<selector, blockmap::iterator> bmap_iterator
+  .. cpp:type:: boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator
+  .. cpp:type:: boost::iterator_range<bmap_iterator> blocklist
+  .. cpp:type:: boost::iterator_range<bmap_const_iterator> const_blocklist
+  .. cpp:type:: std::set<Edge*> edgelist
+
+  .. cpp:member:: bool _is_leaf_function
+  .. cpp:member:: Address _ret_addr
+
+    return address of a function stored in stack at function entry
+
+  .. cpp:function:: static void destroy(Function *f)
+  .. cpp:function:: void set_retstatus(FuncReturnStatus rs)
+
+      Sets the return status for the function to ``rs``.
+
+  .. cpp:function:: std::vector<FuncExtent *> const& extents()
+
+      Returns the contiguous code segments of binary code within the function.
+
+  ......
+
+  .. rubric::
+    Basic block and CFG access
+    
+  .. cpp:function:: blocklist blocks()
+  .. cpp:function:: const_blocklist blocks() const
+  .. cpp:function:: size_t num_blocks()
+  .. cpp:function:: const_blocklist returnBlocks()
+  .. cpp:function:: const_blocklist exitBlocks()
+  .. cpp:function:: std::map<Address, JumpTableInstance> &getJumpTables()
+
+  .. cpp:function:: void setEntryBlock(block * new_entry)
+
+      Sets the entry block for this function to ``new_entry``.
+
+  .. cpp:function:: void removeBlock(Block *b)
+
+      Remove the basic block ``b`` from this function.
+
+  .. cpp:function:: void add_block(Block *b)
+
+  ......
+
+  .. rubric::
+    Function details
+ 
+  .. cpp:function:: bool hasNoStackFrame() const
+  .. cpp:function:: bool savesFramePointer() const
+  .. cpp:function:: bool cleansOwnStack() const
+
+  ......
+
+  .. cpp:function:: void invalidateCache()
+
+      This should not remain here - this is an experimental fix for defensive mode
+      CFG inconsistency
+
+  .. cpp:function:: StackTamper tampersStack(bool recalculate = false)
+  .. cpp:function:: boost::recursive_mutex &lockable()
+  .. cpp:function:: CodeRegion *region() const
+  .. cpp:function:: InstructionSource *isrc() const
+  .. cpp:function:: CodeObject *obj() const
+  .. cpp:function:: FuncSource src() const
+  .. cpp:function:: bool parsed() const
+
+  .. cpp:member:: protected Address _start
+  .. cpp:member:: protected CodeObject * _obj
+  .. cpp:member:: protected CodeRegion * _region
+  .. cpp:member:: protected InstructionSource * _isrc
+  .. cpp:member:: protected bool _cache_valid
+  .. cpp:member:: protected FuncSource _src
+  .. cpp:member:: protected boost::atomic<FuncReturnStatus> _rs
+  .. cpp:member:: protected std::string _name
+  .. cpp:member:: protected Block * _entry
+  .. cpp:function:: protected Function()
+
+
+  .. cpp:function:: private void delayed_link_return(CodeObject * co, Block * retblk)
+  .. cpp:function:: private void finalize()
+  .. cpp:member:: private bool _parsed
+  .. cpp:member:: private std::vector<FuncExtent *> _extents
+
+  .. cpp:function:: private blocklist blocks_int()
+
+    rapid lookup for edge predicate tests
+
+  .. cpp:member:: private blockmap _bmap
+  .. cpp:function:: private bmap_iterator blocks_begin()
+  .. cpp:function:: private bmap_iterator blocks_end()
+  .. cpp:function:: private bmap_const_iterator blocks_begin() const
+  .. cpp:function:: private bmap_const_iterator blocks_end() const
+  .. cpp:member:: private edgelist _call_edge_list
+
+    rapid lookup for interprocedural queries
+
+  .. cpp:member:: private blockmap _retBL
+  .. cpp:function:: private bmap_const_iterator ret_begin() const
+  .. cpp:function:: private bmap_const_iterator ret_end() const
+  .. cpp:member:: private blockmap _exitBL
+
+    Superset of return blocks this includes all blocks where execution leaves the function
+    without coming back, including returns, calls to non-returning calls, tail calls, etc.
+    Might want to include exceptions.
+
+  .. cpp:function:: private bmap_const_iterator exit_begin() const
+  .. cpp:function:: private bmap_const_iterator exit_end() const
+
+  ......
+
+  .. rubric::
+    function details
+
+  .. cpp:member:: private bool _no_stack_frame
+  .. cpp:member:: private bool _saves_fp
+  .. cpp:member:: private bool _cleans_stack
+  .. cpp:member:: private StackTamper _tamper
+  .. cpp:member:: private Address _tamper_addr
+
+  ......
+
+  .. rubric::
+    Loop details
+    
+  .. cpp:member:: private mutable bool _loop_analyzed
+
+    true if loops in the function have been found and stored in _loops
+
+  .. cpp:member:: private mutable std::set<Loop*> _loops
+  .. cpp:member:: private mutable LoopTreeNode *_loop_root
+
+    NULL if the tree structure has not be calculated
+
+  .. cpp:function:: private void getLoopsByNestingLevel(std::vector<Loop*>& lbb, bool outerMostOnly) const
+  .. cpp:member:: private std::map<Address, JumpTableInstance> jumptables
+  .. cpp:member:: private mutable bool isDominatorInfoReady
+
+    Dominator and post-dominator info details
+
+  .. cpp:member:: private mutable bool isPostDominatorInfoReady
+  .. cpp:function:: private void fillDominatorInfo() const
+  .. cpp:function:: private void fillPostDominatorInfo() const
+
+  ......
+
+  .. rubric::
+    Dominator and post-dominator info details
+    
+  .. cpp:member:: private mutable std::map<Block*, std::set<Block*>*> immediateDominates
+
+    set of basic blocks that this basicblock dominates immediately
+
+  .. cpp:member:: private mutable std::map<Block*, Block*> immediateDominator
+
+    basic block which is the immediate dominator of the basic block
+
+  .. cpp:member:: private mutable std::map<Block*, std::set<Block*>*> immediatePostDominates
+
+    same as previous two fields, but for postdominator tree
+
+  .. cpp:member:: private mutable std::map<Block*, Block*> immediatePostDominator
+
+
+.. cpp:struct:: template <typename P> Function::select2nd
+
+  .. cpp:type:: typename P::second_type result_type
+  .. cpp:function:: result_type operator()(const P &p) const
+
+.. cpp:struct:: Function::JumpTableInstance
+
+  .. cpp:member:: AST::Ptr jumpTargetExpr
+  .. cpp:member:: Address tableStart
+  .. cpp:member:: Address tableEnd
+  .. cpp:member:: int indexStride
+  .. cpp:member:: int memoryReadSize
+  .. cpp:member:: bool isZeroExtend
+  .. cpp:member:: std::map<Address, Address> tableEntryMap
+  .. cpp:member:: Block* block
+
+
+.. cpp:struct:: Function::less
+
+  If there are more than one guest binary file loaded, multiple
+  functions may have the same entry point address in different
+  code regions. And regions themselves may use the same
+  address ranges.
+
+  We order functions by their regions first, by their address second.
+
+  We order regions by their start first, by their end second,
+  by the numeric value of their pointers third. We consider NULL
+  to be less than any non-NULL region.
+
+  The algorithm below is the same as ordering with per-component
+  comparison vectors
+
+    ``(Region::low(), Region::high(), Region::ptr, Function::addr(), Function::ptr)``
+
+  where low() and high() for NULL region are considered to be -INF.
+
+  For typical shared libraries and executables this should order
+  functions by their address. For static libraries it should group
+  functions by their object files and order object files by their
+  size.
+
+  .. cpp:function:: bool operator()(const Function * f1, const Function * f2) const
+
+
 .. cpp:class:: FuncExtent : public Dyninst::SimpleInterval<Address, Function*>
 
   **A contiguous extent of a function**
@@ -24,103 +236,76 @@ CFG.h
   .. cpp:function:: Function* id() const
 
 
+.. cpp:class:: Edge
+
+  .. cpp:member:: protected boost::atomic<Block *> _source
+  .. cpp:member:: protected Block *_target
+  .. cpp:member:: protected ParseData *index
+  .. cpp:member:: protected Offset _target_off
+  .. cpp:member:: protected bool _from_index
+  .. cpp:member:: private EdgeType _type
+  .. cpp:function:: void install()
+
+  .. cpp:function:: void uninstall()
+
+    removes from blocks (and if of type :cpp:enumerator:`EdgeTypeEnum::CALL`,
+    from finalized source functions)
+
+  .. cpp:function:: static void destroy(Edge *, CodeObject *)
+
+
+.. cpp:struct:: Edge::EdgeType
+
+  .. cpp:function:: EdgeType(EdgeTypeEnum t, bool s)
+  .. cpp:member:: uint16_t _type_enum
+  .. cpp:member:: uint8_t _sink
+  .. cpp:member:: uint8_t _interproc
+
+    modifier for interprocedural branches(tail calls)
+
+
 .. cpp:class:: Loop
 
-  **Node that may execute repeatedly**
+  .. cpp:member:: private std::set<Edge*> backEdges
+  .. cpp:member:: private std::set<Block*> entries
+  .. cpp:member:: private const Function * func
 
-  .. cpp:function:: Loop* parentLoop()
+    the function this loop is part of
 
-      Returns loop which directly encloses this loop; ``NULL`` if no such loop.
+  .. cpp:member:: private std::set<Loop*> containedLoops
 
-  .. cpp:function:: bool containsAddress(Address addr)
+    set of loops that are contained (nested) in this loop.
 
-      Checks if the given address is within the range of this loop’s basic blocks.
+  .. cpp:member:: private std::set<Block*> childBlocks
 
-  .. cpp:function:: bool containsAddressInclusive(Address addr)
+    the basic blocks in the loop
 
-      Checks if the given address is within the range of this loop’s basic blocks or its children.
+  .. cpp:member:: private std::set<Block*> exclusiveBlocks
+  .. cpp:member:: private Loop* parent
 
-  .. cpp:function:: int getLoopEntries(vector<Block*>& entries);
+  .. cpp:function:: private Loop(const Function *)
 
-      Fills ``entries`` with the set of entry basic blocks of the loop, and return
-      the number of the entries.
+    internal use only constructor of class
 
-      A natural loop has a single entry block and an irreducible loop has multiple entry blocks.
+  .. cpp:function:: private Loop(Edge *, const Function *)
 
-  .. cpp:function:: int getBackEdges(vector<Edge*> &edges)
+    constructor of the class
 
-      Sets ``edges`` to the set of back edges in this loop, and returns the
-      number of back edges.
+  .. cpp:function:: private bool getLoops(std::vector<Loop*>&, bool outerMostOnly) const
 
-  .. cpp:function:: bool getContainedLoops(vector<Loop*> &loops)
-
-      Fills ``loops`` with the loops that are nested under this loop.
-
-  .. cpp:function:: bool getOuterLoops(vector<Loop*> &loops)
-
-      Fills ``loops`` with the loops that are directly nested under this loop.
-
-  .. cpp:function:: bool getLoopBasicBlocks(vector<Block*> &blocks)
-
-      Fills ``blocks`` with all basic blocks in this loop.
-
-  .. cpp:function:: bool getLoopBasicBlocksExclusive(vector<Block*> &blocks)
-
-      Fills ``blocks`` with all basic blocks in this loop, excluding the
-      blocks of its sub loops.
-
-  .. cpp:function:: bool hasBlock(Block *b);
-
-      Checks if this loop contains basic block ``b``.
-
-  .. cpp:function:: bool hasBlockExclusive(Block *b);
-
-      Checks if this loop contains basic block ``b`` and ``b`` is not in its sub loops.
-
-  .. cpp:function:: bool hasAncestor(Loop *loop)
-
-      Checks if this loop is a descendant of ``loop``.
-
-  .. cpp:function:: Function * getFunction();
-
-      Returns the function that this loop is in.
+    get either contained or outer loops, determined by outerMostOnly
 
 
 .. cpp:class:: LoopTreeNode
 
-  **The tree of nested loops and callees (functions) in the control flow graph**
+  .. cpp:member:: private char *hierarchicalName
 
-  .. cpp:member:: Loop *loop;
+    name which indicates this loop's relative nesting
 
-      The Loop instance it points to.
+  .. cpp:member:: private std::vector<Function *> callees
 
-  .. cpp:member:: std::vector<LoopTreeNode *> children
+    A vector of functions called within the body of this loop (and not the body of sub loops).
 
-      The LoopTreeNode instances nested within this loop.
-
-  .. cpp:function:: LoopTreeNode(Loop *l, const char *n)
-
-      Creates a loop tree node for ``l`` with name ``n``.
-
-  .. cpp:function:: const char * name()
-
-      Returns the hierarchical name of this loop.
-
-  .. cpp:function:: const char * getCalleeName(unsigned int i)
-
-      Returns the function name of the ith callee.
-
-  .. cpp:function:: unsigned int numCallees()
-
-      Returns the number of callees contained in this loop’s body.
-
-  .. cpp:function:: bool getCallees(vector<Function *> &v)
-
-      Fills ``v`` with a vector of the functions called inside this loop.
-
-  .. cpp:function:: Loop * findLoop(const char *name)
-
-      Looks up a loop by the hierarchical name.
 
 .. cpp:enum:: StackTamper
 
@@ -130,59 +315,3 @@ CFG.h
   .. cpp:enumerator:: TAMPER_ABS
   .. cpp:enumerator:: TAMPER_NONZERO
 
-Notes
-=====
-
-LoopTreeNode
-^^^^^^^^^^^^
-The LoopTreeNode class provides a tree interface to a collection of
-instances of class Loop contained in a function. The structure of the
-tree follows the nesting relationship of the loops in a function. Each
-LoopTreeNode contains a pointer to a loop (represented by Loop), and a
-set of sub-loops (represented by other LoopTreeNode objects). The
-``loop`` field at the root node is always ``NULL`` since a function may
-contain multiple outer loops. The ``loop`` field is never ``NULL`` at
-any other node since it always corresponds to a real loop. Therefore,
-the outer most loops in the function are contained in the vector of
-``children`` of the root.
-
-Each instance of LoopTreeNode is given a name that indicates its
-position in the hierarchy of loops. The name of each outermost loop
-takes the form of ``loop_x``, where ``x`` is an integer from 1 to n,
-where n is the number of outer loops in the function. Each sub-loop has
-the name of its parent, followed by a ``.y``, where ``y`` is 1 to m,
-where m is the number of sub-loops under the outer loop. For example,
-consider the following C function:
-
-.. code-block:: cpp
-
-    void foo() {
-     int x, y, z, i;
-     for (x=0; x<10; x++) {
-       for (y = 0; y<10; y++)
-         ...
-       for (z = 0; z<10; z++)
-         ...
-     }
-     for (i = 0; i<10; i++) {
-        ...
-     }
-   }
-
-The ``foo`` function will have a root LoopTreeNode, containing a NULL
-loop entry and two LoopTreeNode children representing the functions
-outermost loops. These children would have names ``loop_1`` and
-``loop_2``, respectively representing the ``x`` and ``i`` loops.
-``loop_2`` has no children. ``loop_1`` has two child LoopTreeNode
-objects, named ``loop_1.1`` and ``loop_1.2``, respectively representing
-the ``y`` and ``z`` loops.
-
-Loop
-^^^^
-Both loops that have a single entry block (aka, natural loops) and
-loops that have multiple entry blocks (aka, irreducible loops). A back edge
-is defined as an edge that has its source in the loop and has its target
-being an entry block of the loop. It represents the end of an iteration
-of the loop. For all the loops detected in a function, a loop nesting tree
-to represent the nesting relations between the loops is also constructed.
-See :cpp:class:`LoopTreeNode` for more details.
