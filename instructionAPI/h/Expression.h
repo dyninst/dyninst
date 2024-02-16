@@ -64,7 +64,6 @@ namespace Dyninst
   
       void clearValue();
 
-      // Size of the result in bytes
       int size() const;
 	  
       virtual bool bind(Expression* expr, const Result& value);
