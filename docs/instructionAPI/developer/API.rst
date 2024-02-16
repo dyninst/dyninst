@@ -9,6 +9,7 @@ InstructionAPI
   :maxdepth: 1
 
   debug.h
+  instruction.h
   InstructionDecoder-aarch64.h
   InstructionDecoderImpl.h
   InstructionDecoder-power.h

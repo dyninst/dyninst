@@ -187,7 +187,6 @@ namespace Dyninst
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;
-      // formatter is a non-owning pointer to a singleton object
       ArchSpecificFormatter* formatter;
     };
   }
