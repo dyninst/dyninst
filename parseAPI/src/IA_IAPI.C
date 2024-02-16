@@ -500,7 +500,7 @@ bool IA_IAPI::isCall() const
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    return (isInterrupt() && isSyscall());
+    return (isInterrupt() || isSyscall());
 }
 
 bool IA_IAPI::isSysEnter() const
