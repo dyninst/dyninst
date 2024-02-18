@@ -40,6 +40,7 @@
 #include "bitArray.h"
 //#include "StackTamperVisitor.h"
 #include "instructionAPI/h/Visitor.h"
+#include "registers/x86_regs.h"
 
 #include <deque>
 #include "Register.h"
@@ -772,3 +773,23 @@ bool IA_x86::isLinkerStub() const
     // No need for linker stubs on x86 platforms.
     return false;
 }
+
+bool IA_x86::isInterrupt() const
+{
+    Instruction ci = curInsn();
+    return ((ci.getOperation().getID() == e_int) ||
+            (ci.getOperation().getID() == e_int3));
+}
+
+bool IA_x86::isSyscall() const {
+  static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
+
+  Instruction ci = curInsn();
+
+  return (((ci.getOperation().getID() == e_call) &&
+              (ci.getOperation().isRead(gs)) &&
+              (ci.getOperand(0).format(ci.getArch()) == "16")) ||
+          (ci.getOperation().getID() == e_syscall) ||
+          (ci.getOperation().getID() == e_int));
+}
+
