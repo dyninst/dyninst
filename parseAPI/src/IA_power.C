@@ -528,4 +528,11 @@ bool IA_power::isNopJump() const
     return false;
 }
 
+bool IA_power::isSyscall() const {
+  auto const& i = curInsn();
+  return i.getOperation().getID() == power_op_sc;
+}
 
+bool IA_power::isInterrupt() const {
+  return false;
+}

@@ -503,28 +503,6 @@ bool IA_IAPI::isInterruptOrSyscall() const
     return (isInterrupt() && isSyscall());
 }
 
-bool IA_IAPI::isSyscall() const
-{
-    static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
-
-    Instruction ci = curInsn();
-
-    return (((ci.getOperation().getID() == e_call) &&
-                (ci.getOperation().isRead(gs)) &&
-                (ci.getOperand(0).format(ci.getArch()) == "16")) ||
-            (ci.getOperation().getID() == e_syscall) ||
-            (ci.getOperation().getID() == e_int) ||
-            (ci.getOperation().getID() == power_op_sc));
-}
-
-
-bool IA_IAPI::isInterrupt() const
-{
-    Instruction ci = curInsn();
-    return ((ci.getOperation().getID() == e_int) ||
-            (ci.getOperation().getID() == e_int3));
-}
-
 bool IA_IAPI::isSysEnter() const
 {
     Instruction ci = curInsn();
