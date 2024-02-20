@@ -828,16 +828,29 @@ bool IA_x86::isInterrupt() const
     return ((ci.getOperation().getID() == e_int) ||
             (ci.getOperation().getID() == e_int3));
 }
-
+/* Check for system call idioms
+ *
+ * Idioms checked:
+ *
+ *  syscall
+ */
 bool IA_x86::isSyscall() const {
   static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
+  
+  auto const id = curInsn().getOperation().getID();
+
+  /*
+   *  'syscall' is only available in 64-bit mode, but is the most likely
+   *  instruction to be encountered for system calls so check it first.
+   */
+  if(id == e_syscall) {
+    return true;
+  }
 
   Instruction ci = curInsn();
-
   return (((ci.getOperation().getID() == e_call) &&
               (ci.getOperation().isRead(gs)) &&
               (ci.getOperand(0).format(ci.getArch()) == "16")) ||
-          (ci.getOperation().getID() == e_syscall) ||
           (ci.getOperation().getID() == e_int));
 }
 
