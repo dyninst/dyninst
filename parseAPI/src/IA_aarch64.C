@@ -275,7 +275,7 @@ bool IA_aarch64::isNopJump() const
 }
 
 bool IA_aarch64::isSyscall() const {
-  return false;
+  return curInsn().getOperation().getID() == aarch64_op_svc;
 }
 
 bool IA_aarch64::isInterrupt() const {
