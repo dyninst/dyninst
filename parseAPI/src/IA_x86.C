@@ -828,15 +828,15 @@ bool IA_x86::isInterrupt() const
     return ((ci.getOperation().getID() == e_int) ||
             (ci.getOperation().getID() == e_int3));
 }
+
 /* Check for system call idioms
  *
  * Idioms checked:
  *
  *  syscall
+ *  int <vector> (e.g., 'int 0x80')
  */
 bool IA_x86::isSyscall() const {
-  static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
-  
   auto const id = curInsn().getOperation().getID();
 
   /*
@@ -847,10 +847,20 @@ bool IA_x86::isSyscall() const {
     return true;
   }
 
+  /* Software interrupts
+   *
+   *  All interrupts that specify a vector go directly through the kernel,
+   *  so they are system calls.
+   *
+   *  Interrupts for traps/breakpoints (notable int3, int1, and into) don't
+   *  directly go through the kernel, so aren't considered system calls.
+   */
+  if(id == e_int) {
+    return true;
+  }
+
   Instruction ci = curInsn();
   return (((ci.getOperation().getID() == e_call) &&
               (ci.getOperation().isRead(gs)) &&
-              (ci.getOperand(0).format(ci.getArch()) == "16")) ||
-          (ci.getOperation().getID() == e_int));
+              (ci.getOperand(0).format(ci.getArch()) == "16")));
 }
-

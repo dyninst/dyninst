@@ -113,6 +113,7 @@ namespace Dyninst
       case e_sysenter:
 	return c_SysEnterInsn;
       case e_syscall:
+      case e_int:
     return c_SyscallInsn;
           default:
 	return c_NoCategory;
