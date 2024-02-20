@@ -16,7 +16,6 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
-    src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/gfx908/decodeOperands.C
@@ -34,7 +33,10 @@ set(_sources
     src/AMDGPU/gfx940/finalizeOperands.C
     src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
-    src/InstructionDecoderImpl.C)
+    src/InstructionDecoderImpl.C
+    src/x86/decoder.C
+    src/x86/mnemonic-xlat.C
+    src/x86/register-xlat.C)
 
 set(_public_headers
     h/ArchSpecificFormatters.h
@@ -62,7 +64,9 @@ set(_private_headers
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
-    src/InstructionDecoder-x86.h)
+    src/x86/decoder.h
+    src/x86/mnemonic-xlat.h
+    src/x86/register-xlat.h)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
@@ -132,6 +136,7 @@ dyninst_library(
   DEFINES INSTRUCTION_LIB
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
+  PRIVATE_DEPS Dyninst::Capstone
 )
 # cmake-format: on
 

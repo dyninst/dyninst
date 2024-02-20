@@ -1,12 +1,11 @@
 class x86:
 
-    def __init__(self):
+    def __init__(self, cap_dir):
         self.capstone_prefix = "X86"
         self.dyninst_prefix = "e"
         self.dyninst_register_prefix = "x86_64"
-        
-        # Mnemonics missing in Capstone
-        self.missing = [ "faddp" ]
+        self.mnemonics_file = cap_dir + "/arch/X86/X86MappingInsnName.inc"
+        self.registers_file = cap_dir + "/include/capstone/x86.h"
         
         # Pseudo-mnemonics used in Dyninst and Capstone
         #   The ones from Capstone are used for GNU assembler (gas) compatibility
@@ -85,6 +84,8 @@ class x86:
             "cmovng" : { "seen" : False, "values" : ["cmovle",] },
             "cmovg" : { "seen" : False, "values" : ["cmovnle",] },
             "cmovnle" : { "seen" : False, "values" : ["cmovg",] },
+            "fadd" : { "seen" : False, "values" : ["faddp",] },
+            "faddp" : { "seen" : False, "values" : ["fadd",] },
             "fcompi" : { "seen" : False, "values" : ["fcomip",] }, # From LLVM, but present in bddisasm, binutils, and xed
             "fcomip" : { "seen" : False, "values" : ["fcompi",] },
             "fucomip" : { "seen" : False, "values" : ["fucompi",] },

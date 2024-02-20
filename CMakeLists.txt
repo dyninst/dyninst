@@ -47,6 +47,7 @@ include(DyninstLibIberty)
 include(DyninstThread_DB)
 include(DyninstValgrind)
 include(DyninstOpenMP)
+include(DyninstCapstone)
 
 add_subdirectory(common)
 add_subdirectory(elf)

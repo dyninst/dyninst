@@ -23,34 +23,42 @@ if __name__ == "__main__":
         "--capstone",
         type=str,
         required=True,
-        help="Capstone header (e.g., /capstone-engine/capstone/arch/X86/X86MappingInsnName.inc)"
+        help="Capstone directory (e.g., /capstone-engine/capstone/)"
     )
 
     parser.add_argument("--arch", type=str, choices=["x86"], default="x86")
     args = parser.parse_args()
 
     if args.arch == "x86":
-        translator = x86.x86()
+        translator = x86.x86(args.capstone)
 
+    mnemonics = capstone.read_mnemonics(translator.mnemonics_file)
+    
     with open("mnemonics", "w") as f:
         for p in translator.pseudo:
             f.write("{0:s}_{1:s}, /* pseudo mnemonic */\n".format(translator.dyninst_prefix, p))
-        
-        mnemonics = capstone.read_mnemonics(args.capstone)
-        mnemonics.extend(translator.missing)
-        mnemonics.sort()
-        
+    
         # Remove already-printed names
-        mnemonics = [m for m in mnemonics if m not in translator.pseudo]
-
-        for m in mnemonics:
+        mnemonics_scrubbed = [m for m in mnemonics if m not in translator.pseudo]
+    
+        for m in mnemonics_scrubbed:
           if m not in translator.aliases:
             f.write("{0:s}_{1:s},\n".format(translator.dyninst_prefix, m))
             continue
-         
+    
           if not translator.aliases[m]["seen"]:
             f.write("{0:s}_{1:s},\n".format(translator.dyninst_prefix, m))
             translator.aliases[m]["seen"] = True
             for a in translator.aliases[m]["values"]:
               f.write("{0:s}_{1:s} = {0:s}_{2:s},\n".format(translator.dyninst_prefix, a, m))
               translator.aliases[a]["seen"] = True
+
+    for a in translator.aliases:
+        translator.aliases[a]["seen"] = False;
+
+    with open("mnemonics-translate", "w") as f:
+        for m in mnemonics:
+            f.write("case {0:s}_INS_{1:s}: return {2:s}_{3:s};\n".format(
+                  translator.capstone_prefix, m.upper(), translator.dyninst_prefix, m
+                )
+            )
