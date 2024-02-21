@@ -826,6 +826,8 @@ bool IA_x86::isInterrupt() const
 {
     Instruction ci = curInsn();
     return ((ci.getOperation().getID() == e_int) ||
+            (ci.getOperation().getID() == e_int1) ||
+            (ci.getOperation().getID() == e_into) ||
             (ci.getOperation().getID() == e_int3));
 }
 
