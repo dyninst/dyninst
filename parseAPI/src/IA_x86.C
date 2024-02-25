@@ -834,13 +834,18 @@ bool IA_x86::isInterrupt() const
 struct tcb_syscall_visitor : InstructionAPI::Visitor {
   InstructionAPI::Result value;
   int num_imm{0};
+  bool valid{true};
   bool found_deref{false};
-  void visit(InstructionAPI::BinaryFunction*) override {}
+  void visit(InstructionAPI::BinaryFunction*) override {
+    valid = false;
+  }
   void visit(InstructionAPI::Immediate *imm) override {
     num_imm++;
     value = imm->eval();
   }
-  void visit(InstructionAPI::RegisterAST*) override {}
+  void visit(InstructionAPI::RegisterAST*) override {
+    valid = false;
+  }
   void visit(InstructionAPI::Dereference*) override {
     found_deref = true;
   }
@@ -927,7 +932,7 @@ bool IA_x86::isSyscall() const {
     operands[0].getValue()->apply(&v);
 
     // The addressing mode should have a single dereference and one immediate value
-    if(!(v.found_deref && v.num_imm == 1)) {
+    if(!v.valid || !v.found_deref || v.num_imm != 1) {
       return false;
     }
 
