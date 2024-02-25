@@ -831,6 +831,10 @@ bool IA_x86::isInterrupt() const
             (ci.getOperation().getID() == e_int3));
 }
 
+/* Thread Control Block syscall visitor
+ *
+ *  Used to detect 'call gs:[0x10]' syscalls in 32-bit code.
+ */
 struct tcb_syscall_visitor : InstructionAPI::Visitor {
   InstructionAPI::Result value;
   int num_imm{0};
@@ -866,6 +870,8 @@ namespace {
  *  Calls to Linux vdso functions (e.g., __vdso_clock_gettime)
  *  are not considered system calls because they use the standard
  *  call mechanism to explicitly bypass the kernel.
+ *
+ *  'sysenter' is checked by IA_IAPI::isSysEnter().
  */
 bool IA_x86::isSyscall() const {
   auto const id = curInsn().getOperation().getID();
@@ -890,7 +896,7 @@ bool IA_x86::isSyscall() const {
     return true;
   }
 
-  /* !! Everything below here is for 32-bit x86 only !!
+  /* !! Everything below here is for 32-bit code only !!
    *
    *  Although technically possible, these idioms are very unlikely to
    *  be encountered in 64-bit mode. Because they use generic instructions
@@ -910,7 +916,7 @@ bool IA_x86::isSyscall() const {
    *  In this case, 'call gs:[0x10]' is really a system call.
    *
    *  Dyninst doesn't correctly represent segment registers in AST, so the instruction
-   *  it produces is 'call 0x10'. This isn't something a compiler would generate,
+   *  it produces is 'call [0x10]'. This isn't something a compiler would generate,
    *  so we'll consider it as our special case here.
    */
   if(id == e_call) {
@@ -936,6 +942,7 @@ bool IA_x86::isSyscall() const {
       return false;
     }
 
+    // That value should be 0x10.
     auto result = v.value;
     if(result.defined && result.convert<int64_t>() == 0x10) {
       return true;
