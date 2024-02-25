@@ -831,7 +831,7 @@ bool IA_x86::isInterrupt() const
             (ci.getOperation().getID() == e_int3));
 }
 
-struct ins_visitor : InstructionAPI::Visitor {
+struct tcb_syscall_visitor : InstructionAPI::Visitor {
   InstructionAPI::Result value;
   int num_imm{0};
   bool found_deref{false};
@@ -923,7 +923,7 @@ bool IA_x86::isSyscall() const {
       return false;
     }
 
-    ins_visitor v;
+    tcb_syscall_visitor v;
     operands[0].getValue()->apply(&v);
 
     // The addressing mode should have a single dereference and one immediate value
