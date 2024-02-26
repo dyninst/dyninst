@@ -15,9 +15,19 @@ endif()
 
 set(BUILD_SHARED_LIBS ON)
 
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+# DYNINST_EXPORT_ALL is a 'hidden' build option
+#  It is intended for use by developers to facilitate
+#  unit testing of internal libraries that don't export
+#  all of their interfaces.
+if(DYNINST_EXPORT_ALL)
+  set(CMAKE_C_VISIBILITY_PRESET default)
+  set(CMAKE_CXX_VISIBILITY_PRESET default)
+  set(CMAKE_VISIBILITY_INLINES_HIDDEN OFF)
+else()
+  set(CMAKE_C_VISIBILITY_PRESET hidden)
+  set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+  set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+endif()
 
 set(DYNINST_INSTALL_BINDIR "bin")
 set(DYNINST_INSTALL_LIBDIR "lib")
