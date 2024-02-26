@@ -46,3 +46,9 @@ mark_as_advanced(DYNINST_CXXSTDLIB)
 
 option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's default"
        OFF)
+
+# This is intended for use by developers to facilitate
+# unit testing of internal libraries that don't export
+# all of their interfaces.
+option(DYNINST_EXPORT_ALL "Export all symbols" OFF)
+mark_as_advanced(DYNINST_EXPORT_ALL)
