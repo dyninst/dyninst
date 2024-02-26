@@ -1010,9 +1010,6 @@ bool BPatch_addressSpace::getRegisters(std::vector<BPatch_register> &regs) {
    init_registers();
    regs = registers_;
    return true;
-
-   regs = registers_;
-   return true;
 }
 BPatch_addressSpace::register_iter BPatch_addressSpace::getRegisters_begin()
 {
