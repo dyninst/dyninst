@@ -137,8 +137,6 @@ class PCSensitiveTransformer : public Transformer {
   
   bool exceptionSensitive(Address addr, const block_instance *bbl);
 
-  bool isSyscall(InstructionAPI::Instruction insn, Address addr);
-
   static void cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens);
   static bool queryCache(const block_instance *bbl, Address addr, bool &intSens, bool &extSens);
 

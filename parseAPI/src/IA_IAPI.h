@@ -116,7 +116,6 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isConditional() const;
         virtual bool isBranch() const;
         virtual bool isInterruptOrSyscall() const;
-        virtual bool isSyscall() const = 0;
         virtual bool isInterrupt() const = 0;
         virtual bool isCall() const;
         virtual bool isReturnAddrSave(Address &ret_addr) const = 0;

@@ -46,7 +46,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "registers/x86_regs.h"
 #include "dataflowAPI/h/slicing.h"
-
+#include "instructionAPI/h/syscalls.h"
 #include "../CFG/RelocBlock.h"
 #include "../CFG/RelocGraph.h"
 
@@ -121,7 +121,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
         // 2) Is it externally sensitive... will this instruction cause the program
         // to produce a different result.
 
-        if (isSyscall(insn, addr)) {
+        if (Dyninst::InstructionAPI::isSystemCall(insn)) {
             continue;
         }
 
@@ -881,16 +881,4 @@ bool ExtPCSensVisitor::isExtSens(AST::Ptr a) {
   else {
     return (diffs_.top().b != 0);
   }
-}
-
-bool PCSensitiveTransformer::isSyscall(Instruction insn, Address) {
-  // call *%gs:0x10
-  // Build a GS
-  static Expression::Ptr x86_gs(new RegisterAST(x86::gs));
-
-  if (insn.isRead(x86_gs)) {
-    //relocation_cerr << "Skipping syscall " << insn->format() << hex << "@ " << addr << dec << endl;
-    return true;
-  }
-  return false;
 }

@@ -143,10 +143,6 @@ bool IA_amdgpu::isNopJump() const
     return false;
 }
 
-bool IA_amdgpu::isSyscall() const {
-  return false;
-}
-
 bool IA_amdgpu::isInterrupt() const {
   return false;
 }

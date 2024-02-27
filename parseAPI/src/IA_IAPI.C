@@ -40,7 +40,7 @@
 #include "IndirectAnalyzer.h"
 #include "util.h"
 #include "dyntypes.h"
-
+#include "instructionAPI/h/syscalls.h"
 #include <deque>
 #include <map>
 
@@ -500,7 +500,7 @@ bool IA_IAPI::isCall() const
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    return (isInterrupt() || isSyscall());
+    return (isInterrupt() || Dyninst::InstructionAPI::isSystemCall(curInsn()));
 }
 
 bool IA_IAPI::isSysEnter() const
@@ -737,7 +737,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
         parseSysEnter(outEdges);
         return;
-    } else if (DEBUGGABLE() && isSyscall()) {
+    } else if (DEBUGGABLE() && Dyninst::InstructionAPI::isSystemCall(curInsn())) {
         parseSyscall(outEdges);
         return;
     }

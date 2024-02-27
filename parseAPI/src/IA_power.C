@@ -31,9 +31,7 @@
 
 #include "IA_power.h"
 
-#include "Dereference.h"
-#include "Immediate.h"
-#include "BinaryFunction.h"
+#include "instructionAPI/h/syscalls.h"
 
 #include "common/src/arch.h"
 #include "registers/ppc32_regs.h"
@@ -526,13 +524,6 @@ IA_power::tampersStack(ParseAPI::Function *, Address &) const
 bool IA_power::isNopJump() const
 {
     return false;
-}
-
-bool IA_power::isSyscall() const {
-  auto const id = curInsn().getOperation().getID();
-
-  // There is also a vectorized form (scv), but Dyninst can't decode it.
-  return id == power_op_sc;
 }
 
 bool IA_power::isInterrupt() const {

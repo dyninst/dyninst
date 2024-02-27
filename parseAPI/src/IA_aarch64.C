@@ -29,10 +29,7 @@
  */
 
 #include "IA_aarch64.h"
-#include "Dereference.h"
-#include "Immediate.h"
-#include "BinaryFunction.h"
-
+#include "instructionAPI/h/syscalls.h"
 #include "common/src/arch.h"
 #include "registers/aarch64_regs.h"
 #include "parseAPI/src/debug_parse.h"
@@ -272,10 +269,6 @@ IA_aarch64::tampersStack(ParseAPI::Function *, Address &) const
 bool IA_aarch64::isNopJump() const
 {
     return false;
-}
-
-bool IA_aarch64::isSyscall() const {
-  return curInsn().getOperation().getID() == aarch64_op_svc;
 }
 
 bool IA_aarch64::isInterrupt() const {
