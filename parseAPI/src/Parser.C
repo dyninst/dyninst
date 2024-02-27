@@ -53,6 +53,7 @@
 #include "registers/abstract_regs.h"
 #include <boost/timer/timer.hpp>
 #include <fstream>
+#include "instructionAPI/h/syscalls.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -1498,7 +1499,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 InstructionAPI::Instruction prevInsn = prev->second;
                 bool is_nonret = false;
 
-                if (prevInsn.getOperation().getID() == e_syscall) {
+                if (Dyninst::InstructionAPI::isSystemCall(prevInsn)) {
                     Address src = edge->src()->lastInsnAddr();
 
 
