@@ -106,7 +106,7 @@ bool dominates(Block* A, Block *B);
 \begin{apient}
 Block* getImmediateDominator(Block *A);
 \end{apient}
-\apidesc{Return the immediate dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate dominator.}
+\apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
 void getImmediateDominates(Block *A, set<Block*> &imm);
@@ -127,7 +127,7 @@ bool postDominates(Block* A, Block *B);
 \begin{apient}
 Block* getImmediatePostDominator(Block *A);
 \end{apient}
-\apidesc{Return the immediate post-dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate post-dominator.}
+\apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
 void getImmediatePostDominates(Block *A, set<Block*> &imm);
