@@ -42,6 +42,7 @@
 #include "dataflowAPI/h/ABI.h"
 #include <boost/bind/bind.hpp>
 #include "instructionAPI/h/syscalls.h"
+#include "instructionAPI/h/interrupts.h"
 
 std::string regs1 = " ttttttttddddddddcccccccmxxxxxxxxxxxxxxxxgf                  rrrrrrrrrrrrrrrrr";
 std::string regs2 = " rrrrrrrrrrrrrrrrrrrrrrrm1111110000000000ssoscgfedrnoditszapci11111100dsbsbdca";
@@ -547,13 +548,9 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
     break;
   default:
     {
-      bool isInterrupt = false;
+      const bool isInterrupt = Dyninst::InstructionAPI::isInterrupt(curInsn);
       const bool isSyscall = Dyninst::InstructionAPI::isSystemCall(curInsn);
 
-      if ((curInsn.getOperation().getID() == e_int) ||
-	  (curInsn.getOperation().getID() == e_int3)) {
-	isInterrupt = true;
-      }
       if (isInterrupt || isSyscall) {
 	ret.read |= (abi->getSyscallReadRegisters());
 	ret.written |= (abi->getSyscallWrittenRegisters());
