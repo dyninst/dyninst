@@ -831,8 +831,3 @@ bool IA_x86::isInterrupt() const
             (ci.getOperation().getID() == e_into) ||
             (ci.getOperation().getID() == e_int3));
 }
-
-
-bool IA_x86::isSyscall() const {
-  return Dyninst::InstructionAPI::isSystemCall(curInsn());
-}

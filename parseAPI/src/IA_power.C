@@ -526,10 +526,6 @@ bool IA_power::isNopJump() const
     return false;
 }
 
-bool IA_power::isSyscall() const {
-  return Dyninst::InstructionAPI::isSystemCall(curInsn());
-}
-
 bool IA_power::isInterrupt() const {
   return false;
 }

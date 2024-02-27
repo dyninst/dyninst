@@ -271,10 +271,6 @@ bool IA_aarch64::isNopJump() const
     return false;
 }
 
-bool IA_aarch64::isSyscall() const {
-  return Dyninst::InstructionAPI::isSystemCall(curInsn());
-}
-
 bool IA_aarch64::isInterrupt() const {
   return false;
 }
