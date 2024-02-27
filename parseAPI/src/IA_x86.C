@@ -40,7 +40,8 @@
 #include "bitArray.h"
 //#include "StackTamperVisitor.h"
 #include "instructionAPI/h/Visitor.h"
-#include "registers/x86_regs.h"
+
+#include "instructionAPI/h/syscalls.h"
 
 #include <deque>
 #include "Register.h"
@@ -831,123 +832,7 @@ bool IA_x86::isInterrupt() const
             (ci.getOperation().getID() == e_int3));
 }
 
-/* Thread Control Block syscall visitor
- *
- *  Used to detect 'call gs:[0x10]' syscalls in 32-bit code.
- */
-struct tcb_syscall_visitor : InstructionAPI::Visitor {
-  InstructionAPI::Result value;
-  int num_imm{0};
-  bool valid{true};
-  bool found_deref{false};
-  void visit(InstructionAPI::BinaryFunction*) override {
-    valid = false;
-  }
-  void visit(InstructionAPI::Immediate *imm) override {
-    num_imm++;
-    value = imm->eval();
-  }
-  void visit(InstructionAPI::RegisterAST*) override {
-    valid = false;
-  }
-  void visit(InstructionAPI::Dereference*) override {
-    found_deref = true;
-  }
-};
 
-namespace {
-  RegisterAST::Ptr gs(new RegisterAST(Dyninst::x86::gs));
-}
-
-/* Check for system call idioms
- *
- * Idioms checked:
- *
- *  syscall
- *  int <vector> (e.g., 'int 0x80')
- *  call DWORD PTR gs:[0x10]
- *
- *  Calls to Linux vdso functions (e.g., __vdso_clock_gettime)
- *  are not considered system calls because they use the standard
- *  call mechanism to explicitly bypass the kernel.
- *
- *  'sysenter' is checked by IA_IAPI::isSysEnter().
- */
 bool IA_x86::isSyscall() const {
-  auto const id = curInsn().getOperation().getID();
-
-  /*
-   *  'syscall' is only available in 64-bit mode, but is the most likely
-   *  instruction to be encountered for system calls so check it first.
-   */
-  if(id == e_syscall) {
-    return true;
-  }
-
-  /* Software interrupts
-   *
-   *  All interrupts that specify a vector go directly through the kernel,
-   *  so they are system calls.
-   *
-   *  Interrupts for traps/breakpoints (notable int3, int1, and into) don't
-   *  directly go through the kernel, so aren't considered system calls.
-   */
-  if(id == e_int) {
-    return true;
-  }
-
-  /* !! Everything below here is for 32-bit code only !!
-   *
-   *  Although technically possible, these idioms are very unlikely to
-   *  be encountered in 64-bit mode. Because they use generic instructions
-   *  like 'call', we don't want to introduce the overhead of checking them
-   *  unless it's truly necessary.
-   */
-  if(curInsn().getArch() != Dyninst::Arch_x86) {
-    return false;
-  }
-
-  /* Check 'call gs:[0x10]'
-   *
-   *  In some old 32-bit libc's, it was cheaper for the loader to put the
-   *  value of the kernel's system call entry point (AT_SYSINFO) into a fixed
-   *  location. One particular place was at 'gs:0x10' (in the Thread Control Block).
-   *  That value was likely taken from https://articles.manugarg.com/systemcallinlinux2_6.html.
-   *  In this case, 'call gs:[0x10]' is really a system call.
-   *
-   *  Dyninst doesn't correctly represent segment registers in AST, so the instruction
-   *  it produces is 'call [0x10]'. This isn't something a compiler would generate,
-   *  so we'll consider it as our special case here.
-   */
-  if(id == e_call) {
-    std::vector<InstructionAPI::Operand> operands;
-    curInsn().getOperands(operands);
-
-    if(operands.size() != 1) {
-      parsing_printf("[%s:%d] Incorrect number of arguments to 'call'. Found %lu, expected 1\n",
-                     __FILE__, __LINE__, operands.size());
-      return false;
-    }
-
-    auto in = curInsn(); // 'isRead' isn't const
-    if(!in.getOperation().isRead(gs)) {
-      return false;
-    }
-
-    tcb_syscall_visitor v;
-    operands[0].getValue()->apply(&v);
-
-    // The addressing mode should have a single dereference and one immediate value
-    if(!v.valid || !v.found_deref || v.num_imm != 1) {
-      return false;
-    }
-
-    // That value should be 0x10.
-    auto result = v.value;
-    if(result.defined && result.convert<int64_t>() == 0x10) {
-      return true;
-    }
-  }
-
-  return false;
+  return Dyninst::InstructionAPI::isSystemCall(curInsn());
 }
