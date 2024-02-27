@@ -502,7 +502,7 @@ bool IA_IAPI::isCall() const
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    return (Dyninst::InstructionAPI::isInterrupt(curInsn()) || Dyninst::InstructionAPI::isSystemCall(curInsn()));
+    return (Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn()) || Dyninst::InstructionAPI::isSystemCall(curInsn()));
 }
 
 bool IA_IAPI::isSysEnter() const

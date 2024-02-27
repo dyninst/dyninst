@@ -548,7 +548,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
     break;
   default:
     {
-      const bool isInterrupt = Dyninst::InstructionAPI::isInterrupt(curInsn);
+      const bool isInterrupt = Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn);
       const bool isSyscall = Dyninst::InstructionAPI::isSystemCall(curInsn);
 
       if (isInterrupt || isSyscall) {

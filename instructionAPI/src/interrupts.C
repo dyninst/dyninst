@@ -34,7 +34,7 @@
 namespace di = Dyninst::InstructionAPI;
 
 namespace x86 {
-  bool isInterrupt(di::Instruction const& ins) {
+  bool isSoftwareInterrupt(di::Instruction const& ins) {
     auto id = ins.getOperation().getID();
     switch(id) {
       case e_int:
@@ -49,27 +49,27 @@ namespace x86 {
 }
 
 namespace ppc {
-  bool isInterrupt(di::Instruction const&) {
+  bool isSoftwareInterrupt(di::Instruction const&) {
     return false;
   }
 }
 
 namespace aarch64 {
-  bool isInterrupt(di::Instruction const&) {
+  bool isSoftwareInterrupt(di::Instruction const&) {
     return false;
   }
 }
 
-bool di::isInterrupt(Instruction const& ins) {
+bool di::isSoftwareInterrupt(Instruction const& ins) {
   switch(ins.getArch()) {
     case Arch_x86:
     case Arch_x86_64:
-      return ::x86::isInterrupt(ins);
+      return ::x86::isSoftwareInterrupt(ins);
     case Arch_ppc32:
     case Arch_ppc64:
-      return ::ppc::isInterrupt(ins);
+      return ::ppc::isSoftwareInterrupt(ins);
     case Arch_aarch64:
-      return ::aarch64::isInterrupt(ins);
+      return ::aarch64::isSoftwareInterrupt(ins);
     case Arch_none:
     case Arch_aarch32:
     case Arch_cuda:
