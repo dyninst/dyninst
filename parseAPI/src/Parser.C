@@ -1857,27 +1857,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 if (!set_edge_parsing_status(frame,cur->last(), cur)) break;
                 link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
                 break;
-            } else if ( ah->isInterruptOrSyscall() ) {
-                // 5. Raising instructions
-                end_block(cur,ahPtr);
-                if (!set_edge_parsing_status(frame,cur->last(), cur)) break; 
-                ParseAPI::Edge* newedge = link_tempsink(cur, FALLTHROUGH);
-                parsing_printf("[%s:%d] pushing %lx onto worklist\n",
-                        FILE__,__LINE__,curAddr);
-                frame.pushWork(
-                        frame.mkWork(
-                            NULL,
-                            newedge,
-                            ahPtr->getAddr(),
-                            ahPtr->getNextAddr(),
-                            true,
-                            false)
-                        );
-                if (unlikely(func->obj()->defensiveMode())) {
-                    fprintf(stderr,"parsed bluepill insn sysenter or syscall "
-                            "in defensive mode at %lx\n",curAddr);
-                }
-                break;
             } else if (unlikely(func->obj()->defensiveMode())) {
                 if (!_pcb.hasWeirdInsns(func) && ah->isGarbageInsn()) {
                     // add instrumentation at this addr so we can
