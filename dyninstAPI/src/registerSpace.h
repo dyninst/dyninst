@@ -893,6 +893,11 @@ class registerSpace {
 
     static unsigned GPR(Dyninst::Register x) { return x; }
     static unsigned FPR(Dyninst::Register x) { return x; }
+    static unsigned SPR(Dyninst::Register x) { return x; }
+    static unsigned SGPR(Dyninst::Register x) { return x; }
+    static unsigned VGPR(Dyninst::Register x) { return x; }
+    static unsigned AGPR(Dyninst::Register x) { return x; }
+
     int framePointer() { return s33; }
 #endif
 
