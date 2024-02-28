@@ -7,14 +7,57 @@ CFWidget.h
 
 .. cpp:class:: CFWidget : public Widget
 
-  .. cpp:member:: static const Address Fallthrough
-  .. cpp:member:: static const Address Taken
+  .. rubric::
+    Pick values that don't correspond to actual targets. Skip zero because it's
+    used all over the place as a null.
+    
+  .. cpp:member:: static const Address Fallthrough = 1
+  .. cpp:member:: static const Address Taken = 2
+
+  ......
+
   .. cpp:type:: boost::shared_ptr<CFWidget> Ptr
   .. cpp:type:: std::map<Address, TargetInt *> DestinationMap
   .. cpp:function:: static Ptr create(Address addr)
+
+    Case 1: an empty trace ender for traces that do not end in a CF-category instruction
+
   .. cpp:function:: static Ptr create(const Widget::Ptr info)
+
+    Case 2: wrap a CF-category instruction
+
   .. cpp:function:: bool generate(const codeGen &templ, const RelocBlock *, CodeBuffer &buffer)
+
+      We need to create jumps to wherever our successors are
+      We can assume the addresses returned by our Targets
+      are valid, since we'll fixpoint until those stabilize.
+
+      There are the following cases:
+
+      **No explicit control flow/unconditional direct branch**
+
+        1. One target
+        2. Generate a branch unless it's unnecessary
+
+      **Conditional branch**
+
+        1. Two targets
+        2. Use stored instruction to generate correct condition
+        3. Generate a fallthrough "branch" if necessary
+
+      **Call**
+
+        1. Two targets (call and natural successor)
+        2. As above, except make sure call bit is flipped on
+
+      **Indirect branch**
+
+        1. Just go for it... we have no control, really
+
   .. cpp:function:: virtual ~CFWidget()
+
+    Don't delete the Targets; they're taken care of when we nuke the overall CFG.
+
   .. cpp:function:: void addDestination(Address index, TargetInt *dest)
 
     Owns the provided dest parameter
@@ -63,9 +106,13 @@ CFWidget.h
   .. cpp:function:: private bool generateBranch(CodeBuffer &gens, TargetInt *to, InstructionAPI::Instruction insn,\
                                                 const RelocBlock *trace, bool fallthrough)
 
-    These should move to a CodeGenerator class or something... But for now they can go here.
+    The Instruction input allows pulling out ancillary data (e.g., conditions, prediction, etc.)
 
-    The Instruction input allows pulling out ancillary data (e.g., conditions, prediction, etc.
+    We can put in an unconditional branch as an ender for a block that doesn't have a real branch. So if we don't have
+    an instruction generate a "generic" branch. We can see a problem where we want to branch to (effectively)
+    the next instruction. So if we ever see that (a branch of offset == size) back up the codeGen and shrink us down.
+
+    These should move to a CodeGenerator class or something... But for now they can go here.
 
   .. cpp:function:: private bool generateCall(CodeBuffer &gens, TargetInt *to, const RelocBlock *trace,\
                                               InstructionAPI::Instruction insn)
@@ -87,6 +134,10 @@ CFWidget.h
                                     Address e = 0)
 
   .. cpp:function:: private virtual bool apply(codeGen &gen, CodeBuffer *buf)
+
+     TODO: find smarter way of telling that we're doing CFG modification, in which
+     case we don't want to add padding in between blocks
+
   .. cpp:function:: private virtual unsigned estimate(codeGen &templ)
   .. cpp:function:: private virtual ~CFPatch()
   .. cpp:member:: private Type type
