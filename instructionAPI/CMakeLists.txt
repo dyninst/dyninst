@@ -35,7 +35,8 @@ set(_sources
     src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
-    src/syscalls.C)
+    src/syscalls.C
+    src/interrupts.C)
 
 set(_public_headers
     h/ArchSpecificFormatters.h
@@ -64,7 +65,8 @@ set(_private_headers
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
     src/InstructionDecoder-x86.h
-    h/syscalls.h)
+    h/syscalls.h
+    h/interrupts.h)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")

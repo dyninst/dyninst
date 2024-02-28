@@ -41,6 +41,8 @@
 #include "util.h"
 #include "dyntypes.h"
 #include "instructionAPI/h/syscalls.h"
+#include "instructionAPI/h/interrupts.h"
+
 #include <deque>
 #include <map>
 
@@ -500,7 +502,7 @@ bool IA_IAPI::isCall() const
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    return (isInterrupt() || Dyninst::InstructionAPI::isSystemCall(curInsn()));
+    return (Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn()) || Dyninst::InstructionAPI::isSystemCall(curInsn()));
 }
 
 bool IA_IAPI::isSysEnter() const
