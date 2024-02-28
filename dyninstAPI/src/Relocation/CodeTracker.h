@@ -40,9 +40,6 @@
 #include "common/src/IntervalTree.h"
 #include <iostream>
 
-// Remove when I'm done debugging this...
-//#include "dyninstAPI/src/baseTramp.h"
-
 class baseTramp;
 class func_instance;
 class block_instance;
