@@ -10,6 +10,9 @@ DynInstrumenter.h
   .. cpp:function:: DynInstrumenter()
   .. cpp:function:: virtual ~DynInstrumenter()
   .. cpp:function:: virtual bool run()
+
+    Instrumenter Command, which is called implicitly by Patcher's run()
+
   .. cpp:function:: virtual bool undo()
   .. cpp:function:: virtual bool isInstrumentable(PatchFunction*)
 
