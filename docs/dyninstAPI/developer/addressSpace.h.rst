@@ -3,6 +3,14 @@
 addressSpace.h
 ##############
 
+.. important::
+  Historically, we only use SIGTRAP as the signal for tramopline.
+  However, SIGTRAP is always intercepted by GDB, causing it is
+  almost impossible to debug through signal trampolines.
+  Here, we add a new environment variable DYNINST_SIGNAL_TRAMPOLINE_SIGILL
+  to control whether we use SIGILL as the signal for trampolines.
+  In the case of binary rewriting, DYNINST_SIGNAL_TRAMPOLINE_SIGILL should be
+  consistently set or unset for rewriting the binary and running the rewritten binaries.
 
 .. cpp:class:: AddressSpace : public InstructionSource
 
@@ -23,6 +31,11 @@ addressSpace.h
   .. cpp:function:: virtual bool writeTextWord(void *inOther, u_int amount, const void *inSelf) = 0
   .. cpp:function:: virtual bool writeTextSpace(void *inOther, u_int amount, const void *inSelf) = 0
   .. cpp:function:: Address getTOCoffsetInfo(func_instance *)
+
+    Symtab has this information on a per-Function basis. It's kinda nontrivial to get a Function object out of a
+    func_instance; instead we use its entry address which is what all the TOC data structures are written in terms
+    of anyway.
+
   .. cpp:function:: virtual Address inferiorMalloc(unsigned size, inferiorHeapType type = anyHeap, Address near = 0, bool *err = NULL) = 0
   .. cpp:function:: virtual void inferiorFree(Address item) = 0
   .. cpp:function:: void inferiorFreeInternal(Address item)
@@ -30,12 +43,23 @@ addressSpace.h
   .. cpp:function:: bool inferiorReallocInternal(Address item, unsigned newSize)
   .. cpp:function:: bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize)
   .. cpp:function:: bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize)
+
+    We attempt to find a free block that immediately succeeds this one. If we find such a block we expand this block into
+    the next; if this is possible we return true. Otherwise we return false.
+
   .. cpp:function:: bool isInferiorAllocated(Address block)
+
+    Checks if memory was allocated for a variable starting at address ``block``.
+
   .. cpp:function:: virtual void addTrap(Address from, Address to, codeGen &gen) = 0
   .. cpp:function:: virtual void removeTrap(Address from) = 0
   .. cpp:function:: virtual bool getDyninstRTLibName()
   .. cpp:function:: virtual bool isValidAddress(const Address) const
   .. cpp:function:: virtual void *getPtrToInstruction(const Address) const
+
+      Get me a pointer to the instruction: the return is a local (mutator-side) store for the mutatee. This may
+      duck into the local copy for images, or a relocated function's self copy.
+
   .. cpp:function:: virtual void *getPtrToData(const Address a) const
   .. cpp:function:: bool usesDataLoadAddress() const
   .. cpp:function:: virtual bool isCode(const Address) const
@@ -50,7 +74,13 @@ addressSpace.h
   .. cpp:function:: bool findVarsByAll(const std::string &varname, std::vector<int_variable *> &res, const std::string &libname = "")
   .. cpp:function:: virtual func_instance *findOnlyOneFunction(const std::string &name, const std::string &libname = "", bool search_rt_lib = true)
   .. cpp:function:: bool getSymbolInfo(const std::string &name, int_symbol &ret)
+
+     Returns the named symbol from the image or a shared object
+
   .. cpp:function:: void getAllFunctions(std::vector<func_instance *> &)
+
+    Returns all functions defined in the a.out and in the shared objects.
+
   .. cpp:function:: bool findFuncsByAddr(Address addr, std::set<func_instance *> &funcs, bool includeReloc = false)
   .. cpp:function:: bool findBlocksByAddr(Address addr, std::set<block_instance *> &blocks, bool includeReloc = false)
   .. cpp:function:: func_instance *findOneFuncByAddr(Address addr)
@@ -61,14 +91,28 @@ addressSpace.h
   .. cpp:function:: edge_instance *findEdge(ParseAPI::Edge *iedge)
   .. cpp:function:: func_instance *findFuncByEntry(const block_instance *block)
   .. cpp:function:: func_instance *findJumpTargetFuncByAddr(Address addr)
+
+      Acts like :cpp:func:`findTargetFuncByAddr`, but also finds the function if ``addr`` is an indirect jump to a function.
+
   .. cpp:function:: bool sameRegion(Dyninst::Address addr1, Dyninst::Address addr2)
   .. cpp:function:: mapped_module *findModule(const std::string &mod_name, bool wildcard = false)
+
+    Returns the module associated with ``mod_name``.
+
+    Checks both the a.out image and any shared object images for this resource.
+
   .. cpp:function:: mapped_object *findObject(std::string obj_name, bool wildcard = false) const
+
+    Returns the object associated with ``obj_name``
+
   .. cpp:function:: mapped_object *findObject(Address addr) const
   .. cpp:function:: mapped_object *findObject(fileDescriptor desc) const
   .. cpp:function:: mapped_object *findObject(const ParseAPI::CodeObject *co) const
   .. cpp:function:: mapped_object *getAOut()
   .. cpp:function:: void getAllModules(std::vector<mapped_module *> &)
+
+    Returns a vector of all modules defined in the a.out and in the shared objects.
+
   .. cpp:function:: const std::vector<mapped_object *> &mappedObjects()
   .. cpp:function:: virtual bool multithread_capable(bool ignore_if_mt_not_set = false) = 0
   .. cpp:function:: virtual bool multithread_ready(bool ignore_if_mt_not_set = false) = 0
@@ -100,6 +144,13 @@ addressSpace.h
   .. cpp:function:: void set_up_ptr(void *ptr)
   .. cpp:function:: void deleteAddressSpace()
   .. cpp:function:: void copyAddressSpace(AddressSpace *parent)
+
+    Fork constructor - and so we can assume a parent "process" rather than "address space".
+
+    Actually, for the sake of abstraction, use an AddressSpace instead of process.
+
+    This is only defined for process->process copy until someone can give a good reason for copying anything else...
+
   .. cpp:function:: AddressSpace()
   .. cpp:function:: virtual ~AddressSpace()
   .. cpp:function:: Address getObservedCostAddr() const
@@ -111,7 +162,13 @@ addressSpace.h
   .. cpp:function:: bool getAddrInfo(Address relocAddr, Address &origAddr, std::vector<func_instance *> &origFuncs, baseTramp *&baseTramp)
   .. cpp:function:: bool getRelocInfo(Address relocAddr, RelocInfo &relocInfo)
   .. cpp:function:: bool inEmulatedCode(Address addr)
-  .. cpp:function:: std::map<func_instance *, std::vector<edgeStub>> getStubs(const std::list<block_instance *> &owBBIs, const std::set<block_instance *> &delBBIs, const std::list<func_instance *> &deadFuncs)
+  .. cpp:function:: std::map<func_instance *, std::vector<edgeStub>> getStubs(const std::list<block_instance *> &owBBIs,\
+                                                                              const std::set<block_instance *> &delBBIs, \
+                                                                              const std::list<func_instance *> &deadFuncs)
+
+    Create stub edge set which is all edges such that ``e->trg()`` in ``owBBIs`` and ``e->src()`` not in ``delBBIs``,
+    in which case, choose stub from among ``e->src()->sources()``.
+
   .. cpp:function:: void addDefensivePad(block_instance *callBlock, func_instance *callFunc, Address padStart, unsigned size)
   .. cpp:function:: void getPreviousInstrumentationInstances(baseTramp *bt, std::set<Address>::iterator &b, std::set<Address>::iterator &e)
   .. cpp:function:: void addInstrumentationInstance(baseTramp *bt, Address addr)
