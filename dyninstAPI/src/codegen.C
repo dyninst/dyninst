@@ -726,6 +726,8 @@ void codeGen::beginTrackRegDefs()
     regsDefined_ = bitArray(registerSpace::lastReg);
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
     regsDefined_ = bitArray(registerSpace::fpsr);
+#elif defined(arch_amdgpu)
+    regsDefined_ = bitArray(700);
 #else
     regsDefined_ = bitArray();
 #endif
