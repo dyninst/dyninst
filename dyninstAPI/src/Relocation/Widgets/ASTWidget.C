@@ -63,7 +63,6 @@ std::string ASTWidget::format() const {
   return "AST(*)";
 }
 
-// Could be a lot smarter here...
 bool AstPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t AstPatch::apply" << std::endl;
   registerSpace *localRegSpace = registerSpace::actualRegSpace(point);
