@@ -56,7 +56,7 @@ stack heights mean.
 
   .. cpp:type:: boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr
 
-    An alias for :cpp:type:`InstructionAPI::Instruction::Ptr`.
+    An alias for :cpp:type:`InstructionAPI::Instruction`.
 
   .. cpp:type:: boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr
 

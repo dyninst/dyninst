@@ -116,7 +116,7 @@ PatchCFG.h
 
   **A wrapper around a ParseAPI::Block**.
 
-  .. cpp:type:: std::map<Address, InstructionAPI::Instruction::Ptr> Insns
+  .. cpp:type:: std::map<Address, InstructionAPI::Instruction> Insns
   .. cpp:type:: std::vector<PatchEdge*> edgelist
 
   .. cpp:function:: PatchBlock(const PatchBlock *parblk, PatchObject *child)

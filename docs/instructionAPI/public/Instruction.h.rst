@@ -11,6 +11,9 @@ Instruction.h
 
   .. cpp:type:: boost::shared_ptr<Instruction> Ptr
 
+    .. deprecated:: 10.0.0
+    .. warning:: For legacy support only. Do not use.
+
   .. cpp:function:: Instruction(Operation::Ptr what, size_t size, const unsigned char *raw, Architecture arch)
 
       Constructs an instruction from the ``arch`` ISA that consumes ``size`` bytes from ``raw``

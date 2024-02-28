@@ -182,7 +182,7 @@ CFG.h
   **A basic block**
 
   .. cpp:type:: std::vector<Edge *> edgelist
-  .. cpp:type:: std::map<Offset, InstructionAPI::Instruction::Ptr> Insns
+  .. cpp:type:: std::map<Offset, InstructionAPI::Instruction> Insns
 
   .. cpp:function:: Block(CodeObject * o, CodeRegion * r, Address start, Function* f = NULL)
 
