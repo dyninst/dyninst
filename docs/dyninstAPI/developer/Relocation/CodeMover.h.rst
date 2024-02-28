@@ -38,6 +38,19 @@ CodeMover.h
     Returns true for success or false for catastrophic failure. The codeGen parameter allows specification of
     various codeGen-carried information
 
+    We wish to minimize the space required by the relocated code. Since some platforms
+    may have varying space requirements for certain instructions (e.g., branches) this
+    requires a fixpoint calculation. We start with the original size and increase from
+    there.
+
+    Reasons for size increase:
+
+      1) Instrumentation. It tends to use room. Odd.
+      2) Transformed instructions. We may need to replace a single instruction with a
+         sequence to emulate its original behavior
+      3) Variable-sized instructions. If we increase branch displacements we may need
+         to increase the corresponding branch instruction sizes.
+
   .. cpp:function:: bool finalize()
   .. cpp:function:: void disassemble() const
   .. cpp:function:: void extractDefensivePads(AddressSpace *)
@@ -47,6 +60,8 @@ CodeMover.h
 
   .. cpp:function:: const EntryMap &entryMap()
   .. cpp:function:: SpringboardMap &sBoardMap(AddressSpace *as)
+
+    Take the current PriorityMap, digest it, and return a sorted list of where we need patches (from and to).
 
     Not const so we can add others to it.
 
