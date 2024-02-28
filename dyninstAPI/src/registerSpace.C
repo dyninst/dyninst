@@ -123,6 +123,22 @@ unsigned registerSlot::encoding() const {
             return Null_Register;
             break;
     }
+#elif defined(arch_amdgpu)
+    switch (type) {
+      case SGPR:
+            return registerSpace::SGPR(number);
+            break;
+      case VGPR:
+            return registerSpace::VGPR(number);
+            break;
+/*      case AGPR:
+            return registerSpace::AGPR(number);
+            break;*/
+      default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
 #else
     assert(0);
     return 0;
@@ -1520,8 +1536,14 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 
 	}
 	if (range.first == range.second) assert(0);
-	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter)
-		if (liveRegs[live->getIndex(iter->second)]) return true;
+	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter){
+        fprintf(stderr,"Mach Register = %x\n",iter->second);
+        auto index = live->getIndex(iter->second);
+        fprintf(stderr,"table size = %lu, looking up index = %d\n",liveRegs.size(),index);
+		if (liveRegs[live->getIndex(iter->second)]){ 
+          return true;
+        }
+    }
 
 	return false;
 }
