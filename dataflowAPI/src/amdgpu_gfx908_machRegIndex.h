@@ -612,3 +612,12 @@
 {amdgpu_gfx908::acc253,611},
 {amdgpu_gfx908::acc254,612},
 {amdgpu_gfx908::acc255,613},
+{amdgpu_gfx908::flat_scratch_lo,614},
+{amdgpu_gfx908::flat_scratch_hi,615},
+{amdgpu_gfx908::xnack_mask_lo,616},
+{amdgpu_gfx908::xnack_mask_hi,617},
+{amdgpu_gfx908::vcc_lo,618},
+{amdgpu_gfx908::vcc_hi,619},
+{amdgpu_gfx908::exec_lo,620},
+{amdgpu_gfx908::exec_hi,621},
+
