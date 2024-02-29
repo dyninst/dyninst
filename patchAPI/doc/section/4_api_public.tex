@@ -295,7 +295,7 @@ bool dominates(PatchBlock* A, PatchBlock *B);
 \begin{apient}
 PatchBlock* getImmediateDominator(PatchBlock *A);
 \end{apient}
-\apidesc{Return the immediate dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate dominator.}
+\apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
 void getImmediateDominates(PatchBlock *A, set<PatchBlock*> &imm);
@@ -316,7 +316,7 @@ bool postDominates(PatchBlock* A, PatchBlock *B);
 \begin{apient}
 PatchBlock* getImmediatePostDominator(PatchBlock *A);
 \end{apient}
-\apidesc{Return the immediate post-dominator of block \code{A}，\code{NULL} if the block \code{A} does not have an immediate post-dominator.}
+\apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
 void getImmediatePostDominates(PatchBlock *A, set<PatchBlock*> &imm);

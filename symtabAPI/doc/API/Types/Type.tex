@@ -165,7 +165,7 @@ static typeEnum *create(string &name,
                         Symtab *obj)
 \end{apient}
 \apidesc{
-These factory methods create a new enumerated type. There are two variations to this function. \code{consts} supplies the names and Ids of the constants of the enum. The first variant is used when user-defined identifiers are required; the second variant is used when system-defined identifiers will be used. 
+These factory methods create a new enumerated type. There are two variations to this function. \code{consts} supplies the names and Id's of the constants of the enum. The first variant is used when user-defined identifiers are required; the second variant is used when system-defined identifiers will be used. 
 The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
 }
 
