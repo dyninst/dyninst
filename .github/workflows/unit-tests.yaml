@@ -1,0 +1,53 @@
+name: Unit tests
+
+on:
+  pull_request:
+     branches:
+        - master
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    permissions:
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+         os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-23.04', 'ubuntu-23.10', 'ubuntu-24.04', 'fedora-37', 'fedora-38', 'fedora-39']
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: unit tests
+    steps:
+      - name: Checkout Dyninst
+        uses: actions/checkout@v3
+        with:
+          path: dyninst/src
+
+      - name: Build Dyninst
+        run: |
+           ln -s $PWD/dyninst /dyninst
+           export DYNINST_C_FLAGS="-Werror" DYNINST_CXX_FLAGS="-Werror"
+           export DYNINST_C_COMPILER="gcc" DYNINST_CXX_COMPILER="g++"
+           export EXTRA_CMAKE_FLAGS="-DDYNINST_EXPORT_ALL=1"
+           bash /dyninst/src/docker/build.sh /dyninst/src 2
+
+      - name: Checkout Unit Tests
+        uses: actions/checkout@v3
+        with:
+          repository: dyninst/unit-tests
+          path: unit-tests
+
+      - name: Build unit tests
+        run: |
+           cd unit-tests; mkdir build; cd build
+           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst -DDYNINST_SOURCE_TREE=/dyninst/src
+           cmake --build . --parallel 2
+
+      - name: Run unit tests
+        run: |
+          cd unit-tests/build
+          ctest .
