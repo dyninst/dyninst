@@ -8,9 +8,18 @@ on:
 
 jobs:
   unit-tests:
+    permissions:
+      packages: read
     strategy:
       fail-fast: false
+      matrix:
+         os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-23.04', 'ubuntu-23.10', 'ubuntu-24.04', 'fedora-37', 'fedora-38', 'fedora-39']
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
     name: unit tests
     steps:
       - name: Checkout Dyninst
