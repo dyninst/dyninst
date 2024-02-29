@@ -8,8 +8,6 @@ on:
 
 jobs:
   unit-tests:
-    permissions:
-      packages: read
     strategy:
       fail-fast: false
     runs-on: ubuntu-latest
