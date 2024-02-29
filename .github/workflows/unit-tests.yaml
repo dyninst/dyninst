@@ -32,7 +32,7 @@ jobs:
            ln -s $PWD/dyninst /dyninst
            export DYNINST_C_FLAGS="-Werror" DYNINST_CXX_FLAGS="-Werror"
            export DYNINST_C_COMPILER="gcc" DYNINST_CXX_COMPILER="g++"
-           export DYNINST_EXPORT_ALL=1
+           export EXTRA_CMAKE_FLAGS="-DDYNINST_EXPORT_ALL=1"
            bash /dyninst/src/docker/build.sh /dyninst/src 2
 
       - name: Checkout Unit Tests
