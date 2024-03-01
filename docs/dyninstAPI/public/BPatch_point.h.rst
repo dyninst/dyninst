@@ -18,7 +18,7 @@ BPatch_point.h
 
   .. cpp:function:: BPatch_procedureLocation getPointType()
 
-    Return the type of the point.
+    Returns the type of the point.
 
   .. cpp:function:: BPatch_function* getFunction()
 
@@ -27,7 +27,7 @@ BPatch_point.h
 
   .. cpp:function:: BPatch_function* getCalledFunction()
 
-    Return a BPatch_function representing the function that is called at the
+    Returns a BPatch_function representing the function that is called at the
     point. If the point is not a function call site or the target of the
     call cannot be determined, then this function returns NULL.
 
@@ -43,11 +43,13 @@ BPatch_point.h
 
   .. cpp:function:: BPatch_basicBlock* getBlock()
 
-    BPatch_point::getBlock  Returns block to which this point belongs if such a block exists  For example, function entry points do not have blocks associated with them.
+    Returns the block to which this point belongs, if it exists.
+
+    For example, function entry points do not have blocks associated with them.
 
   .. cpp:function:: void* getAddress()
 
-    Return the address of the first instruction at this point.
+    Returns the address of the first instruction at this point.
 
   .. cpp:function:: const BPatch_memoryAccess* getMemoryAccess()
 
@@ -63,7 +65,7 @@ BPatch_point.h
 
   .. cpp:function:: const BPatch_Vector<BPatchSnippetHandle*> getCurrentSnippets(BPatch_callWhen when)
 
-    Return the BPatchSnippetHandles for the BPatch_snippets that are associated with the point.
+    Returns the BPatchSnippetHandles for the BPatch_snippets that are associated with the point.
 
     If argument when is BPatch_callBefore, then
     BPatchSnippetHandles for snippets installed immediately before this
@@ -84,14 +86,16 @@ BPatch_point.h
 
   .. cpp:function:: void* monitorCalls(BPatch_function *f = NULL)
 
+    Inserts a call to the user-defined callback ``f`` at a dynamic call site.
+
     For a dynamic call site, this call instruments the call site represented
     by this instrumentation point with a function call. If input parameter
-    func is not NULL, func is called at the call site as the
-    instrumentation. If func is NULL, the callback function registered with
-    BPatch::registerDynamicCallCallback is used for instrumentation. Under
-    both cases, this call returns a pointer to the called function. If the
-    instrumentation point does not represent a dynamic call site, this call
-    returns NULL.
+    func is not NULL, func is called at the call site as the instrumentation.
+
+    If ``f`` is ``NULL``, the callback function registered with
+    :cpp:func:`BPatch::registerDynamicCallCallback` is used for instrumentation.
+
+    Returns ``NULL`` if the instrumentation point does not represent a dynamic call site.
 
   .. cpp:function:: bool stopMonitoring()
 
@@ -99,13 +103,10 @@ BPatch_point.h
     site and its instrumentation is successfully removed. Otherwise, it
     returns false.
 
-  .. cpp:function:: int getDisplacedInstructions(int maxSize, void *insns)
-
-    BPatch_point::getDisplacedInstructions  Returns the instructions to be relocated when instrumentation is inserted  at this point.  Returns the number of bytes taken up by these instructions.
-
   .. cpp:function:: bool usesTrap_NP()
 
-    Checks if inserting instrumentation at this point requires using a trap.
+    Checks if inserting instrumentation at this point requires using a trap rather
+    than a jump to the base tramp.
 
     On the x86 architecture, because instructions are of variable
     size, the instruction at a point may be too small for Dyninst to replace
@@ -117,6 +118,11 @@ BPatch_point.h
     appropriate instrumentation code. Since this technique is used only on
     some platforms, on other platforms this function always returns false.
 
+  .. cpp:function:: bool BPatchToInternalArgs(BPatch_point *point, BPatch_callWhen when, BPatch_snippetOrder order,\
+                                              callWhen &ipWhen, callOrder &ipOrder)
+
+    This isn't a point member because it relies on instPoint.h, which we don't want to include in BPatch_point.h.
+    If we had a public "enumerated types" header file this could move.
 
 
 Notes
