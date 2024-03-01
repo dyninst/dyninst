@@ -46,11 +46,13 @@ BPatch_flowGraph.h
 
   .. cpp:function:: bool getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*> &blocks)
 
-    returns the vector of entry basic blocks to CFG
+    Returns the basic blocks that are entry points in the control flow graph.
 
   .. cpp:function:: bool getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*> &blocks)
 
-    returns the vector of exit basic blocks to CFG
+    Returns the basic blocks that are the exit basic blocks from the control flow graph.
+    That is, those are the basic blocks that contains the instruction for returning from
+    the function.
 
   .. cpp:function:: BPatch_basicBlock *findBlockByAddr(Dyninst::Address addr)
 
@@ -67,18 +69,6 @@ BPatch_flowGraph.h
   .. cpp:function:: bool getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*> &loops)
 
     Returns in ``loops`` the natural (single entry) outer loops in the control flow graph.
-
-  .. cpp:function:: bool createSourceBlocks()
-
-    creates the source line blocks of all blocks in CFG. without calling this method line info is not available
-
-  .. cpp:function:: void fillDominatorInfo()
-
-    fills the dominator and immediate-dom information of basic blocks. without calling this method dominator info is not available
-
-  .. cpp:function:: void fillPostDominatorInfo()
-
-    same as :cpp:func:`fillDominatorInfo`, but for postdominatorimmediate-postdom info
 
   .. cpp:function:: BPatch_loopTreeNode * getLoopTree()
 

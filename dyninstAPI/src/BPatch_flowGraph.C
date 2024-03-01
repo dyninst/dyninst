@@ -60,8 +60,6 @@
 
 using namespace Dyninst::PatchAPI;
 
-// constructor of the class. It creates the CFG and
-// deletes the unreachable code.
 BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
                                    bool &valid)
   : func_(func), addSpace(func->getAddSpace()), mod(func->getModule()),
@@ -116,48 +114,6 @@ BPatch_Vector<BPatch_point*> *
 BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
                                         BPatch_loop *loop)
 {
-  /*
-   * We need to detect and handle following cases:
-   *
-   * (1) If a loop has no entry edge, e.g. the loop head is also
-   * first basic block of the function, we need to create a loop
-   * preheader.  we probably want to relocate the function at this
-   * point.
-   *
-   *        ___
-   *       v   |
-   *   f: [_]--/
-   *       |
-   *      [ ]
-   *
-   *
-   * (2) If a loop header is shared between two loops then add a new
-   * nop node N, redirect the back edge of each loop to N and make N
-   * jump to the header. this transforms the two loops into a single
-   * loop.
-   *
-   *      _              _
-   * --->[_]<---        [_]<---
-   * |  _/ \_  |       _/ \_  |
-   * \-[_] [_]-/      [_] [_] |
-   *                    \_/   |
-   *                    [N]---/
-   *
-   *
-   *  Also, loop instrumentation works on the control flow as it was
-   *  _originally_ parsed. Function entry/exit instrumentation may
-   *  have modified the this control flow, but this new
-   *  instrumentation is not cognizant of these modifications. This
-   *  instrumentation therefore may clobber any instrumentation that
-   *  was added because it has an inaccurate view of the binary.
-   *
-   *
-   *  2014-10-14 Xiaozhu:
-   *  Case (2) becomes irrelevant because under the new loop detection
-   *  algorithm, there is going to be only one loop identified.
-   *  Case (1) is still a problem.
-   */
-
   if (DEBUG_LOOP)
     fprintf(stderr,"%s findLoopInstPoints 0x%p\n",
             ll_func()->prettyName().c_str(), (void*)loop);
@@ -301,10 +257,6 @@ BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb) {
    return true;
 }
 
-// this is the method that returns the set of entry points
-// basic blocks, to the control flow graph. Actually, there must be
-// only one entry point to each control flow graph but the definition
-// given API specifications say there might be more.
 bool
 BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb)
 {
@@ -313,10 +265,6 @@ BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb)
   return true;
 }
 
-// this method returns the set of basic blocks that are the
-// exit basic blocks from the control flow graph. That is those
-// are the basic blocks that contains the instruction for
-// returning from the function
 bool
 BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
@@ -359,9 +307,6 @@ BPatch_flowGraph::createLoops()
 
 }
 
-// this methods returns the loop objects that exist in the control flow
-// grap. It returns a set. And if there are no loops, then it returns the empty
-// set. not NULL.
 void BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
                                               bool outerMostOnly)
 {
@@ -381,7 +326,6 @@ void BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
 }
 
 
-// get all the loops in this flow graph
 bool
 BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
@@ -389,7 +333,6 @@ BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
   return true;
 }
 
-// get the outermost loops in this flow graph
 bool
 BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
@@ -398,19 +341,6 @@ BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 }
 
 
-//this is the main method to create the basic blocks and the
-//the edges between basic blocks.
-//after finding the leaders, for each leader a basic block is created and
-//then the predecessors and successors of the basic blocks are inserted
-//to the basic blocks by passing from the function address space again, one
-//instruction at a time, and using maps from basic blocks to leaders, and
-//leaders to basic blocks.
-//The basic block of which the
-//leader is the start address of the function is assumed to be the entry block
-//to control flow graph. This makes only one basic block to be in the
-//entryBlocks field of the controlflow grpah. If it is possible
-//to enter a function from many points some modification is needed
-//to insert all entry basic blocks to the esrelevant field of the class.
 bool BPatch_flowGraph::createBasicBlocks()
 {
   assert(ll_func());
@@ -455,11 +385,6 @@ bool BPatch_flowGraph::createBasicBlocks()
   return true;
 }
 
-
-// This function must be called only after basic blocks have been created
-// by calling createBasicBlocks. It computes the source block for each
-// basic block. For now, a source block is represented by the starting
-// and ending line numbers in the source block for the basic block.
 
 bool BPatch_flowGraph::createSourceBlocks() {
   if( isSourceBlockInfoReady ) { return true; }
@@ -524,13 +449,6 @@ bool BPatch_flowGraph::createSourceBlocks() {
   return true;
 } /* end createSourceBlocks() */
 
-//this method fill the dominator information of each basic block
-//looking at the control flow edges. It uses a fixed point calculation
-//to find the immediate dominator of the basic blocks and the set of
-//basic blocks that are immediately dominated by this one.
-//Before calling this method all the dominator information
-//is going to give incorrect results. So first this function must
-//be called to process dominator related fields and methods.
 void BPatch_flowGraph::fillDominatorInfo()
 {
   if(isDominatorInfoReady)
