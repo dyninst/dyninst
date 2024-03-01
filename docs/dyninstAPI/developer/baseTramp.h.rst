@@ -8,6 +8,10 @@ baseTramp.h
 
   .. cpp:function:: static baseTramp *create(instPoint *p)
   .. cpp:function:: static baseTramp *createForIRPC(AddressSpace *as)
+
+    We use baseTramps to generate save and restore code for iRPCs iRPCs don't have a corresponding
+    instPoint so the AddressSpace needs to be specified
+
   .. cpp:function:: static baseTramp *fork(baseTramp *parBT, AddressSpace *child)
   .. cpp:function:: func_instance *func() const
   .. cpp:function:: instPoint *point() const
@@ -16,6 +20,37 @@ baseTramp.h
   .. cpp:function:: void initializeFlags()
   .. cpp:function:: bool generateCode(codeGen &gen, Dyninst::Address baseInMutatee)
   .. cpp:function:: bool generateCodeInlined(codeGen &gen, Dyninst::Address baseInMutatee)
+
+    We're generating something like so:
+
+      .. code:: console
+
+        <Save state>
+        <If>
+           <compare>
+             <load>
+               <add>
+                 <tramp guard addr>
+                 <multiply>
+                   <thread index>
+                   <sizeof (int)>
+             <0>
+           <sequence>
+             <store>
+               <... tramp guard addr>
+               <1>
+             <mini tramp sequence>
+             <store>
+               <... tramp guard addr>
+               <0>
+        <Cost section>
+        <Load state>
+
+        Break it down...
+        <Save state>
+
+    TODO: an AST for saves that knows how many registers we're using...
+
   .. cpp:function:: bool checkForFuncCalls()
   .. cpp:function:: ~baseTramp()
   .. cpp:function:: int numDefinedRegs()
