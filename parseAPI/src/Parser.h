@@ -149,6 +149,10 @@ namespace Dyninst {
 
             void parse_at(Address addr, bool recursive, FuncSource src);
 
+            void parse_at(const std::vector<Address> &addrs, bool recursive, FuncSource src);
+
+            void parse_at(const std::vector<std::pair<Address, CodeRegion *>> &addrs, bool recursive, FuncSource src);
+
             void parse_edges(vector<ParseWorkElem *> &work_elems);
 
             CFGFactory &factory() const { return _cfgfact; }

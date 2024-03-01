@@ -195,52 +195,64 @@ Parser::parse()
 #endif
 }
 
-    void
-Parser::parse_at(
-        CodeRegion * region,
-        Address target,
-        bool recursive,
-        FuncSource src)
+void
+Parser::parse_at(const std::vector<std::pair<Address, CodeRegion*>> & targets,
+                 bool recursive,
+                 FuncSource src)
 {
     Function *f;
     ParseFrame *pf;
     LockFreeQueue<ParseFrame *> work;
 
-    parsing_printf("[%s:%d] entered parse_at([%lx,%lx),%lx)\n",
-            FILE__,__LINE__,region->low(),region->high(),target);
+    parsing_printf("[%s:%d] entered parse_at()\n",FILE__,__LINE__);
 
-    if(!region->contains(target)) {
-        parsing_printf("\tbad address, bailing\n");
+    if(_parse_state == UNPARSEABLE)
         return;
-    }
 
-    // Reset parser status 
+    // Reset parser status
     _parse_state = PARTIAL;
     hint_funcs.clear();
     discover_funcs.clear();
-    deleted_func.clear();    
-    f = _parse_data->createAndRecordFunc(region, target, src);
-    if (f == NULL)
-        f = _parse_data->findFunc(region,target);
-    if(!f) {
-        parsing_printf("   could not create function at %lx\n",target);
-        return;
-    }
+    deleted_func.clear();
 
-    ParseFrame::Status exist = _parse_data->frameStatus(region,target);
-    if(exist != ParseFrame::BAD_LOOKUP) {
-        parsing_printf("   frame at %lx already exists, status %d\n",
-                target, exist);
-        return;
+    CodeRegion * region = nullptr;
+    Address target;
+    for ( std::pair<Address, CodeRegion *> p : targets )
+    {
+        target = std::get<0>(p);
+        region = std::get<1>(p);
+        if(!region) {
+            parsing_printf("   region for address %lx needs to be specified\n", target);
+            continue;
+        }
+        if(!region->contains(target)) {
+            parsing_printf("   target %lx is not inside the region\n", target);
+            continue;
+        }
+
+        f = _parse_data->createAndRecordFunc(region, target, src);
+        if (f == NULL)
+            f = _parse_data->findFunc(region,target);
+        if(!f) {
+            parsing_printf("   could not create function at %lx\n",target);
+            continue;
+        }
+
+        ParseFrame::Status exist = _parse_data->frameStatus(region,target);
+        if(exist != ParseFrame::BAD_LOOKUP) {
+            parsing_printf("   frame at %lx already exists, status %d\n",
+                    target, exist);
+            continue;
+        }
+        pf = _parse_data->createAndRecordFrame(f);
+        if (pf != NULL) {
+            frames.insert(pf);
+        } else {
+            pf = _parse_data->findFrame(region, target);
+        }
+        if (pf->func->entry())
+            work.insert(pf);
     }
-    pf = _parse_data->createAndRecordFrame(f);
-    if (pf != NULL) {
-        frames.insert(pf);
-    } else {
-        pf = _parse_data->findFrame(region, target);
-    }
-    if (pf->func->entry())
-        work.insert(pf);
     parse_frames(work,recursive);
     finalize();
 
@@ -250,29 +262,49 @@ Parser::parse_at(
 
 }
 
-    void
-Parser::parse_at(Address target, bool recursive, FuncSource src)
+void
+Parser::parse_at(const std::vector<Address> & targets,
+                 bool recursive,
+                 FuncSource src)
 {
-    CodeRegion * region = NULL;
-
-    parsing_printf("[%s:%d] entered parse_at(%lx)\n",FILE__,__LINE__,target);
+    std::vector<std::pair<Address, CodeRegion *>> v;
+    StandardParseData * spd = dynamic_cast<StandardParseData *>(_parse_data);
 
     if(_parse_state == UNPARSEABLE)
         return;
 
-    StandardParseData * spd = dynamic_cast<StandardParseData *>(_parse_data);
     if(!spd) {
         parsing_printf("   parse_at is invalid on overlapping regions\n");
         return;
     }
 
-    region = spd->reglookup(region,target); // input region ignored for SPD
-    if(!region) {
-        parsing_printf("   failed region lookup at %lx\n",target);
-        return;
+    for ( Address target : targets )
+    {
+        CodeRegion *region = spd->reglookup(nullptr,target);
+        if(region) {
+            v.push_back(std::make_pair(target, region));
+        } else {
+            parsing_printf("   failed region lookup at %lx\n", target);
+        }
     }
+    parse_at(v, recursive, src);
+}
 
-    parse_at(region,target,recursive,src);
+void
+Parser::parse_at(CodeRegion * region,
+                 Address target,
+                 bool recursive,
+                 FuncSource src)
+{
+    std::vector<std::pair<Address, CodeRegion *>> v = { std::make_pair(target, region) };
+    parse_at(v, recursive, src);
+}
+
+void
+Parser::parse_at(Address target, bool recursive, FuncSource src)
+{
+    std::vector<Address> v = { target };
+    parse_at(v, recursive, src);
 }
 
     void
