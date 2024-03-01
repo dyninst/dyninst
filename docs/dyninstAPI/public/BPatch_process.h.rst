@@ -53,7 +53,11 @@ BPatch_process.h
 
     May be called multiple times, and does not affect the state of the process.
 
+    This may involve checking for thread events that may have recently changed this thread's status.
+
   .. cpp:function:: BPatch_exitType terminationStatus()
+
+    Indicates how the program exited.
 
     If the process has exited, terminationStatus will indicate whether the
     process exited normally or because of a signal. If the process has not
@@ -105,57 +109,56 @@ BPatch_process.h
 
     Checks if the process can create threads (e.g., it contains a threading library) even if it has not yet.
 
-  .. cpp:function:: BPatch_thread * getThread(dynthread_t tid)
+  .. cpp:function:: BPatch_thread* getThread(dynthread_t tid)
 
     Returns one of this process's threads, given a tid
 
-  .. cpp:function:: BPatch_thread * getThreadByIndex(unsigned index)
+  .. cpp:function:: BPatch_thread* getThreadByIndex(unsigned index)
 
     Returns one of this process's threads, given an index
 
-  .. cpp:function:: bool dumpCore(const char *file, bool terminate)
-
-    Produce a core dump file <file> for the mutatee process
-
-  .. cpp:function:: bool dumpImage(const char *file)
-
-    Write contents of memory to <file>
-
   .. cpp:function:: BPatch_variableExpr* getInheritedVariable(BPatch_variableExpr &pVar)
 
-    Retrieve a new handle to an existing variable (such as one created by
-    BPatch_process::malloc) that was created in a parent process and now
-    exists in a forked child process. When a process forks all existing
-    BPatch_variableExprs are copied to the child process, but the Dyninst
+    Retrieves an existing variable (such as one created by :cpp:func:`BPatch_process::malloc`) that
+    was created in a parent process and now exists in a forked child process.
+
+    When a process forks all existing BPatch_variableExprs are copied to the child process, but the Dyninst
     handles for these objects are not valid in the child BPatch_process.
     This function is invoked on the child process’ BPatch_process, parentVar
     is a variable from the parent process, and a handle to a variable in the
     child process is returned. If parentVar was not allocated in the parent
     process, then NULL is returned.
 
-  .. cpp:function:: BPatchSnippetHandle * getInheritedSnippet(BPatchSnippetHandle &parentSnippet)
+  .. cpp:function:: BPatchSnippetHandle* getInheritedSnippet(BPatchSnippetHandle &parentSnippet)
 
-    This function is similar to :cpp:func:`getInheritedVariable`, but operates on
-    BPatchSnippetHandles. Given a child process that was created via fork
-    and a BPatch­SnippetHandle, parentSnippet, from the parent process, this
-    function will return a handle to parentSnippet that is valid in the
-    child process. If it is determined that parentSnippet is not associated
-    with the parent process, then NULL is returned.
+    Retrieves the snippet corresponding to ``parentSnippet`` that exists in this process and was
+    inherited from and originally created in its parent process.
+
+    This is similar to :cpp:func:`getInheritedVariable`, but operates on ``BPatchSnippetHandles``.
+
+    Returns ``NULL`` if ``parentSnippet`` is not associated with the parent process.
 
   .. cpp:function:: void beginInsertionSet()
 
-    Start the batch insertion of multiple points all calls to insertSnippet  after this call will not actually instrument until finalizeInsertionSet is  called
+    Start the batch insertion of multiple points all calls to insertSnippet after this call will not
+    actually instrument until :cpp:func:`finalizeInsertionSet` is called.
 
   .. cpp:function:: bool finalizeInsertionSet(bool atomic, bool *modified = NULL)
 
-    Finalizes all instrumentation logically added since a call to beginInsertionSet.  Returns true if all instrumentation was successfully inserted otherwise, none  was. Individual instrumentation can be manipulated via the BPatchSnippetHandles  returned from individual calls to insertSnippet.  atomic: if true, all instrumentation will be removed if any fails to go in.  modified: if provided, and set to true by finalizeInsertionSet, additional            steps were taken to make the installation work, such as modifying            process state.  Note that such steps will be taken whether or not            a variable is provided.
+    Finalizes all instrumentation logically added since a call to beginInsertionSet.
 
-  .. cpp:function:: bool finalizeInsertionSetWithCatchup(bool atomic, bool *modified, BPatch_Vector<BPatch_catchupInfo> &catchup_handles)
+    Arguments are ignored.
+
+    Individual instrumentation can be manipulated via the :cpp:class:`BPatchSnippetHandles`
+    returned from individual calls to :cpp:func:`insertSnippet`.
+
+    Returns ``true`` if all instrumentation was successfully inserted.
 
   .. cpp:function:: void* oneTimeCode(const BPatch_snippet &expr, bool *err = NULL)
 
-    Cause the snippet expr to be executed by the mutatee immediately. If the
-    process is multithreaded, the snippet is run on a thread chosen by
+    Cause the snippet expr to be executed by the mutatee immediately.
+
+    If the process is multithreaded, the snippet is run on a thread chosen by
     Dyninst. If the user requires the snippet to be run on a particular
     thread, use the BPatch_thread version of this function instead. The
     process must be stopped to call this function. The behavior is
@@ -181,30 +184,6 @@ BPatch_process.h
     If the process is running when oneTimeCodeAsync is called, expr will be
     run immediately. If the process is stopped, then expr will be run when
     the process is continued.
-
-  .. cpp:function:: bool hideDebugger()
-
-      This is a Windows only function that removes debugging artifacts that
-      are added to user-space datastructures and the heap of the debugged
-      process, by CreateProcess and DebugActiveProcess.  Removing the artifacts
-      doesn't have any effect on the process, as the kernel still knows that
-      the process is being debugged.  Three of the artifacts are flags that can
-      be reached through the Process Environment Block of the debuggee (PEB):
-
-      1. BeingDebugged, one byte at offset 2 in the PEB.
-      2. NtGlobalFlags, at offset 0x68 in the PEB
-      3. There are two consecutive words of heap flags which are at offset 0x0c
-         from the beginning of the heap.  The heap base address is at offset
-         0x18 from the beginning of the PEB.
-
-      The other thing this method does is clear the 0xabababababababab value that
-      it CreateProcess adds to the end of the heap section when creating a debugged
-      process, in response to the heap flag: HEAP_TAIL_CHECKING_ENABLED, which it
-      sets to true for debugged processes.  We are clearing that flag, but by the
-      time we do, the value is already written to disk.
-
-      Various system calls can still be used by the debuggee to recognize that
-      it is being debugged, so this is not a complete solution.
 
   .. cpp:function:: virtual BPatch_object* loadLibrary(const char *libname, bool reload = false)
 
