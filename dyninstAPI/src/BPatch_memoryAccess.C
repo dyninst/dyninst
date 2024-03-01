@@ -99,7 +99,6 @@ const BPatch_countSpec_NP *BPatch_memoryAccess::getByteCount(int which) const
    return &(count[which]);
 }
 
-// initializes only the first access - general case
 void BPatch_memoryAccess::set1st(bool _isLoad, bool _isStore,
             long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s,
             long _imm_c, int _ra_c, int _rb_c, unsigned int _scale_c,
@@ -115,7 +114,6 @@ void BPatch_memoryAccess::set1st(bool _isLoad, bool _isStore,
    nonTemporal[0] = _nt;
 }
 
-  // initializes only the first access - no scale for count
 void BPatch_memoryAccess::set1st(bool _isLoad, bool _isStore,
               long _imm_s, int _ra_s, int _rb_s, long _imm_c, int _ra_c, 
               int _rb_c, unsigned int _scale_s, int _preFcn, int _cond, 
@@ -136,7 +134,6 @@ BPatch_memoryAccess* BPatch_memoryAccess::init_tables()
     return NULL;
 }
 
-// initializes only the first access; #bytes is a constant
 BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
                                          bool _isLoad, bool _isStore, unsigned int _bytes,
                                          long _imm, int _ra, int _rb, unsigned int _scale,
@@ -149,7 +146,6 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
            _nt);
 }
 
-// initializes only the first access; #bytes is an expression w/scale
 BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
                     bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s,
                     unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, 
@@ -162,7 +158,6 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
           _rb_c, _scale_c, _preFcn, _cond, _nt);
 }
 
-// initializes only the first access; #bytes is an expression
 BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
                     bool _isLoad, bool _isStore, bool _isPrefetch, long _imm_s, 
                     int _ra_s, int _rb_s, long _imm_c, int _ra_c, int _rb_c,
@@ -176,7 +171,6 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
           0, _preFcn);
 }
 
-  // initializes only the first access; #bytes is an expression & not a prefetch
 BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
 	       bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s,
 	       long _imm_c, int _ra_c, int _rb_c) : 
@@ -187,7 +181,6 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
    set1st(_isLoad, _isStore, _imm_s, _ra_s, _rb_s, _imm_c, _ra_c, _rb_c);
 }
 
-  // sets 2nd access; #bytes is constant
 void BPatch_memoryAccess::set2nd(bool _isLoad, bool _isStore, 
             unsigned int _bytes, long _imm, int _ra, int _rb, 
             unsigned int _scale)
@@ -204,7 +197,6 @@ void BPatch_memoryAccess::set2nd(bool _isLoad, bool _isStore,
    nonTemporal[1] = false;
 }
 
-  // sets 2nd access; #bytes is an expression w/scale
 void BPatch_memoryAccess::set2nd(bool _isLoad, bool _isStore,
             long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s,
               long _imm_c, int _ra_c, int _rb_c, unsigned int _scale_c,
@@ -222,7 +214,6 @@ void BPatch_memoryAccess::set2nd(bool _isLoad, bool _isStore,
    nonTemporal[1] = _nt;
 }
 
-// initializes both accesses; #bytes is a constant
 BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
 		      bool _isLoad, bool _isStore, unsigned int _bytes,
             long _imm, int _ra, int _rb, unsigned int _scale,
@@ -236,7 +227,6 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
    set2nd(_isLoad2, _isStore2, _bytes2, _imm2, _ra2, _rb2, _scale2);
 }
 
-  // initializes both accesses; #bytes is an expression & not a prefetch
 BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
          bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s, 
          unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, 
