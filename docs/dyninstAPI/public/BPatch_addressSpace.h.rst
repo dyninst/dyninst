@@ -14,9 +14,7 @@ BPatch_addressSpace.h
     
 .. cpp:class:: BPatch_addressSpace
 
-  The* *BPatch_addressSpace** class is a superclass of the BPatch_process
-  and BPatch_binaryEdit classes. It contains functionality that is common
-  between the two sub classes.
+  Functionality that is common between :cpp:class:`BPatch_process` and :cpp:class:`BPatch_binaryEdit`.
 
   .. cpp:type:: BPatch_Vector<BPatch_statement>::const_iterator statement_iter
   .. cpp:type:: std::vector<std::pair<unsigned long, unsigned long>>::const_iterator arange_iter
@@ -58,6 +56,31 @@ BPatch_addressSpace.h
 
   .. cpp:function:: virtual bool getMutationsActive() = 0
 
+  .. cpp:function:: BPatch_module *findModuleByAddr(Dyninst::Address addr)
+
+      Returns the module that contains the address ``addr`` or ``NULL`` if the address is not within a module.
+
+      Does NOT trigger parsing.
+
+  .. cpp:function:: bool findFuncsByRange(Dyninst::Address startAddr, Dyninst::Address endAddr, std::set<BPatch_function*> &funcs)
+
+  ......
+
+  .. rubric::
+    Snippet Insertion
+
+  These insert a snippet of code at a given point. If a collection of points is
+  supplied, insert the code snippet at each point in the list. The
+  optional when argument specifies when the snippet is to be called; a
+  value of BPatch_callBefore indicates that the snippet should be inserted
+  just before the specified point or points in the code, and a value of
+  BPatch_callAfter indicates that it should be inserted just after them.
+
+  The order argument specifies where the snippet is to be inserted
+  relative to any other snippets previously inserted at the same point.
+  The values BPatch_firstSnippet and BPatch_lastSnippet indicate that the
+  snippet should be inserted before or after all snippets, respectively.
+
   .. cpp:function:: virtual BPatchSnippetHandle* insertSnippet(const BPatch_snippet& expr, BPatch_point& point, \
                                                                BPatch_snippetOrder order = BPatch_firstSnippet)
 
@@ -67,29 +90,24 @@ BPatch_addressSpace.h
   .. cpp:function:: virtual BPatchSnippetHandle* insertSnippet(const BPatch_snippet& expr, const BPatch_Vector<BPatch_point*>& points, \
                                                                BPatch_snippetOrder order = BPatch_firstSnippet)
 
+    Inserts the snippet ``expr`` at each of the instrumentation points in ``points``.
+
   .. cpp:function:: virtual BPatchSnippetHandle* insertSnippet(const BPatch_snippet& expr, const BPatch_Vector<BPatch_point*>& points, \
                                                                BPatch_callWhen when, BPatch_snippetOrder order = BPatch_firstSnippet)
 
-    Insert a snippet of code at the specified point. If a list of points is
-    supplied, insert the code snippet at each point in the list. The
-    optional when argument specifies when the snippet is to be called; a
-    value of BPatch_callBefore indicates that the snippet should be inserted
-    just before the specified point or points in the code, and a value of
-    BPatch_callAfter indicates that it should be inserted just after them.
+    Inserts the snippet ``expr`` at each of the instrumentation points in ``points``.
 
-    The order argument specifies where the snippet is to be inserted
-    relative to any other snippets previously inserted at the same point.
-    The values BPatch_firstSnippet and BPatch_lastSnippet indicate that the
-    snippet should be inserted before or after all snippets, respectively.
-
-    It is illegal to use BPatch_callAfter with a BPatch_entry point. Use
-    BPatch_callBefore when instrumenting entry points, which inserts
-    instrumentation before the first instruction in a subroutine. Likewise,
-    it is illegal to use BPatch_callBefore with a BPatch_exit point. Use
-    BPatch_callAfter with exit points. BPatch_callAfter inserts
+  .. warning::
+    It is illegal to use :cpp:enumerator:`BPatch_callAfter` with a :cpp:enumerator:`BPatch_locEntry`
+    point. Use :cpp:enumerator:`BPatch_callBefore` when instrumenting entry points, which inserts
+    instrumentation before the first instruction in a subroutine. Likewise, it is illegal to use
+    :cpp:enumerator:`BPatch_callBefore` with a :cpp:enumerator:`BPatch_exit` point. Use
+    :cpp:enumerator:`BPatch_callAfter` with exit points. :cpp:enumerator:`BPatch_callAfter` inserts
     instrumentation at the last instruction in the subroutine.
-    insert­Snippet will return NULL when used with an illegal pair of
+    :cpp:any:`insertSnippet` will return ``NULL`` when used with an illegal pair of
     points.
+
+  ......
 
   .. cpp:function:: virtual void beginInsertionSet() = 0
 
@@ -128,10 +146,6 @@ BPatch_addressSpace.h
 
     Remove the snippet associated with the passed handle. If the handle is
     not defined for the process, then deleteSnippet will return false.
-
-  .. cpp:function:: bool replaceCode(BPatch_point *point, BPatch_snippet *snippet)
-
-      Replace a point (must be an instruction...) with a given BPatch_snippet
 
   .. cpp:function:: bool replaceFunctionCall(BPatch_point& point, BPatch_function& newFunc)
 
@@ -234,29 +248,48 @@ BPatch_addressSpace.h
 
       Return a handle to the executable file associated with this BPatch_process object.
 
-  .. cpp:function:: BPatch_variableExpr* malloc(int n, std::string name = std::string(""))
+  ......
 
-  .. cpp:function:: BPatch_variableExpr* malloc(const BPatch_type& type, std::string name = std::string(""))
-
+  .. rubric::
     These two functions allocate memory. Memory allocation is from a heap.
     The heap is not necessarily the same heap used by the application. The
     available space in the heap may be limited depending on the
-    implementation. The first function, malloc(int n), allocates n bytes of
-    memory from the heap. The second function, malloc(const BPatch_type& t),
-    allocates enough memory to hold an object of the specified type. Using
-    the second version is strongly encouraged because it provides additional
-    information to permit better type checking of the passed code. If a name
-    is specified, Dyninst will assign ``var_name`` to the variable; otherwise,
+    implementation.
+  
+  .. cpp:function:: BPatch_variableExpr* malloc(int n, std::string name = std::string(""))
+
+    Allocate ``n`` *bytes** of memory in the thread's address space.
+
+    If a name is specified, Dyninst will assign ``var_name`` to the variable; otherwise,
     it will assign an internal name. The returned memory is persistent and
-    will not be released until BPatch_process::free is called or the
+    will not be released until :cpp:func:`BPatch_process::free` is called or the
     application terminates.
+
+
+    If otherwise unspecified when binary rewriting, then the allocation
+    happens in the original object.
+
+  .. cpp:function:: BPatch_variableExpr* malloc(const BPatch_type& type, std::string name = std::string(""))
+
+    Allocate enough memory in the thread's address space for a variable of the given type.
+
+    If a name is specified, Dyninst will assign ``var_name`` to the variable; otherwise,
+    it will assign an internal name. The returned memory is persistent and
+    will not be released until :cpp:func:`BPatch_process::free` is called or the
+    application terminates.
+
+    Using this version is strongly encouraged because it provides additional
+    information to permit better type checking of the passed code.
 
   .. cpp:function:: bool free(BPatch_variableExpr& ptr)
 
-    Free the memory in the passed variable ptr. The programmer is
-    responsible for verifying that all code that could reference this memory
+    Free the memory at ``ptr`` allocated allocated with :cpp:func:`BPatch_process::malloc`.
+
+    The programmer is responsible for verifying that all code that could reference this memory
     will not execute again (either by removing all snippets that refer to
     it, or by analysis of the program). Return true if the free succeeded.
+
+  ......
 
   .. cpp:function:: BPatch_variableExpr* createVariable(std::string name, Dyninst::Address addr,\
                                                         BPatch_type* type = NULL)
@@ -301,10 +334,7 @@ BPatch_addressSpace.h
 
   .. cpp:function:: bool isStaticExecutable()
 
-    This function returns true if the original file opened with this
-    BPatch_addressSpace is a statically linked executable, or false
-    otherwise.
-
+    Checks if the original file opened is a statically-linked executable.
 
 
 .. cpp:class:: BPatchSnippetHandle

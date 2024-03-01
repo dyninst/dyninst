@@ -207,30 +207,13 @@ BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a,
 
 
 
-/***************************************************************************
- * Bpatch_snippetHandle
- ***************************************************************************/
-
-/*
- * BPatchSnippetHandle::BPatchSnippetHandle
- *
- * Constructor for BPatchSnippetHandle.  Delete the snippet instance(s)
- * associated with the BPatchSnippetHandle.
- */
 BPatchSnippetHandle::BPatchSnippetHandle(BPatch_addressSpace * addSpace) :
    addSpace_(addSpace)
 {
 }
 
-/*
- * BPatchSnippetHandle::~BPatchSnippetHandle
- *
- * Destructor for BPatchSnippetHandle.  Delete the snippet instance(s)
- * associated with the BPatchSnippetHandle.
- */
 BPatchSnippetHandle::~BPatchSnippetHandle()
 {
-   // don't delete inst instances since they are might have been copied
 }
 
 BPatch_addressSpace *BPatchSnippetHandle::getAddressSpace()
@@ -257,8 +240,6 @@ BPatchSnippetHandle::thread_iter BPatchSnippetHandle::getCatchupThreads_end()
     return catchup_threads.end();
 }
 
-// Return true if any sub-minitramp uses a trap? Other option
-// is "if all"...
 bool BPatchSnippetHandle::usesTrap() {
     return false;
 }
@@ -279,15 +260,6 @@ BPatch_image * BPatch_addressSpace::getImage()
    return image;
 }
 
-
-/*
- * BPatch_addressSpace::deleteSnippet
- *
- * Deletes an instance of a snippet.
- *
- * handle       The handle returned by insertSnippet when the instance to
- *              deleted was created.
- */
 
 bool BPatch_addressSpace::deleteSnippet(BPatchSnippetHandle *handle)
 {
@@ -345,34 +317,13 @@ bool BPatch_addressSpace::deleteSnippet(BPatchSnippetHandle *handle)
    return true;
 }
 
-/*
- * BPatch_addressSpace::replaceCode
- *
- * Replace a given instruction with a BPatch_snippet.
- *
- * point       Represents the instruction to be replaced
- * snippet     The replacing snippet
- */
-
 bool BPatch_addressSpace::replaceCode(BPatch_point * /*point*/,
                                          BPatch_snippet * /*snippet*/)
 {
-   // Need to reevaluate how this code works. I don't think it should be
-   // point-based, though.
-
    assert(0);
    return false;
 }
 
-/*
- * BPatch_addressSpace::replaceFunctionCall
- *
- * Replace a function call with a call to a different function.  Returns true
- * upon success, false upon failure.
- *
- * point        The call site that is to be changed.
- * newFunc      The function that the call site will now call.
- */
 bool BPatch_addressSpace::replaceFunctionCall(BPatch_point &point,
       BPatch_function &newFunc)
 {
@@ -400,14 +351,6 @@ bool BPatch_addressSpace::replaceFunctionCall(BPatch_point &point,
    return true;
 }
 
-/*
- * BPatch_addressSpace::removeFunctionCall
- *
- * Replace a function call with a NOOP.  Returns true upon success, false upon
- * failure.
- *
- * point        The call site that is to be NOOPed out.
- */
 bool BPatch_addressSpace::removeFunctionCall(BPatch_point &point)
 {
    // Can't make changes to code when mutations are not active.
@@ -433,15 +376,6 @@ bool BPatch_addressSpace::removeFunctionCall(BPatch_point &point)
 }
 
 
-/*
- * BPatch_addressSpace::replaceFunction
- *
- * Replace all calls to function OLDFUNC with calls to NEWFUNC.
- * Returns true upon success, false upon failure.
- *
- * oldFunc      The function to replace
- * newFunc      The replacement function
- */
 bool BPatch_addressSpace::replaceFunction(BPatch_function &oldFunc,
       BPatch_function &newFunc)
 {
@@ -470,11 +404,6 @@ bool BPatch_addressSpace::replaceFunction(BPatch_function &oldFunc,
   return true;
 }
 
-/*
- * BPatch_addressSpace::revertReplaceFunction
- *
- * Undoes a replaceFunction operation
- */
 bool BPatch_addressSpace::revertReplaceFunction(BPatch_function &oldFunc)
 {
   assert(oldFunc.lowlevel_func());
@@ -555,29 +484,15 @@ bool BPatch_addressSpace::getAddressRanges( const char * fileName,
    if ( ranges.size() != originalSize ) { return true; }
 
    return false;
-} /* end getAddressRanges() */
+}
 
 
 bool BPatch_addressSpace::getSourceLines( unsigned long addr,
       BPatch_Vector< BPatch_statement > & lines )
 {
    return image->getSourceLines(addr, lines);
-} /* end getLineAndFile() */
+}
 
-
-/*
- * BPatch_process::malloc
- *
- * Allocate memory in the thread's address space.
- *
- * n    The number of bytes to allocate.
- *
- * Returns:
- *      A pointer to a BPatch_variableExpr representing the memory.
- *
- * If otherwise unspecified when binary rewriting, then the allocation
- * happens in the original object.
- */
 
 BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
 {
@@ -598,23 +513,6 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
                                                 type);
 }
 
-
-/*
- * BPatch_process::malloc
- *
- * Allocate memory in the thread's address space for a variable of the given
- * type.
- *
- * type         The type of variable for which to allocate space.
- *
- * Returns:
- *      A pointer to a BPatch_variableExpr representing the memory.
- *
- * XXX Should return NULL on failure, but the function which it calls,
- *     inferiorMalloc, calls exit rather than returning an error, so this
- *     is not currently possible.
- */
-
 BPatch_variableExpr *BPatch_addressSpace::malloc(const BPatch_type &type, std::string name)
 {
    std::vector<AddressSpace *> as;
@@ -632,14 +530,6 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(const BPatch_type &type, std::s
    BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, &t);
    return varExpr;
 }
-
-/*
- * BPatch_process::free
- *
- * Free memory that was allocated with BPatch_process::malloc.
- *
- * ptr          A BPatch_variableExpr representing the memory to free.
- */
 
 bool BPatch_addressSpace::free(BPatch_variableExpr &ptr)
 {
@@ -681,14 +571,6 @@ BPatch_variableExpr *BPatch_addressSpace::createVariable(std::string name,
     return varExpr;
 }
 
-/*
- *  BPatch_addressSpace::findFunctionByEntry
- *
- *  Returns the function starting at the given address, or NULL if the
- *  address is not within a function.
- *
- *  entry       The address to use for the lookup.
- */
 BPatch_function *BPatch_addressSpace::findFunctionByEntry(Address entry)
 {
     vector<BPatch_function*> funcs;
@@ -724,16 +606,6 @@ bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
 }
 
 
-/*
- * BPatch_addressSpace::findFunctionsByAddr
- *
- * Returns the functions that contain the specified address, or NULL if the
- * address is not within a function. (there could be multiple functions
- * because of the possibility of shared code)
- *
- * addr         The address to use for the lookup.
- * returns false if there were no functions that matched the address
- */
 bool BPatch_addressSpace::findFunctionsByAddr(Address addr, std::vector<BPatch_function*> &funcs)
 {
     std::vector<AddressSpace *> as;
@@ -754,15 +626,6 @@ bool BPatch_addressSpace::findFunctionsByAddr(Address addr, std::vector<BPatch_f
     return 0 < funcs.size();
 }
 
-
-/*
- * BPatch_addressSpace::findModuleByAddr
- *
- * Returns the module that contains the specified address, or NULL if the
- * address is not within a module.  Does NOT trigger parsing
- *
- * addr         The address to use for the lookup.
- */
 BPatch_module *BPatch_addressSpace::findModuleByAddr(Address addr)
 {
    std::vector<AddressSpace *> as;
@@ -805,18 +668,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
    return insertSnippet(expr, point, when, order);
 }
 
-/*
- * BPatch_addressSpace::insertSnippet
- *
- * Insert a code snippet at a given instrumentation point.  Upon succes,
- * returns a handle to the created instance of the snippet, which can be used
- * to delete it.  Otherwise returns NULL.
- *
- * expr         The snippet to insert.
- * point        The point at which to insert it.
- */
-
-// This handles conversion without requiring inst.h in a header file...
 extern bool BPatchToInternalArgs(BPatch_point *point,
       BPatch_callWhen when,
       BPatch_snippetOrder order,
@@ -839,18 +690,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 
 extern int dyn_debug_ast;
 
-/*
- * BPatch_addressSpace::insertSnippet
- *
- * Insert a code snippet at each of a list of instrumentation points.  Upon
- * success, Returns a handle to the created instances of the snippet, which
- * can be used to delete them (as a unit).  Otherwise returns NULL.
- *
- * expr         The snippet to insert.
- * points       The list of points at which to insert it.
- */
-
-// A lot duplicated from the single-point version. This is unfortunate.
 BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &expr,
                                                                     const BPatch_Vector<BPatch_point *> &points,
                                                                     BPatch_callWhen when,
@@ -939,17 +778,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 }
 
 
-/*
- * BPatch_addressSpace::insertSnippet
- *
- * Insert a code snippet at each of a list of instrumentation points.  Upon
- * success, Returns a handle to the created instances of the snippet, which
- * can be used to delete them (as a unit).  Otherwise returns NULL.
- *
- * expr         The snippet to insert.
- * points       The list of points at which to insert it.
- */
-
 BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(
       const BPatch_snippet &expr,
       const BPatch_Vector<BPatch_point *> &points,
@@ -961,11 +789,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(
          order);
 }
 
-/*
- * BPatch_addressSpace::isStaticExecutable
- *
- * Returns true if the underlying image represents a statically-linked executable, false otherwise.
- */
 bool BPatch_addressSpace::isStaticExecutable() {
    std::vector<AddressSpace *> as;
    getAS(as);
