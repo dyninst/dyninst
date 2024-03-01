@@ -20,6 +20,7 @@ DyninstAPI
   BPatch_addressSpace.h
   BPatch_basicBlock.h
   BPatch_basicBlockLoop.h
+  BPatch_binaryEdit.h
   BPatch_collections.h
   BPatch_dll.h
   BPatch_flowGraph.h
