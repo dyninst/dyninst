@@ -14,7 +14,13 @@ BPatch_module.h
   .. cpp:function:: BPatch_module(BPatch_addressSpace *_addSpace, AddressSpace *as, mapped_module *_mod, BPatch_image *img)
   .. cpp:function:: virtual ~BPatch_module()
   .. cpp:function:: bool getSourceObj(BPatch_Vector<BPatch_sourceObj *>&)
+
+    Returns the contained source objects (e.g. functions).
+
   .. cpp:function:: BPatch_sourceObj *getObjParent()
+
+    Returns the parent of the function (i.e. the image).
+
   .. cpp:function:: void parseTypes()
   .. cpp:function:: void setDefaultNamespacePrefix(char *name)
   .. cpp:function:: void handleUnload()
@@ -37,3 +43,9 @@ BPatch_module.h
   .. cpp:function:: private void parseDwarfTypes()
 
     We understand the type information in DWARF format.
+
+  .. cpp:function:: BPatch_variableExpr* findVariable(const char* name)
+
+    This is done by analogy with :cpp:func:`BPatch_module::getVariables <::BPatch_module::getVariables>`,
+    not :cpp:func:`BPatch_image::findVariable <::BPatch_image::findVariable>`.  This should result in
+    consistent behavior at the module level.
