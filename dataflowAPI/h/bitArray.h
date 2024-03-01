@@ -36,9 +36,4 @@
 #include <boost/dynamic_bitset.hpp>
 typedef boost::dynamic_bitset<unsigned long, std::allocator<unsigned long> > bitArray;
 
-// Bitarrays for register liveness. This could move to registerSpace...
-#define SPEC_GPR_BIT(x) (x.size() - 3)
-#define SPEC_FPR_BIT(x) (x.size() - 2)
-#define SPEC_SPR_BIT(x) (x.size() - 1)
-#define SPEC_BIT_COUNT 3
 #endif
