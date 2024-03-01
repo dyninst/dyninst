@@ -6,6 +6,15 @@ binaryEdit.h
 
 .. cpp:class:: BinaryEdit : public AddressSpace
 
+  Reading and writing get somewhat interesting. We are building a false address space - that of the
+  "inferior" binary we're editing.  However, that address space doesn't exist - and so we must overlay
+  it on ours. In the dynamic case this is easy, of course. So what we have is a mapping. An "Address"
+  that we get (inOther), can map to one of the following:
+
+  - An area created with inferiorMalloc
+  - A section of the binary that is original
+  - A section of the binary that was modified
+
   .. cpp:function:: bool readDataSpace(const void *inOther, u_int amount, void *inSelf, bool showError)
   .. cpp:function:: bool readTextSpace(const void *inOther, u_int amount, void *inSelf)
   .. cpp:function:: bool writeDataSpace(void *inOther, u_int amount, const void *inSelf)
@@ -26,6 +35,9 @@ binaryEdit.h
   .. cpp:function:: Address offset() const
   .. cpp:function:: Address length() const
   .. cpp:function:: Architecture getArch() const
+
+    .. note:: presumably all of the objects in the BinaryEdit collection must be the same architecture.
+
   .. cpp:function:: bool multithread_capable(bool ignore_if_mt_not_set = false)
 
     If true is passed for ignore_if_mt_not_set, then an error won't be initiated if we're unable to
@@ -47,6 +59,10 @@ binaryEdit.h
 
   .. cpp:function:: BinaryEdit()
   .. cpp:function:: ~BinaryEdit()
+
+    .. note:: We do not own the objects contained in ``newDyninstSyms_``, ``rtlib``, or ``siblings``, so do not delete them.
+
+
   .. cpp:function:: static BinaryEdit *openFile(const std::string &file, Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(), Dyninst::PatchAPI::Patcher::Ptr patch = Dyninst::PatchAPI::Patcher::Ptr(), const std::string &member = "")
 
     And the "open" factory method.
@@ -79,7 +95,17 @@ binaryEdit.h
   .. cpp:function:: void addSibling(BinaryEdit *)
   .. cpp:function:: std::vector<BinaryEdit *> &getSiblings()
   .. cpp:function:: bool replaceTrapHandler()
+
+    Find all calls to sigaction equivalents and replace with calls to ``dyn_<sigaction_equivalent_name>``.
+
   .. cpp:function:: bool usedATrap()
+
+    Here's the story. We may need to install a trap handler for instrumentation to work in the rewritten
+    binary. This doesn't play nicely with trap handlers that the binary itself registers. So we're going
+    to replace every call to sigaction in the binary with a call to our wrapper. This wrapper 1) ignores
+    attempts to register a SIGTRAP 2) Passes everything else through to sigaction It's called
+    "dyn_sigaction".
+
   .. cpp:function:: bool isMultiThreadCapable()
   .. cpp:function:: mapped_object *openResolvedLibraryName(std::string filename, std::map<std::string, BinaryEdit *> &allOpened)
   .. cpp:function:: bool writing()
@@ -95,6 +121,11 @@ binaryEdit.h
   .. cpp:function:: private Address maxAllocedAddr()
   .. cpp:function:: private bool createMemoryBackingStore(mapped_object *obj)
   .. cpp:function:: private bool initialize()
+
+    Initialization. For now we're skipping threads, since we can't get the functions we need. However,
+    we kinda need the recursion guard. This is an integer (one per thread, for now - 1) that  begins
+    initialized to 1.
+
   .. cpp:function:: private void makeInitAndFiniIfNeeded()
   .. cpp:function:: private bool archSpecificMultithreadCapable()
   .. cpp:function:: private bool doStaticBinarySpecialCases()
@@ -104,7 +135,13 @@ binaryEdit.h
   .. cpp:member:: private codeRangeTree memoryTracker_
   .. cpp:function:: private mapped_object *addSharedObject(const std::string *fullPath)
   .. cpp:member:: private std::vector<depRelocation *> dependentRelocations
-  .. cpp:function:: private void buildDyninstSymbols(std::vector<SymtabAPI::Symbol *> &newSyms, SymtabAPI::Region *newSec, SymtabAPI::Module *newMod)
+  .. cpp:function:: private void buildDyninstSymbols(std::vector<SymtabAPI::Symbol *> &newSyms,\
+                                                     SymtabAPI::Region *newSec, SymtabAPI::Module *newMod)
+
+    Build a list of symbols describing instrumentation and relocated functions.  To keep this list
+    (somewhat) short, we're doing one symbol per extent of  instrumentation + relocation for a
+    particular function.  New: do this for one mapped object.
+
   .. cpp:member:: private mapped_object *mobj
 
     `mobj` is only a view. The actual object is owned by AddressSpace::mapped_objects

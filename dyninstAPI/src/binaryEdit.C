@@ -42,16 +42,6 @@
 
 using namespace Dyninst::SymtabAPI;
 
-// Reading and writing get somewhat interesting. We are building
-// a false address space - that of the "inferior" binary we're editing. 
-// However, that address space doesn't exist - and so we must overlay
-// it on ours. In the dynamic case this is easy, of course. So what
-// we have is a mapping. An "Address" that we get (inOther), can
-// map to one of the following:
-//  1) An area created with inferiorMalloc
-//  2) A section of the binary that is original
-//  3) A section of the binary that was modified
-
 bool BinaryEdit::readTextSpace(const void *inOther,
                                u_int size,
                                void *inSelf) {
@@ -239,8 +229,6 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
 
 Architecture BinaryEdit::getArch() const {
   assert(mapped_objects.size());
-    // XXX presumably all of the objects in the BinaryEdit collection
-    //     must be the same architecture.
   return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
 }
 
@@ -275,11 +263,6 @@ BinaryEdit::BinaryEdit() :
 
 BinaryEdit::~BinaryEdit()
 {
-	/*
-	 * NB: We do not own the objects contained in
-	 * 	   newDyninstSyms_, rtlib, or siblings, so
-	 * 	   do not ::delete them
-	*/
     for(auto *rel : dependentRelocations) {
         delete rel;
     }
@@ -692,15 +675,6 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
 
 
 bool BinaryEdit::initialize() {
-   //Load the RT library
-   
-   // Create the tramp guard
-   
-   // Initialization. For now we're skipping threads, since we can't
-   // get the functions we need. However, we kinda need the recursion
-   // guard. This is an integer (one per thread, for now - 1) that 
-   // begins initialized to 1.
-
     return true;
 }
 
@@ -732,10 +706,6 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
 }
 
 
-// Build a list of symbols describing instrumentation and relocated functions. 
-// To keep this list (somewhat) short, we're doing one symbol per extent of 
-// instrumentation + relocation for a particular function. 
-// New: do this for one mapped object. 
 void BinaryEdit::buildDyninstSymbols(std::vector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
@@ -859,20 +829,10 @@ std::vector<BinaryEdit *> &BinaryEdit::getSiblings()
 
 
 
-// Here's the story. We may need to install a trap handler for instrumentation
-// to work in the rewritten binary. This doesn't play nicely with trap handlers
-// that the binary itself registers. So we're going to replace every call to
-// sigaction in the binary with a call to our wrapper. This wrapper:
-//   1) Ignores attempts to register a SIGTRAP
-//   2) Passes everything else through to sigaction
-// It's called "dyn_sigaction".
-
 bool BinaryEdit::usedATrap() {
     return (!trapMapping.empty());
 }
 
-// Find all calls to sigaction equivalents and replace with
-// calls to dyn_<sigaction_equivalent_name>. 
 bool BinaryEdit::replaceTrapHandler() {
 
     vector<string> sigaction_names;
