@@ -57,3 +57,6 @@ BPatch_basicBlock.h
   .. cpp:function:: void setlowlevel_block(block_instance *b)
   .. cpp:function:: void getAllPoints(std::vector<BPatch_point*>& allPoints)
 
+  .. cpp:function:: BPatch_point* findExitPoint()
+
+    This should be edge instrumentation.

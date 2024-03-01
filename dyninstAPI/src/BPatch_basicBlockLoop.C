@@ -43,8 +43,6 @@
 #include "block.h"
 using namespace std;
 using namespace Dyninst::PatchAPI;
-//constructors
-//internal use only
 
 BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg, PatchLoop* loop) 
     : flowGraph(fg), parent(NULL) 
@@ -110,7 +108,6 @@ int BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_edge*> &edges)
    return edges.size();
 }
 
-// this is a private function, invoked by BPatch_flowGraph::createLoops
 void BPatch_basicBlockLoop::addBackEdges
 (std::vector< BPatch_edge*> &newEdges)
 {
@@ -137,30 +134,24 @@ BPatch_basicBlockLoop::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls,
    return true;
 }
 
-//method that returns the nested loops inside the loop. It returns a set
-//of basicBlockLoop that are contained. It might be useful to add nest 
-//as a field of this class but it seems it is not necessary at this point
 bool
 BPatch_basicBlockLoop::getContainedLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
 {
   return getLoops(nls, false);
 }
 
-// get the outermost loops nested under this loop
 bool 
 BPatch_basicBlockLoop::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
 {
   return getLoops(nls, true);
 }
 
-//returns the basic blocks in the loop
 bool BPatch_basicBlockLoop::getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*>& bbs) {
    bbs.insert(bbs.end(), basicBlocks.begin(), basicBlocks.end());
   return true;
 }
 
 
-// returns the basic blocks in this loop, not those of its inner loops
 bool BPatch_basicBlockLoop::getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_basicBlock*>& bbs) {
     // start with a copy of all this loops basic blocks
    std::set<BPatch_basicBlock*> allBlocks(basicBlocks);

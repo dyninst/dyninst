@@ -13,12 +13,12 @@ BPatch_basicBlockLoop.h
 
   .. cpp:function:: bool containsAddress(unsigned long addr)
 
-    Return true if addr is contained within any of the basic blocks that
+    Checks if addr is contained within any of the basic blocks that
     compose this loop, excluding the block of any of its sub-loops.
 
   .. cpp:function:: bool containsAddressInclusive(unsigned long addr)
 
-    Return true if addr is contained within any of the basic blocks that
+    Checks if addr is contained within any of the basic blocks that
     compose this loop, or in the blocks of any of its sub-loops.
 
   .. cpp:function:: int getBackEdges(std::vector<BPatch_edge *> &edges)
@@ -32,38 +32,38 @@ BPatch_basicBlockLoop.h
     Returns the number of entry blocks of this loop and adds those blocks to
     the entries vector. An irreducible loop can have multiple entry blocks.
 
-  .. cpp:function:: bool getContainedLoops(std::vector<BPatch_basicBlockLoop*>&)
+  .. cpp:function:: bool getContainedLoops(std::vector<BPatch_basicBlockLoop*>& loops)
 
-    Fill the given vector with a list of the loops nested within this loop.
+    Returns the loops nested within this loop.
 
   .. cpp:function:: bool getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*> &loops)
 
-    Fill the given vector with a list of the outer loops nested within this
+    Returns the outer loops nested within this
     loop.
 
   .. cpp:function:: bool getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*> &blocks)
 
-    Fill the given vector with a list of all basic blocks that are part of
+    Returns all basic blocks that are part of
     this loop.
 
   .. cpp:function:: bool getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_basicBlock*> &blocks)
 
-    Fill the given vector with a list of all basic blocks that are part of
+    Returns all basic blocks that are part of
     this loop but not its sub-loops.
 
   .. cpp:function:: bool hasBlock(BPatch_basicBlock *b)
 
-    Return true if this loop or any of its sub-loops contain b, false
+    Checks if this loop or any of its sub-loops contain b, false
     otherwise.
 
   .. cpp:function:: bool hasBlockExclusive(BPatch_basicBlock *b)
 
-    Return true if this loop, excluding its sub-loops, contains b, false
+    Checks if this loop, excluding its sub-loops, contains b, false
     otherwise.
 
   .. cpp:function:: bool hasAncestor(BPatch_basicBlockLoop*)
 
-    Return true if this loop is nested within the given loop (the given loop
+    Checks if this loop is nested within the given loop (the given loop
     is one of its ancestors in the tree of loops).
 
   .. cpp:function:: BPatch_flowGraph * getFlowGraph()

@@ -7,7 +7,7 @@ BPatch_basicBlock.h
    
   **Machine code basic blocks**
 
-  Users should not create basic blocks using its constructor. It is not safe.
+  .. caution:: Users should not create basic blocks using its constructor. It is not safe.
 
   Basic blocks are used for reading purposes, not for inserting a new code to the machine
   executable other than instrumentation code.
@@ -16,40 +16,47 @@ BPatch_basicBlock.h
   .. cpp:function:: block_instance *block() const
   .. cpp:function:: BPatch_function *func() const
   .. cpp:function:: func_instance *ifunc() const
+
   .. cpp:function:: BPatch_point *convertPoint(instPoint *pt)
+
+    Returns the ``BPatch_point`` for ``pt``.
+
+    Returns ``NULL`` if ``pt`` isn't in this block.
+
   .. cpp:function:: BPatch_function *getCallTarget()
   .. cpp:function:: BPatch_flowGraph * getFlowGraph() const
 
   .. cpp:function:: void getSources(std::vector<BPatch_basicBlock*>&)
 
-    Fills the given vector with the list of predecessors for this basic
+    Returns the predecessors for this basic
     block (i.e, basic blocks that have an outgoing edge in the control flow
     graph leading to this block).
 
   .. cpp:function:: void getTargets(std::vector<BPatch_basicBlock*>&)
 
-    Fills the given vector with the list of successors for this basic block
+    Returns the successors for this basic block
     (i.e, basic blocks that are the destinations of outgoing edges from this
     block in the control flow graph).
 
   .. cpp:function:: bool dominates(BPatch_basicBlock*)
 
-    Returns true if the argument is pre-dominated in the
+    Checks if the argument is pre-dominated in the
     control flow graph by this block, and false if it is not.
 
   .. cpp:function:: BPatch_basicBlock* getImmediateDominator()
 
-    Return the basic block that immediately pre-dominates this block in the
+    Returns the basic block that immediately pre-dominates this block in the
     control flow graph.
 
   .. cpp:function:: void getImmediateDominates(std::vector<BPatch_basicBlock*>&)
 
-    Fill the given vector with a list of pointers to the basic blocks that
-    are immediately dominated by this basic block in the control flow graph.
+    Returns the basic blocks that are immediately dominated by this basic block in the control flow graph.
 
   .. cpp:function:: void getAllDominates(std::set<BPatch_basicBlock*>&)
 
-      Returns all basic blocks dominated by the basic block
+      Returns all basic blocks dominated by the basic block.
+
+      Does not return duplicates even if some points belong to multiple categories.
 
   .. cpp:function:: void getAllDominates(BPatch_Set<BPatch_basicBlock*>&)
 
@@ -57,26 +64,27 @@ BPatch_basicBlock.h
 
   .. cpp:function:: bool getSourceBlocks(std::vector<BPatch_sourceBlock*>&)
 
-    Fill the given vector with pointers to the source blocks contributing to
-    this basic block’s instruction sequence.
+    Returns the source blocks contributing to this basic block’s instruction sequence.
 
   .. cpp:function:: int getBlockNumber()
 
-    Return the ID number of this basic block. The ID numbers are consecutive
-    from 0 to *n-1,* where *n* is the number of basic blocks in the flow
+    Returns the ID number of this basic block.
+
+    The ID numbers are consecutive
+    from ``0`` to ``n-1``, where ``n`` is the number of basic blocks in the flow
     graph to which this basic block belongs.
 
   .. cpp:function:: bool isEntryBlock()
 
-    Returns true if this basic block is an entry block into a function.
+    Checks if this basic block is an entry block into a function.
 
   .. cpp:function:: bool isExitBlock()
 
-    Returns true if this basic block is an exit block of a function.
+    Checks if this basic block is an exit block of a function.
 
   .. cpp:function:: unsigned size()
 
-    Return the size of a basic block.
+    Returns the size of a basic block.
 
     The size is defined as the difference between the end address and the start address
     of the basic block.
@@ -88,7 +96,7 @@ BPatch_basicBlock.h
 
   .. cpp:function:: unsigned long getLastInsnAddress()
 
-    Return the address of the last instruction in a basic block.
+    Returns the address of the last instruction in a basic block.
 
   .. cpp:function:: unsigned long getEndAddress()
 
@@ -105,15 +113,15 @@ BPatch_basicBlock.h
 
   .. cpp:function:: BPatch_point* findExitPoint()
 
-      Return point at the start of the basic block
+      Returns point at the start of the basic block
 
   .. cpp:function:: BPatch_Vector<BPatch_point*>* findPoint(const BPatch_Set<BPatch_opCode>& ops)
 
-      Return the points within the basic block
+      Returns in ``ops`` the points within the basic block.
 
-  .. cpp:function:: BPatch_Vector<BPatch_point*> * findPoint(const std::set<BPatch_opCode>& ops)
+  .. cpp:function:: BPatch_Vector<BPatch_point*>* findPoint(const std::set<BPatch_opCode>& ops)
 
-      Return the points within the basic block
+      Returns in ``ops`` the points within the basic block.
 
   .. cpp:function:: BPatch_Vector<BPatch_point*> * findPoint(bool(*filter)(Dyninst::InstructionAPI::Instruction))
   .. cpp:function:: BPatch_point * findPoint(Dyninst::Address addr)
@@ -125,7 +133,7 @@ BPatch_basicBlock.h
   .. cpp:function:: bool getInstructions(std::vector <std::pair<Dyninst::InstructionAPI::Instruction,Address> >&)
 
     Fills the given vector with InstructionAPI Instruction objects
-    representing the instructions in this basic block, and returns true if
+    representing the instructions in this basic block, and Checks if
     successful. See the InstructionAPI Programmer’s Guide for details. The
     second call also returns the address each instruction starts at.
 
