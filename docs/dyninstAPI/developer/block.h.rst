@@ -27,13 +27,26 @@ using edge_instances instead of ParseAPI edges...
 .. cpp:class:: block_instance : public Dyninst::PatchAPI::PatchBlock
 
   .. cpp:function:: block_instance(ParseAPI::Block *ib, mapped_object *obj)
+
+    We create edges lazily
+
   .. cpp:function:: block_instance(const block_instance *parent, mapped_object *child)
+
+    We also need to copy edges. Thing is, those blocks may not exist yet. So we wait, and do edges
+    after all blocks have been created
+
   .. cpp:function:: ~block_instance()
+
+    Edges are deleted at the mapped_object layer
+
   .. cpp:function:: mapped_object *obj() const
   .. cpp:function:: AddressSpace *addrSpace() const
   .. cpp:function:: AddressSpace *proc() const
   .. cpp:function:: template <class OutputIterator> void getFuncs(OutputIterator result)
   .. cpp:function:: void triggerModified()
+
+    KEVINTODO: implement this: remove block from Relocation info caching.
+
   .. cpp:function:: void setNotAbruptEnd()
   .. cpp:function:: parse_block *llb() const
   .. cpp:function:: void *getPtrToInstruction(Address addr) const
@@ -58,6 +71,10 @@ using edge_instances instead of ParseAPI edges...
   .. cpp:function:: Address GetBlockStartingAddress()
   .. cpp:function:: virtual void markModified()
   .. cpp:function:: private void updateCallTarget(func_instance *func)
+
+    Update a sink-typed call edge to have an inter-module target preserving original behavior
+    on sink edges only.
+
   .. cpp:function:: private func_instance *findFunction(ParseAPI::Function *)
   .. cpp:function:: private func_instance *callee(std::string const &)
 
