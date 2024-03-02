@@ -26,7 +26,21 @@ BPatch.h
   .. cpp:function:: BPatch()
   .. cpp:function:: ~BPatch()
   .. cpp:function:: static const char *getEnglishErrorString(int number)
+
+    Returns the descriptive error string for the error number ``number``.
+
   .. cpp:function:: static void formatErrorString(char *dst, int size, const char *fmt, const char * const *params)
+
+    Takes a format string with an error message (obtained from getEnglishErrorString) and an array of
+    parameters that were passed to an error callback function, and creates a string with the parameters
+    substituted into it.
+
+    - ``dst``: The address into which the formatted string should be copied.
+    - ``size``: If the formatted string is equal to or longer than this number of characters, then it will be truncated to size-1 characters and terminated with a ``NULL``.
+    - ``fmt``: The format string (returned by a function such as getEnglishErrorString).
+    - ``params``: The array of parameters that were passed to an error callback function.
+
+
 
   .. cpp:function:: bool isTypeChecked()
 
@@ -86,7 +100,8 @@ BPatch.h
 
   .. cpp:function:: BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function)
 
-    Register error handling reporting callback.
+    Registers a function that is to be called by the library when an error occurs or when there is
+    status to report.
 
   .. cpp:function:: BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback func)
 
@@ -303,8 +318,7 @@ BPatch.h
                                                   int stdin_fd=0, int stdout_fd=1, int stderr_fd=2,\
                                                   BPatch_hybridMode mode=BPatch_normalMode)
 
-    Creates a new process and returns a new instance of
-    :cpp:class:`BPatch_process` associated with it.
+    Creates a new process and returns a new instance of :cpp:class:`BPatch_process` associated with it.
 
     ``path`` is the pathname of the executable file containing
     the process image. If it is ``NULL``, the executable image is derived from the process

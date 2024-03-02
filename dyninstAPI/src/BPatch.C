@@ -88,12 +88,6 @@ const char *asyncEventType2Str(BPatch_asyncEventType ev) {
     }
 }
 
-/*
- * BPatch::BPatch
- *
- * Constructor for BPatch.  Performs one-time initialization needed by the
- * library.
- */
 BPatch::BPatch()
   : info(NULL),
     typeCheckOn(true),
@@ -186,11 +180,6 @@ BPatch::BPatch()
 }
 
 
-/*
- * BPatch::~BPatch
- *
- * Destructor for BPatch.  Free allocated memory.
- */
 BPatch::~BPatch()
 {
    inDestructor = true;
@@ -334,17 +323,6 @@ void BPatch::forceSaveFPR(bool x)
   forceSaveFloatingPointsOn = x;
 }
 
-/*
- * BPatch::registerErrorCallback
- *
- * Registers a function that is to be called by the library when an error
- * occurs or when there is status to report.  Returns the address of the
- * previously registered error callback function.
- *
- * function	The function to be called.
- */
-
-
 BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
 {
     BPatchErrorCallback previous = errorCallback;
@@ -352,14 +330,6 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
     return previous;
 }
 
-/*
- * BPatch::registerPostForkCallback
- *
- * Registers a function that is to be called by the library when a new
- * process has been forked off by an mutatee process.
- *
- * function	The function to be called.
- */
 BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0) 
@@ -373,14 +343,6 @@ BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
 #endif
 }
 
-/*
- * BPatch::registerPreForkCallback
- *
- * Registers a function that is to be called by the library when a process
- * is about to fork a new process
- *
- * function	The function to be called.
- */
 BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 {
 #if defined(i386_unknown_nt4_0)
@@ -394,14 +356,6 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
 #endif
 }
 
-/*
- * BPatch::registerExecCallback
- *
- * Registers a function that is to be called by the library when a 
- * process has just completed an exec* call
- *
- * func	The function to be called.
- */
 BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 {
 
@@ -416,14 +370,6 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
 #endif
 }
 
-/*
- * BPatch::registerExitCallback
- *
- * Registers a function that is to be called by the library when a 
- * process has just called the exit system call
- *
- * func	The function to be called.
- */
 BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 {
     BPatchExitCallback previous = exitCallback;
@@ -431,14 +377,6 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
     return previous;
 }
 
-/*
- * BPatch::registerOneTimeCodeCallback
- *
- * Registers a function that is to be called by the library when a 
- * oneTimeCode (inferior RPC) is completed.
- *
- * func	The function to be called.
- */
 BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
 {
     BPatchOneTimeCodeCallback previous = oneTimeCodeCallback;
@@ -446,15 +384,6 @@ BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeC
     return previous;
 }
 
-/*
- * BPatch::registerDynLibraryCallback
- *
- * Registers a function that is to be called by the library when a dynamically
- * loaded library is loaded or unloaded by a process under the API's control.
- * Returns the address of the previously registered callback function.
- *
- * function	The function to be called.
- */
 BPatchDynLibraryCallback
 BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
 {
@@ -463,29 +392,11 @@ BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
     return previous;
 }
 
-/*
- * BPatch::getEnglishErrorString
- *
- * Returns the descriptive error string for the passed error number.
- *
- * number	The number that identifies the error.
- */
 const char *BPatch::getEnglishErrorString(int /* number */)
 {
     return "%s";
 }
 
-
-/*
- * BPatch::reportError
- *
- * Report an error using the callback mechanism.
- *
- * severity	The severity level of the error.
- * number	Identifies the error.
- * str		A string to pass as the first element of the list of strings
- *		given to the callback function.
- */
 void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
    if (bpatch == NULL) {
@@ -507,24 +418,6 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
     
 }
 
-
-/*
- * BPatch::formatErrorString
- *
- * Takes a format string with an error message (obtained from
- * getEnglishErrorString) and an array of parameters that were passed to an
- * error callback function, and creates a string with the parameters
- * substituted into it.
- *
- * dst		The address into which the formatted string should be copied.
- * size		If the formatted string is equal to or longer than this number
- * 		of characters, then it will be truncated to size-1 characters
- * 		and terminated with a nul ('\0').
- * fmt		The format string (returned by a function such as
- *		getEnglishErrorString).
- * params	The array of parameters that were passed to an error callback
- *		function.
- */
 void BPatch::formatErrorString(char *dst, int size,
 			       const char *fmt, const char * const *params)
 {
@@ -587,21 +480,6 @@ void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *param
     }
 }
 
-
-/*
- * BPatch::getThreadByPid
- *
- * Given a process ID, this function returns a pointer to the associated
- * BPatch_thread object (or NULL if there is none).  Since a process may be
- * registered provisionally with a thread object pointer of NULL, the boolean
- * pointed to by the parameter "exists" is set to true if the pid exists in
- * the table of processes, and false if it does not.
- *
- * pid		The pid to look up.
- * exists	A pointer to a boolean to fill in with true if the pid exists
- *		in the table and false if it does not.  NULL may be passed in
- *		if this information is not required.
- */
 BPatch_process *BPatch::getProcessByPid(int pid, bool *exists)
 {
    auto iter = info->procsByPid.find(pid);
@@ -624,16 +502,6 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
    return p->threads[0];
 }
 
-
-
-/*
- * BPatch::getProcs
- *
- * Returns a vector of all threads that are currently defined.  Includes
- * threads created directly using the library and those created with UNIX fork
- * or Windows NT spawn system calls.  The caller is responsible for deleting
- * the vector when it is no longer needed.
- */
 BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
 {
    BPatch_Vector<BPatch_process *> *result = new BPatch_Vector<BPatch_process *>;
@@ -644,33 +512,12 @@ BPatch_Vector<BPatch_process *> *BPatch::getProcesses()
    return result;
 }
 
-
-/*
- * BPatch::registerProvisionalThread
- *
- * Register a new process that is not yet associated with a thread.
- * (this function is called only by createProcess).
- *
- * pid		The pid of the process to register.
- */
 void BPatch::registerProvisionalThread(int pid)
 {
    assert(info->procsByPid.find(pid) == info->procsByPid.end());
    info->procsByPid[pid] = NULL;
 }
 
-
-/*
- * BPatch::registerForkedProcess
- *
- * Register a new process that is not yet associated with a thread.
- * (this function is an upcall when a new process is created).
- *
- * parentPid		the pid of the parent process.
- * childPid		The pid of the process to register.
- * proc			lower lever handle to process specific stuff
- *
- */
 void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
 {
     int parentPid = parentProc->getPid();
@@ -694,16 +541,6 @@ void BPatch::registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
                     parentPid, childPid);
 }
 
-/*
- * BPatch::registerForkingThread
- *
- * Perform whatever processing is necessary when a thread enters
- * a fork system call. Previously the preForkCallback was made directly.
- *
- * forkingPid   pid of the forking process
- * proc			lower lever handle to process specific stuff
- *
- */
 void BPatch::registerForkingProcess(int forkingPid, PCProcess * /*proc*/)
 {
     BPatch_process *forking = getProcessByPid(forkingPid);
@@ -713,15 +550,6 @@ void BPatch::registerForkingProcess(int forkingPid, PCProcess * /*proc*/)
         preForkCallback(forking->threads[0], NULL);
     }
 }
-
-
-/*
- * BPatch::registerExecCleanup
- *
- * Register a process that has just entered exec
- *
- * Gives us some cleanup time
- */
 
 void BPatch::registerExecCleanup(PCProcess *p, char *) 
 {
@@ -733,13 +561,6 @@ void BPatch::registerExecCleanup(PCProcess *p, char *)
 
 }    
 
-/*
- * BPatch::registerExecExit
- *
- * Register a process that has just done an exec call.
- *
- * proc - the representation of the process after the exec
- */
 void BPatch::registerExecExit(PCProcess *proc) {
     int execPid = proc->getPid();
     BPatch_process *process = getProcessByPid(execPid);
@@ -946,12 +767,6 @@ void BPatch::registerDynamicCallsiteEvent(BPatch_process *process, Address callT
     }
 }
 
-/*
- * BPatch::registerLoadedModule
- *
- * Register a new module loaded by a process (e.g., dlopen)
- */
-
 void BPatch::registerLoadedModule(PCProcess *process, mapped_object *obj) {
 
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
@@ -969,12 +784,6 @@ void BPatch::registerLoadedModule(PCProcess *process, mapped_object *obj) {
         dynLibraryCallback(bProc->threads[0], bpobj, true);
     }
 }
-
-/*
- * BPatch::registerUnloadedModule
- *
- * Register a new module loaded by a process (e.g., dlopen)
- */
 
 void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *obj) {
 
@@ -1001,15 +810,6 @@ void BPatch::registerUnloadedModule(PCProcess *process, mapped_object *obj) {
     bImage->removeObject(bpobj);
 }
 
-
-/*
- * BPatch::registerProcess
- *
- * Register a new BPatch_process object with the BPatch library (this function
- * is called only by the constructor for BPatch_process).
- *
- * process	A pointer to the process to register.
- */ 
 void BPatch::registerProcess(BPatch_process *process, int pid)
 {
    if (!pid)
@@ -1019,15 +819,6 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
    info->procsByPid[pid] = process;
 }
 
-
-/*
- * BPatch::unRegisterProcess
- *
- * Remove the BPatch_thread associated with a given pid from the list of
- * threads being managed by the library.
- *
- * pid		The pid of the thread to be removed.
- */
 void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
 {
    // DO NOT CHANGE THE MAP!
@@ -1118,23 +909,6 @@ static void buildPath(const char *path, const char **argv,
    file.close();
 }
 
-/*
- * BPatch::processCreate
- *
- * Create a process and return a BPatch_process representing it.
- * Returns NULL upon failure.
- *
- * path		The pathname of the executable for the new process.
- * argv		A list of the arguments for the new process, terminated by a
- *		NULL.
- * envp		A list of values that make up the environment for the new
- *		process, terminated by a NULL.  If envp is NULL, the new
- *		new process will inherit the environemnt of the parent.
- * stdin_fd	file descriptor to use for stdin for the application
- * stdout_fd	file descriptor to use for stdout for the application
- * stderr_fd	file descriptor to use for stderr for the application
-
- */
 BPatch_process *BPatch::processCreate(const char *path, const char *argv[], 
                                          const char **envp, int stdin_fd, 
                                          int stdout_fd, int stderr_fd,
@@ -1222,16 +996,6 @@ BPatch_process *BPatch::processCreate(const char *path, const char *argv[],
    return ret;
 }
 
-
-/*
- * BPatch::processAttach
- *
- * Attach to a running process and return a BPatch_thread representing it.
- * Returns NULL upon failure.
- *
- * path		The pathname of the executable for the process.
- * pid		The id of the process to attach to.
- */
 BPatch_process *BPatch::processAttach
 (const char *path, int pid, BPatch_hybridMode mode)
 {
@@ -1274,15 +1038,6 @@ BPatch_process *BPatch::processAttach
 
 static bool recursiveEventHandling = false;
 
-/*
- * pollForStatusChange
- *
- * Checks for unreported changes to the status of any child process, and
- * returns true if any are detected.  Returns false otherwise.
- *
- * This function is declared as a friend of BPatch_thread so that it can use
- * the BPatch_thread::getThreadEvent call to check for status changes.
- */
 bool BPatch::pollForStatusChange()
 {
     // Sanity check: don't allow waiting for events in the callbacks
@@ -1316,12 +1071,6 @@ bool BPatch::pollForStatusChange()
     return false;
 }
 
-/*
- * waitForStatusChange
- *
- * Blocks waiting for a change to occur in the running status of a child
- * process.  Returns true upon success, false upon failure.
- */
 bool BPatch::waitForStatusChange() {
     // Sanity check: don't allow waiting for events in the callbacks
     if( recursiveEventHandling ) {
@@ -1376,15 +1125,6 @@ bool BPatch::waitForStatusChange() {
 	return false;
 }
 
-/*
- * createEnum
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
 BPatch_type * BPatch::createEnum( const char * name, 
 				     BPatch_Vector<char *> &elementNames,
 				     BPatch_Vector<int> &elementIds)
@@ -1407,15 +1147,6 @@ BPatch_type * BPatch::createEnum( const char * name,
 }
 
 
-/*
- * createEnum
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.  The user has left element id specification to us
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
 BPatch_type * BPatch::createEnum( const char * name, 
 				        BPatch_Vector<char *> &elementNames)
 {
@@ -1424,16 +1155,6 @@ BPatch_type * BPatch::createEnum( const char * name,
 	std::iota(ids.begin(), ids.end(), 0);
 	return createEnum(name, elementNames, ids);
 }
-
-/*
- * createStructs
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
 
 BPatch_type * BPatch::createStruct( const char * name,
 				       BPatch_Vector<char *> &fieldNames,
@@ -1465,16 +1186,6 @@ BPatch_type * BPatch::createStruct( const char * name,
    return(newType);
 }
 
-/*
- * createUnions
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
-
 BPatch_type * BPatch::createUnion( const char * name, 
 				      BPatch_Vector<char *> &fieldNames,
 				      BPatch_Vector<BPatch_type *> &fieldTypes)
@@ -1505,15 +1216,6 @@ BPatch_type * BPatch::createUnion( const char * name,
     return(newType);
 }    
 
-/*
- * createArray for Arrays and SymTypeRanges
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
 BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
 				      unsigned int low, unsigned int hi)
 {
@@ -1533,15 +1235,6 @@ BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
     return newType;
 }
 
-/*
- * createPointer for BPatch_pointers
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
 BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
                                        int /*size*/)
 {
@@ -1560,16 +1253,6 @@ BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
     return newType;
 }
 
-/*
- * createScalar for scalars with a size and no range
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
-
 BPatch_type * BPatch::createScalar( const char * name, int size)
 {
     BPatch_type * newType;
@@ -1585,15 +1268,6 @@ BPatch_type * BPatch::createScalar( const char * name, int size)
     return newType;
 }
 
-/*
- * createType for typedefs
- *
- * This function is a wrapper for the BPatch_type constructors for API/User
- * created types.
- *
- * It returns a pointer to a BPatch_type that was added to the APITypes
- * collection.
- */
 BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
 {
     BPatch_type * newType;
@@ -1659,10 +1333,7 @@ BPatch_stats &BPatch::getBPatchStatistics()
   updateStats();
   return stats;
 }
-//  updateStats() -- an internal function called before returning
-//  statistics buffer to caller of BPatch_getStatistics(),
-//  -- just copies global variable statistics counters into 
-//  the buffer which is returned to the user.
+
 void BPatch::updateStats() 
 {
   stats.pointsUsed = pointsUsed.value();
@@ -1885,9 +1556,6 @@ bool BPatch::isConnected()
     return OS_isConnected();
 }
 
-// -----------------------------------------------------------
-// Undocumented public remote debugging interface.
-// See comments in BPatch.h about the future of these methods.
 bool BPatch::remoteConnect(BPatch_remoteHost &remote)
 {
     if (remote.type >= BPATCH_REMOTE_DEBUG_END) {
@@ -1928,7 +1596,6 @@ bool BPatch::remoteDisconnect(BPatch_remoteHost &remote)
 
     return OS_disconnect(remote);
 }
-// -----------------------------------------------------------
 
 void BPatch::addNonReturningFunc(std::string name)
 {
@@ -1964,7 +1631,6 @@ BPatch_point *BPatch_libInfo::getMonitoredPoint(Address addr) {
    return iter->second;
 }
 
-// Functions for accessing stop thread callback state
 void BPatch::registerStopThreadCallback(BPatchStopThreadCallback stopCB) {
     stopThreadCallbacks.push_back(stopCB);
 }

@@ -72,6 +72,11 @@ DYNINST_MINOR, and DYNINST_SUBMINOR.
   .. cpp:member:: private bool instrFrames
   .. cpp:member:: private BPatch_stats stats
   .. cpp:function:: private void updateStats()
+
+    An internal function called before returning statistics buffer to caller of :cpp:func:`BPatch_getStatistics()`.
+
+    Just copies global variable statistics counters into the buffer which is returned to the user.
+
   .. cpp:member:: private char *systemPrelinkCommand
 
     this is used to denote the fully qualified name of the prelink command on linux
@@ -112,25 +117,78 @@ DYNINST_MINOR, and DYNINST_SUBMINOR.
     If we're destroying everything, skip cleaning up some intermediate data structures
 
   .. cpp:function:: void registerProvisionalThread(int pid)
+
+    Register a new process that is not yet associated with a thread.
+
+    This function is called only by createProcess.
+
   .. cpp:function:: void registerForkedProcess(PCProcess *parentProc, PCProcess *childProc)
+
+    Register a new process that is not yet associated with a thread.
+
+    This function is an upcall when a new process is created.
+
+    - ``parentPid``: the pid of the parent process.
+    - ``childPid``: The pid of the process to register.
+    - ``proc``: lower lever handle to process specific stuff
+
   .. cpp:function:: void registerForkingProcess(int forkingPid, PCProcess *proc)
+
+    Perform whatever processing is necessary when a thread enters a fork system call.
+    Previously the preForkCallback was made directly.
+
+    - ``forkingPid``: pid of the forking process
+    - ``proc``: lower lever handle to process specific stuff
+
   .. cpp:function:: void registerExecExit(PCProcess *proc)
+
+    Register a process that has just done an exec call.
+
   .. cpp:function:: void registerExecCleanup(PCProcess *proc, char *arg0)
+
+    Register a process that has just entered exec
+
   .. cpp:function:: void registerNormalExit(PCProcess *proc, int exitcode)
   .. cpp:function:: void registerSignalExit(PCProcess *proc, int signalnum)
   .. cpp:function:: void registerThreadExit(PCProcess *llproc, PCThread *llthread)
   .. cpp:function:: bool registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr)
+
   .. cpp:function:: void registerProcess(BPatch_process *process, int pid=0)
+
+    Register a new BPatch_process object with the BPatch library.
+
+    This function is called only by the constructor for BPatch_process.
+
   .. cpp:function:: void unRegisterProcess(int pid, BPatch_process *proc)
+
+    Remove the BPatch_thread associated with a given pid from the list of threads being managed by the library.
+
   .. cpp:function:: void registerUserEvent(BPatch_process *process, void *buffer, unsigned int bufsize)
   .. cpp:function:: void registerDynamicCallsiteEvent(BPatch_process *process, Dyninst::Address callTarget, Dyninst::Address callAddr)
   .. cpp:function:: void registerStopThreadCallback(BPatchStopThreadCallback stopCB)
   .. cpp:function:: int getStopThreadCallbackID(BPatchStopThreadCallback stopCB)
   .. cpp:function:: void registerLoadedModule(PCProcess *process, mapped_object *obj)
+
+    Register a new module loaded by a process (e.g., dlopen).
+
   .. cpp:function:: void registerUnloadedModule(PCProcess *process, mapped_object *obj)
   .. cpp:function:: BPatch_thread *getThreadByPid(int pid, bool *exists = NULL)
+
+    Given a process ID, this function returns a pointer to the associated BPatch_thread object (or NULL
+    if there is none).  Since a process may be registered provisionally with a thread object pointer of
+    NULL, the boolean pointed to by the parameter "exists" is set to true if the pid exists in the table
+    of processes, and false if it does not.
+
+    - ``pid``: The pid to look up.
+    - ``exists``: A pointer to a boolean to fill in with true if the pid exists in the table and false
+                  if it does not. ``NULL`` may be passed in if this information is not required.
+
   .. cpp:function:: BPatch_process *getProcessByPid(int pid, bool *exists = NULL)
   .. cpp:function:: static void reportError(BPatchErrorLevel severity, int number, const char *str)
+
+    Report an error using the callback mechanism with a severity level ``severity``, error number ``number``,
+    and ``str``: the first element of the list of strings given to the callback function.
+
   .. cpp:function:: void clearError()
   .. cpp:function:: int getLastError()
 
