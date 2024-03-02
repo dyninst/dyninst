@@ -45,24 +45,12 @@ codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
 }
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
-#if defined(endian_mismatch)
-  // Writing an instruction.  Convert byte order if necessary.
-  unsigned raw = swapBytesIfNeeded(insn.asInt());
-#else
   unsigned raw = insn.asInt();
-#endif
-
   gen.copy(&raw, sizeof(unsigned));
 }
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
-#if defined(endian_mismatch)
-    // Writing an instruction.  Convert byte order if necessary.
-    unsigned raw = swapBytesIfNeeded(insn.asInt());
-#else
     unsigned raw = insn.asInt();
-#endif
-
     gen.insert(&raw, sizeof(unsigned), position);
 }
 
