@@ -15,7 +15,7 @@ codegen.h
 
   .. cpp:function:: codeGen(unsigned size)
 
-    Make a generation buffer with the given size
+    Make a generation buffer of ``size`` *bytes*.
 
   .. cpp:function:: codeGen(codeBuf_t *buf, int size)
 
