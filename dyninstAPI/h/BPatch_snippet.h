@@ -373,11 +373,6 @@ typedef enum {
 
 class BPATCH_DLL_EXPORT BPatch_shadowExpr : public BPatch_snippet {
  public:
-  // BPatch_stopThreadExpr 
-  //  This snippet type stops the thread that executes it.  It
-  //  evaluates a calculation snippet and triggers a callback to the
-  //  user program with the result of the calculation and a pointer to
-  //  the BPatch_point at which the snippet was inserted
   BPatch_shadowExpr(bool entry, 
 		    const BPatchStopThreadCallback &cb,
 		    const BPatch_snippet &calculation,
@@ -387,18 +382,11 @@ class BPATCH_DLL_EXPORT BPatch_shadowExpr : public BPatch_snippet {
 
 class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
  public:
-  // BPatch_stopThreadExpr 
-  //  This snippet type stops the thread that executes it.  It
-  //  evaluates a calculation snippet and triggers a callback to the
-  //  user program with the result of the calculation and a pointer to
-  //  the BPatch_point at which the snippet was inserted
   BPatch_stopThreadExpr(const BPatchStopThreadCallback &cb,
 			const BPatch_snippet &calculation,
 			bool useCache = false,
 			BPatch_stInterpret interp = BPatch_noInterp);
 
-  // for internal use in conjunction with memory emulation and defensive 
-  // mode analysis
   BPatch_stopThreadExpr(
    const BPatchStopThreadCallback &cb,
    const BPatch_snippet &calculation,
@@ -410,30 +398,18 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
 class BPATCH_DLL_EXPORT BPatch_originalAddressExpr : public BPatch_snippet
 {
  public:
-  //  BPatch_originalAddressExpr
-  //  Construct a snippet representing the original address of an 
-  //  instruction
-
   BPatch_originalAddressExpr();
 };
 
 class BPATCH_DLL_EXPORT BPatch_actualAddressExpr : public BPatch_snippet
 {
  public:
-  //  BPatch_actualAddressExpr
-  //  Construct a snippet representing the actual (relocated) address
-  //  where the snippet was executed.
-
   BPatch_actualAddressExpr();
 };
 
 class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
 {
  public:
-  //  BPatch_dynamicTargetExpr
-  //  Construct a snippet to calculate the target of a 
-  //  dynamic control transfer instruction
-
   BPatch_dynamicTargetExpr();
 };
 
@@ -441,9 +417,6 @@ class BPATCH_DLL_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
 {
 
   public:
-  // BPatch_scrambleRegistersExpr
-  // Set all GPR to flag value.
-
   BPatch_scrambleRegistersExpr();
 };
 

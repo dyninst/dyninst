@@ -22,6 +22,8 @@ BPatch_snippet.h
 
   .. cpp:function:: BPatch_snippet()
 
+    Returns a :cpp:func:`nullNode()`.
+
   .. cpp:function:: BPatch_snippet(const AstNodePtr& ast)
 
   .. cpp:function:: virtual ~BPatch_snippet()
@@ -42,11 +44,11 @@ BPatch_snippet.h
 
   .. cpp:function:: BPatch_arithExpr(BPatch_binOp op, const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 
-    Binary Arithmetic Operation
+    Creates a binary arithmetic operation with operation ``op`` and operands ``lOperand`` and ``rOperand``.
 
   .. cpp:function:: BPatch_arithExpr(BPatch_unOp op, const BPatch_snippet &lOperand)
 
-    Unary Arithmetic Operation
+    Creates a unary arithmetic operation with operation ``op`` and operand ``lOperand``.
 
 
 .. cpp:class:: BPatch_boolExpr : public BPatch_snippet
@@ -54,6 +56,8 @@ BPatch_snippet.h
   **A boolean operation**
 
   .. cpp:function:: BPatch_boolExpr(BPatch_relOp op, const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
+
+    Constructs a snippet representing a boolean expression with operation ``op`` and operands ``lOperand`` and ``rOperand``.
 
 
 .. cpp:class:: BPatch_constExpr : public BPatch_snippet
