@@ -23,3 +23,7 @@ BPatch_thread.h
   .. cpp:function:: protected bool madeExitCallback()
   .. cpp:function:: protected void setMadeExitCallback()
 
+  .. cpp:function:: unsigned long os_handle()
+
+    Paradynd sometimes wants handles to the OS threads for reading timing information. Not sure if
+    this should become a part of the public, supported interface.

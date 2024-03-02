@@ -9,8 +9,7 @@ BPatch_thread.h
 
   .. cpp:function:: void getCallStack(std::vector<BPatch_frame>& stack)
 
-    This function fills the given vector with current information about the
-    call stack of the thread.
+    Returns in ``stack`` the current information about the call stack of the thread.
 
   .. cpp:function:: BPatch_process * getProcess()
 
@@ -54,8 +53,6 @@ BPatch_thread.h
     dead on arrival thread.
 
   .. cpp:function:: ~BPatch_thread()
-
-  .. cpp:function:: unsigned long os_handle()
 
   .. cpp:function:: void * oneTimeCode(const BPatch_snippet &expr, bool *err = NULL)
 
