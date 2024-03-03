@@ -13,6 +13,9 @@ function.h
   .. cpp:function:: func_instance(const func_instance *parent, mapped_module *child_mod)
   .. cpp:function:: ~func_instance()
 
+    We don't delete blocks, since they're shared between functions. We *do* delete context instPoints,
+    though Except that should get taken care of normally since the structures are static.
+
   ......
 
   .. rubric::
@@ -36,9 +39,13 @@ function.h
     Debuggering functions
 
   .. cpp:function:: void debugPrint() const
+
+    warning: doesn't (and can't) force initialization of lazily-built
+    data structures because this function is declared to be constant
+
   .. cpp:function:: void addSymTabName(const std::string name, bool isPrimary = false)
 
-    Don't make the std::string a reference we want a copy.
+    Add to mapped_object if a "new" name (true return from internal).
 
   .. cpp:function:: void addPrettyName(const std::string name, bool isPrimary = false)
   .. cpp:function:: Dyninst::Address getPtrAddress() const
@@ -72,7 +79,9 @@ function.h
 
   .. cpp:function:: block_instance *setNewEntry(block_instance *def, std::set<block_instance *> &deadBlocks)
 
-    Parsing because things looked weird.
+    The original entry block is gone, we choose a new entry block from the function, whichever non-dead
+    block we can find that has no intraprocedural incoming edges. If there's no obvious block to
+    choose, we stick with the default block.
 
   .. cpp:function:: bool isSignalHandler()
 
@@ -82,11 +91,18 @@ function.h
   .. cpp:function:: Dyninst::Address getHandlerFaultAddrAddr()
   .. cpp:function:: void setHandlerFaultAddr(Dyninst::Address fa)
   .. cpp:function:: void setHandlerFaultAddrAddr(Dyninst::Address faa, bool set)
+
+    Sets the address in the structure at which the fault instruction's address is stored if "set" is
+    true. Accesses the fault address and translates it back to an original address if it corresponds to
+    relocated code in the Dyninst heap
+
   .. cpp:function:: void triggerModified()
   .. cpp:function:: block_instance *getBlockByEntry(const Dyninst::Address addr)
   .. cpp:function:: bool getBlocks(const Dyninst::Address addr, std::set<block_instance *> &blks)
 
-    get all blocks that contain the given address
+    Return in ``blks`` all blocks that have an instruction starting at ``addr``.
+
+    If there are none, return all blocks containing ``addr``.
 
   .. cpp:function:: block_instance *getBlock(const Dyninst::Address addr)
 
@@ -126,9 +142,15 @@ function.h
     function), but the underlying parse_block records the sharing status. So dodge through to the image layer
     and find out that info. Returns true if such functions exist.
 
+    Dig down to the low-level block of b, find the low-level functions that share it, and map up to
+    int-level functions and add them to the funcs list.
+
   .. cpp:function:: bool getSharingFuncs(std::set<func_instance *> &funcs)
 
     The same, but for any function that overlaps with any of our basic blocks.
+
+    Find sharing functions via checking all basic blocks. We might be able to check only exit points;
+    but we definitely need to check _all_ exits so for now we're checking everything.
 
     OPTIMIZATION: we're not checking all blocks, only an exit point this _should_ work :) but needs to change
     if we ever do flow-sensitive parsing
@@ -153,7 +175,12 @@ function.h
     Fill the <callers> vector with pointers to the statically-determined list of functions that call this function.
 
   .. cpp:function:: template <class OutputIterator> void getCallerFuncs(OutputIterator result)
-  .. cpp:function:: bool getLiveCallerBlocks(const std::set<block_instance *> &deadBlocks, const std::list<func_instance *> &deadFuncs, std::map<Dyninst::Address, vector<block_instance *>> &output_stubs)
+  .. cpp:function:: bool getLiveCallerBlocks(const std::set<block_instance *> &deadBlocks,\
+                                             const std::list<func_instance *> &deadFuncs, std::map<Dyninst::Address,\
+                                             vector<block_instance *>> &output_stubs)
+
+    Get caller blocks that aren't in deadBlocks
+
   .. cpp:function:: bool savesReturnAddr() const
   .. cpp:function:: callType func_instance::getCallingConvention()
 
@@ -164,7 +191,8 @@ function.h
   .. cpp:function:: void getReachableBlocks(const std::set<block_instance *> &exceptBlocks, const std::list<block_instance *> &seedBlocks, std::set<block_instance *> &reachBlocks)
   .. cpp:function:: bool consistency() const
 
-    So we can assert(consistency())
+    - Check for ``1:1`` block relationship in the block list and block map
+    - Check that all instPoints are in the correct block.
 
   .. cpp:function:: instPoint *funcEntryPoint(bool create)
 
