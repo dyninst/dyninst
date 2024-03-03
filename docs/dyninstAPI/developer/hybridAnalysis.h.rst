@@ -25,7 +25,14 @@ hybridAnalysis.h
   .. cpp:function:: void deleteSynchSnippet(SynchHandle *handle)
   .. cpp:function:: Dyninst::ProcControlAPI::Process::mem_perm getOrigPageRights(Dyninst::Address addr)
   .. cpp:function:: void addReplacedFuncs(std::vector<std::pair<BPatch_function *, BPatch_function *>> &repFs)
-  .. cpp:function:: void getCallBlocks(Dyninst::Address retAddr, func_instance *retFunc, block_instance *retBlock, pair<ParseAPI::Block *, Dyninst::Address> &returningCallB, set<ParseAPI::Block *> &callBlocks)
+  .. cpp:function:: void getCallBlocks(Dyninst::Address retAddr, func_instance *retFunc, block_instance *retBlock,\
+                                       pair<ParseAPI::Block *, Dyninst::Address> &returningCallB,\
+                                       set<ParseAPI::Block *> &callBlocks)
+
+    Find the call blocks preceding the address that we're returning  past, but only set returningCallB
+    if we can be sure that  that we've found a call block that actually called the function we're
+    returning from.
+
   .. cpp:function:: std::map<BPatch_point *, SynchHandle *> &synchMap_pre()
   .. cpp:function:: std::map<BPatch_point *, SynchHandle *> &synchMap_post()
 
@@ -41,6 +48,42 @@ hybridAnalysis.h
   .. cpp:function:: void virtualFreeSizeCB(BPatch_point *point, void *)
   .. cpp:function:: void virtualFreeCB(BPatch_point *point, void *)
   .. cpp:function:: void badTransferCB(BPatch_point *point, void *returnValue)
+
+    - The target address is in a shared library
+
+      - if it's a system library don't parse at the target, but if the point was marked
+        as a possibly non-returning indirect call, parse at its fallthrough addr
+        and return.
+
+      - if the target is in the runtime library, translate to an unrelocated address
+        and continue, but for now assert, since this translation is happening internally
+
+    - The point is an call
+
+      - if the target is new, parse at the target
+
+      - if the target is a returning function, parse at the fallthrough address return
+
+    - The point is a return instruction
+
+      - find the call point
+
+        - if the return address has been parsed as code, return
+
+          - if the return addr follows a call, parse it as its fallthrough edge
+
+          - else parse the return addr as a new function
+
+        - return
+
+    - The point is a direct transfer or an indirect jump/branch.
+
+      - if the point is a direct transfer
+
+        - remove instrumentation
+
+    - parse at the target if it is code
+
   .. cpp:function:: void signalHandlerEntryCB(BPatch_point *point, Dyninst::Address excRecAddr)
   .. cpp:function:: void signalHandlerEntryCB2(BPatch_point *point, Dyninst::Address excCtxtAddr)
   .. cpp:function:: void signalHandlerCB(BPatch_point *pt, long snum, std::vector<Dyninst::Address> &handlers)

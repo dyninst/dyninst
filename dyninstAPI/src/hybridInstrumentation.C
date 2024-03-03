@@ -48,7 +48,6 @@
 using namespace Dyninst;
 
 
-/* Callback wrapper funcs */
 #if defined os_windows
 static void virtualFreeAddrCB_wrapper(BPatch_point *point, void *calc)
 {
