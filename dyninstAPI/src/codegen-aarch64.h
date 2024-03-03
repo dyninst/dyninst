@@ -177,10 +177,8 @@ public:
     static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift,
             Dyninst::Register rm, int imm6, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
-    // This is for MOVK, MOVN, and MOVZ. For MOV use the other generateMove()
     static void generateMove(codeGen &gen, int imm16, int shift, Dyninst::Register rd, MoveOp movOp);
 
-    // This is for MOV, which is an alias for ORR. See ARMv8 Documentation.
     static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, bool is64bit = true);
 
     static void generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
@@ -189,7 +187,6 @@ public:
 
     static void generate(codeGen &gen, instruction &insn);
 
-    // Copy instruction at position in codeGen buffer
     static void generate(codeGen &gen, instruction &insn, unsigned position);
 
     static void write(codeGen &gen, instruction &insn) { generate(gen, insn); }
@@ -202,12 +199,9 @@ public:
                          patchTarget *fallthroughOverride = NULL,
                          patchTarget *targetOverride = NULL);
 
-    //TODO
-    // Routines to create/remove a new stack frame for getting scratch registers
     static int createStackFrame(codeGen &gen, int numRegs, std::vector <Dyninst::Register> &freeReg,
             std::vector <Dyninst::Register> &excludeReg);
 
-    //TODO
     static void removeStackFrame(codeGen &gen);
 
 
