@@ -88,10 +88,6 @@ void print_read_error_info(const relocationEntry entry,
     logLine(errorLine);
 }
 
-// hasBeenBound: returns true if the runtime linker has bound the
-// function symbol corresponding to the relocation entry in at the address
-// specified by entry and base_addr.  If it has been bound, then the callee 
-// function is returned in "target_pdf", else it returns false.
 bool PCProcess::hasBeenBound(const relocationEntry &entry, 
 			   func_instance *&target_pdf, Address base_addr) {
 

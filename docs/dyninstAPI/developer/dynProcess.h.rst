@@ -3,9 +3,36 @@
 dynProcess.h
 ############
 
-  **Encapsulates a ProcControlAPI Process**
+
+This diagrams the startup flow of messages between the mutator and mutatee. Entry points
+for create and attach process are both given.
+
+.. code:: console
+
+        Mutator           Signal              Mutatee
+    Create:
+        Fork/Exec
+                        <-- Trap              Halted in exec (handled by ProcControlAPI)
+        Install trap in main
+                        <-- Trap              Halted in main
+     Attach: (also paused, not in main)
+        Install call to dlopen/
+        LoadLibrary
+                        <-- Trap              In library load
+        Set parameters in library
+                        <-- Trap              Finished loading
+        Restore code and leave paused
+        Finalize library
+          If finalizing fails, init via iRPC
+
+In all cases, the process is left paused at the entry of main
+(create) or where it was (attach). No permanent instrumentation
+is inserted.
+
 
 .. cpp:class:: PCProcess : public AddressSpace
+
+  **Encapsulates a ProcControlAPI Process**
 
   .. cpp:function:: static PCProcess *createProcess(const std::string file, std::vector<std::string> &argv, BPatch_hybridMode analysisMode, std::vector<std::string> &envp, const std::string dir, int stdin_fd, int stdout_fd, int stderr_fd)
 
@@ -91,6 +118,9 @@ dynProcess.h
     Stackwalking
 
   .. cpp:function:: bool getAllActiveFrames(std::vector<Frame> &activeFrames)
+
+    Return a vector (possibly with one object) of active frames in the process
+
   .. cpp:function:: Address inferiorMalloc(unsigned size, inferiorHeapType type = anyHeap, Address near_ = 0, bool *err = NULL)
 
   ......
@@ -112,6 +142,9 @@ dynProcess.h
     Instrumentation support
 
   .. cpp:function:: void installInstrRequests(const std::vector<instMapping *> &requests)
+
+    A copy of the BPatch-level instrumentation installer
+
   .. cpp:function:: Address getTOCoffsetInfo(Address dest)
 
       platform-specific
@@ -141,15 +174,27 @@ dynProcess.h
 
   .. cpp:function:: BPatch_hybridMode getHybridMode()
 
-  .. cpp:function:: bool getOverwrittenBlocks(std::map<Address, unsigned char *> &overwrittenPages, std::list<std::pair<Address, Address>> &overwrittenRegions, std::list<block_instance *> &writtenBBIs)
+  .. cpp:function:: bool getOverwrittenBlocks(std::map<Address, unsigned char *> &overwrittenPages,\
+                                              std::list<std::pair<Address, Address>> &overwrittenRegions,\
+                                              std::list<block_instance *> &writtenBBIs)
 
-    code overwrites
+    Checks if blocks were overwritten.
+
+    Initializes overwritten blocks and ranges by contrasting shadow pages with current memory contents
+
+      - reads shadow pages in from memory
+      - constructs overwritten region list
+      - constructs overwrittn basic block list
+      - determines if the last of the blocks has an abrupt end, in which case it marks it as overwritten
 
   .. cpp:function:: mapped_object *createObjectNoFile(Address addr)
 
     synch modified mapped objects with current memory contents
 
   .. cpp:function:: void updateCodeBytes(const std::list<std::pair<Address, Address>> &owRegions)
+
+    Distribute the work to mapped_objects
+
   .. cpp:function:: bool isRuntimeHeapAddr(Address addr) const
   .. cpp:function:: bool isExploratoryModeOn() const
   .. cpp:function:: bool hideDebugger()
@@ -157,6 +202,10 @@ dynProcess.h
     platform-specific
 
   .. cpp:function:: void flushAddressCache_RT(Address start = 0, unsigned size = 0)
+
+    Will flush addresses of all addresses in the specified range, if the range is null, flush all
+    addresses from the cache.  Also flush  rt-lib heap addrs that correspond to the range.
+
   .. cpp:function:: void flushAddressCache_RT(codeRange *range)
 
   ......
@@ -171,12 +220,21 @@ dynProcess.h
   .. cpp:function:: bool patchPostCallArea(instPoint *point)
   .. cpp:function:: func_instance *findActiveFuncByAddr(Address addr)
 
+    Given an address that's on the call stack, find the function that's actively executing that
+    address.  This makes most sense for finding the address that's triggered a context switch back to
+    Dyninst, either through instrumentation or a signal
+
   ......
 
   .. cpp:function:: std::vector<func_instance *> pcsToFuncs(std::vector<Frame> stackWalk)
   .. cpp:function:: virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, func_instance *&target_pdf, Address base_addr)
 
-    architecture-specific
+    architecture-specific. Only implemented on x86
+
+    Checks if the runtime linker has bound the function symbol corresponding to the
+    relocation entry in at the address specified by entry and base_addr.
+
+    If it has been bound, then the callee function is returned in "target_pdf", else it returns false.
 
   ......
 
@@ -201,6 +259,10 @@ dynProcess.h
     Miscellaneous
     
   .. cpp:function:: void debugSuicide()
+
+    debugSuicide is a kind of alternate debugging continueProc.  It runs the process until terminated in
+    single step mode, printing each instruction as it executes.
+
   .. cpp:function:: bool dumpImage(std::string outFile)
   .. cpp:function:: bool walkStack(std::vector<Frame> &stackWalk, PCThread *thread)
 
@@ -246,7 +308,13 @@ dynProcess.h
   .. cpp:function:: protected bool createInitialMappedObjects()
   .. cpp:function:: protected bool getExecFileDescriptor(std::string filename, bool waitForTrap, fileDescriptor &desc)
   .. cpp:function:: protected void findSignalHandler(mapped_object *obj)
+
+    We keep a vector of all signal handler locations
+
   .. cpp:function:: protected void setMainFunction()
+
+    ``NUMBER_OF_MAIN_POSSIBILITIES`` is defined in image.h
+
   .. cpp:function:: protected bool setAOut(fileDescriptor &desc)
   .. cpp:function:: protected bool hasPassedMain()
 
@@ -273,6 +341,9 @@ dynProcess.h
     architecture-specific
 
   .. cpp:function:: protected bool setRTLibInitParams()
+
+    Set up the parameters for DYNINSTinit in the RT lib
+
   .. cpp:function:: protected bool instrumentMTFuncs()
   .. cpp:function:: protected bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   .. cpp:function:: protected bool iRPCDyninstInit()
@@ -289,6 +360,10 @@ dynProcess.h
     Shared library managment
 
   .. cpp:function:: protected void addASharedObject(mapped_object *newObj)
+
+    creates an image, creates new resources for a new shared object adds it to the collection of
+    mapped_objects
+
   .. cpp:function:: protected void removeASharedObject(mapped_object *oldObj)
 
   ......
@@ -297,6 +372,9 @@ dynProcess.h
     Inferior heap management
 
   .. cpp:function:: protected void addInferiorHeap(mapped_object *obj)
+
+    Given an image, add all static heaps inside it (DYNINSTstaticHeap...) to the buffer pool.
+
   .. cpp:function:: protected bool skipHeap(const heapDescriptor &heap)
 
     platform-specific
@@ -312,7 +390,22 @@ dynProcess.h
     Hybrid Mode
   
   .. cpp:function:: protected bool triggerStopThread(Address pointAddress, int callbackID, void *calculation)
+
+    - Need three pieces of information:
+      - The instrumentation point that triggered the stopThread event (pointAddress)
+      - The ID of the callback function given at the registration of the stopThread snippet
+      - The result of the snippet calculation that was given by the user, if the point is a return instruction, read the return address
+    - If the calculation is an address that is meant to be interpreted, do that
+    - Invoke the callback
+
   .. cpp:function:: protected Address stopThreadCtrlTransfer(instPoint *intPoint, Address target)
+
+    If calculation is a relocated address, translate it to the original addr.
+
+    - case 1: The point is at a return instruction
+    - case 2: The point is a control transfer into the runtime library Mark returning functions as returning Save the targets of indirect control transfers (not regular returns)
+
+
   .. cpp:function:: protected bool generateRequiredPatches(instPoint *callPt, AddrPairSet &)
   .. cpp:function:: protected void generatePatchBranches(AddrPairSet &)
 
@@ -446,6 +539,26 @@ dynProcess.h
   .. cpp:member:: protected Dyninst::Stackwalker::Walker *stackwalker_
   .. cpp:member:: protected static Dyninst::SymtabAPI::SymtabReaderFactory *symReaderFactory_
   .. cpp:member:: protected std::map<Address, ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts
+
+
+.. cpp:var:: static const unsigned MAX_THREADS = 32
+
+  Should match ``MAX_THREADS`` in RTcommon.c
+
+.. code:: c
+
+  #define HEAP_DYN_BUF_SIZE (0x100000)
+
+.. cpp:var:: static const Address ADDRESS_LO = ((Address)0x10000);
+.. cpp:var:: static const Address ADDRESS_HI = ((Address)~((Address)0));
+
+
+.. cpp:enum:: processState_t
+
+  The desired state of the process, as indicated by the user
+
+  .. cpp:enumerator:: ps_stopped
+  .. cpp:enumerator:: ps_running
 
 
 .. cpp:struct:: PCProcess::ActiveDefensivePad

@@ -72,7 +72,6 @@ class PCProcess : public AddressSpace {
 	friend class HybridAnalysis;
 
 public:
-    // The desired state of the process, as indicated by the user
     typedef enum {
         ps_stopped,
         ps_running,
