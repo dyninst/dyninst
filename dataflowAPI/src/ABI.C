@@ -212,32 +212,60 @@ bitArray ABI::getBitArray()  {
 void ABI::initialize32(){
 
    returnRegs_ = new bitArray(machRegIndex_x86().size());
-   (*returnRegs_)[machRegIndex_x86()[x86::eax]] = true;
+   (*returnRegs_)[machRegIndex_x86()[x86::eax]] = true;   // ints, pointers, and address of struct/union
+   (*returnRegs_)[machRegIndex_x86()[x86::edx]] = true;   // Upper 32 bits of some 64-bit types
+   (*returnRegs_)[machRegIndex_x86()[x86::xmm0]] = true;  // __m128
+   (*returnRegs_)[machRegIndex_x86()[x86::ymm0]] = true;  // __m256
+   (*returnRegs_)[machRegIndex_x86()[x86::mm0]] = true;   // __m64
+   (*returnRegs_)[machRegIndex_x86()[x86::st0]] = true;   // float, double, long double, __float80
 
+/***************************************************************/
    callParam_ = new bitArray(machRegIndex_x86().size());
+   (*callParam_)[machRegIndex_x86()[x86::xmm0]] = true;   // __m128
+   (*callParam_)[machRegIndex_x86()[x86::xmm1]] = true;
+   (*callParam_)[machRegIndex_x86()[x86::xmm2]] = true;
+   (*callParam_)[machRegIndex_x86()[x86::ymm0]] = true;   // __m256
+   (*callParam_)[machRegIndex_x86()[x86::ymm1]] = true;
+   (*callParam_)[machRegIndex_x86()[x86::ymm2]] = true;
+   (*callParam_)[machRegIndex_x86()[x86::mm0]] = true;    // __m64
+   (*callParam_)[machRegIndex_x86()[x86::mm1]] = true;
+   (*callParam_)[machRegIndex_x86()[x86::mm2]] = true;
 
+/***************************************************************/
    returnRead_ = new bitArray(machRegIndex_x86().size());
-   // Callee-save registers...
+
+   // All registers used to return a value are read
+   *returnRead_ = *returnRegs_;
+
+   // Callee-saved registers
    (*returnRead_)[machRegIndex_x86()[x86::ebx]] = true;
+   (*returnRead_)[machRegIndex_x86()[x86::ebp]] = true;
    (*returnRead_)[machRegIndex_x86()[x86::esi]] = true;
    (*returnRead_)[machRegIndex_x86()[x86::edi]] = true;
-   // And return value
-   (*returnRead_)[machRegIndex_x86()[x86::eax]] = true;
-   // Return reads no registers
+   (*returnRead_)[machRegIndex_x86()[x86::fcw]] = true;     // x87 control word
+   (*returnRead_)[machRegIndex_x86()[x86::mxcsr]] = true;   // only control bits, but we don't break it down
 
+/***************************************************************/
    callRead_ = new bitArray(machRegIndex_x86().size());
-   // CallRead reads no registers
-   // We wish...
+
    (*callRead_)[machRegIndex_x86()[x86::ecx]] = true;
    (*callRead_)[machRegIndex_x86()[x86::edx]] = true;
 
    // PLT entries use ebx
    (*callRead_)[machRegIndex_x86()[x86::ebx]] = true;
+   
+/***************************************************************/
+   callWritten_ = new bitArray(machRegIndex_x86().size());
 
    // TODO: Fix this for platform-specific calling conventions
-   
-   callWritten_ = new bitArray(machRegIndex_x86().size());
-   // Assume calls write flags
+
+   /*
+    * The direction flag DF in the %EFLAGS register must be clear (set to “forward”
+    * direction) on function entry and return. Other user flags have no specified role
+    * in the standard calling sequence and are not preserved across calls.
+    *
+    *  Conservatively assume calls write all flags
+    */
    (*callWritten_)[machRegIndex_x86()[x86::of]] = true;
    (*callWritten_)[machRegIndex_x86()[x86::sf]] = true;
    (*callWritten_)[machRegIndex_x86()[x86::zf]] = true;
@@ -249,15 +277,53 @@ void ABI::initialize32(){
    (*callWritten_)[machRegIndex_x86()[x86::df]] = true;
    (*callWritten_)[machRegIndex_x86()[x86::nt_]] = true;
    (*callWritten_)[machRegIndex_x86()[x86::rf]] = true;
+   (*callWritten_)[machRegIndex_x86()[x86::flags]] = true;
 
-    // And scratch registers: eax, ecx, edx
+    // Scratch registers
     (*callWritten_)[machRegIndex_x86()[x86::eax]] = true;
     (*callWritten_)[machRegIndex_x86()[x86::ecx]] = true;
     (*callWritten_)[machRegIndex_x86()[x86::edx]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::xmm0]] = true;  // __m128
+    (*callWritten_)[machRegIndex_x86()[x86::xmm1]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::xmm2]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::xmm3]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::xmm4]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::xmm5]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::xmm6]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::xmm7]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::ymm0]] = true;  // __m256
+    (*callWritten_)[machRegIndex_x86()[x86::ymm1]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::ymm2]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::ymm3]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::ymm4]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::ymm5]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::ymm6]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::ymm7]] = true;
+
+    // mm1,2 are not explicitly stated to be scratch registers, but they
+    // are explicitly stated to not be preserved across function calls
+    (*callWritten_)[machRegIndex_x86()[x86::mm0]] = true;  // __m64
+    (*callWritten_)[machRegIndex_x86()[x86::mm1]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::mm2]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::mm3]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::mm4]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::mm5]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::mm6]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::mm7]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::st0]] = true;  // x87
+    (*callWritten_)[machRegIndex_x86()[x86::st1]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::st2]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::st3]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::st4]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::st5]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::st6]] = true;
+    (*callWritten_)[machRegIndex_x86()[x86::st7]] = true;
 	
+/***************************************************************/
     // And assume a syscall reads or writes _everything_
     syscallRead_ = new bitArray(machRegIndex_x86().size());
     syscallRead_->set();
+
     syscallWritten_ = new bitArray(machRegIndex_x86().size());
     *syscallWritten_ = *syscallRead_;
 
