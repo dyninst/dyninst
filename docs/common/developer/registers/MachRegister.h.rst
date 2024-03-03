@@ -24,7 +24,9 @@ MachRegister.h
   .. cpp:function:: explicit MachRegister(signed int r, std::string n)
 
 
-DWARf encodingS
+.. _`sec-dev:MachRegister-DWARF-encodings`:
+
+DWARf encodings
 ===============
 
 The DWARF Encodings for each platform are taken from the documents below.

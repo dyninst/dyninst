@@ -64,6 +64,40 @@ emit-x86.h
   .. cpp:function:: void emitRestoreFlags(codeGen &gen, unsigned offset)
   .. cpp:function:: void emitRestoreFlagsFromStackSlot(codeGen &gen)
   .. cpp:function:: void emitStackAlign(int offset, codeGen &gen)
+
+    Moves stack pointer by offset and aligns it to ``IA32_STACK_ALIGNMENT``
+    with the following sequence:
+
+    .. code:: console
+
+         lea    -off(%esp) => %esp           # move %esp down
+         mov    %eax => saveSlot1(%esp)      # save %eax onto stack
+         lahf                                # save %eflags byte into %ah
+         seto   %al                          # save overflow flag into %al
+         mov    %eax => saveSlot2(%esp)      # save flags %eax onto stack
+         lea    off(%esp) => %eax            # store original %esp in %eax
+         and    -$IA32_STACK_ALIGNMENT,%esp  # align %esp
+         mov    %eax => (%esp)               # store original %esp on stack
+         mov    -off+saveSlot2(%eax) => %eax # restore flags %eax from stack
+         add    $0x7f,%al                    # restore overflow flag from %al
+         sahf                                # restore %eflags byte from %ah
+         mov    (%esp) => %eax               # re-load old %esp into %eax to ...
+         mov    -off+saveSlot1(%eax) => %eax # ... restore %eax from stack
+
+    This sequence has three important properties:
+
+     - It never *directly* writes to memory below %esp.  It always begins
+       by moving %esp down, then writing to locations above it.  This way,
+       if the kernel decides to interrupt, it won't stomp all over our
+       values before we get a chance to use them.
+     - It is designed to support easy de-allocation of this space by
+       ending with %esp pointing to where we stored the original %esp.
+     - Care has been taken to properly restore both %eax and %eflags
+       by using "lea" instead of "add" or "sub," and saving the necessary
+       flags around the "and" instruction.
+
+    Saving of the flags register can be skipped if the register is not live.
+
   .. cpp:function:: bool emitBTSaves(baseTramp *bt, codeGen &gen)
   .. cpp:function:: bool emitBTRestores(baseTramp *bt, codeGen &gen)
   .. cpp:function:: void emitLoadEffectiveAddress(Dyninst::Register base, Dyninst::Register index, unsigned int scale, int disp, Dyninst::Register dest, codeGen &gen)
@@ -141,12 +175,24 @@ emit-x86.h
   .. cpp:function:: void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen)
   .. cpp:function:: void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen)
   .. cpp:function:: bool clobberAllFuncCall(registerSpace *rs, func_instance *callee)
+
+    Recursive function that goes to where our instrumentation is calling to figure out what registers
+    are clobbered there, and in any function that it calls, to a certain depth ... at which point we
+    clobber everything
+
+    Update-12/06, njr, since we're going to a cached system we are just going to
+    look at the first level and not do recursive, since we would have to also store and reexamine every
+    call out instead of doing it on the fly like before.
+
   .. cpp:function:: void setFPSaveOrNot(const int *liveFPReg, bool saveOrNot)
   .. cpp:function:: virtual Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands, bool noCost, func_instance *callee)
 
     See comment on 32-bit emitCall
 
   .. cpp:function:: void emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
+
+    FIXME: comment here on the stack layout
+
   .. cpp:function:: void emitGetRetAddr(Register dest, codeGen &gen)
   .. cpp:function:: void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen)
   .. cpp:function:: void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen)
@@ -155,6 +201,42 @@ emit-x86.h
   .. cpp:function:: void emitRestoreFlags(codeGen &gen, unsigned offset)
   .. cpp:function:: void emitRestoreFlagsFromStackSlot(codeGen &gen)
   .. cpp:function:: void emitStackAlign(int offset, codeGen &gen)
+
+    Moves stack pointer by offset and aligns it to AMD64_STACK_ALIGNMENT
+    with the following sequence:
+
+    .. code:: console
+
+        lea    -off(%rsp) => %rsp           # move %rsp down
+        mov    %rax => saveSlot1(%rsp)      # save %rax onto stack
+        lahf                                # save %rflags byte into %ah
+        seto   %al                          # save overflow flag into %al
+        mov    %rax => saveSlot2(%rsp)      # save flags %rax onto stack
+        lea    off(%rsp) => %rax            # store original %rsp in %rax
+        and    -$AMD64_STACK_ALIGNMENT,%rsp # align %rsp
+        mov    %rax => (%rsp)               # store original %rsp on stack
+        mov    -off+saveSlot2(%rax) => %rax # restore flags %rax from stack
+        add    $0x7f,%al                    # restore overflow flag from %al
+        sahf                                # restore %rflags byte from %ah
+        mov    (%rsp) => %rax               # re-load old %rsp into %rax to ...
+        mov    -off+saveSlot1(%rax) => %rax # ... restore %rax from stack
+
+    This sequence has four important properties:
+
+    - It never writes to memory within offset bytes below the original
+      %rsp.  This is to make it compatible with red zone skips.
+    - It never *directly* writes to memory below %rsp.  It always begins
+      by moving %rsp down, then writing to locations above it.  This way,
+      if the kernel decides to interrupt, it won't stomp all over our
+      values before we get a chance to use them.
+    - It is designed to support easy de-allocation of this space by
+      ending with %rsp pointing to where we stored the original %rsp.
+    - Care has been taken to properly restore both %eax and %eflags
+      by using "lea" instead of "add" or "sub," and saving the necessary
+      flags around the "and" instruction.
+
+    Saving of the flags register can be skipped if the register is not live.
+
   .. cpp:function:: bool emitBTSaves(baseTramp *bt, codeGen &gen)
   .. cpp:function:: bool emitBTRestores(baseTramp *bt, codeGen &gen)
   .. cpp:function:: void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost)
@@ -176,6 +258,12 @@ emit-x86.h
   .. cpp:function:: bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen &gen)
   .. cpp:function:: protected virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0
 
+
+.. cpp:function:: static void emitOpMemImm64(unsigned opcode, unsigned opcode_ext, Register base, int imm, bool is_64, codeGen &gen)
+
+  operation on memory location specified with a base register (does not work for RSP, RBP, R12, R13)
+
+
 .. cpp:class:: EmitterAMD64Dyn : public EmitterAMD64
 
   .. cpp:function:: ~EmitterAMD64Dyn()
@@ -189,7 +277,55 @@ emit-x86.h
   .. cpp:function:: bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret)
 
 
-
 .. cpp:var:: extern EmitterAMD64Dyn emitterAMD64Dyn
 .. cpp:var:: extern EmitterAMD64Stat emitterAMD64Stat
 
+......
+
+.. rubric::
+  This is the distance on the basetramp stack frame from the start of the GPR save region
+  to where the base pointer is, in 8-byte quadwords.
+
+.. code:: c
+
+  #define GPR_SAVE_REGION_OFFSET 18
+
+.. rubric::
+  This is the distance in 8-byte quadwords from the frame pointer in our basetramp's stack frame to
+  the saved value of RFLAGS (1 qword for our false return address, 16 for the saved registers, 1 more
+  for the flags).
+
+.. code:: c
+
+  #define SAVED_RFLAGS_OFFSET 18
+
+
+
+Notes on DWARF mappings
+***********************
+
+On 64-bit x86_64 targets, the DWARF register number does not correspond to the machine encoding. See
+the AMD-64 ABI. We can only safely map the general purpose registers (0-7 on ia-32, 0-15 on amd-64)
+This is incomplete. The x86_64 ABI specifies a mapping from dwarf numbers (0-66) to ("architecture
+number"). Without a corresponding mapping for the SVR4 dwarf-machine encoding for IA-32, however, it
+is not meaningful to provide this mapping.
+
+See :ref:`sec-dev:MachRegister-DWARF-encodings` for more details.
+
+
+.. code:: c
+
+  #define IA32_MAX_MAP 7
+  #define AMD64_MAX_MAP 15
+  static int const amd64_register_map[] =
+  {
+      0,  // RAX
+      2,  // RDX
+      1,  // RCX
+      3,  // RBX
+      6,  // RSI
+      7,  // RDI
+      5,  // RBP
+      4,  // RSP
+      8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
+  };
