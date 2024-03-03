@@ -23,6 +23,9 @@ frame.h
   .. cpp:function:: void setThread(PCThread *thrd)
   .. cpp:function:: bool isUppermost() const
   .. cpp:function:: instPoint *getPoint()
+
+    Get the instPoint corresponding with this frame
+
   .. cpp:function:: baseTramp *getBaseTramp()
   .. cpp:function:: func_instance *getFunc()
   .. cpp:function:: bool isSignalFrame()

@@ -58,7 +58,6 @@ Frame::Frame(const Dyninst::Stackwalker::Frame &swf,
   thread_(thread),
   uppermost_(uppermost) {}
 
-// Get the instPoint corresponding with this frame
 instPoint *Frame::getPoint() {
   baseTramp *bt = getBaseTramp();
   if (!bt) return NULL;
