@@ -24,6 +24,9 @@ hybridAnalysis.h
   .. cpp:function:: BPatch_module *getRuntimeLib()
   .. cpp:function:: void deleteSynchSnippet(SynchHandle *handle)
   .. cpp:function:: Dyninst::ProcControlAPI::Process::mem_perm getOrigPageRights(Dyninst::Address addr)
+
+    .. warning:: only implemented on Windows
+
   .. cpp:function:: void addReplacedFuncs(std::vector<std::pair<BPatch_function *, BPatch_function *>> &repFs)
   .. cpp:function:: void getCallBlocks(Dyninst::Address retAddr, func_instance *retFunc, block_instance *retBlock,\
                                        pair<ParseAPI::Block *, Dyninst::Address> &returningCallB,\
@@ -107,14 +110,56 @@ hybridAnalysis.h
     instrumentation functions
     
   .. cpp:function:: private bool instrumentModules(bool useInsertionSet)
+
+    Delegates all instrumentation work to :cpp:func:`instrumentFunction`. Protects the code in the module.
+
+    Returns ``false`` if no new instrumentation was added to the module.
+
   .. cpp:function:: private bool instrumentModule(BPatch_module *mod, bool useInsertionSet)
+
+    Delegates all instrumentation work to :cpp:func:`instrumentFunction`. Protects the code in the module.
+
+    Returns ``false`` if no new instrumentation was added to the module.
+
   .. cpp:function:: private bool instrumentFunction(BPatch_function *func, bool useInsertionSet, bool instrumentReturns = false, bool syncShadow = false)
+
+    Iterates through all unresolved instrumentation points in the function and adds control-flow instrumentation at each type:
+    unresolved, abruptEnds, and return instructions
+
+    Returns ``false`` if no new instrumentation was added to the module.
+
   .. cpp:function:: private bool parseAfterCallAndInstrument(BPatch_point *callPoint, BPatch_function *calledFunc, bool foundByRet)
+
+    Takes a point corresponding to a function call and continues the parse in the calling function
+    after the call.
+
+    If there are other points that call into this function resume parsing after those call functions as well. Also need to
+    parse any functions that are discovered thanks to the better parsing.
+
+    Returns ``true`` if instrumentation of new or modified functions occurs.
+
   .. cpp:function:: private void removeInstrumentation(BPatch_function *func, bool useInsertionSet, bool handlesWereDeleted = false)
+
+    - Removes overwrite loops
+
+    - Removes elements from instrumentedFuncs
+
+    - Delegates actual work through to :cpp:func:`BPatch_function::removeInstrumentation <dev::BPatch_function::removeInstrumentation>` that
+
+      - saves live tramps
+      - calls :cpp:func:`BPatch_addressSpace::deleteSnippet`
+      - invalidates relocations of the function
+
   .. cpp:function:: private int saveInstrumentationHandle(BPatch_point *point, BPatchSnippetHandle *handle)
+
+    Returns number of instrumented points, 0 if the handle is ``NULL``
+
   .. cpp:function:: private bool hasEdge(BPatch_function *func, Dyninst::Address source, Dyninst::Address target)
   .. cpp:function:: private bool processInterModuleEdge(BPatch_point *point, Dyninst::Address target, BPatch_module *targMod)
   .. cpp:function:: private bool canUseCache(BPatch_point *pt)
+
+    We can use the cache in memoryEmulation mode since it will call a modified version of stopThreadExpr
+    that excludes  inter-modular calls from cache lookups
 
   ......
 
@@ -122,13 +167,32 @@ hybridAnalysis.h
     parsing
 
   .. cpp:function:: private void parseNewEdgeInFunction(BPatch_point *sourcePoint, Dyninst::Address target, bool useInsertionSet)
+
+    Adds new edge to the parse of the function, removes existing instrumentation from the function if it is relocated, removes
+    func from :cpp:member:`instrumentedFuncs`.
+
+    - if the target is in the same section as the source func, remove instrumentation from the source function
+    - parse the new edge
+
+    Does not reinsert instrumentation.
+
   .. cpp:function:: private bool analyzeNewFunction(BPatch_point *source, Dyninst::Address target, bool doInstrumentation, bool useInsertionSet)
+
+    Parse, add src-trg edge, instrument, and write-protect the code.
+
+    Returns ``true`` if we did any parsing.
+
   .. cpp:function:: private bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target)
-  .. cpp:function:: private bool getCallAndBranchTargets(block_instance *block, std::vector<Address> &targs)
+  .. cpp:function:: private bool getCallAndBranchTargets(block_instance *block, std::vector<Dyninst::Address> &targs)
 
     utility functions that could go in another class, but that no one else really needs
 
-  .. cpp:function:: private bool getCFTargets(BPatch_point *point, vector<Address> &targets)
+  .. cpp:function:: private bool getCFTargets(BPatch_point *point, vector<Dyninst::Address> &targets)
+
+    Returns ``true`` if the point corresponds to a control flow instruction whose
+    target can be statically determined, in which case "target" is set to the targets of the control
+    flow instruction Has to return targets even for sink edges to invalid targets if the control-flow
+    instruction is static.
 
   .. cpp:function:: void BPatch_process::overwriteAnalysisUpdate(std::map<Dyninst::Address,unsigned char*>& owPages, std::vector<std::pair<Dyninst::Address,int> >& deadBlocks, std::vector<BPatch_function*>& owFuncs, std::set<BPatch_function *> &monitorFuncs, bool &changedPages, bool &changedCode)
 
@@ -202,30 +266,54 @@ hybridAnalysis.h
   .. cpp:function:: HybridAnalysis *hybrid()
   .. cpp:function:: BPatch_process *proc()
   .. cpp:function:: HybridAnalysisOW::owLoop *findLoop(Dyninst::Address blockStart)
+
+    Returns ``NULL`` if not in loop.
+
+    Because of blocks being overwritten, sometimes we can't tear blocks out because the internal blocks
+    have been purged and we can't figure out the block address. Eventually, if the block is
+    reconstituted  we may be able to find it here with a reference to a defunct loop, make sure that
+    this is not the case, if it is, tear the block out.
+
   .. cpp:function:: bool isInLoop(Dyninst::Address blockAddr, bool activeOnly)
   .. cpp:function:: bool registerCodeOverwriteCallbacks(BPatchCodeOverwriteBeginCallback cbBegin, BPatchCodeOverwriteEndCallback cbEnd)
   .. cpp:function:: bool removeCodeOverwriteCallbacks()
   .. cpp:function:: bool codeChangeCB(std::vector<BPatch_function *> &modfuncs)
+
+    Returns ``true`` if any of the modfuncs contains loop code.
+
   .. cpp:function:: bool hasLoopInstrumentation(bool activeOnly, BPatch_function &func, std::set<HybridAnalysisOW::owLoop *> *loops = NULL)
 
-    overwrite loop functions
+    .. note::
+      need to be careful because when we overwrite a block we don't invalidate the flowgraph, but from the
+      int-layer on down things are invalidated. Another problem is that we may be keeping the block around
+      as a part of a block loop.
 
   .. cpp:function:: bool getActiveLoops(std::vector<HybridAnalysisOW::owLoop *> &active)
   .. cpp:function:: bool activeOverwritePages(std::set<Dyninst::Address> &pages)
   .. cpp:function:: bool deleteLoop(HybridAnalysisOW::owLoop *loop, bool useInsertionSet, BPatch_point *writePoint = NULL, bool uninstrument = true)
 
-     | 1. Check for changes to the underlying code to see if this is safe to do
-     | 2. If the loop is active, check for changes to the underlying data, and
-     |    if no changes have occurred, we can just remove the loop instrumentation
-     |    and everything will be hunky dory once we re-instate the write
-     |    protections for the loop's pages
-     | return true if the loop was active
+     - Check for changes to the underlying code to see if this is safe to do
 
+     - If the loop is active, check for changes to the underlying data, and
+       if no changes have occurred, we can just remove the loop instrumentation
+       and everything will be hunky dory once we re-instate the write
+       protections for the loop's pages
+
+     - return true if the loop was active
 
   .. cpp:function:: void overwriteSignalCB(Dyninst::Address faultInsnAddr, Dyninst::Address writeTarget)
 
-    Informs the mutator that an instruction will write to a page that contains analyzed code. This function decides
-    where to put the instrumentation that will mark the end of the overwriting phase
+    Informs the mutator that an instruction will write to a page that contains analyzed code. This
+    function decides where to put the instrumentation that will mark the end of the overwriting phase.
+
+    - If this is an already instrumented instruction that has now moved onto an adjacent page or is in
+      a subsequent iteration of the instrumented loop
+
+      - Make a shadow copy of the overwritten page and restore write permissions
+
+        - Instrument the loop
+        - Make a shadow copy of the block that is about to be overwritten
+        - Restore write permissions to the written page
 
   .. cpp:function:: void overwriteAnalysis(BPatch_point *point, void *loopID_)
   .. cpp:function:: static InternalCodeOverwriteCallback getCodeOverwriteCB()
@@ -235,16 +323,32 @@ hybridAnalysis.h
 
   .. cpp:function:: private BPatch_basicBlockLoop *getWriteLoop(BPatch_function &func, Dyninst::Address writeAddr, bool allowParentLoop = true)
 
-    gets biggest loop without unresolvedmultiply resolved indirect ctrl flow that it can find
+    Gets biggest loop without unresolvedmultiply resolved indirect ctrl flow that it can find.
 
   .. cpp:function:: private BPatch_basicBlockLoop *getParentLoop(BPatch_function &func, Dyninst::Address writeAddr)
-  .. cpp:function:: private bool addFuncBlocks(owLoop *loop, std::set<BPatch_function *> &addFuncs, std::set<BPatch_function *> &seenFuncs, std::set<int> &overlappingLoops)
 
-    recursively add all functions that contain calls, return true if the function contains no unresolved control flow and the function returns normally
+    Returns a loop if all callers to the ``writeaddr`` function are in a single function and there is a
+    loop that contains them all. Otherwise, we would have to do a stackwalk and that's too expensive.
+
+    If more than one loop satisfies this criterion, choose the largest one.
+
+  .. cpp:function:: private bool addFuncBlocks(owLoop *loop, std::set<BPatch_function *> &addFuncs,\
+                                               std::set<BPatch_function *> &seenFuncs, std::set<int> &overlappingLoops)
+
+    Recursively add all functions that contain calls, return true if the function contains no unresolved control
+    flow and the function returns normally.
 
   .. cpp:function:: private bool setLoopBlocks(owLoop *loop, BPatch_basicBlockLoop *writeLoop, std::set<int> &overlappingLoops)
 
-    if writeLoop is null, return the whole function in the loop. returns true if we were able to identify all code in the loop
+    If ``writeloop`` is ``NULL``, return the whole function in the loop.
+
+    The checks on the basicblockloop's immediate blocks are not strictly necessary as they should have been checked
+    by :cpp:func:`getwriteloop`. Considering the loop save to instrument if its indirect control transfers have so
+    far always been resolved to a single control flow target.
+
+    Does not set the block->loop map for overlapping blocks.
+
+    Returns ``true`` if we were able to identify all code in the loop.
 
   .. cpp:function:: private bool removeOverlappingLoops(owLoop *loop, std::set<int> &overlappingLoops)
 
@@ -272,7 +376,6 @@ hybridAnalysis.h
   .. cpp:member:: private BPatchCodeOverwriteEndCallback bpatchEndCB
 
 
-
 .. cpp:class:: HybridAnalysisOW::owLoop
 
   .. cpp:function:: owLoop(HybridAnalysisOW *hybridow, Dyninst::Address writeTarg)
@@ -288,20 +391,25 @@ hybridAnalysis.h
   .. cpp:function:: void setActive(bool act)
   .. cpp:function:: void instrumentOverwriteLoop(Dyninst::Address writeInsnAddr)
 
-     | 1. Gather up all instrumentation sites that need to be monitored:
-     |   1a. The edges of all instrumented blocks that leave the block set
-     |   1b. Unresolved points in instrumented blocks
-     | 2. Instrument exit edges and unresolved points with callbacks to the analysis update routine
-     |   2a. Instrument at loop exit edges
-     |   2b. Instrument at unresolved edges in the loop
+    - Gather up all instrumentation sites that need to be monitored:
+
+      - The edges of all instrumented blocks that leave the block set
+      - Unresolved points in instrumented blocks
+
+    - Instrument exit edges and unresolved points with callbacks to the analysis update routine
+
+      - Instrument at loop exit edges
+      - Instrument at unresolved edges in the loop
 
   .. cpp:function:: void instrumentOneWrite(Dyninst::Address writeInsnAddr, std::vector<BPatch_function *> writeFuncs)
   .. cpp:function:: void instrumentLoopWritesWithBoundsCheck()
 
-      | 1. initialize necessary variables
-      | 2. create bounds array for all blocks in the loop
-      | 3. create the bounds check function call snippet
-      | 4. instrument each write point
+    For each write point
+
+    - create bounds array for all blocks in the loop
+    - create and initialize the snippet for the array of bounds
+    - create function call snippet to DYNINST_checkBounds
+    - create the conditional expression based on bounds check's return value
 
   .. cpp:member:: std::set<BPatchSnippetHandle *> snippets
   .. cpp:member:: std::map<Dyninst::Address, unsigned char *> shadowMap
@@ -334,3 +442,7 @@ hybridAnalysis.h
   .. cpp:member:: private int loopID_
   .. cpp:member:: private static int IDcounter_
 
+
+.. cpp:function:: static void addLoopFunc(BPatch_function *func, set<BPatch_function*> &visited, set<BPatch_function*> &visitMe)
+
+  Adds to ``visitMe`` if the library is in a non-system library in exploratory or defensive mode.

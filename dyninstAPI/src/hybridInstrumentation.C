@@ -97,7 +97,6 @@ static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig)
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
 { return signalHandlerCB_wrapper; }
 
-
 HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc) 
 : instrumentedFuncs(NULL), stats_()
 {
@@ -226,7 +225,6 @@ bool HybridAnalysis::setMode(BPatch_hybridMode mode)
     return true;
 }
 
-// return number of instrumented points, 0 if the handle is NULL
 int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point, 
                                               BPatchSnippetHandle *handle) 
 {
@@ -247,9 +245,6 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
     return 0;
 }
 
-// we can use the cache in memoryEmulation mode since it will
-// call a modified version of stopThreadExpr that excludes 
-// inter-modular calls from cache lookups
 bool HybridAnalysis::canUseCache(BPatch_point *pt) 
 {
     bool ret = true;
@@ -265,10 +260,6 @@ bool HybridAnalysis::canUseCache(BPatch_point *pt)
     return ret;
 }
 
-// returns false if no new instrumentation was added to the module
-// Iterates through all unresolved instrumentation points in the 
-// function and adds control-flow instrumentation at each type: 
-// unresolved, abruptEnds, and return instructions
 bool HybridAnalysis::instrumentFunction(BPatch_function *func, 
     bool useInsertionSet, 
     bool instrumentReturns,
@@ -599,12 +590,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     return false;
 }// end instrumentFunction
 
-// 1. Removes elements from instrumentedFuncs
-// 2. Relegates actual work to BPatch_function::removeInstrumentation(), which:
-//    saves live tramps
-//    calls BPatch_point::deleteAllSnippets() for all function points, which:
-//        calls BPatch_addressSpace::deleteSnippet
-//    and then invalidates relocations of the function
 void HybridAnalysis::removeInstrumentation(BPatch_function *func,
                                            bool useInsertionSet, 
                                            bool handlesWereDeleted) 
@@ -634,14 +619,12 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
     //   malware_cerr << hex << "  block [" << (*bit)->start() << " " << (*bit)->end() << ")" << dec << endl;
     //}
 
-    // 1. Remove elements from instrumentedFuncs
     if (instrumentedFuncs->end() != instrumentedFuncs->find(func)) {
         (*instrumentedFuncs)[func]->clear();
         delete (*instrumentedFuncs)[func];
         instrumentedFuncs->erase(func);
     }
 
-// 2. Relegate actual de-instrumentation to BPatch_function::removeInstrumentation
     if ( ! handlesWereDeleted ) {
         func->removeInstrumentation(false);
         if (useInsertionSet) {
@@ -650,9 +633,6 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
     }
 }
 
-// Returns false if no new instrumentation was added to the module.  
-// Relegates all instrumentation work to instrumentFunction
-// Protects the code in the module
 bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet) 
 {
 	malware_cerr << "HybridAnalysis instrumenting mod at " << hex << (Address)mod->getBaseAddr() << dec << endl;
@@ -700,9 +680,6 @@ bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet)
     return didInstrument;
 }
 
-// Returns false if no new instrumentation was added to the module.  
-// Relegates all instrumentation work to instrumentFunction
-// Protects the code in the module
 bool HybridAnalysis::instrumentModules(bool useInsertionSet) 
 {
     bool didInstrument = false;
@@ -721,13 +698,6 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
     return didInstrument;
 }
 
-/* Takes a point corresponding to a function call and continues the parse in 
- * the calling function after the call.  If there are other points that call
- * into this function resume parsing after those call functions as well. 
- * Also need to parse any functions that are discovered thanks to the better parsing
- * 
- * Return true if instrumentation of new or modified functions occurs
- */ 
 bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint, 
                                                  BPatch_function *calledFunc,
                                                  bool foundByRet)
@@ -957,9 +927,6 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
     return false;
 }
 
-
-// parse, add src-trg edge, instrument, and write-protect the code 
-// return true if we did any parsing
 bool HybridAnalysis::analyzeNewFunction( BPatch_point *source, 
                                          Address target, 
                                          bool doInstrumentation, 
@@ -1029,7 +996,6 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
     return parsed;
 }
 
-
 bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address target)
 {
 // 0. first see if the edge needs to be parsed
@@ -1044,14 +1010,6 @@ bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address targ
    return false;
 }
 
-// Does not reinsert instrumentation.  
-//
-// Adds new edge to the parse of the function, removes existing instrumentation
-// from the function if it is relocated, removes func from instrumentedFuncs
-//
-// 1. if the target is in the same section as the source func, 
-//    remove instrumentation from the source function 
-// 2. parse the new edge
 void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint, 
                                             Address target,
                                             bool useInsertionSet)
@@ -1365,14 +1323,6 @@ bool HybridAnalysis::getCallAndBranchTargets(block_instance *block,
     return ! targs.empty();
 }
 
-
-/*  BPatch_point::getCFTargets
- *  Returns true if the point corresponds to a control flow
- *  instruction whose target can be statically determined, in which
- *  case "target" is set to the targets of the control flow instruction
- *  Has to return targets even for sink edges to invalid targets if the
- *  control-flow instruction is static. 
- */
 bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
 {
     bool ret = true;
