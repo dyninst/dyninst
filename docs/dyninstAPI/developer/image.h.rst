@@ -8,12 +8,27 @@ image.h
   Image class contains information about statically and  dynamically linked code belonging to a process
 
   .. cpp:function:: static image *parseImage(fileDescriptor &desc, BPatch_hybridMode mode, bool parseGaps)
+
+    Load an executable
+
+    - parse symbol table and identify routines
+    - scan executable to identify inst points
+
+    Offset is normally zero except on CM-5 where we have two images in one file. The offset passed to
+    parseImage is the logical offset (0/1), not the physical point in the file. This makes it faster
+    to "parse" multiple copies of the same image since we don't have to stat and read to find the
+    physical offset.
+
   .. cpp:function:: static void removeImage(image *img)
 
-    And to get rid of them if we need to re-parse
+    Remove a parsed executable from the global list. Used if the old handle is no longer valid.
 
   .. cpp:function:: image *clone()
   .. cpp:function:: image(fileDescriptor &desc, bool &err, BPatch_hybridMode mode, bool parseGaps)
+
+    The fileDescriptor simply wraps (in the normal case) the object name and a relocation address
+    (0 for a.out file).
+
   .. cpp:function:: void analyzeIfNeeded()
   .. cpp:function:: bool isParsed()
   .. cpp:function:: parse_func *addFunction(Dyninst::Address functionEntryAddr, const char *name = NULL)
@@ -32,19 +47,31 @@ image.h
 
   .. cpp:function:: const std::vector<parse_func *> *findFuncVectorByPretty(const std::string &name)
 
-    Find the vector of functions associated with a (demangled) name Returns internal pointer, so label as const
+    Returns the functions with pretty name ``name``.
 
   .. cpp:function:: const std::vector<parse_func *> *findFuncVectorByMangled(const std::string &name)
+
+    Returns functions associated with mangled name ``name``
+
+    Might be more than one, e.g., multiple static functions in different .o files.
+
   .. cpp:function:: const std::vector<image_variable *> *findVarVectorByPretty(const std::string &name)
 
-    Variables: nearly identical
+    Returns the variables with pretty name ``name``.
 
   .. cpp:function:: const std::vector<image_variable *> *findVarVectorByMangled(const std::string &name)
-  .. cpp:function:: std::vector<parse_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, void *user_data, std::vector<parse_func *> *found)
 
-    Find the vector of functions determined by a filter function
+    Returns the variables with demangled name ``name``.
 
-  .. cpp:function:: std::vector<parse_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, void *user_data, std::vector<parse_func *> *found)
+  .. cpp:function:: std::vector<parse_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, void *user_data,\
+                                                                      std::vector<parse_func *> *found)
+
+    Returns in ``found`` the functions with pretty names that match the filter in ``bpsieve``.
+
+  .. cpp:function:: std::vector<parse_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, void *user_data,\
+                                                                       std::vector<parse_func *> *found)
+
+    Returns in ``found`` the functions with manged names that match the filter in ``bpsieve``.
 
   ......
 
@@ -145,19 +172,32 @@ image.h
 
   .. cpp:function:: void destroy(Dyninst::ParseAPI::Edge *)
   .. cpp:function:: void destroy(Dyninst::ParseAPI::Function *)
-  .. cpp:function:: private void findModByAddr(const Dyninst::SymtabAPI::Symbol *lookUp, vector<Dyninst::SymtabAPI::Symbol *> &mods, string &modName, Dyninst::Address &modAddr, const string &defName)
+  .. cpp:function:: private void findModByAddr(const Dyninst::SymtabAPI::Symbol *lookUp,\
+                                               vector<Dyninst::SymtabAPI::Symbol *> &mods,\
+                                               string &modName, Dyninst::Address &modAddr,\
+                                               const string &defName)
+
+    Identify module name from symbol address (binary search) based on module tags found in file
+    format (ELF/COFF).
+
   .. cpp:function:: private int findMain()
 
-    Platform-specific discovery of the "main" function
+    Platform-specific discovery of the "main" function.
 
-    FIXME There is a minor but fundamental design flaw that needs to be resolved wrt findMain returning void.
+    .. note:: only used the file is a shared object
 
   .. cpp:function:: private bool determineImageType()
+
+    Check if image is libdyninstRT.
+
   .. cpp:function:: private bool addSymtabVariables()
+
+    Eventually we'll have to do this on all platforms (because we'll retrieve the type information here).
+
   .. cpp:function:: private void setModuleLanguages(std::unordered_map<std::string, Dyninst::SymtabAPI::supportedLanguages> *mod_langs)
   .. cpp:function:: private void enterFunctionInTables(parse_func *func)
 
-    We have a _lot_ of lookup types this handles proper entry
+    We have a *lot* of lookup types this handles proper entry.
 
   .. cpp:function:: private bool buildFunctionLists(std::vector<parse_func *> &raw_funcs)
   .. cpp:function:: private void analyzeImage()
@@ -249,6 +289,9 @@ image.h
   .. cpp:function:: bool getFunctions(std::vector<parse_func *> &funcs)
   .. cpp:function:: bool findFunction(const std::string &name, std::vector<parse_func *> &found)
   .. cpp:function:: bool getVariables(std::vector<image_variable *> &vars)
+
+    Instrumentable-only, by the last version's source.
+
   .. cpp:function:: bool findFunctionByMangled(const std::string &name, std::vector<parse_func *> &found)
 
     We can see more than one function with the same mangledname in the same object, because it's OK for different
@@ -303,7 +346,7 @@ image.h
 
   .. cpp:function:: void *rawPtr()
 
-      only for non-files
+      Only for non-files
 
   .. cpp:function:: void setHandles(HANDLE proc, HANDLE file)
   .. cpp:function:: HANDLE procHandle() const
