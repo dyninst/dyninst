@@ -131,9 +131,6 @@ The following family of functions replace "emit" with more strongly typed versio
   get the requested parameter into a register.
 
 .. cpp:function:: extern std::string getProcessStatus(const AddressSpace *p)
-.. cpp:function:: extern unsigned findTags(const std::string funcName)
-
-  TODO - what about mangled names ? expects the symbol name advanced past the underscore
 
 .. cpp:function:: extern Dyninst::Address getMaxBranch()
 
