@@ -75,24 +75,6 @@ std::shared_ptr<TrackStacktraces> _global_stack_track;
 
 
 
-// "Casting" methods. We use a "base + offset" model, but often need to 
-// turn that into "current instruction pointer".
-codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
-    return (instructUnion *)gen.cur_ptr();
-}
-
-#if 0
-// Same as above, but increment offset to point at the next insn.
-codeBuf_t *insnCodeGen::ptrAndInc(codeGen &gen) {
-  // MAKE SURE THAT ret WILL STAY VALID!
-  gen.realloc(gen.used() + sizeof(instruction));
-
-  instructUnion *ret = insnPtr(gen);
-  gen.moveIndex(instruction::size());
-  return ret;
-}
-#endif
-
 void insnCodeGen::generate(codeGen &gen, instruction&insn) {
   // void *buffer[50];
   // char **strings;

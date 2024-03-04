@@ -38,43 +38,13 @@
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/function.h"
 
-// "Casting" methods. We use a "base + offset" model, but often need to
-// turn that into "current instruction pointer".
-codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
-    return (instructUnion *)gen.cur_ptr();
-}
-
-#if 0
-// Same as above, but increment offset to point at the next insn.
-codeBuf_t *insnCodeGen::ptrAndInc(codeGen &gen) {
-  // MAKE SURE THAT ret WILL STAY VALID!
-  gen.realloc(gen.used() + sizeof(instruction));
-
-  instructUnion *ret = insnPtr(gen);
-  gen.moveIndex(instruction::size());
-  return ret;
-}
-#endif
-
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
-#if defined(endian_mismatch)
-  // Writing an instruction.  Convert byte order if necessary.
-  unsigned raw = swapBytesIfNeeded(insn.asInt());
-#else
   unsigned raw = insn.asInt();
-#endif
-
   gen.copy(&raw, sizeof(unsigned));
 }
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
-#if defined(endian_mismatch)
-    // Writing an instruction.  Convert byte order if necessary.
-    unsigned raw = swapBytesIfNeeded(insn.asInt());
-#else
     unsigned raw = insn.asInt();
-#endif
-
     gen.insert(&raw, sizeof(unsigned), position);
 }
 

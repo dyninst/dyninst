@@ -70,9 +70,6 @@ public:
         Offset
     };
 
-    static instructUnion *insnPtr(codeGen &gen);
-    //static instructUnion *ptrAndInc(codeGen &gen);
-
     // All of these write into a buffer
     static void generateTrap(codeGen &gen);
 
