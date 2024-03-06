@@ -38,7 +38,7 @@ set(SRC_LIST
     src/ProbabilisticParser.C)
 
 set(DATAFLOW_SRC
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI/ABI.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/convertOpcodes.C
