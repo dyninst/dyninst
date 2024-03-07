@@ -434,7 +434,6 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
     return true;
 }
 
-//TODO: 32-/64-bit regs?
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
         codeGen &gen, bool /*noCost*/, registerSpace * /* rs */, bool s)
 {
@@ -502,13 +501,6 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 
 void cleanUpAndExit(int status);
 
-/* Recursive function that goes to where our instrumentation is calling
-to figure out what registers are clobbered there, and in any function
-that it calls, to a certain depth ... at which point we clobber everything
-
-Update-12/06, njr, since we're going to a cached system we are just going to
-look at the first level and not do recursive, since we would have to also
-store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
                                         func_instance *callee) {
     if(!callee)
@@ -560,11 +552,6 @@ Register EmitterAARCH64::emitCallReplacement(opCode,
     assert(0); //Not implemented
     return 0;
 }
-
-// There are four "axes" going on here:
-// 32 bit vs 64 bit
-// Instrumentation vs function call replacement
-// Static vs. dynamic
 
 Register EmitterAARCH64::emitCall(opCode op,
                                   codeGen &gen,
@@ -1260,11 +1247,6 @@ bool EmitterAARCH64Stat::emitCallInstruction(codeGen &,
     return true;
 }
 
-// Generates call instruction sequence for all AARCH64-based systems
-// under dynamic instrumentation.
-//
-// This should be able to stomp on the link register (LR) and TOC
-// register (r2), as they were saved by Emitter::emitCall() as necessary.
 bool EmitterAARCH64::emitCallInstruction(codeGen &, func_instance *, bool, Address) {
     assert(0); //Not implemented
     return true;
