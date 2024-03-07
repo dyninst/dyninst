@@ -23,6 +23,10 @@ instPoint.h
   .. cpp:function:: static instPoint *postCall(func_instance *, block_instance *)
 
   .. cpp:function:: static std::pair<instPoint *, instPoint *> getInstpointPair(instPoint *)
+
+    If there is a logical "pair" (e.g., before/after) of instPoints return them. The return result is a
+    pair of ``<before, after>``.
+
   .. cpp:function:: static instPoint *fork(instPoint *parent, AddressSpace *as)
   .. cpp:function:: ~instPoint()
 
@@ -49,6 +53,10 @@ instPoint.h
     The second is a best guess as to the *next* address that will execute.
 
   .. cpp:function:: block_instance *block_compat() const
+
+    Returns the current block (if there is one) or the next block we're going to execute (if not). In
+    some cases we may not know; function exit points and the like. In this case we return the current
+    block as a "well, this is what we've got..."
 
     This is for address tracking... if we're between blocks (e.g., post-call, function exit, or edge instrumentation) and thus aren't
     strongly tied to a block give us the next block that will execute. Unlike block() above, this always works.
