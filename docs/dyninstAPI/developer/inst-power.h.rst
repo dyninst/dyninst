@@ -12,21 +12,49 @@ to patch up. This must be invalid instructions (any instruction with
 its top 10 bits as 0 is invalid (technically UNIMP).
 
 .. cpp:function:: void saveSPR(codeGen &gen, Dyninst::Register scratchReg, int sprnum, int stkOffset)
+
+  Generates instructions to save a special purpose register onto the stack.
+
+  NOTE: the bit layout of the mfspr instruction is as follows:
+  ``opcode:6 ; RT: 5 ; SPR: 10 ; const 339:10 ; Rc: 1``. However, the two 5-bit halves of the SPR field are
+  reversed so just using the xfxform will not work.
+
 .. cpp:function:: void restoreSPR(codeGen &gen, Dyninst::Register scratchReg, int sprnum, int stkOffset)
+
+  Generates instructions to restore a special purpose register from the stack.
+
 .. cpp:function:: void saveLR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset)
+
+  Generates instructions to save link register onto stack.
+
 .. cpp:function:: void restoreLR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset)
+
+  Generates instructions to restore link register from stack.
+
 .. cpp:function:: void setBRL(codeGen &gen, Dyninst::Register scratchReg, long val, unsigned ti)
 
-  We're lazy and hand in the next insn
+  Generates instructions to place a given value into link register. The entire instruction sequence
+  consists of the generated instructions followed by a given (tail) instruction.
+
+.. cpp:function:: void resetBRL(AddressSpace* p, Address loc, unsigned val)
+
+  Writes out instructions in process ``p`` at address ``loc`` to place value ``val`` into the link register.
+
+  If ``val == 0``, then the instruction sequence is followed by a ``nop``. If ``val != 0``, then the
+  instruction sequence is followed by a ``brl``.
 
 .. cpp:function:: void saveCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset)
+
+  Generates instructions to save the condition codes register onto stack.
+
 .. cpp:function:: void restoreCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset)
 .. cpp:function:: void saveFPSCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset)
 .. cpp:function:: void restoreFPSCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset)
 .. cpp:function:: void saveRegister(codeGen &gen, Dyninst::Register reg, int save_off)
 .. cpp:function:: void restoreRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest, int save_off)
 
-  We may want to restore a _logical_ register N (that is, the save slot for N) into a different reg. This avoids using a temporary
+  We may want to restore a _logical_ register N (that is, the save slot for N) into a different reg. This
+  avoids using a temporary.
 
 .. cpp:function:: void restoreRegister(codeGen &gen, Dyninst::Register reg, int save_off)
 
@@ -35,7 +63,7 @@ its top 10 bits as 0 is invalid (technically UNIMP).
 .. cpp:function:: void saveFPRegister(codeGen &gen, Dyninst::Register reg, int save_off)
 .. cpp:function:: void restoreFPRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest, int save_off)
 
-  See above...
+  See above.
 
 .. cpp:function:: void restoreFPRegister(codeGen &gen, Dyninst::Register reg, int save_off)
 .. cpp:function:: void pushStack(codeGen &gen)
@@ -163,3 +191,23 @@ its top 10 bits as 0 is invalid (technically UNIMP).
   #define FUNC_CALL_SAVE_32 (LINKAREA_32 + FUNCARGS_32)
   #define FUNC_CALL_SAVE_64 (LINKAREA_64 + FUNCARGS_64)
   #define FUNC_CALL_SAVE(x) (((x) == 8) ? FUNC_CALL_SAVE_64 : FUNC_CALL_SAVE_32)
+
+
+Saving and restoring registers
+******************************
+
+We create a new stack frame in the base tramp and save registers above it.
+Currently, the plan is:
+
+.. code::
+
+   < 220 bytes as per system spec      > + 4 for 64-bit alignment
+   < 14 GPR slots @ 4 bytes each       >
+   < 14 FPR slots @ 8 bytes each       >
+   < 6 SPR slots @ 4 bytes each        >
+   < 1 FP SPR slot @ 8 bytes           >
+   < Space to save live regs at func call >
+   < Func call overflow area, 32 bytes >
+   < Linkage area, 24 bytes            >
+
+Of course, change all the 4's to 8's for 64-bit mode.
