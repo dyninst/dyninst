@@ -296,83 +296,263 @@ void ABI::initialize32(){
 
 void ABI::initialize64(){
 
-    returnRegs64_ = new bitArray(machRegIndex_x86_64().size());
-    (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-
-    callParam64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
-
-    returnRead64_ = new bitArray(machRegIndex_x86_64().size());
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true; //Not correct, temporary
-    // Returns also "read" any callee-saved registers
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rbx]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r12]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r13]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r14]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r15]] = true;
-
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
+/*
+ * System V Application Binary Interface
+ * AMD64 Architecture Processor Supplement
+ * (With LP64 and ILP32 Programming Models)
+ * Version 1.0
+ * November 7, 2023
+ *
+ * Section 3.2 Function Calling Sequence
+ * Figure 3.4: Register Usage
+ */
 
 
-    callRead64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
+/*
+ * Registers used to return values from a function
+*/
+returnRegs64_ = new bitArray(machRegIndex_x86_64().size());
 
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm2]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm3]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm4]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm5]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm6]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm7]] = true;
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;   // __m128
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::ymm0]] = true;   // __m256
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::ymm1]] = true;
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::zmm0]] = true;   // __m512
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::zmm1]] = true;
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::st0]] = true;  // long double
+  (*returnRegs64_)[machRegIndex_x86_64()[x86_64::st1]] = true;
 
-    // Anything in those four is not preserved across a call...
-    // So we copy this as a shorthand then augment it
-    callWritten64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callWritten64_) = (*callRead64_);
+/*
+ * Registers used to pass values to a function
+ */
+callParam64_ = new bitArray(machRegIndex_x86_64().size());
 
-    // As well as RAX, R10, R11
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::r10]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::r11]] = true;
-    // And flags
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::rax]] = true;   // number of vector registers for varargs
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;   // __m128
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm2]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm3]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm4]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm5]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm6]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::xmm7]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm0]] = true;   // __m256
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm1]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm2]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm3]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm4]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm5]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm6]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::ymm7]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm0]] = true;   // __m512
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm1]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm2]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm3]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm4]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm5]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm6]] = true;
+  (*callParam64_)[machRegIndex_x86_64()[x86_64::zmm7]] = true;
 
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::of]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::sf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::zf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::af]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::pf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::cf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::tf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::if_]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::df]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::nt_]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::rf]] = true;
+/*
+ * Registers restored when a function terminates via a return instruction or tail call
+ */
+returnRead64_ = new bitArray(machRegIndex_x86_64().size());
 
+  // Return values
+  *returnRead64_ = *returnRegs64_;
 
-    // And assume a syscall reads or writes _everything_
-    syscallRead64_ = new bitArray(machRegIndex_x86_64().size());
-    syscallRead64_->set();
-    syscallWritten64_ = new bitArray(machRegIndex_x86_64().size());
-    syscallWritten64_ = syscallRead64_;
+  // Callee-saved registers
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::rbx]] = true;
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::rsp]] = true;
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::rbp]] = true;
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::r12]] = true;
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::r13]] = true;
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::r14]] = true;
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::r15]] = true;  // optionally used as GOT base pointer
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::fs]] = true;   // Thread control block
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::mxcsr]] = true;   // only control bits, but we don't break it down
+  (*returnRead64_)[machRegIndex_x86_64()[x86_64::fcw]] = true;     // x87 control word
 
-    allRegs64_ = new bitArray(machRegIndex_x86_64().size());
-    allRegs64_->set();
+/*
+ * Caller-saved registers (i.e., not preserved across a function call)
+ */
+callWritten64_ = new bitArray(machRegIndex_x86_64().size());
+
+  /*
+  * The direction flag DF in the %RFLAGS register must be clear (set to “forward”
+  * direction) on function entry and return. Other user flags have no specified role
+  * in the standard calling sequence and are not preserved across calls.
+  *
+  * Mark the flag register as written because part of it is written.
+  */
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::df]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::flags]] = true;
+
+  // Temporary/scratch registers
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::r10]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::r11]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm2]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm3]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm4]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm5]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm6]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm7]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm8]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm9]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm10]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm11]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm12]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm13]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm14]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::xmm15]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm0]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm1]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm2]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm3]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm4]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm5]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm6]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm7]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm8]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm9]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm10]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm11]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm12]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm13]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm14]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::ymm15]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm0]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm1]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm2]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm3]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm4]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm5]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm6]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm7]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm8]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm9]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm10]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm11]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm12]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm13]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm14]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm15]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm16]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm17]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm18]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm19]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm20]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm21]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm22]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm23]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm24]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm25]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm26]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm27]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm28]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm29]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm30]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::zmm31]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm0]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm1]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm2]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm3]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm4]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm5]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm6]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mm7]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k0]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k1]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k2]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k3]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k4]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k5]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k6]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::k7]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st0]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st1]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st2]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st3]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st4]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st5]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st6]] = true;
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::st7]] = true;
+
+  // Control/status registers
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::fs]] = true;    // thread pointer (thread control block)
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::mxcsr]] = true; // only status bits, but we don't break it down
+  (*callWritten64_)[machRegIndex_x86_64()[x86_64::fsw]] = true;
+
+/*
+ * Registers that are live upon entering a function
+ */
+callRead64_ = new bitArray(machRegIndex_x86_64().size());
+
+  // Parameters
+  *callRead64_ = *callParam_;
+
+  // Caller-saved registers
+  *callRead64_ |= *callWritten64_;
+
+  // Optionally used as GOT base pointer
+  (*callRead64_)[machRegIndex_x86_64()[x86_64::r15]] = true;
+
+  // Used for passing a function’s static chain pointer
+  (*callRead64_)[machRegIndex_x86_64()[x86_64::r10]] = true;
+
+/*
+ * Registers available for use by a system call handler
+ *
+ * A.2 AMD64 Linux Kernel Conventions
+ */
+syscallRead64_ = new bitArray(machRegIndex_x86_64().size());
+
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::r10]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::r11]] = true;
+
+/*
+ * Registers saved by the caller before invoking a system call
+ *
+ * A.2 AMD64 Linux Kernel Conventions
+ */
+syscallWritten64_ = new bitArray(machRegIndex_x86_64().size());
+
+  // The kernel clobbers registers %rcx and %r11 but preserves all
+  // other registers except %rax.
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
+  (*syscallRead64_)[machRegIndex_x86_64()[x86_64::r11]] = true;
+
+/*
+* All known registers
+*/
+allRegs64_ = new bitArray(machRegIndex_x86_64().size());
+
+  allRegs64_->set();
 }
 
 #endif
