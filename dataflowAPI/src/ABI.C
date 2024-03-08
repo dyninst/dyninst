@@ -239,11 +239,11 @@ callParam_ = new bitArray(machRegIndex_x86().size());
   (*callParam_)[machRegIndex_x86()[x86::mm2]] = true;
 
 /*
- * Registers that can be read from before a function terminates
+ * Registers restored when a function terminates via a return instruction or tail call
  */
 returnRead_ = new bitArray(machRegIndex_x86().size());
 
-  // All registers used to return a value are read
+  // Return values
   *returnRead_ = *returnRegs_;
 
   // Callee-saved registers
