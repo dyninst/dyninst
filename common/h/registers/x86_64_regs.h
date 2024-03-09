@@ -81,22 +81,22 @@ namespace Dyninst { namespace x86_64 {
 
   /* Base IDs for aliased GPRs */
   const signed int FLAGS  = 0x00;  // RFLAGS Register
-  const signed int BASEA  = 0x00;
-  const signed int BASEC  = 0x01;
-  const signed int BASED  = 0x02;
-  const signed int BASEB  = 0x03;
-  const signed int BASESP = 0x04;
-  const signed int BASEBP = 0x05;
-  const signed int BASESI = 0x06;
-  const signed int BASEDI = 0x07;
-  const signed int BASE8  = 0x08;
-  const signed int BASE9  = 0x09;
-  const signed int BASE10 = 0x0A;
-  const signed int BASE11 = 0x0B;
-  const signed int BASE12 = 0x0C;
-  const signed int BASE13 = 0x0D;
-  const signed int BASE14 = 0x0E;
-  const signed int BASE15 = 0x0F;
+  const signed int BASEA  = 0x01;
+  const signed int BASEC  = 0x02;
+  const signed int BASED  = 0x03;
+  const signed int BASEB  = 0x04;
+  const signed int BASESP = 0x05;
+  const signed int BASEBP = 0x06;
+  const signed int BASESI = 0x07;
+  const signed int BASEDI = 0x08;
+  const signed int BASE8  = 0x09;
+  const signed int BASE9  = 0x0A;
+  const signed int BASE10 = 0x0B;
+  const signed int BASE11 = 0x0C;
+  const signed int BASE12 = 0x0D;
+  const signed int BASE13 = 0x0E;
+  const signed int BASE14 = 0x0F;
+  const signed int BASE15 = 0x10;
 
   /* Base IDs for memory segment registers */
   const signed int BASEDS = 0x0; // Data Segment register
