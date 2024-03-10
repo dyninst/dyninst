@@ -1536,7 +1536,8 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
       ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
       int index = abi->getIndex(r);
       if (index >= 0)
-          if (abi->getCallWrittenRegisters()[abi->getIndex(r)] && r != x86_64::r11) return true;
+          // Caller-saved registers are alive
+          if (abi->getCallWrittenRegisters()[abi->getIndex(r)]) return false;
   }
   return reg.contains(assign->out()) || assign->out().contains(reg);
 }
