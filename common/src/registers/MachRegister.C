@@ -660,6 +660,55 @@ namespace Dyninst {
     // clang-format: on
   }
 
+  bool MachRegister::isVector() const {
+    // clang-format: off
+    auto const category = regClass();
+    switch(getArchitecture()) {
+      case Arch_x86:
+        return category == x86::MMX ||
+               category == x86::XMM ||
+               category == x86::YMM ||
+               category == x86::ZMM ||
+               category == x86::KMASK;
+
+      case Arch_x86_64:
+        return category == x86_64::MMX ||
+               category == x86_64::XMM ||
+               category == x86_64::YMM ||
+               category == x86_64::ZMM ||
+               category == x86_64::KMASK;
+
+      case Arch_aarch64:
+        return category == aarch64::SVE  ||
+               category == aarch64::SVE2 ||
+               category == aarch64::SME;
+
+      case Arch_amdgpu_gfx908:
+        return category == amdgpu_gfx908::VGPR ||
+               category == amdgpu_gfx908::ACC_VGPR;
+
+      case Arch_amdgpu_gfx90a:
+        return category == amdgpu_gfx90a::VGPR ||
+               category == amdgpu_gfx90a::ACC_VGPR;
+
+      case Arch_amdgpu_gfx940:
+        return category == amdgpu_gfx940::VGPR ||
+               category == amdgpu_gfx940::ACC_VGPR;
+
+      case Arch_ppc64:
+        return category == ppc64::VSR;
+
+      case Arch_intelGen9:
+      case Arch_aarch32:
+      case Arch_none:
+      case Arch_ppc32:
+      case Arch_cuda:
+        return false;
+    }
+    return false;
+    // clang-format: on
+  }
+
   MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture arch) {
     switch(arch) {
       case Arch_aarch64:

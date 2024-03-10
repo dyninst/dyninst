@@ -89,6 +89,13 @@ namespace Dyninst {
      */
     bool isGeneralPurpose() const;
 
+    /* Checks if this is a vector register
+     *
+     *  Vector registers are capable of performing arithmetic
+     *  on multiple data values simultaneously.
+     */
+    bool isVector() const;
+
     static MachRegister getArchRegFromAbstractReg(MachRegister abstract,
                                                   Dyninst::Architecture arch);
 
