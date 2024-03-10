@@ -10,10 +10,12 @@ on:
   pull_request:
      branches:
         - master
+     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
   gcc-build:
+    if: github.event.pull_request.draft == false 
     permissions:
       packages: read
     strategy:
@@ -81,6 +83,7 @@ jobs:
           ctest .
 
   clang-build:
+    if: github.event.pull_request.draft == false
     permissions:
       packages: read
     strategy:
