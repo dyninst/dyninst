@@ -42,7 +42,7 @@ namespace Dyninst {
     signed int category = (reg & 0x00ff0000);
     switch(getArchitecture()) {
       case Arch_x86:
-        if(category == x86::GPR)
+        if(isGeneralPurpose())
           return MachRegister(reg & 0xffff00ff);
         else if(category == x86::FLAG)
           return x86::flags;
@@ -62,7 +62,7 @@ namespace Dyninst {
         else
           return *this;
       case Arch_x86_64:
-        if(category == x86_64::GPR)
+        if(isGeneralPurpose())
           return MachRegister(reg & 0xffff00ff);
         else if(category == x86_64::FLAG)
           return x86_64::flags;
@@ -85,7 +85,7 @@ namespace Dyninst {
         return *this;
 
       case Arch_aarch64: {
-        if(category == aarch64::GPR) {
+        if(isGeneralPurpose()) {
           auto const alias = getAlias(*this);
 
           // For GPRs, the most-basal registers are 64-bits
@@ -611,6 +611,53 @@ namespace Dyninst {
         return base == getZeroFlag(getArchitecture());
     }
     return false;
+  }
+
+  bool MachRegister::isGeneralPurpose() const {
+    // clang-format: off
+    auto const category = regClass();
+    switch(getArchitecture()) {
+      case Arch_x86:
+        return category == x86::GPR;
+
+      case Arch_x86_64:
+        return category == x86_64::GPR;
+
+      case Arch_aarch64:
+        return category == aarch64::GPR;
+
+      case Arch_ppc32:
+        return category == ppc32::GPR;
+
+      case Arch_ppc64:
+        return category == ppc64::GPR;
+
+      case Arch_cuda:
+        return category == cuda::GPR;
+
+      case Arch_amdgpu_gfx908:
+        return category == amdgpu_gfx908::SGPR ||
+               category == amdgpu_gfx908::VGPR ||
+               category == amdgpu_gfx908::ACC_VGPR;
+
+
+      case Arch_amdgpu_gfx90a:
+        return category == amdgpu_gfx90a::SGPR ||
+               category == amdgpu_gfx90a::VGPR ||
+               category == amdgpu_gfx90a::ACC_VGPR;
+
+      case Arch_amdgpu_gfx940:
+        return category == amdgpu_gfx940::SGPR ||
+               category == amdgpu_gfx940::VGPR ||
+               category == amdgpu_gfx940::ACC_VGPR;
+
+      case Arch_intelGen9:
+      case Arch_aarch32:
+      case Arch_none:
+        return false;
+    }
+    return false;
+    // clang-format: on
   }
 
   MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture arch) {
