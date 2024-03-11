@@ -275,7 +275,6 @@ elseif(DYNINST_ARCH_amdgpu)
     src/stackwalk-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C)
-
 endif()
 
 if(DYNINST_OS_FreeBSD)
