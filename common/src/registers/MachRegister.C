@@ -2635,7 +2635,7 @@ namespace Dyninst {
     return InvalidReg;
   }
 
-  std::vector<MachRegister> const& getAllRegistersForArch(Dyninst::Architecture arch) {
+  std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
     return all_regs[arch];
   }
 }
