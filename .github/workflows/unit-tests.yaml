@@ -50,4 +50,4 @@ jobs:
       - name: Run unit tests
         run: |
           cd unit-tests/build
-          ctest .
+          ctest -VV --output-on-failure .
