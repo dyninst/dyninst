@@ -266,19 +266,6 @@ elseif(DYNINST_ARCH_aarch64)
     src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
-elseif(DYNINST_ARCH_amdgpu)
-  list(
-    APPEND
-    _sources
-    src/inst-amdgpu.C
-    src/emit-amdgpu.C
-    src/codegen-amdgpu.C
-    src/parse-amdgpu.C
-    src/RegisterConversion-amdgpu.C
-    src/stackwalk-amdgpu.C
-    src/Relocation/Widgets/CFWidget-amdgpu.C
-    src/Relocation/Widgets/PCWidget-amdgpu.C)
-
 endif()
 
 if(DYNINST_OS_FreeBSD)
