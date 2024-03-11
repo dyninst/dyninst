@@ -21,11 +21,12 @@ namespace Dyninst {
 
   MachRegister::MachRegister() : reg(0) {}
 
-  MachRegister::MachRegister(signed int r) : reg(r) {
+  MachRegister::MachRegister(signed int r) : reg(r) {}
+
+  MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) {
+    names.emplace(r, std::move(n));
     all_regs[getArchitecture()].push_back(*this);
   }
-
-  MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) { names.emplace(r, std::move(n)); }
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
 
