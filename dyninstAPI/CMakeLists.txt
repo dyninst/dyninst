@@ -194,8 +194,6 @@ set(_sources
     src/Relocation/Widgets/RelDataWidget.C
     src/Relocation/Widgets/StackModWidget.C
     src/Relocation/patchapi_debug.C
-
-    src/amdgpu-vega-details.cpp
     )
 
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
@@ -226,6 +224,8 @@ if(DYNINST_ARCH_amdgpu)
     src/stackwalk-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C
+
+    src/amdgpu-vega-details.cpp
     )
 else if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(
