@@ -35,6 +35,7 @@
 #include "util.h"
 
 #include <string>
+#include <vector>
 
 namespace Dyninst {
   typedef unsigned long MachRegisterVal;
@@ -87,6 +88,7 @@ namespace Dyninst {
     int getDwarfEnc() const;
 
     static MachRegister getArchReg(unsigned int regNum, Dyninst::Architecture arch);
+    static std::vector<MachRegister> const& getAllRegistersForArch(Dyninst::Architecture);
   };
 }
 

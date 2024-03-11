@@ -8,10 +8,13 @@
 
 #include <cassert>
 #include <unordered_map>
+#include <map>
+#include <vector>
 
 namespace {
   std::unordered_map<signed int, std::string> names;
   const std::string invalid_reg_name{"<INVALID_REG>"};
+  std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>> all_regs;
 }
 
 namespace Dyninst {
@@ -20,7 +23,10 @@ namespace Dyninst {
 
   MachRegister::MachRegister(signed int r) : reg(r) {}
 
-  MachRegister::MachRegister(signed int r, std::string n) : reg(r) { names.emplace(r, std::move(n)); }
+  MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) {
+    names.emplace(r, std::move(n));
+    all_regs[getArchitecture()].push_back(*this);
+  }
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
 
@@ -2629,4 +2635,7 @@ namespace Dyninst {
     return InvalidReg;
   }
 
+  std::vector<MachRegister> const& getAllRegistersForArch(Dyninst::Architecture arch) {
+    return all_regs[arch];
+  }
 }
