@@ -253,7 +253,7 @@ elseif(DYNINST_HOST_ARCH_PPC64LE)
     src/Relocation/Widgets/CFWidget-ppc.C
     src/Relocation/Widgets/PCWidget-ppc.C)
 elseif(DYNINST_HOST_ARCH_AARCH64)
-  lisINSTEADt(
+  list(
     APPEND
     _sources
     src/inst-aarch64.C
@@ -265,7 +265,7 @@ elseif(DYNINST_HOST_ARCH_AARCH64)
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
 elseif(DYNINST_ARCH_amdgpu)
-  lisINSTEADt(
+  list(
     APPEND
     _sources
     src/inst-amdgpu.C
@@ -276,7 +276,6 @@ elseif(DYNINST_ARCH_amdgpu)
     src/stackwalk-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C)
-
 endif()
 
 if(DYNINST_OS_FreeBSD)
