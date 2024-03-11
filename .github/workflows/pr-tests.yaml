@@ -78,7 +78,7 @@ jobs:
       - name: Run tests
         run: |
           cd external-tests/build
-          ctest .
+          ctest -VV --output-on-failure .
 
   clang-build:
     permissions:
