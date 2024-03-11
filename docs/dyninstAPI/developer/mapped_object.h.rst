@@ -74,6 +74,10 @@ by the dynamic linker into the applications address space at runtime.
     Used for codeRange ONLY! DON'T USE THIS! BAD USER!
 
   .. cpp:function:: void *get_local_ptr() const
+
+    Mapped objects may contain multiple :cpp:class:`Symtab::Region`\ s, this function should not be used, but must be
+    included in the class because this function is a subclass of codeRange.
+
   .. cpp:function:: unsigned get_size() const
   .. cpp:function:: AddressSpace *proc() const
   .. cpp:function:: mapped_module *findModule(string m_name, bool wildcard = false)
@@ -82,7 +86,13 @@ by the dynamic linker into the applications address space at runtime.
   .. cpp:function:: func_instance *findFuncByEntry(const Dyninst::Address addr)
   .. cpp:function:: func_instance *findFuncByEntry(const block_instance *blk)
   .. cpp:function:: bool getInfHeapList(std::vector<heapDescriptor> &infHeaps)
+
+    Search an object for heapage
+
   .. cpp:function:: void getInferiorHeaps(vector<pair<string, Dyninst::Address>> &infHeaps)
+
+    This gets called once per image. Poke through to the internals; all we care about is symbol table information.
+
   .. cpp:function:: bool findFuncsByAddr(const Dyninst::Address addr, std::set<func_instance *> &funcs)
   .. cpp:function:: bool findBlocksByAddr(const Dyninst::Address addr, std::set<block_instance *> &blocks)
   .. cpp:function:: block_instance *findBlockByEntry(const Dyninst::Address addr)
@@ -108,12 +118,38 @@ by the dynamic linker into the applications address space at runtime.
   .. cpp:function:: void enableDefensiveMode(bool on = true)
   .. cpp:function:: bool isExploratoryModeOn()
   .. cpp:function:: bool parseNewEdges(const std::vector<edgeStub> &sources)
+
+    - The target and source must be in the same mapped region, make sure memory for the target is up to date
+    - Parse from target address, add new edge at image layer
+    - Register all newly created functions as a result of new edge parsing
+    - Add image blocks as block_instances
+    - Fix up mapping of split blocks with points
+    - Add image points, as instPoints
+
   .. cpp:function:: bool parseNewFunctions(std::vector<Dyninst::Address> &funcEntryAddrs)
+
+    Re-trigger parsing in the object.
+
+    This function should only be invoked if all funcEntryAddrs lie within the boundaries of the object.
+    Copies over the raw data if a funcEntryAddr lies in between the region's disk size and memory size,
+    also copies raw data if the memory around the entry point has changed.
+
+    A true return value means that new functions were parsed.
+
   .. cpp:function:: bool updateCodeBytesIfNeeded(Dyninst::Address entryAddr)
 
-    ret true if was needed
+    Updates the raw code bytes by fetching from memory, if needed
+
+    updates if we haven't updated since the last time code could have changed, and if the entry address
+    is on an unprotected code page, or if the address is in an uninitialized memory.
+
+    Returns ``true`` if was needed.
 
   .. cpp:function:: void updateCodeBytes(const std::list<std::pair<Dyninst::Address, Dyninst::Address>> &owRanges)
+
+    - Use other update functions to update non-code areas of mapped files, expanding them if we overwrote into unmapped areas
+    - Copy overwritten regions into the mapped objects
+
   .. cpp:function:: void setCodeBytesUpdated(bool)
   .. cpp:function:: void addProtectedPage(Dyninst::Address pageAddr)
 
@@ -125,6 +161,9 @@ by the dynamic linker into the applications address space at runtime.
   .. cpp:function:: void remove(instPoint *p)
   .. cpp:function:: void splitBlock(block_instance *first, block_instance *second)
   .. cpp:function:: bool findBlocksByRange(Dyninst::Address startAddr, Dyninst::Address endAddr, std::list<block_instance *> &pageBlocks)
+
+    Grabs all block_instances corresponding to the region (horribly inefficient)
+
   .. cpp:function:: void findFuncsByRange(Dyninst::Address startAddr, Dyninst::Address endAddr, std::set<func_instance *> &pageFuncs)
   .. cpp:function:: void addEmulInsn(Dyninst::Address insnAddr, Register effective_addr)
   .. cpp:function:: bool isEmulInsn(Dyninst::Address insnAddr)
@@ -134,11 +173,26 @@ by the dynamic linker into the applications address space at runtime.
   .. cpp:function:: void replacePLTStub(Dyninst::SymtabAPI::Symbol *PLTsym, func_instance *func, Dyninst::Address newAddr)
   .. cpp:function:: private void updateCodeBytes(Dyninst::SymtabAPI::Region *reg)
 
-    helper functions
+    Update mapped data for whole object, or just one region, if specified
+
+    This is a helper function. Read unprotected pages into the mapped file (not analyzed code regions so we don't get
+    instrumentation in our parse).
 
   .. cpp:function:: private bool isUpdateNeeded(Dyninst::Address entryAddr)
+
+    Checks if update is needed by looking in the gap between the previous and next block for changes to
+    the underlying bytes.
+
+    Should only be called if we've already checked that we're not on an analyzed
+    page that's been protected from overwrites, as this check would not be needed.
+
   .. cpp:function:: private bool isExpansionNeeded(Dyninst::Address entryAddr)
   .. cpp:function:: private void expandCodeBytes(Dyninst::SymtabAPI::Region *reg)
+
+    - Copy the entire region in from the mutatee,
+    - If memory emulation is not on, copy blocks back in from the mapped file, since we
+      don't want to copy instrumentation into the mutatee.
+
   .. cpp:function:: bool getSymbolInfo(const std::string &n, int_symbol &sym)
 
   ......
@@ -155,6 +209,9 @@ by the dynamic linker into the applications address space at runtime.
   .. cpp:function:: const std::vector<int_variable *> *findVarVectorByPretty(const std::string &varname)
   .. cpp:function:: const std::vector<int_variable *> *findVarVectorByMangled(const std::string &varname)
   .. cpp:function:: const int_variable *getVariable(const std::string &varname)
+
+    Returns one variable, doesn't search other mapped_objects.  Use carefully.
+
   .. cpp:function:: void setDirty()
 
     this marks the shared object as dirty, mutated so it needs saved back to disk
@@ -180,7 +237,13 @@ by the dynamic linker into the applications address space at runtime.
   .. cpp:function:: void setCallee(const block_instance *, func_instance *)
   .. cpp:function:: func_instance *getCallee(const block_instance *) const
   .. cpp:function:: void destroy(PatchAPI::PatchFunction *f)
+
+    Does not delete
+
   .. cpp:function:: void destroy(PatchAPI::PatchBlock *b)
+
+    Does not delete
+
   .. cpp:member:: private fileDescriptor desc_
 
       full file descriptor
@@ -198,7 +261,13 @@ by the dynamic linker into the applications address space at runtime.
     Where the data starts...
 
   .. cpp:member:: private Dyninst::Address tocBase
+
   .. cpp:function:: private void set_short_name()
+
+    Fill in "short_name" data member.
+
+    Use last component of "name" data member with FS_FIELD_SEPERATOR ("/") as field separator.
+
   .. cpp:member:: private std::vector<mapped_module *> everyModule
   .. cpp:type:: private std::unordered_map<std::string, std::vector<func_instance *> *> func_index_t
   .. cpp:type:: private std::unordered_map<std::string, std::vector<int_variable *> *> var_index_t
@@ -329,4 +398,8 @@ by the dynamic linker into the applications address space at runtime.
   #define   SHAREDOBJECT_NOCHANGE 0
   #define   SHAREDOBJECT_ADDED  1
   #define   SHAREDOBJECT_REMOVED  2
+
+.. cpp:function:: bool codeBytesUpdateCB(void *objCB, Address targ)
+
+  Triggered when parsing needs to check if the underlying data has changed
 
