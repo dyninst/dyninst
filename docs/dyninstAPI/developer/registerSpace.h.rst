@@ -205,6 +205,12 @@ Used
 
     Things that will be modified implicitly by anything else we generate - condition registers, etc.
 
+    This might mean something different later, but for now means "Save special purpose registers". We
+    may want to define a "volatile" later - something like "can be unintentionally nuked". For example,
+    x86 flags register.
+
+    .. warning:: Only implemented on x86 and x86_64
+
   .. cpp:function:: bool saveVolatileRegisters(codeGen &gen)
   .. cpp:function:: bool restoreVolatileRegisters(codeGen &gen)
   .. cpp:function:: void freeRegister(Dyninst::Register k)
@@ -213,7 +219,7 @@ Used
 
   .. cpp:function:: void forceFreeRegister(Dyninst::Register k)
 
-    Free the register even if its refCount is greater that 1
+    Free the register even if its refCount is greater than 1
 
   .. cpp:function:: void unKeepRegister(Dyninst::Register k)
 
@@ -259,6 +265,9 @@ Used
   .. cpp:function:: std::vector<registerSlot *> &FPRs()
   .. cpp:function:: std::vector<registerSlot *> &SPRs()
   .. cpp:function:: std::vector<registerSlot *> &realRegs()
+
+    If we have defined ``realRegisters_`` (IA-32 and 32-bit mode AMD-64) return that. Otherwise return GPRs.
+
   .. cpp:function:: std::vector<registerSlot *> &trampRegs()
 
     realRegs() on x86-32, GPRs on all others
@@ -315,6 +324,12 @@ Used
   .. cpp:function:: int getStackHeight()
   .. cpp:function:: void setStackHeight(int val)
   .. cpp:function:: void unifyTopRegStates(codeGen &gen)
+
+    This handles merging register states at merges in the generated code CFG. Used for things like 'if'
+    statements. Takes the top level registerState (e.g, the code that was generated in an 'if') and
+    emits the saves/restores such to takes us back to the preceding registerState (e.g, the code we
+    would be in if the 'if' hadn't executed).
+
   .. cpp:function:: void pushNewRegState()
   .. cpp:member:: private int instFrameSize_
 
