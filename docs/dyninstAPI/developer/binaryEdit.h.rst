@@ -36,7 +36,7 @@ binaryEdit.h
   .. cpp:function:: Address length() const
   .. cpp:function:: Architecture getArch() const
 
-    .. note:: presumably all of the objects in the BinaryEdit collection must be the same architecture.
+    .. caution:: All of the objects in the BinaryEdit must have the same architecture
 
   .. cpp:function:: bool multithread_capable(bool ignore_if_mt_not_set = false)
 
@@ -130,7 +130,46 @@ binaryEdit.h
   .. cpp:function:: private bool archSpecificMultithreadCapable()
   .. cpp:function:: private bool doStaticBinarySpecialCases()
 
-    Function specific to rewritting static binaries
+    Static binary rewriting support.
+
+    Some of the following functions replace the standard ctor and dtor handlers in a binary. Currently,
+    these operations only work with binaries linked with the GNU toolchain. However, it should be
+    straightforward to extend these operations to other toolchains.
+
+    - Case 1A: Handling global constructors
+
+      Place the Dyninst constructor handler after the global ELF ctors so it is invoked last. Prior to
+      glibc-2.34, this was in the exit point(s) of __libc_csu_init which calls all of the initializers in
+      preinit_array and init_array as per SystemV before __libc_start_main is invoked. In glibc-2.34,
+      the code from the ``csu_*`` functions was moved into __libc_start_main, so now the only place where we
+      are guaranteed that the global constructors have all been called is at the beginning of 'main'.
+
+    - Case 1B: Handling global destructors
+
+      Place the Dyninst destructor handler before the global ELF dtors so it is invoked first.
+
+      Prior to glibc-2.34, this was in the entry point of __libc_csu_fini.
+
+      In glibc-2.34, the code in __libc_csu_fini was moved into a hidden function that
+      is registered with atexit. To ensure the Dyninst destructors are always called first, we have to
+      insert the handler at the beginning of `exit`.
+
+      This is a fragile solution as there is no requirement that a symbol for `exit` is exported. If
+      we can't find it, we'll just fail here.
+
+    - Case 2: Check for pthreads
+
+      Issue a warning if attempting to link pthreads into a binary that originally did not
+      support it or into a binary that is stripped. This scenario is not supported with the initial
+      release of the binary rewriter for static binaries.
+
+      The other side of the coin, if working with a binary that does have pthreads support, pthreads
+      needs to be loaded.
+
+    - Case 3: The RT library has some dependencies
+
+      Symtab always needs to know about these dependencies. So if the dependencies haven't already been
+      loaded, load them.
 
   .. cpp:member:: private codeRangeTree memoryTracker_
   .. cpp:function:: private mapped_object *addSharedObject(const std::string *fullPath)

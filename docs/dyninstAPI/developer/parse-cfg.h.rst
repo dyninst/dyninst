@@ -188,10 +188,24 @@ parse-cfg.h
     OpenMP Parsing Functions
 
   .. cpp:function:: std::string calcParentFunc(const parse_func *imf, std::vector<image_parRegion *> &pR)
+
+    .. warning:: Not implemented
+
   .. cpp:function:: void parseOMP(image_parRegion *parReg, parse_func *parentFunc, int &currentSectionNum)
-  .. cpp:function:: void parseOMPSectFunc(parse_func *parentFunc)
+
+    .. warning:: Not implemented
+
   .. cpp:function:: void parseOMPFunc(bool hasLoop)
+
+    .. warning:: Not implemented
+
   .. cpp:function:: bool parseOMPParent(image_parRegion *iPar, int desiredNum, int &currentSectionNum)
+
+    By parsing the function that actually sets up the parameters for the OMP region we discover informations such
+    as what type of parallel region we're dealing with.
+
+    .. warning:: Not implemented
+
   .. cpp:function:: void addRegion(image_parRegion *iPar)
   .. cpp:function:: bool OMPparsed()
 
@@ -214,8 +228,11 @@ parse-cfg.h
   .. cpp:function:: void setPowerTOCBaseAddress(Dyninst::Address addr)
   .. cpp:function:: private void calcUsedRegs()
 
-    Does one time calculation of registers used in a function, if called again it just refers to the stored
-    values and returns that
+    This does a linear scan to find out which registers are used in the function,
+    it then stores these registers so the scan only needs to be done once.
+    It returns true or false based on whether the function is a leaf function,
+    since if it is not the function could call out to another function that
+    clobbers more registers so more analysis would be needed.
 
   .. cpp:member:: private Dyninst::SymtabAPI::Function *func_{nullptr}
 

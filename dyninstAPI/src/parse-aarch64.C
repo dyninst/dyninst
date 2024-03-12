@@ -30,11 +30,6 @@
 
 // $Id: image-power.C,v 1.23 2008/03/12 20:09:10 legendre Exp $
 
-// Determine if the called function is a "library" function or a "user" function
-// This cannot be done until all of the functions have been seen, verified, and
-// classified
-//
-
 #include <unordered_map>
 #include "parse-cfg.h"
 #include "instPoint.h"
@@ -58,7 +53,6 @@
 #include "function.h"
 #include "baseTramp.h"
 
-//#warning "This file is not implemented yet!"
 using namespace Dyninst::SymtabAPI;
 
 namespace {
@@ -68,10 +62,6 @@ namespace {
   char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
 }
 
-/*
-By parsing the function that actually sets up the parameters for the OMP
-region we discover informations such as what type of parallel region we're
-dealing with */
 bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
 {
 	assert(0);
@@ -99,11 +89,6 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
 	assert(0);
 }
 
-/* This does a linear scan to find out which registers are used in the function,
-   it then stores these registers so the scan only needs to be done once.
-   It returns true or false based on whether the function is a leaf function,
-   since if it is not the function could call out to another function that
-   clobbers more registers so more analysis would be needed */
 void parse_func::calcUsedRegs()
 {
     if (!usedRegisters)
@@ -162,28 +147,9 @@ static void add_handler(instPoint* pt, func_instance* add_me)
 #include "image.h"
 
 using namespace Dyninst::SymtabAPI;
-/*
- * Static binary rewriting support
- *
- * Some of the following functions replace the standard ctor and dtor handlers
- * in a binary. Currently, these operations only work with binaries linked with
- * the GNU toolchain. However, it should be straightforward to extend these
- * operations to other toolchains.
- */
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-    /* Special Case 1A: Handling global constructors
-     *
-     * Place the Dyninst constructor handler after the global ELF ctors so it is invoked last.
-     *
-     * Prior to glibc-2.34, this was in the exit point(s) of __libc_csu_init which
-     * calls all of the initializers in preinit_array and init_array as per SystemV
-     * before __libc_start_main is invoked.
-     *
-     * In glibc-2.34, the code from the csu_* functions was moved into __libc_start_main, so
-     * now the only place where we are guaranteed that the global constructors have all been
-     * called is at the beginning of 'main'.
-    */
+    // Special Case 1A: Handling global constructors
     func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
     if( !dyninstCtorHandler ) {
         logLine("failed to find Dyninst constructor handler\n");
@@ -204,19 +170,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
    	    return false;
     }
 
-    /* Special Case 1B: Handling global destructors
-     *
-     * Place the Dyninst destructor handler before the global ELF dtors so it is invoked first.
-     *
-     * Prior to glibc-2.34, this was in the entry point of __libc_csu_fini.
-     *
-     * In glibc-2.34, the code in __libc_csu_fini was moved into a hidden function that is
-     * registered with atexit. To ensure the Dyninst destructors are always called first, we
-     * have to insert the handler at the beginning of `exit`.
-     *
-     * This is a fragile solution as there is no requirement that a symbol for `exit` is
-     * exported. If we can't find it, we'll just fail here.
-    */
+    // Special Case 1B: Handling global destructors
     func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
     if( !dyninstDtorHandler ) {
         logLine("failed to find Dyninst destructor handler\n");
@@ -237,16 +191,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
 
 
-    /*
-     * Special Case 2: Issue a warning if attempting to link pthreads into a binary
-     * that originally did not support it or into a binary that is stripped. This
-     * scenario is not supported with the initial release of the binary rewriter for
-     * static binaries.
-     *
-     * The other side of the coin, if working with a binary that does have pthreads
-     * support, pthreads needs to be loaded.
-     */
-
+    // Special Case 2: Check for pthreads
     bool isMTCapable = isMultiThreadCapable();
     bool foundPthreads = false;
 
@@ -278,13 +223,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
             "unavailable in the original binary\n");
     }
 
-    /*
-     * Special Case 3:
-     * The RT library has some dependencies -- Symtab always needs to know
-     * about these dependencies. So if the dependencies haven't already been
-     * loaded, load them.
-     */
-
+    // Special Case 3: The RT library has some dependencies
     vector<Archive *> libs1;
     vector<Archive *>::iterator libIter1;
     bool loadLibc = true;
