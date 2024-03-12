@@ -192,9 +192,6 @@ bool parse_func::isPLTFunction() {
 
 int parse_block_count = 0;
 
-/*
- * For CFGFactory::mksink only 
- */
 parse_block::parse_block(
         CodeObject * obj, 
         CodeRegion * reg,
@@ -275,10 +272,6 @@ void *parse_block::getPtrToInstruction(Address addr) const {
     return region()->getPtrToInstruction(addr);
 }
 
-/* Returns NULL if the address is not within a block belonging to this function.
-   Why do we even bother returning NULL if the address is outside of this
-   function? FIXME check whether we can do away with that.
-*/
 void *parse_func::getPtrToInstruction(Address addr) const {
     // The commented-out code checks whether the address is within
     // the bytes of this function (one of its basic blocks). Instead,
@@ -309,10 +302,6 @@ bool parse_block::isEntryBlock(parse_func * f) const
     return f->entryBlock() == this;
 } 
 
-/*
- * True if the block has a return edge, or a call that does
- * not return (i.e., a tail call or non-returning call)
- */
 bool parse_block::isExitBlock()
 {
     const Block::edgelist & trgs = targets();
@@ -434,11 +423,6 @@ void parse_block::getInsns(Insns &insns, Address base) {
 }
 
 
-/* This function is static.
- *
- * Find the blocks that are reachable from the seed blocks 
- * if the except blocks are not part of the CFG
- */
 void parse_func::getReachableBlocks
 (const std::set<parse_block*> &exceptBlocks,
  const std::list<parse_block*> &seedBlocks,

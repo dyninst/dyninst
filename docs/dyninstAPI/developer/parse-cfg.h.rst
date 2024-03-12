@@ -6,6 +6,9 @@ parse-cfg.h
 .. cpp:class:: parse_block : public codeRange, public Dyninst::ParseAPI::Block
 
   .. cpp:function:: private parse_block(Dyninst::ParseAPI::CodeObject *, Dyninst::ParseAPI::CodeRegion*, Dyninst::Address)
+
+    For CFGFactory::mksink only
+
   .. cpp:function:: parse_block(parse_func*,Dyninst::ParseAPI::CodeRegion*,Dyninst::Address)
   .. cpp:function:: ~parse_block()
   .. cpp:function:: Dyninst::Address firstInsnOffset() const
@@ -20,6 +23,10 @@ parse-cfg.h
     cfg access & various predicates
 
   .. cpp:function:: bool isExitBlock()
+
+    Checks if the block has a return edge or a call that does not return (i.e., a tail call or
+    non-returning call).
+
   .. cpp:function:: bool isCallBlock()
   .. cpp:function:: bool isIndirectTailCallBlock()
   .. cpp:function:: bool isEntryBlock(parse_func * f) const
@@ -52,7 +59,11 @@ parse-cfg.h
   .. cpp:function:: void markAsNeedingRelocation()
   .. cpp:function:: void *getPtrToInstruction(Dyninst::Address addr) const
 
-    codeRange implementation
+    Returns ``NULL`` if the address is not within a block belonging to this function.
+
+    ..note::
+      Why do we even bother returning ``NULL`` if the address is outside of this function?
+      FIXME check whether we can do away with that.
 
   .. cpp:function:: Dyninst::Address get_address() const
   .. cpp:function:: unsigned get_size() const
@@ -161,7 +172,13 @@ parse-cfg.h
   .. rubric::
     Mutable function code, used for hybrid analysis
 
-  .. cpp:function:: void getReachableBlocks(const std::set<parse_block *> &exceptBlocks, const std::list<parse_block *> &seedBlocks, std::set<parse_block *> &reachableBlocks)
+  .. cpp:function:: void getReachableBlocks(const std::set<parse_block *> &exceptBlocks,\
+                                            const std::list<parse_block *> &seedBlocks,\
+                                            std::set<parse_block *> &reachableBlocks)
+
+    Returns in ``reachableBlocks`` the blocks that are reachable from ``seedBlocks``, if the
+    blocks in ``exceptBlocks`` are not part of the CFG.
+
   .. cpp:function:: Dyninst::ParseAPI::FuncReturnStatus init_retstatus() const
 
     Only call on defensive binaries
@@ -189,22 +206,22 @@ parse-cfg.h
 
   .. cpp:function:: std::string calcParentFunc(const parse_func *imf, std::vector<image_parRegion *> &pR)
 
-    .. warning:: Not implemented
+    .. warning:: Not implemented on ARMv8
 
   .. cpp:function:: void parseOMP(image_parRegion *parReg, parse_func *parentFunc, int &currentSectionNum)
 
-    .. warning:: Not implemented
+    .. warning:: Not implemented on ARMv8
 
   .. cpp:function:: void parseOMPFunc(bool hasLoop)
 
-    .. warning:: Not implemented
+    .. warning:: Not implemented on ARMv8
 
   .. cpp:function:: bool parseOMPParent(image_parRegion *iPar, int desiredNum, int &currentSectionNum)
 
     By parsing the function that actually sets up the parameters for the OMP region we discover informations such
     as what type of parallel region we're dealing with.
 
-    .. warning:: Not implemented
+    .. warning:: Not implemented on ARMv8
 
   .. cpp:function:: void addRegion(image_parRegion *iPar)
   .. cpp:function:: bool OMPparsed()
