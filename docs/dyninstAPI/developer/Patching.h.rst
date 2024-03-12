@@ -18,4 +18,7 @@ Patching.h
   .. cpp:function:: protected virtual void destroy_cb(Dyninst::PatchAPI::PatchEdge *, Dyninst::PatchAPI::PatchObject *owner)
   .. cpp:function:: protected virtual void destroy_cb(Dyninst::PatchAPI::PatchFunction *)
   .. cpp:function:: protected virtual void destroy_cb(Dyninst::PatchAPI::PatchObject *)
+
+    .. caution:: Not implemented
+
   .. cpp:function:: protected virtual void remove_block_cb(Dyninst::PatchAPI::PatchFunction *, Dyninst::PatchAPI::PatchBlock *)
