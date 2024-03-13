@@ -88,6 +88,11 @@ CFG.h
 
 
   .. cpp:function:: private void delayed_link_return(CodeObject * co, Block * retblk)
+
+    Adds return edges to the CFG for a particular retblk, based on callers to this function. Handles
+    case of return block that targets the entry block of a new function separately (ret to entry
+    happens if the function tampers with its stack and maybe if this function is a signal handler?)
+
   .. cpp:function:: private void finalize()
   .. cpp:member:: private bool _parsed
   .. cpp:member:: private std::vector<FuncExtent *> _extents
@@ -143,6 +148,9 @@ CFG.h
     NULL if the tree structure has not be calculated
 
   .. cpp:function:: private void getLoopsByNestingLevel(std::vector<Loop*>& lbb, bool outerMostOnly) const
+
+    Returns the loop objects that exist in the control flow grap.
+
   .. cpp:member:: private std::map<Address, JumpTableInstance> jumptables
   .. cpp:member:: private mutable bool isDominatorInfoReady
 
@@ -150,6 +158,14 @@ CFG.h
 
   .. cpp:member:: private mutable bool isPostDominatorInfoReady
   .. cpp:function:: private void fillDominatorInfo() const
+
+    Fills the dominator information of each basic block looking at the control flow edges.
+
+    It uses a fixed-point calculation to find the immediate dominator of the basic blocks and the set of
+    basic blocks that are immediately dominated by this one. Before calling this method all the
+    dominator information is going to give incorrect results. So first this function must be called to
+    process dominator related fields and methods.
+
   .. cpp:function:: private void fillPostDominatorInfo() const
 
   ......
