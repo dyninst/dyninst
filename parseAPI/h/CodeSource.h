@@ -152,7 +152,6 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     void removeRegion(CodeRegion *);
    
  private: 
-    // statistics
     virtual bool init_stats() { return false; }
 
 };
@@ -171,7 +170,6 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     void names(Address, std::vector<std::string> &);
     bool findCatchBlock(Address addr, Address & catchStart);
 
-    /** InstructionSource implementation **/
     bool isValidAddress(const Address) const;
     void* getPtrToInstruction(const Address) const;
     void* getPtrToData(const Address) const;
@@ -183,7 +181,6 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     Address length() const;
     Architecture getArch() const;
 
-    /** interval **/
     Address low() const { return offset(); }
     Address high() const { return offset() + length(); }
 
@@ -196,7 +193,6 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
     bool owns_symtab;
     mutable dyn_threadlocal<CodeRegion *>  _lookup_cache;
 
-    // Stats information
     StatContainer * stats_parse;
     bool _have_stats;
     
@@ -233,7 +229,6 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
     Address getTOC(Address addr) const;
     SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
 
-    /** InstructionSource implementation **/
     bool isValidAddress(const Address) const;
     void* getPtrToInstruction(const Address) const;
     void* getPtrToData(const Address) const;
@@ -249,11 +244,9 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
 
     static void addNonReturning(std::string func_name);
     
-    // statistics accessor
     void print_stats() const;
     bool have_stats() const { return _have_stats; }
 
-    // manage statistics
     void incrementCounter(const std::string& name) const;
     void addCounter(const std::string& name, int num) const; 
     void decrementCounter(const std::string& name) const;
@@ -268,11 +261,10 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
     void init_try_blocks();
 
     CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion *); // removes from region tree
+    void removeRegion(CodeRegion *);
 
     void overlapping_warn(const char * file, unsigned line) const;
-    
-    // statistics
+
     bool init_stats();
     std::vector<try_block> try_blocks;
 };

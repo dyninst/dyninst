@@ -93,7 +93,10 @@ SymLiteCodeSource.h
   .. cpp:function:: void addCounter(const std::string &name, int num) const
   .. cpp:function:: void decrementCounter(const std::string &name) const
   .. cpp:function:: private CodeRegion *lookup_region(const Address addr) const
-  .. cpp:function:: private void removeRegion(CodeRegion *) // removes from region tree
+  .. cpp:function:: private void removeRegion(CodeRegion *)
+
+      removes from region tree
+
   .. cpp:function:: private void overlapping_warn(const char *file, unsigned line) const
   .. cpp:function:: private void init_regions()
   .. cpp:function:: private bool init_stats()

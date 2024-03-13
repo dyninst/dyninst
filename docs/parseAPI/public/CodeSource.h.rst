@@ -55,7 +55,7 @@ CodeSource.h
 
       This may be empty.
 
-.. cpp:struct:: CodeSource::Hint
+.. cpp:struct:: Hint
 
   **A starting point for parsing**
 
