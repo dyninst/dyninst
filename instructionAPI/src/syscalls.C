@@ -42,10 +42,7 @@ namespace di = Dyninst::InstructionAPI;
 
 namespace x86 {
 
-  /* Thread Control Block syscall visitor
-   *
-   *  Used to detect 'call gs:[0x10]' syscalls in 32-bit code.
-   */
+  // Thread Control Block syscall visitor
   struct tcb_syscall_visitor : di::Visitor {
     di::Result value;
     int num_imm{0};
@@ -68,20 +65,7 @@ namespace x86 {
     di::RegisterAST::Ptr gs(new di::RegisterAST(Dyninst::x86::gs));
   }
 
-  /* Check for system call idioms
-   *
-   * Idioms checked:
-   *
-   *  syscall
-   *  int <vector> (e.g., 'int 0x80')
-   *  call DWORD PTR gs:[0x10]
-   *
-   *  Calls to Linux vdso functions (e.g., __vdso_clock_gettime)
-   *  are not considered system calls because they use the standard
-   *  call mechanism to explicitly bypass the kernel.
-   *
-   *  'sysenter' is checked by IA_IAPI::isSysEnter().
-   */
+  // Check for system call idioms
   bool isSystemCall(di::Instruction const& ins) {
     auto const id = ins.getOperation().getID();
 

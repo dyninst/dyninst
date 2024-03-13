@@ -22,5 +22,6 @@ InstructionAPI
   Operation_impl.h
   Register.h
   Result.h
+  syscalls.h
   Ternary.h
   Visitor.h
