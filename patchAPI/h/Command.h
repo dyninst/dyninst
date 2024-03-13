@@ -58,7 +58,6 @@ class PATCHAPI_EXPORT BatchCommand : public Command {
     virtual bool run();
     virtual bool undo();
 
-    /* Add/Remove Commands to to_do_ list. */
     typedef std::list<Command*> CommandList;
     void add(Command*);
     void remove(CommandList::iterator);

@@ -48,8 +48,6 @@ using Dyninst::PatchAPI::ReplaceCallCommand;
 using Dyninst::PatchAPI::ReplaceFuncCommand;
 using Dyninst::PatchAPI::RemoveSnippetCommand;
 
-/* Basic Command */
-
 bool Command::commit() {
   if (!run()) {
     undo();
@@ -62,8 +60,6 @@ BatchCommand* BatchCommand::create() {
   BatchCommand* ret = new BatchCommand;
   return ret;
 }
-
-/* Batch Command */
 
 void BatchCommand::add(Command* c) {
   to_do_.push_back(c);
