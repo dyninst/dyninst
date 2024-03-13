@@ -17,7 +17,7 @@ using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
-// Assume the table contain less than this many entries.
+
 #define MAX_TABLE_ENTRY 1000000
 
 

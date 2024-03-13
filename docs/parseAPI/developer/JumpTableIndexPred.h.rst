@@ -24,3 +24,9 @@ JumpTableIndexPred.h
 
   .. cpp:function:: static TypedSliceEdge::Ptr create(SliceNode::Ptr source, SliceNode::Ptr target, ParseAPI::EdgeTypeEnum t)
   .. cpp:function:: ParseAPI::EdgeTypeEnum type()
+
+
+.. code:: c
+
+  // Assume the table contain less than this many entries.
+  #define MAX_TABLE_ENTRY 1000000
