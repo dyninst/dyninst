@@ -23,9 +23,13 @@ InstructionAdapter.h
 
 .. cpp:class:: InstructionAdapter
 
-  .. cpp:function:: InstructionAdapter(Address start, ParseAPI::CodeObject *o , ParseAPI::CodeRegion* r, InstructionSource * isrc,  ParseAPI::Block *)
+  .. cpp:function:: InstructionAdapter(Address start, ParseAPI::CodeObject *o , ParseAPI::CodeRegion* r,\
+                                       InstructionSource * isrc,  ParseAPI::Block *)
+
   .. cpp:function:: InstructionAdapter(const InstructionAdapter&) = default
-  .. cpp:function:: void reset(Address start, ParseAPI::CodeObject *o, ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *)
+  .. cpp:function:: void reset(Address start, ParseAPI::CodeObject *o, ParseAPI::CodeRegion *r,\
+                               InstructionSource *isrc, ParseAPI::Block *)
+
   .. cpp:function:: virtual const InstructionAPI::Instruction& getInstruction() const = 0
   .. cpp:function:: virtual bool hasCFT() const = 0
   .. cpp:function:: virtual size_t getSize() const = 0
@@ -33,12 +37,19 @@ InstructionAdapter.h
   .. cpp:function:: virtual bool isInvalidInsn() const = 0
   .. cpp:function:: virtual bool isAbort() const = 0
   .. cpp:function:: virtual bool isGarbageInsn() const = 0
-  .. cpp:function:: virtual void getNewEdges(std::vector<std::pair<Address,ParseAPI::EdgeTypeEnum> >& outEdges, ParseAPI::Function* context, ParseAPI::Block* currBlk, unsigned int num_insns, dyn_hash_map<Address, std::string> *pltFuncs, const std::set<Address> &) const = 0
+
+  .. cpp:function:: virtual void getNewEdges(std::vector<std::pair<Address,ParseAPI::EdgeTypeEnum>>& outEdges,\
+                                             ParseAPI::Function* context, ParseAPI::Block* currBlk,unsigned int num_insns,\
+                                             dyn_hash_map<Address, std::string> *pltFuncs, const std::set<Address> &) const = 0
+
   .. cpp:function:: virtual bool isDynamicCall() const = 0
   .. cpp:function:: virtual bool isAbsoluteCall() const = 0
   .. cpp:function:: virtual InstrumentableLevel getInstLevel(ParseAPI::Function* context, unsigned int num_insns) const
   .. cpp:function:: virtual ParseAPI::FuncReturnStatus getReturnStatus(ParseAPI::Function* context, unsigned int num_insns) const
   .. cpp:function:: virtual bool hasUnresolvedControlFlow(ParseAPI::Function* context, unsigned int num_insns) const
+
+    Checks for indirect calls and unresolved indirect branches.
+
   .. cpp:function:: virtual bool isNopJump() const
   .. cpp:function:: virtual bool simulateJump() const= 0
   .. cpp:function:: virtual void advance() = 0
@@ -59,4 +70,6 @@ InstructionAdapter.h
   .. cpp:function:: virtual bool isInterruptOrSyscall() const = 0
   .. cpp:function:: virtual bool isCall() const = 0
   .. cpp:function:: virtual bool isReturnAddrSave(Address &ret_addr) const = 0
-  .. cpp:function:: virtual bool isTailCall(const ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns, const std::set<Address> &) const = 0
+  .. cpp:function:: virtual bool isTailCall(const ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns,\
+                                            const std::set<Address> &) const = 0
+
