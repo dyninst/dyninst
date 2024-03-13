@@ -102,23 +102,18 @@ Loop::getLoops(vector<Loop*>& nls, bool outerMostOnly) const
    return true;
 }
 
-//method that returns the nested loops inside the loop. It returns a set
-//of Loop that are contained. It might be useful to add nest 
-//as a field of this class but it seems it is not necessary at this point
 bool
 Loop::getContainedLoops(vector<Loop*>& nls)
 {
   return getLoops(nls, false);
 }
 
-// get the outermost loops nested under this loop
 bool 
 Loop::getOuterLoops(vector<Loop*>& nls)
 {
   return getLoops(nls, true);
 }
 
-//returns the basic blocks in the loop
 bool Loop::getLoopBasicBlocks(vector<Block*>& bbs) {
    bbs.insert(bbs.end(), exclusiveBlocks.begin(), exclusiveBlocks.end());
     bbs.insert(bbs.end(), childBlocks.begin(), childBlocks.end());
@@ -135,14 +130,10 @@ void Loop::insertChildBlock(Block* b)
     childBlocks.insert(b);
 }
 
-
-// returns the basic blocks in this loop, not those of its inner loops
 bool Loop::getLoopBasicBlocksExclusive(vector<Block*>& bbs) {
     std::copy(exclusiveBlocks.begin(), exclusiveBlocks.end(), std::back_inserter(bbs));
     return true;
 }
-
-
 
 bool Loop::hasBlock(Block* block) 
 {
