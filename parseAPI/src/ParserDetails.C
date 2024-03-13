@@ -117,8 +117,6 @@ getBlockInsns(Block &blk, std::set<Address> &addrs) {
     delete ah;
 }
 
-/* called in defensive mode to create parseFrames at tampered addresses 
-   for functions that return TAMPER_ABS. */
 ParseFrame *
 Parser::getTamperAbsFrame(Function *tamperFunc) {
     assert(TAMPER_ABS == tamperFunc->tampersStack());
@@ -228,10 +226,6 @@ Parser::getTamperAbsFrame(Function *tamperFunc) {
     return pf;
 }
 
-// Param pf tampers with its stack by a relative or absolute amount. 
-// In the first case, adjust CALL_FT target edge if there is one
-// In the second case, add a new ParseFrame to the worklist or 
-// trigger parsing in the target object. 
 void
 Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFrame *pf) {
     vector<ParseFrame *> work;
@@ -306,10 +300,6 @@ Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFra
     */
 }
 
-
-/*
- * Extra handling for bad jump instructions
- */
 inline
 void Parser::ProcessUnresBranchEdge(
         ParseFrame &frame,
@@ -341,9 +331,6 @@ void Parser::ProcessUnresBranchEdge(
     _pcb.interproc_cf(frame.func, cur, ah->getAddr(), &det);
 }
 
-/*
- * Extra handling of return instructions
- */
 inline
 void Parser::ProcessReturnInsn(
         ParseFrame &frame,
@@ -361,11 +348,6 @@ void Parser::ProcessReturnInsn(
     _pcb.interproc_cf(frame.func, cur, ah->getAddr(), &det);
 }
 
-
-/*
- * Extra handling for literal call instructions
- * as well as other instructions treated as calls
- */
 inline
 void Parser::ProcessCallInsn(
         ParseFrame &frame,

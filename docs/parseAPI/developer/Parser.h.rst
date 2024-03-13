@@ -171,19 +171,34 @@ Parser.h
 
   .. cpp:function:: private void tamper_post_processing(LockFreeQueue<ParseFrame *> &, ParseFrame *)
 
+    Param pf tampers with its stack by a relative or absolute amount. In the first case, adjust CALL_FT
+    target edge if there is one In the second case, add a new ParseFrame to the worklist or trigger
+    parsing in the target object.
+
   ......
 
   .. rubric:: Defensive parsing details
 
   .. cpp:function:: private ParseFrame *getTamperAbsFrame(Function *tamperFunc)
+
+    Called in defensive mode to create parseFrames at tampered addresses for functions that return TAMPER_ABS.
+
   .. cpp:function:: private void ProcessUnresBranchEdge(ParseFrame &, Block *, InstructionAdapter_t *, Address target)
+
+    Extra handling for bad jump instructions
 
   ......
 
   .. rubric:: Implementation of the parsing loop
 
   .. cpp:function:: private void ProcessCallInsn(ParseFrame &, Block *, InstructionAdapter_t *, bool, bool, bool, Address)
+
+    Extra handling for literal call instructions as well as other instructions treated as calls.
+
   .. cpp:function:: private void ProcessReturnInsn(ParseFrame &, Block *, InstructionAdapter_t *)
+
+    Extra handling of return instructions
+
   .. cpp:function:: private bool ProcessCFInsn(ParseFrame &, Block *, InstructionAdapter_t *)
   .. cpp:function:: private void finalize()
   .. cpp:function:: private void finalize_funcs(dyn_c_vector<Function *> &funcs)

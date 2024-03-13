@@ -22,9 +22,10 @@ ParserDetails.h
 
   .. cpp:function:: ParseWorkElem(ParseWorkBundle *b, parse_work_order o, Edge *e, Address source, Address target, bool resolvable, bool tailcall)
   .. cpp:function:: ParseWorkElem(ParseWorkBundle *b, Edge *e, Address source, Address target, bool resolvable, bool tailcall)
-  .. cpp:function:: ParseWorkElem()
 
-      We also the source address of the edge because the source block may be split
+    We also the source address of the edge because the source block may be split
+
+  .. cpp:function:: ParseWorkElem()
 
   .. cpp:function:: ParseWorkElem(ParseWorkBundle *bundle, Block *b, const InsnAdapter::IA_IAPI* ah)
 
@@ -44,6 +45,21 @@ ParserDetails.h
   .. cpp:function:: Block* cur() const
   .. cpp:function:: InsnAdapter::IA_IAPI* ah() const
   .. cpp:function:: Function* shared_func() const
+  .. cpp:member:: private ParseWorkBundle * _bundle
+  .. cpp:member:: private Edge * _edge
+  .. cpp:member:: private Address _src
+  .. cpp:member:: private Address _targ
+  .. cpp:member:: private bool _can_resolve
+  .. cpp:member:: private bool _tailcall
+  .. cpp:member:: private parse_work_order _order
+  .. cpp:member:: private bool _call_processed
+  .. cpp:member:: private Block* _cur
+
+    Data for continuing parsing jump tables
+
+  .. cpp:member:: private InsnAdapter::IA_IAPI* _ah
+  .. cpp:member:: private Function * _shared_func
+
 
 .. cpp:class:: ParseWorkElem::compare
 

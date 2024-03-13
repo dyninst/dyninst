@@ -52,7 +52,7 @@ class ParseWorkElem
  public:
     enum parse_work_order {
         seed_addr = 0,
-        ret_fallthrough, /* conditional returns */
+        ret_fallthrough,
         call,
         call_fallthrough,
         cond_not_taken,
@@ -61,10 +61,7 @@ class ParseWorkElem
         br_indirect,
         catch_block,
         checked_call_ft,
-	resolve_jump_table, // We want to finish all possible parsing work before parsing jump tables
-        // For shared code, we only parse once. The return statuses of
-        // the functions that share code depend on the function that performs
-        // the real parsing
+	resolve_jump_table,
         func_shared_code, 
         __parse_work_end__
     };
@@ -91,8 +88,6 @@ class ParseWorkElem
     ParseWorkElem(
             ParseWorkBundle *b, 
             Edge *e, 
-            /* We also the source address of the edge because the source block
-             * may be split */ 
             Address source,
             Address target, 
             bool resolvable,
@@ -211,12 +206,6 @@ class ParseWorkElem
     InsnAdapter::IA_IAPI*  ah()        const { return _ah; }
     Function*       shared_func()       const { return _shared_func; }
 
-    /* 
-     * Note that compare treats the parse_work_order as `lowest is
-     * highest priority'.
-     *
-     * Sorts by parse_work_order, then bundle, then address
-    */
     struct compare {
         bool operator()(const ParseWorkElem * e1, const ParseWorkElem * e2) const
         {
@@ -241,8 +230,6 @@ class ParseWorkElem
     bool _tailcall{};
     parse_work_order _order{};
     bool _call_processed{};
-
-    // Data for continuing parsing jump tables
     Block* _cur{};
     InsnAdapter::IA_IAPI* _ah{};
     Function * _shared_func{};
