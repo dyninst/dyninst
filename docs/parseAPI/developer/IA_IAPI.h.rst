@@ -43,7 +43,10 @@ IA_IAPI.h
   .. cpp:function:: virtual bool isInvalidInsn() const
   .. cpp:function:: virtual bool isGarbageInsn() const
 
-       ``true`` for insns indicative of bad parse, for defensive mode.
+    Determines if an instruction is weird enough that we've probably veered into non-code bytes and are parsing garbage.
+
+    note: yes, some of the code in here is does low-level things like grab instruction bytes directly instead
+    of relying on parseAPI, but since this code executes for every parsed instruction, it needs to be efficient.
 
   .. cpp:function:: virtual void getNewEdges(std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum>>& outEdges, \
                                              Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block * currBlk, \
