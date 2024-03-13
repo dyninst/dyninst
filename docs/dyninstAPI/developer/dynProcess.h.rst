@@ -229,12 +229,12 @@ is inserted.
   .. cpp:function:: std::vector<func_instance *> pcsToFuncs(std::vector<Frame> stackWalk)
   .. cpp:function:: virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, func_instance *&target_pdf, Address base_addr)
 
-    architecture-specific. Only implemented on x86
-
-    Checks if the runtime linker has bound the function symbol corresponding to the
+    Architecture-specific check if the runtime linker has bound the function symbol corresponding to the
     relocation entry in at the address specified by entry and base_addr.
 
     If it has been bound, then the callee function is returned in "target_pdf", else it returns false.
+
+    .. warning:: Only implemented on x86
 
   ......
 
@@ -246,7 +246,12 @@ is inserted.
   .. cpp:function:: virtual Architecture getArch() const
   .. cpp:function:: virtual bool multithread_capable(bool ignoreIfMtNotSet = false)
 
-    platform-specific
+    If true is passed for ignore_if_mt_not_set, then an error won't be initiated if we're unable to
+    determine if the program is multi-threaded. We are unable to determine this if the daemon hasn't yet
+    figured out what libraries are linked against the application. Currently, we identify an
+    application as being multi-threaded if it is linked against a thread library (eg. libpthreads.so on
+    Linux). There are cases where we are querying whether the app is multi-threaded, but it can't be
+    determined yet but it also isn't necessary to know.
 
   .. cpp:function:: virtual bool multithread_ready(bool ignoreIfMtNotSet = false)
   .. cpp:function:: virtual bool needsPIC()
@@ -630,7 +635,15 @@ is inserted.
 
   .. cpp:member:: private PCProcess *proc_
   .. cpp:function:: StackwalkInstrumentationHelper(PCProcess *pc)
-  .. cpp:function:: virtual bool isInstrumentation(Dyninst::Address ra, Dyninst::Address *orig_ra, unsigned *stack_height, bool *aligned, bool *entryExit)
+  .. cpp:function:: virtual bool isInstrumentation(Dyninst::Address ra, Dyninst::Address *orig_ra, unsigned *stack_height,\
+                                                   bool *aligned, bool *entryExit)
+
+    Checks if code at address ``ra`` is instrumentation.
+
+    If in frameless instrumentation, ``orig_ra`` will contain the original address of the instruction
+    or ``0``. The height of the stack is returned in ``stack_height``. ``entryExit`` will be set to
+    ``true`` if this frame is entry/exit instrumentation.
+
   .. cpp:function:: virtual ~StackwalkInstrumentationHelper()
 
 .. cpp:class:: DynFrameHelper : public Dyninst::Stackwalker::FrameFuncHelper

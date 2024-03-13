@@ -99,3 +99,7 @@ unix.h
   #define PAGE_EXECUTE_READ (PAGE_READ | PAGE_EXECUTE)
   #define PAGE_EXECUTE_READWRITE (PAGE_READ | PAGE_EXECUTE | PAGE_WRITE)
 
+
+.. cpp:function:: static void findThreadFuncs(PCProcess *p, std::string func, std::vector<func_instance *> &result)
+
+  Searches for function in order, with preference given first to libpthread, then to libc, then to the process.
