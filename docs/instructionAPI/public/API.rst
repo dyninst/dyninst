@@ -13,6 +13,7 @@ InstructionAPI
   Dereference.h
   Expression.h
   Immediate.h
+  interrupts.h
   InstructionAST.h
   InstructionCategories.h
   InstructionDecoder.h

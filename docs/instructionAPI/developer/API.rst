@@ -14,6 +14,7 @@ InstructionAPI
   InstructionDecoderImpl.h
   InstructionDecoder-power.h
   InstructionDecoder-x86.h
+  interrupts.h
   Register.h
   AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
   AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
