@@ -17,6 +17,9 @@ needs internal information about CFG objects.
 
       Redirect the target of an existing edge.
 
+      If target is NULL, user is requesting a redirect to the sink block (create edge only if source block
+      doesn't have a sink edge of the same type already).
+
   .. cpp:function:: static Block *split(Block *, Address, bool trust = false, Address newlast = -1)
 
       Split a block at a provided point. we double-check whether the address
