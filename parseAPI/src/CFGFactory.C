@@ -67,12 +67,6 @@ std::string ParseAPI::format(EdgeTypeEnum e) {
    }
 }
 
-/** The default CFG object factory. Alternative
-    implementations might alllocate objects that
-    override the default CFG interfaces, or might
-    use pooled allocators, etc.
- */
-
 Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
 : _source(source),
   _target(target),
@@ -96,7 +90,6 @@ CFGFactory::~CFGFactory()
   }
 }
 
-// ParseAPI call...
 Function *
 CFGFactory::_mkfunc(Address addr, FuncSource src, string name, 
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
@@ -108,7 +101,6 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
    return ret;
 }
 
-// And user-overriden create
 Function *
 CFGFactory::mkfunc(Address addr, FuncSource, string name, 
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
