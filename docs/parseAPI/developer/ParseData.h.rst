@@ -108,7 +108,7 @@ ParseData.h
   .. cpp:function:: virtual void setFrameStatus(CodeRegion*,Address,ParseFrame::Status) = 0
   .. cpp:function:: virtual ParseFrame* createAndRecordFrame(Function*) = 0
 
-      0Atomically lookup whether there is a frame for a Function object.
+      Atomically lookup whether there is a frame for a Function object.
       If there is no frame for the Function, create a new frame and record it.
       Return NULL if a frame already exists;
       Return the pointer to the new frame if a new frame is created
