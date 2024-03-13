@@ -110,7 +110,7 @@ set(_private_headers
 
 set(_sources
     src/addressSpace.C
-    src/ast.C
+    # src/ast.C
     src/baseTramp.C
     src/binaryEdit.C
     src/block.C
@@ -215,6 +215,9 @@ if(DYNINST_ARCH_amdgpu)
   list(
     APPEND
     _sources
+
+    src/ast-amdgpu.C
+
     src/inst-amdgpu.C
     src/emit-amdgpu.C
     src/codegen-amdgpu.C
@@ -230,6 +233,9 @@ else if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
+
+    src/ast.C
+
     src/RegisterConversion-x86.C
     src/Relocation/Widgets/CFWidget-x86.C
     src/Relocation/Widgets/PCWidget-x86.C
@@ -244,6 +250,9 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND
     _sources
+
+    src/ast.C
+
     src/inst-power.C
     src/codegen-power.C
     src/parse-power.C
@@ -255,6 +264,9 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
     _sources
+
+    src/ast.C
+
     src/inst-aarch64.C
     src/emit-aarch64.C
     src/codegen-aarch64.C
