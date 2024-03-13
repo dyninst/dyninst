@@ -164,7 +164,6 @@ CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
     return parser->findBlocks(cr,addr,blocks);
 }
 
-// find without parsing.
 int CodeObject::findCurrentBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
     assert(parser);
@@ -254,10 +253,6 @@ CodeObject::finalize() {
     parser->finalize();
 }
 
-// Call this function on the CodeObject corresponding to the targets,
-// not the sources, if the edges are inter-module ones
-// 
-// create work elements and pass them to the parser
 bool 
 CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
 {
@@ -369,7 +364,6 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
     return true;
 }
 
-// set things up to pass through to IA_IAPI
 bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
 {
    // find region
