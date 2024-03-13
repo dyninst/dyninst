@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Public Interface */
 
 #include "AddrSpace.h"
 #include "PatchObject.h"
@@ -37,9 +36,6 @@ using namespace std;
 using Dyninst::PatchAPI::AddrSpace;
 using Dyninst::PatchAPI::PatchObject;
 using Dyninst::PatchAPI::PatchMgr;
-
-
-/* Use an PatchObject (a.out) to initialize the AddrSpace */
 
 bool
 AddrSpace::init(PatchObject* obj) {
