@@ -750,7 +750,8 @@ void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive
     parse_frames(work, recursive);
 }
 
-void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {// If we've reached a fixedpoint and have remaining frames, we must
+void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {
+    // If we've reached a fixedpoint and have remaining frames, we must
     // have a cyclic dependency
     vector<Function *> updated;
 
@@ -823,16 +824,6 @@ void Parser::cleanup_frames()  {
     frames.clear();
 }
 
-/* Finalizing all functions for consumption:
-
-   - Finish delayed parsing
-   - Prepare and record FuncExtents for range-based lookup
-   */
-
-// This function returns false if it flips tail call determination of an edge,
-// and thus needs to re-finalize the function boundary.
-//
-// Returns true if it is done and finalized the function
     bool
 Parser::finalize(Function *f)
 {
@@ -1075,15 +1066,6 @@ Parser::finalize()
     }
 }
 
-/* The goal of finalizing jump tables is to remove bogus control flow
- * edges caused by over-approximating jump table size. During jump table
- * analysis, we do not use any information about other jump tables.
- *
- * Here, we know all the jump table starts and we assume that "no jump 
- * tables share any entries". Therefore, if a jump table overruns into
- * another jump table, we trim the overrun entries.
- */
-
     void
 Parser::finalize_jump_tables()
 {
@@ -1165,9 +1147,6 @@ Parser::finalize_jump_tables()
     }
 }
 
-/* Removed indirect jump edges may lead to other 
- * blocks and edges that should be removed
- */
     void
 Parser::delete_bogus_blocks(Edge* e)
 {
@@ -1221,14 +1200,6 @@ Parser::finalize_funcs(dyn_c_vector<Function *> &funcs)
         f->finalize();
     }
 }
-
-/* This function should be run only with a single thread.
- *
- * If range data is changed to use a concurrent data structure
- * that supports concurrent writes.
- *
- * Finalizing ranges should then be moved back to normal finalization
- */
 
     void
 Parser::finalize_ranges()
@@ -1985,11 +1956,6 @@ Parser::record_block(Block *b)
     return _parse_data->record_block(b->region(),b);
 }
 
-
-// block_at should only be called when
-// we know the we want to create a block within the function.
-// So, we should not call this function to create the entry block
-// of a callee function.
     Block *
 Parser::block_at(ParseFrame &frame,
         Function * owner,
@@ -2224,7 +2190,6 @@ Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
     return _parse_data->findBlocks(r,addr,blocks);
 }
 
-// find blocks without parsing.
 int Parser::findCurrentBlocks(CodeRegion* cr, Address addr,
         std::set<Block*>& blocks) {
     return _parse_data->findBlocks(cr, addr, blocks);
@@ -2233,13 +2198,6 @@ int Parser::findCurrentBlocks(CodeRegion* cr, Address addr,
 int Parser::findCurrentFuncs(CodeRegion * cr, Address addr, std::set<Function*> &funcs) {
     return _parse_data->findFuncs(cr, addr, funcs);
 }
-
-/* This function creates an edge by specifying
- * the source address. This function will look
- * up the source address in the block end map.
- * So, any function that calls this function should
- * not acquire an accessor to the source address
- */
 
     ParseAPI::Edge*
 Parser::link_addr(Address src_addr, Block *dst, EdgeTypeEnum et, bool sink, Function * func)
@@ -2251,14 +2209,6 @@ Parser::link_addr(Address src_addr, Block *dst, EdgeTypeEnum et, bool sink, Func
     return link_block(src, dst, et, sink);
 }
 
-/* This function creates an edge by specifying
- * the source Block. Any function that calls this 
- * function should first acquire an accessor to 
- * the source address and lookup the block object.
- * 
- * Otherwise, the source block may be split and cause
- * wrong edges.
- */
     ParseAPI::Edge*
 Parser::link_block(Block* src, Block *dst, EdgeTypeEnum et, bool sink)
 {
@@ -2275,20 +2225,6 @@ Parser::link_block(Block* src, Block *dst, EdgeTypeEnum et, bool sink)
 }
 
 
-/* 
- * During parsing, all edges are temporarily linked to the _tempsink
- * block. Adding and then removing edges to and from this block is
- * wasteful, especially given that removal is an O(N) operation with
- * vector storage. This call thus does not record edges into the sink.
- * These edges are guaranteed to have been relinked when parsing is
- * in state COMPLETE.
- *
- * NB This introduces an inconsistency into the CFG invariant that all
- *    targets of an edge have that edge in their source list if the
- *    data structures are queried during parsing. Extenders of 
- *    parsing callbacks are the only ones who can see this state;
- *    they have been warned and should know better.
- */
     ParseAPI::Edge*
 Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
@@ -2406,7 +2342,7 @@ void Parser::invalidateContainingFuncs(Function *owner, Block *b)
     }
 }
 
-/* Add ParseFrames waiting on func back to the work queue */
+
 void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
 {
     // If we do not know the function's return status, don't put its waiters back on the worklist
