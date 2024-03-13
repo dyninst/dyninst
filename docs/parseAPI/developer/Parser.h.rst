@@ -114,6 +114,40 @@ Parser.h
   .. cpp:function:: private void parse_vanilla()
   .. cpp:function:: private void cleanup_frames()
   .. cpp:function:: private void parse_gap_heuristic(CodeRegion *cr)
+
+    Uses platform-specific function preamble patterns to scan between known functions within a code
+    region. A typical stripped ELF binary might look something like this:
+
+  .. code::
+  
+          _______     <-- .text begin
+       |       |
+       |-------|
+       |       |
+       |  PLT  |
+       |       |
+       |-------| 
+       |       |    <-- gap
+       |-------|
+       | code  |
+       |       |
+       |-------|
+       |       |    <-- gap
+       |-------|
+       .       .
+       . code  .
+       .       .
+       |       |
+       |-------|
+       |       |    <-- gap
+       |       |
+       |-------|    <-- .text end
+       |       |
+       .       .
+       .       .
+  
+  This function looks for functions in the ``gap`` subregions.
+
   .. cpp:function:: private bool getGapRange(CodeRegion *, Address, Address &, Address &)
   .. cpp:function:: private void probabilistic_gap_parsing(CodeRegion *cr)
   .. cpp:function:: private ParseFrame::Status frame_status(CodeRegion *cr, Address addr)
