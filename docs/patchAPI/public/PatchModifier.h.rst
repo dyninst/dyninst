@@ -16,6 +16,8 @@ PatchModifier.h
 
       Set the target of the existing edge, ``edge``, to ``target``.
 
+      If target is ``NULL``, user is requesting a redirect to the sink block.
+
   .. cpp:function:: static PatchBlock* split(PatchBlock* b, Address addr, bool trust = false, Address newlast = (Address)-1)
 
       Splits the block ``b``, creating a new block starting at ``addr``.
