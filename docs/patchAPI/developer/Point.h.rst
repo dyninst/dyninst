@@ -8,7 +8,14 @@ Point.h
 .. cpp:class:: Point
 
   .. cpp:function:: protected bool destroy()
+
+    1. Clear all snippet instances
+    2. Detach from PatchMgr object
+
   .. cpp:function:: protected void initCodeStructure()
+
+    Associate this point with the block(s) and function(s) that contain it
+
   .. cpp:function:: protected void changeBlock(PatchBlock *newBlock)
 
   .. cpp:member:: protected InstanceList instanceList_

@@ -72,7 +72,6 @@ Instance::destroy() {
   return false;
 }
 
-/* If the Point is PreCall or PostCall */
 PatchFunction*
 Point::getCallee() {
   if (type() != PreCall && type() != PostCall) return NULL;
@@ -89,8 +88,6 @@ Point::getCallee() {
   return NULL;
 }
 
-/* Associate this point with the block(s) and function(s)
-   that contain it */
 void
 Point::initCodeStructure() {
   assert(mgr_);
@@ -111,41 +108,34 @@ PatchObject *Point::obj() const {
    return NULL;
 }
 
-/* for single instruction */
 Point::Point(Point::Type type, PatchMgrPtr mgr, PatchBlock *b, Dyninst::Address a, InstructionAPI::Instruction i, PatchFunction *f)
    :addr_(a), type_(type), mgr_(mgr), the_block_(b), the_edge_(NULL), the_func_(f), insn_(i) {
 
   initCodeStructure();
 }
 
-/* for a block */
 Point::Point(Type type, PatchMgrPtr mgr, PatchBlock* blk, PatchFunction *f)
   : addr_(0), type_(type), mgr_(mgr), the_block_(blk), the_edge_(NULL), the_func_(f) {
   initCodeStructure();
 }
 
-/* for an edge */
 Point::Point(Type type, PatchMgrPtr mgr, PatchEdge* edge, PatchFunction *f)
   : addr_(0), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(edge), the_func_(f) {
   initCodeStructure();
 }
 
-/* for a function */
 Point::Point(Type type, PatchMgrPtr mgr, PatchFunction* func) : 
    addr_(0), type_(type), mgr_(mgr),
    the_block_(NULL), the_edge_(NULL), the_func_(func) {
   initCodeStructure();
 }
 
-/* for a call or exit site */
 Point::Point(Type type, PatchMgrPtr mgr, PatchFunction* func, PatchBlock *b) : 
    addr_(0), type_(type), mgr_(mgr),
    the_block_(b), the_edge_(NULL), the_func_(func) {
   initCodeStructure();
 }
 
-
-/* old_instance, old_instance, <---new_instance */
 InstancePtr
 Point::pushBack(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
@@ -155,7 +145,6 @@ Point::pushBack(SnippetPtr snippet) {
   return instance;
 }
 
-/* new_instance--->, old_instance, old_instance */
 InstancePtr
 Point::pushFront(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
@@ -165,14 +154,12 @@ Point::pushFront(SnippetPtr snippet) {
   return instance;
 }
 
-/* Test whether the type contains a specific type. */
 bool
 Point::TestType(Point::Type types, Point::Type trg) {
   if (types & trg) return true;
   return false;
 }
 
-/* Add a specific type to a set of types */
 void
 Point::AddType(Point::Type& types, Point::Type trg) {
   int trg_int = static_cast<int>(trg);
@@ -181,7 +168,6 @@ Point::AddType(Point::Type& types, Point::Type trg) {
   types = (Point::Type)type_int;
 }
 
-/* Remove a specific type from a set of types */
 void
 Point::RemoveType(Point::Type& types, Point::Type trg) {
   int trg_int = static_cast<int>(trg);
@@ -216,8 +202,6 @@ Point::clear() {
   }
 }
 
-/* 1, Clear all snippet instances
-   2, Detach from PatchMgr object */
 bool
 Point::destroy() {
   clear();
