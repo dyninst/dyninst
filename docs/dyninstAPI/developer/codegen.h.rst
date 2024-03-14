@@ -222,3 +222,17 @@ codegen.h
   .. cpp:enumerator:: cgNOP
   .. cpp:enumerator:: cgTrap
   .. cpp:enumerator:: cgIllegal
+
+
+Notes
+*****
+
+On PowerPC, user code can use up to 288 bytes under the stack pointer;
+we skip past this so that we don't mess things up. System code can further
+use 224 bytes more under the stack pointer. To be safe, we move down the
+stack pointer by 512 bytes.
+
+.. code:: c
+
+  #define STACKSKIP 512
+
