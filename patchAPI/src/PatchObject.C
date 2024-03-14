@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Plugin */
 
 #include "PatchObject.h"
 #include "PatchCFG.h"
@@ -176,7 +175,6 @@ PatchObject::removeFunc(ParseAPI::Function* f) {
    funcs_.erase(iter);
 }
 
-// SLOW AS HECK
 void PatchObject::createBlocks() {
    createFuncs();
    for (auto iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
