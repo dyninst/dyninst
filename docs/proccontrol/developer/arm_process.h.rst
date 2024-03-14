@@ -29,10 +29,45 @@ arm_process.h
   .. cpp:function:: arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)
   .. cpp:function:: virtual ~arm_thread()
   .. cpp:function:: virtual bool rmHWBreakpoint(hw_breakpoint *bp, bool suspend, std::set<response::ptr> &resps, bool &done)
+
+    .. warning:: Not implemented
+
   .. cpp:function:: virtual bool addHWBreakpoint(hw_breakpoint *bp, bool resume, std::set<response::ptr> &resps, bool &done)
+
+    .. warning:: Not implemented
+
   .. cpp:function:: virtual unsigned hwBPAvail(unsigned mode)
-  .. cpp:function:: virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp, bool have_reg = false, Dyninst::MachRegisterVal regval = 0)
+
+    .. warning:: Not implemented
+
+  .. cpp:function:: virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp, bool have_reg = false,\
+                                                                    Dyninst::MachRegisterVal regval = 0)
+
+    .. warning:: Not implemented
+
   .. cpp:function:: virtual bool bpNeedsClear(hw_breakpoint *hwbp)
   .. cpp:function:: void setCachedPC(Address pc)
   .. cpp:function:: void clearCachedPC()
   .. cpp:function:: bool haveCachedPC(Address &pc)
+
+
+......
+
+.. rubric::
+  The following a few of functions are used for emulated singlestep. The scenario
+  is quite similiar to what happens on PPC.
+
+.. code::
+
+  ----
+  ldaxr
+  ...
+  stxr
+  ----
+
+.. cpp:function:: static bool atomicLoad(const instruction &insn)
+
+  Checks ``insn`` is exclusive load/store.
+
+.. cpp:function:: static bool atomicStore(const instruction &insn)
+.. cpp:function:: static void clear_ss_state_cb(int_thread *thr)
