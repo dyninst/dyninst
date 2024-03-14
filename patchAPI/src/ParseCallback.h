@@ -57,7 +57,6 @@ class PatchParseCallback : public ParseAPI::ParseCallback {
    virtual void remove_block_cb(ParseAPI::Function *, ParseAPI::Block *);
    virtual void add_block_cb(ParseAPI::Function *, ParseAPI::Block *);
 
-  // returns the load address of the code object containing an absolute address
   virtual bool absAddr(Address absolute, 
                        Address & loadAddr, 
                        ParseAPI::CodeObject *& containerObject);

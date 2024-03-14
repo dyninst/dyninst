@@ -22,7 +22,14 @@ ParseCallback.h
   .. cpp:function:: protected virtual void add_edge_cb(ParseAPI::Block*, ParseAPI::Edge*, edge_type_t)
   .. cpp:function:: protected virtual void remove_block_cb(ParseAPI::Function*, ParseAPI::Block*)
   .. cpp:function:: protected virtual void add_block_cb(ParseAPI::Function*, ParseAPI::Block*)
+
+    Adds blocks lazily, basically does nothing unless block and function have already been created, in
+    which case it adds the block to the function.
+
   .. cpp:function:: protected virtual bool absAddr(Address absolute, Address& loadAddr, ParseAPI::CodeObject*& containerObject)
+
+    Returns the load address of the code object containing an absolute address.
+
 
 Notes
 =====
