@@ -38,14 +38,23 @@ PatchCFG.h
   .. cpp:function:: protected void removeBlock(PatchBlock *)
   .. cpp:function:: protected void addBlock(PatchBlock *)
   .. cpp:function:: protected void splitBlock(PatchBlock *first, PatchBlock *second)
+
+    The "first" block should already be in the function.
+
   .. cpp:function:: protected void destroyPoints()
 
     Destroy points for this block and then each containing function's context specific points for the
     block.
 
   .. cpp:function:: protected void destroyBlockPoints(PatchBlock *block)
+
+    Removes block points from ``points_`` and ``blockPoints_``.
+
   .. cpp:function:: protected void invalidateBlocks()
   .. cpp:function:: protected void getLoopsByNestingLevel(vector<PatchLoop*>& lbb, bool outerMostOnly)
+
+    Returns the loop objects that exist in the control flow graph.
+
   .. cpp:function:: protected void createLoops()
   .. cpp:function:: protected void createLoopHierarchy()
   .. cpp:function:: protected void fillDominatorInfo()
