@@ -88,7 +88,6 @@ class PC_EXPORT Generator
    virtual state_t getState();
 
  protected:
-   //Event handling
    static std::map<Dyninst::PID, Process *> procs;
    typedef std::set<Decoder *, decoder_cmp> decoder_set_t;
    decoder_set_t decoders;
@@ -97,7 +96,6 @@ class PC_EXPORT Generator
    virtual ArchEvent* getCachedEvent();
    virtual void setCachedEvent(ArchEvent* ae);
 
-   //Misc
    virtual bool hasLiveProc();
    std::string name;
    Generator(std::string name_);
@@ -107,19 +105,15 @@ class PC_EXPORT Generator
    static std::set<gen_cb_func_t> CBs;
    static Mutex<> *cb_lock;
 
-   //Public interface
-   //  Implemented by architectures
    virtual bool initialize() = 0;
    virtual bool canFastHandle() = 0;
    virtual ArchEvent *getEvent(bool block) = 0;
    virtual bool plat_skipGeneratorBlock();
-   //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
 
    virtual bool plat_continue(ArchEvent* /*evt*/) { return true; }
    virtual void wake(Dyninst::PID/* proc */, long long /* sequence */) {}
 
-   //  Optional interface for systems that want to return multiple events
    virtual bool getMultiEvent(bool block, std::vector<ArchEvent *> &events);
 
   private:
@@ -136,8 +130,8 @@ protected:
 	void unlock();
 
  public:
-   void launch(); //Launch thread
-   void start(); //Startup function for new thread
+   void launch();
+   void start();
    virtual void plat_start() {}
    virtual bool plat_continue(ArchEvent* /*evt*/) { return true;}
    GeneratorMTInternals *getInternals();
