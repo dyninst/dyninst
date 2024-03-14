@@ -39,6 +39,10 @@ PatchCFG.h
   .. cpp:function:: protected void addBlock(PatchBlock *)
   .. cpp:function:: protected void splitBlock(PatchBlock *first, PatchBlock *second)
   .. cpp:function:: protected void destroyPoints()
+
+    Destroy points for this block and then each containing function's context specific points for the
+    block.
+
   .. cpp:function:: protected void destroyBlockPoints(PatchBlock *block)
   .. cpp:function:: protected void invalidateBlocks()
   .. cpp:function:: protected void getLoopsByNestingLevel(vector<PatchLoop*>& lbb, bool outerMostOnly)
