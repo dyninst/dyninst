@@ -88,8 +88,6 @@ bool BatchCommand::undo() {
   return true;
 }
 
-/* Public Interface: Patcher, which accepts instrumentation requests from users. */
-
 bool Patcher::run() {
 
   // We implicitly add the instrumentation engine
@@ -115,9 +113,6 @@ bool Patcher::run() {
   return true;
 }
 
-/* Public Interface: Insert Snippet by pushing the the front of
-   snippet instance list */
-
 bool PushFrontCommand::run() {
   instance_ = pt_->pushFront(snip_);
   return true;
@@ -126,9 +121,6 @@ bool PushFrontCommand::run() {
 bool PushFrontCommand::undo() {
   return pt_->remove(instance_);
 }
-
-/* Public Interface: Insert Snippet by pushing the the end of
-   snippet instance list */
 
 bool PushBackCommand::run() {
   instance_ = pt_->pushBack(snip_);
@@ -139,8 +131,6 @@ bool PushBackCommand::undo() {
   return pt_->remove(instance_);
 }
 
-/* Public Interface: Remove Snippet */
-
 bool RemoveSnippetCommand::run() {
   return instance_->destroy();
 }
@@ -150,18 +140,13 @@ bool RemoveSnippetCommand::undo() {
   return true;
 }
 
-/* Public Interface: Remove Function Call */
-
 bool RemoveCallCommand::run() {
   return mgr_->instrumenter()->removeCall(call_block_, context_);
 }
 
-
 bool RemoveCallCommand::undo() {
   return mgr_->instrumenter()->revertModifiedCall(call_block_, context_);
 }
-
-/* Public Interface: Replace Function Call */
 
 bool ReplaceCallCommand::run() {
   return mgr_->instrumenter()->modifyCall(call_block_, new_callee_, context_);
@@ -170,8 +155,6 @@ bool ReplaceCallCommand::run() {
 bool ReplaceCallCommand::undo() {
   return mgr_->instrumenter()->revertModifiedCall(call_block_, context_);
 }
-
-/* Public Interface: Replace Function */
 
 bool ReplaceFuncCommand::run() {
   return mgr_->instrumenter()->replaceFunction(old_func_, new_func_);
