@@ -299,84 +299,81 @@ void ABI::initialize32(){
 #endif
 }
 void ABI::initialize64(){
+  idef defs;
 
-    returnRegs64_ = new bitArray(machRegIndex_x86_64().size());
-    (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
+  auto &reg_index = machRegIndex_x86_64();
+  auto const num_bits = reg_index.size();
 
-    callParam64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
+  defs.params.resize(num_bits);
+  defs.returnValues.resize(num_bits);
+  defs.calleeSaved.resize(num_bits);
+  defs.global.resize(num_bits);
 
-    returnRead64_ = new bitArray(machRegIndex_x86_64().size());
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true; //Not correct, temporary
-    // Returns also "read" any callee-saved registers
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rbx]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r12]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r13]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r14]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r15]] = true;
+  defs.returnValues[reg_index[x86_64::rax]] = true;
+  defs.returnValues[reg_index[x86_64::rdx]] = true;
+  defs.returnValues[reg_index[x86_64::xmm0]] = true;
+  defs.returnValues[reg_index[x86_64::xmm1]] = true;
 
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
+  defs.params[reg_index[x86_64::rdi]] = true;
+  defs.params[reg_index[x86_64::rsi]] = true;
+  defs.params[reg_index[x86_64::rdx]] = true;
+  defs.params[reg_index[x86_64::rcx]] = true;
+  defs.params[reg_index[x86_64::r8]] = true;
+  defs.params[reg_index[x86_64::r9]] = true;
+  defs.params[reg_index[x86_64::xmm0]] = true;
+  defs.params[reg_index[x86_64::xmm1]] = true;
+  defs.params[reg_index[x86_64::xmm2]] = true;
+  defs.params[reg_index[x86_64::xmm3]] = true;
+  defs.params[reg_index[x86_64::xmm4]] = true;
+  defs.params[reg_index[x86_64::xmm5]] = true;
+  defs.params[reg_index[x86_64::xmm6]] = true;
+  defs.params[reg_index[x86_64::xmm7]] = true;
 
+  defs.calleeSaved[reg_index[x86_64::rbx]] = true;
+  defs.calleeSaved[reg_index[x86_64::rdx]] = true;
+  defs.calleeSaved[reg_index[x86_64::r12]] = true;
+  defs.calleeSaved[reg_index[x86_64::r13]] = true;
+  defs.calleeSaved[reg_index[x86_64::r14]] = true;
+  defs.calleeSaved[reg_index[x86_64::r15]] = true;
 
-    callRead64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
+  // Assume calls write flags
+  defs.global[reg_index[x86_64::of]] = true;
+  defs.global[reg_index[x86_64::sf]] = true;
+  defs.global[reg_index[x86_64::zf]] = true;
+  defs.global[reg_index[x86_64::af]] = true;
+  defs.global[reg_index[x86_64::pf]] = true;
+  defs.global[reg_index[x86_64::cf]] = true;
+  defs.global[reg_index[x86_64::tf]] = true;
+  defs.global[reg_index[x86_64::if_]] = true;
+  defs.global[reg_index[x86_64::df]] = true;
+  defs.global[reg_index[x86_64::nt_]] = true;
+  defs.global[reg_index[x86_64::rf]] = true;
 
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm2]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm3]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm4]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm5]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm6]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm7]] = true;
+  arch64.all.resize(num_bits);
+  arch64.all.set();
 
-    // Anything in those four is not preserved across a call...
-    // So we copy this as a shorthand then augment it
-    callWritten64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callWritten64_) = (*callRead64_);
+  arch64.params = defs.params;
 
-    // As well as RAX, R10, R11
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::r10]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::r11]] = true;
-    // And flags
+  arch64.returnValues = defs.returnValues;
 
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::of]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::sf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::zf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::af]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::pf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::cf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::tf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::if_]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::df]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::nt_]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::rf]] = true;
+  arch64.callRead = defs.params | defs.global;
+  arch64.callRead[reg_index[x86_64::rax]] = true;
 
+  arch64.callWritten = ~defs.calleeSaved | defs.global;
+  arch64.callWritten[reg_index[x86_64::rax]] = true;
+  arch64.callWritten[reg_index[x86_64::r10]] = true;
+  arch64.callWritten[reg_index[x86_64::r11]] = true;
 
-    // And assume a syscall reads or writes _everything_
-    syscallRead64_ = new bitArray(machRegIndex_x86_64().size());
-    syscallRead64_->set();
-    syscallWritten64_ = new bitArray(machRegIndex_x86_64().size());
-    syscallWritten64_ = syscallRead64_;
+  arch64.returnRead = defs.returnValues | defs.calleeSaved | defs.global;
+  arch64.returnRead[reg_index[x86_64::rax]] = true;
+  arch64.returnRead[reg_index[x86_64::rcx]] = true; //Not correct, temporary
 
-    allRegs64_ = new bitArray(machRegIndex_x86_64().size());
-    allRegs64_->set();
+  // And assume a syscall reads or writes _everything_
+  arch64.syscallRead.resize(num_bits);
+  arch64.syscallRead.set();
+
+  arch64.syscallWritten.resize(num_bits);
+  arch64.syscallWritten.set();
 }
 
 #endif
