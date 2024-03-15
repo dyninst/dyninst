@@ -176,6 +176,9 @@ int_handler.h
 
 .. cpp:class:: HandleBreakpoint : public Handler
 
+  This handler is triggered when a breakpoint is first hit (e.g., on the SIGTRAP signal).
+  It's main purpose is to prepare the thread state before the user callback.
+
   .. cpp:function:: HandleBreakpoint()
   .. cpp:function:: virtual ~HandleBreakpoint()
   .. cpp:function:: virtual void getEventTypesHandled(std::vector<EventType> &etypes)
@@ -197,6 +200,8 @@ int_handler.h
   .. cpp:function:: virtual ~HandleBreakpointClear()
   .. cpp:function:: virtual void getEventTypesHandled(std::vector<EventType> &etypes)
   .. cpp:function:: virtual handler_ret_t handleEvent(Event::ptr ev)
+
+    The handler triggers when a thread stopped on a breakpoint is continued.
 
 
 .. cpp:class:: HandleBreakpointRestore : public Handler
