@@ -49,23 +49,29 @@
 using namespace Dyninst;
 using namespace DataflowAPI;
 
-dyn_tls bitArray* ABI::callRead_ = NULL;
-dyn_tls bitArray* ABI::callWritten_ = NULL;
-dyn_tls bitArray* ABI::returnRead_ = NULL;
-dyn_tls bitArray* ABI::returnRegs_ = NULL;
-dyn_tls bitArray* ABI::callParam_ = NULL;
-dyn_tls bitArray* ABI::syscallRead_ = NULL;
-dyn_tls bitArray* ABI::syscallWritten_ = NULL;
+// interface definition
+struct idef {
+  bitArray params;        // registers used to pass parameters to a function
+  bitArray returnValues;  // registers used to return parameters from a function
+  bitArray calleeSaved;   // registers whose value is preserved on function return
+  bitArray global;        // registers that act as global variable by the ABI/runtime system
+                          //  that are possibly read & written in the function and are valid after
+                          //  a function such as `%rsp`, `%rip` and `%fs`.
+};
 
-dyn_tls bitArray* ABI::callRead64_ = NULL;
-dyn_tls bitArray* ABI::callWritten64_ = NULL;
-dyn_tls bitArray* ABI::returnRead64_ = NULL;
-dyn_tls bitArray* ABI::returnRegs64_ = NULL;
-dyn_tls bitArray* ABI::callParam64_ = NULL;
-dyn_tls bitArray* ABI::syscallRead64_ = NULL;
-dyn_tls bitArray* ABI::syscallWritten64_ = NULL;
-dyn_tls bitArray* ABI::allRegs_ = NULL;
-dyn_tls bitArray* ABI::allRegs64_ = NULL;
+struct liveness_t {
+  bitArray callRead;        // Registers that may contain meaningful values to the function
+  bitArray callWritten;     // Registers a function may overwrite
+  bitArray returnRead;      // Registers that may have a meaningful value after a function returns
+  bitArray returnValues;    // The same as idef::returnValues
+  bitArray params;          // The same as idef::params
+  bitArray syscallRead;     // Registers that may contain meaningful values to the syscall handler or OS
+  bitArray syscallWritten;  // Registers the syscall handler or OS may overwrite
+  bitArray all;             // All registers
+};
+
+dyn_tls liveness_t arch32, arch64;
+
 dyn_tls ABI* ABI::globalABI_ = NULL;
 dyn_tls ABI* ABI::globalABI64_ = NULL;
 
@@ -120,94 +126,95 @@ ABI* ABI::getABI(int addr_width){
 
 const bitArray &ABI::getCallReadRegisters() const {
     if (addr_width == 4)
-        return *callRead_;
+        return arch32.callRead;
     else if (addr_width == 8)
-        return *callRead64_;
+        return arch64.callRead;
     else {
         assert(0);
-        return *callRead_;
+        return arch32.callRead;
     }
 }
 const bitArray &ABI::getCallWrittenRegisters() const {
     if (addr_width == 4)
-        return *callWritten_;
+        return arch32.callWritten;
     else if (addr_width == 8)
-        return *callWritten64_;
+        return arch64.callWritten;
     else {
         assert(0);
-        return *callWritten_;
+        return arch32.callWritten;
     }
 }
 
 const bitArray &ABI::getReturnReadRegisters() const {
     if (addr_width == 4)
-        return *returnRead_;
+        return arch32.returnRead;
     else if (addr_width == 8)
-        return *returnRead64_;
+        return arch64.returnRead;
     else {
         assert(0);
-        return *returnRead_;
+        return arch32.returnRead;
     }
 }
 
 const bitArray &ABI::getReturnRegisters() const {
     if (addr_width == 4)
-        return *returnRegs_;
+        return arch32.returnValues;
     else if (addr_width == 8)
-        return *returnRegs64_;
+        return arch64.returnValues;
     else {
         assert(0);
-        return *returnRegs_;
+        return arch32.returnValues;
     }
 }
 
 const bitArray &ABI::getParameterRegisters() const {
     if (addr_width == 4)
-        return *callParam_;
+        return arch32.params;
     else if (addr_width == 8)
-        return *callParam64_;
+        return arch64.params;
     else {
         assert(0);
-        return *callParam_;
+        return arch32.params;
     }
 }
 
 const bitArray &ABI::getSyscallReadRegisters() const {
     if (addr_width == 4)
-        return *syscallRead_;
+        return arch32.syscallRead;
     else if (addr_width == 8)
-        return *syscallRead64_;
+        return arch64.syscallRead;
     else {
         assert(0);
-        return *syscallRead_;
+        return arch32.syscallRead;
     }
 }
 const bitArray &ABI::getSyscallWrittenRegisters() const {
     if (addr_width == 4)
-        return *syscallWritten_;
+        return arch32.syscallWritten;
     else if (addr_width == 8)
-        return *syscallWritten64_;
+        return arch64.syscallWritten;
     else {
         assert(0);
-        return *syscallWritten_;
+        return arch32.syscallWritten;
     }
 }
 
 const bitArray &ABI::getAllRegs() const
 {
    if (addr_width == 4)
-      return *allRegs_;
+      return arch32.all;
    else if (addr_width == 8)
-      return *allRegs64_;
+      return arch64.all;
    else {
       assert(0);
-      return *allRegs_;
+      return arch32.all;
    }
 }
 
 bitArray ABI::getBitArray()  {
   return bitArray(index->size());
 }
+
 #if defined(arch_x86) || defined(arch_x86_64)
 void ABI::initialize32(){
 
