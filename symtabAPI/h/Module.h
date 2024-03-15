@@ -156,10 +156,10 @@ namespace Dyninst { namespace SymtabAPI {
     Dyninst::SymtabAPI::LineInformation *lineInfo_;
     typeCollection *typeInfo_;
 
-    std::string fileName_; // full path to file
+    std::string fileName_;
     std::string compDir_;
     supportedLanguages language_;
-    Offset addr_; // starting address of module
+    Offset addr_;
     Symtab *exec_;
     std::set<AddressRange> ranges;
     std::vector<ModRange *> finalizeRanges();

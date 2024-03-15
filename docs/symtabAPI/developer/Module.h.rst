@@ -13,13 +13,23 @@ Module.h
 
     Symtab object that contains the module.
 
-  .. cpp:function:: bool setDefaultNamespacePrefix(std::string str)
-  .. cpp:function:: typeCollection *getModuleTypesPrivate()
-  .. cpp:function:: void setModuleTypes(typeCollection *tc)
-  .. cpp:function:: bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo)
-  .. cpp:function:: void addRange(Dyninst::Address low, Dyninst::Address high)
-  .. cpp:function:: bool hasRanges() const
-  .. cpp:function:: StringTablePtr &getStrings()
+  .. cpp:member:: private bool objectLevelLineInfo
+  .. cpp:member:: private Dyninst::SymtabAPI::LineInformation *lineInfo_
+  .. cpp:member:: private typeCollection *typeInfo_
+  .. cpp:member:: private std::string fileName_
+
+    full path to file
+
+  .. cpp:member:: private std::string compDir_
+  .. cpp:member:: private supportedLanguages language_
+  .. cpp:member:: private Offset addr_
+
+    starting address of module
+
+  .. cpp:member:: private Symtab *exec_
+  .. cpp:member:: private std::set<AddressRange> ranges
+  .. cpp:function:: private std::vector<ModRange *> finalizeRanges()
+  .. cpp:member:: private StringTablePtr strings_
 
 
 Notes
