@@ -388,7 +388,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start);
 
-   // Used by binaryEdit.C...
  public:
 
 
@@ -397,9 +396,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Module *getOrCreateModule(const std::string &modName, const Offset modAddr);
    bool parseFunctionRanges();
 
-   //Only valid on ELF formats
    Offset getElfDynamicOffset();
-   // SymReader interface
    void getSegmentsSymReader(std::vector<SymSegment> &segs);
    void rebase(Offset offset);
 
@@ -443,7 +440,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    unsigned dataLen_{};
 
    bool is_a_out{false};
-   Offset main_call_addr_{}; // address of call to main()
+   Offset main_call_addr_{};
 
    unsigned address_width_{sizeof(int)};
    std::string interpreter_name_{};
@@ -454,31 +451,22 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool is_eel_{false};
    std::vector<Segment> segments_{};
 
-   //  make sure is_a_out is set before calling symbolsToFunctions
-
-   // A std::vector of all Symtabs. Used to avoid duplicating
-   // a Symtab that already exists.
    static std::vector<Symtab *> allSymtabs;
    std::string defaultNamespacePrefix{};
 
-   //sections
    unsigned no_of_sections{};
    std::vector<Region *> regions_{};
    std::vector<Region *> codeRegions_{};
    std::vector<Region *> dataRegions_{};
    dyn_hash_map <Offset, Region *> regionsByEntryAddr{};
 
-   //Point where new loadable sections will be inserted
    unsigned newSectionInsertPoint{};
 
-   //symbols
    unsigned no_of_symbols{};
    
-   // We also need per-Aggregate indices
    bool sorted_everyFunction{false};
    std::vector<Function *> everyFunction{};
 
-   // Similar for Variables
    std::vector<Variable *> everyVariable{};
 
    std::vector<relocationEntry > relocation_table_{};
@@ -486,14 +474,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    std::vector<std::string> deps_{};
 
-   // This set is used during static linking to satisfy dependencies
    std::vector<Archive *> linkingResources_{};
 
-   // This set represents Symtabs referenced by a new external Symbol
    bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
    std::set<Symtab *> explicitSymtabRefs_{};
 
-   //Relocation sections
    bool hasRel_{false};
    bool hasRela_{false};
    bool hasReldyn_{false};
@@ -504,7 +489,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isStaticBinary_{false};
    bool isDefensiveBinary_{false};
 
-   //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
    const Object *getObject() const;
@@ -514,7 +498,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
  private:
    Object *obj_private{};
 
-   // dynamic library name substitutions
    std::map <std::string, std::string> dynLibSubs{};
 
    public:

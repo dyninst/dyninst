@@ -12,6 +12,76 @@ Symtab.h
       This will be either the name from the MappedFile _or_ the name of the ".a" file when
       the Symtab is created during static re-writing (see :cpp:func:`Archive::parseMember`).
 
+  .. cpp:function:: private static boost::shared_ptr<typeCollection> setupStdTypes()
+  .. cpp:function:: private static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes()
+  .. cpp:member:: private dyn_rwlock symbols_rwlock
+  .. cpp:member:: private Offset member_offset_
+  .. cpp:member:: private Archive * parentArchive_
+  .. cpp:member:: private MappedFile *mf
+  .. cpp:member:: private Offset preferedBase_
+  .. cpp:member:: private Offset imageOffset_
+  .. cpp:member:: private unsigned imageLen_
+  .. cpp:member:: private Offset dataOffset_
+  .. cpp:member:: private unsigned dataLen_
+  .. cpp:member:: private bool is_a_outfalse
+  .. cpp:member:: private Offset main_call_addr_
+  .. cpp:member:: private unsigned address_width_
+  .. cpp:member:: private std::string interpreter_name_
+  .. cpp:member:: private Offset entry_address_
+  .. cpp:member:: private Offset base_address_
+  .. cpp:member:: private Offset load_address_
+  .. cpp:member:: private ObjectType object_type_obj_Unknown
+  .. cpp:member:: private bool is_eel_false
+  .. cpp:member:: private std::vector<Segment> segments_
+  .. cpp:member:: private static std::vector<Symtab *> allSymtabs
+  .. cpp:member:: private std::string defaultNamespacePrefix
+  .. cpp:member:: private unsigned no_of_sections
+  .. cpp:member:: private std::vector<Region *> regions_
+  .. cpp:member:: private std::vector<Region *> codeRegions_
+  .. cpp:member:: private std::vector<Region *> dataRegions_
+  .. cpp:member:: private dyn_hash_map <Offset, Region *> regionsByEntryAddr
+  .. cpp:member:: private unsigned newSectionInsertPoint
+
+    Point where new loadable sections will be inserted
+
+  .. cpp:member:: private unsigned no_of_symbols
+
+    symbols
+
+  .. cpp:member:: private bool sorted_everyFunctionfalse
+
+    We also need per-Aggregate indices
+
+  .. cpp:member:: private std::vector<Function *> everyFunction
+  .. cpp:member:: private std::vector<Variable *> everyVariable
+
+    Similar for Variables
+
+  .. cpp:member:: private std::vector<relocationEntry > relocation_table_
+  .. cpp:member:: private std::vector<ExceptionBlock *> excpBlocks
+  .. cpp:member:: private std::vector<std::string> deps_
+  .. cpp:member:: private std::vector<Archive *> linkingResources_
+
+    This set is used during static linking to satisfy dependencies
+
+  .. cpp:function:: private bool getExplicitSymtabRefs(std::set<Symtab *> &refs)
+
+    This set represents Symtabs referenced by a new external Symbol
+
+  .. cpp:member:: private std::set<Symtab *> explicitSymtabRefs_
+  .. cpp:member:: private bool hasRel_false
+  .. cpp:member:: private bool hasRela_false
+  .. cpp:member:: private bool hasReldyn_false
+  .. cpp:member:: private bool hasReladyn_false
+  .. cpp:member:: private bool hasRelplt_false
+  .. cpp:member:: private bool hasRelaplt_false
+  .. cpp:member:: private bool isStaticBinary_false
+  .. cpp:member:: private bool isDefensiveBinary_false
+  .. cpp:member:: private std::map <std::string, std::string> dynLibSubs
+
+    Don't use obj_private, use getObject() instead.   dynamic library name substitutions
+
+
   .. cpp:member:: const std::unique_ptr<symtab_impl> impl
 
       Hide implementation details that are complex or add large dependencies
