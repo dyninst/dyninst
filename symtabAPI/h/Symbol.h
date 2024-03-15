@@ -244,17 +244,17 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
    SymbolLinkage linkage_;
    SymbolVisibility visibility_;
    Offset        offset_;
-   Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
+   Offset        ptr_offset_;
    Offset        localTOC_;
    Region*       region_;
    Symbol* 	 referring_;
-   unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
+   unsigned      size_;
 
    bool          isDynamic_;
    bool          isAbsolute_;
    bool          isDebug_;
 
-   Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
+   Aggregate *   aggregate_;
 
    std::string mangledName_;
 
