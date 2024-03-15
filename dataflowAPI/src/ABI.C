@@ -217,90 +217,87 @@ bitArray ABI::getBitArray()  {
 
 #if defined(arch_x86) || defined(arch_x86_64)
 void ABI::initialize32(){
+  idef defs;
 
-   returnRegs_ = new bitArray(machRegIndex_x86().size());
-   (*returnRegs_)[machRegIndex_x86()[x86::eax]] = true;
+  auto &reg_index = machRegIndex_x86();
+  auto const num_bits = reg_index.size();
 
-   callParam_ = new bitArray(machRegIndex_x86().size());
+  defs.params.resize(num_bits);
+  defs.returnValues.resize(num_bits);
+  defs.calleeSaved.resize(num_bits);
+  defs.global.resize(num_bits);
 
-   returnRead_ = new bitArray(machRegIndex_x86().size());
-   // Callee-save registers...
-   (*returnRead_)[machRegIndex_x86()[x86::ebx]] = true;
-   (*returnRead_)[machRegIndex_x86()[x86::esi]] = true;
-   (*returnRead_)[machRegIndex_x86()[x86::edi]] = true;
-   // And return value
-   (*returnRead_)[machRegIndex_x86()[x86::eax]] = true;
-   // Return reads no registers
+  defs.returnValues[reg_index[x86::eax]] = true;
 
-   callRead_ = new bitArray(machRegIndex_x86().size());
-   // CallRead reads no registers
-   // We wish...
-   (*callRead_)[machRegIndex_x86()[x86::ecx]] = true;
-   (*callRead_)[machRegIndex_x86()[x86::edx]] = true;
+  defs.calleeSaved[reg_index[x86::ebx]] = true;
+  defs.calleeSaved[reg_index[x86::esi]] = true;
+  defs.calleeSaved[reg_index[x86::edi]] = true;
 
-   // PLT entries use ebx
-   (*callRead_)[machRegIndex_x86()[x86::ebx]] = true;
+  // PLT entries use ebx
+  defs.global[reg_index[x86::ebx]] = true;
 
-   // TODO: Fix this for platform-specific calling conventions
-   
-   callWritten_ = new bitArray(machRegIndex_x86().size());
-   // Assume calls write flags
-   (*callWritten_)[machRegIndex_x86()[x86::of]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::sf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::zf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::af]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::pf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::cf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::tf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::if_]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::df]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::nt_]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::rf]] = true;
+  // Assume calls write flags
+  defs.global[reg_index[x86::of]] = true;
+  defs.global[reg_index[x86::sf]] = true;
+  defs.global[reg_index[x86::zf]] = true;
+  defs.global[reg_index[x86::af]] = true;
+  defs.global[reg_index[x86::pf]] = true;
+  defs.global[reg_index[x86::cf]] = true;
+  defs.global[reg_index[x86::tf]] = true;
+  defs.global[reg_index[x86::if_]] = true;
+  defs.global[reg_index[x86::df]] = true;
+  defs.global[reg_index[x86::nt_]] = true;
+  defs.global[reg_index[x86::rf]] = true;
 
-    // And scratch registers: eax, ecx, edx
-    (*callWritten_)[machRegIndex_x86()[x86::eax]] = true;
-    (*callWritten_)[machRegIndex_x86()[x86::ecx]] = true;
-    (*callWritten_)[machRegIndex_x86()[x86::edx]] = true;
-	
-    // And assume a syscall reads or writes _everything_
-    syscallRead_ = new bitArray(machRegIndex_x86().size());
-    syscallRead_->set();
-    syscallWritten_ = new bitArray(machRegIndex_x86().size());
-    *syscallWritten_ = *syscallRead_;
+  arch32.all.set();
+
+  arch32.params = defs.params;
+
+  arch32.returnValues = defs.returnValues;
+
+  arch32.callRead = defs.params | defs.global;
+  arch32.callRead[reg_index[x86::ecx]] = true;
+  arch32.callRead[reg_index[x86::edx]] = true;
+
+  arch32.callWritten = ~defs.calleeSaved | defs.global;
+
+  arch32.returnRead = defs.returnValues | defs.calleeSaved | defs.global;
+
+  // And assume a syscall reads or writes _everything_
+  arch32.syscallRead.resize(num_bits);
+  arch32.syscallRead.set();
+
+  arch32.syscallWritten.resize(num_bits);
+  arch32.syscallWritten.set();
+
+  arch32.all.resize(num_bits);
 
 #if defined(os_windows)
     // VERY conservative, but it's safe wrt the ABI.
     // Let's set everything and unset flags
-    (*callRead_) = syscallRead_;
-    (*callRead_)[machRegIndex_x86()[x86::of]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::sf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::zf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::af]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::pf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::cf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::tf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::if_]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::df]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::nt_]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::rf]] = false;
+    arch32.callRead = syscallRead_;
+    arch32.callRead[reg_index[x86::of]] = false;
+    arch32.callRead[reg_index[x86::sf]] = false;
+    arch32.callRead[reg_index[x86::zf]] = false;
+    arch32.callRead[reg_index[x86::af]] = false;
+    arch32.callRead[reg_index[x86::pf]] = false;
+    arch32.callRead[reg_index[x86::cf]] = false;
+    arch32.callRead[reg_index[x86::tf]] = false;
+    arch32.callRead[reg_index[x86::if_]] = false;
+    arch32.callRead[reg_index[x86::df]] = false;
+    arch32.callRead[reg_index[x86::nt_]] = false;
+    arch32.callRead[reg_index[x86::rf]] = false;
 
-
-    *callWritten_ = *syscallWritten_;
+    arch32.callWritten = arch32.syscallWritten;
 
 // IF DEFINED KEVIN FUNKY MODE
-	(*returnRead_) = (*callRead_);
-	// Doesn't exist, but should
-	//returnWritten_ = callWritten_;
+  arch32.returnRead = arch32.callRead;
+  // Doesn't exist, but should
+  //returnWritten_ = callerSaved_;
 // ENDIF DEFINED KEVIN FUNKY MODE
 
-
 #endif
-
-        allRegs_ = new bitArray(machRegIndex_x86().size());
-        allRegs_->set();
-
 }
-
 void ABI::initialize64(){
 
     returnRegs64_ = new bitArray(machRegIndex_x86_64().size());
