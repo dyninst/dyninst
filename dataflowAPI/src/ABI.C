@@ -472,92 +472,93 @@ void ABI::initialize32(){
 }
 
 void ABI::initialize64(){
-    returnRegs64_ = new bitArray(machRegIndex_ppc_64().size());
-    (*returnRegs64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
+  auto &reg_index = machRegIndex_ppc_64();
+  auto const num_bits = reg_index.size();
 
-    callParam64_ = new bitArray(machRegIndex_ppc_64().size());
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r5]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r6]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r7]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r8]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r9]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r10]] = true;
+  arch64.all.resize(num_bits);
+  arch64.callRead.resize(num_bits);
+  arch64.callWritten.resize(num_bits);
+  arch64.params.resize(num_bits);
+  arch64.returnRead.resize(num_bits);
+  arch64.returnValues.resize(num_bits);
+  arch64.syscallRead.resize(num_bits);
+  arch64.syscallWritten.resize(num_bits);
 
-    returnRead64_ = new bitArray(machRegIndex_ppc_64().size());
-    // Return reads r3, r4, fpr1, fpr2
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::fpr3]] = true;
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::fpr2]] = true;
+  arch64.returnValues[reg_index[ppc64::r3]] = true;
 
-    // Calls
-    callRead64_ = new bitArray(machRegIndex_ppc_64().size());
-    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
+  arch64.params[reg_index[ppc64::r3]] = true;
+  arch64.params[reg_index[ppc64::r4]] = true;
+  arch64.params[reg_index[ppc64::r5]] = true;
+  arch64.params[reg_index[ppc64::r6]] = true;
+  arch64.params[reg_index[ppc64::r7]] = true;
+  arch64.params[reg_index[ppc64::r8]] = true;
+  arch64.params[reg_index[ppc64::r9]] = true;
+  arch64.params[reg_index[ppc64::r10]] = true;
 
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r5]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r6]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r7]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r8]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r9]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r10]] = true;
+  // Return reads r3, r4, fpr1, fpr2
+  arch64.returnRead[reg_index[ppc64::r3]] = true;
+  arch64.returnRead[reg_index[ppc64::r4]] = true;
+  arch64.returnRead[reg_index[ppc64::fpr3]] = true;
+  arch64.returnRead[reg_index[ppc64::fpr2]] = true;
 
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr1]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr2]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr3]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr4]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr5]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr6]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr7]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr8]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr9]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr10]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr11]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr12]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr13]] = true;
+  // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
+  arch64.callRead[reg_index[ppc64::r3]] = true;
+  arch64.callRead[reg_index[ppc64::r4]] = true;
+  arch64.callRead[reg_index[ppc64::r5]] = true;
+  arch64.callRead[reg_index[ppc64::r6]] = true;
+  arch64.callRead[reg_index[ppc64::r7]] = true;
+  arch64.callRead[reg_index[ppc64::r8]] = true;
+  arch64.callRead[reg_index[ppc64::r9]] = true;
+  arch64.callRead[reg_index[ppc64::r10]] = true;
 
+  arch64.callRead[reg_index[ppc64::fpr1]] = true;
+  arch64.callRead[reg_index[ppc64::fpr2]] = true;
+  arch64.callRead[reg_index[ppc64::fpr3]] = true;
+  arch64.callRead[reg_index[ppc64::fpr4]] = true;
+  arch64.callRead[reg_index[ppc64::fpr5]] = true;
+  arch64.callRead[reg_index[ppc64::fpr6]] = true;
+  arch64.callRead[reg_index[ppc64::fpr7]] = true;
+  arch64.callRead[reg_index[ppc64::fpr8]] = true;
+  arch64.callRead[reg_index[ppc64::fpr9]] = true;
+  arch64.callRead[reg_index[ppc64::fpr10]] = true;
+  arch64.callRead[reg_index[ppc64::fpr11]] = true;
+  arch64.callRead[reg_index[ppc64::fpr12]] = true;
+  arch64.callRead[reg_index[ppc64::fpr13]] = true;
 
-    callWritten64_ = new bitArray(machRegIndex_ppc_64().size());
-    // Calls write to pretty much every register we use for code generation
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r0]] = true;
+  // Calls write to pretty much every register we use for code generation
+  arch64.callWritten[reg_index[ppc64::r0]] = true;
 
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r5]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r6]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r7]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r8]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r9]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r10]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r11]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r12]] = true;
+  arch64.callWritten[reg_index[ppc64::r3]] = true;
+  arch64.callWritten[reg_index[ppc64::r4]] = true;
+  arch64.callWritten[reg_index[ppc64::r5]] = true;
+  arch64.callWritten[reg_index[ppc64::r6]] = true;
+  arch64.callWritten[reg_index[ppc64::r7]] = true;
+  arch64.callWritten[reg_index[ppc64::r8]] = true;
+  arch64.callWritten[reg_index[ppc64::r9]] = true;
+  arch64.callWritten[reg_index[ppc64::r10]] = true;
+  arch64.callWritten[reg_index[ppc64::r11]] = true;
+  arch64.callWritten[reg_index[ppc64::r12]] = true;
 
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr0]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr1]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr2]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr3]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr4]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr5]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr6]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr7]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr8]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr9]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr10]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr11]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr12]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr13]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr0]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr1]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr2]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr3]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr4]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr5]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr6]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr7]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr8]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr9]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr10]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr11]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr12]] = true;
+  arch64.callWritten[reg_index[ppc64::fpr13]] = true;
 
-    // Syscall - assume the same as call
-    syscallRead64_ = new bitArray(machRegIndex_ppc_64().size());
-    syscallRead64_->set();
-    syscallWritten64_ = new bitArray(machRegIndex_ppc_64().size());
-    syscallWritten64_->set();
+  // Syscall - assume the same as call
+  arch64.syscallRead.set();
+  arch64.syscallWritten.set();
 
-    allRegs64_ = new bitArray(machRegIndex_ppc_64().size());
-    allRegs64_->set();
+  arch64.all.set();
 }
 #endif
 
