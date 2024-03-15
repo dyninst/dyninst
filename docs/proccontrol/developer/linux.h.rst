@@ -59,6 +59,9 @@ linux.h
   .. cpp:function:: virtual bool plat_create_int()
   .. cpp:function:: virtual bool plat_attach(bool allStopped, bool &)
   .. cpp:function:: virtual bool plat_attachThreadsSync()
+
+    Attach any new threads and synchronize, until there are no new threads.
+
   .. cpp:function:: virtual bool plat_attachWillTriggerStop()
   .. cpp:function:: virtual bool plat_forked()
   .. cpp:function:: virtual bool plat_execed()
@@ -205,5 +208,24 @@ linux.h
   .. cpp:function:: void getEventTypesHandled(std::vector<EventType> &etypes)
 
 
+.. cpp:function:: static void warn_user_ptrace_restrictions()
 
+  Ubuntu 10.10 and other hardened systems do not allow arbitrary ptrace_attaching; instead
+  you may only attach to a child process (https://wiki.ubuntu.com/SecurityTeam/Roadmap/KernelHardening)
+  We can detect this and warn the user; however, it takes root to disable it.
+
+
+.. cpp:struct:: linux_x86_user_desc
+
+  Copied from ``/usr/include/asm/ldt.h``, as it was not available on all machines.
+
+  .. cpp:member:: unsigned int entry_number
+  .. cpp:member:: unsigned long base_addr
+  .. cpp:member:: unsigned int limit
+  .. cpp:member:: unsigned int seg_32bit:1
+  .. cpp:member:: unsigned int contents:2
+  .. cpp:member:: unsigned int read_exec_only:1
+  .. cpp:member:: unsigned int limit_in_pages:1
+  .. cpp:member:: unsigned int seg_not_present:1
+  .. cpp:member:: unsigned int useable:1
 
