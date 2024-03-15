@@ -116,14 +116,6 @@ class PC_EXPORT AddressSet
    size_t erase(Dyninst::Address a, Process::const_ptr p);
    void clear();
 
-   /**
-    * Use lower_bound, upper_bound and equal_range to focus on an Address.
-    * For example:
-    *   pair<AddressSet::iterator, AddressSet::iterator> range = myset.equal_range(0x1000);
-    *   for (AddressSet::iterator i = range.first; i != range.second; i++) {
-    *     //Every Process::ptr with address equal to 0x1000 here
-    *   }
-    **/
    iterator lower_bound(Dyninst::Address a);
    iterator upper_bound(Dyninst::Address a);
    std::pair<iterator, iterator> equal_range(Dyninst::Address a);
@@ -131,9 +123,6 @@ class PC_EXPORT AddressSet
    const_iterator upper_bound(Dyninst::Address a) const;
    std::pair<const_iterator, const_iterator> equal_range(Dyninst::Address a) const;
 
-   /**
-    * Return a new set by performing these set operations with another AddressSet
-    **/
    AddressSet::ptr set_union(AddressSet::const_ptr pp) const;
    AddressSet::ptr set_intersection(AddressSet::const_ptr pp) const;
    AddressSet::ptr set_difference(AddressSet::const_ptr pp) const;
@@ -152,7 +141,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
 
    friend void boost::checked_delete<ProcessSet>(ProcessSet *) CHECKED_DELETE_NOEXCEPT;
  public:
-   int_processSet *getIntProcessSet(); //Not for public use
+   int_processSet *getIntProcessSet();
    typedef boost::shared_ptr<ProcessSet> ptr;
    typedef boost::shared_ptr<const ProcessSet> const_ptr;
    typedef boost::weak_ptr<ProcessSet> weak_ptr;

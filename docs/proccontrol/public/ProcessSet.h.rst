@@ -450,6 +450,12 @@ ProcessSet.h
   processes, or the location of a buffer in each process where data can be
   written or read.
 
+  It's essentially a ``std::multimap`` of ``Address -> Process::ptr`` plus some additional features:
+
+    - Ability to create addresses based on ProcControlAPI objects, such as libraries.
+    - Additional range features to make it easier to group addresses
+    - No duplicates of ``Address``, ``Process:ptr`` pairs are allowed, though there are duplicate ``Address`` keys.
+
   .. cpp:type:: boost::shared_ptr<AddressSet> ptr
   .. cpp:type:: boost::shared_ptr<AddressSet> const_ptr
 
@@ -851,3 +857,18 @@ ProcessSet.h
 
   Models the C++ `LegacyForwardIterator <https://en.cppreference.com/w/cpp/named_req/ForwardIterator>`_ concept.
 
+
+Notes
+*****
+
+Use :cpp:func:`AddressSet::lower_bound`, :cpp:func:`AddressSet::upper_bound`, and
+:cpp:func:`AddressSet::equal_range` to focus on an :cpp:type:`Dyninst::Address`.
+
+For example:
+
+.. code:: cpp
+
+  pair<AddressSet::iterator, AddressSet::iterator> range = myset.equal_range(0x1000);
+  for (AddressSet::iterator i = range.first; i != range.second; i++) {
+    //Every Process::ptr with address equal to 0x1000 here
+  }
