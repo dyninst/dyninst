@@ -82,6 +82,14 @@ Archive.h
       Retrieves in ``obj`` the member containing the definition of a symbol with
       mangled name ``name``.
 
+      This method differs from getMemberByGlobalSymbol in that it searches the underlying Symtab objects
+      in the archive for the symbol while getMemberByGlobalSymbol searches the Archive's symbol table.
+      The reasoning behind this is that searching the Archive's symbol table will be faster than using the
+      Symtab interface because the underlying Symtab object is only created when the symbol is found in
+      the Archive's symbol table. Contrary to this, findMemberWithDefinition requires creating Symtab
+      objects for every member in an Archive and then searching each of these Symtab objects for the
+      symbol.
+
       Returns ``false`` on error or if ``name`` is not in this archive.
 
   .. cpp:function:: std::string name()
@@ -109,3 +117,13 @@ Archive.h
   .. cpp:member:: private static std::vector<Archive*> allArchives
 
       Used to avoid duplicating an Archive that already exists.
+
+
+.. rubric:: Error messages used by printError
+
+.. cpp:var:: static const std::string PARSE_FAILURE = "Failed to parse the archive: "
+.. cpp:var:: static const std::string NO_MEMBER = "Member not found: "
+.. cpp:var:: static const std::string NOT_ARCHIVE = "File is not an archive"
+.. cpp:var:: static const std::string DUPLICATE_SYM = "Duplicate symbol found: "
+.. cpp:var:: static const std::string UNKNOWN_ERR = "Unknown Error"
+.. cpp:var:: static const std::string MEMBER_DNE = "member does not exist";
