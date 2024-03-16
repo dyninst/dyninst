@@ -28,48 +28,46 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_ARCHITECTURE_H
-#define DYNINST_ARCHITECTURE_H
+#include "abi.h"
+#include "ABI/x86.h"
+#include "ABI/x86_64.h"
+#include "ABI/ppc64.h"
+#include "ABI/aarch64.h"
+#include "registers/registerSet.h"
+#include "ABI/architecture.h"
 
-#include <cassert>
+namespace Dyninst { namespace abi {
 
-namespace Dyninst {
+  struct abi_impl final {
+    Dyninst::abi::architecture machine;
 
-  // 0xff000000 is used to encode architecture
-  typedef enum {
-    Arch_none = 0x00000000,
-    Arch_x86 = 0x14000000,
-    Arch_x86_64 = 0x18000000,
-    Arch_ppc32 = 0x24000000,
-    Arch_ppc64 = 0x28000000,
-    Arch_aarch32 = 0x44000000, // for later use
-    Arch_aarch64 = 0x48000000,
-    Arch_cuda = 0x88000000,
-    Arch_amdgpu_gfx908 = 0x94000000, // future support for gfx908
-    Arch_amdgpu_gfx90a = 0x98000000, // future support for gfx90a
-    Arch_amdgpu_gfx940 = 0x9c000000, // future support for gfx940
-    Arch_intelGen9 = 0xb6000000      // same as machine no. retrevied from eu-readelf
-  } Architecture;
-
-  inline unsigned getArchAddressWidth(Architecture arch) {
-    switch(arch) {
-      case Arch_x86:
-      case Arch_ppc32: return 4;
-      case Arch_x86_64:
-      case Arch_ppc64:
-      case Arch_aarch64:
-      case Arch_cuda:
-      case Arch_intelGen9:
-      case Arch_amdgpu_gfx908:
-      case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: return 8;
-      case Arch_none:
-      case Arch_aarch32:
-        return 0;
+    abi_impl(Dyninst::Architecture a) {
+      switch(a) {
+        case Dyninst::Arch_x86:
+          machine = abi::make_x86();
+          break;
+        case Dyninst::Arch_x86_64:
+          machine = abi::make_x86_64();
+          break;
+        case Dyninst::Arch_ppc64:
+          machine = abi::make_ppc64();
+          break;
+        case Dyninst::Arch_aarch64:
+          machine = abi::make_aarch64();
+          break;
+        case Dyninst::Arch_ppc32:
+        case Dyninst::Arch_aarch32:
+        case Dyninst::Arch_amdgpu_gfx908:
+        case Dyninst::Arch_amdgpu_gfx90a:
+        case Dyninst::Arch_amdgpu_gfx940:
+        case Dyninst::Arch_cuda:
+        case Dyninst::Arch_intelGen9:
+        case Dyninst::Arch_none:
+          break;
+      }
     }
-    return 0;
-  }
+  };
 
-}
+}}
 
-#endif
+Dyninst::ABI::ABI(Dyninst::Architecture a) : impl(new Dyninst::abi::abi_impl(a)) {}
