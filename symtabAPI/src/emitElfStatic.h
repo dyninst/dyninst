@@ -147,7 +147,6 @@ class emitElfStatic {
                                 LinkMap &lmap,
                                 string &errMsg);
 
-    // PPC64 TOC-changing inter-module calls
     bool handleInterModuleSpecialCase(Symtab *target,
 				      Symtab *src,
 				      LinkMap &lmap,
