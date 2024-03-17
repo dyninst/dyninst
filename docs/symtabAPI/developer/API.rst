@@ -21,6 +21,7 @@ SymtabAPI
   emitWin.h
   Function.h
   indexed_modules.h
+  indexed_symbols.h
   LineInformation.h
   LinkMap.h
   Module.h
