@@ -34,6 +34,7 @@ SymtabAPI
   StringTable.h
   Symbol.h
   Symtab.h
+  symtab_impl.hpp
   SymtabReader.h
   Type.h
   Type-mem.h
