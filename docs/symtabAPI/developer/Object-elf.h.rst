@@ -89,7 +89,13 @@ Object-elf.h
   .. cpp:function:: bool getABIVersion(int &major, int &minor) const override
   .. cpp:function:: bool is_offset_in_plt(Offset offset) const
   .. cpp:function:: Elf_X_Shdr *getRegionHdrByAddr(Offset addr)
+
+    Binary search to find the section starting at a particular address.
+
   .. cpp:function:: int getRegionHdrIndexByAddr(Offset addr)
+
+    Binary search to find the index into the ``RegionHdrs`` of the section starting at a partidular address.
+
   .. cpp:function:: Elf_X_Shdr *getRegionHdrByIndex(unsigned index)
   .. cpp:function:: bool isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned newPerms)
   .. cpp:function:: bool getRegValueAtFrame(Address pc, Dyninst::MachRegister reg, Dyninst::MachRegisterVal &reg_result, MemRegReader *reader) override
@@ -276,3 +282,23 @@ Object-elf.h
   .. cpp:member:: Offset dbg_offset
   .. cpp:member:: unsigned dbg_size
   .. cpp:member:: Offset orig_offset
+
+
+.. code:: cpp
+
+  // add some space to avoid looking for functions in data regions
+  #define EXTRA_SPACE 8
+
+.. cpp:var:: std::vector<Symbol *> opdsymbols_
+
+.. cpp:type:: void (*dwarf_err_func)(const char *)
+
+  error callback for dwarf errors
+
+
+.. cpp:struct:: SectionHeaderSortFunction
+
+  SectionHeaderSortFunction Compare function for use with the Vector<T> sort method.
+
+  .. cpp:function:: bool operator()(Elf_X_Shdr *hdr1, Elf_X_Shdr *hdr2)
+
