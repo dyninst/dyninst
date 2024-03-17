@@ -27,8 +27,35 @@ dwarfWalker.h
 
   .. cpp:function:: bool parse_int(Dwarf_Die entry, bool parseSiblings, bool dissociate_context=false)
 
-      Non-recursive version of parse. A Context must be provided as an _input_ to this function,
-      whereas parse creates a context.
+      Non-recursive version of :cpp:func:`parse`.
+
+      This is separate from parse() so we can have a non-Context-creating parse method that reuses the
+      :cpp:class:`Context` from the parent. This allows us to pass in current function, etc. without
+      the context stack exploding.
+
+  .. cpp:function:: private bool parseSubprogram(inline_t func_type)
+  .. cpp:function:: private bool parseLexicalBlock()
+  .. cpp:function:: private bool parseTryBlock()
+  .. cpp:function:: private bool parseCatchBlock()
+  .. cpp:function:: private bool parseRangeTypes(Dwarf_Die die)
+  .. cpp:function:: private bool parseCommonBlock()
+  .. cpp:function:: private bool parseConstant()
+  .. cpp:function:: private virtual bool parseVariable()
+  .. cpp:function:: private bool parseFormalParam()
+  .. cpp:function:: private bool parseBaseType()
+  .. cpp:function:: private bool parseTypedef()
+  .. cpp:function:: private bool parseArray()
+  .. cpp:function:: private bool parseSubrange()
+  .. cpp:function:: private bool parseEnum()
+  .. cpp:function:: private bool parseInheritance()
+  .. cpp:function:: private bool parseStructUnionClass()
+  .. cpp:function:: private bool parseEnumEntry()
+  .. cpp:function:: private bool parseMember()
+  .. cpp:function:: private bool parseConstPackedVolatile()
+
+    .. note:: This looks a lot like :cpp:func:`parseTypedef`. Collapse?
+
+  .. cpp:function:: private bool parseTypeReferences()
 
   .. cpp:function:: std::string &curName()
 
@@ -48,6 +75,33 @@ dwarfWalker.h
 
 
   .. cpp:function:: static bool buildSrcFiles(Dwarf* dbg, Dwarf_Die entry, StringTablePtr strings)
+  .. cpp:function:: private bool parseCallsite()
+  .. cpp:function:: private bool hasDeclaration(bool &decl)
+  .. cpp:function:: private bool findTag()
+  .. cpp:function:: private bool handleAbstractOrigin(bool &isAbstractOrigin)
+  .. cpp:function:: private bool handleSpecification(bool &hasSpec)
+  .. cpp:function:: private bool findFuncName()
+  .. cpp:function:: private bool setFunctionFromRange(inline_t func_type)
+  .. cpp:function:: private virtual void setEntry(Dwarf_Die e)
+  .. cpp:function:: private bool getFrameBase()
+  .. cpp:function:: private bool getReturnType(boost::shared_ptr<Type> &returnType)
+  .. cpp:function:: private bool addFuncToContainer(boost::shared_ptr<Type> returnType)
+  .. cpp:function:: private bool isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic)
+  .. cpp:function:: private virtual bool findType(boost::shared_ptr<Type> &, bool defaultToVoid)
+  .. cpp:function:: private bool findAnyType(Dwarf_Attribute typeAttribute, bool is_info, boost::shared_ptr<Type> &type)
+  .. cpp:function:: private bool findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset)
+  .. cpp:function:: private bool getLineInformation(Dwarf_Word &variableLineNo, bool &hasLineNumber, std::string &filename)
+  .. cpp:function:: private std::string die_name()
+  .. cpp:function:: private void removeFortranUnderscore(std::string &)
+  .. cpp:function:: private bool findSize(unsigned &size)
+  .. cpp:function:: private bool findVisibility(visibility_t &visibility)
+  .. cpp:function:: private boost::optional<long> findConstValue()
+  .. cpp:function:: private bool fixName(std::string &name, boost::shared_ptr<Type> type)
+  .. cpp:function:: private bool fixBitFields(std::vector<VariableLocation> &locs, long &size)
+  .. cpp:function:: private boost::shared_ptr<typeSubrange> parseSubrange(Dwarf_Die *entry)
+  .. cpp:function:: private bool decodeLocationList(Dwarf_Half attr, Address *initialVal, std::vector<VariableLocation> &locs)
+  .. cpp:function:: private bool checkForConstantOrExpr(Dwarf_Half attr, Dwarf_Attribute &locationAttribute, bool &constant, bool &expr, Dwarf_Half &form)
+  .. cpp:function:: private boost::optional<std::string> find_call_file()
   .. cpp:function:: static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf *dbg)
   .. cpp:function:: static bool findConstantWithForm(Dwarf_Attribute &attr, Dwarf_Half form, Address &value)
   .. cpp:function:: static std::vector<AddressRange> getDieRanges(Dwarf_Die die)
@@ -75,11 +129,6 @@ dwarfWalker.h
   .. cpp:member:: private dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_
 
       Map to connect DW_FORM_ref_sig8 to type IDs.
-
-
-.. cpp:struct:: Dwarf_Sig8
-
-  .. cpp:member:: char signature[8]
 
 
 .. cpp:enum:: DwarfWalker::Error
@@ -115,6 +164,10 @@ dwarfWalker.h
 
   .. cpp:member:: protected Symtab *symtab_
   .. cpp:member:: protected FunctionBase *currentSubprogramFunction = nullptr
+
+    Function object of current subprogram being parsed.
+
+    Used to detect :cpp:func:`parseSubprogram` recursion.
 
   .. cpp:function:: protected Dwarf* dbg()
   .. cpp:function:: protected Module *& mod()
@@ -164,8 +217,50 @@ dwarfWalker.h
   .. cpp:function:: virtual std::string filename() const
   .. cpp:function:: virtual Dyninst::Architecture getArchitecture() const
   .. cpp:function:: virtual Offset convertDebugOffset(Offset from)
+  .. cpp:function:: private bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form, std::vector<VariableLocation> &locs)
+  .. cpp:function:: private bool constructConstantVariableLocation(Address value, std::vector<VariableLocation> &locs)
+  .. cpp:function:: private boost::shared_ptr<typeArray> parseMultiDimensionalArray(Dwarf_Die *firstRange, boost::shared_ptr<Type> elementType)
+  .. cpp:function:: private bool decodeExpression(Dwarf_Attribute &attr, std::vector<VariableLocation> &locs)
+  .. cpp:function:: private bool decodeLocationListForStaticOffsetOrAddress(std::vector<LocDesc> &locationList, Dwarf_Sword listLength, std::vector<VariableLocation> &locs, Address *initialStackValue = NULL)
+  .. cpp:member:: private std::shared_ptr<ParsedFuncs> parsedFuncs
+  .. cpp:member:: private std::string name_
+  .. cpp:member:: private bool is_mangled_name_
+  .. cpp:member:: private Address modLow
+  .. cpp:member:: private Address modHigh
+  .. cpp:member:: private size_t cu_header_length
+  .. cpp:member:: private Dwarf_Word abbrev_offset
+  .. cpp:member:: private uint8_t addr_size
+  .. cpp:member:: private uint8_t offset_size
+  .. cpp:member:: private Dwarf_Half extension_size
+  .. cpp:member:: private Dwarf_Sig8 signature
+  .. cpp:member:: private Dwarf_Word typeoffset
+  .. cpp:member:: private Dwarf_Word next_cu_header
+  .. cpp:member:: private Dwarf_Off compile_offset
+  .. cpp:type:: private dyn_c_hash_map<type_key, typeId_t> type_map
+  .. cpp:member:: private type_map info_type_ids_
+  .. cpp:member:: private type_map types_type_ids_
+  .. cpp:function:: private typeId_t get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
+  .. cpp:function:: private typeId_t type_id()
+  .. cpp:member:: private dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_
+  .. cpp:function:: private bool parseModuleSig8(bool is_info)
+  .. cpp:function:: private void findAllSig8Types()
+  .. cpp:function:: private bool findSig8Type(Dwarf_Sig8 * signature, boost::shared_ptr<Type>&type)
+  .. cpp:function:: private unsigned int getNextTypeId()
   .. cpp:function:: virtual void setFuncReturnType()
   .. cpp:function:: virtual Symbol* findSymbolByName(std::string name, Symbol::SymbolType type)
+
+
+.. cpp:struct:: DwarfWalker::Dwarf_Sig8
+
+  .. cpp:member:: char signature[8]
+
+
+.. cpp:struct:: DwarfWalker::LocDesc
+
+  .. cpp:member:: private Dwarf_Addr ld_lopc
+  .. cpp:member:: private Dwarf_Addr ld_hipc
+  .. cpp:member:: private Dwarf_Op *dwarfOp
+  .. cpp:member:: private size_t opLen
 
 
 .. cpp:struct:: ContextGuard
@@ -173,3 +268,12 @@ dwarfWalker.h
   .. cpp:member:: DwarfParseActions& walker
   .. cpp:function:: ContextGuard(DwarfParseActions& w, bool dissociate_context)
 
+
+.. cpp:class:: SetAndRestoreFunction
+
+  Helper class to set and restore currentSubprogramFunction
+
+  .. cpp:function:: SetAndRestoreFunction(FunctionBase* &v, FunctionBase* newFunc)
+  .. cpp:function:: ~SetAndRestoreFunction()
+  .. cpp:member:: private FunctionBase* &var
+  .. cpp:member:: private FunctionBase* savedFunc

@@ -192,11 +192,9 @@ protected:
     Symtab *symtab_;
     virtual Object * obj() const ;
 
-    // Function object of current subprogram being parsed; used to detect
-    // parseSubprogram recursion
     FunctionBase *currentSubprogramFunction = nullptr;
 
-}; // class DwarfParseActions 
+};
 
 struct ContextGuard {
     DwarfParseActions& walker;
