@@ -88,6 +88,7 @@ Developed by
    basics/building
    basics/using
    basics/first_mutator
+   examples/index
 
 .. toctree::
    :caption: toolkit overviews
@@ -104,19 +105,6 @@ Developed by
    stackwalk/overview
    symtabAPI/overview
    usertools/DynC/overview
-
-.. toctree::
-   :caption: examples
-   :name: examples
-   :hidden:
-   :maxdepth: 2
-
-   examples/binary_analysis
-   examples/cfg
-   examples/function_disassembly
-   examples/instrument_function
-   examples/memory_access
-   examples/retee
 
 .. toctree::
    :caption: toolkit api docs
