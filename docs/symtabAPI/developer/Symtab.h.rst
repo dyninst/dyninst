@@ -314,7 +314,7 @@ Symtab.h
     aren't.
 
     Example: IA-32/AMD-64 libc (and others compiled with libc headers) uses outlined locking
-    primitives. These are named _L_lock_<num> and _L_unlock_<num> and labelled as functions. We
+    primitives. These are named ``_L_lock_<num>`` and ``_L_unlock_<num>`` and labelled as functions. We
     explicitly do not include them in function scope.
 
     Also, exclude symbols that begin with _imp_ in
@@ -326,6 +326,10 @@ Symtab.h
     language, information which is needed before names can be demangled.
 
   .. cpp:function:: private bool changeType(Symbol *sym, Symbol::SymbolType oldType)
+
+    We're changing the type of a symbol. Therefore we need to rip it out of the indices for whatever it
+    used to be (also, aggregations) and put it in the new ones.
+
   .. cpp:function:: private bool deleteSymbolFromIndices(Symbol *sym)
   .. cpp:function:: private bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset)
   .. cpp:function:: private bool deleteAggregate(Aggregate *agg)
