@@ -48,7 +48,7 @@ Symtab.h
 
     symbols
 
-  .. cpp:member:: private bool sorted_everyFunctionfalse
+  .. cpp:member:: private bool sorted_everyFunction
 
     We also need per-Aggregate indices
 
@@ -77,10 +77,14 @@ Symtab.h
   .. cpp:member:: private bool hasRelaplt_false
   .. cpp:member:: private bool isStaticBinary_false
   .. cpp:member:: private bool isDefensiveBinary_false
+
+  .. cpp:member:: Object* obj_private
+
+      Don't use this, use :cpp:func:`getObject()`, instead.
+
   .. cpp:member:: private std::map <std::string, std::string> dynLibSubs
 
-    Don't use obj_private, use getObject() instead.   dynamic library name substitutions
-
+      Dynamic library name substitutions.
 
   .. cpp:member:: const std::unique_ptr<symtab_impl> impl
 
@@ -250,6 +254,9 @@ Symtab.h
   .. cpp:function:: bool getLinkingResources(std::vector<Archive *> &libs)
   .. cpp:function:: bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel)
   .. cpp:function:: bool addTrapHeader_win(Address ptr)
+
+    On Windows, we can't specify the trap table's location by adding a dynamic symbol.
+
   .. cpp:function:: bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym)
   .. cpp:function:: bool removeLibraryDependency(std::string lib)
   .. cpp:function:: void rebase(Offset offset)
@@ -258,6 +265,10 @@ Symtab.h
   .. cpp:function:: void dumpModRanges()
   .. cpp:function:: void dumpFuncRanges()
   .. cpp:function:: Module *getOrCreateModule(const std::string &modName, const Offset modAddr)
+
+    .. deprecated: v12.3.0
+
+  .. cpp:function:: bool parseFunctionRanges()
   .. cpp:function:: Offset getElfDynamicOffset()
   .. cpp:function:: bool delSymbol(Symbol *sym)
   .. cpp:function:: void getSegmentsSymReader(std::vector<SymSegment> &segs)
@@ -268,6 +279,57 @@ Symtab.h
       ``true`` on success and ``false`` if func is not owned by the
       ``Symtab``.
 
+  .. cpp:function:: private Symtab(std::string filename, bool defensive_bin, bool &err)
+  .. cpp:function:: private bool extractInfo(Object *linkedFile)
+  .. cpp:function:: private bool extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms)
+
+    Create a Symtab-level list of symbols by pulling out data from the
+    low-level parse (linkedFile). Technically this causes a duplication of symbols; however, we will be
+    rewriting these symbols and so we need our own copy.
+
+    TODO: delete the linkedFile once we're done?
+
+  .. cpp:function:: private bool fixSymRegion(Symbol *sym)
+  .. cpp:function:: private bool fixSymModules(std::vector<Symbol *> &raw_syms)
+
+     Add Module information to all symbols.
+
+  .. cpp:function:: private bool createIndices(std::vector<Symbol *> &raw_syms, bool undefined)
+
+    We index symbols by various attributes for quick lookup. Build those indices here.
+
+  .. cpp:function:: private bool createAggregates()
+
+    Frequently there will be multiple Symbols that refer to a single  code object
+    (e.g., function or variable). We use separate objects to refer to these aggregates, and build those
+    objects here.
+
+  .. cpp:function:: private bool fixSymModule(Symbol *&sym)
+  .. cpp:function:: private bool addSymbolToIndices(Symbol *&sym, bool undefined)
+  .. cpp:function:: private bool addSymbolToAggregates(const Symbol *sym)
+
+  .. cpp:function:: private bool doNotAggregate(const Symbol *sym)
+
+    A hacky override for specially treating symbols that appear to be functions or variables but
+    aren't.
+
+    Example: IA-32/AMD-64 libc (and others compiled with libc headers) uses outlined locking
+    primitives. These are named _L_lock_<num> and _L_unlock_<num> and labelled as functions. We
+    explicitly do not include them in function scope.
+
+    Also, exclude symbols that begin with _imp_ in
+    defensive mode. These symbols are entries in the IAT and shouldn't be treated as functions.
+
+  .. cpp:function:: private void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs)
+
+    setModuleLanguages is only called after modules have been defined. it attempts to set each module's
+    language, information which is needed before names can be demangled.
+
+  .. cpp:function:: private bool changeType(Symbol *sym, Symbol::SymbolType oldType)
+  .. cpp:function:: private bool deleteSymbolFromIndices(Symbol *sym)
+  .. cpp:function:: private bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset)
+  .. cpp:function:: private bool deleteAggregate(Aggregate *agg)
+  .. cpp:function:: private bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start)
   .. cpp:function:: static boost::shared_ptr<Type>& type_Error()
   .. cpp:function:: static boost::shared_ptr<Type>& type_Untyped()
   .. cpp:function:: bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const
@@ -277,6 +339,16 @@ Symtab.h
   .. cpp:function:: Offset fileToDiskOffset(Dyninst::Offset) const
   .. cpp:function:: Offset fileToMemOffset(Dyninst::Offset) const
   .. cpp:function:: bool canBeShared()
+  .. cpp:function:: private void createDefaultModule()
+  .. cpp:function:: private void addModule(Module *m)
+  .. cpp:function:: private bool addSymtabVariables()
+  .. cpp:function:: private void parseLineInformation()
+  .. cpp:function:: private void parseTypes()
+  .. cpp:function:: private bool setDefaultNamespacePrefix(std::string &str)
+  .. cpp:function:: private bool addUserRegion(Region *newreg)
+  .. cpp:function:: private bool addUserType(Type *newtypeg)
+  .. cpp:function:: private void setTOCOffset(Offset offset)
+
 
 
 
