@@ -432,13 +432,7 @@ Type.h
   .. cpp:function:: bool operator==(const typeArray &otype) const
   .. cpp:function:: void fixupUnknowns(Module *)
 
-Usage
-*****
+.. cpp:var:: static boost::atomic<typeId_t> user_type_id
 
-New user defined types can be added to a symtab object. The
-following example shows both how to query type information after an
-object file is successfully parsed and also add a new structure type.
-
-.. rli:: https://raw.githubusercontent.com/dyninst/examples/master/symtabAPI/addType.cpp
-  :language: cpp
-  :linenos:
+  This is the ID that is decremented for each type a user defines. It is
+  global so that every type that the user defines has a unique ID.
