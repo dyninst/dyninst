@@ -353,6 +353,27 @@ Symtab.h
   .. cpp:function:: private bool addUserType(Type *newtypeg)
   .. cpp:function:: private void setTOCOffset(Offset offset)
 
+  .. cpp:function:: Region* findEnclosingRegion(const Offset offset)
+
+    Similar to binary search in :cpp:func:`isCode` with the exception that here we search to
+    the end of regions without regards to whether they have corresponding raw data on disk,
+    and searches all regions.
+
+    ``regions_`` elements that start at address 0 may overlap. ELF binaries have 0 address
+    iff they are not loadable, but xcoff places loadable sections at address 0, including
+    .text and .data.
+
+
+.. cpp:function:: bool regexEquiv( const std::string &str,const std::string &them, bool checkCase ) 
+
+  Use POSIX regular expression pattern matching to check if ``str`` matches
+  the pattern in ``them``.
+
+.. cpp:function:: bool pattern_match( const char *p, const char *s, bool checkCase )
+
+  This function will match string ``s`` against pattern ``p``. Asterisks match 0 or more wild characters, and
+  a question mark matches exactly one wild character. In other words, the asterisk is the equivalent
+  of the regex ".*" and the question mark is the equivalent of ".".
 
 
 
