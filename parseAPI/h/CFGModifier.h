@@ -72,7 +72,6 @@ class InsertedRegion : public CodeRegion {
    PARSER_EXPORT Address low() const { return base_; }
    PARSER_EXPORT Address high() const { return base_ + size_; }
 
-   /** InstructionSource implementation **/
    PARSER_EXPORT bool isValidAddress(const Address a) const { 
       return (a >= low() && a < high());
    }
