@@ -35,20 +35,19 @@
 
 namespace Dyninst {
 
-  // 0xff000000 is used to encode architecture
   typedef enum {
     Arch_none = 0x00000000,
     Arch_x86 = 0x14000000,
     Arch_x86_64 = 0x18000000,
     Arch_ppc32 = 0x24000000,
     Arch_ppc64 = 0x28000000,
-    Arch_aarch32 = 0x44000000, // for later use
+    Arch_aarch32 = 0x44000000,
     Arch_aarch64 = 0x48000000,
     Arch_cuda = 0x88000000,
-    Arch_amdgpu_gfx908 = 0x94000000, // future support for gfx908
-    Arch_amdgpu_gfx90a = 0x98000000, // future support for gfx90a
-    Arch_amdgpu_gfx940 = 0x9c000000, // future support for gfx940
-    Arch_intelGen9 = 0xb6000000      // same as machine no. retrevied from eu-readelf
+    Arch_amdgpu_gfx908 = 0x94000000,
+    Arch_amdgpu_gfx90a = 0x98000000,
+    Arch_amdgpu_gfx940 = 0x9c000000,
+    Arch_intelGen9 = 0xb6000000
   } Architecture;
 
   inline unsigned getArchAddressWidth(Architecture arch) {

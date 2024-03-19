@@ -42,20 +42,22 @@ Architecture.h
 
   .. cpp:enumerator:: Arch_amdgpu_gfx908
 
-    AMD GPU gfx908
+     Future support for AMD GPU gfx908
 
   .. cpp:enumerator:: Arch_amdgpu_gfx90a
 
-    AMD GPU gfx90a
+    Future support for AMD GPU gfx90a
 
   .. cpp:enumerator:: Arch_amdgpu_gfx940
 
-    AMD GPU gfx940
+    Future support for AMD GPU gfx940
 
   .. cpp:enumerator:: Arch_intelGen9
 
     Intel 9th Generation Graphics Technology (Apollo Lake)
 
+    Same as machine number retrevied from eu-readelf.
+
 .. cpp:function:: inline unsigned getArchAddressWidth(Architecture arch)
 
-    Returns the number of bits used to make a memory address
+  Returns the number of bits used to make a memory address
