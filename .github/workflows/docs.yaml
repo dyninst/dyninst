@@ -4,7 +4,7 @@ name: Documentation
 on:
   pull_request:
     branches: [ master ]
-#    paths: [ docs ]
+    paths: [ docs ]
   workflow_dispatch:
 
 jobs:
