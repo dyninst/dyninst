@@ -27,9 +27,13 @@ Graph.h
 
     Returns the entry nodes (nodes without any incoming edges) of the graph.
 
+    If you want to traverse the graph start here.
+
   .. cpp:function:: virtual void exitNodes(NodeIterator &begin, NodeIterator &end)
 
     Returns the exit nodes (nodes without any outgoing edges) of the graph.
+
+    If you want to traverse the graph backwards start here.
 
   .. cpp:function:: virtual void allNodes(NodeIterator &begin, NodeIterator &end)
 

@@ -76,13 +76,13 @@ class COMMON_EXPORT Buffer {
       bool operator!=(const iterator<storage> &rhs) const {
          return rhs.pos != pos;
       }
-      iterator<storage> operator++() { // prefix
+      iterator<storage> operator++() {
          assert(valid);
          ++pos;
          return *this;
       }
          
-      iterator<storage> operator++(int) { // postfix
+      iterator<storage> operator++(int) {
          assert(valid);
          iterator<storage> i = *this;
          ++pos;
@@ -114,7 +114,6 @@ class COMMON_EXPORT Buffer {
    Address curAddr() const { return start_ + size_; }
 
   private:
-   // May call realloc();
    void increase_allocation(int added);
    unsigned char * cur_ptr() const;
 
