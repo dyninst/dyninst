@@ -25,14 +25,34 @@ concurrent.h
 
 .. cpp:class:: dyn_rwlock
 
-  .. cpp:type:: unique_lock = boost::unique_lock<dyn_rwlock>
+  .. rubric:: Reader management members
 
-  .. cpp:type:: shared_lock = boost::shared_lock<dyn_rwlock>
+  .. cpp:member:: private boost::atomic<unsigned int> rin
+  .. cpp:member:: private boost::atomic<unsigned int> rout
+  .. cpp:member:: private unsigned int last
+  .. cpp:member:: private dyn_mutex inlock
+  .. cpp:member:: private boost::condition_variable rcond
+  .. cpp:member:: private bool rwakeup[2]
 
+  ......
+
+  .. rubric:: Writer management members
+
+  .. cpp:member:: private dyn_mutex wlock
+  .. cpp:member:: private dyn_mutex outlock
+  .. cpp:member:: private boost::condition_variable wcond
+  .. cpp:member:: private bool wwakeup
+
+  ......
+
+  .. cpp:function:: dyn_rwlock()
+  .. cpp:function:: ~dyn_rwlock()
   .. cpp:function:: void lock_shared()
   .. cpp:function:: void unlock_shared()
   .. cpp:function:: void lock()
   .. cpp:function:: void unlock()
+  .. cpp:type:: unique_lock = boost::unique_lock<dyn_rwlock>
+  .. cpp:type:: shared_lock = boost::shared_lock<dyn_rwlock>
 
 
 .. cpp:class:: dyn_thread
@@ -41,8 +61,11 @@ concurrent.h
   .. cpp:function:: unsigned int getId()
   .. cpp:function:: static unsigned int threads()
   .. cpp:function:: operator unsigned int()
-
   .. cpp:member:: static thread_local dyn_thread me
+  .. cpp:member:: private std::vector<T> cache
+  .. cpp:member:: private T base
+  .. cpp:member:: private dyn_rwlock lock
+
 
 .. cpp:class:: template<typename T> dyn_threadlocal
 
