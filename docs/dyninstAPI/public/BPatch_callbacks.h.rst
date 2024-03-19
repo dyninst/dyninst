@@ -34,7 +34,11 @@ Code Discovery Callbacks
 .. cpp:type:: void (*BPatchCodeDiscoveryCallback)( \
       BPatch_Vector<BPatch_function*> &newFuncs, \
       BPatch_Vector<BPatch_function*> &modFuncs)
-   
+
+  This callback is invoked whenever previously un-analyzed code is discovered through runtime
+  analysis, and delivers a vector of functions whose analysis has been modified and a vector of
+  functions that are newly discovered.
+
 .. cpp:function:: bool registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
    
 .. cpp:function:: bool removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
@@ -47,14 +51,24 @@ Code Discovery Callbacks
 Code Overwrite Callbacks
 ************************
 
-.. cpp:type:: void (*BPatchCodeOverwriteBeginCallback)(BPatch_Vector<BPatch_basicBlock*> &overwriteLoopBlocks);
-   
+.. cpp:type:: void (*BPatchCodeOverwriteBeginCallback)(BPatch_Vector<BPatch_basicBlock*> &overwriteLoopBlocks)
+
+  This callback allows the user to remove any instrumentation when the program  starts writing to a
+  code page, which may be desirable as instrumentation  cannot be removed during the overwrite loop's
+  execution, and any breakpoint  instrumentation will dramatically slow the loop's execution.  Only
+  invoked  if hybrid analysis mode is set to BPatch_defensiveMode.
+
+
 .. cpp:type void (*BPatchCodeOverwriteEndCallback)( \
       BPatch_Vector<std::pair<Dyninst::Address,int> > &deadBlocks, \
       BPatch_Vector<BPatch_function*> &owFuncs, \
       BPatch_Vector<BPatch_function*> &modFuncs, \
       BPatch_Vector<BPatch_function*> &newFuncs)
-   
+
+  This callback delivers the effects of the overwrite loop when it is done  executing.  In many cases
+  no code will have changed.  This function is only  called if Dyninst's hybrid analysis mode is set
+  to BPatch_defensiveMode.
+
 .. cpp:function:: bool registerCodeOverwriteCallbacks( \
       BPatchCodeOverwriteBeginCallback cbBegin, \
       BPatchCodeOverwriteEndCallback cbEnd)

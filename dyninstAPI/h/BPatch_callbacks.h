@@ -94,24 +94,13 @@ typedef void (*InternalSignalHandlerCallback)
 typedef void (*InternalCodeOverwriteCallback)
              (BPatch_point *fault_instruc, Dyninst::Address viol_target);
 
-//This callback is invoked whenever previously un-analyzed code is discovered through runtime 
-//analysis, and delivers a vector of  functions whose analysis has been modified and a vector 
-//of functions that are newly discovered.
 typedef void (*BPatchCodeDiscoveryCallback)
              (BPatch_Vector<BPatch_function*> &newFuncs, 
               BPatch_Vector<BPatch_function*> &modFuncs);
 
-//This callback allows the user to remove any instrumentation when the program 
-//starts writing to a code page, which may be desirable as instrumentation 
-//cannot be removed during the overwrite loop's execution, and any breakpoint 
-//instrumentation will dramatically slow the loop's execution.  Only invoked 
-//if hybrid analysis mode is set to BPatch_defensiveMode.
 typedef void (*BPatchCodeOverwriteBeginCallback)
               (BPatch_Vector<BPatch_basicBlock*> &overwriteLoopBlocks);
 
-//This callback delivers the effects of the overwrite loop when it is done 
-//executing.  In many cases no code will have changed.  This function is only 
-//called if Dyninst's hybrid analysis mode is set to BPatch_defensiveMode.
 typedef void (*BPatchCodeOverwriteEndCallback)
               (BPatch_Vector<std::pair<Dyninst::Address,int> > &deadBlocks, 
               BPatch_Vector<BPatch_function*> &owFuncs, 
