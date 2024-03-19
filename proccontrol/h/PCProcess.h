@@ -269,14 +269,11 @@ class PC_EXPORT IRPC
    unsigned long getStartOffset() const;
    bool isBlocking() const;
 
-   // user-defined data retrievable during a callback
    void *getData() const;
    void setData(void *p) const;
 
    State state() const;
 
-   // Continues the thread this RPC is running on.
-   // Useful if you don't know the thread assigned to an IRPC
    bool continueStoppedIRPC();
 };
 

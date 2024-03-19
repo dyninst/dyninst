@@ -98,3 +98,10 @@ PCProcess.h
   .. cpp:member:: void* processHandle
   .. cpp:member:: Dyninst::Address fileBase
 
+
+.. cpp:class:: IRPC
+
+  .. cpp:member:: private rpc_wrapper *wrapper
+  .. cpp:function:: private IRPC(rpc_wrapper *wrapper_)
+  .. cpp:function:: private ~IRPC()
+

@@ -141,6 +141,26 @@ PCProcess.h
 
     Returns the start offset, if specified. Otherwise, returns 0.
 
+  .. cpp:function:: bool isBlocking() const
+  .. cpp:function:: void *getData() const
+  .. cpp:function:: void setData(void *p) const
+  .. cpp:function:: State state() const
+  .. cpp:function:: bool continueStoppedIRPC()
+
+    Continues the thread this RPC is running on.
+
+    Useful if you don't know the thread assigned to an IRPC.
+
+
+.. cpp:enum:: IRCP::State
+
+  .. cpp:enumerator:: Error
+  .. cpp:enumerator:: Created
+  .. cpp:enumerator:: Posted
+  .. cpp:enumerator:: Running
+  .. cpp:enumerator:: Done
+
+
 .. cpp:class:: Library
 
   A ``Library`` represents a single shared library (frequently referred to as
