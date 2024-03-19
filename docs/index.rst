@@ -98,7 +98,7 @@ Developed by
 
    basics/overview
    basics/building
-   basics/using
+   basics/importing
    examples/index
 
 .. toctree::
