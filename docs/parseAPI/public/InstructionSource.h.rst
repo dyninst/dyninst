@@ -53,4 +53,5 @@ InstructionSource.h
 
   .. cpp:function:: virtual bool isAligned(Address const addr)
 
-      Checks if the address ``addr`` is aligned, given the underlying architecture.
+      Checks if the address ``addr`` is aligned according to the architecture
+      returned by :cpp:func:`getArch`.
