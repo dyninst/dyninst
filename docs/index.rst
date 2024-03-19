@@ -96,7 +96,7 @@ Developed by
    :hidden:
    :maxdepth: 1
 
-   basics/overview
+   basics/using
    basics/building
    basics/importing
    examples/index
