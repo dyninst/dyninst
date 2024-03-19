@@ -407,12 +407,9 @@ typeFunction& Type::asFunctionType() { return dynamic_cast<typeFunction&>(*this)
 class SYMTAB_EXPORT typeScalar : public Type {
 public:
   struct properties_t {
-	  // Summary properties
 	  bool is_integral;
 	  bool is_floating_point;
 	  bool is_string;
-
-	  // Detailed properties
 	  bool is_address;
 	  bool is_boolean;
 	  bool is_complex_float;
