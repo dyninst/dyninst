@@ -96,7 +96,6 @@ class COMMON_EXPORT Node  {
     
     virtual ~Node() {}
 
-    // DOT output methods...
     virtual std::string DOTshape() const;
     virtual std::string DOTrank() const;
     virtual std::string DOTname() const;
@@ -158,7 +157,6 @@ class  COMMON_EXPORT VirtualNode : public Node {
 
     static std::string defaultName;
 
-    // DOT output methods...
     virtual std::string DOTshape() const;
  private:
     std::string name_;
