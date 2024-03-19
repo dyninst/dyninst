@@ -128,7 +128,7 @@ protected:
 };
 
 typedef bool (*frame_cmp_t)(const Frame &a, const Frame &b);
-SW_EXPORT bool frame_addr_cmp(const Frame &a, const Frame &b); //Default
+SW_EXPORT bool frame_addr_cmp(const Frame &a, const Frame &b);
 SW_EXPORT bool frame_lib_offset_cmp(const Frame &a, const Frame &b);
 SW_EXPORT bool frame_symname_cmp(const Frame &a, const Frame &b);
 SW_EXPORT bool frame_lineno_cmp(const Frame &a, const Frame &b);
