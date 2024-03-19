@@ -285,7 +285,16 @@ modified and events are handled on demand by calling the appropriate
   .. cpp:function:: static std::string getDefaultToolName()
   .. cpp:function:: static priority_t getDefaultToolPriority()
   .. cpp:function:: std::string getToolName() const
+
+    Tool name cannot be changed after process creation.
+
+    Use the static methods to set the default values, then trigger your attach/create operation.
+
   .. cpp:function:: priority_t getToolPriority() const
+
+    Tool priority cannot be changed after process creation.
+
+    Use the static methods to set the default values, then trigger your attach/create operation.
 
 
 .. cpp:type:: sigset_t dyn_sigset_t
@@ -358,6 +367,8 @@ modified and events are handled on demand by calling the appropriate
   .. cpp:function:: std::string getFilename() const
   .. cpp:function:: stat64_ptr getStatResults() const
 
+    Filled in by :cpp:func:`RemoteIO::getFileStatData`.
+
 .. cpp:type:: std::multimap<Process::const_ptr, FileInfo> FileSet
 
 
@@ -367,11 +378,26 @@ modified and events are handled on demand by calling the appropriate
   .. cpp:function:: RemoteIO(Process::ptr proc)
   .. cpp:function:: virtual ~RemoteIO()
   .. cpp:function:: FileSet *getFileSet(std::string filename) const
+
+    Construct filesets based on filenames, without doing a getFileNames
+
+    .. caution:: User is responsible for deleting the returned object.
+
   .. cpp:function:: FileSet *getFileSet(const std::set<std::string> &filenames) const
+
+    Construct filesets based on filenames, without doing a getFileNames
+
+    .. caution:: User is responsible for deleting the returned object.
+
   .. cpp:function:: bool addToFileSet(std::string filename, FileSet *fs) const
   .. cpp:function:: bool getFileNames(FileSet *result) const
   .. cpp:function:: bool getFileStatData(FileSet *fset) const
+
+    Get data as per a stat system call, fill in the :cpp:class:`FileInfo` objects.
+
   .. cpp:function:: bool readFileContents(const FileSet *fset)
+
+    These are whole file reads and produce :cpp:class:`EventAsyncFileRead` callbacks.
 
 
 .. cpp:class:: RemoteIOSet

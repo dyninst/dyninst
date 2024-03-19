@@ -172,10 +172,10 @@ class PC_EXPORT FollowFork
   public:
 
    typedef enum {
-      None,                      //Fork tracking not available on this platform.
-      ImmediateDetach,           //Do not even attach to forked children.
-      DisableBreakpointsDetach,  //Remove inherited breakpoints from children, then detach.
-      Follow                     //Default. Attach and full control of forked children.
+      None,
+      ImmediateDetach,
+      DisableBreakpointsDetach,
+      Follow
    } follow_t;
 
    static void setDefaultFollowFork(follow_t f);
@@ -290,10 +290,7 @@ class PC_EXPORT MultiToolControl
    static void setDefaultToolPriority(priority_t p);
    static std::string getDefaultToolName();
    static priority_t getDefaultToolPriority();
-   
-   //Tool name and priority cannot be changed after process creation.
-   //To set these values, use the static methods to set the default,
-   // values, then trigger your attach/create operation.
+
    std::string getToolName() const;
    priority_t getToolPriority() const;
 };
@@ -364,7 +361,7 @@ class FileInfo {
    ~FileInfo();
    
    std::string getFilename() const;
-   stat64_ptr getStatResults() const; //Filled in by getFileStatData
+   stat64_ptr getStatResults() const;
 };
 
 typedef std::multimap<Process::const_ptr, FileInfo> FileSet;
@@ -377,18 +374,14 @@ class PC_EXPORT RemoteIO
    RemoteIO(Process::ptr proc);
    virtual ~RemoteIO();
 
-   //Construct filesets based on filenames, without doing a getFileNames
-   // User is responsible for 'delete'ing the FileSet when done.
    FileSet *getFileSet(std::string filename) const;
    FileSet *getFileSet(const std::set<std::string> &filenames) const;
    bool addToFileSet(std::string filename, FileSet *fs) const;
   
    bool getFileNames(FileSet *result) const;
 
-   //Get data as per a stat system call, fill in the FileInfo objects
    bool getFileStatData(FileSet *fset) const;
 
-   //These are whole file reads and produce EventAsyncFileRead callbacks
    bool readFileContents(const FileSet *fset);
 };
 
