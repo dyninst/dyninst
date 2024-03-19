@@ -341,12 +341,10 @@ class PATCHAPI_EXPORT PointMaker {
     PointMaker() {}
     virtual ~PointMaker() {}
 
-    // Location bundles what we need to know. 
     Point *createPoint(Location loc, Point::Type type);
 
     void setMgr(PatchMgrPtr mgr) { mgr_ = mgr; }
   protected:
-    // User override
     virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *);
     virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *, PatchBlock *);
     virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, PatchFunction *context);
