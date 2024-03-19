@@ -223,13 +223,19 @@ The Symtab interface is extensive. Use the links below to jump to a particular t
 
       Finds all modules with name ``name``.
 
-      ``name`` should be the full path name as returned by :cpp:func:`file()`. Multiple modules may have the same name.
+      ``name`` should be the full path name as returned by :cpp:func:`file()`.
+
+      .. warning:: Multiple modules may have the same name!
 
   .. cpp:function:: bool findModuleByOffset(Module *& ret, Offset off)
 
       .. deprecated:: 12.3
 
         Use :cpp:func:`Module* findModuleByOffset(Offset) const`.
+
+  .. cpp:function:: Module* findModuleByOffset(Offset offset) const
+
+      Returns the module at the offset ``offset`` in the debug section (e.g., .debug_info).
 
   .. cpp:function:: Module* getContainingModule(Offset offset) const
 

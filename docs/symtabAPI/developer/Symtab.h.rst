@@ -181,10 +181,6 @@ Symtab.h
   .. cpp:function:: bool getTruncateLinePaths()
   .. cpp:function:: std::string getDefaultNamespacePrefix() const
 
-  .. cpp:function:: Module* findModuleByOffset(Offset offset) const
-
-      Returns the module at the offset ``offset`` in the debug section (e.g., .debug_info).
-
   .. cpp:function:: Module *getDefaultModule() const
 
 
@@ -215,12 +211,6 @@ Symtab.h
       Returns the type at index ``i``.
 
       Returns ``false`` if no type was found.
-
-  .. cpp:function:: bool addLine(string lineSource, unsigned int lineNo, unsigned int lineOffset, Offset lowInclusiveAddr, Offset highExclusiveAddr)
-
-      This method adds a new line to the line map. ``lineSource`` represents
-      the source file name. ``lineNo`` represents the line number. Returns
-      ``true`` on success and ``false`` on error.
 
   .. cpp:function:: bool addAddressRange(Offset lowInclusiveAddr, Offset highExclusiveAddr, string lineSource, unsigned int lineNo, unsigned int lineOffset = 0);
 
