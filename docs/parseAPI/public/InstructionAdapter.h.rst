@@ -30,6 +30,8 @@ InstructionAdapter.h
   .. cpp:function:: void reset(Address start, ParseAPI::CodeObject *o, ParseAPI::CodeRegion *r,\
                                InstructionSource *isrc, ParseAPI::Block *)
 
+    Reset to just-constructed state
+
   .. cpp:function:: virtual const InstructionAPI::Instruction& getInstruction() const = 0
   .. cpp:function:: virtual bool hasCFT() const = 0
   .. cpp:function:: virtual size_t getSize() const = 0
@@ -37,6 +39,8 @@ InstructionAdapter.h
   .. cpp:function:: virtual bool isInvalidInsn() const = 0
   .. cpp:function:: virtual bool isAbort() const = 0
   .. cpp:function:: virtual bool isGarbageInsn() const = 0
+
+    True for insns indicative of bad parse, for defensive mode
 
   .. cpp:function:: virtual void getNewEdges(std::vector<std::pair<Address,ParseAPI::EdgeTypeEnum>>& outEdges,\
                                              ParseAPI::Function* context, ParseAPI::Block* currBlk,unsigned int num_insns,\
@@ -70,6 +74,9 @@ InstructionAdapter.h
   .. cpp:function:: virtual bool isInterruptOrSyscall() const = 0
   .. cpp:function:: virtual bool isCall() const = 0
   .. cpp:function:: virtual bool isReturnAddrSave(Address &ret_addr) const = 0
+
+    Ret_addr holds the return address pushed in the stack using mflr at function entry.
+
   .. cpp:function:: virtual bool isTailCall(const ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns,\
                                             const std::set<Address> &) const = 0
 
