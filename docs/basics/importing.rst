@@ -1,7 +1,7 @@
 .. _`sec-importing`:
 
-Importing Dyninst
-#################
+Importing Dyninst into your project
+###################################
 
 Dyninst supports the standard mechanism of consuming a CMake project.
 

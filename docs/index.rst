@@ -96,9 +96,9 @@ Developed by
    :hidden:
    :maxdepth: 1
 
-   basics/using
    basics/building
    basics/importing
+   basics/using
    examples/index
 
 .. toctree::

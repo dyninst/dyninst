@@ -1,7 +1,7 @@
 .. _`sec-basic-using-dyninst`:
 
-Using Dyninst
-#############
+Writing your first tool
+#######################
 
 The normal cycle of developing a program is to edit the source code,
 compile it, and then execute the resulting binary. However, sometimes
