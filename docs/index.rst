@@ -64,6 +64,18 @@ Resources
 `GitHub Repository <https://github.com/dyninst/dyninst>`_
     The code on GitHub.
 
+-------------------
+Recent Publications
+-------------------
+
+- `Identifying and (Automatically) Remedying Performance Problems in CPU/GPU Applications <https://paradyn.org/papers/welton_autocorrect.pdf>`_
+
+- `Parallelizing Binary Code Analysis <https://arxiv.org/pdf/2001.10621>`_
+
+- `Binary Code Is Not Easy <https://paradyn.org/papers/Meng16MultiAuthor.pdf>`_
+
+A complete list can be found at `<https://paradyn.org/publications>`_
+
 ------------
 Developed by
 ------------
