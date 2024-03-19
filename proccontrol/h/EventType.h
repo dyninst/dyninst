@@ -77,7 +77,7 @@ class PC_EXPORT EventType
    static const int BreakpointClear     = 500;
    static const int BreakpointRestore   = 501;
    static const int Async               = 502;
-   static const int ChangePCStop        = 503; // Used for bug_freebsd_change_pc
+   static const int ChangePCStop        = 503;
    static const int Detach              = 504;
    static const int Detached            = 505;
    static const int IntBootstrap        = 506;
@@ -90,7 +90,6 @@ class PC_EXPORT EventType
    static const int Continue            = 513;
    static const int PostponedSyscall    = 514;
 
-   //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;
    typedef int Code;
 
