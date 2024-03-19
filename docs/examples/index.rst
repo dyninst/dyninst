@@ -1,3 +1,5 @@
+.. _`sec-examples`:
+
 Examples
 ########
 

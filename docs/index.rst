@@ -99,7 +99,6 @@ Developed by
    basics/overview
    basics/building
    basics/using
-   basics/first_mutator
    examples/index
 
 .. toctree::
