@@ -15,7 +15,6 @@ namespace boost
   template<>
   struct graph_traits<Function>
   {
-    // Boost graph typedefs
     struct function_tags : public virtual boost::vertex_list_graph_tag, 
     public virtual boost::bidirectional_graph_tag
     {
