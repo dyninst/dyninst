@@ -23,6 +23,8 @@ By default, Spack will build from source all the dependencies needed by Dyninst.
 Build from source
 *****************
 
+Dyninst uses CMake to build itself. The minimum supported CMake version is 3.14.0.
+
 1. Fetch the source from `GitHub <https://github.com/dyninst/dyninst>`_.
 
 2. Configure Dyninst with CMake
