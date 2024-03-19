@@ -101,7 +101,6 @@ class COMMON_EXPORT EdgeIterator {
 
     Edge::Ptr operator*() const;
 
-    // Make sure this is explicitly _not_ allowed (no vectors of iterators)
     EdgeIterator() : iter_(NULL) {}
 
     EdgeIterator(const EdgeIterator &rhs);
@@ -116,7 +115,6 @@ class COMMON_EXPORT EdgeIterator {
     EdgeIteratorImpl *iter_;
 };
 
-// This is a pure virtual interface class
 class EdgeIteratorImpl {
     friend class EdgeIterator;
     
@@ -130,7 +128,6 @@ class EdgeIteratorImpl {
     virtual ~EdgeIteratorImpl() {}
 };
 
-// Types of edge iteration: over a set of edges
 class EdgeIteratorSet : public EdgeIteratorImpl {
     friend class EdgeIterator;
 
