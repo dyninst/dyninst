@@ -1,6 +1,9 @@
 Examples
 ########
 
+These are a few examples showing how to use Dyninst's toolkits. More examples can be found
+at `<https://github.com/dyninst/examples>`_.
+
 .. toctree::
   :caption: examples
   :name: examples
