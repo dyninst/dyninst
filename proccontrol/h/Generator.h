@@ -68,7 +68,6 @@ class PC_EXPORT Generator
    
    void forceEventBlock();
 
-   //State tracking
    typedef enum {
       none,
       initializing,
