@@ -73,7 +73,7 @@ class SimpleInterval
   protected:
     T low_{};
     T high_{};
-    U id_{}; // some arbitrary unique identifier
+    U id_{};
 };
 
 template<class ITYPE>
@@ -91,7 +91,6 @@ class IBSNode {
         right(NULL),
         parent(NULL) { }
 
-    /** constructor for non-nil elements **/
     IBSNode(interval_type value, IBSNode *n) :
         val_(value),
         color(IBS::TREE_RED),
@@ -114,10 +113,8 @@ class IBSNode {
 
 
   private: 
-    /* The endpoint of an interval range */
     interval_type val_;
 
-    /* Intervals indexed by this node */
     std::set<ITYPE *> less;
     std::set<ITYPE *> greater;
     std::set<ITYPE *> equal;
@@ -154,38 +151,25 @@ public:
     IBSNode<ITYPE> *nil;
 
 private:
-    /** size of tree **/
     boost::atomic<int> treeSize;
 
-    /** pointer to the tree root **/
     IBSNode<ITYPE> *root;
 
-    /** reader-writer lock to coordinate concurrent operations **/
     mutable dyn_rwlock rwlock;
 
-    /** RB-tree left rotation with modification to enforce IBS invariants **/
     void leftRotate(IBSNode<ITYPE> *);
 
-    /** RB-tree right rotation with modification to enforce IBS invariants **/
     void rightRotate(IBSNode<ITYPE> *);
-
 
     void removeInterval(IBSNode<ITYPE> *R, ITYPE *range);
 
-    /** Insertion operations: insert the left or right endpoint of
-        an interval into the tree (may or may not add a node **/
     IBSNode<ITYPE>* addLeft(ITYPE *I, IBSNode<ITYPE> *R);
     IBSNode<ITYPE>* addRight(ITYPE *I, IBSNode<ITYPE> *R);
 
-    /** Find the lowest valued ancestor of node R that has R in its
-        left subtree -- used in addLeft to determine whether all of
-        the values in R's right subtree are covered by an interval **/
     interval_type rightUp(IBSNode<ITYPE> *R);
 
-    /** Symmetric to rightUp **/
     interval_type leftUp(IBSNode<ITYPE> *R);
 
-    /** Tree-balancing algorithm on insertion **/
     void insertFixup(IBSNode<ITYPE> *x);
 
     /** Finds the precessor of the node; this node will have its value
@@ -195,7 +179,6 @@ private:
     /** Find a node with the provided value (interval endpoint) **/
     //IBSNode* findNode(int) const;
 
-    /** Delete all nodes in the subtree rooted at the parameter **/
     void destroy(IBSNode<ITYPE> *);
 
     void findIntervals(interval_type X, IBSNode<ITYPE> *R, std::set<ITYPE *> &S) const;
@@ -263,18 +246,13 @@ public:
 
     void remove(ITYPE *);
 
-    /** Find all intervals that overlap the provided point. Returns
-        the number of intervals found **/  
     int find(interval_type, std::set<ITYPE *> &) const;
     int find(ITYPE *I, std::set<ITYPE *> &) const;
 
-    /** Finds the very next interval(s) with left endpoint
-        = supremum(X) **/
     void successor(interval_type X, std::set<ITYPE *> &) const; 
-    /** Use only when no two intervals share the same lower bound **/
+
     ITYPE * successor(interval_type X) const;
 
-    /** Delete all entries in the tree **/
     void clear();
 
     void PrintPreorder() {
@@ -558,10 +536,6 @@ IBSTree<ITYPE>::addRight(ITYPE *I, IBSNode<ITYPE> *R)
     return NULL; // make GCC happy
 }
 
-/* Traverse upward in the tree, looking for the nearest ancestor
-   that has R in its left subtree and return that value. Since this
-   routine is used to compute an upper bound on an interval, failure
-   to find a node should return +infinity */
 template<class ITYPE>
 typename ITYPE::type
 IBSTree<ITYPE>::rightUp(IBSNode<ITYPE> *R)
@@ -574,8 +548,6 @@ IBSTree<ITYPE>::rightUp(IBSNode<ITYPE> *R)
     return std::numeric_limits<interval_type>::max();
 }
 
-/* Same as rightUp, only looking for the nearest ancestor node that
-   has R in its RIGHT subtree, returning NEGATIVE infinity upon failure */
 template<class ITYPE>
 typename ITYPE::type
 IBSTree<ITYPE>::leftUp(IBSNode<ITYPE> *R)
@@ -589,7 +561,6 @@ IBSTree<ITYPE>::leftUp(IBSNode<ITYPE> *R)
     return std::numeric_limits<interval_type>::min();
 }
 
-/* Restore RB-tree invariants after node insertion */
 template<class ITYPE>
 void IBSTree<ITYPE>::insertFixup(IBSNode<ITYPE> *x)
 {
@@ -672,16 +643,6 @@ void IBSTree<ITYPE>::findIntervals(interval_type X, IBSNode<ITYPE> *R, std::set<
     }
 }
 
-/* Find all intervals that intersect an interval:
-
-   If low is < a node, take the < set (any interval in < contains low)
-   If low or high are > a node, take the > set
-   If low <= a node and high > a node, take the = set
-
-   NB Because this traversal may go both directions in the tree,
-      it remains a recursive operation and is less efficient
-      than a pointwise stabbing query.
-*/
 template<class ITYPE>
 void IBSTree<ITYPE>::findIntervals(ITYPE * I, IBSNode<ITYPE> *R, std::set<ITYPE *> &S) const
 {
@@ -744,8 +705,6 @@ int IBSTree<ITYPE>::CountMarks(IBSNode<ITYPE> *R) const
     return (R->less.size() + R->greater.size() + R->equal.size()) +
         CountMarks(R->left) + CountMarks(R->right);
 }
-
-/***************** Public methods *****************/
 
 template<class ITYPE>
 void IBSTree<ITYPE>::insert(ITYPE *range)
