@@ -19,7 +19,15 @@ ParseCallback.h
 
   .. cpp:function:: protected virtual void interproc_cf(Function*, Block *, Address, interproc_details*)
   .. cpp:function:: protected virtual void instruction_cb(Function*, Block *, Address, insn_details*)
+
+    Allow examination of every instruction processed during parsing.
+
   .. cpp:function:: protected virtual void overlapping_blocks(Block*, Block*)
+
+    Notify about inconsistent parse data (overlapping blocks).
+
+    The blocks are *not* guaranteed to be finished parsing at the time the callback is fired.
+
   .. cpp:function:: protected virtual void newfunction_retstatus(Function*)
   .. cpp:function:: protected virtual void patch_nop_jump(Address)
   .. cpp:function:: protected virtual bool updateCodeBytes(Address)
@@ -70,6 +78,9 @@ ParseCallback.h
     .. cpp:enumerator:: ret
     .. cpp:enumerator:: call
     .. cpp:enumerator:: branch_interproc
+
+      tail calls, branches to plts
+
     .. cpp:enumerator:: syscall
     .. cpp:enumerator:: unresolved
 
@@ -104,6 +115,98 @@ ParseCallback.h
 
   .. cpp:enumerator:: source
   .. cpp:enumerator:: target
+
+
+.. cpp:class:: ParseCallbackManager
+
+  .. cpp:function:: ParseCallbackManager(ParseCallback *b)
+  .. cpp:function:: virtual ~ParseCallbackManager()
+  .. cpp:type:: std::list<ParseCallback *> Callbacks
+  .. cpp:type:: Callbacks::iterator iterator
+  .. cpp:type:: Callbacks::const_iterator const_iterator
+  .. cpp:function:: void registerCallback(ParseCallback *a)
+  .. cpp:function:: void unregisterCallback(ParseCallback *a)
+  .. cpp:function:: const_iterator begin() const
+  .. cpp:function:: const_iterator end() const
+  .. cpp:function:: iterator begin()
+  .. cpp:function:: iterator end()
+  .. cpp:function:: void batch_begin()
+  .. cpp:function:: void batch_end(CFGFactory *fact)
+
+    fact provided so we can safely delete
+
+  .. cpp:function:: void destroy(Block *, CFGFactory *fact)
+  .. cpp:function:: void destroy(Edge *, CFGFactory *fact)
+  .. cpp:function:: void destroy(Function *, CFGFactory *fact)
+  .. cpp:function:: void removeEdge(Block *, Edge *, ParseCallback::edge_type_t)
+  .. cpp:function:: void addEdge(Block *, Edge *, ParseCallback::edge_type_t)
+  .. cpp:function:: void removeBlock(Function *, Block *)
+  .. cpp:function:: void addBlock(Function *, Block *)
+  .. cpp:function:: void splitBlock(Block *, Block *)
+  .. cpp:function:: void modifyEdge(Edge *, Block *, ParseCallback::edge_type_t)
+  .. cpp:function:: void interproc_cf(Function*,Block *,Address,ParseCallback::interproc_details*)
+  .. cpp:function:: void instruction_cb(Function*,Block *,Address,ParseCallback::insn_details*)
+  .. cpp:function:: void overlapping_blocks(Block*,Block*)
+  .. cpp:function:: void newfunction_retstatus(Function*)
+  .. cpp:function:: void patch_nop_jump(Address)
+  .. cpp:function:: bool updateCodeBytes(Address)
+  .. cpp:function:: void abruptEnd_cf(Address, Block *,ParseCallback::default_details*)
+  .. cpp:function:: bool absAddr(Address absolute, Address& loadAddr, CodeObject*& containerObject)
+  .. cpp:function:: bool hasWeirdInsns(const Function*)
+  .. cpp:function:: void foundWeirdInsns(Function*)
+  .. cpp:function:: void split_block_cb(Block *, Block *)
+  .. cpp:function:: void discover_function(Function*)
+  .. cpp:function:: private void destroy_cb(Block *)
+  .. cpp:function:: private void destroy_cb(Edge *)
+  .. cpp:function:: private void destroy_cb(Function *)
+  .. cpp:function:: private void remove_edge_cb(Block *, Edge *, ParseCallback::edge_type_t)
+  .. cpp:function:: private void add_edge_cb(Block *, Edge *, ParseCallback::edge_type_t)
+  .. cpp:function:: private void remove_block_cb(Function *, Block *)
+  .. cpp:function:: private void add_block_cb(Function *, Block *)
+  .. cpp:function:: private void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t)
+  .. cpp:member:: private Callbacks cbs_
+  .. cpp:member:: private bool inBatch_
+  .. cpp:type:: private std::pair<Block *, Block *> BlockSplit
+  .. cpp:member:: private std::vector<Edge *> destroyedEdges_
+  .. cpp:member:: private std::vector<Block *> destroyedBlocks_
+  .. cpp:member:: private std::vector<Function *> destroyedFunctions_
+  .. cpp:member:: private std::vector<BlockMod> blockMods_
+  .. cpp:member:: private std::vector<EdgeMod> edgeMods_
+  .. cpp:member:: private std::vector<FuncMod> funcMods_
+  .. cpp:member:: private std::vector<BlockSplit> blockSplits_
+
+
+.. cpp:enum:: ParseCallbackManager::mod_t
+
+  .. cpp:enumerator:: removed
+  .. cpp:enumerator:: added
+
+
+.. cpp:struct:: ParseCallbackManager::BlockMod
+
+  .. cpp:member:: private Block *block
+  .. cpp:member:: private Edge *edge
+  .. cpp:member:: private ParseCallback::edge_type_t type
+  .. cpp:member:: private mod_t action
+  .. cpp:function:: private BlockMod(Block *b, Edge *e, ParseCallback::edge_type_t t, mod_t m)
+
+
+.. cpp:struct:: ParseCallbackManager::EdgeMod
+
+  .. cpp:member:: private Edge *edge
+  .. cpp:member:: private Block *block
+  .. cpp:member:: private ParseCallback::edge_type_t action
+  .. cpp:function:: private EdgeMod(Edge *e, Block *b, ParseCallback::edge_type_t t)
+
+
+.. cpp:struct:: ParseCallbackManager::FuncMod
+
+  .. cpp:member:: private Function *func
+  .. cpp:member:: private Block *block
+  .. cpp:member:: private mod_t action
+  .. cpp:function:: private FuncMod(Function *f, Block *b, mod_t m)
+
+
 
 Notes
 =====

@@ -30,14 +30,6 @@
 #ifndef _PARSE_CALLBACK_H_
 #define _PARSE_CALLBACK_H_
 
-/** A ParseCallback allows extenders of this library to
-    receive notifications during parsing of a variety of events.
-
-    An implementer can choose to override one, several, or all of
-    the methods in order to receive appropriate notification
-    during parsing.
-**/
-
 #include <list>
 #include <stddef.h>
 #include <utility>
@@ -70,7 +62,7 @@ class ParseCallback {
     typedef enum {
         ret,
         call,
-        branch_interproc, // tail calls, branches to plts
+        branch_interproc,
         syscall,
         unresolved
     } type_t;
@@ -99,20 +91,11 @@ class ParseCallback {
      source, 
      target } edge_type_t;
 
-  // Callbacks
   protected:
   virtual void interproc_cf(Function*,Block *,Address,interproc_details*) { }
 
-  /*
-   * Allow examination of every instruction processed during parsing.
-   */
   virtual void instruction_cb(Function*,Block *,Address,insn_details*) { }
 
-  /* 
-   * Notify about inconsistent parse data (overlapping blocks).
-   * The blocks are *not* guaranteed to be finished parsing at
-   * the time the callback is fired.
-   */
   virtual void overlapping_blocks(Block*,Block*) { }
 
   virtual void newfunction_retstatus(Function*) { }
@@ -144,8 +127,6 @@ class ParseCallback {
 
   private:
 };
-
-// And the wrapper class used by CodeObject. 
 
 class ParseCallbackManager {
   public:
