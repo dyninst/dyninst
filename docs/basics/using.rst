@@ -35,3 +35,5 @@ then you need to pass that to your project, as well.
 
 If your project uses TBB, then this also ensures that your project and Dyninst use the same version
 of TBB.
+
+See :ref:`sec-basic-using-dyninst` for details on using Dyninst.
