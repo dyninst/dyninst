@@ -25,4 +25,4 @@ jobs:
         source env/bin/activate
         pip install -r requirements.txt
         `cd $(find env/lib -type d -name sphinxcontrib) && wget https://raw.githubusercontent.com/wpilibsuite/sphinxext-remoteliteralinclude/main/sphinxext/remoteliteralinclude.py`
-        make html
+        make -j2 html
