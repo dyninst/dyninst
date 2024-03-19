@@ -69,14 +69,6 @@ class InsertedRegion : public CodeRegion {
    
    PARSER_EXPORT InsertedRegion(Address base, void *data, unsigned size, Architecture arch); 
    PARSER_EXPORT virtual ~InsertedRegion();
-   
-   
-   // names: not overriden (as there are no names [yet])
-   // findCatchBlock: there isn't one
-
-   // Addresses are provided by the user, as Dyninst etc. have
-   // well-known ways of allocating additional code by extending
-   // the binary or allocating memory, etc. 
    PARSER_EXPORT Address low() const { return base_; }
    PARSER_EXPORT Address high() const { return base_ + size_; }
 

@@ -51,6 +51,10 @@ needs internal information about CFG objects.
 
 .. cpp:class:: InsertedRegion : public CodeRegion
 
+  .. note::
+    names: not overriden (as there are no names [yet])
+    findCatchBlock: not overridden because there isn't one
+
   .. cpp:function:: InsertedRegion(Address base, void *data, unsigned size, Architecture arch)
 
   .. cpp:function:: Address low() const
