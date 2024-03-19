@@ -47,6 +47,19 @@ CodeObject.h
 
       Destroy the function listed.
 
+  .. cpp:function:: private void process_hints()
+  .. cpp:function:: private void add_edge(Block *src, Block *trg, EdgeTypeEnum et)
+  .. cpp:member:: private CodeSource * _cs
+  .. cpp:member:: private CFGFactory * _fact
+  .. cpp:member:: private ParseCallbackManager * _pcb
+
+  .. cpp:member:: private Parser * parser
+
+    parser implementation
+
+  .. cpp:member:: private bool owns_factory
+  .. cpp:member:: private bool defensive
+  .. cpp:member:: private funclist& flist
 
 
 Notes

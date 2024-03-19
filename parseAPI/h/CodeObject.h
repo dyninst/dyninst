@@ -47,7 +47,7 @@
 namespace Dyninst {
 namespace ParseAPI {
 
-class Parser;   // internals
+class Parser;
 class ParseCallback;
 class ParseCallbackManager;
 class CFGModifier;
@@ -70,8 +70,6 @@ class CodeObject {
                              bool ignoreParse = false);
     PARSER_EXPORT ~CodeObject();
 
-    /** Parsing interface **/
-
     PARSER_EXPORT void parse();
     
     PARSER_EXPORT void parse(Address target, bool recursive);
@@ -84,7 +82,7 @@ class CodeObject {
 		Block *source;
 		Address target;
 		EdgeTypeEnum edge_type;
-        bool checked; // true if call_ft edges have already had their callees checked
+        bool checked;
 		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c), checked(false) {}
         NewEdgeToParse(Block* a, Address b, bool c, EdgeTypeEnum d) : source(a), target(b), edge_type(d), checked(c) { }
 	};
@@ -92,8 +90,6 @@ class CodeObject {
     PARSER_EXPORT bool parseNewEdges( std::vector<NewEdgeToParse> & worklist ); 
 
     PARSER_EXPORT void parseGaps(CodeRegion *cr, GapParsingType type=IdiomMatching);
-
-    /** Lookup routines **/
 
     PARSER_EXPORT Function * findFuncByEntry(CodeRegion * cr, Address entry);
     PARSER_EXPORT int findFuncsByBlock(CodeRegion *cr, Block* b, std::set<Function*> &funcs);
@@ -110,7 +106,6 @@ class CodeObject {
 
     PARSER_EXPORT const funclist & funcs() { return flist; }
 
-    // blocks
     PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
     PARSER_EXPORT int findBlocks(CodeRegion * cr, 
         Address addr, std::set<Block*> & blocks);
@@ -154,14 +149,13 @@ class CodeObject {
     CFGFactory * _fact;
     ParseCallbackManager * _pcb;
 
-    Parser * parser; // parser implementation
+    Parser * parser;
 
     bool owns_factory;
     bool defensive;
     funclist& flist;
 };
 
-// We need CFG.h, which is included by this
 template <class OutputIterator>
 void Block::getFuncs(OutputIterator result) {
   std::set<Function *> stab;
