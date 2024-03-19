@@ -28,9 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Graph class
-
-
 #if !defined(GRAPH_H)
 #define GRAPH_H
 
@@ -84,20 +81,15 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     };
 
     typedef bool (*NodePredicateFunc)(const NodePtr &node, void *user_arg);
-    
-    // If you want to traverse the graph start here.
+
     virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
 
-    // If you want to traverse the graph backwards start here.
     virtual void exitNodes(NodeIterator &begin, NodeIterator &end);
     
-    // Get all nodes in the graph
     virtual void allNodes(NodeIterator &begin, NodeIterator &end);
 
-    // Get all nodes with a provided address
     virtual bool find(Address addr, NodeIterator &begin, NodeIterator &end);
 
-    // Get all nodes that satisfy the provided predicate
     virtual bool find(NodePredicate::Ptr, NodeIterator &begin, NodeIterator &end);
     virtual bool find(NodePredicateFunc, void *user_arg, NodeIterator &begin, NodeIterator &end);
 
@@ -105,7 +97,6 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
 
     virtual ~Graph() {}
     
-    // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
     
     void insertPair(NodePtr source, NodePtr target, EdgePtr edge = EdgePtr());
