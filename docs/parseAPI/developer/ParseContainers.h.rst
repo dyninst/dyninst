@@ -3,6 +3,9 @@
 ParseContainers.h
 #################
 
+An iterator and a predicate interface, and a ContainerWrapper that can provide a forward predicate
+iterator for any container that exports a ``begin()`` and ``end()``.
+
 .. cpp:namespace:: Dyninst::ParseAPI
 
 **A predicate interface**
