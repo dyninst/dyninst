@@ -430,14 +430,25 @@ ProcessSet.h
   .. cpp:member:: std::vector<std::string> envp
   .. cpp:member:: std::map<int, int> fds
   .. cpp:member:: ProcControlAPI::err_t error_ret
+
+     Set on return
+
   .. cpp:member:: Process::ptr proc
+
+    Set on return
+
 
 .. cpp:struct:: ProcessSet::AttachInfo
 
   .. cpp:member:: Dyninst::PID pid
   .. cpp:member:: std::string executable
   .. cpp:member:: ProcControlAPI::err_t error_ret
+
+    Set on return
+
   .. cpp:member:: Process::ptr proc
+
+    Set on return
 
 
 .. cpp:class:: AddressSet

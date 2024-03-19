@@ -162,16 +162,16 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
       std::vector<std::string> argv;
       std::vector<std::string> envp;
       std::map<int, int> fds;
-      ProcControlAPI::err_t error_ret; //Set on return
-      Process::ptr proc;               //Set on return
+      ProcControlAPI::err_t error_ret;
+      Process::ptr proc;
    };
    static ProcessSet::ptr createProcessSet(std::vector<CreateInfo> &cinfo);
 
    struct AttachInfo {
       Dyninst::PID pid;
       std::string executable;
-      ProcControlAPI::err_t error_ret; //Set on return
-      Process::ptr proc;               //Set on return
+      ProcControlAPI::err_t error_ret;
+      Process::ptr proc;
    };
    static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo);
 
@@ -237,15 +237,9 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    size_t erase(Process::const_ptr);
    void clear();
 
-   /**
-    * Error management.
-    **/
    ProcessSet::ptr getErrorSubset() const;
    void getErrorSubsets(std::map<ProcControlAPI::err_t, ProcessSet::ptr> &err_sets) const;
 
-   /**
-    * Test state of processes
-    **/
    bool anyTerminated() const;
    bool anyExited() const;
    bool anyCrashed() const;
@@ -275,9 +269,6 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    bool temporaryDetach() const;
    bool reAttach() const;
 
-   /**
-    * Memory management
-    **/
    AddressSet::ptr mallocMemory(size_t size) const;
    bool mallocMemory(size_t size, AddressSet::ptr location) const;
    bool freeMemory(AddressSet::ptr addrs) const;
@@ -304,9 +295,6 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    bool writeMemory(AddressSet::ptr addr, const void *buffer, size_t size) const;
    bool writeMemory(std::multimap<Process::const_ptr, write_t> &addrs) const;
 
-   /**
-    * Breakpoints
-    **/
    bool addBreakpoint(AddressSet::ptr addrs, Breakpoint::ptr bp) const;
    bool rmBreakpoint(AddressSet::ptr addrs, Breakpoint::ptr bp) const;
 
@@ -399,18 +387,9 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
    size_t erase(Thread::const_ptr t);
    void clear();
 
-   /**
-    * Error management.
-    *
-    * Return the subset of threads that had any error on the last operation, or
-    * group them into subsets based on unique error codes.
-    **/
    ThreadSet::ptr getErrorSubset() const;
    void getErrorSubsets(std::map<ProcControlAPI::err_t, ThreadSet::ptr> &err_sets) const;
 
-   /**
-    * Query thread states
-    **/
    bool allStopped() const;
    bool allRunning() const;
    bool allTerminated() const;
