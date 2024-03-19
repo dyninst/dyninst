@@ -50,7 +50,6 @@ namespace Dyninst
     template <typename ITYPE >
     class IBSTree_fast {
     private:
-        // reader-writer lock to coordinate concurrent operations
         mutable dyn_rwlock rwlock;
 
     public:

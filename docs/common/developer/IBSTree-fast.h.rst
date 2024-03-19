@@ -26,3 +26,7 @@ IBSTree-fast.h
   .. cpp:function:: ITYPE* successor(interval_type X) const
   .. cpp:function:: void clear()
   .. cpp:function:: friend std::ostream& operator<<(std::ostream& stream, const IBSTree_fast<ITYPE>& tree)
+
+  .. cpp:member:: mutable dyn_rwlock rwlock
+
+    Reader-writer lock to coordinate concurrent operations.
