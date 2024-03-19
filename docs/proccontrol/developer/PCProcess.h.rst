@@ -99,9 +99,12 @@ PCProcess.h
   .. cpp:member:: Dyninst::Address fileBase
 
 
+.. cpp:namespace-push:: dev
+
 .. cpp:class:: IRPC
 
   .. cpp:member:: private rpc_wrapper *wrapper
   .. cpp:function:: private IRPC(rpc_wrapper *wrapper_)
   .. cpp:function:: private ~IRPC()
 
+.. cpp:namespace-pop::
