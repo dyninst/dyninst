@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Stubs for now
-
 #if !defined(SymEval_h)
 #define SymEval_h
 
@@ -326,15 +324,12 @@ public:
      SKIPPED_INPUT,
      SUCCESS } Retval_t;
 
-    // Expands a single assignment given by `assignment`.
     DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
 
-  // Expands a set of assignment prepared in `res`.
   DATAFLOW_EXPORT static bool expand(Result_t &res, 
                                      std::set<InstructionAPI::Instruction> &failedInsns,
                                      bool applyVisitors = true);
 
-  // Expands a slice and returns an AST for each assignment in it.
   DATAFLOW_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
   
  private:
