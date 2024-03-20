@@ -922,11 +922,17 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case branchOp: {
          assert(loperand->getoType() == operandType::Constant);
          unsigned offset = (Dyninst::Register) (long) loperand->getOValue();
+         assert(offset % 4 == 0 && "the offset must be 4-byte aligned");
+         uint16_t wordOffset = offset / 4;
+
          // We are not calling loperand->generateCode_phase2,
          // so we decrement its useCount by hand.
          // Would be nice to allow register branches...
          loperand->decUseCount(gen);
-         (void)emitA(branchOp, 0, 0, (Dyninst::Register)offset, gen, rc_no_control, noCost);
+
+         Emitter *emitter = gen.emitter();
+         emitter->emitShortJump(wordOffset, gen);
+
          retReg = Dyninst::Null_Register; // No return register
          break;
       }
