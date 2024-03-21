@@ -35,6 +35,7 @@
 
 #include "Architecture.h"
 #include "registers/reg_def.h"
+#include <cstdint>
 
 namespace Dyninst { namespace ppc32 {
   /**
@@ -49,10 +50,10 @@ namespace Dyninst { namespace ppc32 {
    *  public interface, and may change.
    **/
 
-  const signed int GPR = 0x00010000;
-  const signed int FPR = 0x00020000;
-  const signed int FSR = 0x00040000;
-  const signed int SPR = 0x00080000;
+  const int32_t GPR = 0x00010000;
+  const int32_t FPR = 0x00020000;
+  const int32_t FSR = 0x00040000;
+  const int32_t SPR = 0x00080000;
 
   //          (      name,  ID | cat |       arch, arch   )
   DEF_REGISTER(        r0,   0 | GPR | Arch_ppc32, "ppc32");
