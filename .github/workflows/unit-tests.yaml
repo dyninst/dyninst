@@ -4,6 +4,23 @@ on:
   pull_request:
      branches:
         - master
+     paths:
+       - 'common/**'
+       - 'dataflowAPI/**'
+       - 'dwarf/**'
+       - 'dynC_API/**'
+       - 'dyninstAPI/**'
+       - 'dyninstAPI_RT/**'
+       - 'elf/**'
+       - 'external/**'
+       - 'instructionAPI/**'
+       - 'parseAPI/**'
+       - 'parseThat/**'
+       - 'patchAPI/**'
+       - 'proccontrol/**'
+       - 'stackwalk/**'
+       - 'symlite/**'
+       - 'symtabAPI/**'
      types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
