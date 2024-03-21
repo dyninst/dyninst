@@ -136,13 +136,15 @@ namespace Dyninst { namespace x86_64 {
   const int32_t ID    = x86::ID;    // ID Flag
   /* Flags 22-63 are reserved */
 
-  /* Format of constants:
-   *  [0x000000ff] Lower 16 bits are base register ID
-   *  [0x0000ff00] Next 16 bits are the aliasing and subrange ID used to distinguish
+  /**
+   * Format of constants:
+   *  [0x000000ff] Lower 8 bits are base register ID
+   *  [0x0000ff00] Next 8 bits are the aliasing and subrange ID used to distinguish
    *               between whole and aliased registers like EAX and AH.
-   *  [0x00ff0000] Next 16 bits are the register category, GPR, FLAG, etc.
-   *  [0xff000000] Upper 16 bits are the architecture.
-   */
+   *  [0x00ff0000] Next 8 bits are the register category, GPR, FLAG, etc.
+   *  [0xff000000] Upper 8 bits are the architecture.
+   **/
+
   //          (      name,     ID | alias |   cat |        arch,     arch)
   DEF_REGISTER(       rax,  BASEA |  FULL |   GPR | Arch_x86_64, "x86_64");
   DEF_REGISTER(       eax,  BASEA | D_REG |   GPR | Arch_x86_64, "x86_64");
