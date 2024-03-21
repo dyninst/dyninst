@@ -36,18 +36,19 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 namespace Dyninst {
   typedef unsigned long MachRegisterVal;
 
   class COMMON_EXPORT MachRegister {
   private:
-    signed int reg;
+    int32_t reg;
 
   public:
     MachRegister();
-    explicit MachRegister(signed int r);
-    explicit MachRegister(signed int r, std::string n);
+    explicit MachRegister(int32_t r);
+    explicit MachRegister(int32_t r, std::string n);
 
     MachRegister getBaseRegister() const;
     Architecture getArchitecture() const;
@@ -57,8 +58,8 @@ namespace Dyninst {
     unsigned int size() const;
     bool operator<(const MachRegister& a) const;
     bool operator==(const MachRegister& a) const;
-    operator signed int() const;
-    signed int val() const;
+    operator int32_t() const;
+    int32_t val() const;
 
     // Return the category of the MachRegister
     unsigned int regClass() const;
