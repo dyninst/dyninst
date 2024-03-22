@@ -35,37 +35,35 @@
 
 #include "Architecture.h"
 #include "registers/reg_def.h"
+#include <cstdint>
 
 namespace Dyninst { namespace aarch64 {
 
   /**
-   * For interpreting constants:
-   *  Lowest 16 bits (0x000000ff) is base register ID
-   *  Next 16 bits (0x0000ff00) is the aliasing and subrange ID-
-   *    used on x86/x86_64 to distinguish between things like EAX and AH
-   *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
-   *  Top 16 bits (0xff000000) are the architecture.
-   *
-   *  These values/layout are not guaranteed to remain the same as part of the
-   *  public interface, and may change.
+   * Format of constants:
+   *  [0x000000ff] Lower 8 bits are base register ID
+   *  [0x0000ff00] Next 8 bits are the aliasing and subrange ID used to distinguish
+   *               between whole and aliased registers like w1 and x1.
+   *  [0x00ff0000] Next 8 bits are the register category, GPR, FLAG, etc.
+   *  [0xff000000] Upper 8 bits are the architecture.
    **/
 
   // 0xff000000  0x00ff0000      0x0000ff00      0x000000ff
   // arch        reg cat:GPR     alias&subrange  reg ID
-  const signed int GPR    = 0x00010000;
-  const signed int FPR    = 0x00020000;
-  const signed int FLAG   = 0x00030000;
-  const signed int FSR    = 0x00040000;
-  const signed int SPR    = 0x00080000;
-  const signed int SYSREG = 0x00100000;
+  const int32_t GPR    = 0x00010000;
+  const int32_t FPR    = 0x00020000;
+  const int32_t FLAG   = 0x00030000;
+  const int32_t FSR    = 0x00040000;
+  const int32_t SPR    = 0x00080000;
+  const int32_t SYSREG = 0x00100000;
 
-  const signed int BIT    = 0x00008000;
-  const signed int B_REG  = 0x00000100;  // 8bit  byte reg
-  const signed int W_REG  = 0x00000300;  // 16bit half-wor reg
-  const signed int D_REG  = 0x00000f00;  // 32bit single-word reg
-  const signed int FULL   = 0x00000000;  // 64bit double-word reg
-  const signed int Q_REG  = 0x00000400;  // 128bit reg
-  const signed int HQ_REG = 0x00000500;  // second 64bit in 128bit reg
+  const int32_t BIT    = 0x00008000;
+  const int32_t B_REG  = 0x00000100;  // 8bit  byte reg
+  const int32_t W_REG  = 0x00000300;  // 16bit half-wor reg
+  const int32_t D_REG  = 0x00000f00;  // 32bit single-word reg
+  const int32_t FULL   = 0x00000000;  // 64bit double-word reg
+  const int32_t Q_REG  = 0x00000400;  // 128bit reg
+  const int32_t HQ_REG = 0x00000500;  // second 64bit in 128bit reg
 
   // 31 GPRs, double word long registers
   //          (              name,  ID |  alias |    cat |         arch,      arch)
@@ -763,10 +761,10 @@ namespace Dyninst { namespace aarch64 {
 
   // special registers
   // PC is not writable in aarch64
-  const signed int N_FLAG = 31;
-  const signed int Z_FLAG = 30;
-  const signed int C_FLAG = 29;
-  const signed int V_FLAG = 28;
+  const int32_t N_FLAG = 31;
+  const int32_t Z_FLAG = 30;
+  const int32_t C_FLAG = 29;
+  const int32_t V_FLAG = 28;
 
   DEF_REGISTER(                sp,      31 |  FULL |    SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(               wsp,       0 | D_REG |    SPR | Arch_aarch64, "aarch64");

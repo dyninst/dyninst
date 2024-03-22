@@ -36,6 +36,7 @@
 #include "Architecture.h"
 #include "registers/reg_def.h"
 #include "registers/x86_regs.h"
+#include <cstdint>
 
 namespace Dyninst { namespace x86_64 {
 
@@ -50,98 +51,100 @@ namespace Dyninst { namespace x86_64 {
    *   registers that are historically referred to by name (e.g., AL is
    *   the lower 8 bits of EAX).
    */
-  const signed int FULL   = 0x00000000; // 64 bits
-  const signed int BIT    = 0x00000100; // 1-bit EFLAGS
-  const signed int L_REG  = 0x00000200; // 8-bit, first byte
-  const signed int H_REG  = 0x00000300; // 8-bit, second byte
-  const signed int W_REG  = 0x00000400; // 16-bit, first word
-  const signed int D_REG  = 0x00000500; // 32 bit, first double word
-  const signed int FPDBL  = 0x00000600; // 80-bit x87 FPU
-  const signed int MMS    = 0x00000700; // 64-bit MMX and 3DNow!
-  const signed int XMMS   = 0x00000800; // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
-  const signed int YMMS   = 0x00000900; // 256-bit SSE, AVX2, FMA3/4
-  const signed int ZMMS   = 0x00000A00; // 512-bit AVX-512/AVX10
-  const signed int KMSKS  = 0x00000B00; // 64-bit mask from AVX-512/AVX10
+  const int32_t FULL   = 0x00000000; // 64 bits
+  const int32_t BIT    = 0x00000100; // 1-bit EFLAGS
+  const int32_t L_REG  = 0x00000200; // 8-bit, first byte
+  const int32_t H_REG  = 0x00000300; // 8-bit, second byte
+  const int32_t W_REG  = 0x00000400; // 16-bit, first word
+  const int32_t D_REG  = 0x00000500; // 32 bit, first double word
+  const int32_t FPDBL  = 0x00000600; // 80-bit x87 FPU
+  const int32_t MMS    = 0x00000700; // 64-bit MMX and 3DNow!
+  const int32_t XMMS   = 0x00000800; // 128-bit SSE, FC16, XOP, AVX, and FMA3/4
+  const int32_t YMMS   = 0x00000900; // 256-bit SSE, AVX2, FMA3/4
+  const int32_t ZMMS   = 0x00000A00; // 512-bit AVX-512/AVX10
+  const int32_t KMSKS  = 0x00000B00; // 64-bit mask from AVX-512/AVX10
 
   /* Register Categories */
-  const signed int GPR    = 0x00010000;  // General-Purpose Registers
-  const signed int SEG    = 0x00020000;  // Segment Registers
-  const signed int FLAG   = 0x00030000;  // RFLAGS Register
-  const signed int MISC   = 0x00040000;  // Internal ProcControlAPI Register
-  const signed int CTL    = 0x00050000;  // Control Registers CR0-CR7
-  const signed int DBG    = 0x00060000;  // Debug Registers DR0-DR7
-  const signed int TST    = 0x00070000;  // Internal InstructionAPI Registers
-  const signed int X87    = 0x00080000;  // x87 FPU Registers
-  const signed int MMX    = 0x00090000;  // MM0-MM7 Registers
-  const signed int XMM    = 0x000A0000;  // XMM0-XMM15 Registers from SSE (XMM0-XMM31 for AVX-512)
-  const signed int YMM    = 0x000B0000;  // YMM0-YMM15 Registers from AVX2/FMA (YMM0-YMM31 for AVX-512)
-  const signed int ZMM    = 0x000C0000;  // ZMM0-ZMM31 Registers from AVX-512
-  const signed int KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
-  const signed int FPCTL  = 0x000E0000;  // control/status Registers from x87, SSE, and AVX
+  const int32_t GPR    = 0x00010000;  // General-Purpose Registers
+  const int32_t SEG    = 0x00020000;  // Segment Registers
+  const int32_t FLAG   = 0x00030000;  // RFLAGS Register
+  const int32_t MISC   = 0x00040000;  // Internal ProcControlAPI Register
+  const int32_t CTL    = 0x00050000;  // Control Registers CR0-CR7
+  const int32_t DBG    = 0x00060000;  // Debug Registers DR0-DR7
+  const int32_t TST    = 0x00070000;  // Internal InstructionAPI Registers
+  const int32_t X87    = 0x00080000;  // x87 FPU Registers
+  const int32_t MMX    = 0x00090000;  // MM0-MM7 Registers
+  const int32_t XMM    = 0x000A0000;  // XMM0-XMM15 Registers from SSE (XMM0-XMM31 for AVX-512)
+  const int32_t YMM    = 0x000B0000;  // YMM0-YMM15 Registers from AVX2/FMA (YMM0-YMM31 for AVX-512)
+  const int32_t ZMM    = 0x000C0000;  // ZMM0-ZMM31 Registers from AVX-512
+  const int32_t KMASK  = 0x000D0000;  // K0-K7 opmask Registers from AVX-512
+  const int32_t FPCTL  = 0x000E0000;  // control/status Registers from x87, SSE, and AVX
 
   /* Base IDs for aliased GPRs */
-  const signed int FLAGS  = 0x00;  // RFLAGS Register
-  const signed int BASEA  = 0x01;
-  const signed int BASEC  = 0x02;
-  const signed int BASED  = 0x03;
-  const signed int BASEB  = 0x04;
-  const signed int BASESP = 0x05;
-  const signed int BASEBP = 0x06;
-  const signed int BASESI = 0x07;
-  const signed int BASEDI = 0x08;
-  const signed int BASE8  = 0x09;
-  const signed int BASE9  = 0x0A;
-  const signed int BASE10 = 0x0B;
-  const signed int BASE11 = 0x0C;
-  const signed int BASE12 = 0x0D;
-  const signed int BASE13 = 0x0E;
-  const signed int BASE14 = 0x0F;
-  const signed int BASE15 = 0x10;
+  const int32_t FLAGS  = 0x00;  // RFLAGS Register
+  const int32_t BASEA  = 0x01;
+  const int32_t BASEC  = 0x02;
+  const int32_t BASED  = 0x03;
+  const int32_t BASEB  = 0x04;
+  const int32_t BASESP = 0x05;
+  const int32_t BASEBP = 0x06;
+  const int32_t BASESI = 0x07;
+  const int32_t BASEDI = 0x08;
+  const int32_t BASE8  = 0x09;
+  const int32_t BASE9  = 0x0A;
+  const int32_t BASE10 = 0x0B;
+  const int32_t BASE11 = 0x0C;
+  const int32_t BASE12 = 0x0D;
+  const int32_t BASE13 = 0x0E;
+  const int32_t BASE14 = 0x0F;
+  const int32_t BASE15 = 0x10;
 
   /* Base IDs for memory segment registers */
-  const signed int BASEDS = 0x0; // Data Segment register
-  const signed int BASESS = 0x1; // Stack Segment register
-  const signed int BASEFS = 0x2; // F Segment register
-  const signed int BASEGS = 0x3; // G Segment register
-  const signed int BASECS = 0x4; // Code Segment register
-  const signed int BASEES = 0x5; // Extended data Segment register
-  const signed int BASEGD = 0x6; // Global Descriptor Table
-  const signed int BASELD = 0x7; // Local Descriptor Table
-  const signed int BASEID = 0X8; // Interrupt Descriptor Table
-  const signed int BASETR = 0x9; // Task Register
+  const int32_t BASEDS = 0x0; // Data Segment register
+  const int32_t BASESS = 0x1; // Stack Segment register
+  const int32_t BASEFS = 0x2; // F Segment register
+  const int32_t BASEGS = 0x3; // G Segment register
+  const int32_t BASECS = 0x4; // Code Segment register
+  const int32_t BASEES = 0x5; // Extended data Segment register
+  const int32_t BASEGD = 0x6; // Global Descriptor Table
+  const int32_t BASELD = 0x7; // Local Descriptor Table
+  const int32_t BASEID = 0X8; // Interrupt Descriptor Table
+  const int32_t BASETR = 0x9; // Task Register
 
   /* Base IDs for each bit in RFLAGS */
-  const signed int CF    = x86::CF;    // Carry Flag
-  const signed int FLAG1 = x86::FLAG1; // Reserved
-  const signed int PF    = x86::PF;    // Parity Flag
-  const signed int FLAG3 = x86::FLAG3; // Reserved
-  const signed int AF    = x86::AF;    // Auxiliary Carry Flag
-  const signed int FLAG5 = x86::FLAG5; // Reserved
-  const signed int ZF    = x86::ZF;    // Zero Flag
-  const signed int SF    = x86::SF;    // Sign Flag
-  const signed int TF    = x86::TF;    // Trap Flag
-  const signed int IF    = x86::IF;    // Interrupt Enable Flag
-  const signed int DF    = x86::DF;    // Direction Flag
-  const signed int OF    = x86::OF;    // Overflow Flag
-  const signed int FLAGC = x86::FLAGC; // I/O Privilege Level (bits 12 and 13)
-  const signed int FLAGD = x86::FLAGD; // I/O Privilege Level (bits 12 and 13)
-  const signed int NT    = x86::NT;    // Nested Task
-  const signed int FLAGF = x86::FLAGF; // Reserved
-  const signed int RF    = x86::RF;    // Resume Flag
-  const signed int VM    = x86::VM;    // Virtual-8086 Mode
-  const signed int AC    = x86::AC;    // Alignment Check/Access Control
-  const signed int VIF   = x86::VIF;   // Virtual Interrupt Flag
-  const signed int VIP   = x86::VIP;   // Virtual Interrupt Pending
-  const signed int ID    = x86::ID;    // ID Flag
+  const int32_t CF    = x86::CF;    // Carry Flag
+  const int32_t FLAG1 = x86::FLAG1; // Reserved
+  const int32_t PF    = x86::PF;    // Parity Flag
+  const int32_t FLAG3 = x86::FLAG3; // Reserved
+  const int32_t AF    = x86::AF;    // Auxiliary Carry Flag
+  const int32_t FLAG5 = x86::FLAG5; // Reserved
+  const int32_t ZF    = x86::ZF;    // Zero Flag
+  const int32_t SF    = x86::SF;    // Sign Flag
+  const int32_t TF    = x86::TF;    // Trap Flag
+  const int32_t IF    = x86::IF;    // Interrupt Enable Flag
+  const int32_t DF    = x86::DF;    // Direction Flag
+  const int32_t OF    = x86::OF;    // Overflow Flag
+  const int32_t FLAGC = x86::FLAGC; // I/O Privilege Level (bits 12 and 13)
+  const int32_t FLAGD = x86::FLAGD; // I/O Privilege Level (bits 12 and 13)
+  const int32_t NT    = x86::NT;    // Nested Task
+  const int32_t FLAGF = x86::FLAGF; // Reserved
+  const int32_t RF    = x86::RF;    // Resume Flag
+  const int32_t VM    = x86::VM;    // Virtual-8086 Mode
+  const int32_t AC    = x86::AC;    // Alignment Check/Access Control
+  const int32_t VIF   = x86::VIF;   // Virtual Interrupt Flag
+  const int32_t VIP   = x86::VIP;   // Virtual Interrupt Pending
+  const int32_t ID    = x86::ID;    // ID Flag
   /* Flags 22-63 are reserved */
 
-  /* Format of constants:
-   *  [0x000000ff] Lower 16 bits are base register ID
-   *  [0x0000ff00] Next 16 bits are the aliasing and subrange ID used to distinguish
+  /**
+   * Format of constants:
+   *  [0x000000ff] Lower 8 bits are base register ID
+   *  [0x0000ff00] Next 8 bits are the aliasing and subrange ID used to distinguish
    *               between whole and aliased registers like EAX and AH.
-   *  [0x00ff0000] Next 16 bits are the register category, GPR, FLAG, etc.
-   *  [0xff000000] Upper 16 bits are the architecture.
-   */
+   *  [0x00ff0000] Next 8 bits are the register category, GPR, FLAG, etc.
+   *  [0xff000000] Upper 8 bits are the architecture.
+   **/
+
   //          (      name,     ID | alias |   cat |        arch,     arch)
   DEF_REGISTER(       rax,  BASEA |  FULL |   GPR | Arch_x86_64, "x86_64");
   DEF_REGISTER(       eax,  BASEA | D_REG |   GPR | Arch_x86_64, "x86_64");
