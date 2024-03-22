@@ -37,4 +37,3 @@ AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersion
 AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
 AnnotationClass<std::vector<Region *> > UserRegionsAnno("UserRegionsAnno");
 AnnotationClass<std::vector<Type *> > UserTypesAnno("UserTypesAnno");
-AnnotationClass<std::vector<Symbol *> > UserSymbolsAnno("UserSymbolsAnno");
