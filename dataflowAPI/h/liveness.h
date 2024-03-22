@@ -79,19 +79,6 @@ public:
 	LivenessAnalyzer(int w);
 	void analyze(ParseAPI::Function *func);
 
-	template <class OutputIterator>
-	bool query(ParseAPI::Location loc, Type type, OutputIterator outIter){
-		bitArray liveRegs;
-		if (query(loc,type, liveRegs)){
-			for (std::map<MachRegister,int>::const_iterator iter = abi->getIndexMap()->begin(); iter != abi->getIndexMap()->end(); ++iter)
-				if (liveRegs[iter->second]){
-					outIter = iter->first;
-					++outIter;
-				}
-			return true;
-		}
-		return false;
-	}
 	bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
 	bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
 
