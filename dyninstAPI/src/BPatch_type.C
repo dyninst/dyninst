@@ -47,7 +47,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-AnnotationClass<BPatch_localVar> LocalVarUpPtrAnno("LocalVarUpPtrAnno", NULL);
 AnnotationClass<BPatch_field> FieldUpPtrAnno("FieldUpPtrAnno", NULL);
 AnnotationClass<BPatch_type> TypeUpPtrAnno("TypeUpPtr", NULL);
 //static int findIntrensicType(const char *name);
@@ -430,14 +429,6 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
        storageClass = BPatch_storageFrameOffset;
     else
        storageClass = convertToBPatchStorage(& locs[0]);
-
-
-
-	if (!lVar->addAnnotation(this, LocalVarUpPtrAnno))
-	{
-		fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-	}
-
 }
 
 BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::VariableLocation *loc)
