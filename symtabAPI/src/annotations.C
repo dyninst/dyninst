@@ -33,7 +33,6 @@
 #include "annotations.h"
 #include "Annotatable.h"
 
-AnnotationClass<localVarCollection> FunctionParametersAnno("FunctionParametersAnno");
 AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersionNamesAnno");
 AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
 AnnotationClass<std::vector<Function *> > UserFuncsAnno("UserFuncsAnno");

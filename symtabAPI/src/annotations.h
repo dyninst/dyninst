@@ -49,7 +49,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern AnnotationClass<localVarCollection> FunctionParametersAnno;
 extern AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno;
 extern AnnotationClass<std::string> SymbolFileNameAnno;
 extern AnnotationClass<std::vector<Function *> > UserFuncsAnno;
