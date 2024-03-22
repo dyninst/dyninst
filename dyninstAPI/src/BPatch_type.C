@@ -47,7 +47,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-AnnotationClass<BPatch_cblock> CommonBlockUpPtrAnno("CommonBlockUpPtr", NULL);
 AnnotationClass<BPatch_localVar> LocalVarUpPtrAnno("LocalVarUpPtrAnno", NULL);
 AnnotationClass<BPatch_field> FieldUpPtrAnno("FieldUpPtrAnno", NULL);
 AnnotationClass<BPatch_type> TypeUpPtrAnno("TypeUpPtr", NULL);
@@ -240,22 +239,6 @@ BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const
 		return NULL;
 
 	BPatch_Vector<BPatch_cblock *> *ret = new BPatch_Vector<BPatch_cblock *>();
-
-	for (unsigned i = 0; i < cblocks->size(); i++)
-	{
-		BPatch_cblock *bpcb = NULL;
-		CBlock *cb = (*cblocks)[i];
-		assert(cb);
-		if (!cb->getAnnotation(bpcb, CommonBlockUpPtrAnno))
-		{
-			fprintf(stderr, "%s[%d]:  WARN:  No Common Block UpPtr\n", FILE__, __LINE__);
-		}
-		else
-		{
-			assert(bpcb);
-			ret->push_back(bpcb);
-		}
-	}
 	return ret;	
 }
 
