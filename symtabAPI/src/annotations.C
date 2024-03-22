@@ -41,4 +41,3 @@ AnnotationClass<std::vector<Type *> > UserTypesAnno("UserTypesAnno");
 AnnotationClass<std::vector<Symbol *> > UserSymbolsAnno("UserSymbolsAnno");
 AnnotationClass<LineInformation> ModuleLineInfoAnno("ModuleLineInfoAnno");
 AnnotationClass<typeCollection> ModuleTypeInfoAnno("ModuleTypeInfoAnno");
-AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno("IdToSymMap");
