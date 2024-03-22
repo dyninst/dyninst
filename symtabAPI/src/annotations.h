@@ -55,6 +55,5 @@ extern AnnotationClass<std::vector<Function *> > UserFuncsAnno;
 extern AnnotationClass<std::vector<Region *> > UserRegionsAnno; 
 extern AnnotationClass<std::vector<Type *> > UserTypesAnno;
 extern AnnotationClass<std::vector<Symbol *> > UserSymbolsAnno;
-extern AnnotationClass<typeCollection> ModuleTypeInfoAnno;
 extern AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno;
 #endif
