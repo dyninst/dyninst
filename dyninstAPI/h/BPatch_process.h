@@ -155,8 +155,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
  protected:
   void getAS(std::vector<AddressSpace *> &as);
 
- public:
-  void PDSEP_updateObservedCostAddr(unsigned long a);
  private:
 
   //References to lower level objects
