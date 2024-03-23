@@ -126,9 +126,6 @@ void CodeMover::finalizeRelocBlocks() {
    
 
 
-///////////////////////
-
-
 bool CodeMover::transform(Transformer &t) {
    if (!finalized_)
       finalizeRelocBlocks();
@@ -159,20 +156,6 @@ bool CodeMover::initialize(const codeGen &templ) {
    return true;
 }
 
-// And now the fun begins
-// 
-// We wish to minimize the space required by the relocated code. Since some platforms
-// may have varying space requirements for certain instructions (e.g., branches) this
-// requires a fixpoint calculation. We start with the original size and increase from
-// there. 
-// 
-// Reasons for size increase:
-//   1) Instrumentation. It tends to use room. Odd.
-//   2) Transformed instructions. We may need to replace a single instruction with a
-//      sequence to emulate its original behavior
-//   3) Variable-sized instructions. If we increase branch displacements we may need
-//      to increase the corresponding branch instruction sizes.
-
 bool CodeMover::relocate(Address addr) {
    addr_ = addr;
 
@@ -201,19 +184,12 @@ codeGen &CodeMover::gen() {
    return buffer_.gen();
 }
 
-///////////////////////
 
 PriorityMap &CodeMover::priorityMap() {
    return priorityMap_;
 }
 
-///////////////////////
-
 SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
-   // Take the current PriorityMap, digest it,
-   // and return a sorted list of where we need 
-   // patches (from and to)
-
    relocation_cerr << "Creating springboard request map" << endl;
 
    if (sboardMap_.empty()) {

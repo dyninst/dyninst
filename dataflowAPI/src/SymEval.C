@@ -166,18 +166,11 @@ void dfs(Node::Ptr source,
     (*ssit).second--;
 }
 
-/*
- * Optimal ordering for visiting the slicing
- * nodes during expansion; this is possible to do
- * because we have removed loops
- */
 class ExpandOrder {
     public:
         ExpandOrder() { }
         ~ExpandOrder() { }
 
-        // remove an element from the next-lowest queue
-        // and return it and its order
         pair<SliceNode::Ptr,int> pop_next()
         {
             SliceNode::Ptr rn = SliceNode::Ptr();
@@ -196,8 +189,6 @@ class ExpandOrder {
             return make_pair(rn,ro);
         }
 
-        // removes a node from the structure
-        // returns true if the node was there
         bool remove(SliceNode::Ptr n) {
             map<SliceNode::Ptr, int>::iterator it = order_map.find(n);
             if(it != order_map.end()) {
@@ -208,8 +199,6 @@ class ExpandOrder {
             return false;
         }
 
-        // places a node in the structure -- its
-        // order is computed
         void insert(SliceNode::Ptr n, bool force_done = false) {
             // compute the order of this node --- the number of its parents
             // not on the skipedges list and not done
@@ -235,8 +224,6 @@ class ExpandOrder {
                 done.insert(n);
         }
 
-        // Mark a node complete, updating its children.
-        // Removes the node from the data structure
         void mark_done(SliceNode::Ptr n) {
             // First pull all of the children of this node
             // that are not on the skip list
@@ -285,7 +272,6 @@ class ExpandOrder {
         set<SliceNode::Ptr> done;
 };
 
-// implements < , <= causes failures when used to sort Windows vectors
 bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 
     AssignmentPtr assign1 = ptr1->assign();
@@ -306,8 +292,6 @@ bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
     }
 }
 
-// Do the previous, but use a Graph as a guide for
-// performing forward substitution on the AST results
 SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res) {
     bool failedTranslation = false;
     bool skippedInput = false;

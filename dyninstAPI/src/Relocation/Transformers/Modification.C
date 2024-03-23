@@ -224,7 +224,6 @@ RelocBlock *Modification::makeRelocBlock(block_instance *block, func_instance *f
    return t;
 }
 
-// TODO: make this mildly more efficient. On the other hand, is it a big deal?
 Modification::WrapperPredicate::WrapperPredicate(func_instance *f)
    : f_(f) {}
 

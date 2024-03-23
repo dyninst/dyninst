@@ -38,7 +38,6 @@ edge_instance::edge_instance(ParseAPI::Edge *e, block_instance *s, block_instanc
   : PatchEdge(e, s, t) {
 }
 
-// For forked process
 edge_instance::edge_instance(const edge_instance *parent,
                              mapped_object *child)
   : PatchEdge(parent,

@@ -42,13 +42,6 @@
 #include "dynProcess.h"
 #include "debug.h"
 
-/*
- * BPatch_thread::getCallStack
- *
- * Returns information about the frames currently on the thread's stack.
- *
- * stack	The vector to fill with the stack trace information.
- */
 bool BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
 {
    std::vector<Frame> stackWalk;   
@@ -144,22 +137,11 @@ BPatch_thread::~BPatch_thread()
     }
 }
 
-/**
- * Paradynd sometimes wants handles to the OS threads for reading timing 
- * information.  Not sure if this should become a part of the public, 
- * supported interface.
- **/
 unsigned long BPatch_thread::os_handle()
 {
     return (unsigned long)-1;
 }
 
-/*
- * BPatch_thread::oneTimeCode
- *
- * Have the mutatee execute specified code expr once.  Wait until done.
- *
- */
 void *BPatch_thread::oneTimeCode(const BPatch_snippet &expr, bool *err) {
     if( !llthread->isLive() ) {
         if ( err ) *err = true;
@@ -176,12 +158,6 @@ void *BPatch_thread::oneTimeCode(const BPatch_snippet &expr, bool *err) {
     return proc->oneTimeCodeInternal(expr, this, NULL, NULL, true, err, true);
 }
 
-/*
- * BPatch_thread::oneTimeCodeAsync
- *
- * Have the mutatee execute specified code expr once.  Don't wait until done.
- *
- */
 bool BPatch_thread::oneTimeCodeAsync(const BPatch_snippet &expr, 
                                         void *userData,
                                         BPatchOneTimeCodeCallback cb)

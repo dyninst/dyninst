@@ -49,8 +49,6 @@ class registerSpace;
 
 class registerSlot;
 
-// Emitter moved to emitter.h - useful on other platforms as well
-
 class Emitterx86 : public Emitter {
     public:
         virtual ~Emitterx86() {}
@@ -67,7 +65,6 @@ class Emitterx86 : public Emitter {
         virtual bool emitCallInstruction(codeGen &, func_instance *, Register) = 0;
 };
 
-// 32-bit class declared here since its implementation is in both inst-x86.C and emit-x86.C
 class EmitterIA32 : public Emitterx86 {
 
 public:
@@ -104,7 +101,6 @@ public:
 
     bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
-    // We can overload this for the stat/dyn case
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
@@ -178,7 +174,6 @@ extern EmitterIA32Dyn emitterIA32Dyn;
 extern EmitterIA32Stat emitterIA32Stat;
 
 
-// some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
 void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
@@ -229,7 +224,6 @@ public:
 
     bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
-    // See comment on 32-bit emitCall
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
@@ -247,10 +241,6 @@ public:
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
-    /* The DWARF register numbering does not correspond to the architecture's
-       register encoding for 64-bit target binaries *only*. This method
-       maps the number that DWARF reports for a register to the actual
-       register number. */
     int Register_DWARFtoMachineEnc(int n);
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
@@ -293,8 +283,6 @@ class EmitterAMD64Stat : public EmitterAMD64 {
 extern EmitterAMD64Dyn emitterAMD64Dyn;
 extern EmitterAMD64Stat emitterAMD64Stat;
 
-/* useful functions for inter-library function/variable references
- * (used in the binary rewriter) */
 //Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
 //Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
 

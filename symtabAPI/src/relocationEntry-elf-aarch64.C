@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Functions of the relocationEntry class specific to AArch64 ELF */
 #include <elf.h>
 #include "Symtab.h"
 #include "annotations.h"

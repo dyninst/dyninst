@@ -43,45 +43,28 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    /// A %TernaryAST object represents the value of a ternary assignment
-    /// As a %TernaryAST is a %Expression, it may contain the physical register's contents if
-    /// they are known.
-    ///
-
-
     class INSTRUCTION_EXPORT TernaryAST : public Expression
     {
     public:
-      /// \brief A type definition for a reference-counted pointer to a %TernaryAST.
       typedef boost::shared_ptr<TernaryAST> Ptr;
       
-      /// Construct a register, assigning it the ID \c id.
       TernaryAST(Expression::Ptr cond , Expression::Ptr first , Expression::Ptr second, Result_Type result_type);
   
       virtual ~TernaryAST();
       
-      /// By definition, a %TernaryAST has three children, the condition, the first and the second child.
-      /// and should all be added to the \param children.
-      //
       virtual void getChildren(vector<InstructionAST::Ptr>& children) const;
       virtual void getChildren(vector<Expression::Ptr>& children) const;
 
-      /// By definition, add the use of all its children to.
-      /// \param uses.
       virtual void getUses(set<InstructionAST::Ptr>& uses);
 
-      /// \c isUsed returns true if \c findMe is a %TernaryAST that represents
-      /// the same register as this %TernaryAST, and false otherwise.
       virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
-      /// The \c format method on a %TernaryAST object returns the name associated with its ID.
       virtual std::string format(Architecture, formatStyle how = defaultStyle) const;
-      /// The \c format method on a %TernaryAST object returns the name associated with its ID.
+
       virtual std::string format(formatStyle how = defaultStyle) const;
 
       static TernaryAST makePC(Dyninst::Architecture arch);
 
-      /// We define a partial order by the order of its children
       bool operator<(const TernaryAST& rhs) const;
 
       

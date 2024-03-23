@@ -79,30 +79,11 @@ int BPatch_process::getAddressWidth(){
         return llproc->getAddressWidth();
 }
 
-/*
- * BPatch_process::getPid
- *
- * Return the process ID of the thread associated with this object.
- */
 int BPatch_process::getPid()
 {
    return llproc ? llproc->getPid() : -1;
 }
 
-/*
- * BPatch_process::BPatch_process
- *
- * Starts a new process and associates it with the BPatch_process being
- * constructed.  The new process is placed into a stopped state before
- * executing any code.
- *
- * path         Pathname of the executable to start.
- * argv         A list of pointers to character strings which are the
- *              arguments for the new process, terminated by a NULL pointer.
- * envp         A list of pointers to character strings which are the
- *              environment variables for the new process, terminated by a
- *              NULL pointer.  If NULL, the default environment will be used.
- */
 BPatch_process::BPatch_process(const char *path, const char *argv[],
                                BPatch_hybridMode mode, const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
@@ -230,15 +211,6 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    startup_cerr << "BPatch_process::BPatch_process, completed." << endl;
 }
 
-/*
- * BPatch_process::BPatch_process
- *
- * Constructs a new BPatch_process and associates it with a running process.
- * Stops execution of the process.
- *
- * path         Pathname of the executable file for the process.
- * pid          Process ID of the target process.
- */
 BPatch_process::BPatch_process
 (const char *path, int pid, BPatch_hybridMode mode)
    : llproc(NULL), lastSignal(-1), exitCode(-1), exitSignal(-1),
@@ -294,14 +266,6 @@ BPatch_process::BPatch_process
    }
 }
 
-/*
- * BPatch_process::BPatch_process
- *
- * Constructs a new BPatch_process and associates it with a forked process.
- *
- * parentPid          Pathname of the executable file for the process.
- * childPid           Process ID of the target process.
- */
 BPatch_process::BPatch_process(PCProcess *nProc)
    : llproc(nProc), lastSignal(-1), exitCode(-1), exitSignal(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true),
@@ -333,11 +297,6 @@ BPatch_process::BPatch_process(PCProcess *nProc)
    image = new BPatch_image(this);
 }
 
-/*
- * BPatch_process::~BPatch_process
- *
- * Destructor for BPatch_process.
- */
 BPatch_process::~BPatch_process()
 {
    if( llproc ) {
@@ -389,12 +348,6 @@ BPatch_process::~BPatch_process()
    assert(BPatch::bpatch != NULL);
 }
 
-/*
- * BPatch_process::triggerInitialThreadEvents
- *
- * Events and callbacks shouldn't be delivered from a constructor so after a
- * BPatch_process is constructed, this should be called.
- */
 void BPatch_process::triggerInitialThreadEvents() {
     // For compatibility, only do this for multithread capable processes
     if( llproc->multithread_capable() ) {
@@ -406,11 +359,6 @@ void BPatch_process::triggerInitialThreadEvents() {
     }
 }
 
-/*
- * BPatch_process::stopExecution
- *
- * Puts the thread into the stopped state.
- */
 bool BPatch_process::stopExecution() 
 {
     if( NULL == llproc ) return false;
@@ -422,11 +370,6 @@ bool BPatch_process::stopExecution()
     return llproc->stopProcess();
 }
 
-/*
- * BPatch_process::continueExecution
- *
- * Puts the thread into the running state.
- */
 bool BPatch_process::continueExecution() 
 {
     if( NULL == llproc ) return false;
@@ -440,11 +383,6 @@ bool BPatch_process::continueExecution()
     return llproc->continueProcess();
 }
 
-/*
- * BPatch_process::terminateExecution
- *
- * Kill the thread.
- */
 bool BPatch_process::terminateExecution() 
 {
     if( NULL == llproc ) return false;
@@ -455,35 +393,13 @@ bool BPatch_process::terminateExecution()
     return llproc->terminateProcess();
 }
 
-/*
- * BPatch_process::isStopped
- *
- * Returns true if the thread has stopped, and false if it has not.  
- */
 bool BPatch_process::isStopped()
 {
     if( llproc == NULL ) return true;
 
-    // The state visible to the user is different than the state
-    // maintained by ProcControlAPI because processes remain in
-    // a stopped state while doing event handling -- the user 
-    // shouldn't see the process in a stopped state in this
-    // case
-    //
-    // The following list is all cases where the user should see
-    // the process stopped:
-    // 1) BPatch_process::stopExecution is invoked
-    // 2) A snippet breakpoint occurs
-    // 3) The mutatee is delivered a stop signal
-
     return llproc->getDesiredProcessState() == PCProcess::ps_stopped;
 }
 
-/*
- * BPatch_process::stopSignal
- *
- * Returns the number of the signal which caused the thread to stop.
- */
 int BPatch_process::stopSignal()
 {
     if (!isStopped()) {
@@ -494,24 +410,12 @@ int BPatch_process::stopSignal()
     return lastSignal;
 }
 
-/*
- * BPatch_process::statusIsTerminated
- *
- * Returns true if the process has terminated, false if it has not.
- */
 bool BPatch_process::statusIsTerminated()
 {
    if (llproc == NULL) return true;
    return llproc->isTerminated();
 }
 
-/*
- * BPatch_process::isTerminated
- *
- * Returns true if the thread has terminated, and false if it has not.  This
- * may involve checking for thread events that may have recently changed this
- * thread's status.  
- */
 bool BPatch_process::isTerminated()
 {
     if( NULL == llproc ) return true;
@@ -521,13 +425,6 @@ bool BPatch_process::isTerminated()
     return llproc->isTerminated();
 }
 
-/*
- * BPatch_process::terminationStatus
- *
- * Indicates how the program exited.  Returns one of NoExit, ExitedNormally,
- * or ExitedViaSignal.
- *
- */
 BPatch_exitType BPatch_process::terminationStatus() {
    if(exitedNormally)
       return ExitedNormally;
@@ -536,23 +433,11 @@ BPatch_exitType BPatch_process::terminationStatus() {
    return NoExit;
 }
 
-/*
- * BPatch_process::getExitCode
- *
- * Returns exit code of applications
- *
- */
 int BPatch_process::getExitCode()
 {
    return exitCode;
 }
 
-/*
- * BPatch_process::getExitSignal
- *
- * Returns signal number that caused application to exit.
- *
- */
 int BPatch_process::getExitSignal()
 {
    return lastSignal;
@@ -564,14 +449,6 @@ bool BPatch_process::wasRunningWhenAttached()
   return llproc->wasRunningWhenAttached();
 }
 
-/*
- * BPatch_process::detach
- *
- * Detach from the thread represented by this object.
- *
- * cont         True if the thread should be continued as the result of the
- *              detach, false if it should not.
- */
 bool BPatch_process::detach(bool cont)
 {
    if (image)
@@ -581,28 +458,11 @@ bool BPatch_process::detach(bool cont)
    return detached;
 }
 
-/*
- * BPatch_process::isDetached
- *
- * Returns whether dyninstAPI is detached from this mutatee
- *
- */
 bool BPatch_process::isDetached()
 {
    return detached;
 }
 
-/*
- * BPatch_process::dumpCore
- *
- * Causes the process to dump its state to a file, and optionally to terminate.
- * Returns true upon success, and false upon failure.
- *
- * file         The name of the file to which the state should be written.
- * terminate    Indicates whether or not the thread should be terminated after
- *              dumping core.  True indicates that it should, false that is
- *              should not.
- */
 bool BPatch_process::dumpCore(const char *file, bool terminate)
 {
    bool was_stopped = isStopped();
@@ -619,14 +479,6 @@ bool BPatch_process::dumpCore(const char *file, bool terminate)
    return ret;
 }
 
-/*
- * BPatch_process::dumpImage
- *
- * Writes the contents of memory into a file.
- * Returns true upon success, and false upon failure.
- *
- * file         The name of the file to which the image should be written.
- */
 bool BPatch_process::dumpImage(const char *file)
 {
 #if defined(os_windows) 
@@ -643,20 +495,6 @@ bool BPatch_process::dumpImage(const char *file)
 #endif
 }
 
-/*
- * BPatch_process::getInheritedVariable
- *
- * Allows one to retrieve a variable which exists in a child process that
- * was inherited from and originally created in the parent process.
- * Function is invoked on the child BPatch_process (created from a fork in
- * the application).
- *
- * parentVar   A BPatch_variableExpr created in the parent thread
- *
- * Returns:    The corresponding BPatch_variableExpr from the child thread
- *             or NULL if the variable argument hasn't been malloced
- *             in a parent process.
- */
 BPatch_variableExpr *BPatch_process::getInheritedVariable(
                                                              BPatch_variableExpr &parentVar)
 {
@@ -670,25 +508,6 @@ BPatch_variableExpr *BPatch_process::getInheritedVariable(
                                   const_cast<BPatch_type *>(parentVar.getType()));
 }
 
-
-/*
- * BPatch_process::getInheritedSnippet
- *
- * Allows one to retrieve a snippet which exists in a child process which
- * was inherited from and originally created in the parent process.
- * Function is invoked on the child BPatch_process (created from a fork in
- * the application).
- *
- * Allows one to retrieve a snippet which exists in a child process which
- * was inherited from and originally created in the parent process.
- * Function is invoked on the child BPatch_process (created from a fork in
- * the application).
- *
- * parentSnippet: A BPatchSnippetHandle created in the parent thread
- *
- * Returns:       The corresponding BPatchSnippetHandle from the child thread.
- *
- */
 
 BPatchSnippetHandle *BPatch_process::getInheritedSnippet(BPatchSnippetHandle &parentSnippet)
 {
@@ -704,14 +523,6 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippet(BPatchSnippetHandle &pa
    return childSnippet;
 }
 
-/*
- * BPatch_addressSpace::beginInsertionSet
- *
- * Starts a batch insertion set; that is, all calls to insertSnippet until
- * finalizeInsertionSet are delayed.
- *
- */
-
 void BPatch_process::beginInsertionSet()
 {
     if (pendingInsertions == NULL)
@@ -720,17 +531,6 @@ void BPatch_process::beginInsertionSet()
 }
 
 
-/*
- * BPatch_process::finalizeInsertionSet
- *
- * Installs all instrumentation specified since the last beginInsertionSet call.
- *
- * modified gets set as a result of the catchup/fixup logic and is helpful in
- * interpreting a false return value...  if finalizeInsertionSet returns false,
- * but modified comes back true, then something horrible happened, because, if
- * we go thru the trouble to modify the process state to make everything work
- * then the function really should work.
- */
 bool BPatch_process::finalizeInsertionSet(bool, bool *)
 {
 
@@ -772,12 +572,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchup(bool, bool *,
    return false;
 }
 
-/*
- * BPatch_process::oneTimeCode
- *
- * execute argument <expr> once.
- *
- */
 void *BPatch_process::oneTimeCode(const BPatch_snippet &expr, bool *err)
 {
     if( !isStopped() ) {
@@ -790,13 +584,6 @@ void *BPatch_process::oneTimeCode(const BPatch_snippet &expr, bool *err)
     return oneTimeCodeInternal(expr, NULL, NULL, NULL, true, err, true);
 }
 
-/*
- * BPatch_process::oneTimeCodeCallbackDispatch
- *
- * theProc	The process in which the RPC completed.
- * userData	This is a value that can be set when we invoke an inferior RPC
- * returnValue	The value returned by the RPC.
- */
 int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
                                                  unsigned /* rpcid */, 
                                                  void *userData,
@@ -842,21 +629,6 @@ int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
     return retval;
 }
 
-/*
- * BPatch_process::oneTimeCodeInternal
- *
- * Causes a snippet expression to be evaluated once in the mutatee at the next
- * available opportunity.  Optionally, Dyninst will call a callback function
- * when the snippet has executed in the mutatee, and can wait until the
- * snippet has executed to return.
- *
- * expr         The snippet to evaluate.
- * userData     This value is given to the callback function along with the
- *              return value for the snippet.  Can be used by the caller to
- *              store per-oneTimeCode information.
- * synchronous  True means wait until the snippet has executed, false means
- *              return immediately.
- */
 void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           BPatch_thread *thread,
                                           void *userData,
@@ -906,10 +678,6 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
     return ret;
 }
 
-//  BPatch_process::oneTimeCodeAsync
-//
-//  Have the specified code be executed by the mutatee once.  Don't wait
-//  until done.
 bool BPatch_process::oneTimeCodeAsync(const BPatch_snippet &expr,
                                          void *userData, BPatchOneTimeCodeCallback cb)
 {
@@ -920,13 +688,6 @@ bool BPatch_process::oneTimeCodeAsync(const BPatch_snippet &expr,
    return true;
 }
 
-/*
- * BPatch_process::loadLibrary
- *
- * Load a dynamically linked library into the address space of the mutatee.
- *
- * libname      The name of the library to load.
- */
 BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
 {
    if (!libname) {
@@ -1065,10 +826,6 @@ void BPatch_process::getAS(std::vector<AddressSpace *> &as)
    as.push_back(static_cast<AddressSpace*>(llproc));
 }
 
-/**
- * Removes the BPatch_thread from this process' collection of
- * threads
- **/
 void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 {
    if (!thrd || !thrd->getBPatchID())
@@ -1091,11 +848,6 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
    // delete thrd;
 }
 
-/**
- * This function continues a stopped process, letting it execute in single step mode,
- * and printing the current instruction as it executes.
- **/
-
 void BPatch_process::debugSuicide()
 {
     llproc->debugSuicide();
@@ -1107,28 +859,6 @@ void BPatch_process::triggerThreadCreate(PCThread *thread) {
   BPatch::bpatch->registerThreadCreate(this, newthr);
 }
 
-/* BPatch::triggerStopThread
- *
- * Causes the execution of a callback in the mutator that was
- * triggered for the evtStopThread event. As BPatch_stopThreadExpr
- * snippets allow a different callback to be triggered for each
- * snippet instance, the cb_ID is used to find the right callback to
- * trigger. This code had to be in a BPatch-level class so that we
- * could utilize the findOrCreateBPFunc and findOrCreateBPPoint
- * functions.
- *
- * @intPoint: the instPoint at which the event occurred, will be
- *    wrapped in a BPatch_point and sent to the callback as a parameter
- * @intFunc: the function in which the event occurred, will be wrapped
- *    in a BPatch_function and sent to the callback as a parameter
- * @proc: the process is needed for the creation of BPatch level objects
- * @cb_ID: helps us identify the correct call
- * @retVal: the return value of a parameter snippet that gets passed
- *    down in the stopThread snippet and evaluated.
- *
- * Return Value: Will always be true if code unless an error occurs, a
- *    callback is triggered for every stopThread snippet instance.
- */
 bool BPatch_process::triggerStopThread(instPoint *intPoint,
          func_instance *intFunc, int cb_ID, void *retVal)
 {
@@ -1152,20 +882,6 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
    return true;
 }
 
-
-/* BPatch::triggerSignalHandlerCB
- *
- * Grabs BPatch level objects for the instPoint and enclosing function
- * and triggers any registered callbacks for this signal/exception
- *
- * @intPoint: the instPoint at which the event occurred, will be
- * wrapped in a BPatch_point and sent to the callback as a parameter
- * @intFunc: the function in which the event occurred, will be
- * wrapped in a BPatch_function and sent to the callback as a parameter
- *
- * Return Value: true if a matching callback was found and no error occurred
- *
- */
 bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
         func_instance *intFunc, long signum, BPatch_Vector<Address> *handlers)
 {
@@ -1186,16 +902,6 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
     return false;
 }
 
-/* BPatch::triggerCodeOverwriteCB
- *
- * Grabs BPatch level objects for the instPoint and enclosing function
- * and triggers a registered callback if there is one
- *
- * @intPoint: the instPoint at which the event occurred, will be
- * wrapped in a BPatch_point and sent to the callback as a parameter
- *
- * Return Value: true if a matching callback was found and no error occurred
- */
 bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
                                             Address faultTarget)
 {
@@ -1217,13 +923,6 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
     return false;
 }
 
-/* This is a Windows only function that sets the user-space
- * debuggerPresent flag to 0 or 1, 0 meaning that the process is not
- * being debugged.  The debugging process will still have debug
- * access, but system calls that ask if the process is being debugged
- * will say that it is not because they merely return the value of the
- * user-space beingDebugged flag.
- */
 bool BPatch_process::hideDebugger()
 {
     // do non-instrumentation related hiding
@@ -1393,7 +1092,6 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
     return buf;
 }
 
-// is the first instruction: [00 00] add byte ptr ds:[eax],al ? 
 static bool hasWeirdEntryBytes(func_instance *func)
 {
     using namespace SymtabAPI;
@@ -1638,10 +1336,6 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 }
 
-/* Protect analyzed code without protecting relocated code in the
- * runtime library and for now only protect code in the aOut,
- * also don't protect code that hasn't been analyzed
- */
 bool BPatch_process::protectAnalyzedCode()
 {
     bool ret = true;

@@ -33,7 +33,6 @@
 #if !defined(SYSCALL_NOTIFICATION_H)
 #define SYSCALL_NOTIFICATION_H
 
-// Non-NULL for platforms where we don't need the instMapping
 #define SYSCALL_INSTALLED ((instMapping *)1)
 
 #include <cassert>
@@ -44,7 +43,6 @@ class PCProcess;
 
 class syscallNotification {
   private:
-    // If we use instrumentation to get notification of a syscall
     instMapping *preForkInst;
     instMapping *postForkInst;
     instMapping *preExecInst;
@@ -53,7 +51,6 @@ class syscallNotification {
     instMapping *preLwpExitInst;
     PCProcess *proc;
 
-    // platform dependent
     const char *getForkFuncName();
     const char *getExecFuncName();
     const char *getExitFuncName();
@@ -71,7 +68,6 @@ class syscallNotification {
     preExecInst(NULL), postExecInst(NULL),
     preExitInst(NULL), preLwpExitInst(NULL), proc(p) {}
 
-    // fork constructor
     syscallNotification(syscallNotification *parentSN,
                         PCProcess *p);
     

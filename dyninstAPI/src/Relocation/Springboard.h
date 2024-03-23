@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Build the branches from previous versions of moved code to the new versions.
-
 #if !defined(_R_SPRINGBOARD_H_)
 #define _R_SPRINGBOARD_H_
 #include <assert.h>
@@ -58,25 +56,8 @@ typedef enum {
    RELOC_MAX_PRIORITY,
    ORIG_MIN_PRIORITY,
    NotRequired,
-   /* Currently we put suggested springboards at non-func-entry, 
-    * non-indirect-jump-target block entry.
-    * In case the jump table analysis under-approximate the jump targets (unlikely),
-    * the control flow will goes back to instrumentation at other blocks*/
    Suggested,
-   /* Indirect jump target block is very important, 
-    * but is less important than func entry.
-    *
-    * Control flow can escape instrumentation by indirect jump (jump tables).
-    * So, we install springboards at all indirect jump targets.
-    * However, jump table analysis can overapproximate jump targets and
-    * the bogus jump targets can be function entries. So, we put indirect
-    * jump target as one priority lower than function entry
-    */
    IndirBlockEntry,    
-   /* FuncEntry represents springboards at function entries.
-    * This is the highest priority because control flow enters
-    * instrumentation at function entry
-    */ 
    FuncEntry,    
    ORIG_MAX_PRIORITY,
    MAX_PRIORITY } Priority;
@@ -129,11 +110,6 @@ SpringboardReq()
                 bool fromRelocCode_, 
                 bool useTrap_) 
    {
-        // This mechanism handles overlapping functions, where
-        // we might see springboards from the same address to
-        // different targets. In this case only one can win,
-        // but we want to track the different bbls so that
-        // we can do the right thing with includeRelocatedCopies.
         if (from == 0) {
             // New version version
             assert(destinations.empty()); 
@@ -173,7 +149,6 @@ class SpringboardBuilder;
 
    void addFromOrigCode(Address from, Address to, 
                         Priority p, func_instance *func, block_instance *bbl) {
-// This uses the default constructor if it isn't already there.
       sBoardMap_[p][from].addReq(from, to, p, func, bbl, true, true, false, false);
    }
 
@@ -208,10 +183,6 @@ class SpringboardBuilder;
  private:
    Springboards sBoardMap_;
  };
-
- // Persistent tracking of things that have already gotten springboards across multiple
- // calls to AddressSpace::relocateInt() and thus across multiple SpringboardFoo,
- // CodeTracker, CodeMover objects.
 
 struct SpringboardInfo {
     int val;
@@ -248,24 +219,12 @@ class InstalledSpringboards
     
   
  private:
-  // tracks relocation addresses that need trap-based springboards
   std::set<Address> relocTraps_; 
   
-
-  // We don't really care about the payload; I just want an "easy to look up"
-  // range data structure. 
-  // Map this to an int because IntervalTree collapses similar ranges. Punks.
   IntervalTree<Address, SpringboardInfo*> validRanges_;
 
-  // If we consume NOP-padding between functions to get room for a jump, that
-  // padding may not exist in the relocation buffer.  Remember such ranges so
-  // we can deal with that in reinstrumentation, if only to force a trap.
   IntervalTree<Address, SpringboardInfo*> paddingRanges_;
 
-  // Like the previous, but for branches we put in relocated code. We
-  // assume anything marked as "in relocated code" is a valid thing to write
-  // to, since relocation size is >= original size. However, we still don't
-  // want overlapping branches. 
   IntervalTree<Address, SpringboardInfo*> overwrittenRelocatedCode_;
   void debugRanges();
   
@@ -301,8 +260,6 @@ class SpringboardBuilder {
   bool generateMultiSpringboard(std::list<codeGen> &input,
 				const SpringboardReq &p);
 
-  // Find all previous instrumentations and also overwrite 
-  // them. 
   bool createRelocSpringboards(const SpringboardReq &r, bool useTrap, SpringboardMap &input);
 
   bool generateReplacements(std::list<codeGen> &input,

@@ -152,7 +152,6 @@ class Object : public AObject
 {
   friend class Module;
 
-  // declared but not implemented; no copying allowed
   Object(const Object &);
   const Object& operator=(const Object &);
 
@@ -177,11 +176,10 @@ public:
 
   bool addRelocationEntry(relocationEntry &re) override;
 
-  //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }
 
   Offset getEntryAddress() const { return entryAddress_; }
-  // To be changed later - Giri
+
   Offset getBaseAddress() const { return 0; }
   static bool truncateLineFilenames;
 
@@ -199,21 +197,12 @@ public:
   const char *interpreter_name() const;
 
 
-  // On most platforms, the TOC offset doesn't exist and is thus null. 
-  // On PPC64, it varies _by function_ and is used to point into the GOT,
-  // a big data table. We can look it up by parsing the OPD, a function
-  // descriptor table. 
   Offset getTOCoffset(Offset off) const;
-
-  // This is an override for the whole thing; we could do per-function but 
-  // we're missing a _lot_ of hardware for that. 
   void setTOCoffset(Offset off);
 
   const std::ostream &dump_state_info(std::ostream &s);
   bool isEEL() { return EEL; }
 
-	//to determine if a mutation falls in the text section of
-	// a shared library
 	bool isinText(Offset addr, Offset baseaddr) const { 
 		if(addr > text_addr_ + baseaddr     &&
 		   addr < text_addr_ + baseaddr + text_size_ ) {
@@ -221,9 +210,7 @@ public:
 		}
 		return false;
 	} 
-	// to determine where in the .plt this function is listed 
-	// returns an offset from the base address of the object
-	// so the entry can easily be located in memory
+
 	Offset getPltSlot(std::string funcName) const ;
 	bool isText( Offset addr ) const
 	{
@@ -321,38 +308,37 @@ public:
 
   bool hasNoteSection_;
 
-  Offset   elf_hash_addr_; 	 //.hash section 
-  Offset   gnu_hash_addr_; 	 //.gnu.hash section 
+  Offset   elf_hash_addr_;
+  Offset   gnu_hash_addr_;
 
   Offset   dynamic_offset_;
   size_t   dynamic_size_;
   size_t   dynsym_size_;
   Offset   init_addr_;
   Offset   fini_addr_;
-  Offset   text_addr_; 	 //.text section 
-  Offset   text_size_; 	 //.text section size
+  Offset   text_addr_;
+  Offset   text_size_;
   Offset   symtab_addr_;
   Offset   strtab_addr_;
-  Offset   dynamic_addr_;	 //.dynamic section
-  Offset   dynsym_addr_;        // .dynsym section
-  Offset   dynstr_addr_;        // .dynstr section
-  Offset   got_addr_;           // global offset table
-  unsigned got_size_;           // global offset table
-  Offset   plt_addr_;           // procedure linkage table
-  unsigned plt_size_;           // procedure linkage table
-  unsigned plt_entry_size_;     // procedure linkage table
-  Offset   rel_plt_addr_;       // .rel[a].plt section
-  unsigned rel_plt_size_;       // .rel[a].plt section
-  unsigned rel_plt_entry_size_; // .rel[a].plt section
+  Offset   dynamic_addr_;
+  Offset   dynsym_addr_;
+  Offset   dynstr_addr_;
+  Offset   got_addr_;
+  unsigned got_size_;
+  Offset   plt_addr_;
+  unsigned plt_size_;
+  unsigned plt_entry_size_;
+  Offset   rel_plt_addr_;
+  unsigned rel_plt_size_;
+  unsigned rel_plt_entry_size_;
   Offset    rel_addr_;
-  unsigned  rel_size_;       // DT_REL/DT_RELA in dynamic section
-  unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
+  unsigned  rel_size_;
+  unsigned  rel_entry_size_;
   Offset   opd_addr_;
   unsigned opd_size_;
 
-  bool      dwarvenDebugInfo;    // is DWARF debug info present?
-  Offset   loadAddress_;      // The object may specify a load address
-                               //   Set to 0 if it may load anywhere
+  bool      dwarvenDebugInfo;
+  Offset   loadAddress_;
   Offset entryAddress_;
   char *interpreter_name_;
   bool  hasPieFlag_;
@@ -370,26 +356,16 @@ public:
   Dyninst::DwarfDyninst::DwarfHandle::ptr dwarf;
   private:
 
-  bool      EEL;                 // true if EEL rewritten
-  bool 	    did_open;		// true if the file has been mmapped
+  bool      EEL;
+  bool 	    did_open;
   ObjectType obj_type_;
 
-  // for sparc-solaris this is a table of PLT entry addr, function_name
-  // for x86-solaris this is a table of GOT entry addr, function_name
-  // on sparc-solaris the runtime linker modifies the PLT entry when it
-  // binds a function, on X86 the PLT entry is not modified, but it uses
-  // an indirect jump to a GOT entry that is modified when the function 
-  // is bound....is this correct???? or should it be <PLTentry_addr, name> 
-  // for both?
   std::vector<relocationEntry> relocation_table_;
   std::vector<relocationEntry> fbt_;
 
-  // all section headers, sorted by address
-  // we use these to do a better job of finding the end of symbols
   std::vector<Elf_X_Shdr*> allRegionHdrs;
   std::vector<Elf_X_Shdr*> allRegionHdrsByShndx;
 
-  // Symbol version mappings. used to store symbol version names.
   dyn_hash_map<unsigned, std::vector<std::string> >versionMapping;
   dyn_hash_map<unsigned, std::string> versionFileNameMapping;
 
@@ -440,7 +416,6 @@ private:
 
   void load_object(bool);
 
-  // initialize relocation_table_ from .rel[a].plt section entries 
   bool get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
 			      Elf_X_Shdr *&dynsym_scnp, 
 			      Elf_X_Shdr *&dynstr_scnp);
@@ -449,8 +424,6 @@ private:
                      Elf_X_Shdr *&dynsym_scnp,
                      Elf_X_Shdr *&dynstr_scnp );
 
-  // Parses sections with relocations and links these relocations to
-  // existing symbols
   bool parse_all_relocations(Elf_X_Shdr *, Elf_X_Shdr *,
           Elf_X_Shdr *, Elf_X_Shdr *);
   
@@ -476,7 +449,7 @@ private:
   bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);
-  // Line info: CUs to skip
+
   std::set<std::string> modules_parsed_for_line_info;
 
  public:

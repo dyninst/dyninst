@@ -56,11 +56,10 @@ struct EXCEPTION_REGISTRATION {
 #define SIGNAL_HANDLER "no_signal_handler"
 #endif
 
-// Number of bytes to save in an overwrite operation
 #define BYTES_TO_SAVE 256
 
 #define CAN_DUMP_CORE false
-#define SLEEP_ON_MUTATEE_CRASH 0 /*seconds*/
+#define SLEEP_ON_MUTATEE_CRASH 0
 
 static const auto sleep = Sleep;
 
@@ -94,9 +93,6 @@ typedef HANDLE EventCond_t;
 #define DO_THREAD_RETURN return
 #define SOCKLEN_T unsigned int
 
-
-/* We don't compile with gcc on Windows.  *sigh*  This will be slower,
-   but should be functionally identical. */
 #include <set>
 #include <vector>
 

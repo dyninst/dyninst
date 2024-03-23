@@ -28,10 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Lookup functions defined in class Symtab. Separated to reduce file size and classify. */
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -451,10 +447,6 @@ bool Symtab::findException(ExceptionBlock &excp, Offset addr)
    return false;
 }
 
-/**
- * Returns true if the Address range addr -> addr+size contains
- * a catch block, with excp pointing to the appropriate block
- **/
 bool Symtab::findCatchBlock(ExceptionBlock &excp, Offset addr, unsigned size)
 {
     int min = 0;
@@ -499,14 +491,6 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
     return false;
 }
 
-/* Similar to binary search in isCode with the exception that here we
- * search to the end of regions without regards to whether they have
- * corresponding raw data on disk, and searches all regions.  
- *
- * regions_ elements that start at address 0 may overlap, ELF binaries
- * have 0 address iff they are not loadable, but xcoff places loadable
- * sections at address 0, including .text and .data
- */
 Region *Symtab::findEnclosingRegion(const Offset where)
 {
     int first = 0; 
@@ -580,10 +564,6 @@ bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long siz
    return false;
 }
 
-///////////////////////// REGEX //////////////////////
-
-// Use POSIX regular expression pattern matching to check if std::string s matches
-// the pattern in this std::string
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase ) 
 {
    const char *str_ = str.c_str();
@@ -593,12 +573,6 @@ bool regexEquiv( const std::string &str,const std::string &them, bool checkCase 
     return pattern_match(str_, s, checkCase);
 
 }
-
-// This function will match string s against pattern p.
-// Asterisks match 0 or more wild characters, and a question
-// mark matches exactly one wild character.  In other words,
-// the asterisk is the equivalent of the regex ".*" and the
-// question mark is the equivalent of "."
 
 bool
 pattern_match( const char *p, const char *s, bool checkCase ) {

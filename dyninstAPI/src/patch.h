@@ -65,14 +65,14 @@ class toAddressPatch : public patchTarget {
 class relocPatch {
 public:
    enum class patch_type_t {
-      abs,         //Patch the absolute address of the source into dest
-      pcrel,       //Patch a PC relative address from codeGen start + offset
-      abs_lo,      //Patch lower half of source's bytes into dest
-      abs_hi,      //Patch upper half of source's bytes into dest
-      abs_quad1,   //Patch the first quarter of source's bytes into dest
-      abs_quad2,   //Patch the second quarter of source's bytes into dest
-      abs_quad3,   //Patch the third quarter of source's bytes into dest
-      abs_quad4    //Patch the forth quarter of source's bytes into dest
+      abs,
+      pcrel,
+      abs_lo,
+      abs_hi,
+      abs_quad1,
+      abs_quad2,
+      abs_quad3,
+      abs_quad4
    };
 
 

@@ -49,13 +49,13 @@ typedef enum {
    loadConstOp,
    loadFrameRelativeOp,
    loadFrameAddr,
-   loadRegRelativeOp,	// More general form of loadFrameRelativeOp
-   loadRegRelativeAddr,	// More general form of loadFrameAddr
+   loadRegRelativeOp,
+   loadRegRelativeAddr,
    storeOp,
    storeFrameRelativeOp,
    ifOp,
-   whileOp,  // Simple control structures will be useful
-   doOp,     // Zhichen
+   whileOp,
+   doOp,
    callOp,
    trampPreamble,
    noOp,
@@ -68,16 +68,16 @@ typedef enum {
    getParamAtCallOp,
    getParamAtEntryOp,
    getSysParamOp,	   
-   getAddrOp,	// return the address of the operand
+   getAddrOp,
    loadIndirOp,
    storeIndirOp,
    saveRegOp,
    loadRegOp,
-   saveStateOp,  // For saving of non-register state (flags reg, condition reg)
-   loadStateOp,  // And the corresponding load
+   saveStateOp,
+   loadStateOp,
    updateCostOp,
-   funcJumpOp,        // Jump to function without linkage
-   funcCallOp,        // Call to function with linkage
+   funcJumpOp,
+   funcCallOp,
    branchOp,
    ifMCOp,
    breakOp,

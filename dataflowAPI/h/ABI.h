@@ -48,9 +48,7 @@ class ABI{
     DATAFLOW_EXPORT const bitArray &getReturnReadRegisters() const;
     DATAFLOW_EXPORT const bitArray &getReturnRegisters() const;
     DATAFLOW_EXPORT const bitArray &getParameterRegisters() const;
-    // No such thing as return written...
 
-    // Syscall!
     DATAFLOW_EXPORT const bitArray &getSyscallReadRegisters() const;
     DATAFLOW_EXPORT const bitArray &getSyscallWrittenRegisters() const;
 

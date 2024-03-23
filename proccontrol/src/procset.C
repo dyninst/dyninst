@@ -126,16 +126,6 @@ TSetFeatures::~TSetFeatures()
    }
 }
 
-/**
- * AddressSet implementation follows.  This is essentially a std::multimap of Address -> Process::ptr
- * plus some additional features:
- *  - Ability to create addresses based on ProcControlAPI objects, such as libraries.
- *  - Additional range features to make it easier to group addresses
- *  - No duplicates of Address, Process:ptr pairs are allowed, though there are
- *    duplicate Address keys.
- *
- * I'd recommend your to your favorite multimap documentation for most of this.
- **/
 typedef pair<Address, Process::ptr> apair_t;
 
 AddressSet::AddressSet() :
@@ -449,26 +439,6 @@ AddressSet::ptr AddressSet::set_difference(AddressSet::const_ptr pp) const
    return newset;
 }
 
-
-/**
- * The following bundle of hackery is a wrapper around iterators that
- * checks processes for common errors.  Many of the functions that implement
- * ProcessSet and ThreadSet have do an operation where they iterate over
- * a collection, pull some Process::ptr or Thread::ptr out of that collection,
- * check it for common errors (e.g, operating on a dead process), then do some
- * real work. These classes/templates are an attempt to bring all that error checking
- * and iteration into a common place.
- *
- * Things are complicated by the fact that we use many different types of collections
- * We might be operating over sets of Process::ptrs, or multimaps from Thread::ptr to 
- * register values, etc.  The common iteration and error handling code is in the iter_t
- * template, which takes the type of collection it's iterating over as template parameters.
- *
- * The three big operations iter_t needs to do is extract a process from an iterator and
- * get the begin/end iterators from a collection.  These operations are done by a set
- * of overloaded functions: get_proc, get_begin, and get_end.  We have an instance of these
- * for each type of collection we deal with.
- **/
 template<class T>
 static Process::const_ptr get_proc(const T &i, err_t *) {
    return i->first;

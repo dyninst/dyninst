@@ -28,11 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.64 2008/09/11 20:14:14 mlam Exp $
- */
-
 #include <assert.h>
 #include <stdio.h>
 #include "compiler_annotations.h"
@@ -228,8 +223,6 @@ void EmitterIA32::emitRelOpImm(unsigned op, Register dest, Register src1, RegVal
    emitRelOp(op, dest, src1, src2, gen, s);
    gen.rs()->freeRegister(src2);
 }
-
-// where is this defined?
 extern bool isPowerOf2(int value, int &result);
 
 void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
@@ -528,36 +521,6 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num,
               0, loc.offset, dest_r, gen);
 }
 
-// Moves stack pointer by offset and aligns it to IA32_STACK_ALIGNMENT
-// with the following sequence:
-//
-//     lea    -off(%esp) => %esp           # move %esp down
-//     mov    %eax => saveSlot1(%esp)      # save %eax onto stack
-//     lahf                                # save %eflags byte into %ah
-//     seto   %al                          # save overflow flag into %al
-//     mov    %eax => saveSlot2(%esp)      # save flags %eax onto stack
-//     lea    off(%esp) => %eax            # store original %esp in %eax
-//     and    -$IA32_STACK_ALIGNMENT,%esp  # align %esp
-//     mov    %eax => (%esp)               # store original %esp on stack
-//     mov    -off+saveSlot2(%eax) => %eax # restore flags %eax from stack
-//     add    $0x7f,%al                    # restore overflow flag from %al
-//     sahf                                # restore %eflags byte from %ah
-//     mov    (%esp) => %eax               # re-load old %esp into %eax to ...
-//     mov    -off+saveSlot1(%eax) => %eax # ... restore %eax from stack
-//
-// This sequence has three important properties:
-//     1) It never *directly* writes to memory below %esp.  It always begins
-//        by moving %esp down, then writing to locations above it.  This way,
-//        if the kernel decides to interrupt, it won't stomp all over our
-//        values before we get a chance to use them.
-//     2) It is designed to support easy de-allocation of this space by
-//        ending with %esp pointing to where we stored the original %esp.
-//     3) Care has been taken to properly restore both %eax and %eflags
-//        by using "lea" instead of "add" or "sub," and saving the necessary
-//        flags around the "and" instruction.
-//
-// Saving of the flags register can be skipped if the register is not live.
-
 void EmitterIA32::emitStackAlign(int offset, codeGen &gen)
 {
     int off = offset + 4 + IA32_STACK_ALIGNMENT;
@@ -854,10 +817,6 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
     return true;
 }
 
-//
-// 64-bit code generation helper functions
-//
-
 static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &gen)
 {
     unsigned char rex = 0x40;
@@ -983,11 +942,6 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
       emitMovImmToReg(RealRegister(tmp_dest), imm, gen);
 }
 
-// on 64-bit x86_64 targets, the DWARF register number does not
-// correspond to the machine encoding. See the AMD-64 ABI.
-
-// We can only safely map the general purpose registers (0-7 on ia-32,
-// 0-15 on amd-64)
 #define IA32_MAX_MAP 7
 #define AMD64_MAX_MAP 15
 static int const amd64_register_map[] =
@@ -1001,11 +955,6 @@ static int const amd64_register_map[] =
     5,  // RBP
     4,  // RSP
     8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
-    
-    /* This is incomplete. The x86_64 ABI specifies a mapping from
-       dwarf numbers (0-66) to ("architecture number"). Without a
-       corresponding mapping for the SVR4 dwarf-machine encoding for
-       IA-32, however, it is not meaningful to provide this mapping. */
 };
 
 int Register_DWARFtoMachineEnc32(int n)
@@ -1156,8 +1105,6 @@ void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int i
     gen.markRegDefined(rm_reg);
 }
 
-// operation on memory location specified with a base register
-// (does not work for RSP, RBP, R12, R13)
 static void emitOpMemImm64(unsigned opcode, unsigned opcode_ext, Register base,
 			  int imm, bool is_64, codeGen &gen)
 {
@@ -1625,9 +1572,6 @@ void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
    }
 } 
 
-// this is the distance on the basetramp stack frame from the
-// start of the GPR save region to where the base pointer is,
-// in 8-byte quadwords
 #define GPR_SAVE_REGION_OFFSET 18
 
 void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen)
@@ -1719,15 +1663,6 @@ void EmitterAMD64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
    }
 }
 
-
-
-/* Recursive function that goes to where our instrumentation is calling
-   to figure out what registers are clobbered there, and in any function
-   that it calls, to a certain depth ... at which point we clobber everything
-
-   Update-12/06, njr, since we're going to a cached system we are just going to 
-   look at the first level and not do recursive, since we would have to also
-   store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
                                        func_instance *callee)
 		   
@@ -2049,8 +1984,6 @@ bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
    return true;
 }
 
-
-// FIXME: comment here on the stack layout
 void EmitterAMD64::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
 {
    if (!addr_of) {
@@ -2322,9 +2255,6 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
       emitMovImmToReg64(dest, (int)imm, true, gen);       
 }
 
-// this is the distance in 8-byte quadwords from the frame pointer
-// in our basetramp's stack frame to the saved value of RFLAGS
-// (1 qword for our false return address, 16 for the saved registers, 1 more for the flags)
 #define SAVED_RFLAGS_OFFSET 18
 
 void EmitterAMD64::emitRestoreFlags(codeGen &gen, unsigned offset)
@@ -2377,38 +2307,6 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
    }
    return true;
 }
-
-// Moves stack pointer by offset and aligns it to AMD64_STACK_ALIGNMENT
-// with the following sequence:
-//
-//     lea    -off(%rsp) => %rsp           # move %rsp down
-//     mov    %rax => saveSlot1(%rsp)      # save %rax onto stack
-//     lahf                                # save %rflags byte into %ah
-//     seto   %al                          # save overflow flag into %al
-//     mov    %rax => saveSlot2(%rsp)      # save flags %rax onto stack
-//     lea    off(%rsp) => %rax            # store original %rsp in %rax
-//     and    -$AMD64_STACK_ALIGNMENT,%rsp # align %rsp
-//     mov    %rax => (%rsp)               # store original %rsp on stack
-//     mov    -off+saveSlot2(%rax) => %rax # restore flags %rax from stack
-//     add    $0x7f,%al                    # restore overflow flag from %al
-//     sahf                                # restore %rflags byte from %ah
-//     mov    (%rsp) => %rax               # re-load old %rsp into %rax to ...
-//     mov    -off+saveSlot1(%rax) => %rax # ... restore %rax from stack
-//
-// This sequence has four important properties:
-//     1) It never writes to memory within offset bytes below the original
-//        %rsp.  This is to make it compatible with red zone skips.
-//     2) It never *directly* writes to memory below %rsp.  It always begins
-//        by moving %rsp down, then writing to locations above it.  This way,
-//        if the kernel decides to interrupt, it won't stomp all over our
-//        values before we get a chance to use them.
-//     3) It is designed to support easy de-allocation of this space by
-//        ending with %rsp pointing to where we stored the original %rsp.
-//     4) Care has been taken to properly restore both %eax and %eflags
-//        by using "lea" instead of "add" or "sub," and saving the necessary
-//        flags around the "and" instruction.
-//
-// Saving of the flags register can be skipped if the register is not live.
 
 void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
 {
@@ -2857,7 +2755,7 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 	return true;
 }
 
-#endif /* end of AMD64-specific functions */
+#endif
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 {

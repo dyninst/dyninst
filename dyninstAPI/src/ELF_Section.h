@@ -30,8 +30,6 @@
 
 /* $Id: ELF_Section.h,v 1.6 2005/02/24 10:15:39 rchen Exp $ */
 
-/* ccw 21 nov 2001 */
-
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
@@ -49,7 +47,6 @@ typedef struct {
 	unsigned int type;
 	bool loadable;
 } ELF_Section;
-//make this a class w/desctuctor
 
 
 typedef struct {

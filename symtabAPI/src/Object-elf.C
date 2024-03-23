@@ -84,14 +84,13 @@ using namespace std;
 #include <endian.h>
 using namespace boost::assign;
 
-// add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
 
 bool Object::truncateLineFilenames = false;
 
 std::vector<Symbol *> opdsymbols_;
 
-void (*dwarf_err_func)(const char *);   // error callback for dwarf errors
+void (*dwarf_err_func)(const char *);
 
 static bool pdelf_check_ehdr(Elf_X &elf) {
     // Elf header integrity check
@@ -120,11 +119,6 @@ const char *pdelf_get_shnames(Elf_X *elf) {
     return result;
 }
 
-//
-// SectionHeaderSortFunction
-//
-// Compare function for use with the Vector<T> sort method.
-//
 struct SectionHeaderSortFunction  {
     bool operator()(Elf_X_Shdr *hdr1, Elf_X_Shdr *hdr2) {
         return (hdr1->sh_addr() < hdr2->sh_addr());
@@ -154,7 +148,6 @@ Region::RegionType getSegmentType(unsigned long type, unsigned long flags) {
     return Region::RT_OTHER;
 }
 
-/* binary search to find the section starting at a particular address */
 Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
     unsigned end = allRegionHdrs.size() - 1, start = 0;
     unsigned mid = 0;
@@ -172,8 +165,6 @@ Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
     return NULL;
 }
 
-/* binary search to find the index into the RegionHdrs vector
-   of the section starting at a partidular address*/
 int Object::getRegionHdrIndexByAddr(Offset addr) {
     int end = allRegionHdrs.size() - 1, start = 0;
     int mid = 0;
@@ -1648,15 +1639,12 @@ static Symbol::SymbolVisibility pdelf_visibility(int elf_visibility) {
     return Symbol::SV_UNKNOWN;
 }
 
-//============================================================================
-
 //#include "dyninstAPI/src/arch.h"
 //#include "dyninstAPI/src/inst.h"
 //#include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 //#include "dyninstAPI/src/instP.h" // class returnInstance
 //#include "dyninstAPI/src/rpcMgr.h"
 
-//linear search
 bool lookUpSymbol(std::vector<Symbol *> &allsymbols, Offset &addr) {
     for (unsigned i = 0; i < allsymbols.size(); i++) {
         if (allsymbols[i]->getOffset() == addr) {
@@ -1675,7 +1663,6 @@ bool lookUpAddress(std::vector<Offset> &jumpTargets, Offset &addr) {
     return false;
 }
 
-//utitility function to print std::vector of symbols
 void printSyms(std::vector<Symbol *> &allsymbols) {
     for (unsigned i = 0; i < allsymbols.size(); i++) {
         if (allsymbols[i]->getType() != Symbol::ST_FUNCTION) {

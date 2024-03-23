@@ -42,36 +42,20 @@ class BPATCH_DLL_EXPORT BPatch_statement
   friend class BPatch_image;
 
   public:
-    //  BPatch_module * getModule()
-    //  Return the BPatch_module that contains this statement
     BPatch_module * module(); 
     
-    //  int getLineNumber()
-    //  return the line number of this statement
     int lineNumber();
 
-    //  int getLineOffset()
-    //  return the line offset of this statement (its start column in the source file)
-    //  This may not be supported on all platforms.
-    //  Returns -1 if not supported.
     int lineOffset();
 
-    //  const char * fileName()
-    //  return the name of the file that contains this statement
     const char * fileName();
 
-    //  void * startAddr()
-    //  return the starting address of this statement
     void *startAddr();
 
-    //  void * endAddr()
-    //  return the last address associated with this statement
-    //  (do we guarantee contiguity of addresses here?  not sure)
     void *endAddr();
 
   private:
 
-    //  Full parameter ctor -- can only built by friend classes
     BPatch_statement(BPatch_module *mod,  Dyninst::SymtabAPI::Statement::ConstPtr s);
 
     BPatch_module *module_;

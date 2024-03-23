@@ -36,12 +36,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  /* Checks if instruction is a system call
-   *
-   *  System calls can be implemented by the hardware as instructions
-   *  as well as by idioms. This checks for both for all supported
-   *  platforms.
-   */
 bool INSTRUCTION_EXPORT isSystemCall(Instruction const& ins);
 
 }}

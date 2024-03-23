@@ -54,7 +54,6 @@ class TrackerElement;
 class CodeTracker;
 class CodeBuffer;
 
-// Widget code generation class
 class Widget {
   friend class Transformer;
  public:
@@ -63,16 +62,12 @@ class Widget {
 
   Widget() {}
 
-  // A default value to make sure things don't go wonky.
   virtual Address addr() const { return 0; }
   virtual unsigned size() const { return 0; }
   virtual InstructionAPI::Instruction insn() const {
     return InstructionAPI::Instruction();
   }
 
-  // Make binary from the thing
-  // Current address (if we need it)
-  // is in the codeGen object.
   virtual bool generate(const codeGen &templ,
                         const RelocBlock *trace,
                         CodeBuffer &buffer) = 0;
@@ -82,7 +77,6 @@ class Widget {
   virtual ~Widget() {}
 };
 
- // A generic code patching mechanism
 struct Patch {
    virtual bool apply(codeGen &gen, CodeBuffer *buf) = 0;
    virtual unsigned estimate(codeGen &templ) = 0;

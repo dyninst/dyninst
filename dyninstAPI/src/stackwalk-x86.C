@@ -112,13 +112,6 @@ bool PCProcess::createStackwalkerSteppers()
   return true;
 }
 
-// IN:
-//   ra - Address to query for instrumentation status
-// OUT:
-//   *orig_ra - If in frameless instrumentation, the original address of the instruction
-//              otherwise, 0x0 
-//   *stack_height -
-//   bool *entryExit - if this frame is entry/exit instrumentation 
 bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
                                                        Dyninst::Address *orig_ra,
                                                        unsigned *stack_height,

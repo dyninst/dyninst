@@ -46,14 +46,6 @@ Mutex<> *Generator::cb_lock;
 
 bool Generator::startedAnyGenerator = false;
 
-/*
- * Library deinitialization
- *
- * Note: it is crucial that this variable is located here because it guarantees
- * that the threads will be stopped before destructing the CBs collection and
- * therefore avoiding a problem where the generator will continue to run but
- * the CBs collection has already been destructed
- */
 static int_cleanup cleanup;
 
 int_cleanup::~int_cleanup() {
@@ -272,7 +264,6 @@ Generator::state_t Generator::getState()
 	return state;
 }
 
-// TODO: override this in Windows generator so that we use local counters
 bool Generator::hasLiveProc()
 {
    pthrd_printf("Entry to generator::hasLiveProc()\n");

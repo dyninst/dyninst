@@ -33,8 +33,6 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-/* Default Implementation for CFGMaker */
-
 PatchFunction*
 CFGMaker::makeFunction(ParseAPI::Function* f, PatchObject* obj) {
   PatchFunction* ret = new PatchFunction(f, obj);

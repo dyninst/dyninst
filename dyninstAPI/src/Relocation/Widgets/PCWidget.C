@@ -46,7 +46,6 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-////////////////////////
 PCWidget::Ptr PCWidget::create(Instruction insn,
 			 Address addr,
 			 Absloc a,

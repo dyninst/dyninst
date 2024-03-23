@@ -39,7 +39,6 @@
 namespace Dyninst { namespace SymtabAPI {
 
   namespace detail {
-    // A Module is uniquely identified by its name and offset
     struct hash {
       size_t operator()(Module *m) const {
         size_t seed{0UL};

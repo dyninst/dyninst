@@ -144,8 +144,6 @@ Function::blocks()
     return blocklist(blocks_begin(), blocks_end());
 }
 
-// Get the current set of blocks,
-// as a const operation
 Function::const_blocklist
 Function::blocks() const
 {
@@ -395,12 +393,6 @@ Function::blocks_int()
     return blocklist(blocks_begin(), blocks_end());
 }
 
-/* Adds return edges to the CFG for a particular retblk, based 
- * on callers to this function.  Handles case of return block 
- * that targets the entry block of a new function separately
- * (ret to entry happens if the function tampers with its stack 
- *  and maybe if this function is a signal handler?) 
- */ 
 void
 Function::delayed_link_return(CodeObject * o, Block * retblk)
 {
@@ -719,9 +711,6 @@ LoopTreeNode* Function::getLoopTree() const{
   return _loop_root;
 }
 
-// this methods returns the loop objects that exist in the control flow
-// grap. It returns a set. And if there are no loops, then it returns the empty
-// set. not NULL.
 void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
                                               bool outerMostOnly) const
 {
@@ -744,7 +733,6 @@ void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
 }
 
 
-// get all the loops in this flow graph
 bool
 Function::getLoops(vector<Loop*>& lbb) const
 {
@@ -753,7 +741,6 @@ Function::getLoops(vector<Loop*>& lbb) const
   return true;
 }
 
-// get the outermost loops in this flow graph
 bool
 Function::getOuterLoops(vector<Loop*>& lbb) const
 {
@@ -768,14 +755,6 @@ Loop *Function::findLoop(const char *name) const
   return getLoopTree()->findLoop(name);
 }
 
-
-//this method fill the dominator information of each basic block
-//looking at the control flow edges. It uses a fixed point calculation
-//to find the immediate dominator of the basic blocks and the set of
-//basic blocks that are immediately dominated by this one.
-//Before calling this method all the dominator information
-//is going to give incorrect results. So first this function must
-//be called to process dominator related fields and methods.
 void Function::fillDominatorInfo() const
 {
     boost::lock_guard<const Function> g(*this);

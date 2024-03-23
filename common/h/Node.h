@@ -96,7 +96,6 @@ class COMMON_EXPORT Node  {
     
     virtual ~Node() {}
 
-    // DOT output methods...
     virtual std::string DOTshape() const;
     virtual std::string DOTrank() const;
     virtual std::string DOTname() const;
@@ -158,7 +157,6 @@ class  COMMON_EXPORT VirtualNode : public Node {
 
     static std::string defaultName;
 
-    // DOT output methods...
     virtual std::string DOTshape() const;
  private:
     std::string name_;
@@ -186,26 +184,16 @@ class COMMON_EXPORT NodeIterator {
 
     NodeIterator &operator=(const NodeIterator &rhs);
 
-
-    // For code such as:
-    // NodeIterator begin, end;
-    // graph->entryNodes(begin, end);
     NodeIterator();
 
-    // Main constructor
-    // The iter parameter becomes owned by the iterator and will be destroyed
-    // when the iterator is destroyed.
     NodeIterator(NodeIteratorImpl *iter);
 
-    // Aaaand let's _really_ not forget the copy constructor
     NodeIterator(const NodeIterator &rhs);
 
     ~NodeIterator();
 
  protected:
 
-    // We hide the internal iteration behavior behind a pointer. 
-    // This allows us to override (yay for virtual functions).
     NodeIteratorImpl *iter_;
 
     NodeIteratorImpl *copy() const;

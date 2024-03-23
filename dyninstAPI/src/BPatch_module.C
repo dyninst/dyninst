@@ -58,13 +58,6 @@ std::string current_func_name;
 std::string current_mangled_func_name;
 BPatch_function *current_func = NULL;
 
-/*
- * BPatch_module::getSourceObj()
- *
- * Return the contained source objects (e.g. functions).
- *
- */
-
 bool BPatch_module::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
    if (!mod) return false;
@@ -80,12 +73,6 @@ bool BPatch_module::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
    return true;
 }
 
-/*
- * BPatch_function::getObjParent()
- *
- * Return the parent of the function (i.e. the image)
- *
- */
 BPatch_sourceObj *BPatch_module::getObjParent()
 {
    return (BPatch_sourceObj *) img;
@@ -172,7 +159,6 @@ BPatch_module::BPatch_module(BPatch_addressSpace *_addSpace,
 
 } /* end BPatch_module() */
 
-// Public 'destructor' function...
 void BPatch_module::handleUnload() 
 {
    // Hrm... what to do. For now, mark us as "deleted" so that
@@ -314,12 +300,6 @@ BPatch_typeCollection *BPatch_module::getModuleTypes()
 	return moduleTypes;
 }
 
-/*
- * BPatch_module::getProcedures
- *
- * Returns a list of all procedures in the module upon success, and NULL
- * upon failure.
- */
 BPatch_Vector<BPatch_function *> *
 	BPatch_module::getProcedures(bool incUninstrumentable) {
 		if (!isValid())
@@ -363,18 +343,6 @@ bool BPatch_module::getProcedures(BPatch_Vector<BPatch_function*> &funcs,
    }
    return true;
 }
-
-/*
- * BPatch_module::findFunction
- *
- * Returns a vector of BPatch_function* with the same name that is provided or
- * NULL if no function with that name is in the module.  This function
- * searches the BPatch_function vector of the module followed by
- * the func_instance of the module.  If a func_instance is found
- * a BPatch_function is created and added to the BPatch_function vector of
- * the module.
- * name The name of function to look up.
- */
 
    BPatch_Vector<BPatch_function *> *
 BPatch_module::findFunction(const char *name, 
@@ -623,9 +591,7 @@ void BPatch_module::parseTypes()
 {
    mod->pmod()->mod()->exec()->parseTypesNow();
 }
-// This is done by analogy with BPatch_module::getVariables,
-// not BPatch_image::findVariable.  This should result in consistent
-// behavior at the module level.
+
 BPatch_variableExpr* BPatch_module::findVariable(const char* name)
 {
    parseTypesIfNecessary();

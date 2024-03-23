@@ -40,9 +40,6 @@
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::PatchAPI;
-//constructors
-//internal use only
-
 
 PatchLoop::PatchLoop(PatchObject *obj, ParseAPI::Loop *loop): loop_(loop), parent(NULL) {
     //parent pointer and containedLoops vectors are set in PatchFunction::createLoops
@@ -129,29 +126,22 @@ bool PatchLoop::getLoops(vector<PatchLoop*>& nls, bool outerMostOnly) const
    return true;
 }
 
-//method that returns the nested loops inside the loop. It returns a set
-//of Loop that are contained. It might be useful to add nest 
-//as a field of this class but it seems it is not necessary at this point
 bool PatchLoop::getContainedLoops(vector<PatchLoop*>& nls)
 {
   return getLoops(nls, false);
 }
 
-// get the outermost loops nested under this loop
 bool 
 PatchLoop::getOuterLoops(vector<PatchLoop*>& nls)
 {
   return getLoops(nls, true);
 }
 
-//returns the basic blocks in the loop
 bool PatchLoop::getLoopBasicBlocks(vector<PatchBlock*>& bbs) {
    bbs.insert(bbs.end(), basicBlocks.begin(), basicBlocks.end());
   return true;
 }
 
-
-// returns the basic blocks in this loop, not those of its inner loops
 bool PatchLoop::getLoopBasicBlocksExclusive(vector<PatchBlock*>& bbs) {
     // start with a copy of all this loops basic blocks
    std::set<PatchBlock*> allBlocks(basicBlocks);

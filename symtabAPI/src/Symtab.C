@@ -417,19 +417,6 @@ SYMTAB_EXPORT string Symtab::getDefaultNamespacePrefix() const
     return defaultNamespacePrefix;
 }
 
-
-/*
- * extractSymbolsFromFile
- *
- * Create a Symtab-level list of symbols by pulling out data
- * from the low-level parse (linkedFile).
- * Technically this causes a duplication of symbols; however,
- * we will be rewriting these symbols and so we need our own
- * copy. 
- *
- * TODO: delete the linkedFile once we're done?
- */
-
 bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms) 
 {
    for (SymbolIter symIter(*linkedFile); symIter; symIter++)  {
@@ -481,12 +468,6 @@ bool Symtab::fixSymRegion(Symbol *sym) {
    return true;
 }
 
-/*
- * fixSymModules
- * 
- * Add Module information to all symbols. 
- */
-
 bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms) 
 {
     Object *obj = getObject();
@@ -509,14 +490,6 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     return true;
 }
 
-
-/*
- * createIndices
- *
- * We index symbols by various attributes for quick lookup. Build those
- * indices here. 
- */
-
 bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
     #pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < raw_syms.size(); i++) {
@@ -524,14 +497,6 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
     }
     return true;
 }
-
-/*
- * createAggregates
- *
- * Frequently there will be multiple Symbols that refer to a single 
- * code object (e.g., function or variable). We use separate objects
- * to refer to these aggregates, and build those objects here. 
- */
 
 bool Symtab::createAggregates() 
 {
@@ -690,17 +655,6 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
     return true;
 }
 
-// A hacky override for specially treating symbols that appear
-// to be functions or variables but aren't.
-//
-// Example: IA-32/AMD-64 libc (and others compiled with libc headers)
-// uses outlined locking primitives. These are named _L_lock_<num>
-// and _L_unlock_<num> and labelled as functions. We explicitly do
-// not include them in function scope.
-//
-// Also, exclude symbols that begin with _imp_ in defensive mode.
-// These symbols are entries in the IAT and shouldn't be treated
-// as functions.
 bool Symtab::doNotAggregate(const Symbol* sym) {
     const std::string& mangled = sym->getMangledName();
 
@@ -727,9 +681,6 @@ bool Symtab::doNotAggregate(const Symbol* sym) {
     return false;
 }
 
-//  setModuleLanguages is only called after modules have been defined.
-//  it attempts to set each module's language, information which is needed
-//  before names can be demangled.
 void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs)
 {
    if (!mod_langs->size())
@@ -1089,16 +1040,11 @@ bool Symtab::extractInfo(Object *linkedFile)
     return true;
 }
 
-// Address must be in code or data range since some code may end up
-// in the data segment
 bool Symtab::isValidOffset(const Offset where) const
 {
    return isCode(where) || isData(where);
 }
 
-/* Performs a binary search on the codeRegions_ vector, which must
- * be kept in sorted order
- */
 bool Symtab::isCode(const Offset where)  const
 {
    if (!codeRegions_.size()) 
@@ -1142,8 +1088,6 @@ bool Symtab::isCode(const Offset where)  const
    return false;
 }
 
-/* Performs a binary search on the dataRegions_ vector, which must
- * be kept in sorted order */
 bool Symtab::isData(const Offset where)  const
 {
    if (!dataRegions_.size()) 
@@ -2218,8 +2162,6 @@ SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regio
    return true;
 }
 
-// on windows we can't specify the trap table's location by adding a dynamic
-// symbol as we don on windows
 SYMTAB_EXPORT bool Symtab::addTrapHeader_win(Address ptr)
 {
 #if defined(os_windows)

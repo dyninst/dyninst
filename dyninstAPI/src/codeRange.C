@@ -44,9 +44,6 @@ inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 	return dynamic_cast< inferiorRPCinProgress * >( this );
 	}
 
-// This is a special case... the multitramp is the thing in the
-// codeRange tree, but people think of baseTramps.
-// So this is dangerous to use, actually.
 block_instance *codeRange::is_basicBlockInstance() {
     return dynamic_cast<block_instance *>(this);
 }
@@ -178,7 +175,6 @@ void codeRangeTree::deleteFixup(entry* x){
 }
 
 
-// fails if the key value is already in the tree (happens for shared code)
 codeRangeTree::entry *codeRangeTree::treeInsert(Dyninst::Address key, codeRange *value)
 {
 	entry* y = NULL;
@@ -208,8 +204,6 @@ codeRangeTree::entry *codeRangeTree::treeInsert(Dyninst::Address key, codeRange 
 	setSize++;
 	return z;
 }
-
-/** finds the minimum value node when x is being deleted */
 
 codeRangeTree::entry *codeRangeTree::treeSuccessor(entry* x) const{
 	if(!x || (x == nil))
@@ -265,8 +259,6 @@ void codeRangeTree::traverse(std::vector<codeRange *> &all, entry* node) const{
 	if(node->right != nil)
 		traverse(all,node->right);
 }
-
-//////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
 void codeRangeTree::insert(codeRange *value) {
     //assert(value->get_size());

@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* A stub file for architecture specific functions of the relocationEntry class */
-
 #include "Symtab.h"
 
 using namespace Dyninst;

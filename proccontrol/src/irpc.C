@@ -39,7 +39,6 @@
 #include "Mailbox.h"
 #include "procpool.h"
 
-// CLEANUP
 #if defined(os_windows)
 #include "windows_process.h"
 #endif

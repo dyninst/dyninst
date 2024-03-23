@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Build Pull Request
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2.4.1
     - name: Build
       run: |
          rm -rf /code

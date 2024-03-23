@@ -53,8 +53,6 @@ public:
     virtual Address offset() const = 0;
     virtual Address length() const = 0;
     virtual Architecture getArch() const = 0;
-
-    // The following routines have default, architecture-specific behavior
     virtual bool isAligned(const Address) const;
 };
 

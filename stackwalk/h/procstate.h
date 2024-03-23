@@ -28,9 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//TODO: isRunning(), isStopped()...
-//TODO: Bug if trying to stop an already stopped process
-
 #ifndef PROCSTATE_H_
 #define PROCSTATE_H_
 
@@ -69,25 +66,18 @@ protected:
    void setPid(Dyninst::PID pid_);
 public:
 
-  //look-up Process-State by pid
   static ProcessState* getProcessStateByPid(Dyninst::PID pid);
 
-  //Read register in thread
   virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val) = 0;
   
-  //Read memory in process
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size) = 0;
 
-  //Return list of available threads
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0;
   
-  //Return the default thread
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0;
 
-  //Return PID
   virtual Dyninst::PID getProcessId();
 
-  //Return the size of an address in process in bytes
   virtual unsigned getAddressWidth() = 0;
 
   virtual Dyninst::Architecture getArchitecture() = 0;
@@ -100,7 +90,6 @@ public:
   void setDefaultLibraryTracker();
   virtual LibraryState *getLibraryTracker();
 
-  //Allow initialization/uninitialization
   virtual bool preStackwalk(Dyninst::THR_ID tid);
   virtual bool postStackwalk(Dyninst::THR_ID tid);
 

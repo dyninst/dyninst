@@ -74,7 +74,7 @@ namespace Relocation {
 class CFWidget : public Widget {
   friend class Transformer;
   friend class LocalizeCF;
-  friend class Instrumenter; // For rewiring edge instrumentation
+  friend class Instrumenter;
   //friend class adhocMovementTransformer; // Also
   //friend class PCSensitiveTransformer;
   friend class Modification;
@@ -95,7 +95,6 @@ class CFWidget : public Widget {
 
   virtual ~CFWidget();
 
-  // Owns the provided *dest parameter
   void addDestination(Address index, TargetInt *dest);
   TargetInt *getDestination(Address dest) const;
   const DestinationMap &destinations() const { return destMap_; }
@@ -133,8 +132,6 @@ class CFWidget : public Widget {
    TrackerElement *padTracker(Address addr, unsigned size, const RelocBlock *) const;
    
 
-  // These are not necessarily mutually exclusive. See also:
-  // PPC conditional linking indirect branch, oy. 
   bool isCall_;
   bool isConditional_;
   bool isIndirect_;
@@ -144,24 +141,10 @@ class CFWidget : public Widget {
   InstructionAPI::Instruction insn_;
   Address addr_;
 
-  // If we were a PC-relative indirect store that data here
   Address origTarget_;
 
-  // A map from input values (for some representation of input
-  // values) to Targets
-  // Used during code generation to determine whether we
-  // require some form of address translation. We currently have
-  // two cases: conditional and indirect control flow.
-  //  Conditional: <true> -> taken target; <false> -> fallthrough target
-  //  Indirect: <original address> -> corresponding target
-  // TBD: PPC has conditional indirect control flow, so we may want
-  // to split these up.
   DestinationMap destMap_;
 
-  // These should move to a CodeGenerator class or something...
-  // But for now they can go here
-  // The Instruction input allows pulling out ancillary data (e.g.,
-  // conditions, prediction, etc.
   bool generateBranch(CodeBuffer &gens,
 					  TargetInt *to,
 					  InstructionAPI::Instruction insn,
@@ -177,8 +160,7 @@ class CFWidget : public Widget {
 								 TargetInt *to,
 								 const RelocBlock *trace,
 								 InstructionAPI::Instruction insn);
-  // The Register holds the translated destination (if any)
-  // TODO replace with the register IDs that Bill's building
+
   typedef unsigned Register;
   bool generateIndirect(CodeBuffer &gens,
 						Register reg,
@@ -192,13 +174,11 @@ class CFWidget : public Widget {
 };
 
 struct CFPatch : public Patch {
-  // What type of patch are we?
   typedef enum {
     Jump,
     JCC, 
     Call,
     Data } Type;
-  // Data: RIP-relative expression for the destination
 
  CFPatch(Type a,
 		 InstructionAPI::Instruction b,
@@ -236,14 +216,6 @@ struct CFPatch : public Patch {
 };
 
 struct PaddingPatch : public Patch {
-  // For Kevin's defensive Dyninst, we want to append a
-  // padding area past the return point of calls that don't
-  // necessarily return to the normal places. This requires
-  // both a) an empty space in code gen and b) tracking that
-  // address in the process. The first is easy enough to
-  // do statically, but the second requires a patch so that
-  // we get notified of address finickiness.
-
    PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b);
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);

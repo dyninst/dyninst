@@ -39,18 +39,6 @@
 namespace Dyninst {
 namespace Relocation {
 
-// Wraps an object that can serve as a  control flow target. This
-// may include existing code objects (a block or function)
-// or something that has been relocated. We wrap them with this
-// template class (which will then be specialized as appropriate)
-// so we don't pollute the base class with extraneous code (I'm
-// looking at _you_, get_address_cr....
-//
-// Preliminary requirement: T must be persistent during the existence
-// of this class so we can use a reference to it. 
-
-// predictedAddr takes into account things moving during code generation
-
 class CodeBuffer;
 struct RelocEdge;
 
@@ -68,8 +56,6 @@ class TargetInt {
 
   virtual Address origAddr() const = 0;
 
-  // It would be nice to eventually move these into the code generator loop, but
-  // for now it's okay to keep them here. 
   virtual bool necessary() const { return necessary_; }
   virtual void setNecessary(bool a) { necessary_ = a; }
 

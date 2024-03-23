@@ -36,26 +36,6 @@
 #include <map>
 #include <string>
 #include <vector>
-
-/**
- * The Resp class is a second implementation of the response
- * class.  On async systems, it tracks
- * command messages we've sent to the OS, and associates them
- * with the responses we receive from the OS.
- *
- * Resp has several improvements over response:
- * - Integrated support for multi-responses, where you
- *   get multiple responses from one message.
- * - Replacement of response's global lock with a 
- *   per-process condition variable, which should have
- *   significantly less contention
- * - Templated parameters to hold command specific data.
- *
- * Over the long-term, it would be nice to completely replace
- * response with Resp, but for the moment Resp will just be used
- * for new code.
- **/
-
 #include "int_process.h"
 
 class Resp;

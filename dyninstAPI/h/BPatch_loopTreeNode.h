@@ -50,59 +50,34 @@ class PatchLoopTreeNode;
 }
 }
 
-/** A class to represent the tree of nested loops and 
- *  callees (functions) in the control flow graph.
- *  @see BPatch_basicBlockLoop
- *  @see BPatch_flowGraph
- */
-
 class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
     friend class BPatch_flowGraph;
 
  public:
-    // A loop node contains a single BPatch_basicBlockLoop instance
     BPatch_basicBlockLoop *loop;
 
-    // The BPatch_loopTreeNode instances nested within this loop.
     BPatch_Vector<BPatch_loopTreeNode *> children;
 
-    //  BPatch_loopTreeNode::BPatch_loopTreeNode
-    //  Create a loop tree node for BPatch_basicBlockLoop with name n 
     BPatch_loopTreeNode(BPatch_flowGraph*, 
                         Dyninst::PatchAPI::PatchLoopTreeNode*, 
 			std::map<Dyninst::PatchAPI::PatchLoop*, BPatch_basicBlockLoop*>&);
 
-    //  BPatch_loopTreeNode::~BPatch_loopTreeNode
-    //  Destructor
     ~BPatch_loopTreeNode();
 
-    //  BPatch_loopTreeNode::name
-    //  Return the name of this loop. 
     const char * name(); 
 
-    //  BPatch_loopTreeNode::getCalleeName
-    //  Return the function name of the ith callee. 
     std::string getCalleeName(unsigned int i);
 
-    //  BPatch_loopTreeNode::numCallees
-    //  Return the number of callees contained in this loop's body. 
     unsigned int numCallees();
 
-    //Returns a vector of the functions called by this loop.
     bool getCallees(BPatch_Vector<BPatch_function *> &v, BPatch_addressSpace *p);
     
-
-    //  BPatch_loopTreeNode::findLoop
-    //  find loop by hierarchical name
     BPatch_basicBlockLoop * findLoop(const char *name);
 
  private:
 
-    /** name which indicates this loop's relative nesting */
     char *hierarchicalName;
 
-    // A vector of functions called within the body of this loop (and
-    // not the body of sub loops). 
     BPatch_Vector<func_instance *> callees;
 
 };

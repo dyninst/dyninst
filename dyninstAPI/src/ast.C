@@ -109,25 +109,19 @@ AstNode::AstNode() {
    snippetNameSet = false;
 }
 
-//The following methods are for error reporting in dynC_API
-
-// Returns the line number at which the ast was declared
 int AstNode::getLineNum(){
    return lineNum;
 }
 
-// Sets the line number at which the ast was declared
 void AstNode::setLineNum(int ln){
    lineInfoSet = true;
    lineNum = ln;
 }
 
-// Returns the column number at which the ast was declared
 int AstNode::getColumnNum(){
    return columnNum;
 }
 
-// Sets the column number at which the ast was declared
 void AstNode::setColumnNum(int cn){
    columnInfoSet = true;
    columnNum = cn;
@@ -158,8 +152,6 @@ bool AstNode::hasNameInfo(){
    return snippetNameSet;
 }
 
-//////////////////////////////////////////////////////
-
 AstNodePtr AstNode::nullNode() {
     return AstNodePtr(new AstNullNode());
 }
@@ -188,7 +180,6 @@ AstNodePtr AstNode::operandNode(operandType ot, void *arg) {
     return AstNodePtr(new AstOperandNode(ot, arg));
 }
 
-// TODO: this is an indirect load; should be an operator.
 AstNodePtr AstNode::operandNode(operandType ot, AstNodePtr ast) {
     return AstNodePtr(new AstOperandNode(ot, ast));
 }
@@ -508,10 +499,6 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
 
 
 AstNodePtr AstNode::threadIndexNode() {
-    // We use one of these across all platforms, since it
-    // devolves into a process-specific function node.
-    // However, this lets us delay that until code generation
-    // when we have the process pointer.
     static AstNodePtr indexNode_;
 
     // Since we only ever have one, keep a static copy around. If
@@ -566,26 +553,7 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
     return 0;
 }
 
-// This name is a bit of a misnomer. It's not the strict use count; it's the
-// use count modified by whether a node can be kept or not. We can treat
-// un-keepable nodes (AKA those that don't strictly depend on their AST inputs)
-// as multiple different nodes that happen to have the same children; keepable
-// nodes are the "same". If that makes any sense.
-//
-// In any case, we use the following algorithm to set use counts:
-//
-//DFS through the AST graph.
-//If an AST can be kept:
-//  Increase its use count;
-//  Return.
-//If an AST cannot be kept:
-//  Recurse to each child;
-//  Return
-//
-// The result is all nodes having counts of 0, 1, or >1. These mean:
-// 0: node cannot be kept, or is only reached via a keepable node.
-// 1: Node can be kept, but doesn't matter as it's only used once.
-// >1: keep result in a register.
+
 
 void AstNode::setUseCount()
 {
@@ -626,8 +594,6 @@ void AstNode::cleanUseCount(void)
     }
 }
 
-// Allocate a register and make it available for sharing if our
-// node is shared
 Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
 {
     ast_printf("Allocating register for node %p, useCount %d\n", (void*)this, useCount);
@@ -648,29 +614,6 @@ Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
     return dest;
 }
 
-//
-// This procedure generates code for an AST DAG. If there is a sub-graph
-// being shared between more than 1 node, then the code is generated only
-// once for this sub-graph and the register where the return value of the
-// sub-graph is stored, is kept allocated until the last node sharing the
-// sub-graph has used it (freeing it afterwards). A count called "useCount"
-// is used to determine whether a particular node or sub-graph is being
-// shared. At the end of the call to generate code, this count must be 0
-// for every node. Another important issue to notice is that we have to make
-// sure that if a node is not calling generate code recursively for either
-// its left or right operands, we then need to make sure that we update the
-// "useCount" for these nodes (otherwise we might be keeping registers
-// allocated without reason).
-//
-// This code was modified in order to set the proper "useCount" for every
-// node in the DAG before calling the original generateCode procedure (now
-// generateCode_phase2). This means that we are traversing the DAG twice,
-// but with the advantage of potencially generating more efficient code.
-//
-// Note: a complex Ast DAG might require more registers than the ones
-// currently available. In order to fix this problem, we will need to
-// implement a "virtual" register allocator - naim 11/06/96
-//
 bool AstNode::generateCode(codeGen &gen,
                            bool noCost,
                            Address &retAddr,
@@ -747,7 +690,6 @@ bool AstNode::previousComputationValid(Dyninst::Register &reg,
    return false;
 }
 
-// We're going to use this fragment over and over and over...
 #define RETURN_KEPT_REG(r) do { if (previousComputationValid(r, gen)) { decUseCount(gen); gen.rs()->incRefCount(r); return true;} } while (0)
 #define ERROR_RETURN do { fprintf(stderr, "[%s:%d] ERROR: failure to generate operand\n", __FILE__, __LINE__); return false; } while (0)
 #define REGISTER_CHECK(r) do { if ((r) == Dyninst::Null_Register) { fprintf(stderr, "[%s: %d] ERROR: returned register invalid\n", __FILE__, __LINE__); return false; } } while (0)
@@ -2024,10 +1966,6 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
 }
 
 bool AstCallNode::initRegisters(codeGen &gen) {
-    // For now, we only care if we should save everything. "Everything", of course,
-    // is platform dependent. This is the new location of the clobberAllFuncCalls
-    // that had previously been in emitCall.
-
     bool ret = true;
 
     // First, check kids
@@ -2592,7 +2530,6 @@ bool AstNode::accessesParam() {
 }
 
 
-// This is not the most efficient way to traverse a DAG
 bool AstOperatorNode::accessesParam()
 {
     bool ret = false;
@@ -2626,8 +2563,6 @@ bool AstVariableNode::accessesParam() {
     return ast_wrappers_[index]->accessesParam();
 }
 
-// Our children may have incorrect useCounts (most likely they
-// assume that we will not bother them again, which is wrong)
 void AstNode::fixChildrenCounts()
 {
     std::vector<AstNodePtr> children;
@@ -2638,8 +2573,6 @@ void AstNode::fixChildrenCounts()
 }
 
 
-// Check if the node can be kept at all. Some nodes (e.g., storeOp)
-// can not be cached. In fact, there are fewer nodes that can be cached.
 bool AstOperatorNode::canBeKept() const {
     switch (op) {
     case plusOp:
@@ -2697,8 +2630,6 @@ bool AstCallNode::canBeKept() const {
 }
 
 bool AstSequenceNode::canBeKept() const {
-	// Theoretically we could keep the entire thing, but... not sure
-	// that's a terrific idea. For now, don't keep a sequence node around.
     return false;
 }
 
@@ -2707,21 +2638,15 @@ bool AstVariableNode::canBeKept() const {
 }
 
 bool AstMiniTrampNode::canBeKept() const {
-	// Well... depends on the actual AST, doesn't it.
 	assert(ast_);
 
 	return ast_->canBeKept();
 }
 
 bool AstMemoryNode::canBeKept() const {
-	// Despite our memory loads, we can be kept;
-	// we're loading off process state, which is defined
-	// to be invariant during the instrumentation phase.
 	return true;
 }
 
-// Occasionally, we do not call .generateCode_phase2 for the referenced node,
-// but generate code by hand. This routine decrements its use count properly
 void AstNode::decUseCount(codeGen &gen)
 {
     if (useCount == 0) return;
@@ -2732,8 +2657,6 @@ void AstNode::decUseCount(codeGen &gen)
         gen.tracker()->removeKeptRegister(gen, this);
     }
 }
-
-// Return all children of this node ([lre]operand, ..., operands[])
 
 void AstNode::getChildren(std::vector<AstNodePtr > &) {
 #if 0

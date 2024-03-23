@@ -52,7 +52,6 @@ class arm_process : virtual public int_process
 
   virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
 
-  //for emulated SS
   virtual void cleanupSSOnContinue(int_thread *thr);
   virtual void registerSSClearCB();
   virtual async_ret_t readPCForSS(int_thread *thr, Address &pc);

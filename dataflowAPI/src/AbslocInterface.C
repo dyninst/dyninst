@@ -484,11 +484,6 @@ bool AbsRegionConverter::definedCache(Address addr,
   return true;
 }
 
-///////////////////////////////////////////////////////
-// Create a set of Assignments from an InstructionAPI
-// Instruction.
-///////////////////////////////////////////////////////
-
 void AssignmentConverter::convert(const Instruction &I, 
                                   const Address &addr,
 				  ParseAPI::Function *func,

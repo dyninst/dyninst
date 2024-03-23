@@ -38,17 +38,6 @@
 #include "codeRange.h"
 #include "frame.h"
 
-/***************************************************************************
- * BPatch_frame
- ***************************************************************************/
-
-/*
- * BPatch_frame::getFrameType()
- *
- * Returns the type of frame: BPatch_frameNormal for the stack frame for a
- * function, BPatch_frameSignal for the stack frame created when a signal is
- * delivered, or BPatch_frameTrampoline for a stack frame for a trampoline.
- */
 BPatch_frameType BPatch_frame::getFrameType()
 {
 	if( isSignalFrame ) { return BPatch_frameSignal; }
@@ -74,31 +63,11 @@ void *BPatch_frame::getFP()
   return fp;
 }
 
-/*
- * BPatch_frame::findFunction()
- *
- * Returns the function associated with the stack frame, or NULL if there is
- * none.
- */
 BPatch_function *BPatch_frame::findFunction()
 {
   if (!getPC()) {
     return NULL;
   }
-
-  /* 
-   * When we generate a BPatch_frame, we store the return address for the call
-   * as the PC. When we try to get the function associated with the frame, we
-   * use the PC to identify the function (via findFunctionByEntry). However, if
-   * the function made a non-returning call, the corresponding return address
-   * is never parsed, since it is unreachable code. This means that
-   * findFunctionByEntry will return NULL.
-   *
-   * To compensate, we'll instead look up the function by the address of the
-   * callsite itself, which is the instruction prior to the return address.
-   * Because we do not know the length of the call instruction, we'll simply
-   * use PC-1, which is within the call instruction.
-   */
 
   Address callSite = reinterpret_cast<Address>(getPC()) - 1;
   std::vector<BPatch_function*> funcs;

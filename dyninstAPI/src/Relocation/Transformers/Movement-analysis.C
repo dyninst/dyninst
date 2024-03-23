@@ -370,11 +370,6 @@ Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
 }
 		     
 
-// Examine a slice to determine whether any of its terminal nodes
-// will cause the program to produce a different value. As a secondary,
-// divide terminal nodes into the set that will produce a different value
-// (pos) and those that will not (neg).
-
 bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 						  bool &internal,
 						  bool &external) {
@@ -421,9 +416,6 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
   return true;
 }
 
-// An example of a group transformation. If this is a call to a thunk
-// function then record both that (as in return true) and where the return
-// address gets put...
 bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
                                              Address addr,
                                              Absloc &destination) {
@@ -589,12 +581,6 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
   }
 }
 
-/**
- * Check to see if the given address is exception sensitive. If the address is
- * in a function that contains a catch block, true is returned. Otherwise false
- * is returned.
- * @return Whether or not the given address is exception senstive.
- */
 bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
     return false;
     sensitivity_cerr << "Checking address 0x" << std::hex << a << std::dec 

@@ -83,7 +83,6 @@ unsigned copy_prefixes(const unsigned char *&origInsn, unsigned char *&newInsn, 
   return nPrefixes;
 }
 
-//Copy all prefixes but the Operand-Size and Dyninst::Address-Size prefixes (0x66 and 0x67)
 unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&newInsn, 
                               unsigned insnType) 
 {
@@ -102,8 +101,6 @@ unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&ne
     return retval;
 }
 
-//Copy all prefixes but the Operand-Size and Dyninst::Address-Size prefixes (0x66 and 0x67)
-// Returns the number of bytes copied
 unsigned copy_prefixes_nosize_or_segments(const unsigned char *&origInsn, unsigned char *&newInsn, 
                               unsigned insnType) 
 {
@@ -204,11 +201,6 @@ void insnCodeGen::generateTrap(codeGen &gen) {
     SET_PTR(insn, gen);
 }
 
-/*
- * change the insn at addr to be a branch to newAddr.
- *   Used to add multiple tramps to a point.
- */
-
 void insnCodeGen::generateBranch(codeGen &gen,
                                  Dyninst::Address fromAddr, Dyninst::Address toAddr)
 {
@@ -271,7 +263,6 @@ void insnCodeGen::generateBranch(codeGen &gen,
 }
 
 
-// Unified the 64-bit push between branch and call
 void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 {
   GET_PTR(insn, gen);
@@ -770,21 +761,6 @@ bool pcRelData::canPreApply()
 #define SIB_SET_REG(x, y) ((x) |= ((y) & 7))
 #define SIB_SET_INDEX(x, y) ((x) |= (((y) & 7) << 3))
 
-/**
- * The comments and naming schemes in this function assume some familiarity with
- * the IA32/IA32e instruction encoding.  If you don't understand this, I suggest
- * you start with Chapter 2 of:
- *  _IA-32 Intel Dyninst::Architecture Software Developer's Manual, Volume 2a_
- * and appendix A of:
- *  _IA-32 Intel Dyninst::Architecture Software Developer's Manual, Volume 2b_
- *
- * This function takes an instruction that accesses memory, and emits a 
- * copy of that instruction that has the load/store replaces with a load/store
- * through a register.  For example, if this function were called with 'loadExpr = r12'
- * on the instruction 'mov 12(%rax)->%rbx', we would emit 'mov (%r12)->%rbx'.
- * Note that we strip off any displacements, indexs, etc...  The register is assumed
- * to contain the final address that will be loaded/stored.
- **/
 bool insnCodeGen::generateMem(codeGen &gen,
                               instruction & insn,
                               Dyninst::Address /*origAddr*/,

@@ -173,14 +173,6 @@ bool parse_func::writesFPRs(unsigned level) {
 
 using namespace Dyninst::SymtabAPI;
 
-/*
- * Static binary rewriting support
- *
- * Some of the following functions replace the standard ctor and dtor handlers
- * in a binary. Currently, these operations only work with binaries linked with
- * the GNU toolchain. However, it should be straightforward to extend these
- * operations to other toolchains.
- */
 namespace {
   char const* LIBC_CTOR_HANDLER("__libc_csu_init");
   char const* LIBC_DTOR_HANDLER("__libc_csu_fini");

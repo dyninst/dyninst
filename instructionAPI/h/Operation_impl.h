@@ -45,22 +45,6 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/flyweight.hpp>
 
-// OpCode = operation + encoding
-// contents:
-// hex value
-// information on how to decode operands
-// operation encoded
-
-// Operation = what an instruction does
-// contents:
-// read/write semantics on explicit operands
-// register implicit read/write lists, including flags
-// string/enum representation of the operation
-
-// Use cases:
-// OpCode + raw instruction -> Operation + ExpressionPtrs
-// Operation + ExpressionPtrs -> Instruction + Operands
-
 namespace NS_x86 {
 struct ia32_entry;
 class ia32_prefixes;
@@ -71,31 +55,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    /// An %Operation object represents a family of opcodes (operation encodings)
-    /// that perform the same task (e.g. the \c MOV family).  It includes
-    /// information about the number of operands, their read/write semantics,
-    /// the implicit register reads and writes, and the control flow behavior
-    /// of a particular assembly language operation.  It additionally provides
-    /// access to the assembly mnemonic, which allows any semantic details that
-    /// are not encoded in the %Instruction representation to be added by higher
-    /// layers of analysis.
-    ///
-    /// As an example, the \c CMP operation on IA32/AMD64 processors has the following
-    /// properties:
-    ///   - %Operand 1 is read, but not written
-    ///   - %Operand 2 is read, but not written
-    ///   - The following flags are written:
-    ///     - Overflow
-    ///     - Sign
-    ///     - Zero
-    ///     - Parity
-    ///     - Carry
-    ///     - Auxiliary
-    ///   - No other registers are read, and no implicit memory operations are performed
-    ///
-    /// %Operations are constructed by the %InstructionDecoder as part of the process
-    /// of constructing an %Instruction.
-    
     class Operation : public boost::lockable_adapter<boost::recursive_mutex>
     {
     public:
@@ -117,27 +76,22 @@ namespace Dyninst
 
       INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
       
-      /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
       INSTRUCTION_EXPORT const registerSet& implicitReads() ;
-      /// Returns the set of registers implicitly written (i.e. those not included in the operands, but written anyway)
+
       INSTRUCTION_EXPORT const registerSet& implicitWrites() ;
-      /// Returns the mnemonic for the operation.  Like \c instruction::format, this is exposed for debugging
-      /// and will be replaced with stream operators in the public interface.
+
       INSTRUCTION_EXPORT std::string format() const;
-      /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
-      /// to assembly mnemonics.
+
       INSTRUCTION_EXPORT entryID getID() const;
-      /// Returns the prefix entry ID corresponding to this operation, if any.
-      /// Prefix IDs are enumerated values that correspond to assembly prefix mnemonics.
+
       INSTRUCTION_EXPORT prefixEntryID getPrefixID() const;
 
-      /// Returns true if the expression represented by \c candidate is read implicitly.
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) ;
-      /// Returns true if the expression represented by \c candidate is written implicitly.
+
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) ;
-      /// Returns the set of memory locations implicitly read.
+
       INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() ;
-      /// Returns the set of memory locations implicitly written.
+
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() ;
 
       void updateMnemonic(std::string new_mnemonic){

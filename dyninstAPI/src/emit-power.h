@@ -28,11 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-power.h,v 1.6 2008/03/25 19:24:26 bernat Exp $
- */
-
 #ifndef _EMITTER_POWER_H
 #define _EMITTER_POWER_H
 
@@ -49,8 +44,6 @@ class codeGen;
 class registerSpace;
 class baseTramp;
 
-// class for encapsulating
-// platform dependent code generation functions
 class EmitterPOWER : public Emitter {
 
  public:
@@ -72,7 +65,6 @@ class EmitterPOWER : public Emitter {
     virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset);
     virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
 
-    // These implicitly use the stored original/non-inst value
     virtual void emitLoadOrigFrameRelative(Register, Address, codeGen &) { assert(0); }
     virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool) { assert(0); }
     virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
@@ -91,7 +83,6 @@ class EmitterPOWER : public Emitter {
 
     virtual Address emitMovePCToReg(Register, codeGen& gen);
 
-    // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const std::vector<AstNodePtr> &,
 			      bool, func_instance *);
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
@@ -103,7 +94,6 @@ class EmitterPOWER : public Emitter {
     virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
     virtual void emitPushFlags(codeGen &) { assert(0); }
     virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
-    // Built-in offset...
     virtual void emitRestoreFlagsFromStackSlot(codeGen &) { assert(0); }
     virtual bool emitBTSaves(baseTramp*, codeGen &) { assert(0); return true;}
     virtual bool emitBTRestores(baseTramp*, codeGen &) { assert(0); return true; }

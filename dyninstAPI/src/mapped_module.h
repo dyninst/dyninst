@@ -49,14 +49,7 @@ class image;
 #include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
 
-#define CHECK_ALL_CALL_POINTS  // paradyn might need it
-
-
-// pdmodule equivalent The internals tend to use images, while the
-// BPatch layer uses modules. On the other hand, "module" means
-// "compilation unit for the a.out, or the entire image for a
-// library". At some point this will need to be fixed, which will be a
-// major pain.
+#define CHECK_ALL_CALL_POINTS
 
 class mapped_module {
    public:
@@ -70,8 +63,6 @@ class mapped_module {
 
       AddressSpace *proc() const;
 
-      // A lot of stuff shared with the internal module
-
       SymtabAPI::supportedLanguages language() const;
 
       const std::vector<func_instance *> &getAllFunctions();
@@ -80,9 +71,6 @@ class mapped_module {
       bool findFuncVectorByPretty(const std::string &funcname,
             std::vector<func_instance *> &funcs);
 
-      // Yeah, we can have multiple mangled matches -- for libraries there
-      // is a single module. Even if we went multiple, we might not have
-      // module information, and so we can get collisions.
       bool findFuncVectorByMangled(const std::string &funcname,
             std::vector<func_instance *> &funcs);
 
@@ -92,14 +80,6 @@ class mapped_module {
 
 
       void dumpMangled(std::string prefix) const;
-
-      /////////////////////////////////////////////////////
-      // Line information
-      /////////////////////////////////////////////////////
-      // Line info is something we _definitely_ don't want multiple copies
-      // of. So instead we provide pass-through functions that handle
-      // things like converting absolute addresses (external) into offsets
-      // (internal).  Its all in SymtabAPI now
 
       std::string processDirectories(const std::string &fn) const;
 

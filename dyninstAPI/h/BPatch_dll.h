@@ -31,11 +31,7 @@
 #ifndef _BPatch_dll_h_
 #define _BPatch_dll_h_
 
-// TEMPORARY PARADYND FLOWGRAPH KLUGE
-// If we are building BPatch classes into paradynd we want BPATCH_DLL_EXPORT 
-// to be defined as the empty string (for all platforms). This currently tests
-// SHM_SAMPLING because it is defined for paradynd and not for the dyninst
-// dll or dyninst clients, read '#if PARADYND'. 
+
 #ifdef SHM_SAMPLING
 #define	BPATCH_DLL_EXPORT
 #else

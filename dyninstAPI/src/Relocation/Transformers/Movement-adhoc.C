@@ -283,7 +283,6 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
 
 
 
-// We define this as "uses PC and is not control flow"
 bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
                                            Instruction insn,
                                            Address &target) {
@@ -512,9 +511,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 }
 
 #if defined(cap_stack_mods)
-// Determines if an instruction is stack frame sensitive (i.e. needs to be
-// updated with a new displacement).  If so, returns in delta the amount by
-// which the displacement needs to be updated.
+
 bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
     signed long& delta,
     const Accesses* accesses,

@@ -54,8 +54,6 @@ AST::Ptr AST::accept(ASTVisitor *v) {
   return v->visit(this);
 }
 
-// AST cycle detector.
-
 void AST::hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited) {
 if(!in)
 	return;

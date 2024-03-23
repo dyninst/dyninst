@@ -84,7 +84,6 @@ Dyninst::Address instruction::getTarget(Dyninst::Address addr) const {
     return 0;
 }
 
-// TODO: argument _needs_ to be an int, or ABS() doesn't work.
 void instruction::setBranchOffset(Dyninst::Address newOffset) {
     if (isUncondBranch()) {
         assert(ABS((int) newOffset) < MAX_BRANCH);
@@ -134,7 +133,6 @@ unsigned instruction::jumpSize(Dyninst::Address from, Dyninst::Address to, unsig
     return jumpSize(disp, addr_width);
 }
 
-// -1 is infinite, don't ya know.
 unsigned instruction::jumpSize(Dyninst::Address disp, unsigned addr_width) {
    if (ABS(disp) >= MAX_BRANCH) {
       return maxInterFunctionJumpSize(addr_width);
@@ -207,12 +205,6 @@ bool instruction::getUsedRegs(std::vector<int> &) {
 	return false;
 }
 
-// A thunk is a "get PC" operation. We consider
-// an instruction to be a thunk if it fulfills the following
-// requirements:
-//  1) It is unconditional or a "branch always" conditional
-//  2) It has an offset of 4
-//  3) It saves the return address in the link register
 bool instruction::isThunk() const {
   switch (BFORM_OP(*this)) {
   case Bop:

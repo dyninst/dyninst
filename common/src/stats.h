@@ -120,7 +120,6 @@ class COMMON_EXPORT CntStatistic : public Statistic {
     long int cnt_;
 };
 
-/* Wraps the timer class */
 class COMMON_EXPORT TimeStatistic : public Statistic {
  friend class StatContainer;
 
@@ -161,33 +160,21 @@ typedef enum {
 } StatType;
 
 
-/* A container for a group of (one expects) mutually related statistics. */
 class StatContainer {
  public:
     COMMON_EXPORT StatContainer(); 
 
-    /* Access or create a statistic indexed by the provided name.
-     *
-     * This operator may return null if the named statistic does
-     * not exist.
-     */
     COMMON_EXPORT Statistic * operator[](const std::string &);
     COMMON_EXPORT Statistic * operator[](const char *s) {
        std::string namestr(s);
        return (*this)[namestr];
     }
 
-    // Create a new statistic of the given type indexed by name.
-    // **This will replace any existing stat with the same index
-    //   within this container**
     COMMON_EXPORT void add(const std::string& name, StatType type);
 
-    // Access all of the existing statistics
     COMMON_EXPORT dyn_hash_map< std::string, Statistic * > &
        allStats() { return stats_; }
 
-    // And some pass-through methods, encapsulated for
-    // ease of use
     COMMON_EXPORT void startTimer(const std::string&);
     COMMON_EXPORT void stopTimer(const std::string&);
     COMMON_EXPORT void incrementCounter(const std::string&);

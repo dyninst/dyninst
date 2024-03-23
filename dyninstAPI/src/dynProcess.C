@@ -318,38 +318,6 @@ void PCProcess::initSymtabReader()
    }
 }
 
-/***************************************************************************
- **** Runtime library initialization code (Dyninst)                     ****
- ***************************************************************************/
-
-/*
- *
- * Gratuitously large comment. This diagrams the startup flow of
- * messages between the mutator and mutatee. Entry points
- * for create and attach process are both given.
- *     Mutator           Signal              Mutatee
- * Create:
- *     Fork/Exec
- *                     <-- Trap              Halted in exec (handled by ProcControlAPI)
- *     Install trap in main
- *                     <-- Trap              Halted in main
- *  Attach: (also paused, not in main)
- *     Install call to dlopen/
- *     LoadLibrary
- *                     <-- Trap              In library load
- *     Set parameters in library
- *                     <-- Trap              Finished loading
- *     Restore code and leave paused
- *     Finalize library
- *       If finalizing fails, init via iRPC
- */
-
-/*
- * In all cases, the process is left paused at the entry of main
- * (create) or where it was (attach). No permanent instrumentation
- * is inserted.
- */
-
 bool PCProcess::hasReachedBootstrapState(bootstrapState_t state) const {
     return state <= bootstrapState_;
 }
@@ -671,8 +639,6 @@ bool PCProcess::createInitialMappedObjects() {
     return true;
 }
 
-// creates an image, creates new resources for a new shared object
-// adds it to the collection of mapped_objects
 void PCProcess::addASharedObject(mapped_object *newObj) {
     assert(newObj);
 
@@ -736,7 +702,6 @@ bool PCProcess::setAOut(fileDescriptor &desc) {
     return true;
 }
 
-// We keep a vector of all signal handler locations
 void PCProcess::findSignalHandler(mapped_object *obj) {
     startup_printf("%s[%d]: findSignalhandler(%p)\n", FILE__, __LINE__, (void*)obj);
     assert(obj);
@@ -758,7 +723,6 @@ void PCProcess::findSignalHandler(mapped_object *obj) {
     startup_printf("%s[%d]: leaving findSignalhandler(%p)\n", FILE__, __LINE__, (void*)obj);
 }
 
-// NUMBER_OF_MAIN_POSSIBILITIES is defined in image.h
 void PCProcess::setMainFunction() {
     assert(!main_function_);
 
@@ -770,10 +734,6 @@ void PCProcess::setMainFunction() {
     }
 }
  
-/*
- * Given an image, add all static heaps inside it
- * (DYNINSTstaticHeap...) to the buffer pool.
- */
 void PCProcess::addInferiorHeap(mapped_object *obj) {
     std::vector<heapDescriptor> infHeaps;
     /* Get a list of inferior heaps in the new image */
@@ -810,7 +770,7 @@ void PCProcess::addInferiorHeap(mapped_object *obj) {
     }
 }
 
-static const unsigned MAX_THREADS = 32; // Should match MAX_THREADS in RTcommon.c
+static const unsigned MAX_THREADS = 32;
 
 bool PCProcess::loadRTLib() {
     // Check if the RT library has already been loaded
@@ -869,7 +829,6 @@ bool PCProcess::loadRTLib() {
    return setRTLibInitParams();
 }
 
-// Set up the parameters for DYNINSTinit in the RT lib
 bool PCProcess::setRTLibInitParams() {
     startup_printf("%s[%d]: welcome to PCProcess::setRTLibInitParams\n",
             FILE__, __LINE__);
@@ -999,8 +958,6 @@ bool PCProcess::removeBreakpointAtMain() {
 Breakpoint::ptr PCProcess::getBreakpointAtMain() const {
     return mainBrkPt_;
 }
-
-// End Runtime library initialization code
 
 bool PCProcess::continueProcess() {
     proccontrol_printf("%s[%d]: Continuing process %d\n", FILE__, __LINE__, getPid());
@@ -1474,7 +1431,6 @@ bool PCProcess::walkStacks(std::vector<std::vector<Frame> > &stackWalks) {
     return retval;
 }
 
-// Return a vector (possibly with one object) of active frames in the process
 bool PCProcess::getAllActiveFrames(std::vector<Frame> &activeFrames) {
     if( threadsByTid_.size() == 0 ) return false;
 
@@ -1488,10 +1444,6 @@ bool PCProcess::getAllActiveFrames(std::vector<Frame> &activeFrames) {
 
     return true;
 }
-
-//
-// dynamic inferior heap stuff
-//
 
 #define HEAP_DYN_BUF_SIZE (0x100000)
 
@@ -1687,7 +1639,6 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     return true;
 }
 
-// A copy of the BPatch-level instrumentation installer
 void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) {
     if (requests.size() == 0) {
         return;
@@ -1887,7 +1838,6 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
                              result);    
 }
 
-// DEBUG
 #include "instructionAPI/h/InstructionDecoder.h"
 
 bool PCProcess::postIRPC_internal(void *buf,
@@ -2076,15 +2026,6 @@ bool PCProcess::isRuntimeHeapAddr(Address addr) const {
     return false;
 }
 
-/* returns true if blocks were overwritten, initializes overwritten
- * blocks and ranges by contrasting shadow pages with current memory
- * contents
- * 1. reads shadow pages in from memory
- * 2. constructs overwritten region list
- * 3. constructs overwrittn basic block list
- * 4. determines if the last of the blocks has an abrupt end, in which
- *    case it marks it as overwritten
- */
 bool PCProcess::getOverwrittenBlocks
   ( std::map<Address, unsigned char *>& overwrittenPages,//input
     std::list<std::pair<Address,Address> >& overwrittenRanges,//output
@@ -2164,7 +2105,6 @@ bool PCProcess::getOverwrittenBlocks
     }
 }
 
-// distribute the work to mapped_objects
 void PCProcess::updateCodeBytes
     ( const list<pair<Address, Address> > &owRanges ) // input
 {
@@ -2188,10 +2128,6 @@ void PCProcess::updateCodeBytes
     assert(objRanges.size() <= 1); //o/w analysis code may not be prepared for other cases
 }
 
-
-// will flush addresses of all addresses in the specified range, if the
-// range is null, flush all addresses from the cache.  Also flush 
-// rt-lib heap addrs that correspond to the range
 void PCProcess::flushAddressCache_RT(Address start, unsigned size)
 {
     if (start != 0) {
@@ -2278,11 +2214,6 @@ void PCProcess::flushAddressCache_RT(Address start, unsigned size)
     free(cacheCopy);
 }
 
-/* Given an address that's on the call stack, find the function that's
- * actively executing that address.  This makes most sense for finding the
- * address that's triggered a context switch back to Dyninst, either
- * through instrumentation or a signal
- */
 func_instance *PCProcess::findActiveFuncByAddr(Address addr)
 {
     std::set<func_instance *> funcs;
@@ -2478,10 +2409,6 @@ void PCProcess::generatePatchBranches(AddrPairSet &branchesNeeded) {
   }
 }
 
-/* debugSuicide is a kind of alternate debugging continueProc.  It runs the
- * process until terminated in single step mode, printing each instruction as
- * it executes.
- */
 void PCProcess::debugSuicide() {
     if( isTerminated() ) return;
 
@@ -2548,7 +2475,6 @@ bool PCProcess::mappedObjIsDeleted(mapped_object *obj) {
     return false;
 }
 
-// AddressSpace Implementation //
 Address PCProcess::offset() const {
     assert(!"This function is not implemented");
     return 0;
@@ -2627,16 +2553,6 @@ bool PCProcess::getActiveFrame(Frame &frame, PCThread *thread)
   return true;
 }
 
-/* This is the simple version
- * 1. Need three pieces of information:
- * 1a. The instrumentation point that triggered the stopThread event (pointAddress)
- * 1b. The ID of the callback function given at the registration
- *     of the stopThread snippet
- * 1c. The result of the snippet calculation that was given by the user,
- *     if the point is a return instruction, read the return address
- * 2. If the calculation is an address that is meant to be interpreted, do that
- * 3. Invoke the callback
- */
 bool PCProcess::triggerStopThread(Address pointAddress, int callbackID, void *calculation) {
     AddressSpace::RelocInfo ri;
     if( !getRelocInfo(pointAddress, ri) ) {
@@ -2679,12 +2595,6 @@ bool PCProcess::triggerStopThread(Address pointAddress, int callbackID, void *ca
     return true;
 }
 
-/*    If calculation is a relocated address, translate it to the original addr
- *    case 1: The point is at a return instruction
- *    case 2: The point is a control transfer into the runtime library
- *    Mark returning functions as returning
- *    Save the targets of indirect control transfers (not regular returns)
- */
 Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint, 
                                          Address target)
 {
@@ -2803,7 +2713,6 @@ void PCProcess::triggerNormalExit(int exitcode) {
     setExiting(true);
 }
 
-// Debugging only
 bool PCProcess::setBreakpoint(Address addr) {
     Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
     if( !pcProc_->addBreakpoint(addr, brkPt) ) {
@@ -2849,8 +2758,6 @@ bool PCProcess::launchDebugger() {
 
     return true;
 }
-
-// End debugging
 
 Address getVarAddr(PCProcess *proc, std::string str) {
     Address retAddr = 0;

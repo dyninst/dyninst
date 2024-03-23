@@ -69,7 +69,6 @@ class RelocGraph {
    RelocBlock *end() { return NULL; }
 
 
-   // For initial construction
    void addRelocBlock(RelocBlock *);
    void addRelocBlockBefore(RelocBlock *cur, RelocBlock *add);
    void addRelocBlockAfter(RelocBlock *cur, RelocBlock *add);
@@ -84,10 +83,6 @@ class RelocGraph {
    RelocBlock *tail;
    unsigned size;
 
-   // If we keep a master list here and just keep pointers
-   // everywhere else, memory management gets a hell of a 
-   // lot easier...
-
    Edges edges;
    
    Map springboards;
@@ -97,7 +92,6 @@ class RelocGraph {
    bool setSpringboard(block_instance *from, func_instance *func, RelocBlock *to);
    RelocBlock *findSpringboard(block_instance *from, func_instance *to) const;
 
-  // Should this go here? Well, it's a transformation on RelocBlocks...
   void link(RelocBlock *s, RelocBlock *t);
   bool interpose(RelocEdge *e, RelocBlock *n);
   bool changeTarget(RelocEdge *e, TargetInt *n);

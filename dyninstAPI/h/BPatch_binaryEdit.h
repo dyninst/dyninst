@@ -72,7 +72,7 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     friend class BPatch_point;
     friend class BPatch_funcCallExpr;
     friend class BPatch_instruction;
-    friend class AstNode; // AST needs to translate instPoint to
+    friend class AstNode;
     friend class AstOperatorNode;
     friend class AstMemoryNode;
 
@@ -102,45 +102,17 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     bool getTerminated() {return false;}
     bool getMutationsActive() {return true;}
 
-    // BPatch_binaryEdit::writeFile
     bool writeFile(const char * outFile);
 
   
-    //  BPatch_binaryEdit::~BPatch_binaryEdit
-    //
-    //  Destructor
     ~BPatch_binaryEdit();
 
     BPatch_image * getImage();
 
-    //  BPatch_binaryEdit::beginInsertionSet()
-    //
-    //  Start the batch insertion of multiple points; all calls to insertSnippet*
-    //  after this call will not actually instrument until finalizeInsertionSet is
-    //  called
-
     void beginInsertionSet();
-
-    //  BPatch_binaryEdit::finalizeInsertionSet()
-    //
-    //  Finalizes all instrumentation logically added since a call to beginInsertionSet.
-    //  Returns true if all instrumentation was successfully inserted; otherwise, none
-    //  was. Individual instrumentation can be manipulated via the BPatchSnippetHandles
-    //  returned from individual calls to insertSnippet.
-    //
-    //  atomic: if true, all instrumentation will be removed if any fails to go in.
-    //  modified: if provided, and set to true by finalizeInsertionSet, additional
-    //            steps were taken to make the installation work, such as modifying
-    //            process state.  Note that such steps will be taken whether or not
-    //            a variable is provided.
 
     bool finalizeInsertionSet(bool atomic, bool *modified = NULL);
                                        
-    // BPatch_binaryEdit::loadLibrary
-    //
-    //  Load a shared library into the mutatee's address space
-    //  Returns true if successful
-
     virtual BPatch_object * loadLibrary(const char *libname, bool reload = false);
 };    
 

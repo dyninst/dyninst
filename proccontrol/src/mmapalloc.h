@@ -36,9 +36,6 @@
 #include <vector>
 #include "int_process.h"
 
-/**
- * A process that can use mmap to allocate memory.
- **/
 class mmap_alloc_process : virtual public int_process
 {
   public:

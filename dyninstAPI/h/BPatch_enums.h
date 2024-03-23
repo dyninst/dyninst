@@ -31,19 +31,11 @@
 #ifndef _BPatch_enums_h_
 #define _BPatch_enums_h_
 
-/*
- * Used to specify whether a snippet should be installed before other snippets
- * that have previously been inserted at the same point, or after.
- */
 typedef enum {
     BPatch_firstSnippet,
     BPatch_lastSnippet
 } BPatch_snippetOrder;
 
-/*
- * Used with BPatch_function::findPoint to specify which of the possible
- * instrumentation points within a procedure should be returned.
- */
 typedef enum eBPatch_procedureLocation {
     BPatch_locEntry,
     BPatch_locExit,
@@ -52,33 +44,27 @@ typedef enum eBPatch_procedureLocation {
     BPatch_locAllLocations,
     BPatch_locInstruction,
     BPatch_locUnknownLocation,
-    BPatch_locSourceBlockEntry,		// not yet used
-    BPatch_locSourceBlockExit,		// not yet used
-    BPatch_locSourceLoopEntry,		// not yet used
-    BPatch_locSourceLoopExit,		// not yet used
+    BPatch_locSourceBlockEntry,
+    BPatch_locSourceBlockExit,
+    BPatch_locSourceLoopEntry,
+    BPatch_locSourceLoopExit,
     BPatch_locBasicBlockEntry,
-    BPatch_locBasicBlockExit,		// not yet used
-    BPatch_locSourceLoop,		// not yet used
+    BPatch_locBasicBlockExit,
+    BPatch_locSourceLoop,
     BPatch_locLoopEntry,	
     BPatch_locLoopExit,
     BPatch_locLoopStartIter,
     BPatch_locLoopEndIter,
-    BPatch_locVarInitStart,		// not yet used
-    BPatch_locVarInitEnd,		// not yet used
-    BPatch_locStatement		// not yet used
+    BPatch_locVarInitStart,
+    BPatch_locVarInitEnd,
+    BPatch_locStatement
 } BPatch_procedureLocation;
 
-/*
- * Used to specify whether a snippet is to be called before the instructions
- * at the point where it is inserted, or after.
- */
 typedef enum {
     BPatch_callBefore,
     BPatch_callAfter,
     BPatch_callUnset
 } BPatch_callWhen;
-
-/* VG (09/07/01) Created */
 
 typedef enum BPatch_opCode {
   BPatch_opLoad,
@@ -86,14 +72,12 @@ typedef enum BPatch_opCode {
   BPatch_opPrefetch
 } BPatch_opCode;
 
-// instrumentation locations for BPatch_paramExpr's
 typedef enum {
     BPatch_ploc_guess,
     BPatch_ploc_call,
     BPatch_ploc_entry
 } BPatch_ploc;
 
-// program analysis styles
 typedef enum {
     BPatch_heuristicMode,
     BPatch_normalMode,

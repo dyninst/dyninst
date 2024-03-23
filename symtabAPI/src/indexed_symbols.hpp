@@ -22,8 +22,6 @@ struct indexed_symbols {
   by_name_t by_pretty;
   by_name_t by_typed;
 
-  // Only inserts if not present. Returns whether it inserted.
-  // Operations on the indexed_symbols compound table.
   bool insert(st::Symbol *s) {
     Dyninst::Offset o = s->getOffset();
     master_t::accessor a;
@@ -54,7 +52,6 @@ struct indexed_symbols {
     return false;
   }
 
-  // Clears the table. Do not use in parallel.
   void clear() {
     master.clear();
     by_offset.clear();
@@ -63,7 +60,6 @@ struct indexed_symbols {
     by_typed.clear();
   }
 
-  // Erases Symbols from the table. Do not use in parallel.
   void erase(st::Symbol *s) {
     if (master.erase(s)) {
       {
@@ -97,7 +93,6 @@ struct indexed_symbols {
     }
   }
 
-  // Iterator for the symbols. Do not use in parallel.
   class iterator {
     master_t::iterator m;
 

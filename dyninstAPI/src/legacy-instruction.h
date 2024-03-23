@@ -31,12 +31,6 @@
 #ifndef LEGACY_BPATCH_INSTRUCTION_H
 #define LEGACY_BPATCH_INSTRUCTION_H
 
-/*
- * Legacy support for BPatch_instruction and BPatch_memoryAccess,
- * both of which hold a pointer to an opaque type containing the
- * platform-specific `instruction' type.
- */
-
 #include "arch-forward-decl.h"
 
 #if defined(arch_power)

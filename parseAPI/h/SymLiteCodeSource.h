@@ -44,10 +44,6 @@ namespace ParseAPI {
 
 class CFGModifier;
 
-/** SymReaderCodeRegion and SymReaderCodeSource implement CodeSource for program
-    binaries supported by the SymReaderAPI 
-**/
-
 class SymReaderCodeRegion : public CodeRegion {
  private:
     SymReader * _symtab;
@@ -61,7 +57,6 @@ class SymReaderCodeRegion : public CodeRegion {
     PARSER_EXPORT void names(Address, std::vector<std::string> &) override;
     PARSER_EXPORT bool findCatchBlock(Address addr, Address & catchStart) override;
 
-    /** InstructionSource implementation **/
     PARSER_EXPORT bool isValidAddress(const Address) const override;
     PARSER_EXPORT void* getPtrToInstruction(const Address) const override;
     PARSER_EXPORT void* getPtrToData(const Address) const override;
@@ -73,7 +68,6 @@ class SymReaderCodeRegion : public CodeRegion {
     PARSER_EXPORT Address length() const override;
     PARSER_EXPORT Architecture getArch() const override;
 
-    /** interval **/
     PARSER_EXPORT Address low() const override { return offset(); }
     PARSER_EXPORT Address high() const override { return offset() + length(); }
 
@@ -86,7 +80,6 @@ class SymReaderCodeSource : public CodeSource {
     bool owns_symtab;
     mutable CodeRegion * _lookup_cache;
 
-    // Stats information
     StatContainer * stats_parse;
     bool _have_stats;
     
@@ -103,7 +96,6 @@ class SymReaderCodeSource : public CodeSource {
 
     PARSER_EXPORT SymReader * getSymReaderObject() {return _symtab;} 
 
-    /** InstructionSource implementation **/
     PARSER_EXPORT bool isValidAddress(const Address) const;
     PARSER_EXPORT void* getPtrToInstruction(const Address) const;
     PARSER_EXPORT void* getPtrToData(const Address) const;
@@ -119,11 +111,9 @@ class SymReaderCodeSource : public CodeSource {
 
     PARSER_EXPORT static void addNonReturning(std::string func_name);
     
-    // statistics accessor
     PARSER_EXPORT void print_stats() const;
     PARSER_EXPORT bool have_stats() const { return _have_stats; }
 
-    // manage statistics
     void incrementCounter(const std::string& name) const;
     void addCounter(const std::string& name, int num) const; 
     void decrementCounter(const std::string& name) const;
@@ -131,13 +121,12 @@ class SymReaderCodeSource : public CodeSource {
  private:
 
     CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion *); // removes from region tree
+    void removeRegion(CodeRegion *);
 
     void overlapping_warn(const char * file, unsigned line) const;
     
     void init_regions();
-    
-    // statistics
+
     bool init_stats();
     
  

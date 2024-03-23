@@ -456,13 +456,6 @@ Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::v
     return scratchReg;
 }
 
-// Generate memory access through Load or Store
-// Instructions generated:
-//     LDR/STR (immediate) for 32-bit or 64-bit
-//     LDRB/STRB (immediate) for 8-bit
-//     LDRH/STRH  (immediate) for 16-bit
-//
-// Encoding classes allowed: Post-index, Pre-index and Unsigned Offset
 void insnCodeGen::generateMemAccess(codeGen &gen, LoadStore accType,
         Dyninst::Register r1, Dyninst::Register r2, int immd, unsigned size, IndexMode im)
 {
@@ -496,7 +489,7 @@ void insnCodeGen::generateMemAccess(codeGen &gen, LoadStore accType,
     insnCodeGen::generate(gen, insn);
 }
 
-// This is for generating STR/LDR (SIMD&FP) (immediate) for indexing modes of Post, Pre and Offset
+
 void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
         Dyninst::Register rt, Dyninst::Register rn, int immd, int size, bool is128bit, IndexMode im)
 {
@@ -538,38 +531,30 @@ void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
     insnCodeGen::generate(gen, insn);
 }
 
-// rlwinm ra,rs,n,0,31-n
 void insnCodeGen::generateLShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-// rlwinm ra,rs,32-n,n,31
 void insnCodeGen::generateRShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-// sld ra, rs, rb
 void insnCodeGen::generateLShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-// srd ra, rs, rb
 void insnCodeGen::generateRShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //not implemented
 }
 
-//
-// generate an instruction that does nothing and has to side affect except to
-//   advance the program counter.
-//
 void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     assert((size % instruction::size()) == 0);
     while (size) {
@@ -599,9 +584,6 @@ void insnCodeGen::restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offs
 }
 
 
-// Helper method.  Fills register with partial value to be completed
-// by an operation with a 16-bit signed immediate.  Such as loads and
-// stores.
 void insnCodeGen::loadPartialImmIntoReg(codeGen &, Dyninst::Register, long)
 {
 assert(0);
@@ -666,14 +648,6 @@ bool insnCodeGen::modifyJump(Dyninst::Address target,
     return true;
 }
 
-/* TODO and/or FIXME
- * The logic used by this function is common across architectures but is replicated 
- * in architecture-specific manner in all codegen-* files.
- * This means that the logic itself needs to be refactored into the (platform 
- * independent) codegen.C file. Appropriate architecture-specific,
- * bit-twiddling functions can then be defined if necessary in the codegen-* files 
- * and called as necessary by the common, refactored logic.
-*/
 bool insnCodeGen::modifyJcc(Dyninst::Address target,
 			    NS_aarch64::instruction &insn,
 			    codeGen &gen) {

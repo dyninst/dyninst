@@ -28,9 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Keeps a list of relocated Widgets (compessed where possible) for mapping
-// addresses and types between original and relocated code. 
-
 #if !defined(_R_CODE_TRACKER_H_)
 #define _R_CODE_TRACKER_H_
 
@@ -42,9 +39,6 @@
 #include <list>
 #include "common/src/IntervalTree.h"
 #include <iostream>
-
-// Remove when I'm done debugging this...
-//#include "dyninstAPI/src/baseTramp.h"
 
 class baseTramp;
 class func_instance;
@@ -216,13 +210,6 @@ class CodeTracker {
   RelocatedElements() : instruction(0), pad(0) {}
   };
 
-  // I'd like to use a block * as a unique key element, but
-  // really can't because blocks can be deleted and recreated.
-  // Instead, I'm using their entry address - that's the address
-  // in BlockForwardsMap. 
-  // The ForwardsMap address is a straightforward "what's the data at this
-  // particular address".
-
   typedef Address FunctionEntryID;
   typedef Address BlockEntryID;
 
@@ -270,8 +257,6 @@ class CodeTracker {
 
  private:
 
-  // We make this block specific to handle shared
-  // code
   ForwardMap origToReloc_;
   ReverseMap relocToOrig_;
 

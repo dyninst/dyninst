@@ -378,7 +378,6 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     return true;
 }
 
-// Find the end of data/text segment
 template<class ElfTypes>
 void emitElf<ElfTypes>::findSegmentEnds() {
     Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
@@ -397,8 +396,6 @@ void emitElf<ElfTypes>::findSegmentEnds() {
     }
 }
 
-// Rename an old section. Lengths of old and new names must match.
-// Only renames the FIRST matching section encountered.
 template<class ElfTypes>
 void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
     assert(oldStr.length() == newStr.length());
@@ -1129,7 +1126,6 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
 #define DT_TLSDESC_GOT 0x6ffffef7
 #endif
 
-//This method updates the .dynamic section to reflect the changes to the relocation section
 template<class ElfTypes>
 void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
     if (isStaticBinary) return;
@@ -1172,9 +1168,6 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
     }
 }
 
-/* This method sets _end and _END_ to the starting position of the heap in the
- * new binary. 
- */
 template<class ElfTypes>
 void emitElf<ElfTypes>::updateSymbols(Elf_Data *symtabData, Elf_Data *strData, unsigned long loadSecsSize) {
     unsigned pgSize = (unsigned) getpagesize();
@@ -1628,12 +1621,6 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
     return true;
 }
 
-/* Regenerates the .symtab, .strtab sections from the symbols
- * Add new .dynsym, .dynstr sections for the newly added dynamic symbols
- * Method - For every symbol call createElfSymbol to get a Elf_Sym corresponding
- *          to a Symbol object. Accumulate all and their names to form the sections
- *          and add them to the list of new sections
- */
 template<class ElfTypes>
 bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     rewrite_printf(" createSymbolTables for %s \n", obj->name().c_str());

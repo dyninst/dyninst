@@ -70,7 +70,6 @@ public:
 
   virtual ~FrameStepper();
 
-  //Default priorities for built in wanderers.
   static const unsigned stackbottom_priority = 0x10000;
   static const unsigned dyninstr_priority = 0x10010;
   static const unsigned sighandler_priority = 0x10020;

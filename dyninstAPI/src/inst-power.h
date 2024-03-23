@@ -28,22 +28,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.35 2008/02/19 13:37:44 rchen Exp $
- */
-
 #ifndef INST_POWER_H
 #define INST_POWER_H
 
 #include <stdint.h>
 
-
-/* "pseudo" instructions that are placed in the tramp code for the inst funcs
- *   to patch up.   This must be invalid instructions (any instruction with
- *   its top 10 bits as 0 is invalid (technically UNIMP).
- *
- */
 
 #define DEAD_REG              0
 #define LIVE_REG              1
@@ -55,9 +44,8 @@
 #define FPRSIZE               16
 
 #define REG_SP		      1		
-#define REG_TOC               2   /* TOC anchor                            */
-// REG_GUARD_OFFSET and REG_GUARD_VALUE could overlap.
-#define REG_GUARD_ADDR        5   /* Arbitrary                             */
+#define REG_TOC               2
+#define REG_GUARD_ADDR        5
 #define REG_GUARD_VALUE       6
 #define REG_GUARD_OFFSET      6
 
@@ -66,29 +54,12 @@
 
 #define REG_SCRATCH          10
 
-#define REG_MT_POS           12   /* Register to reserve for MT implementation */
-#define NUM_INSN_MT_PREAMBLE 26   /* number of instructions required for   */
-                                  /* the MT preamble.                      */ 
+#define REG_MT_POS           12
+#define NUM_INSN_MT_PREAMBLE 26
 
-// The stack grows down from high addresses toward low addresses.
-// There is a maximum number of bytes on the stack below the current
-// value of the stack frame pointer that a function can use without
-// first establishing a new stack frame.  When our instrumentation
-// needs to use the stack, we make sure not to write into this
-// potentially used area.  
-//
-// OpenPOWER ELF V2 ABI says user code can use 288 bytes underneath
-// the stack pointer and system code can further use 224 more bytes
-//
-// In case we are instrumenting signal handlers, we want to skip 
-// skip more spaces, which is 288+224=512 bytes
 #define STACKSKIP          512
 
-// Both 32-bit and 64-bit PowerPC ELF ABI documents for Linux state
-// that the stack frame pointer value must always be 16-byte (quadword)
-// aligned.  Use the following macro on all quantities used to
-// increment or decrement the stack frame pointer.
-#define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
+#define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )
 
 #define GPRSAVE_32  (32*4)
 #define GPRSAVE_64  (32*8)
@@ -125,7 +96,6 @@
 #endif
 
 
-// Okay, now that we have those defined, let's define the offsets upwards
 #define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + VECSAVE \
                                            + SPRSAVE_32 \
                                            + FUNCSAVE_32 + FUNCARGS_32 + LINKAREA_32)
@@ -135,7 +105,7 @@
 #define PDYN_RESERVED_32 (LINKAREA_32 + FUNCARGS_32 + FUNCSAVE_32)
 #define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
 
-#define TRAMP_SPR_OFFSET_32 (PDYN_RESERVED_32) /* 4 for LR */
+#define TRAMP_SPR_OFFSET_32 (PDYN_RESERVED_32)
 #define STK_LR       (              0)
 #define STK_CR_32    (STK_LR      + 4)
 #define STK_CTR_32   (STK_CR_32   + 4)
@@ -164,7 +134,6 @@
 #define FUNC_CALL_SAVE_64 (LINKAREA_64 + FUNCARGS_64)
 #define FUNC_CALL_SAVE(x) (((x) == 8) ? FUNC_CALL_SAVE_64 : FUNC_CALL_SAVE_32)
 
-///////////////////////////// Multi-instruction sequences
 class codeGen;
 
 void saveSPR(codeGen &gen,
@@ -184,7 +153,7 @@ void restoreLR(codeGen &gen,
 void setBRL(codeGen &gen,
             Register scratchReg,
             long val,
-            unsigned ti); // We're lazy and hand in the next insn
+            unsigned ti);
 void saveCR(codeGen &gen,
             Register scratchReg,
             int stkOffset);
@@ -200,21 +169,16 @@ void restoreFPSCR(codeGen &gen,
 void saveRegister(codeGen &gen,
                   Register reg,
                   int save_off);
-// We may want to restore a _logical_ register N
-// (that is, the save slot for N) into a different reg.
-// This avoids using a temporary
 void restoreRegister(codeGen &gen,
                      Register source,
                      Register dest,
                      int save_off);
-// Much more common case
 void restoreRegister(codeGen &gen,
                      Register reg,
                      int save_off);
 void saveFPRegister(codeGen &gen,
                     Register reg,
                     int save_off);
-// See above...
 void restoreFPRegister(codeGen &gen,
                        Register source,
                        Register dest,

@@ -28,9 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Graph class
-
-
 #if !defined(GRAPH_H)
 #define GRAPH_H
 
@@ -72,9 +69,6 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
  public:    
     typedef boost::shared_ptr<Graph> Ptr;
 
-    // Interface class for predicate-based searches. Users
-    // can inherit this class to specify the functor to use
-    // as a predicate...
     class NodePredicate {
 
     public:
@@ -87,20 +81,15 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     };
 
     typedef bool (*NodePredicateFunc)(const NodePtr &node, void *user_arg);
-    
-    // If you want to traverse the graph start here.
+
     virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
 
-    // If you want to traverse the graph backwards start here.
     virtual void exitNodes(NodeIterator &begin, NodeIterator &end);
     
-    // Get all nodes in the graph
     virtual void allNodes(NodeIterator &begin, NodeIterator &end);
 
-    // Get all nodes with a provided address
     virtual bool find(Address addr, NodeIterator &begin, NodeIterator &end);
 
-    // Get all nodes that satisfy the provided predicate
     virtual bool find(NodePredicate::Ptr, NodeIterator &begin, NodeIterator &end);
     virtual bool find(NodePredicateFunc, void *user_arg, NodeIterator &begin, NodeIterator &end);
 
@@ -108,7 +97,6 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
 
     virtual ~Graph() {}
     
-    // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
     
     void insertPair(NodePtr source, NodePtr target, EdgePtr edge = EdgePtr());
@@ -138,21 +126,11 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
      
     static const Address INITIAL_ADDR;
     
-    // Create graph, add nodes.
     Graph();
-    
-    // We also need to point to all Nodes to keep them alive; we can't 
-    // pervasively use shared_ptr within the graph because we're likely
-    // to have cycles.
+
     NodeSet nodes_;
-    
     NodeMap nodesByAddr_;
-
-    // May be overridden by children; don't assume it exists.
-    // Arguably should be removed entirely.
     NodeSet entryNodes_;
-
-    // See the above ;)
     NodeSet exitNodes_;
 };
 

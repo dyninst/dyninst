@@ -24,26 +24,19 @@ struct StridedInterval {
     static const int64_t maxValue = LLONG_MAX;
     static const StridedInterval top;
     static const StridedInterval bottom;
-    // stride < 0: bottom (empty set)
-    // stride = 0: represent a constant
-    // stride > 0: represent an interval
     int64_t stride;
     int64_t low, high;
 
-    // Bottom: empty set
     StridedInterval(): stride(-1), low(0), high(0) {}
 
-    // Construct a constant
     StridedInterval(int64_t x): stride(0), low(x), high(x) {} 
 
-    // Construct an interval
     StridedInterval(unsigned s, int64_t l, int64_t h):
         stride(s), low(l), high(h) {}
 
     StridedInterval(const StridedInterval &si):
         stride(si.stride), low(si.low), high(si.high) {}
 
-    // Meet is point-wise union
     void Join(const StridedInterval &rhs);
 
     void Neg();
@@ -78,9 +71,6 @@ struct BoundFact {
     typedef map<AST::Ptr, StridedInterval*> FactType;
     FactType fact;
 
-    // Sometimes the bound of a jump table index are derived from 
-    // the difference between two values. In this case, it is useful
-    // to know that whether there is a certain relation between the two values
     typedef enum {
         Equal,
 	NotEqual, 
@@ -120,13 +110,6 @@ struct BoundFact {
 
     vector<Relation*> relation;
 
-    // We need to track aliases of each register and memory locations.
-    // The left hand side represents an abstract location at the current address
-    // and the right hand side represents an AST of input absloc locations.
-    // eax at the current location can be different from eax at the input absloc location
-    //
-    // Register abstract location with address 0 represents an absloc at the current address
-    // Register abstract location with address 1 represents an input absloc
     typedef std::map<AST::Ptr, AST::Ptr> AliasMap;
     AliasMap aliasMap;
 

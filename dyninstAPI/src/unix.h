@@ -35,7 +35,7 @@
 #define _UNIX_H_
 
 #define CAN_DUMP_CORE true
-#define SLEEP_ON_MUTATEE_CRASH 300 /*seconds*/
+#define SLEEP_ON_MUTATEE_CRASH 300
 
 #define INFO_TO_EXIT_CODE(info) info
 #define INFO_TO_PID(info) info
@@ -43,9 +43,6 @@
 
 #define POLL_FD status_fd()
 #define POLL_TIMEOUT -1
-
-//  On /proc platforms we have predefined system call mappings (SYS_fork, etc).
-//  Define them here for platforms which don't have them 
 
 #if !defined(SYS_fork)
 #define SYS_fork 1001
@@ -127,7 +124,6 @@ typedef pthread_cond_t EventCond_t;
 #define INVALID_HANDLE_VALUE -1
 #endif
 
-// Hybrid Analysis Compatibility definitions
 #define PAGE_READ 1
 #define PAGE_WRITE 2
 #define PAGE_EXECUTE 4

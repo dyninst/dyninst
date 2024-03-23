@@ -33,13 +33,6 @@
 #ifndef _OS_HDR
 #define _OS_HDR
 
-/*
- * This is an initial attempt at providing an OS abstraction for paradynd
- * I am doing this so I can compile paradynd on solaris
- *
- * This should enforce the abstract OS operations
- */ 
-
 #if defined(i386_unknown_nt4_0) 
 #include "dyninstAPI/src/pdwinnt.h"
 
@@ -66,7 +59,6 @@ public:
   static void get_sigaction_names(std::vector<std::string> &names);
 };
 
-// Temporary prototype for a remote debugging BPatch interface.
 #include "dyninstAPI/h/BPatch.h"
 bool OS_isConnected(void);
 bool OS_connect(BPatch_remoteHost &remote);

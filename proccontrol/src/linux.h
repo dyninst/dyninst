@@ -124,9 +124,6 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool preTerminate();
    virtual OSType getOS() const;
 
-   //The following async functions are only used if a linux debugging mode,
-   // 'debug_async_simulate' is enabled, which tries to get Linux to simulate having
-   // async events for testing purposes.
    virtual bool plat_needsAsyncIO() const;
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr,
                                   mem_response::ptr result);
@@ -187,7 +184,6 @@ class linux_ppc_process : public linux_process, public ppc_process
    virtual Dyninst::Architecture getTargetArch();
 };
 
-//steve: added
 class linux_arm_process : public linux_process, public arm_process
 {
   public:

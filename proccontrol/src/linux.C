@@ -995,11 +995,6 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     return true;
 }
 
-// Ubuntu 10.10 and other hardened systems do not allow arbitrary ptrace_attaching; instead
-// you may only attach to a child process (https://wiki.ubuntu.com/SecurityTeam/Roadmap/KernelHardening)
-//
-// We can detect this and warn the user; however, it takes root to disable it.
-
 #include <fstream>
 
 static void warn_user_ptrace_restrictions() {
@@ -1066,7 +1061,6 @@ bool linux_process::plat_attach(bool, bool &)
    return true;
 }
 
-// Attach any new threads and synchronize, until there are no new threads
 bool linux_process::plat_attachThreadsSync()
 {
    while (true) {
@@ -1255,7 +1249,6 @@ Dyninst::Architecture linux_ppc_process::getTargetArch()
    return arch;
 }
 
-//steve: added
 linux_arm_process::linux_arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
                                      std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
@@ -2994,7 +2987,6 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
    return true;
 }
 
-//Copied from /usr/include/asm/ldt.h, as it was not available on all machines
 struct linux_x86_user_desc {
    unsigned int  entry_number;
    unsigned long base_addr;

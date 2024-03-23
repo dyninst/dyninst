@@ -37,14 +37,6 @@
 
 namespace Dyninst {
 
-/*
- * storageClass: Encodes how a variable is stored.
- *
- * storageAddr           - Absolute address of variable.
- * storageReg            - Register which holds variable value.
- * storageRegOffset      - Address of variable = $reg + address.
- */
-
 typedef enum {
    storageUnset,
    storageAddr,
@@ -54,12 +46,6 @@ typedef enum {
 
 COMMON_EXPORT const char *storageClass2Str(storageClass sc);
 
-/*
- * storageRefClass: Encodes if a variable can be accessed through a register/address.
- *
- * storageRef        - There is a pointer to variable.
- * storageNoRef      - No reference. Value can be obtained using storageClass.
- */
 typedef enum {
    storageRefUnset,
    storageRef,
@@ -67,10 +53,6 @@ typedef enum {
 } storageRefClass;
 
 COMMON_EXPORT const char *storageRefClass2Str(storageRefClass sc);
-
-//location for a variable
-//Use mr_reg instead of reg for new code.  reg left in for backwards
-// compatibility.
 
 class VariableLocation  {
   public:

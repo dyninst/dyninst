@@ -72,7 +72,6 @@ class int_walkerSet;
 
 class SW_EXPORT Walker {
  private:
-   //Object creation functions
    Walker(ProcessState *p,
           StepperGroup *grp,
           SymbolLookup *sym, 
@@ -98,10 +97,9 @@ class SW_EXPORT Walker {
    bool callPostStackwalk(THR_ID tid = NULL_THR_ID);
  public:
    static void version(int& major, int& minor, int& maintenance);
-   //Create an object that operates on the current process
+
    static Walker *newWalker(std::string exec_name = std::string(""));
 
-   //Create an object that operates on the specified process
    static Walker *newWalker(Dyninst::PID pid,
                             std::string executable);
    static Walker *newWalker(Dyninst::PID pid);
@@ -112,51 +110,38 @@ class SW_EXPORT Walker {
    static bool newWalker(const std::vector<Dyninst::PID> &pids,
                          std::vector<Walker *> &walkers_out);      
 
-   //Create an object that creates the specified process
    static Walker *newWalker(std::string exec_name, 
                             const std::vector<std::string> &argv);
 
-   //Create an object with custom backend classes
    static Walker *newWalker(ProcessState *proc, 
                             StepperGroup *grp = NULL,
                             SymbolLookup *lookup = NULL,
                             bool default_steppers = true);
    
-   //Get the default symbol reader
    static SymbolReaderFactory *getSymbolReader();
 
-   //Set the default symbol reader
    static void setSymbolReader(SymbolReaderFactory *srf);
 
-   //Collect a stackwalk
    bool walkStack(std::vector<Frame> &stackwalk, 
                   Dyninst::THR_ID thread = NULL_THR_ID);
 
-   //Collect a stackwalk starting at a certain frame
    bool walkStackFromFrame(std::vector<Frame> &stackwalk, 
                            const Frame &frame);
 
-   //Walk a single frame
    bool walkSingleFrame(const Frame &in, 
                         Frame &out);
 
-   //Return the intitial frame in a stackwalk.
    bool getInitialFrame(Frame &frame, 
                         Dyninst::THR_ID thread = NULL_THR_ID);
 
-   //Return a list of threads available for stackwalking.
    bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads) const;
 
-   //Return the ProcessState object
    ProcessState *getProcessState() const;
 
-   //Return the symbolLookup object
    SymbolLookup *getSymbolLookup() const;
 
-   //Return stepper group
    StepperGroup *getStepperGroup() const;
    
-   //Add frame steppers to the group
    bool addStepper(FrameStepper *stepper);
 
    virtual ~Walker();
@@ -174,7 +159,6 @@ class SW_EXPORT WalkerSet {
    int_walkerSet *iwalkerset;
    WalkerSet();
   public:
-   //Create an object that operates on the specified process
    static WalkerSet *newWalkerSet();
    ~WalkerSet();
    

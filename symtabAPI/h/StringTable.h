@@ -19,9 +19,7 @@
 
 namespace Dyninst {
     namespace SymtabAPI {
-        // This is being used for storing filenames.
-        // str:         usually the full filename, it depends on what was the filename stored
-        // filename:    to be only the filename and extension without path. Ex: "foo.txt"
+
         struct StringTableEntry {
             std::string str;
             std::string filename;

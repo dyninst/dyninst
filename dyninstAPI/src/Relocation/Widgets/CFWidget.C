@@ -47,21 +47,14 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-///////////////////////
-
-// Pick values that don't correspond to actual targets. I'm skipping
-// 0 because it's used all over the place as a null.
 const Address CFWidget::Fallthrough(1);
 const Address CFWidget::Taken(2);
 
-// Case 1: an empty trace ender for traces that do not
-// end in a CF-category instruction
 CFWidget::Ptr CFWidget::create(Address a) {
    CFWidget::Ptr ptr = Ptr(new CFWidget(a));
    return ptr;
 }
 
-// Case 2: wrap a CF-category instruction
 CFWidget::Ptr CFWidget::create(Widget::Ptr atom) {
    CFWidget::Ptr ptr = Ptr(new CFWidget(atom->insn(), atom->addr()));
    return ptr;
@@ -129,24 +122,6 @@ bool CFWidget::generate(const codeGen &,
                       const RelocBlock *trace,
                       CodeBuffer &buffer)
 {
-   // We need to create jumps to wherever our successors are
-   // We can assume the addresses returned by our Targets
-   // are valid, since we'll fixpoint until those stabilize. 
-   //
-   // There are the following cases:
-   //
-   // No explicit control flow/unconditional direct branch:
-   //   1) One target
-   //   2) Generate a branch unless it's unnecessary
-   // Conditional branch:
-   //   1) Two targets
-   //   2) Use stored instruction to generate correct condition
-   //   3) Generate a fallthrough "branch" if necessary
-   // Call:
-   //   1) Two targets (call and natural successor)
-   //   2) As above, except make sure call bit is flipped on
-   // Indirect branch:
-   //   1) Just go for it... we have no control, really
    relocation_cerr << "CFWidget generation for " << trace->id() << endl;
    if (destMap_.empty() && !isIndirect_) {
       // No successors at all? Well, it happens if
@@ -305,7 +280,6 @@ bool CFWidget::generate(const codeGen &,
 }
 
 CFWidget::~CFWidget() {
-   // Don't delete the Targets; they're taken care of when we nuke the overall CFG. 
 }
 
 TrackerElement *CFWidget::tracker(const RelocBlock *trace) const {
@@ -373,14 +347,6 @@ bool CFWidget::generateBranch(CodeBuffer &buffer,
                               bool fallthrough) {
    assert(to);
    if (!to->necessary()) return true;
-
-   // We can put in an unconditional branch as an ender for 
-   // a block that doesn't have a real branch. So if we don't have
-   // an instruction generate a "generic" branch
-
-   // We can see a problem where we want to branch to (effectively) 
-   // the next instruction. So if we ever see that (a branch of offset
-   // == size) back up the codeGen and shrink us down.
 
    CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, trace->func(), addr_);
 
@@ -460,10 +426,6 @@ unsigned CFWidget::size() const
 }
 #endif
 
-/////////////////////////
-// Patching!
-/////////////////////////
-
 CFPatch::CFPatch(Type a,
                  Instruction b,
                  TargetInt *c,
@@ -501,8 +463,6 @@ PaddingPatch::PaddingPatch(unsigned size, bool registerDefensive, bool noop, blo
 
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-   //TODO: find smarter way of telling that we're doing CFG modification, 
-   // in which case we don't want to add padding in between blocks
    if (BPatch_defensiveMode != block_->obj()->hybridMode()) {
       bpwarn("WARNING: Disabling post-call block padding %s[%d]\n",FILE__,__LINE__);
       return true;

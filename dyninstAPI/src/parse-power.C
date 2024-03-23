@@ -30,11 +30,6 @@
 
 // $Id: image-power.C,v 1.23 2008/03/12 20:09:10 legendre Exp $
 
-// Determine if the called function is a "library" function or a "user" function
-// This cannot be done until all of the functions have been seen, verified, and
-// classified
-//
-
 #include <unordered_map>
 #include "parse-cfg.h"
 #include "instPoint.h"
@@ -76,10 +71,6 @@ static void add_handler(instPoint* pt, func_instance* add_me)
   instrumentation->disableRecursiveGuard();
 }
 
-/*
-By parsing the function that actually sets up the parameters for the OMP
-region we discover informations such as what type of parallel region we're
-dealing with */
 bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
 {
     return false;
@@ -191,11 +182,6 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
    OMPparsed_ = true;
 }
 
-/* This does a linear scan to find out which registers are used in the function,
-   it then stores these registers so the scan only needs to be done once.
-   It returns true or false based on whether the function is a leaf function,
-   since if it is not the function could call out to another function that
-   clobbers more registers so more analysis would be needed */
 void parse_func::calcUsedRegs()
 {
    if (usedRegisters != NULL)
@@ -248,10 +234,6 @@ void parse_func::calcUsedRegs()
 #include "image.h"
 
 using namespace Dyninst::SymtabAPI;
-/*
- * Static binary rewriting support
- *
- */
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     /* Special Case 1A: Handling global constructors

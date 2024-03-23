@@ -59,7 +59,6 @@ class ProcessPool
    void rmProcess(int_process *proc);
    void rmThread(int_thread *thr);
    int_thread *findThread(Dyninst::LWP lwp);
-   // On Linux, we can get notifications for dead threads. Fun. 
    bool deadThread(Dyninst::LWP lwp);
    void addDeadThread(Dyninst::LWP lwp);
    void removeDeadThread(Dyninst::LWP lwp);

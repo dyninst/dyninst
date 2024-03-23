@@ -38,7 +38,6 @@ StackMod::MType StackMod::type() const
     return _type;
 }
 
-/* Insert */
 Insert::Insert(int low, int high) :
     _low(low),
     _high(high)
@@ -62,7 +61,6 @@ std::string Insert::format() const
     return ret.str();
 }
 
-/* Remove */
 Remove::Remove(int low, int high) :
     _low(low),
     _high(high)
@@ -86,7 +84,6 @@ std::string Remove::format() const
     return ret.str();
 }
 
-/* Move */
 Move::Move(int srcLow, int srcHigh, int destLow) :
     _srcLow(srcLow),
     _srcHigh(srcHigh),

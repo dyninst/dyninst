@@ -61,12 +61,6 @@ class edge_instance : public Dyninst::PatchAPI::PatchEdge {
     ~edge_instance();
 };
 
-// This is somewhat mangled, but allows Dyninst to access the
-// iteration predicates of Dyninst without having to go back and
-// template that code. Just wrap a ParseAPI predicate in a
-// EdgePredicateAdapter and *poof* you're using edge_instances
-// instead of ParseAPI edges...
-
 class EdgePredicateAdapter 
    : public ParseAPI::iterator_predicate <
   edge_instance *,
@@ -92,7 +86,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     block_instance(const block_instance *parent, mapped_object *child);
     ~block_instance();
 
-    // Up-accessors
     mapped_object *obj() const { return SCAST_MO(obj_); }
     AddressSpace *addrSpace() const;
     AddressSpace *proc() const { return addrSpace(); }
@@ -108,10 +101,8 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     //const edgelist &sources();
     //const edgelist &targets();
 
-    // Shortcuts
     edge_instance *getTarget();
     edge_instance *getFallthrough();
-    // NULL if not conclusive
     block_instance *getFallthroughBlock();
 
     func_instance *callee();
@@ -119,9 +110,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     bool _ignorePowerPreamble;
     int id() const;
 
-    // Functions to avoid
-    // These are convinence wrappers for really expensive
-    // lookups, and thus should be avoided. 
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
     // static void destroy(block_instance *b); // doesn't need to do anything

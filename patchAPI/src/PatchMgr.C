@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Public Interface */
 
 #include "PatchMgr.h"
 #include "PatchObject.h"
@@ -94,7 +93,6 @@ PatchMgr::create(AddrSpace* as, Instrumenter* inst, PointMaker* pf) {
   return ret;
 }
 
-/* Return false if no point is found */
 bool
 PatchMgr::removeSnippet(InstancePtr instance) {
   if (instance == InstancePtr()) return false;

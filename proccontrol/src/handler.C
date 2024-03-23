@@ -1319,11 +1319,6 @@ Handler::handler_ret_t HandlePostSyscall::handleEvent(Event::ptr ev)
    return ret_success;
 }
 
-/**
- * This handler is triggered when a breakpoint is first hit (e.g., on
- * the SIGTRAP signal.  It's main purpose is to prepare the thread state
- * before the user callback
- **/
 HandleBreakpoint::HandleBreakpoint() :
    Handler("Breakpoint")
 {
@@ -1535,9 +1530,6 @@ void HandleBreakpointClear::getEventTypesHandled(vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::BreakpointClear));
 }
 
-/**
- * The handler triggers when a thread stopped on a breakpoint is continued.
- **/
 Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();

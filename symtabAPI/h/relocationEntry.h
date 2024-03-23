@@ -78,8 +78,6 @@ class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
       void setName(const std::string &newName);
       void setRelType(unsigned long relType) { relType_ = relType; }
 
-      // dump output.  Currently setup as a debugging aid, not really
-      //  for object persistance....
       //std::ostream & operator<<(std::ostream &s) const;
       friend SYMTAB_EXPORT std::ostream & operator<<(std::ostream &os, const relocationEntry &q);
 
@@ -88,16 +86,15 @@ class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
 
       enum category { relative, jump_slot, absolute };
 
-      // Architecture-specific functions
       static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
       static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
       category getCategory( unsigned addressWidth );
 
    private:
-      Offset target_addr_;	// target address of call instruction
-      Offset rel_addr_;		// address of corresponding relocation entry
-      Offset addend_;       // addend (from RELA entries)
-      Region::RegionType rtype_;        // RT_REL vs. RT_RELA
+      Offset target_addr_;
+      Offset rel_addr_;
+      Offset addend_;
+      Region::RegionType rtype_;
       std::string  name_;
       Symbol *dynref_;
       unsigned long relType_;
@@ -105,7 +102,6 @@ class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
 };
 
 
-// relocation information for calls to functions not in this image
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
 }//namespace SymtabAPI

@@ -45,18 +45,8 @@ using std::map;
 std::string P_cplus_demangle( const std::string &symbol, bool includeTypes )
 {
     return symbol_demangle_with_cache(symbol, includeTypes);
-} /* end P_cplus_demangle() */
+}
 
-// Process Information Queries //
-// No procfs mounted by default -- need to rely on sysctl //
-
-/*
- * Gets the full path of the executable for the specified process
- *
- * pid  The pid for the process
- *
- * Returns the full path (caller is responsible for free'ing)
- */
 char *sysctl_getExecPathname(pid_t pid) {
     int mib[4];
     mib[0] = CTL_KERN;
@@ -230,7 +220,6 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
 #endif
 }
 
-// returns true if the process is running
 bool sysctl_getRunningStates(pid_t pid, map<Dyninst::LWP, bool> &runningStates) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, true);

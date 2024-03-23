@@ -59,7 +59,6 @@ StackModChecker::~StackModChecker() {
     }
 }
 
-/* Locate the libc-provided canary failure function __stack_chk_fail */
 static BPatch_function* findCanaryFailureFunction(BPatch_image* image)
 {
     BPatch_function* failFunction = NULL;
@@ -606,15 +605,10 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
     return true;
 }
 
-/* Get the name of the function we're checking */
 std::string StackModChecker::getName() const {
     return func->ifunc()->name();
 }
 
-/* Accumulate the effects of the current stack modification on the _stackRanges;
- * this gets used to determine if additional modification need to be added to 
- * preserve alignment requirements on the current platform.
- */
 bool StackModChecker::accumulateStackRanges(StackMod* m)
 {
     StackMod::MType curType = m->type();
@@ -752,13 +746,6 @@ bool StackModChecker::accumulateStackRanges(StackMod* m)
     return true;
 }
 
-/*
- * WARNING: The methods alignStackRanges and findContiguousRange function
- *          are fundamentally broken and need to be rewritten.  There is
- *          much wrong here, but it may work in limited circumstances.
- *
- */
-/* Conform to alignment requirements of the current platform */
 bool StackModChecker::alignStackRanges(int alignment, StackMod::MOrder order, std::vector<StackMod*>& mods)
 {
     rangeIterator begin, end;
@@ -827,13 +814,7 @@ void StackModChecker::findContiguousRange(rangeIterator iter, rangeIterator& end
     }
 }
 
-/* This function determines whether the stack frame grows and shrinks multiple
- * times throughout the function.  Currently, we do not allow stack
- * modifications (INSERT, REMOVE, MOVE) for functions where this occurs,
- * because the stack offsets specified by the modifications may be valid for
- * multiple address ranges in the function.  In the future, stack modifications
- * could be extended to handle these functions.
- */
+
 bool StackModChecker::checkStackGrowth(StackAnalysis& sa)
 {
     bool ret = true;
@@ -889,7 +870,6 @@ bool StackModChecker::checkStackGrowth(StackAnalysis& sa)
     return ret;
 }
 
-/* Cache all SP heights for each block in the function */
 void StackModChecker::processBlock(StackAnalysis& sa, ParseAPI::Block* block)
 {
     std::vector<StackAnalysis::Height>* heightVec = new std::vector<StackAnalysis::Height>();
@@ -908,7 +888,6 @@ void StackModChecker::processBlock(StackAnalysis& sa, ParseAPI::Block* block)
     blockHeights.insert(make_pair(block, heightVec));
 }
 
-/* Check the stack growth for all paths in the function */
 bool StackModChecker::checkAllPaths(StackAnalysis& sa)
 {
     ParseAPI::Function::const_blocklist exitBlocklist = func->ifunc()->exitBlocks();
@@ -921,10 +900,6 @@ bool StackModChecker::checkAllPaths(StackAnalysis& sa)
     return checkAllPathsInternal(func->ifunc()->entry(), state, path, exitBlocks, sa);
 }
 
-/* Recursively build all control flow paths through the function;
- * when the end of path is found (at an exit block), check for safe
- * stack growth on that path. 
- */
 bool StackModChecker::checkAllPathsInternal(ParseAPI::Block* block, 
                                             std::set<ParseAPI::Block*>& state,
                                             std::vector<ParseAPI::Block*>& path,
@@ -971,7 +946,6 @@ bool StackModChecker::checkAllPathsInternal(ParseAPI::Block* block,
     return ret;
 }
 
-/* Check for unsafe stack growth on the current path */
 bool StackModChecker::checkPath(std::vector<ParseAPI::Block*>& path)
 {
     bool foundShrink = false;
@@ -1314,13 +1288,6 @@ bool StackModChecker::areModificationsSafe()
     return true;
 }
 
-/* Check if a particular stack access in instruction insn is safe, given the current set of
- * stack modifications. Accesses are unsafe if a stack modification perturbs the access range, 
- * which can happen by:
- *  - inserting into the accessed range, 
- *  - removing any part of the accessed range, or 
- *  - moving a portion (but not the whole) accessed range.
- */
 bool StackModChecker::isAccessSafe(InstructionAPI::Instruction insn, StackAccess *access)
 {
     OffsetVector* offVec = func->getOffsetVector();

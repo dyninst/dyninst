@@ -40,8 +40,6 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-/////////////////////////
-
 bool InsnWidget::generate(const codeGen &, 
                         const RelocBlock *t,
                         CodeBuffer &buffer) {

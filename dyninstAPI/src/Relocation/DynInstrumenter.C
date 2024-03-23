@@ -41,7 +41,6 @@ using Dyninst::PatchAPI::DynReplaceFuncCommand;
 using Dyninst::PatchAPI::DynModifyCallCommand;
 using Dyninst::PatchAPI::DynRemoveCallCommand;
 
-/* Instrumenter Command, which is called implicitly by Patcher's run()  */
 bool DynInstrumenter::run() {
   DynAddrSpace* das = dynamic_cast<DynAddrSpace*>(as_);
   std::set<AddressSpace*> seen;
@@ -61,8 +60,6 @@ bool DynInstrumenter::undo() {
   // TODO(wenbin)
   return true;
 }
-
-/* Insert Snippet Command */
 
 DynInsertSnipCommand::DynInsertSnipCommand(instPoint* pt, callOrder order,
                                            AstNodePtr ast, bool recursive) {
@@ -85,7 +82,6 @@ bool DynInsertSnipCommand::undo() {
    return true;
 }
 
-/* Remove Snippet Command */
 DynRemoveSnipCommand::DynRemoveSnipCommand(Dyninst::PatchAPI::Instance::Ptr inst) : inst_(inst) {
 }
 
@@ -103,7 +99,6 @@ bool DynRemoveSnipCommand::undo() {
   return true;
 }
 
-/* Replace Function Command */
 DynReplaceFuncCommand::DynReplaceFuncCommand(AddressSpace* as,
                           func_instance* old_func,
                           func_instance* new_func)
@@ -126,7 +121,6 @@ bool DynReplaceFuncCommand::undo() {
   return true;
 }
 
-/* Modify Call Command */
 DynModifyCallCommand::DynModifyCallCommand(AddressSpace* as,
                           block_instance* block,
                           func_instance* new_func,
@@ -151,7 +145,6 @@ bool DynModifyCallCommand::undo() {
   return true;
 }
 
-/* Remove Call Command */
 DynRemoveCallCommand::DynRemoveCallCommand(AddressSpace* as,
                          block_instance* block,
                          func_instance* context)

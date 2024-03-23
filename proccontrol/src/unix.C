@@ -251,9 +251,7 @@ bool unix_process::plat_findAllocatedRegionAround(Dyninst::Address addr,
     setLastError(err_unsupported, "Find Allocated Memory Region not supported on this platform\n");
     return false;
 }
-//I'm not sure that unix_process is the proper place for this--it's really based on whether
-// /proc/PID/maps exists.  Currently, that matches our platforms that use unix_process, so
-// I'll leave it be for now.
+
 Dyninst::Address unix_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
     Dyninst::Address result = 0x0;
     bool found_result = false;

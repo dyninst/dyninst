@@ -28,28 +28,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/************************************************************************
- * lprintf.c: printf-like error functions.
-************************************************************************/
-
-
-/************************************************************************
- * header files.
-************************************************************************/
-
 #include "common/src/headers.h"
 #include "common/src/lprintf.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
-
-/************************************************************************
- * void log_msg(const char* msg)
- * void log_printf(void (*pfunc)(const char *), const char* fmt, ...)
- * void log_perror(void (*pfunc)(const char *), const char* msg)
- *
- * error printing functions.
-************************************************************************/
 
 static char log_buffer[8192];
 

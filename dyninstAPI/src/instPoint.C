@@ -150,9 +150,6 @@ instPoint::instPoint(Type          t,
   baseTramp_(NULL) {
 }
 
-
-// If there is a logical "pair" (e.g., before/after) of instPoints return them.
-// The return result is a pair of <before, after>
 std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
    switch(i->type()) {
       case None:
@@ -310,11 +307,6 @@ baseTramp *instPoint::tramp() {
    return baseTramp_;
 }
 
-// Returns the current block (if there is one)
-// or the next block we're going to execute (if not).
-// In some cases we may not know; function exit points
-// and the like. In this case we return the current block
-// as a "well, this is what we've got..."
 block_instance *instPoint::block_compat() const {
    switch (type_) {
       case FuncEntry:

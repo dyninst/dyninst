@@ -64,17 +64,6 @@
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynAddrSpace;
 
-/*
- * BPatch_binaryEdit::BPatch_binaryEdit
- *
- * Creates a new BinaryEdit and associates it with the BPatch_binaryEdit
- * being created. Additionally, if specified, the dependencies of the
- * original BinaryEdit are opened and associated with the BPatch_binaryEdit
- *
- * path		     Pathname of the executable
- * openDependencies  if true, the dependencies of the original BinaryEdit are
- *                   also opened
- */
 BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
    creation_error(false)
@@ -260,14 +249,6 @@ void BPatch_binaryEdit::getAS(std::vector<AddressSpace *> &as)
 }
 
 
-/*
- * BPatch_addressSpace::beginInsertionSet
- *
- * Starts a batch insertion set; that is, all calls to insertSnippet until
- * finalizeInsertionSet are delayed.
- *
- */
-
 void BPatch_binaryEdit::beginInsertionSet()
 {
     return;
@@ -323,16 +304,6 @@ BPatch_object *BPatch_binaryEdit::loadLibrary(const char *libname, bool deps)
    loadedLibrary[filename] = bpatch_obj;
    return bpatch_obj;
 }
-
-// Here's the story. We may need to install a trap handler for instrumentation
-// to work in the rewritten binary. This doesn't play nicely with trap handlers
-// that the binary itself registers. So we're going to replace every call to
-// sigaction in the binary with a call to our wrapper. This wrapper:
-//   1) Ignores attempts to register a SIGTRAP
-//   2) Passes everything else through to sigaction
-// It's called "dyn_sigaction".
-// This is just a multiplexing function over each child binaryEdit
-// object because they're all individual.
 
 bool BPatch_binaryEdit::replaceTrapHandler() {
     // Did we use a trap?

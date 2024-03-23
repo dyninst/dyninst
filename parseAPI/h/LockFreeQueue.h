@@ -93,9 +93,6 @@ private:
 };
 
 
-// designed for use in a context where where only insert_chain operations
-// that have completed their exchange may be concurrent with iteration on
-// the queue
 template<typename T>
 class LockFreeQueueIterator {
 private:
@@ -142,16 +139,11 @@ public:
   LockFreeQueue(item_type *_head = 0) : head(_head) {}
 
 public: 
-  // wait-free member functions designed for concurrent use
-
-  // insert a singleton at the head of the queue
-  // note: this operation is wait-free unless the allocator blocks 
   void insert(T value) {
     item_type *entry = new item_type(value);
     insert_chain(entry, entry);
   }
 
-  // steal the linked list from q and insert it at the front of this queue
   void splice(LockFreeQueue<T> &q) {
     if (q.peek()) { // only empty q if it is non-empty 
       item_type *first = q.steal();
@@ -165,22 +157,17 @@ public:
     }
   }
 
-  // inspect the head of the queue
   item_type *peek() { 
       item_type* ret = head.load();
       return ret; 
   }
 
-  // grab the contents of the queue for your own private use
   item_type *steal() { 
       item_type* ret = head.exchange(0);
       return ret; 
   }
 
 public:
-  // designed for use in a context where where only insert_chain 
-  // operations that have completed their exchange may be concurrent
-
   item_type *pop() { 
     item_type *first = head.load();
     if (first) {

@@ -644,19 +644,6 @@ namespace Dyninst {
     return;
   }
 
-  /* This function should has a boolean return value
-   * to indicate whether there is a corresponding
-   * ROSE register.
-   *
-   * Since historically, this function does not
-   * have a return value. We set c to -1 to represent
-   * error cases
-   * c is set to regClass
-   * n is set to regNum
-   * p is set to regPosition
-   * see dataflowAPI/src/ExpressionConversionVisitor.C
-   */
-
   void MachRegister::getROSERegister(int& c, int& n, int& p) {
     // Rose: class, number, position
     // Dyninst: category, base id, subrange
@@ -1047,23 +1034,6 @@ namespace Dyninst {
     }
   }
 
-  /*
-   * DWARF Encodings
-   *
-   * x86:
-   *  System V Application Binary Interface
-   *  Intel386 Architecture Processor Supplement
-   *  Version 1.0 February 3, 2015
-   *  Table 2.14: DWARF Register Number Mapping
-   *  https://gitlab.com/x86-psABIs/i386-ABI
-   *
-   * x86_64:
-   *   System V Application Binary Interface
-   *   AMD64 Architecture Processor Supplement
-   *   Version 1.0 June 21, 2022
-   *   Table 3.36: DWARF Register Number Mapping
-   *   https://gitlab.com/x86-psABIs/x86-64-ABI
-   */
   MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arch) {
     switch(arch) {
       case Arch_x86:

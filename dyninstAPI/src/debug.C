@@ -56,8 +56,6 @@ int inferiorrpc_printf_int(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1,
 int startup_printf_int(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 int bpatch_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 
-// Make a lock.
-
 Mutex<> *debugPrintLock = NULL;
 
 void BPatch_reportError(int errLevel, int num, const char *str) {
@@ -87,14 +85,11 @@ void logLine(const char *line)
     BPatch::reportError(BPatchWarning, 0, line);
 }
 
-// The unused parameter is used by Paradyn's version of this function.
 void statusLine(const char *line, bool /* unused */ )
 {
     BPatch::reportError(BPatchInfo, 0, line);
 }
 
-//  bpfatal, bpsevere, bpwarn, and bpinfo are intended as drop-in
-//  replacements for printf.
 #define ERR_BUF_SIZE 2048 // egad -- 1024 is not large enough
 
 int bpfatal(const char *format, ...)

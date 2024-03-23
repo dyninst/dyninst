@@ -28,17 +28,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
-// Node class implementation
-
 #include "Graph.h"
 #include "Edge.h"
 #include "Node.h"
 #include <assert.h>
 
 #include "common/src/NodeIterator.h"
-
-// Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
 
 using namespace Dyninst;
 
@@ -144,7 +139,6 @@ std::string VirtualNode::format() const {
     return name_;
 }
 
-// Prefix...
 NodeIterator &NodeIterator::operator++() {
     if (!iter_) return *this;
     
@@ -152,7 +146,6 @@ NodeIterator &NodeIterator::operator++() {
     return *this;
 }
 
-// Postfix...
 NodeIterator NodeIterator::operator++(int) {
     NodeIterator ret = *this;
     ++(*this);

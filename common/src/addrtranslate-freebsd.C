@@ -120,8 +120,6 @@ bool ProcessReaderPtrace::ReadMem(Address inTraced, void *inSelf, unsigned amoun
     return result;
 }
 
-/* Complete the implementation of the AddressTranslateSysV class */
-
 ProcessReader *AddressTranslateSysV::createDefaultDebugger(int pid)
 {
   return new ProcessReaderPtrace(pid);

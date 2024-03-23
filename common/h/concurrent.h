@@ -67,7 +67,6 @@ namespace concurrent {
     template <bool, typename Key>
     class hash_compare;
 
-    // New style tbb_hash_compare concept (TBB_VERSION_MAJOR >= 2021)
     template<typename Key>
     class hash_compare<true, Key> {
     	hasher<Key> my_hasher;
@@ -80,7 +79,6 @@ namespace concurrent {
     	}
     };
 
-    // Old style tbb_hash_compare concept
     template<typename Key>
     class hash_compare<false, Key> {
     public:
@@ -208,7 +206,6 @@ public:
 };
 
 class COMMON_EXPORT dyn_rwlock {
-    // Reader management members
     boost::atomic<unsigned int> rin;
     boost::atomic<unsigned int> rout;
     unsigned int last;
@@ -216,7 +213,6 @@ class COMMON_EXPORT dyn_rwlock {
     boost::condition_variable rcond;
     bool rwakeup[2];
 
-    // Writer management members
     dyn_mutex wlock;
     dyn_mutex outlock;
     boost::condition_variable wcond;

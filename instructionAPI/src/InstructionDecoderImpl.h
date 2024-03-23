@@ -72,14 +72,14 @@ class InstructionDecoderImpl
 
 
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, uint32_t num_elements = 1);
-        // added version to support loading partial values out of register
+
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, unsigned int start , unsigned int end);
         virtual Expression::Ptr makeMaskRegisterExpression(MachRegister reg);
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, Result_Type extendFrom);
         virtual Result_Type makeSizeType(unsigned int opType) = 0;
-        // added to support ternary value 
+
         virtual Expression::Ptr makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second, Result_Type resultType);
-        //Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,const unsigned char* raw);
+
         boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
       

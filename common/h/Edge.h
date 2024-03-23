@@ -101,7 +101,6 @@ class COMMON_EXPORT EdgeIterator {
 
     Edge::Ptr operator*() const;
 
-    // Make sure this is explicitly _not_ allowed (no vectors of iterators)
     EdgeIterator() : iter_(NULL) {}
 
     EdgeIterator(const EdgeIterator &rhs);
@@ -112,17 +111,10 @@ class COMMON_EXPORT EdgeIterator {
 
  protected:
 
-    // Main constructor
-    // The iter parameter becomes owned by the iterator and will be destroyed
-    // when the iterator is destroyed.
 
-
-    // We hide the internal iteration behavior behind a pointer. 
-    // This allows us to override (yay for virtual functions).
     EdgeIteratorImpl *iter_;
 };
 
-// This is a pure virtual interface class
 class EdgeIteratorImpl {
     friend class EdgeIterator;
     
@@ -136,7 +128,6 @@ class EdgeIteratorImpl {
     virtual ~EdgeIteratorImpl() {}
 };
 
-// Types of edge iteration: over a set of edges
 class EdgeIteratorSet : public EdgeIteratorImpl {
     friend class EdgeIterator;
 

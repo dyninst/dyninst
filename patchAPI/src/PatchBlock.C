@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Public Interface */
 
 #include "PatchCommon.h"
 #include "PatchCFG.h"
@@ -414,8 +413,6 @@ void PatchBlock::remove(Point *p) {
    }
 }
 
-// destroy points for this block and then each containing function's
-// context specific points for the block
 void PatchBlock::destroyPoints()
 {
     PatchCallback *cb = obj()->cb();

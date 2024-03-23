@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Functions of the relocationEntry class specific to x86 ELF */
 #include "Symtab.h"
 #include "annotations.h"
 #include <elf.h>

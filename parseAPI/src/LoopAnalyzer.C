@@ -43,7 +43,6 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-// constructor of the class. It creates the CFG and
 LoopAnalyzer::LoopAnalyzer(const Function *f)
   : func(f) 
 {
@@ -143,9 +142,6 @@ void LoopAnalyzer::createLoopHierarchy()
   }
 }
 
-
-// try to insert func into the appropriate spot in the loop tree based on
-// address ranges. if succesful return true, return false otherwise.
 bool LoopAnalyzer::dfsInsertCalleeIntoLoopHierarchy(LoopTreeNode *node,
                                                         Function *callee,
                                                         unsigned long addr)
@@ -299,8 +295,6 @@ void LoopAnalyzer::WMZC_TagHead(Block* b, Block* h) {
     header[cur1] = cur2;
 }
 
-// Recursively build the basic blocks in a loop
-// and the contained loops in a loop
 void LoopAnalyzer::createLoops(Block* cur) {
     auto curLoop = loops[cur];
     if(curLoop == NULL) return;

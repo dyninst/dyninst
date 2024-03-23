@@ -355,13 +355,6 @@ bool IA_IAPI::isInvalidInsn() const
     return false;
 }
 
-/* This function determines if a given instruction is weird enough that we've
- * probably veered into non-code bytes and are parsing garbage.  
- * note: yes, some of the code in here is does low-level things like 
- *       grab instruction bytes directly instead of relying on the parseAPI,
- *       but since this code executes for every parsed instruction, it needs
- *       to be efficient.  
- */
 bool IA_IAPI::isGarbageInsn() const
 {
     bool ret = false;

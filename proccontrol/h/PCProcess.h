@@ -269,14 +269,11 @@ class PC_EXPORT IRPC
    unsigned long getStartOffset() const;
    bool isBlocking() const;
 
-   // user-defined data retrievable during a callback
    void *getData() const;
    void setData(void *p) const;
 
    State state() const;
 
-   // Continues the thread this RPC is running on.
-   // Useful if you don't know the thread assigned to an IRPC
    bool continueStoppedIRPC();
 };
 
@@ -301,15 +298,11 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    static void version(int& major, int& minor, int& maintenance);
 
-   //These four functions are not for end-users.  
    int_process *llproc() const { return llproc_; }
    proc_exitstate *exitstate() const { return exitstate_; }
    void setLastError(ProcControlAPI::err_t err_code, const char *err_str) const;
    void clearLastError() const;
    
-   /**
-    * Threading modes control
-    **/
    typedef enum {
      NoThreads,
      GeneratorThreading,
@@ -319,9 +312,6 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    static bool setThreadingMode(thread_mode_t tm);
    static thread_mode_t getThreadingMode();
 
-   /**
-    * Create and attach to new processes
-    **/
    static const std::map<int,int> emptyFDs;
    static const std::vector<std::string> emptyEnvp;
    static Process::ptr createProcess(std::string executable,
@@ -330,9 +320,6 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
                                      const std::map<int,int> &fds = emptyFDs);
    static Process::ptr attachProcess(Dyninst::PID pid, std::string executable = "");
 
-   /**
-    * Event Management
-    **/
    enum cb_action_t {
      cbDefault,
      cbThreadContinue,
@@ -347,8 +334,6 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
       cb_action_t child;
    };
    
-   //cb_func_t really takes an 'Event::const_ptr' as parameter, but this declaration
-   // defines the shared_ptr declaration due to Event::const_ptr not being defined yet.
    typedef cb_ret_t(*cb_func_t)(boost::shared_ptr<const Event>);
 
    static bool handleEvents(bool block);
@@ -357,21 +342,14 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    static bool removeEventCallback(EventType evt);
    static bool removeEventCallback(cb_func_t cbfunc);
 
-   // user-defined data retrievable during a callback
    void *getData() const;
    void setData(void *p) const;
 
    Dyninst::PID getPid() const;
 
-   /**
-    * Threads
-    **/
    const ThreadPool &threads() const;
    ThreadPool &threads();
    
-   /**
-    * Test state of process
-    **/
    bool isTerminated() const;
    bool isExited() const;
    bool isCrashed() const;
@@ -385,32 +363,20 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool allThreadsRunning() const;
    bool allThreadsRunningWhenAttached() const;
 
-   /**
-    * What capabilities do we have on this process
-    **/
    static const unsigned int pc_read      = (1<<0);
    static const unsigned int pc_write     = (1<<1);
    static const unsigned int pc_irpc      = (1<<2);   
    static const unsigned int pc_control   = (1<<3);
    unsigned int getCapabilities() const;
    
-   /**
-    * Queries for machine info
-    **/
    Dyninst::Architecture getArchitecture() const;
    Dyninst::OSType getOS() const;
 
-   /**
-    * Query what kind of events this process supports
-    **/
    bool supportsLWPEvents() const;
    bool supportsUserThreadEvents() const;
    bool supportsFork() const;
    bool supportsExec() const;
 
-   /**
-    * Control process
-    **/
    bool continueProc();
    bool stopProc();
    bool detach(bool leaveStopped = false);
@@ -418,9 +384,6 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool temporaryDetach();
    bool reAttach();
 
-   /**
-    * Memory management
-    **/
    class PC_EXPORT mem_perm {
        bool read;
        bool write;
@@ -471,64 +434,36 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val = NULL) const;
    bool readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val = NULL) const;
 
-   /** 
-    * Currently Windows-only, needed for the test infrastructure but possibly useful elsewhere 
-    **/
    Dyninst::Address findFreeMemory(size_t size);
 
    bool getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights);
    bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
                               mem_perm rights, mem_perm& oldRights);
 
-   // MemoryRegion.first = startAddr, MemoryRegion.second = endAddr
    typedef std::pair<Dyninst::Address, Dyninst::Address> MemoryRegion;
    bool findAllocatedRegionAround(Dyninst::Address addr, MemoryRegion& memRegion);
 
-   /**
-    * Libraries
-    **/
    const LibraryPool &libraries() const;
    LibraryPool &libraries();
 
-   // Cause a library to be loaded into the process (via black magic)
    bool addLibrary(std::string libname);
 
-   /**
-    * Breakpoints
-    **/
    bool addBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
    bool rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
    unsigned numHardwareBreakpointsAvail(unsigned mode);
 
-   /**
-    * Post IRPC.  Use continueProc/continueThread to run it,
-    * and handleEvents to wait for a blocking IRPC to complete
-    **/
    bool postIRPC(IRPC::ptr irpc) const;
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 
-   /**
-    * Post, run, and wait for an IRPC to complete
-    **/
 	bool runIRPCSync(IRPC::ptr irpc);
 
-   /**
-    * Post and run an IRPC; user must wait for completion. 
-    **/
 	bool runIRPCAsync(IRPC::ptr irpc);
 
-   /**
-    * Symbol access
-    **/
    void setSymbolReader(SymbolReaderFactory *reader) const;
    SymbolReaderFactory *getSymbolReader() const;
    static SymbolReaderFactory *getDefaultSymbolReader();
    static void setDefaultSymbolReader(SymbolReaderFactory *reader);
 
-   /**
-    * Perform specific operations.  Interface objects will only be returned
-    * on appropriately supported platforms, others will return NULL.
-    **/
    LibraryTracking *getLibraryTracking();
    ThreadTracking *getThreadTracking();
    LWPTracking *getLWPTracking();
@@ -544,15 +479,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    const RemoteIO *getRemoteIO() const;
    const MemoryUsage *getMemoryUsage() const;
 
-   /**
-    * Errors that occured on this process
-    **/
    ProcControlAPI::err_t getLastError() const;
    const char *getLastErrorMsg() const;
 
-   /**
-    * Executable info
-    **/
 	ExecFileInfo* getExecutableInfo() const;
 };
 
@@ -586,9 +515,6 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    bool isDetached() const;
    bool isInitialThread() const;
 
-   // Added for Windows. Windows creates internal threads which are bound to 
-   // the process but are used for OS-level work. We hide these from the user,
-   // but need to represent them in ProcControlAPI. 
    bool isUser() const; 
 
    bool stopThread();
@@ -611,9 +537,6 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    bool writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, const void *buffer, size_t size) const;
    bool getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_offset, Dyninst::Address &result_addr) const;
 
-   /**
-    * User level thread info.  Only available after a UserThreadCreate event
-    **/
    bool haveUserThreadInfo() const;
    Dyninst::THR_ID getTID() const;
    Dyninst::Address getStartFunction() const;
@@ -622,9 +545,6 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    Dyninst::Address getTLS() const;
    Dyninst::Address getThreadInfoBlockAddr() const;
 
-   /**
-    * IRPC
-    **/
    bool postIRPC(IRPC::ptr irpc) const;
    bool runIRPCSync(IRPC::ptr irpc);
    bool runIRPCAsync(IRPC::ptr irpc);
@@ -632,10 +552,6 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
    IRPC::const_ptr getRunningIRPC() const;
 
-   /**
-    * Returns a stack unwinder on supported platforms.
-    * Returns NULL on unsupported platforms
-    **/
    CallStackUnwinding *getCallStackUnwinding();
 
    void *getData() const;
@@ -651,9 +567,6 @@ class PC_EXPORT ThreadPool
    ThreadPool();
    ~ThreadPool();
  public:
-   /**
-    * Iterators
-    **/
    class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:

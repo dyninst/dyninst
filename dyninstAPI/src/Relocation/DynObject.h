@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Plugin Implementation */
 
 #ifndef PATCHAPI_H_DYNINST_DYNMODULE_H_
 #define PATCHAPI_H_DYNINST_DYNMODULE_H_
@@ -51,7 +50,6 @@ class DynObject : public PatchObject {
     DynObject(const DynObject *par_obj, AddressSpace* child, Address base);
     virtual ~DynObject();
 
-    // Getters
     AddressSpace* as() const { return as_; }
 
   private:

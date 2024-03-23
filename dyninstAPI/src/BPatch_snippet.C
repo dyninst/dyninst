@@ -64,8 +64,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-// Need REG_MT_POS, defined in inst-<arch>...
-
 #if defined(arch_x86) || defined(arch_x86_64)
 #include "inst-x86.h"
 #elif defined(arch_power)
@@ -77,23 +75,10 @@ using namespace Dyninst::SymtabAPI;
 #endif
 
 
-/*
- * BPatch_snippet::BPatch_snippet
- *
- * The default constructor was exposed as public, so we're
- * stuck with it even though that _should_ be an error.
- * For now, make it a null node (and hope nobody ever
- * tries to generate code)
- */
 BPatch_snippet::BPatch_snippet() {
     ast_wrapper = AstNodePtr(AstNode::nullNode());
 }
 
-/*
- * BPatch_snippet::BPatch_snippet
- *
- * Copy constructor for BPatch_snippet.
- */
 BPatch_snippet::BPatch_snippet(const BPatch_snippet &src)
 {
     ast_wrapper = src.ast_wrapper;
@@ -104,12 +89,6 @@ BPatch_snippet::BPatch_snippet(const AstNodePtr &node)
    ast_wrapper = node;
 }
 
-/*
- * BPatch_snippet::operator=
- *
- * Assignment operator for BPatch_snippet.  Needed to ensure that the
- * reference counts for the asts contained in the snippets is correct.
- */
 BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
 {
     // Check for x = x
@@ -122,10 +101,6 @@ BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
     return *this;
 }
 
-/*
- * BPatch_snippet::getType
- */
-
 BPatch_type *BPatch_snippet::getType(){
    return ast_wrapper->getType();
 }
@@ -135,12 +110,6 @@ bool BPatch_snippet::is_trivial()
   return (ast_wrapper == NULL);
 }
 
-/*
- * BPatch_snippet::~BPatch_snippet
- *
- * Destructor for BPatch_snippet.  Deallocates memory allocated by the
- * snippet.  Well, decrements a reference count.
- */
 BPatch_snippet::~BPatch_snippet()
 {
     //if (ast_wrapper) delete ast_wrapper;
@@ -165,10 +134,6 @@ AstNodePtr generateVariableBase(const BPatch_snippet &lOperand)
   return variableBase;
 }
 
-
-//
-// generateArrayRef - Construct an Ast expression for an array.
-//
 AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
                             const BPatch_snippet &rOperand)
 {
@@ -279,9 +244,6 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
 }
 
 
-//
-// generateFieldRef - Construct an Ast expression for an structure field.
-//
 AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
                 const BPatch_snippet &rOperand)
 {
@@ -384,15 +346,6 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
         return AstNodePtr(ast);
 }
 
-/*
- * BPatch_arithExpr::BPatch_arithExpr
- *
- * Construct a snippet representing a binary arithmetic operation.
- *
- * op           The desired operation.
- * lOperand     The left operand for the operation.
- * rOperand     The right operand.
- */
 BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                 const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 {
@@ -467,14 +420,6 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
 }
 
 
-/*
- * BPatch_arithExpr::BPatch_arithExpr
- *
- * Construct a snippet representing a unary arithmetic operation.
- *
- * op           The desired operation.
- * lOperand     The left operand for the operation.
- */
 BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
 				   const BPatch_snippet &lOperand)
 {
@@ -535,15 +480,6 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-/*
- * BPatch_boolExpr::BPatch_boolExpr
- *
- * Constructs a snippet representing a boolean expression.
- *
- * op           The operator for the boolean expression.
- * lOperand     The left operand.
- * rOperand     The right operand.
- */
 BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
                                          const BPatch_snippet &lOperand,
                                          const BPatch_snippet &rOperand)
@@ -584,14 +520,6 @@ BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-
-/*
- * BPatch_constExpr::BPatch_constExpr
- *
- * Constructs a snippet representing a constant integer value.
- *
- * value        The desired value.
- */
 
 BPatch_constExpr::BPatch_constExpr( signed int value ) {
         assert( BPatch::bpatch != NULL );
@@ -651,13 +579,6 @@ BPatch_constExpr::BPatch_constExpr(unsigned long long value) {
 	ast_wrapper->setType(type);
 }
 
-/*
- * BPatch_constExpr::BPatch_constExpr
- *
- * Constructs a snippet representing a constant string value.
- *
- * value        The desired constant string.
- */
 BPatch_constExpr::BPatch_constExpr(const char *value)
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::ConstantString, (void *)const_cast<char *>(value)));
@@ -671,14 +592,6 @@ BPatch_constExpr::BPatch_constExpr(const char *value)
     ast_wrapper->setType(type);
 }
 
-
-/*
- * BPatch_constExpr::BPatch_constExpr
- *
- * Constructs a snippet representing a constant pointer.
- *
- * value        The desired constant pointer.
- */
 BPatch_constExpr::BPatch_constExpr(const void *value)
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::Constant, (void *)const_cast<void *>(value)));
@@ -705,14 +618,6 @@ BPatch_constExpr::BPatch_constExpr(long long value)
     ast_wrapper->setType(type);
 }
 
-/*
- * BPatch_whileExpr::BPatch_whileExpr
- *
- * Creates a while loop; the first parameter is the
- * conditional (true indicates executing the body of the loop)
- * and the second is the body of the loop.
- */
-
 BPatch_whileExpr::BPatch_whileExpr(const BPatch_snippet &conditional,
                                     const BPatch_snippet &body) {
    ast_wrapper = AstNodePtr(AstNode::operatorNode(whileOp, 
@@ -722,14 +627,6 @@ BPatch_whileExpr::BPatch_whileExpr(const BPatch_snippet &conditional,
    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-/*
- * BPatch_funcCallExpr::BPatch_funcCallExpr
- *
- * Constructs a snippet representing a function call.
- *
- * func         Identifies the function to call.
- * args         A vector of the arguments to be passed to the function.
- */
 BPatch_funcCallExpr::BPatch_funcCallExpr(
     const BPatch_function &func,
     const BPatch_Vector<BPatch_snippet *> &args)
@@ -755,14 +652,6 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
       ast_wrapper->setType(ret_type);
 }
 
-/*
- * BPatch_ifExpr::BPatch_ifExpr
- *
- * Constructs a snippet representing a conditional expression.
- *
- * conditional          The conditional.
- * tClause              A snippet to execute if the conditional is true.
- */
 BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
                                      const BPatch_snippet &tClause)
 {
@@ -773,15 +662,6 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
 }
 
 
-/*
- * BPatch_ifExpr::BPatch_ifExpr
- *
- * Constructs a snippet representing a conditional expression with an else
- * clause.
- *
- * conditional          The conditional.
- * tClause              A snippet to execute if the conditional is true.
- */
  BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
                                           const BPatch_snippet &tClause,
                                           const BPatch_snippet &fClause)
@@ -796,11 +676,6 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
 }
 
 
-/*
- * BPatch_nullExpr::BPatch_nullExpr
- *
- * Construct a null snippet that can be used as a placeholder.
- */
 BPatch_nullExpr::BPatch_nullExpr()
 {
     ast_wrapper = AstNodePtr(AstNode::nullNode());
@@ -810,15 +685,6 @@ BPatch_nullExpr::BPatch_nullExpr()
 }
 
 
-/*
- * BPatch_paramExpr::BPatch_paramExpr
- *
- * Construct a snippet representing a parameter of the function in which
- * the snippet is inserted.
- *
- * n    The position of the parameter (0 is the first parameter, 1 the second,
- *      and so on).
- */
 BPatch_paramExpr::BPatch_paramExpr(int n, BPatch_ploc loc)
 {
     AstNode::operandType opType;
@@ -845,13 +711,6 @@ BPatch_paramExpr::BPatch_paramExpr(int n, BPatch_ploc loc)
 }
 
 
-/*
- * BPatch_retExpr::BPatch_retExpr
- *
- * Construct a snippet representing a return value from the function in which
- * the snippet is inserted.
- *
- */
 BPatch_retExpr::BPatch_retExpr()
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::ReturnVal, (void *)0));
@@ -861,13 +720,6 @@ BPatch_retExpr::BPatch_retExpr()
 }
 
 
-/*
- * BPatch_retAddrExpr::BPatch_retAddrExpr
- *
- * Construct a snippet representing a return value from the function in which
- * the snippet is inserted.
- *
- */
 BPatch_retAddrExpr::BPatch_retAddrExpr()
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::ReturnAddr, (void *)0));
@@ -876,13 +728,6 @@ BPatch_retAddrExpr::BPatch_retAddrExpr()
 }
 
 
-/*
- * BPatch_registerExpr::BPatch_registerExpr
- *
- * Construct a snippet representing a register in original code. Can be read
- * or written.
- *
- */
 BPatch_registerExpr::BPatch_registerExpr(BPatch_register reg)
 {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::origRegister,
@@ -907,13 +752,6 @@ BPatch_registerExpr::BPatch_registerExpr(Dyninst::MachRegister mach) {
     //ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-/*
- * BPatch_sequence::BPatch_sequence
- *
- * Construct a snippet representing a sequence of snippets.
- *
- * items        The snippets that are to make up the sequence.
- */
 BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 {
     if (items.size() == 0) {
@@ -933,18 +771,6 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-
-/*
- * BPatch_variableExpr::BPatch_variableExpr
- *
- * Construct a snippet representing a variable of the given type and the passed
- *   ast.
- *
- * in_process   The BPatch_process that the variable resides in.
- * in_address   The address of the variable in the inferior's address space.
- * type         The type of the variable.
- * ast          The ast expression for the variable
- */
 BPatch_variableExpr::BPatch_variableExpr(const char *in_name,
                                          BPatch_addressSpace *in_addSpace,
                                          AddressSpace *in_lladdSpace,
@@ -1035,12 +861,6 @@ unsigned int BPatch_variableExpr::getSize() const
   return size;
 }
 
-/*
- * BPatch_variableExpr::getType
- *
- *    Return the variable's type
- *
-*/
 const BPatch_type *BPatch_variableExpr::getType()
 {
   if (!type){
@@ -1049,12 +869,6 @@ const BPatch_type *BPatch_variableExpr::getType()
   return type;
 }
 
-/*
- * BPatch_variableExpr::setType
- *
- *    Set the variable's type
- *
-*/
 bool BPatch_variableExpr::setType(BPatch_type *newType)
 {
     size = newType->getSize();
@@ -1062,12 +876,7 @@ bool BPatch_variableExpr::setType(BPatch_type *newType)
     ast_wrapper->setType(newType);
     return true;
 }
-/*
- * BPatch_variableExpr::seSize
- *
- *    Set the variable's size
- *
-*/
+
 bool BPatch_variableExpr::setSize(int sz)
 {
     size = sz;
@@ -1075,18 +884,6 @@ bool BPatch_variableExpr::setSize(int sz)
 }
 
 
-/*
- * BPatch_variableExpr::BPatch_variableExpr
- *
- * Construct a snippet representing a variable of the given type at the given
- * address.
- *
- * in_addSpace  The BPatch_addressSpace that the variable resides in.
- * in_address   The address of the variable in the inferior's address space.
- * in_register  The register of the variable in the inferior's address space.
- * type         The type of the variable.
- * in_storage   Enum of how this variable is stored.
- */
 BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                                          AddressSpace *in_lladdrSpace,
                                          void *in_address,
@@ -1151,17 +948,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
    scope = scp;
 }
 
-/*
- * BPatch_variableExpr::BPatch_variableExpr
- *
- * Construct a snippet representing a variable of the given type at the given
- * address.
- *
- * in_addSpace  The BPatch_addressSpace that the variable resides in.
- * lv           The local variable handle
- * type             The type of the variable.
- *
- */
 BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                                          AddressSpace *in_lladdSpace,
                                          BPatch_localVar *lv, BPatch_type *typ,
@@ -1247,17 +1033,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
         scope = scp;
 }
 
-
-
-
-/*
- * BPatch_variableExpr::readValue
- *
- * Read the value of a variable in a thread's address space.
- *
- * dst          A pointer to a buffer in which to place the value of the
- *              variable.  It is assumed to be the same size as the variable.
- */
 bool BPatch_variableExpr::readValue(void *dst)
 {
 	if (isLocal) {
@@ -1279,17 +1054,6 @@ bool BPatch_variableExpr::readValue(void *dst)
 	}
 }
 
-
-/*
- * BPatch_variableExpr::readValue
- *
- * Read the a given number of bytes starting at the base address of a variable
- * in the a thread's address space.
- *
- * dst          A pointer to a buffer in which to place the value of the
- *              variable.  It is assumed to be the same size as the variable.
- * len          Number of bytes to read.
- */
 bool BPatch_variableExpr::readValue(void *dst, int len)
 {
         if (isLocal) {
@@ -1301,18 +1065,6 @@ bool BPatch_variableExpr::readValue(void *dst, int len)
 
         return lladdrSpace->readDataSpace(address, len, dst, true);
 }
-
-
-/*
- * BPatch_variableExpr::writeValue
- *
- * Write a value into a variable in a thread's address space.
- *
- * dst          A pointer to a buffer in which to place the value of the
- *              variable.  It is assumed to be the same size as the variable.
- *
- * returns false if the type info isn't available (i.e. we don't know the size)
- */
 
 bool BPatch_variableExpr::writeValue(const void *src, bool /* saveWorld */)
 {
@@ -1345,15 +1097,6 @@ bool BPatch_variableExpr::writeValue(const void *src, bool /* saveWorld */)
 }
 
 
-/*
- * BPatch_variableExpr::writeValue
- *
- * Write the a given number of bytes starting at the base address of a
- * variable in the a thread's address space.
- *
- * dst          A pointer to a buffer in which to place the value of the
- *              variable.  It is assumed to be the same size as the variable.
- */
 bool BPatch_variableExpr::writeValue(const void *src, int len, bool /*saveWorld*/)
 {
   if (isLocal) {
@@ -1386,10 +1129,7 @@ void *BPatch_variableExpr::getBaseAddr()
 {
   return address;
 }
-/*
- * getComponents() - return variable expressions for all of the fields
- *     in the passed structure/union.
- */
+
 BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 {
     const BPatch_Vector<BPatch_field *> *fields;
@@ -1422,12 +1162,6 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     return retList;
 }
 
-/*
- * BPatch_breakPointExpr::BPatch_breakPointExpr
- *
- * Construct a snippet representing a breakpoint.
- *
- */
 BPatch_breakPointExpr::BPatch_breakPointExpr()
 {
     std::vector<AstNodePtr > null_args;
@@ -1441,11 +1175,6 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
 }
 
 
-/*
- * BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr
- *
- * Construct a snippet representing an effective address.
- */
 BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which, int size)
 {
 #if defined(i386_unknown_nt4_0)
@@ -1457,11 +1186,6 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which, int size)
 }
 
 
-/*
- * BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr
- *
- * Construct a snippet representing the number of bytes accessed.
- */
 BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 {
 #if defined(i386_unknown_nt4_0)
@@ -1516,13 +1240,6 @@ BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
   ast_wrapper->setType(type);
 }
 
-// BPATCH INSN EXPR
-
-
-/* Causes us to create only one StopThreadCallback per
-   BPatchStopThreadCallback, though we create a function call snippet
-   to DYNINST_stopThread for each individual stopThreadExpr.  It's not
-   necessary that we limit StopThreadCallbacks creations like this. */
 static std::set<BPatchStopThreadCallback> *stopThread_cbs=NULL;
 
 static void constructorHelper(
@@ -1563,13 +1280,6 @@ static void constructorHelper(
     icNode->setType(inttype);
 }
 
-/* BPatch_stopThreadExpr
- *
- *  This snippet type stops the thread that executes it.  It
- *  evaluates a calculation snippet and triggers a callback to the
- *  user program with the result of the calculation and a pointer to
- *  the BPatch_point at which the snippet was inserted
- */
 BPatch_stopThreadExpr::BPatch_stopThreadExpr
       (const BPatchStopThreadCallback &bp_cb,
        const BPatch_snippet &calculation,
@@ -1594,8 +1304,6 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr
 }
 
 
-  // for internal use in conjunction with memory emulation and defensive
-  // mode analysis
 BPatch_stopThreadExpr::BPatch_stopThreadExpr(
    const BPatchStopThreadCallback &bp_cb,
    const BPatch_snippet &calculation,
@@ -1704,7 +1412,6 @@ BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
    
 }
 
-// Conversions
 Dyninst::PatchAPI::Snippet::Ptr Dyninst::PatchAPI::convert(const BPatch_snippet *snip) {
    // TODO when this class exists
    return snip->ast_wrapper;

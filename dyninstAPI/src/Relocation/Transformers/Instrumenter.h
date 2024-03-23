@@ -60,8 +60,6 @@ class Instrumenter : public Transformer {
   typedef std::map<InsertPoint, std::list<RelocBlock *> > EdgeRelocBlocks;
   typedef boost::shared_ptr<CFWidget> CFWidgetPtr;
 
-  // The instrumenters that can add new RelocBlocks have the CFG as an
-  // argument
   bool funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg);
   bool edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg);
   bool postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg);

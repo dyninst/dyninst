@@ -97,14 +97,6 @@ std::string PCProcess::createExecPath(const std::string &file, const std::string
     return ret;
 }
 
-// If true is passed for ignore_if_mt_not_set, then an error won't be
-// initiated if we're unable to determine if the program is multi-threaded.
-// We are unable to determine this if the daemon hasn't yet figured out what
-// libraries are linked against the application.  Currently, we identify an
-// application as being multi-threaded if it is linked against a thread
-// library (eg. libpthreads.so on Linux).  There are cases where we are
-// querying whether the app is multi-threaded, but it can't be determined
-// yet but it also isn't necessary to know.
 bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
     if( mt_cache_result_ != not_cached ) {
         if( mt_cache_result_ == cached_mt_true) return true;
@@ -128,10 +120,6 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
     return false;
 }
 
-/**
- * Searches for function in order, with preference given first
- * to libpthread, then to libc, then to the process.
- **/
 static void findThreadFuncs(PCProcess *p, std::string func,
                             std::vector<func_instance *> &result) {
     const std::vector<func_instance*>* found = NULL;

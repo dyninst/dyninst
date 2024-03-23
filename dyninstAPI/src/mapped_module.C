@@ -71,7 +71,6 @@ const std::vector<int_variable *> &mapped_module::getAllVariables()
    return everyUniqueVariable;
 }
 
-// We rely on the mapped_object for pretty much everything...
 void mapped_module::addFunction(func_instance *func) 
 {
    // Just the everything vector... the by-name lists are
@@ -85,7 +84,6 @@ void mapped_module::addVariable(int_variable *var)
    everyUniqueVariable.push_back(var);
 }
 
-// We rely on the mapped_object for pretty much everything...
 void mapped_module::remove(func_instance *func) 
 {
    for (unsigned fIdx=0; fIdx < everyUniqueFunction.size(); fIdx++) {

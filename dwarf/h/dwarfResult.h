@@ -45,11 +45,6 @@ class ProcessReader;
 namespace DwarfDyninst {
 
 class DYNDWARF_EXPORT DwarfResult {
-    // An interface for building representations of Dwarf expressions.
-    // In concrete mode, we have access to process state and
-    // can calculate a value. In symbolic mode we lack this information
-    // and instead produce a representation. 
-
 public:
 
     typedef enum {
@@ -89,22 +84,16 @@ public:
     virtual void pushOp(Operator op) = 0;
     virtual void pushOp(Operator op, long long ref) = 0;
 
-    // The frame base is the logical top of the stack as reported
-    // in the function's debug info
     virtual void pushFrameBase() = 0;
 
-    // And the CFA is the top of the stack as reported in call frame
-    // information. 
     virtual void pushCFA() = 0;
 
     bool err() const { return error; }
 
-    // The conditional branch needs an immediate eval mechanism
     virtual bool eval(MachRegisterVal &val) = 0;
 
 protected:
 
-    // Illegal
     Architecture arch;
     bool error;
 
@@ -123,9 +112,6 @@ public:
     virtual void pushOp(Operator op);
     virtual void pushOp(Operator op, long long ref);
 
-    // DWARF logical "frame base", which may be the result of an expression
-    // in itself. TODO: figure out what info we need to carry around so we
-    // can compute it...
     virtual void pushFrameBase();
     virtual void pushCFA();
 
@@ -156,9 +142,6 @@ public:
     virtual void pushOp(Operator op);
     virtual void pushOp(Operator op, long long ref);
 
-    // DWARF logical "frame base", which may be the result of an expression
-    // in itself. TODO: figure out what info we need to carry around so we
-    // can compute it...
     virtual void pushFrameBase();
     virtual void pushCFA();
 
@@ -169,13 +152,10 @@ public:
 private:
     ProcessReader *reader{};
 
-    // For getting access to other expressions
     Address pc{};
     Dwarf * dbg{};
     Elf * dbg_eh_frame{};
 
-    // Dwarf lets you access within the "stack", so we model 
-    // it as a vector.
     std::vector<Dyninst::MachRegisterVal> operands;
 
     MachRegisterVal peek(int index);

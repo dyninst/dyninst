@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Plugin Interface */
 
 #ifndef PATCHAPI_H_DYNINST_OBJECT_H_
 #define PATCHAPI_H_DYNINST_OBJECT_H_
@@ -45,8 +44,6 @@ class PatchFunction;
 class PatchCallback;
 class PatchParseCallback;
 
-/* PatchObject represents a binary object, which could be either a library or
-   executable. It is also an instrumentation  unit. */
 class PATCHAPI_EXPORT PatchObject {
   friend class AddrSpace;
   friend class PatchParseCallback;
@@ -69,7 +66,6 @@ class PATCHAPI_EXPORT PatchObject {
 
     std::string format() const;
 
-    // Getters and setter
     Address codeBase() const { return codeBase_; }
     Address codeOffsetToAddr(Address offset) const;
     Address addrMask() const;
@@ -79,14 +75,13 @@ class PATCHAPI_EXPORT PatchObject {
     void setAddrSpace(AddrSpace* as);
     PatchMgrPtr mgr() const;
 
-    // Function
     PatchFunction *getFunc(ParseAPI::Function *, bool create = true);
     void addFunc(PatchFunction*);
     void removeFunc(PatchFunction*);
     void removeFunc(ParseAPI::Function *);
     template <class Iter> 
 	void funcs(Iter iter); 
-    // Block
+
     PatchBlock *getBlock(ParseAPI::Block*, bool create = true);
     void addBlock(PatchBlock*);
     void removeBlock(PatchBlock*);
@@ -94,7 +89,6 @@ class PATCHAPI_EXPORT PatchObject {
     template <class Iter>
      void blocks(Iter iter); 
 
-    // Edge
     PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock* = NULL, PatchBlock* = NULL, bool create = true);
     void addEdge(PatchEdge*);
     void removeEdge(PatchEdge*);

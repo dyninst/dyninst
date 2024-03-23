@@ -28,22 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * $Id: dyninstAPI_RT.h,v 1.45 2008/04/15 16:43:43 roundy Exp $
- * This file contains the standard instrumentation functions that are provided
- *   by the run-time instrumentation layer.
- */
-
 #ifndef _DYNINSTAPI_RT_H
 #define _DYNINSTAPI_RT_H
-
-/*
- * Define the size of the per process data area.
- *
- *  This should be a power of two to reduce paging and caching shifts.
- *  Note that larger sizes may result in requiring longjumps within
- *  mini-trampolines to reach within this area.
- */
 
 #if !defined(target_smallmem)
 #define SYN_INST_BUF_SIZE (1024*1024*4)
@@ -58,7 +44,6 @@
 #include "dyninstRTExport.h"
 #include "common/h/compiler_diagnostics.h"
 
-/* If we must make up a boolean type, we should make it unique */
 typedef unsigned char RT_Boolean;
 static const RT_Boolean RT_TRUE=1;
 static const RT_Boolean RT_FALSE=0;
@@ -67,20 +52,15 @@ DLLEXPORT extern char gLoadLibraryErrorString[];
 extern void *gBRKptr;
 
 struct DYNINST_bootstrapStruct {
-   int event; /* "event" values:
-		 0 --> nothing
-		 1 --> end of DYNINSTinit (normal)
-		 2 --> end of DYNINSTinit (forked process)
-		 3 --> start of DYNINSTexec (before exec) 
-	      */
+   int event;
    int pid;
-   int ppid; /* parent of forked process */
+   int ppid;
 };
 
 typedef enum {DSE_undefined, DSE_forkEntry, DSE_forkExit, DSE_execEntry, DSE_execExit, DSE_exitEntry, DSE_loadLibrary, DSE_lwpExit, DSE_snippetBreakpoint, DSE_stopThread,
 DSE_userMessage, DSE_dynFuncCall } DYNINST_synch_event_t;
 
-extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
+extern int DYNINSTdebugPrintRT;
 #if !defined(RTprintf)
 #define RTprintf                if (DYNINSTdebugPrintRT) printf
 #endif
@@ -116,38 +96,34 @@ typedef struct {
 } BPatch_dynamicCallRecord;
 
 typedef struct {
-   int ppid;         /*Parent process's pid*/
-   dyntid_t tid;     /*Thread library ID for thread*/
-   int lwp;          /*OS id for thread*/
-   int index;        /*The dyninst index for this thread*/
-   void *stack_addr; /*The top of this thread's stack*/
-   void *start_pc;   /*The pc of this threads initial function*/
+   int ppid;
+   dyntid_t tid;
+   int lwp;
+   int index;
+   void *stack_addr;
+   void *start_pc;
 } BPatch_newThreadEventRecord;
 
-#if defined(arch_x86_64) /* cannot use MUTATEE_32 here b/c libdyninstAPI.so compiles this */
-/*these are the 32 bit structures for use with 32 bit mutatees on AMD64*/
+#if defined(arch_x86_64)
 typedef struct {
   unsigned int call_site_addr;
   unsigned int call_target;
 } BPatch_dynamicCallRecord32;
 
 typedef struct {
-   int ppid;         /*Parent process's pid*/
-   unsigned int tid;     /*Thread library ID for thread*/
-   int lwp;          /*OS id for thread*/
-   int index;        /*The dyninst index for this thread*/
-   unsigned int stack_addr; /*The top of this thread's stack*/
-   unsigned int start_pc;   /*The pc of this threads initial function*/
+   int ppid;
+   unsigned int tid;
+   int lwp;
+   int index;
+   unsigned int stack_addr;
+   unsigned int start_pc;
 } BPatch_newThreadEventRecord32;
 #endif
 
 
 typedef struct {
-   int index;        /*Index of the dead thread*/
+   int index;
 } BPatch_deleteThreadEventRecord;
-
-/* Let's define some constants for, well, everything.... */
-/* These should be different to avoid unexpected collisions */
 
 #if !defined(DYNINST_SINGLETHREADED)
 #define DYNINST_SINGLETHREADED -128
@@ -178,7 +154,7 @@ struct trap_mapping_header {
   uint32_t padding;
    uint64_t low_entry;
    uint64_t high_entry;
-   trapMapping_t traps[]; //Don't change this to a pointer, despite any compiler warnings
+   trapMapping_t traps[];
 };
 
 DYNINST_DIAGNOSTIC_END_SUPPRESS_FLEX_ARRAY
@@ -204,8 +180,6 @@ struct MemoryMapper {
    int padding;
    MemoryMapperElement elements[MAX_MEMORY_MAPPER_ELEMENTS];
 };
-
-/* 32/64 bit versions for the mutator */
 
 typedef struct {
    uint32_t lo;

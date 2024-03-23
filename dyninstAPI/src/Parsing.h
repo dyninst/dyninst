@@ -40,13 +40,11 @@
 #include "parseAPI/h/ParseCallback.h"
 #include "dyntypes.h"
 
-// some useful types
 using Dyninst::ParseAPI::EdgeTypeEnum;
 using Dyninst::ParseAPI::FuncReturnStatus;
 using Dyninst::ParseAPI::FuncSource;
 using std::vector;
 
-/*** The image_* object factory ***/
 class image;
 
 namespace Dyninst {
@@ -70,7 +68,6 @@ class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
 
     Dyninst::ParseAPI::Block * mksink(Dyninst::ParseAPI::CodeObject *obj, Dyninst::ParseAPI::CodeRegion*r);
 
-    // leaving default atm    
     //void free_func(Dyninst::ParseAPI::Function * f);
     //void free_block(Dyninst::ParseAPI::Block * b);
     //void free_edge(Dyninst::ParseAPI::Edge * e);
@@ -85,7 +82,7 @@ class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
     std::vector<int> _edge_allocs;
     int _block_allocs;
     int _sink_block_allocs;
-    //int _sink_edge_allocs; FIXME can't determine
+    //int _sink_edge_allocs;
 
     void _record_func_alloc(Dyninst::ParseAPI::FuncSource fs)
     {
@@ -115,18 +112,16 @@ class DynParseCallback : public Dyninst::ParseAPI::ParseCallback {
   ~DynParseCallback() { }
 
   protected:
-  // defensive and exploratory mode callbacks
   virtual void abruptEnd_cf(Dyninst::Address,Dyninst::ParseAPI::Block *,default_details*);
   virtual void newfunction_retstatus(Dyninst::ParseAPI::Function*);
   virtual void patch_nop_jump(Dyninst::Address);
   virtual bool hasWeirdInsns(const Dyninst::ParseAPI::Function*) const;
   virtual void foundWeirdInsns(Dyninst::ParseAPI::Function*);
 
-  // other callbacks
   virtual void interproc_cf(Dyninst::ParseAPI::Function*,Dyninst::ParseAPI::Block*,Dyninst::Address,interproc_details*);
   virtual void overlapping_blocks(Dyninst::ParseAPI::Block*,Dyninst::ParseAPI::Block*);
-  virtual bool updateCodeBytes(Dyninst::Address target); // updates if needed
-  virtual void split_block_cb(Dyninst::ParseAPI::Block *, Dyninst::ParseAPI::Block *); // needed for defensive mode
+  virtual bool updateCodeBytes(Dyninst::Address target);
+  virtual void split_block_cb(Dyninst::ParseAPI::Block *, Dyninst::ParseAPI::Block *);
 
   virtual void destroy_cb(Dyninst::ParseAPI::Block *);
   virtual void destroy_cb(Dyninst::ParseAPI::Edge *);

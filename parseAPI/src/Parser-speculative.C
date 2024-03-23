@@ -250,41 +250,6 @@ namespace hd {
     }
 }
 
-/*
- * Uses platform-specific function preamble patterns to
- * scan between known functions within a code region.
- * A typical stripped ELF binary might look something like
- * this:
-
-        _______     <-- .text begin
-       |       |
-       |-------|
-       |       |
-       |  PLT  |
-       |       |
-       |-------| 
-       |       |    <-- gap
-       |-------|
-       | code  |
-       |       |
-       |-------|
-       |       |    <-- gap
-       |-------|
-       .       .
-       . code  .
-       .       .
-       |       |
-       |-------|
-       |       |    <-- gap
-       |       |
-       |-------|    <-- .text end
-       |       |
-       .       .
-       .       .
-
- * parse_gap_heuristic() will look for functions
- * in the `gap' subregions
- */
 void Parser::parse_gap_heuristic(CodeRegion * cr)
 {
     // ensure that we've parsed and finalized

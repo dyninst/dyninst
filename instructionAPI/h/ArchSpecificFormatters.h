@@ -86,8 +86,6 @@ namespace Dyninst {
             std::string formatDeref(const std::string&) const override;
             std::string formatRegister(const std::string&) const override;
             std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const override;
-            // Helper function for formatting consecutive registers that are displayed as a single operand
-            // Called when architecture is passed to Instruction.format.
             static std::string formatRegister(MachRegister m_Reg, uint32_t num_elements, unsigned m_Low , unsigned m_High );
         private:
             std::map<std::string, std::string> binaryFuncModifier;

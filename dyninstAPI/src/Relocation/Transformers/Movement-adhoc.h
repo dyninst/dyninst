@@ -48,8 +48,7 @@ namespace Dyninst {
 
 namespace Relocation {
 class RelocInsn;
-// Identify PC-relative memory accesses and replace
-// them with a dedicated Widget
+
 class adhocMovementTransformer : public Transformer {
   typedef boost::shared_ptr<RelocInsn> RelocInsnPtr;
   typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;

@@ -33,18 +33,11 @@
 #include <boost/iterator/filter_iterator.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/function.hpp>
-/*
- * An iterator and a predicate interface, and a 
- * ContainerWrapper that can provide a forward
- * predicate iterator for any container that exports
- * a begin() and end()
- */
  
 namespace Dyninst {
 namespace ParseAPI {
 
 
-/*** A predicate interface ***/
 template <
     typename VALUE,
     typename REFERENCE = VALUE &
@@ -65,9 +58,6 @@ inline bool operator()(const REFERENCE o) const
  
  
 };
-
-
-/*** Container wrapper and iterators for predicate containers ***/
 
 template<typename ARG>
  struct true_predicate : iterator_predicate<ARG>
@@ -168,7 +158,6 @@ ContainerWrapper<C,V,R,P>::empty() const
 }
 #endif
 
-/*** static binding implementation ***/
 
 }
 }

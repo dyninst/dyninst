@@ -338,9 +338,6 @@ bool insnCodeGen::generateBranchTar(codeGen &gen, Dyninst::Register scratch,
 bool insnCodeGen::generateBranchLR(codeGen &gen, Dyninst::Register scratch,
                                     Dyninst::Address dest,
                                     bool isCall) {
-  // Generates a branch using LR to the address specified in dest. 
-  // Returns true if this branch type was successfully used
-
   // TODO: Add liveness checking for LR. We are assuming this is not live.
 
   // Move the address to the scratch register
@@ -368,9 +365,6 @@ bool insnCodeGen::generateBranchCTR(codeGen &gen,
                                     Dyninst::Register scratch,
                                     Dyninst::Address dest,
                                     bool isCall) {
-  // Generates a branch using TAR to the address specified in dest. 
-  // Returns true if this branch type was successfully used
-
   // TODO: Add liveness checking for TAR. We are assuming this is not live.
 
   // Move the address to the scratch register
@@ -822,7 +816,6 @@ void insnCodeGen::generateMemAccess64(codeGen &gen, int op, int xop, Dyninst::Re
     insnCodeGen::generate(gen,insn);
 }
 
-// rlwinm ra,rs,n,0,31-n
 void insnCodeGen::generateLShift(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra)
 {
     instruction insn;
@@ -844,7 +837,6 @@ void insnCodeGen::generateLShift(codeGen &gen, Dyninst::Register rs, int shift, 
     }
 }
 
-// rlwinm ra,rs,32-n,n,31
 void insnCodeGen::generateRShift(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra, bool s)
 {
     instruction insn;
@@ -866,7 +858,6 @@ void insnCodeGen::generateRShift(codeGen &gen, Dyninst::Register rs, int shift, 
     }
 }
 
-// sld ra, rs, rb
 void insnCodeGen::generateLShift64(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra)
 {
     instruction insn;
@@ -886,13 +877,8 @@ void insnCodeGen::generateLShift64(codeGen &gen, Dyninst::Register rs, int shift
     insnCodeGen::generate(gen,insn);
 }
 
-// srd ra, rs, rb
 void insnCodeGen::generateRShift64(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra, bool)
 {
-    // This function uses rotate-left to implement right shift.
-    // Rotate left 64-n bits is rotating right n bits.
-    // However, rotation cannot correctly represent signed right shifting.
-    // So, this piece of code is wrong...
     instruction insn;
 
     assert(shift<64);
@@ -910,10 +896,6 @@ void insnCodeGen::generateRShift64(codeGen &gen, Dyninst::Register rs, int shift
     insnCodeGen::generate(gen,insn);
 }
 
-//
-// generate an instruction that does nothing and has to side affect except to
-//   advance the program counter.
-//
 void insnCodeGen::generateNOOP(codeGen &gen, unsigned size)
 {
     assert ((size % instruction::size()) == 0);
@@ -958,7 +940,6 @@ void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Dyninst::Regis
     insnCodeGen::generateImm(gen, CALop, rd, 0, 0);
 }
 
-// Given a value, load it into a register.
 void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
 {
    // Writing a full 64 bits takes 5 instructions in the worst case.
@@ -992,9 +973,6 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
 #endif
 }
 
-// Helper method.  Fills register with partial value to be completed
-// by an operation with a 16-bit signed immediate.  Such as loads and
-// stores.
 void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
 {
    if (MIN_IMM16 <= value && value <= MAX_IMM16) return;
@@ -1051,8 +1029,6 @@ void insnCodeGen::removeStackFrame(codeGen &gen) {
                 popStack(gen);
 }
 
-                // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}    
-                // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}       
 bool insnCodeGen::generateMem(codeGen &,
                               instruction&,
                               Dyninst::Address,
@@ -1235,8 +1211,6 @@ bool insnCodeGen::modifyCall(Dyninst::Address target,
     return modifyJcc(target, insn, gen);
 }
 
-//FIXME
-//This function is used for PC-relative and hence may not be required for PPC. Consider for update/removal.
 bool insnCodeGen::modifyData(Dyninst::Address /*target*/,
 			     NS_power::instruction &insn,
 			     codeGen &gen) {

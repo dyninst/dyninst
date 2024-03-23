@@ -48,11 +48,7 @@ using namespace Dyninst;
 // using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-//////////////// Replace with generic version ////////////
 
-////////////////
-// FIXME architecture...
-///////////////
 bool Absloc::isPC() const { 
   if (type_ != Register) return false;
   return (reg_ == MachRegister::getPC(reg_.getArchitecture()));

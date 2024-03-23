@@ -30,8 +30,6 @@
 
 // $Id: baseTramp.h,v 1.24 2008/09/04 21:06:08 bill Exp $
 
-// baseTramp class definition
-
 #ifndef BASE_TRAMP_H
 #define BASE_TRAMP_H
 

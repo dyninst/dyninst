@@ -54,10 +54,6 @@ using namespace std;
 
 void ps_plog(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
 
-/*
- * proc_service interface implementation, needed by libthread_db
- */
-
 ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName,
         const char *symName, psaddr_t *symbolAddr)
 {

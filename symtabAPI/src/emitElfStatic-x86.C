@@ -28,11 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* 
- * holds architecture specific functions for x86 and x86_64 architecture needed for the
- * static executable rewriter
- */
-
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
@@ -60,31 +55,8 @@ static const unsigned X86_64_WIDTH = 8;
 #define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
 #endif
 
-// Used in an assert so needs to be a macro
 #define UNKNOWN_ADDRESS_WIDTH_ASSERT "An unknown address width was encountered, can't continue"
 
-/* NOTE:
- * As most of these functions are defined per architecture, the description of
- * each of these functions is in the emitElfStatic header. Comments describing
- * the function interface are explicitly left out.
- */
-
-/**
- * Specific to x86
- *
- * Given a relocation, determines if the relocation corresponds to a .ctors or .dtors
- * table that requires special consideration. Modifies the passed symbol offset to
- * point to the right table, if applicable.
- *
- * rel          The relocation entry to examine
- * globalOffset The offset of the linked code (used for symbol offset calculation)
- * lmap         Holds information about .ctors/.dtors tables
- * errMsg       Set on error
- * symbolOffset Modified by this routine to contain the offset of the table
- *
- * Returns true, if there are no errors including the case where the relocation 
- * entry doesn't reference the .ctors/.dtors tables.
- */
 static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
         LinkMap &lmap, string &, Offset &symbolOffset)
 {
@@ -411,8 +383,6 @@ bool emitElfStatic::checkSpecialCaseSymbols(Symtab *member, Symbol *checkSym) {
     return true;
 }
 
-/* The TLS implementation on x86 is Variant 2 */
-
 Offset emitElfStatic::layoutTLSImage(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap) {
     return tlsLayoutVariant2(globalOffset, dataTLS, bssTLS, lmap);
 }
@@ -547,28 +517,6 @@ void emitElfStatic::buildGOT(Symtab *, LinkMap &lmap) {
     }
 }
 
-/*
- * .ctors and .dtors section handling
- * 
- * .ctors/.dtors sections are not defined by the ELF standard, LSB defines them.
- * This is why this implementation is specific to Linux and x86.
- *
- * Layout of .ctors and .dtors sections on Linux x86
- *
- * Executable .ctors/.dtors format (size in bytes = n)
- *
- *  byte 0..3    byte 4..7     byte 8..11        byte n-4..n-1
- * 0xffffffff <func. ptr 1> <func. ptr 2> ...  0x00000000
- *
- * Relocatable file .ctors/.dtors format (size in bytes = n)
- *
- *   byte 0..3         byte n-4..n-1
- * <func. ptr 1> ... <last func. ptr>
- *
- * The layout is the same on Linux x86_64 except each entry is 8 bytes
- * instead of 4. So the header and trailler are the same, but extended to
- * 8 bytes.
- */
 static const string DTOR_NAME(".dtors");
 static const string CTOR_NAME(".ctors");
 static const string DTOR_NAME2(".fini_array");

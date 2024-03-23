@@ -128,7 +128,7 @@ class DyninstDynamicStepperImpl : public FrameStepper {
  private:
    DyninstDynamicStepper *parent;
    DyninstDynamicHelper *helper;
-   bool prevEntryExit; // remember if the previous frame was entry/exit instrumentation
+   bool prevEntryExit;
   
  public:
    DyninstDynamicStepperImpl(Walker *w, DyninstDynamicStepper *p, DyninstDynamicHelper *h);
@@ -184,7 +184,7 @@ private:
 
    unsigned non_pd_walkers;
    set<Walker *> walkers;
-   void *procset; //Opaque pointer, will refer to a ProcControl::ProcessSet in some situations
+   void *procset;
 };
 
 }

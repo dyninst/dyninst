@@ -369,8 +369,6 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     return false;
 }
 
-// Temporary remote debugger interface.
-// I assume these will be removed when procControlAPI is complete.
 bool OS_isConnected(void)
 {
     return true;  // We're always connected to the child on this platform.

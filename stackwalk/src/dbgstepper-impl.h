@@ -49,7 +49,6 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
       unsigned ra_delta;
       unsigned fp_delta;
       unsigned sp_delta;
-      // Note: ra and fp are differences in address, sp is difference in value. 
 
     cache_t() : ra_delta((unsigned) -1), fp_delta((unsigned) -1), sp_delta((unsigned) -1) {}
     cache_t(unsigned a, unsigned b, unsigned c) : ra_delta(a), fp_delta(b), sp_delta(c) {}
@@ -66,8 +65,8 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
       
    location_t getLastComputedLocation(unsigned long val);
    DebugStepper *parent_stepper;
-   const Frame *cur_frame; //TODO: Thread safety
-   const Frame *depth_frame; // Current position in the stackwalk
+   const Frame *cur_frame;
+   const Frame *depth_frame;
  public:
   DebugStepperImpl(Walker *w, DebugStepper *parent);
   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);

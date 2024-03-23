@@ -33,11 +33,6 @@
 #ifndef AST_HDR
 #define AST_HDR
 
-//
-// Define a AST class for use in generating primitive and pred calls
-//
-
-
 #include <assert.h>
 #include <utility>
 #include <vector>
@@ -50,7 +45,6 @@
 
 #include "BPatch_snippet.h"
 
-// The great experiment: boost shared_ptr libraries
 #include "BPatch_type.h"
 
 #include "arch-forward-decl.h" // instruction
@@ -67,28 +61,6 @@ class image_variable;
 
 
 #include "opcode.h"
-
-// Dyninst::Register retention mechanism...
-// If we've already calculated a result, then we want to reuse it if it's
-// still available. This means it was calculated along a path that reaches the
-// current point (not inside a conditional) and the register hasn't been
-// reused. We handle this so:
-//
-// 1) Iterate over the AST tree and see if any node is reached more than once;
-// if so, mark it as potentially being worth keeping around. We can do this
-// because we use pointers; a better approach would be a comparison operator.
-// 2) Start generation at "level 0". 
-// 3) When a conditional AST is reached, generate each child at level+1.
-// 4) When the AST is reached during code generation, and doesn't have a register:
-// 4a) Allocate a register for it;
-// 4b) Enter that register, the AST node, and the current level in the global table.
-// 5) If it does have a register, reuse it. 
-// 6) When the conditionally executed branch is finished, clean all entries in
-// the table with that level value (undoing all kept registers along that
-// path).
-// 7) If we need a register, the register allocator (registerSpace) can forcibly
-// undo this optimization and grab a register. Grab the register from the AstNode
-// with the lowest usage count.
 
 class AstNode;
 typedef boost::shared_ptr<AstNode> AstNodePtr;
@@ -148,10 +120,10 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                       ParamAtCall,
                       ParamAtEntry,
                       ReturnVal, 
-                      ReturnAddr, // address of a return instruction
-                      DataAddr,  // Used to represent a variable in memory
-                      FrameAddr, // Calculate FP 
-                      RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 
+                      ReturnAddr,
+                      DataAddr,
+                      FrameAddr,
+                      RegOffset,
                       //PreviousStackFrameDataReg,
                       //RegValue, // A possibly spilled, possibly saved register.
                       // Both the above are now: origRegister 
@@ -171,7 +143,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
        CANARY_AST
    };
 
-   //Error reporting for dynC_API
   protected:
    int lineNum;
    int columnNum;
@@ -198,9 +169,8 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    bool hasColumnInfo();
    bool hasNameInfo();
    
-   AstNode(); // mdl.C
+   AstNode();
 
-   // Factory methods....
    static AstNodePtr nullNode();
 
    static AstNodePtr stackInsertNode(int size, MSpecialType type = GENERIC_AST);
@@ -228,17 +198,12 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
    static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr > &args);
-   static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
-   static AstNodePtr funcCallNode(Dyninst::Address addr, std::vector<AstNodePtr > &args); // For when you absolutely need
-   // to jump somewhere.
+   static AstNodePtr funcCallNode(func_instance *func);
+   static AstNodePtr funcCallNode(Dyninst::Address addr, std::vector<AstNodePtr > &args);
 
-    // Acquire the thread index value - a 0...n labelling of threads.
    static AstNodePtr threadIndexNode();
 
    static AstNodePtr scrambleRegistersNode();
-   
-   // TODO...
-   // Needs some way of marking what to save and restore... should be a registerSpace, really
 
 #if 0
    static AstNodePtr saveStateNode();
@@ -264,11 +229,9 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                              Dyninst::Address &retAddr,
                              Dyninst::Register &retReg);
 
-   // Can't use default references....
    virtual bool generateCode(codeGen &gen, 
                              bool noCost);
 
-   // Can't use default references....
    virtual bool generateCode(codeGen &gen, 
                              bool noCost, 
                              Dyninst::Register &retReg) {
@@ -276,18 +239,13 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
       return generateCode(gen, noCost,  unused, retReg);
    }
 
-   // I don't know if there is an overload between address and register...
-   // so we'll toss in two different return types.
    virtual bool generateCode_phase2(codeGen &gen,
                                     bool noCost,
                                     Dyninst::Address &retAddr,
                                     Dyninst::Register &retReg);
 
-   // Perform whatever pre-processing steps are necessary.
    virtual bool initRegisters(codeGen &gen);
         
-   // Select the appropriate Variable AST as part of pre-processing
-   // steps before code generation.
    virtual void setVariableAST(codeGen &) {}
 
    unsigned getTreeSize();
@@ -296,9 +254,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    bool previousComputationValid(Dyninst::Register &reg,
                                  codeGen &gen);
-   // Remove any kept register at a greater level than
-   // that provided (AKA that had been calculated within
-   // a conditional statement)
    void cleanRegTracker(regTracker_t *tracker, int level);
 
    virtual AstNodePtr operand() const { return AstNodePtr(); }
@@ -313,49 +268,36 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    int avgCost() const {  return costHelper(Avg);  }
    int maxCost() const {  return costHelper(Max);  }
 
-	// return the # of instruction times in the ast.
 	virtual int costHelper(enum CostStyleType) const { return 0; }	
 
-   int referenceCount;     // Reference count for freeing memory
-   int useCount;           // Reference count for generating code
-   void setUseCount(); // Set values for useCount
+   int referenceCount;
+   int useCount;
+   void setUseCount();
    int getSize() { return size; }
    void cleanUseCount(void);
    bool checkUseCount(registerSpace*, bool&);
    void printUseCount(void);
 
-   virtual const std::vector<AstNodePtr> getArgs() { return std::vector<AstNodePtr>(); } // to quiet compiler
+   virtual const std::vector<AstNodePtr> getArgs() { return std::vector<AstNodePtr>(); }
 
 
    virtual void setChildren(std::vector<AstNodePtr > &children);
    virtual AstNodePtr deepCopy() { return AstNodePtr(this);}
    
 
-	// Occasionally, we do not call .generateCode_phase2 for the
-	// referenced node, but generate code by hand. This routine decrements
-	// its use count properly
 	void decUseCount(codeGen &gen);
 
-	// Our children may have incorrect useCounts (most likely they 
-	// assume that we will not bother them again, which is wrong)
 	void fixChildrenCounts();
 
-	// Check if the node can be kept at all. Some nodes (e.g., storeOp)
-	// can not be cached
 	virtual bool canBeKept() const = 0;
 
-	// Allocate a register and make it available for sharing if our
-   // node is shared
 	Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
 
-   // If someone needs to take this guy away.
    bool stealRegister(Dyninst::Register reg);
 
-	// Check to see if path1 is a subpath of path2
 	bool subpath(const std::vector<AstNode*> &path1, 
                 const std::vector<AstNode*> &path2) const;
 
-	// Return all children of this node ([lre]operand, ..., operands[])
 	virtual void getChildren(std::vector<AstNodePtr> &); 
 
 	virtual bool accessesParam(void);
@@ -378,7 +320,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	{
       assert(!"Never call this on anything but an operand");
 	}
-	// only function that's defined in metric.C (only used in metri.C)
+
 	bool condMatch(AstNode* a,
                   std::vector<dataReqNode*> &data_tuple1,
                   std::vector<dataReqNode*> &data_tuple2,
@@ -386,20 +328,17 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                   std::vector<dataReqNode*> datareqs2);
 
 
-	// DEBUG
    virtual operandType getoType() const { return operandType::undefOperandType; }
 
    virtual void setConstFunc(bool) {}
 
  protected:
-	BPatch_type *bptype;  // type of corresponding BPatch_snippet
-	bool doTypeCheck;	    // should operands be type checked
-	int size;		    // size of the operations (in bytes)
+	BPatch_type *bptype;
+	bool doTypeCheck;
+	int size;
 
 
  public:
-	// Functions for getting and setting type decoration used by the
-	// dyninst API library
 	//AstNode(operandType ot, int which); // for memory access
 	BPatch_type *getType();
 	void		  setType(BPatch_type *t);
@@ -407,7 +346,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 	
 
-        // PatchAPI compatibility
         virtual bool generate(Dyninst::PatchAPI::Point *, 
                               Dyninst::Buffer &);
 
@@ -435,7 +373,6 @@ class AstNullNode : public AstNode {
                                      Dyninst::Register &retReg);
 };
 
-/* Stack Frame Modification */
 class AstStackInsertNode : public AstNode {
     public:
         AstStackInsertNode(int s, MSpecialType t) : AstNode(),
@@ -532,7 +469,7 @@ class AstOperatorNode : public AstNode {
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-    virtual bool accessesParam(void);         // Does this AST access "Param"
+    virtual bool accessesParam(void);
 
     virtual bool canBeKept() const;
 
@@ -545,7 +482,6 @@ class AstOperatorNode : public AstNode {
     virtual bool usesAppRegister() const;
  
 
-    // We override initRegisters in the case of writing to an original register.
     virtual bool initRegisters(codeGen &gen);
     
     virtual void setVariableAST(codeGen &gen);
@@ -567,13 +503,11 @@ class AstOperatorNode : public AstNode {
 
 
 class AstOperandNode : public AstNode {
-    friend class AstOperatorNode; // ARGH
+    friend class AstOperatorNode;
  public:
 
-    // Direct operand
     AstOperandNode(operandType ot, void *arg);
 
-    // And an indirect (say, a load)
     AstOperandNode(operandType ot, AstNodePtr l);
 
     AstOperandNode(operandType ot, const image_variable* iv);
@@ -583,9 +517,6 @@ class AstOperandNode : public AstNode {
         //debugPrint();
         if (oType == operandType::ConstantString) free((char *)oValue);
     }
-        
-    // Arguably, the previous should be an operation...
-    // however, they're kinda endemic.
 
    virtual std::string format(std::string indent);
 
@@ -682,18 +613,15 @@ class AstCallNode : public AstNode {
                                      Dyninst::Register &retReg);
 
     AstCallNode(): func_addr_(0), func_(NULL), callReplace_(false), constFunc_(false) {}
-    // Sometimes we just don't have enough information...
+
     const std::string func_name_;
     Dyninst::Address func_addr_;
     
     func_instance *func_;
     std::vector<AstNodePtr> args_;
 
-    bool callReplace_; // Node is intended for function call replacement
-    bool constFunc_;  // True if the output depends solely on 
-    // input parameters, or can otherwise be guaranteed to not change
-    // if executed multiple times in the same sequence - AKA 
-    // "can be kept".
+    bool callReplace_;
+    bool constFunc_;
 };
 
 
@@ -908,10 +836,6 @@ class AstScrambleRegistersNode : public AstNode {
 
 
 class AstSnippetNode : public AstNode {
-   // This is a little odd, since an AstNode _is_
-   // a Snippet. It's a compatibility interface to 
-   // allow generic PatchAPI snippets to play nice
-   // in our world. 
   public:
   AstSnippetNode(Dyninst::PatchAPI::SnippetPtr snip) : snip_(snip) {}
    bool canBeKept() const { return false; }

@@ -42,7 +42,6 @@
 
 namespace Dyninst {
 
-// This is a pure virtual interface class
 class NodeIteratorImpl {
     friend class NodeIterator;
     
@@ -56,7 +55,6 @@ class NodeIteratorImpl {
     virtual ~NodeIteratorImpl() {}
 };
 
-// Types of node iteration: over a set of nodes
 class NodeIteratorSet : public NodeIteratorImpl {
  public:
     virtual void inc() { ++internal_; }
@@ -133,23 +131,6 @@ class NodeSearchIterator : public NodeIteratorImpl{
     typedef enum {
         in,
         out} Direction;
-
-    // This iterator linearizes access to a tree/graph structure.
-    // Since we operate over a graph there may be cycles. This
-    // is handled by keeping a visited set; once a node is encountered
-    // it is placed in the visited set. 
-    //
-    // The iterator is defined to be "end" if the following is true:
-    // 1) The current pointer is NULL;
-    // The iterator is one step from "end" (that is, iter->inc == end) if the 
-    // following is true:
-    // 2) Current is non-NULL and every element in the worklist has been visited. 
-    // Due to 2) above, we _must_ describe the worklist and visited sets in terms
-    // of nodes, rather than iterators; given an iterator we cannot determine 
-    // (without deep inspection) whether it contains an unvisited node. Deep inspection
-    // really obviates the point, here. 
-
-    // TODO: reverse iteration. 
 
     virtual void inc() {
         // If current is NULL, we're done
@@ -291,7 +272,6 @@ class NodeSearchIterator : public NodeIteratorImpl{
     std::set<Node::Ptr> visited;
 };
 
-// And given a set to hold internally until the iterator goes away
 class NodeIteratorPredicateObj : public NodeIteratorImpl {
  public:
     virtual void inc() { 
@@ -350,7 +330,6 @@ class NodeIteratorPredicateObj : public NodeIteratorImpl {
     NodeIterator cur, next, end;
 };
 
-// And given a set to hold internally until the iterator goes away
 class NodeIteratorPredicateFunc : public NodeIteratorImpl {
  public:
     virtual void inc() { 

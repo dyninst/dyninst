@@ -131,7 +131,6 @@ void Graph::clearEntryNodes() {
 void Graph::clearExitNodes() {
     exitNodes_.clear();
 }
-// Fancy-shmancy predicate based search methods...
 
 bool Graph::find(NodePredicate::Ptr pred, NodeIterator &begin, NodeIterator &end) {
     // We could try to be lazy here, but you have a hard time determining if you're

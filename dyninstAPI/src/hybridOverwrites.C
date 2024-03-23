@@ -95,7 +95,6 @@ HybridAnalysisOW::owLoop::~owLoop()
     }
 }
 
-// returns true if any of the modfuncs contains loop code
 bool HybridAnalysisOW::codeChangeCB
      (std::vector<BPatch_function*> &modfuncs)
 {
@@ -155,18 +154,11 @@ void HybridAnalysisOW::owLoop::setActive(bool act)
     activeStatus_ = act;
 }
 
-
-// return value of 0 means not in loop
 HybridAnalysisOW::owLoop *HybridAnalysisOW::findLoop(Address blockStart)
 {
     if (blockToLoop.find(blockStart) != blockToLoop.end()) {
 		std::map<int, owLoop*>::iterator iter = idToLoop.find(blockToLoop[blockStart]);
 		if (iter == idToLoop.end()) {
-	        // because of blocks being overwritten, sometimes we can't tear blocks
-		    // out because the internal blocks have been purged and we can't figure
-			// out the block address.  Eventually, if the block is reconstituted 
-			// we may be able to find it here with a reference to a defunct loop,
-			// make sure that this is not the case, if it is, tear the block out
             blockToLoop.erase(blockStart);
             return NULL;
         }
@@ -187,13 +179,6 @@ bool HybridAnalysisOW::isInLoop(Address blockAddr, bool activeOnly)
     return true;
 }
 
-/* 1. Check for changes to the underlying code to see if this is safe to do
- * 2. If the loop is active, check for changes to the underlying data, and 
- *    if no changes have occurred, we can just remove the loop instrumentation
- *    and everything will be hunky dory once we re-instate the write 
- *    protections for the loop's pages
- * return true if the loop was active
- */ 
 bool HybridAnalysisOW::deleteLoop(owLoop *loop, 
                                   bool useInsertionSet, 
                                   BPatch_point *writePoint,
@@ -210,14 +195,6 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop,
    return ret;
 }
 
-
-/* 1. Check for changes to the underlying code to see if this is safe to do
- * 2. If the loop is active, check for changes to the underlying data, and 
- *    if no changes have occurred, we can just remove the loop instrumentation
- *    and everything will be hunky dory once we re-instate the write 
- *    protections for the loop's pages
- * return true if the loop was active
- */ 
 bool HybridAnalysisOW::removeLoop(owLoop *loop, 
                                   bool useInsertionSet, 
                                   BPatch_point *writePoint,
@@ -289,10 +266,6 @@ bool HybridAnalysisOW::hasLoopInstrumentation
     (bool activeOnly, BPatch_function &func, std::set<owLoop*> *loops_)
 {
     //_ASSERTE(_CrtCheckMemory());
-    // NEED TO BE CAREFUL BECAUSE WHEN WE OVERWRITE A BLOCK WE DON'T INVALIDATE
-    // THE FLOWGRAPH, BUT FROM THE INT-LAYER ON DOWN THINGS ARE INVALIDATED.
-    // ANOTHER PROBLEM IS THAT WE MAY BE KEEPING THE BLOCK AROUND AS A PART 
-    // OF A BLOCK LOOP
     bool foundLoop = false;
 
     // get function's blocks
@@ -319,15 +292,6 @@ bool HybridAnalysisOW::hasLoopInstrumentation
     return foundLoop;
 }
 
-
-/* 1. Gather up all instrumentation sites that need to be monitored:
-   1a. The edges of all instrumented blocks that leave the block set
-   1b. Unresolved points in instrumented blocks
-   2. Instrument exit edges and unresolved points with callbacks to 
-      the analysis update routine
-   2a.Instrument at loop exit edges
-   2b.Instrument at unresolved edges in the loop 
- */
 void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
 {
     assert(blocks.size());
@@ -473,29 +437,6 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
     }
 }
 
-
-
-/*1. initialize necessary variables
- * get loop blocks
- * build the set that describes the type of accesses we're looking for
-2. create bounds array for all blocks in the loop
- * for each block
-     * create instrumentation points
-     * store block bounds
- * create and initialize the snippet for the array of bounds
-3. create the bounds check function call snippet
-   checkBounds(boundsArray, arrayLen, target)
- * arg0: bounds array
- * arg1: array size
- * arg2: effective address of write instruction
- * arg3: call
- * find DYNINST_checkBounds function
- * create the conditional expression based on bounds check's return value
-4. instrument each write point
-     * create the stopthread expression
-     * create the if expression
-     * insert the snippet 
-*/
 void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
 {
     assert(!blocks.empty());
@@ -608,10 +549,7 @@ void HybridAnalysisOW::owLoop::instrumentLoopWritesWithBoundsCheck()
         snippets.insert(handle);
     }
 }
-// Returns a loop if all callers to the writeAddr function are in a single 
-// function and there is a loop that contains them all.
-// (otherwise we would have to do a stackwalk and that's too expensive)
-// If more than one loop satisfies this criteria, choose the largest one
+
 BPatch_basicBlockLoop* HybridAnalysisOW::getParentLoop(BPatch_function &func, Address writeAddr)
 {
     set<BPatch_function*> callFs;
@@ -712,7 +650,6 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getParentLoop(BPatch_function &func, Ad
 }
 
 
-// gets biggest loop without unresolved/multiply resolved indirect ctrl flow that it can find
 BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
 (BPatch_function &func, Address writeAddr, bool allowCallerLoop)
 {
@@ -790,8 +727,6 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
     return writeLoop;
 }
 
-// adds to visitMe if the library is in a non-system library in 
-// exploratory or defensive mode
 static void addLoopFunc(BPatch_function *func, 
                         set<BPatch_function*> &visited, 
                         set<BPatch_function*> &visitMe)
@@ -826,10 +761,6 @@ static void addLoopFunc(BPatch_function *func,
     }
 }
 
-
-// recursively add all functions that contain calls, 
-// return true if the function contains no unresolved control flow
-// and the function returns normally
 bool HybridAnalysisOW::addFuncBlocks(owLoop *loop, 
                    std::set<BPatch_function*> &addFuncs, 
                    std::set<BPatch_function*> &seenFuncs,
@@ -926,16 +857,6 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
     return ! hasUnresolved;
 }
 
-// if writeLoop is null, return the whole function in the loop. 
-// returns true if we were able to identify all code in the loop
-// 
-// the checks on the basicBlockLoop's immediate blocks are not strictly 
-// necessary as they should have been checked by getWriteLoop
-// 
-// considering the loop save to instrument if its indirect control transfers
-// have so far always been resolved to a single control flow target
-//
-// Does not set the block->loop map for overlapping blocks
 bool HybridAnalysisOW::setLoopBlocks(owLoop *loop, 
                                      BPatch_basicBlockLoop *writeLoop,
                                      std::set<int> &overlappingLoops)
@@ -1352,19 +1273,6 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr, block_instance *block,
     return false;
 }
 
-
-/* Informs the mutator that an instruction will write to a page
-` * that contains analyzed code.  
- * This function decides where to put the instrumentation that will mark
- * the end of the overwriting phase
- * 
- * 1. If this is an already instrumented instruction that has now moved onto 
- *     an adjacent page or is in a subsequent iteration of the instrumented loop:
- * 1a.Make a shadow copy of the overwritten page and restore write permissions 
- * . Instrument the loop
- * . Make a shadow copy of the block that is about to be overwritten
- * . Restore write permissions to the written page
- */
 void HybridAnalysisOW::overwriteSignalCB
 (Address faultInsnAddr, Address writeTarget) 
 {

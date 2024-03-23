@@ -33,9 +33,6 @@
 
 #include "BPatch_Vector.h"
 
-/*
- * Frame information needed for stack walking
- */
 typedef enum {
     BPatch_frameNormal,
     BPatch_frameSignal,
@@ -53,14 +50,8 @@ class BPATCH_DLL_EXPORT BPatch_frame {
     void *fp;
     bool isSignalFrame;
     bool isTrampFrame;
-    // BPatch defines that a trampoline is effectively a "function call" and
-    // puts an extra tramp on the stack. Various people (frex, Paradyn) really
-    // don't want to see this frame. To make life simpler for everyone, we
-    // add a "only call if you know what you're doing" flag.
     bool isSynthFrame;
 
-    // This is _so_ much easier than looking it up later. If we're
-    // in instrumentation, stash the point
     BPatch_point *point_;
 
 public:
@@ -72,43 +63,20 @@ public:
                  bool isSynth = false);
 
 
-    //  BPatch_frame::getFrameType
-    //  Returns type of frame: BPatch_frameNormal for a stack frame for a 
-    //  function, BPatch_frameSignal for the stack frame created when a signal 
-    //  is delivered, or BPatch_frameTrampoline for a stack frame created by 
-    //  internal Dyninst instrumentation.
     BPatch_frameType getFrameType();
 
-    //  Only call if you know what you are doing; per-frame method for determining
-    //  how the frame was created.
     bool isSynthesized();
-
-    //  BPatch_frame::getThread
-    //  Returns:  value of program counter
 
     BPatch_thread * getThread(); 
 
-    //  BPatch_frame::getThread
-    //  Returns:  value of program counter
-
     BPatch_point * getPoint(); 
-
-    //  BPatch_frame::getPC
-    //  Returns:  value of program counter
 
     void * getPC(); 
 
-    //  BPatch_frame::getFP
-
     void * getFP(); 
 
-    //  BPatch_frame::findFunction
-    //  Returns:  the function corresponding to this stack frame, NULL 
-    //   if there is none
-
     BPatch_function * findFunction();
-   
-    // The following are planned but no yet implemented:
+
     // int getSignalNumber();
 
     BPatch_point * findPoint();

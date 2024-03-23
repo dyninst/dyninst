@@ -41,14 +41,6 @@ namespace Dyninst
 
 class SymbolReaderFactory;
 
-/**
- * Symbol_t is an anonymous struct that any SymReader can use for a symbol 
- * handle.  Some symbol readers may not want to store the objects behind a 
- * 'void*' on the heap, so we're making Symbol_t big enough that it could 
- * act as a full symbol handle.  Or a SymReader could just choose fill in one
- * of the void pointers as a handle to a heap object, if it's comfortable
- * doing so.
- **/
 struct Symbol_t {
    void *v1;
    void *v2;
@@ -77,11 +69,6 @@ struct SymSegment {
 		 type(0), perms(0) {}
 };
 
-/**
- * This may seem like a clunky interface in places, but it was designed such 
- * that the underlying implementation could be made re-enterant safe (so it 
- * could be called from a signal handler).
- **/
 class COMMON_EXPORT SymReader
 {
  protected:

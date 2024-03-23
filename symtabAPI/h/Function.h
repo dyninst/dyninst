@@ -69,7 +69,6 @@ class SYMTAB_EXPORT FuncRange {
    Dyninst::Offset off;
    unsigned long size;
 
-   //For interval tree
    Dyninst::Offset low() const { return off; }
    Dyninst::Offset high() const { return off + size; }
    typedef Dyninst::Offset type;
@@ -84,13 +83,12 @@ class SYMTAB_EXPORT FunctionBase
    friend class Function;
    friend class DwarfWalker;
   public:
-   /***** Return Type Information *****/
+
    boost::shared_ptr<Type> getReturnType(Type::do_share_t) const;
    Type* getReturnType() const {
      return getReturnType(Type::share).get();
    }
 
-   /***** Local Variable Information *****/
    bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
    bool getLocalVariables(std::vector<localVar *>&vars);
    bool getParams(std::vector<localVar *>&params);
@@ -102,22 +100,18 @@ class SYMTAB_EXPORT FunctionBase
 
    const FuncRangeCollection &getRanges();
 
-   /***** Frame Pointer Information *****/
    bool setFramePtr(std::vector<VariableLocation> *locs);
    std::vector<VariableLocation> &getFramePtrRefForInit();
    std::vector<VariableLocation> &getFramePtr();
    dyn_mutex &getFramePtrLock();
 
-   /***** Primary name *****/
    virtual std::string getName() const = 0;
    virtual bool addMangledName(std::string name, bool isPrimary, bool isDebug=false) = 0;
    virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false) = 0;
 
-   /***** Opaque data object pointers, usable by user ****/
    void *getData();
    void setData(void *d);
 
-   /* internal helper functions */
    bool addLocalVar(localVar *);
    bool addParam(localVar *);
    bool	setReturnType(boost::shared_ptr<Type>);
@@ -150,11 +144,7 @@ class SYMTAB_EXPORT FunctionBase
                        std::vector<VariableLocation> &ret);
 };
 
-/*
- *  `Function` can be derived from (e.g., ParseAPI::PLTFunction), but does not create an
- *  interface separate from FunctionBase.
- */
- class SYMTAB_EXPORT Function : public FunctionBase, public Aggregate
+class SYMTAB_EXPORT Function : public FunctionBase, public Aggregate
 {
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
@@ -164,14 +154,11 @@ class SYMTAB_EXPORT FunctionBase
    Function(Symbol *sym);
    virtual ~Function();
 
-   /* Symbol management */
    bool removeSymbol(Symbol *sym) override;
 
-   /***** IA64-Specific Frame Pointer Information *****/
    bool  setFramePtrRegnum(int regnum);
    int   getFramePtrRegnum() const;
 
-   /***** PPC64 Linux Specific Information *****/
    Offset getPtrOffset() const;
    Offset getTOCOffset() const;
 

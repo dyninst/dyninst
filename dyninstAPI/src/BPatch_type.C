@@ -59,10 +59,7 @@ AnnotationClass<BPatch_type> TypeUpPtrAnno("TypeUpPtr", NULL);
 
 std::map<Dyninst::SymtabAPI::Type*, BPatch_type *> BPatch_type::type_map;
 
-/* These are the wrappers for constructing a type.  Since we can create
-   types six ways to Sunday, let's do them all in one centralized place. */
 BPatch_type *BPatch_type::createFake(const char *_name) {
-   // Creating a fake type without a name is just silly
    assert(_name != NULL);
 
    BPatch_type *t = new BPatch_type(_name);
@@ -70,13 +67,6 @@ BPatch_type *BPatch_type::createFake(const char *_name) {
 
    return t;
 }
-
-/*
- * BPatch_type::BPatch_type
- *
- * EMPTY Constructor for BPatch_type.  
- * 
- */
 
 BPatch_type::BPatch_type(boost::shared_ptr<Type> typ_): ID(typ_->getID()), typ(typ_),
     refCount(1)
@@ -139,9 +129,6 @@ BPatch_type *BPatch_type::findOrCreateType(boost::shared_ptr<Dyninst::SymtabAPI:
    return bptype;
 }
 
-/* BPatch_type destructor
- * Basic destructor for proper memory management.
- */
 BPatch_type::~BPatch_type() {}
 
 bool BPatch_type::operator==(const BPatch_type &otype) const 
@@ -471,7 +458,6 @@ int BPatch_localVar::getLineNum() {
     return lVar->getLineNum(); 
 }
 
-//TODO?? - get the first frame offset
 long BPatch_localVar::getFrameOffset() {
 
    vector<Dyninst::VariableLocation> &locs = lVar->getLocationLists();
@@ -497,10 +483,6 @@ BPatch_storageClass BPatch_localVar::getStorageClass() {
     return storageClass; 
 }
 
-/*
- * BPatch_localVar destructor
- *
- */
 BPatch_localVar::~BPatch_localVar()
 {
     //XXX jdd 5/25/99 More to do later
@@ -516,10 +498,6 @@ void BPatch_localVar::fixupUnknown(BPatch_module *module) {
       otype->decrRefCount();
    }
 }
-
-/**************************************************************************
- * BPatch_cblock
- *************************************************************************/
 
 BPatch_cblock::BPatch_cblock(CBlock *cBlk_) : cBlk(cBlk_) {
 //TODO construct components here

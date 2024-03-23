@@ -55,9 +55,6 @@ class BPatch_function;
 class BPatch_flowGraph;
 class BPatch_basicBlock;
 
-/* Currently all this bitarray stuff is just for power, 
-   but could be extended as we do liveness stuff for other platforms */
-
 namespace Dyninst {
   namespace ParseAPI {
     class Block;
@@ -83,15 +80,6 @@ struct comparison <BPatch_basicBlock *> {
                    const BPatch_basicBlock * const &y) const;
 };
 
-/** class for machine code basic blocks. We assume the user can not 
- * create basic blocks using its constructor. It is not safe. 
- * basic blocks are used for reading purposes not for inserting
- * a new code to the machine executable other than instrumentation code
- *
- * @see BPatch_flowGraph
- * @see BPatch_sourceBlock
- * @see BPatch_basicBlockLoop
- */
 class BPatch_flowGraph;
 
 struct BPATCH_DLL_EXPORT insnPredicate
@@ -115,32 +103,23 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
 
  private:
-  /** the internal basic block structure **/
   block_instance *iblock;
 
-  /** the flow graph that contains this basic block */
   BPatch_flowGraph *flowGraph;
    
-   /** set of basic blocks that this basicblock dominates immediately*/
    std::set<BPatch_basicBlock*>* immediateDominates;
    
-  /** basic block which is the immediate dominator of the basic block */
   BPatch_basicBlock *immediateDominator;
    
-   /** same as previous two fields, but for postdominator tree */
    std::set<BPatch_basicBlock*> *immediatePostDominates;
    BPatch_basicBlock *immediatePostDominator;
    
-  /** the source block(source lines) that basic block corresponds*/
   BPatch_Vector<BPatch_sourceBlock*> *sourceBlocks;
    
-  /** the instructions within this block */
   BPatch_Vector<BPatch_instruction*> *instructions;
    
-   /** the incoming edges */
    std::set<BPatch_edge*> incomingEdges;
  
-   /** the outgoing edges */
    std::set<BPatch_edge*> outgoingEdges;
 
  public:
@@ -151,7 +130,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
  protected:
 
-  /** constructor of class */
   BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg);
 
 
@@ -161,129 +139,60 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
  public:
    
-  // Internal functions. Don't use these unless you know what you're
-  // doing.
   block_instance *lowlevel_block()  { return iblock; }
 
   void setlowlevel_block(block_instance *b)  { iblock = b; }
   void  getAllPoints(std::vector<BPatch_point*>& allPoints);
   BPatch_point *convertPoint(instPoint *pt);
   BPatch_function *getCallTarget();
-  // end internal functions
 
   BPatch_flowGraph * getFlowGraph() const;
 
-  /** BPatch_basicBlock::getSources   */
-  /** method that returns the predecessors of the basic block */
-
   void getSources(BPatch_Vector<BPatch_basicBlock*> &srcs);
-
-  /** BPatch_basicBlock::getTargets   */
-  /** method that returns the successors  of the basic block */
 
   void getTargets(BPatch_Vector<BPatch_basicBlock*> &targets);
 
-  /** BPatch_basicBlock::dominates   */
-  /** returns true if argument is dominated by this basic block */
-  
   bool dominates(BPatch_basicBlock *block);
-
-  /** BPatch_basicBlock::getImmediateDominiator   */
-  /** return the immediate dominator of a basic block */
 
   BPatch_basicBlock* getImmediateDominator();
 
-  /** BPatch_basicBlock::getImmediateDominates   */
-  /** method that returns the basic blocks immediately dominated by   */
-  /** the basic block */
-
   void getImmediateDominates(BPatch_Vector<BPatch_basicBlock*> &blocks);
-
-  /** BPatch_basicBlock::getAllDominates   */
-  /** method that returns all basic blocks dominated by the basic block */
 
   void getAllDominates(BPatch_Set<BPatch_basicBlock*> &blocks);
   void getAllDominates(std::set<BPatch_basicBlock*> &blocks);
 
-  /** the previous four methods, but for postdominators */
-
-  /** BPatch_basicBlock::postdominates   */
-
   bool postdominates(BPatch_basicBlock *block);
-
-  /** BPatch_basicBlock::getImmediatePostDominator   */
 
   BPatch_basicBlock* getImmediatePostDominator();
 
-  /** BPatch_basicBlock::getImmediatePostDominates   */
-
   void getImmediatePostDominates(BPatch_Vector<BPatch_basicBlock*> &blocks);
-
-  /** BPatch_basicBlock::getAllPostDominates   */
 
   void getAllPostDominates(BPatch_Set<BPatch_basicBlock*> &blocks);
   void getAllPostDominates(std::set<BPatch_basicBlock*> &blocks);
 	
-  /** BPatch_basicBlock::getSourceBlocks   */
-  /** returns the source block corresponding to the basic block */
-
   bool getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*> &blocks);
-
-  /** BPatch_basicBlock::getBlockNumber   */
-  /** returns the block id */
 
   int getBlockNumber();
 
-  /** BPatch_basicBlock::setEmtryBlock   */
-  /** sets whether this block is an entry block (or not) */
-
-  /** BPatch_basicBlock::isEntryBlock   */
-
   bool isEntryBlock() const;
-
-  /** BPatch_basicBlock::isExitBlock   */
 
   bool isExitBlock() const;
 
-  /** BPatch_basicBlock::size   */
-
   unsigned size() const;
-
-  /** BPatch_basicBlock::getStartAddress   */
-  //these always return absolute address
 
   unsigned long getStartAddress() const;
 
-  /** BPatch_basicBlock::getLastInsnAddress   */
-
   unsigned long getLastInsnAddress() const;
        
-  /** BPatch_basicBlock::getEndAddress    */
-        
   unsigned long  getEndAddress() const;
-
-  /** BPatch_basicBlock::~BPatch_basicBlock   */
-  /** destructor of class */
 
   ~BPatch_basicBlock();
         
-  /** BPatch_basicBlock::getAddressRange   */
-  /** return the start and end addresses of the basic block */
-
   bool getAddressRange(void*& _startAddress, void*& _endAddress);
-
-  /** BPatch_basicBlock::findEntryPoint   */
-  /** return point at the start of the basic block */
 
   BPatch_point*  findEntryPoint();
 
-  /** BPatch_basicBlock::findExitPoint   */
-  /** return point at the start of the basic block */
-   
   BPatch_point*  findExitPoint();
-
-  /** BPatch_basicBlock::findPoint   */
-  /** return a set of points within the basic block */
 
   BPatch_Vector<BPatch_point*> * findPoint(const BPatch_Set<BPatch_opCode>& ops);
   BPatch_Vector<BPatch_point*> * findPoint(const std::set<BPatch_opCode>& ops);
@@ -292,21 +201,12 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
    
   BPatch_point *  findPoint(Dyninst::Address addr);
 
-  /** BPatch_basicBlock::getInstructions   */
-  /** return the instructions that belong to the block */
-
   bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>& insns);
   bool  getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Dyninst::Address> >& insnInstances);
 
 
-  /** BPatch_basicBlock::getIncomingEdges   */
-  /** returns the incoming edges */
-
   void getIncomingEdges(BPatch_Vector<BPatch_edge*> &inc);
         
-  /** BPatch_basicBlock::getOutgoingEdges   */
-  /** returns the outgoming edges */
-
 
   void getOutgoingEdges(BPatch_Vector<BPatch_edge*> &out);
 

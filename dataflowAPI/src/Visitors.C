@@ -50,7 +50,6 @@ AST::Ptr StackVisitor::visit(StackAST *s) {
   return s->ptr();
 }
 
-// Now we get to the interesting bits
 AST::Ptr StackVisitor::visit(VariableAST *v) {
   // If we're an AbsRegion representing the
   // stack or frame pointer, return a

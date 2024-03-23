@@ -497,10 +497,6 @@ static int getPreCallPoints(ParseAPI::Block* blk,
     return points.size();
 }
 
-// Find the call blocks preceding the address that we're returning 
-// past, but only set returningCallB if we can be sure that 
-// that we've found a call block that actually called the function
-// we're returning from 
 void HybridAnalysis::getCallBlocks(Address retAddr, 
                    func_instance *retFunc,
                    block_instance *retBlock,
@@ -605,28 +601,6 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
    }
 }
 
-/* CASES (sub-numbering are cases too)
- * 1. the target address is in a shared library
- * 1.1 if it's a system library don't parse at the target, but if the point was marked 
- *     as a possibly non-returning indirect call, parse at its fallthrough addr
- *     and return.
- * 1.2 if the target is in the runtime library, translate to an unrelocated address
- *     and continue, but for now assert, since this translation is happening internally
- * 2. the point is an call: 
- * 2.1 if the target is new, parse at the target
- * 2. if the target is a returning function, parse at the fallthrough address
- * 2. return
- * 3. the point is a return instruction:
- * 3. find the call point 
- * 3.1 if the return address has been parsed as code, return
- * 3.2.1 if the return addr follows a call, parse it as its fallthrough edge
- * 3.2.2 else parse the return addr as a new function
- * 3. return
- * 4. else case: the point is a direct transfer or an indirect jump/branch.
- * 4.1 if the point is a direct transfer: 
- * 4.1.1 remove instrumentation
- * 4. parse at the target if it is code
- */
 extern bool debug_blocks;
 void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue) 
 {

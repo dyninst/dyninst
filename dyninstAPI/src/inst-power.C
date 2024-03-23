@@ -29,7 +29,6 @@
  */
 
 /*
- * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  * $Id: inst-power.C,v 1.291 2008/06/19 22:13:42 jaw Exp $
  */
 
@@ -108,11 +107,6 @@ void initDefaultPointFrequencyTable()
 
 Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 unsigned int floatingLiveRegListSize = 14;
-
-// Note that while we have register definitions for r13..r31, we only
-// use r0..r12 (well, r3..r12). I believe this is to reduce the number
-// of saves that we execute. 
-
 
 void registerSpace::initialize32() {
     static bool done = false;
@@ -419,36 +413,7 @@ unsigned registerSpace::SPR(Register x) {
         break;
     }
 }
-            
 
-/*
- * Saving and restoring registers
- * We create a new stack frame in the base tramp and save registers
- * above it. Currently, the plan is this:
- *          < 220 bytes as per system spec      > + 4 for 64-bit alignment
- *          < 14 GPR slots @ 4 bytes each       >
- *          < 14 FPR slots @ 8 bytes each       >
- *          < 6 SPR slots @ 4 bytes each        >
- *          < 1 FP SPR slot @ 8 bytes           >
- *          < Space to save live regs at func call >
- *          < Func call overflow area, 32 bytes > 
- *          < Linkage area, 24 bytes            >
- *
- * Of course, change all the 4's to 8's for 64-bit mode.
- */
-
-    ////////////////////////////////////////////////////////////////////
-    //Generates instructions to save a special purpose register onto
-    //the stack.
-    //  Returns the number of bytes needed to store the generated
-    //    instructions.
-    //  The instruction storage pointer is advanced the number of 
-    //    instructions generated.
-    //
-// NOTE: the bit layout of the mfspr instruction is as follows:
-// opcode:6 ; RT: 5 ; SPR: 10 ; const 339:10 ; Rc: 1
-// However, the two 5-bit halves of the SPR field are reversed
-// so just using the xfxform will not work
 void saveSPR(codeGen &gen,     //Instruction storage pointer
              Register    scratchReg, //Scratch register
              int         sprnum,     //SPR number
@@ -474,14 +439,6 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
     }
 }
 
-    ////////////////////////////////////////////////////////////////////
-    //Generates instructions to restore a special purpose register from
-    //the stack.
-    //  Returns the number of bytes needed to store the generated
-    //    instructions.
-    //  The instruction storage pointer is advanced the number of 
-    //    instructions generated.
-    //
 void restoreSPR(codeGen &gen,       //Instruction storage pointer
                 Register      scratchReg, //Scratch register
                 int           sprnum,     //SPR number
@@ -507,12 +464,6 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
     insnCodeGen::generate(gen,insn);
 }
 
-           ////////////////////////////////////////////////////////////////////
-	   //Generates instructions to save link register onto stack.
-	   //  Returns the number of bytes needed to store the generated
-	   //    instructions.
-	   //  The instruction storage pointer is advanced the number of 
-	   //    instructions generated.
 void saveLR(codeGen &gen,       //Instruction storage pointer
             Register      scratchReg, //Scratch register
             int           stkOffset)  //Offset from stack pointer
@@ -521,13 +472,6 @@ void saveLR(codeGen &gen,       //Instruction storage pointer
     gen.rs()->markSavedRegister(registerSpace::lr, stkOffset);
 }
 
-           ////////////////////////////////////////////////////////////////////
-           //Generates instructions to restore link register from stack.
-           //  Returns the number of bytes needed to store the generated
-	   //    instructions.
-	   //  The instruction storage pointer is advanced the number of 
-	   //    instructions generated.
-	   //
 void restoreLR(codeGen &gen,       //Instruction storage pointer
                Register      scratchReg, //Scratch register
                int           stkOffset)  //Offset from stack pointer
@@ -535,15 +479,6 @@ void restoreLR(codeGen &gen,       //Instruction storage pointer
     restoreSPR(gen, scratchReg, SPR_LR, stkOffset);
 }
 
-           ////////////////////////////////////////////////////////////////////
-           //Generates instructions to place a given value into link register.
-	   //  The entire instruction sequence consists of the generated
-	   //    instructions followed by a given (tail) instruction.
-	   //  Returns the number of bytes needed to store the entire
-	   //    instruction sequence.
-	   //  The instruction storage pointer is advanced the number of 
-	   //    instructions in the sequence.
-	   //
 void setBRL(codeGen &gen,        //Instruction storage pointer
             Register      scratchReg,  //Scratch register
             long          val,         //Value to set link register to
@@ -565,14 +500,7 @@ void setBRL(codeGen &gen,        //Instruction storage pointer
     insnCodeGen::generate(gen,insn);
 }
 
-     //////////////////////////////////////////////////////////////////////////
-     //Writes out instructions to place a value into the link register.
-     //  If val == 0, then the instruction sequence is followed by a `nop'.
-     //  If val != 0, then the instruction sequence is followed by a `brl'.
-     //
-void resetBRL(AddressSpace  *p,   //Process to write instructions into
-	      Address   loc, //Address in process to write into
-	      unsigned  val) //Value to set link register
+void resetBRL(AddressSpace* p, Address loc, unsigned val)
 {
     codeGen gen(10*instruction::size());
     Register scratch = 10;
@@ -585,13 +513,6 @@ void resetBRL(AddressSpace  *p,   //Process to write instructions into
     p->writeTextSpace((void *)loc, gen.used(), gen.start_ptr());
 }
 
-    /////////////////////////////////////////////////////////////////////////
-    //Generates instructions to save the condition codes register onto stack.
-    //  Returns the number of bytes needed to store the generated
-    //    instructions.
-    //  The instruction storage pointer is advanced the number of 
-    //    instructions generated.
-    //
 void saveCR(codeGen &gen,       //Instruction storage pointer
             Register      scratchReg, //Scratch register
             int           stkOffset)  //Offset from stack pointer

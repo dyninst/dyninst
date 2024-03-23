@@ -61,8 +61,6 @@ namespace ParseAPI {
 class Parser;
 class ParseData;
 
-/** Describes a saved frame during recursive parsing **/
-// Parsing data for a function. 
 class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
  public:
     enum Status {
@@ -124,24 +122,22 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     void cleanup();
 
     worklist_t worklist;
-    std::set<Address> knownTargets; // This set contains known potential targets in this function 
+    std::set<Address> knownTargets;
    
-    // Delayed work elements 
     std::map<ParseWorkElem *, Function *> delayedWork;
 
     std::map<Address, Block*> leadersToBlock;
     //dyn_hash_map<Address, Block*> leadersToBlock;  // block map
-    Address curAddr;                           // current insn address
+    Address curAddr;
     unsigned num_insns;
     dyn_hash_map<Address, bool> visited;
 
-    /* These are set when status goes to CALL_BLOCKED */
     Function * call_target;     // discovered callee
 
     Function * func;
     CodeRegion * codereg;
 
-    ParseWorkElem * seed; // stored for cleanup
+    ParseWorkElem * seed;
     std::set<Address> value_driven_jump_tables;
 
     ParseFrame(Function * f,ParseData *pd) :
@@ -181,7 +177,6 @@ class edge_parsing_data {
 };
 
 
-/* per-CodeRegion parsing data */
 class region_data {
 public:
     // Function lookups
@@ -382,7 +377,6 @@ class ParseData {
  public:
     virtual ~ParseData() { }
 
-    //
     virtual Function * findFunc(CodeRegion *, Address) =0;
     virtual Block * findBlock(CodeRegion *, Address) =0;
     virtual int findFuncs(CodeRegion *, Address, set<Function*> &) =0;
@@ -392,30 +386,20 @@ class ParseData {
     virtual ParseFrame::Status frameStatus(CodeRegion *, Address addr) = 0;
     virtual void setFrameStatus(CodeRegion*,Address,ParseFrame::Status) = 0;
 
-    // Atomically lookup whether there is a frame for a Function object.
-    // If there is no frame for the Function, create a new frame and record it.
-    // Return NULL if a frame already exists;
-    // Return the pointer to the new frame if a new frame is created 
     virtual ParseFrame* createAndRecordFrame(Function*) = 0;
 
-    // creation (if non-existing)
     virtual Function * createAndRecordFunc(CodeRegion *, Address, FuncSource) =0;
 
-    // mapping
     virtual region_data * findRegion(CodeRegion *) =0;
 
-    // accounting
     virtual Function* record_func(Function *) =0;
     virtual Block* record_block(CodeRegion *, Block *) =0;
 
-    // removal
     virtual void remove_frame(ParseFrame *) =0;
     virtual void remove_func(Function *) =0;
     virtual void remove_block(Block *) =0;
     virtual void remove_extents(const std::vector<FuncExtent*> &extents) =0;
 
-    // does the Right Thing(TM) for standard- and overlapping-region 
-    // object types
     virtual CodeRegion * reglookup(CodeRegion *cr, Address addr) =0;
     virtual edge_parsing_data setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f, Block *b) = 0;
     virtual void getAllRegionData(std::vector<region_data*>&) = 0;
@@ -423,8 +407,6 @@ class ParseData {
 
 };
 
-/* StandardParseData represents parse data for Parsers that disallow
-   overlapping CodeRegions. It has fast paths for lookup */
 class StandardParseData : public ParseData {
  private:
     region_data _rdata;

@@ -37,9 +37,6 @@
 #include <vector>
 #include "int_process.h"
 
-/**
- * For our purposes, a UNIX process is one that supports fork/exec.
- **/
 class unix_process : virtual public int_process
 {
   public:

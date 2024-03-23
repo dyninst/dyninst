@@ -149,10 +149,6 @@ func_instance::func_instance(const func_instance *parFunc,
 }
 
 func_instance::~func_instance() { 
-   // We don't delete blocks, since they're shared between functions
-   // We _do_ delete context instPoints, though
-   // Except that should get taken care of normally since the
-   // structures are static. 
    for (unsigned i = 0; i < parallelRegions_.size(); i++)
       delete parallelRegions_[i];
    if (wrapperSym_ != NULL) {
@@ -160,10 +156,6 @@ func_instance::~func_instance() {
    }
 }
 
-// the original entry block is gone, we choose a new entry block from the
-// function, whichever non-dead block we can find that has no intraprocedural 
-// incoming edges.  If there's no obvious block to choose, we stick with the
-// default block
 block_instance * func_instance::setNewEntry(block_instance *def,
                                             std::set<block_instance*> &deadBlocks)
 {
@@ -225,10 +217,6 @@ void func_instance::setHandlerFaultAddr(Address fa) {
     handlerFaultAddr_ = fa;
 }
 
-// Sets the address in the structure at which the fault instruction's
-// address is stored if "set" is true.  Accesses the fault address and
-// translates it back to an original address if it corresponds to
-// relocated code in the Dyninst heap
 void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) {
   if (set) {
     // save the faultAddrAddr
@@ -370,8 +358,6 @@ unsigned func_instance::getNumDynamicCalls()
 }
 
 
-// warning: doesn't (and can't) force initialization of lazily-built 
-// data structures because this function is declared to be constant
 void func_instance::debugPrint() const {
     fprintf(stderr, "Function debug dump (%p):\n", (const void*)this);
     fprintf(stderr, "  Symbol table names:\n");
@@ -407,8 +393,6 @@ void func_instance::debugPrint() const {
     }
 }
 
-// Add to internal
-// Add to mapped_object if a "new" name (true return from internal)
 void func_instance::addSymTabName(const std::string name, bool isPrimary) {
     if (ifunc()->addSymTabName(name, isPrimary))
        obj()->addFunctionName(this, name, obj()->allFunctionsByMangledName);
@@ -419,9 +403,6 @@ void func_instance::addPrettyName(const std::string name, bool isPrimary) {
        obj()->addFunctionName(this, name, obj()->allFunctionsByPrettyName);
 }
 
-// Dig down to the low-level block of b, find the low-level functions
-// that share it, and map up to int-level functions and add them
-// to the funcs list.
 bool func_instance::getSharingFuncs(block_instance *b,
                                    std::set<func_instance *> & funcs)
 {
@@ -443,10 +424,6 @@ bool func_instance::getSharingFuncs(block_instance *b,
 
     return ret;
 }
-
-// Find sharing functions via checking all basic blocks. We might be
-// able to check only exit points; but we definitely need to check _all_
-// exits so for now we're checking everything.
 
 bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     bool ret = false;
@@ -528,11 +505,6 @@ const std::vector< int_parRegion* > &func_instance::parRegions()
 }
 
 bool func_instance::consistency() const {
-   // 1) Check for 1:1 block relationship in
-   //    the block list and block map
-   // 2) Check that all instPoints are in the
-   //    correct block.
-
    auto img_blocks = ifunc()->blocks();
    assert(ifunc()->num_blocks() == all_blocks_.size());
    for (auto iter = img_blocks.begin();
@@ -586,8 +558,6 @@ block_instance *func_instance::getBlockByEntry(const Address addr) {
 }
 
 
-// get all blocks that have an instruction starting at addr, or if 
-// there are none, return all blocks containing addr
 bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
    set<block_instance*> objblks;
    obj()->findBlocksByAddr(addr, objblks);
@@ -675,7 +645,6 @@ Symbol *func_instance::getWrapperSymbol() {
 
 Symbol *func_instance::getRelocSymbol() {
    // there should be only one...
-   // HIGHLANDER!
 
    // find the Symbol corresponding to the func_instance
    std::vector<Symbol *> syms;
@@ -720,8 +689,6 @@ void func_instance::createWrapperSymbol(Address entry, std::string name) {
                             false); // Definitely not absolute
 
 }
-
-/* PatchAPI stuffs */
 
 instPoint *func_instance::funcEntryPoint(bool create) {
    // Lookup the cached points
@@ -880,7 +847,6 @@ void func_instance::markModified() {
    proc()->addModifiedFunction(this);
 }
 
-// get caller blocks that aren't in deadBlocks
 bool func_instance::getLiveCallerBlocks
 (const std::set<block_instance*> &deadBlocks, 
  const std::list<func_instance*> &deadFuncs, 

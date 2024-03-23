@@ -38,7 +38,6 @@
 #include "instPoint.h"
 #include "debug.h"
 
-// Two-level codeRange structure
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
@@ -66,9 +65,6 @@
 #include "pcEventHandler.h"
 #include "unaligned_memory_access.h"
 
-// Implementations of non-virtual functions in the address space
-// class.
-
 using namespace Dyninst;
 
 using PatchAPI::DynObject;
@@ -91,13 +87,6 @@ AddressSpace::AddressSpace () :
     installedSpringboards_(new Relocation::InstalledSpringboards()),
     delayRelocation_(false)
 {
-   // Historically, we only use SIGTRAP as the signal for tramopline.
-   // However, SIGTRAP is always intercepted by GDB, causing it is 
-   // almost impossible to debug through signal trampolines.
-   // Here, we add a new environment variable DYNINST_SIGNAL_TRAMPOLINE_SIGILL
-   // to control whether we use SIGILL as the signal for trampolines.
-   // In the case of binary rewriting, DYNINST_SIGNAL_TRAMPOLINE_SIGILL should be 
-   // consistently set or unset for rewriting the binary and running the rewritten binaries. 
    if (getenv("DYNINST_SIGNAL_TRAMPOLINE_SIGILL")) {
       sigILLTrampoline_ = true;
    }
@@ -118,12 +107,6 @@ BinaryEdit *AddressSpace::edit() {
     return dynamic_cast<BinaryEdit *>(this);
 }
 Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
-  // Symtab has this information on a per-Function basis. It's
-  // kinda nontrivial to get a Function object out of a 
-  // func_instance; instead we use its entry address which
-  // is what all the TOC data structures are written in terms of
-  // anyway
-
   bool toc64 = false;
   bool toc32 = false;
 #if defined(cap_toc_64)
@@ -140,16 +123,8 @@ Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
   return baseTOC + func->obj()->dataBase();
 }
 
-// Fork constructor - and so we can assume a parent "process"
-// rather than "address space"
-//
-// Actually, for the sake of abstraction, use an AddressSpace instead of process
 void AddressSpace::copyAddressSpace(AddressSpace *parent) {
     deleteAddressSpace();
-
-    // This is only defined for process->process copy
-    // until someone can give a good reason for copying
-    // anything else...
     assert(proc());
 
     mapped_object *par_aout = parent->getAOut();
@@ -257,7 +232,6 @@ void AddressSpace::deleteAddressSpace() {
 
 
 
-// Returns the named symbol from the image or a shared object
 bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret ) 
 {
    for (unsigned i = 0; i < mapped_objects.size(); i++) {
@@ -274,11 +248,6 @@ bool heapItemLessByAddr(const heapItem *a, const heapItem *b)
    }
    return false;
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Memory allocation routines
-//////////////////////////////////////////////////////////////////////////////
-
 
 void AddressSpace::inferiorFreeCompact() {
    std::vector<heapItem *> &freeList = heap_.heapFree;
@@ -389,9 +358,6 @@ void AddressSpace::initializeHeap() {
    heapInitialized_ = true;
 }
 
-/* returns true if memory was allocated for a variable starting at address
-   "block", otherwise returns false
-*/
 bool AddressSpace::isInferiorAllocated(Address block) {
    return (heap_.heapActive.find(block) != heap_.heapActive.end());
 }
@@ -574,11 +540,6 @@ bool AddressSpace::inferiorShrinkBlock(heapItem *h,
 bool AddressSpace::inferiorExpandBlock(heapItem *h, 
 				       Address, 
 				       unsigned newSize) {
-   // We attempt to find a free block that immediately succeeds
-   // this one. If we find such a block we expand this block into
-   // the next; if this is possible we return true. Otherwise
-   // we return false.
-
    Address succAddr = h->addr + h->length;
    int expand = newSize - h->length;
    assert(expand > 0);
@@ -634,10 +595,6 @@ bool AddressSpace::inferiorExpandBlock(heapItem *h,
   
    return true;
 }    
-
-/////////////////////////////////////////
-// Function lookup...
-/////////////////////////////////////////
 
 bool AddressSpace::findFuncsByAll(const std::string &funcname,
                                   std::vector<func_instance *> &res,
@@ -733,10 +690,6 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
    return allFuncs[0];
 }
 
-/////////////////////////////////////////
-// Variable lookup...
-/////////////////////////////////////////
-
 bool AddressSpace::findVarsByAll(const std::string &varname,
                                  std::vector<int_variable *> &res,
                                  const std::string &libname) { // = "", btw
@@ -766,13 +719,6 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
 
    return res.size() != starting_entries;
 }
-
-
-
-// Get me a pointer to the instruction: the return is a local
-// (mutator-side) store for the mutatee. This may duck into the local
-// copy for images, or a relocated function's self copy.
-// TODO: is this really worth it? Or should we just use ptrace?
 
 void *AddressSpace::getPtrToInstruction(const Address addr) const {
    mapped_object *obj = findObject(addr);
@@ -864,9 +810,6 @@ edge_instance *AddressSpace::findEdge(ParseAPI::Edge *iedge) {
    return findObject(iedge->src()->obj())->findEdge(iedge);
 }
 
-// findModule: returns the module associated with mod_name 
-// this routine checks both the a.out image and any shared object
-// images for this resource
 mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildcard)
 {
    // KLUDGE: first search any shared libraries for the module name 
@@ -882,8 +825,6 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
    return NULL;
 }
 
-// findObject: returns the object associated with obj_name 
-// This just iterates over the mapped object vector
 mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) const
 {
    // Update: check by full name first because we may have non-unique fileNames. 
@@ -924,8 +865,6 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
    return NULL;
 }
 
-// findObject: returns the object associated with obj_name 
-// This just iterates over the mapped object vector
 mapped_object *AddressSpace::findObject(fileDescriptor desc) const
 {
    for(u_int j=0; j < mapped_objects.size(); j++){
@@ -935,18 +874,12 @@ mapped_object *AddressSpace::findObject(fileDescriptor desc) const
    return NULL;
 }
 
-// getAllFunctions: returns a vector of all functions defined in the
-// a.out and in the shared objects
-
 void AddressSpace::getAllFunctions(std::vector<func_instance *> &funcs) {
    for (unsigned i = 0; i < mapped_objects.size(); i++) {
       mapped_objects[i]->getAllFunctions(funcs);
    }
 }
       
-// getAllModules: returns a vector of all modules defined in the
-// a.out and in the shared objects
-
 void AddressSpace::getAllModules(std::vector<mapped_module *> &mods){
    for (unsigned i = 0; i < mapped_objects.size(); i++) {
       const std::vector<mapped_module *> &obj_mods = mapped_objects[i]->getModules();
@@ -956,9 +889,6 @@ void AddressSpace::getAllModules(std::vector<mapped_module *> &mods){
    }
 }
 
-//Acts like findTargetFuncByAddr, but also finds the function if addr
-// is an indirect jump to a function.
-//I know this is an odd function, but darn I need it.
 func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 
    Address addr2 = 0;
@@ -1518,7 +1448,6 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
    }
    return true;
 }
-////////////////////////////////////////////////////////////////////////////////////////
 
 void AddressSpace::modifyCall(block_instance *block, func_instance *newFunc, func_instance *context) {
    // Just register it for later code generation
@@ -1710,7 +1639,6 @@ bool AddressSpace::relocate() {
   return ret;
 }
 
-// iter is some sort of functions
 bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
 
   if (begin == end) {
@@ -2025,7 +1953,6 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
    return false;
 }
 
-// KEVINTODO: not clearing out entries when deleting code, and extremely slow in defensive mode, over 300 codetrackers for Yoda
 bool AddressSpace::getRelocInfo(Address relocAddr,
                                 RelocInfo &ri) {
   bool ret = false;
@@ -2117,10 +2044,7 @@ void updateSrcListAndVisited(ParseAPI::Edge* e,
     visited.insert(e);
   }
 }
-			     
-// create stub edge set which is: all edges such that: 
-//     e->trg() in owBlocks and e->src() not in delBlocks, 
-//     in which case, choose stub from among e->src()->sources()
+
 std::map<func_instance*,vector<edgeStub> > 
 AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                        const std::set<block_instance*> &delBlocks,
@@ -2205,7 +2129,6 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
     return stubs;
 }
 
-/* PatchAPI Stuffs */
 void AddressSpace::initPatchAPI() {
    DynAddrSpace* addr_space = DynAddrSpace::create();
    assert(addr_space);

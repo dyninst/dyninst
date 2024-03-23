@@ -35,7 +35,6 @@
 #include "dthread.h"
 #include "compiler_annotations.h"
 
-// This is only safe for objects with nothrow constructors...
 template <typename T, typename Alloc = std::allocator<T> >
 class singleton_object_pool : public Alloc
 {

@@ -72,45 +72,37 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     parse_block(parse_func*,ParseAPI::CodeRegion*,Address);
     ~parse_block();
 
-    // just pass through to Block
     Address firstInsnOffset() const;
     Address lastInsnOffset() const;
     Address endOffset() const;
     Address getSize() const;
 
-    // cfg access & various predicates 
     bool isShared() const { return containingFuncs() > 1; }
     bool isExitBlock();
     bool isCallBlock();
     bool isIndirectTailCallBlock();
     bool isEntryBlock(parse_func * f) const;
-    parse_func *getEntryFunc() const;  // func starting with this bock
+    parse_func *getEntryFunc() const;
 
     bool unresolvedCF() const { return unresolvedCF_; }
     bool abruptEnd() const { return abruptEnd_; }
     void setUnresolvedCF(bool newVal);
     void setAbruptEnd(bool newVal) { abruptEnd_ = newVal; }
 
-    // misc utility
     int id() const { return blockNumber_; }
     void debugPrint();
     image *img();
     
-    // Find callees
     parse_func *getCallee();
-    // Returns the address of our callee (if we're a call block, of course)
     std::pair<bool, Address> callTarget();
 
-    // instrumentation-related
     bool needsRelocation() const { return needsRelocation_; }
     void markAsNeedingRelocation() { needsRelocation_ = true; }
 
-    // codeRange implementation
     void *getPtrToInstruction(Address addr) const;
     Address get_address() const { return firstInsnOffset(); }
     unsigned get_size() const { return getSize(); }
 
-    // etc.
     struct compare {
         bool operator()(parse_block * const &b1,
                         parse_block * const &b2) const {
@@ -131,12 +123,9 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     typedef std::set<parse_block *, parse_block::compare> blockSet;
 
     const bitArray &getLivenessIn(parse_func * context);
-    // This is copied from the union of all successor blocks
     const bitArray getLivenessOut(parse_func * context);
 
     typedef std::map<Offset, InstructionAPI::Instruction> Insns;
-    // The provided parameter is a magic offset to add to each instruction's
-    // address; we do this to avoid a copy when getting Insns from block_instances
     void getInsns(Insns &instances, Address offset = 0);
 
  private:
@@ -176,8 +165,6 @@ class image_edge : public ParseAPI::Edge {
     ParseAPI::Edge(source,target,type)
    { }
 
-    // MSVC++ 2003 does not properly support covariant return types
-    // in overloaded methods
 #if !defined _MSC_VER || _MSC_VER > 1310 
    virtual parse_block * src() const { return (parse_block*)ParseAPI::Edge::src(); }
    virtual parse_block * trg() const { return (parse_block*)ParseAPI::Edge::trg(); }
@@ -205,7 +192,6 @@ class parse_func : public ParseAPI::Function
   friend class DynCFGFactory;
   friend class DynParseCallback;
   public:
-   /* Annotatable requires a default constructor */
    parse_func() { }
   public:
    parse_func(SymtabAPI::Function *func, 
@@ -222,7 +208,6 @@ class parse_func : public ParseAPI::Function
       return  func_; 
    }	
 
-   /*** Function naming ***/
    string symTabName() const { 
        return func_->getFirstSymbol()->getMangledName();
    }
@@ -259,35 +244,23 @@ class parse_func : public ParseAPI::Function
    
    void copyNames(parse_func *duplicate);
 
-   // return true if the name is new (and therefore added)
    bool addSymTabName(std::string name, bool isPrimary = false);
    bool addPrettyName(std::string name, bool isPrimary = false);
    bool addTypedName(std::string name, bool isPrimary = false);
 
-   /*** Location queries ***/
    Address getOffset() const;
    Address getPtrOffset() const;
    unsigned getSymTabSize() const;
-   Address getEndOffset(); // May trigger parsing
+   Address getEndOffset();
 
    void *getPtrToInstruction(Address addr) const;
 
-   /*** misc. accessors ***/
    pdmodule *pdmod() const { return mod_;}
    image *img() const { return image_; }
    void changeModule(pdmodule *mod);
 
-   ////////////////////////////////////////////////
-   // CFG and other function body methods
-   ////////////////////////////////////////////////
-
    bool makesNoCalls();
 
-   ////////////////////////////////////////////////
-   // Instpoints!
-   ////////////////////////////////////////////////
-
-   // Initiate parsing on this function
    bool parse();
  
    const std::vector<image_parRegion*> &parRegions();
@@ -295,32 +268,17 @@ class parse_func : public ParseAPI::Function
    bool isInstrumentable();
    bool hasUnresolvedCF();
 
-   // ----------------------------------------------------------------------
-
-
-   ///////////////////////////////////////////////////
-   // Mutable function code, used for hybrid analysis
-   ///////////////////////////////////////////////////
-   
    void getReachableBlocks
-   ( const std::set<parse_block*> &exceptBlocks, // input
-     const std::list<parse_block*> &seedBlocks, // input
-     std::set<parse_block*> &reachableBlocks ); // output
-   ParseAPI::FuncReturnStatus init_retstatus() const; // only call on defensive binaries
-   void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
-   bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
-                                // parse at a weird instruction (e.g., arpl)
+   ( const std::set<parse_block*> &exceptBlocks,
+     const std::list<parse_block*> &seedBlocks,
+     std::set<parse_block*> &reachableBlocks );
+   ParseAPI::FuncReturnStatus init_retstatus() const;
+   void setinit_retstatus(ParseAPI::FuncReturnStatus rs);
+   bool hasWeirdInsns() { return hasWeirdInsns_; }
    void setHasWeirdInsns(bool wi);
    void setPrevBlocksUnresolvedCF(size_t newVal) { prevBlocksUnresolvedCF_ = newVal; }
    size_t getPrevBlocksUnresolvedCF() const { return prevBlocksUnresolvedCF_; }
 
-
-   // ----------------------------------------------------------------------
-
-
-   ////////////////////////////////////////////////
-   // Misc
-   ////////////////////////////////////////////////
 
     struct compare {
         bool operator()(parse_func * const &f1,
@@ -341,7 +299,6 @@ class parse_func : public ParseAPI::Function
 
    parse_block * entryBlock();
 
-   /****** OpenMP Parsing Functions *******/
    std::string calcParentFunc(const parse_func * imf, std::vector<image_parRegion *> & pR);
    void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
    void parseOMPSectFunc(parse_func * parentFunc);
@@ -349,7 +306,6 @@ class parse_func : public ParseAPI::Function
    bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
    void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
    bool OMPparsed() { return OMPparsed_; }
-   /****************************************/
    bool isPLTFunction();
 
    std::set<Register> * usedGPRs() { calcUsedRegs(); return &(usedRegisters->generalPurposeRegisters);}
@@ -375,42 +331,31 @@ class parse_func : public ParseAPI::Function
 
 
  private:
-   void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
-                          it just refers to the stored values and returns that */
+   void calcUsedRegs();
 
-   ///////////////////// Basic func info
-   SymtabAPI::Function *func_{nullptr};		/* pointer to the underlying symtab Function */
-
-   pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
+   SymtabAPI::Function *func_{nullptr};
+   pdmodule *mod_{nullptr};
    image *image_{nullptr};
-   bool OMPparsed_{false};              /* Set true in parseOMPFunc */
+   bool OMPparsed_{false};
 
-   /////  Variables for liveness Analysis
    enum regUseState { unknown, used, unused };
    parse_func_registers * usedRegisters{nullptr};
-   regUseState containsFPRWrites_{unknown};   // floating point registers
-   regUseState containsSPRWrites_{unknown};   // stack pointer registers
+   regUseState containsFPRWrites_{unknown};
+   regUseState containsSPRWrites_{unknown};
 
-   ///////////////////// CFG and function body
-   bool containsSharedBlocks_{false};  // True if one or more blocks in this
-                                       // function are shared with another function.
+   bool containsSharedBlocks_{false};
 
-   //  OpenMP (and other parallel language) support
-   std::vector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
+   std::vector<image_parRegion*> parRegionsList;
     void addParRegion(Address begin, Address end, parRegType t);
-   // End OpenMP support
 
-   bool hasWeirdInsns_{false};    // true if we stopped the parse at a
-								  // weird instruction (e.g., arpl)
-   size_t prevBlocksUnresolvedCF_{}; // num func blocks when calculated
+   bool hasWeirdInsns_{false};
+   size_t prevBlocksUnresolvedCF_{};
 
-   // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();
    UnresolvedCF unresolvedCF_{UNSET_CF};
 
    ParseAPI::FuncReturnStatus init_retstatus_{ParseAPI::FuncReturnStatus::UNSET};
 
-   // Architecture specific data
    bool o7_live{false};
    bool saves_return_addr_{false};
 
@@ -418,7 +363,6 @@ class parse_func : public ParseAPI::Function
    bool isPLTFunction_{false};
 
    bool containsPowerPreamble_{false};
-   // If the function contains the power preamble, this field points the corresponding function that does not contain the preamble
    parse_func* noPowerPreambleFunc_{nullptr};
    Address baseTOC_{};
 };

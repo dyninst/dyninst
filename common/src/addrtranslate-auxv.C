@@ -39,9 +39,6 @@ using namespace Dyninst;
 #include <iostream>
 using namespace std;
 
-/* 
- * This file should be used when a system has an AuxvParser
- */
 bool AddressTranslateSysV::setInterpreterBase() {
     if (set_interp_base) return true;
 

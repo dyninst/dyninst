@@ -507,9 +507,9 @@ bool getAccesses(ParseAPI::Function *func,
 
 using namespace InstructionAPI;
 
-// Copied and modified from parseAPI/src/IA_x86Details.C
 class zeroAllGPRegisters : public InstructionAPI::Visitor
 {
+  // Copied and modified from parseAPI/src/IA_x86Details.C
     public:
         zeroAllGPRegisters(Address ip, ParseAPI::Function* f, ParseAPI::Block* b, InstructionAPI::Instruction i, bool z = false) :
             defined(true), m_ip(ip), func(f), block(b), insn(i), zero(z) {

@@ -53,32 +53,6 @@ typedef enum {
    token_init
 } token_t;
 
-/**
- * DON'T USE THE MEMCACHE FOR ARBITRARY MEMORY OPERATIONS!
- *
- * This class is meant to assist the SysV parser and the 
- * thread_db parser--where we're wrapping another library
- * that is not async aware.  
- * 
- * The semantics are such that this class expects that
- * reads and writes may be restarted, and will cache
- * and not redo operations it has already seen.  This
- * makes a difference when you do operations such as:
- * 
- * write 'A' -> 0x1000
- * write 'B' -> 0x1000
- * write 'A' -> 0x1000
- *
- * Under this class 0x1000 will contain 'B' after these three
- * operations.  The second 'A' write would be detected to be a
- * duplicated of the first and dropped.  We really do want these
- * semantics if we're restarting operations (we expect a write 'B'
- * will follow the second write 'A'), but this is inappropriate
- * for general purpose use.
- * 
- * Update - The memcache can now store registers.  Just what
- * every memcache needs.
- **/
 class memCache;
 class memEntry {
    friend struct memEntry_cmp;

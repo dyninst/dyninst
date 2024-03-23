@@ -68,16 +68,6 @@ using Dyninst::PatchAPI::Point;
 
 
 
-/**************************************************************************
- * BPatch_function
- *************************************************************************/
-/*
- * BPatch_function::BPatch_function
- *
- * Constructor that creates a BPatch_function.
- *
- */
-
 int bpatch_function_count = 0;
 
 BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, 
@@ -102,12 +92,6 @@ BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace,
    mod->func_map[func] = this;
 }
 
-/*
- * BPatch_function::BPatch_function
- *
- * Constructor that creates the BPatch_function with return type.
- *
- */
 BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, func_instance *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
 	addSpace(_addSpace),
@@ -143,20 +127,11 @@ BPatch_function::~BPatch_function()
 }
 
 
-//dynC internal:
-
 bool BPatch_function::hasParamDebugInfo(){
    std::vector<Dyninst::SymtabAPI::localVar *>SymTabParams;
    return lowlevel_func()->ifunc()->getSymtabFunction()->getParams(SymTabParams);
 }
 
-/* 
- * BPatch_function::getSourceObj()
- *
- * Return the contained source objects (e.g. statements).
- *    This is not currently supported.
- *
- */
 bool BPatch_function::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &children)
 {
     // init and empty vector
@@ -174,12 +149,6 @@ BPatch_process * BPatch_function::getProc() const
 }
 
 
-/*
- * BPatch_function::getObjParent()
- *
- * Return the parent of the function (i.e. the module)
- *
- */
 BPatch_sourceObj *BPatch_function::getObjParent()
 {
     return (BPatch_sourceObj *) mod;
@@ -225,16 +194,6 @@ bool BPatch_function::getTypedNames(std::vector<std::string> &names) {
 }
 
 
-/*
- * BPatch_function::getName
- *
- * Copies the name of the function into a buffer, up to a given maximum
- * length.  Returns a pointer to the beginning of the buffer that was
- * passed in.
- *
- * s            The buffer into which the name will be copied.
- * len          The size of the buffer.
- */
 char *BPatch_function::getName(char *s, int len)
 {
     assert(func);
@@ -243,16 +202,6 @@ char *BPatch_function::getName(char *s, int len)
     return s;
 }
 
-/*
- * BPatch_function::getMangledName
- *
- * Copies the mangled name of the function into a buffer, up to a given maximum
- * length.  Returns a pointer to the beginning of the buffer that was
- * passed in.
- *
- * s            The buffer into which the name will be copied.
- * len          The size of the buffer.
- */
 char *BPatch_function::getMangledName(char *s, int len)
 {
   assert(func);
@@ -261,16 +210,6 @@ char *BPatch_function::getMangledName(char *s, int len)
   return s;
 }
 
-/*
- * BPatch_function::getTypedName
- *
- * Copies the mangled name of the function into a buffer, up to a given maximum
- * length.  Returns a pointer to the beginning of the buffer that was
- * passed in.
- *
- * s            The buffer into which the name will be copied.
- * len          The size of the buffer.
- */
 char *BPatch_function::getTypedName(char *s, int len)
 {
   assert(func);
@@ -278,17 +217,6 @@ char *BPatch_function::getTypedName(char *s, int len)
   strncpy(s, typedname.c_str(), len);
   return s;
 }
-
-
-/*
- * BPatch_function::getNames
- *
- * Copies all names of the function into the provided BPatch_Vector.
- * Names are represented as const char *s and are
- * allocated/deallocated by Dyninst.
- *
- * names           BPatch_Vector reference
- */
 
 bool BPatch_function::getNames(BPatch_Vector<const char *> &names)
 {
@@ -300,16 +228,6 @@ bool BPatch_function::getNames(BPatch_Vector<const char *> &names)
 
     return names.size() > pre_size;
 }
-
-/*
- * BPatch_function::getMangledNames
- *
- * Copies all mangled names of the function into the provided
- * BPatch_Vector.  Names are represented as const char *s and are
- * allocated/deallocated by Dyninst.
- *
- * names           BPatch_Vector reference
- */
 
 bool BPatch_function::getMangledNames(BPatch_Vector<const char *> &names)
 {
@@ -323,33 +241,17 @@ bool BPatch_function::getMangledNames(BPatch_Vector<const char *> &names)
     return names.size() > pre_size;
 }
 
-
-
-/*
- * BPatch_function::getBaseAddr
- *
- * Returns the starting address of the function.
- */
 void *BPatch_function::getBaseAddr()
 {
   return (void *)func->addr();
 }
 
-/*
- * BPatch_function::getReturnType
- *
- * Returns the return type of the function.
- */
 BPatch_type *BPatch_function::getReturnType()
 {
     constructVarsAndParams();
     return retType;
 }
 
-/* Update code bytes if necessary (defensive mode), 
- * Parse new edge, 
- * Correct missing elements in BPatch-level datastructures
-*/
 bool BPatch_function::parseNewEdge(Dyninst::Address source, 
                                    Dyninst::Address target)
 {
@@ -374,9 +276,6 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     return true;
 }
 
-// Removes all instrumentation and relocation from the function and 
-// restores the original version
-// Also flushes the runtime library address cache, if present
 bool BPatch_function::removeInstrumentation(bool useInsertionSet)
 {
     bool removedAll = true;
@@ -415,8 +314,6 @@ bool BPatch_function::removeInstrumentation(bool useInsertionSet)
     return removedAll;
 }
 
-/* Gets unresolved instPoints from func_instance and converts them to
-   BPatch_points, puts them in unresolvedCF */
 void BPatch_function::getUnresolvedControlTransfers
 (BPatch_Vector<BPatch_point *> &unresolvedCF/*output*/)
 {
@@ -447,8 +344,6 @@ void BPatch_function::getUnresolvedControlTransfers
    }
 }
 
-/* Gets abrupt end instPoints from func_instance and converts them to
-   BPatch_points, puts them in abruptEnds */
 void BPatch_function::getAbruptEndPoints
 (BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
 {
@@ -462,8 +357,6 @@ void BPatch_function::getAbruptEndPoints
    }
 }
 
-// This one is interesting - get call points for everywhere that _calls_ us. 
-// That we know about. 
 void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 {
    std::vector<block_instance *> callerBlocks;
@@ -527,10 +420,6 @@ void BPatch_function::getAllPoints(std::vector<BPatch_point*>& bpPoints)
    // Not running with arbitrary for now...
 }
 
-// Sets the address in the structure at which the fault instruction's
-// address is stored if "set" is true.  Accesses the fault address and 
-// translates it back to an original address if it corresponds to 
-// relocated code in the Dyninst heap 
 bool BPatch_function::setHandlerFaultAddrAddr
         (Dyninst::Address addr, bool set)
 {
@@ -541,18 +430,10 @@ bool BPatch_function::setHandlerFaultAddrAddr
     return false;
 }
 
-/*
- * BPatch_function::getModule
- *
- * Returns the BPatch_module to which this function belongs.
- */
 BPatch_module *BPatch_function::getModule()
 {
   return mod;
 }
-
-//  BPatch_function::getParams
-//  Returns a vector of BPatch_localVar, representing this function's parameters
 
 BPatch_Vector<BPatch_localVar *> * BPatch_function::getParams()
 {
@@ -563,23 +444,6 @@ BPatch_Vector<BPatch_localVar *> * BPatch_function::getParams()
     return &params;
 }
 
-/*
- * BPatch_function::findPoint
- *
- * Returns a vector of the instrumentation points from a procedure that is
- * identified by the parameters, or returns NULL upon failure.
- * (Points are sorted by address in the vector returned.)
- *
- * loc          The points within the procedure to return.  The following
- *              values are valid for this parameter:
- *                BPatch_entry         The function's entry point.
- *                BPatch_exit          The function's exit point(s).
- *                BPatch_subroutine    The points at which the procedure calls
- *                                     other procedures.
- *                BPatch_longJump      The points at which the procedure make
- *                                     long jump calls.
- *                BPatch_allLocations  All of the points described above.
- */
 BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         const BPatch_procedureLocation loc)
 {
@@ -614,17 +478,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     return result;
 }
-
-/*
- * BPatch_function::findPoint (VG 09/05/01)
- *
- * Returns a vector of the instrumentation points from a procedure that is
- * identified by the parameters, or returns NULL upon failure.
- * (Points are sorted by address in the vector returned.)
- *
- * ops          The points within the procedure to return. A set of op codes
- *              defined in BPatch_opCode (BPatch_point.h)
- */
 
 struct compareByEntryAddr
 {
@@ -669,12 +522,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(const BPatch_Set<BPatch
    return findPoint(tmp);
 }
 
-/*
- * BPatch_function::findPoint
- *
- * Create a BPatch_point corresponding with the provided address.
- */
-
 BPatch_point *BPatch_function::findPoint(Dyninst::Address addr) {
    // Find the matching block and feed this into
 
@@ -688,12 +535,6 @@ BPatch_point *BPatch_function::findPoint(Dyninst::Address addr) {
                                              BPatch_locInstruction);
 }
 
-/*
- * BPatch_function::addParam()
- *
- * This function adds a function parameter to the BPatch_function parameter
- * vector.
- */
 void BPatch_function::addParam(Dyninst::SymtabAPI::localVar *lvar)
 {
   BPatch_localVar * param = new BPatch_localVar(lvar);
@@ -715,12 +556,7 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
 }
 #endif
 
-/*
- * BPatch_function::findLocalVar()
- *
- * This function searchs for a local variable in the BPatch_function's
- * local variable collection.
- */
+
 BPatch_localVar * BPatch_function::findLocalVar(const char * name)
 {
     if (!mod->isValid()) 
@@ -730,12 +566,6 @@ BPatch_localVar * BPatch_function::findLocalVar(const char * name)
     return (var);
 }
 
-/*
- * BPatch_function::findLocalParam()
- *
- * This function searchs for a function parameter in the BPatch_function's
- * parameter collection.
- */
 BPatch_localVar * BPatch_function::findLocalParam(const char * name)
 {
     if (!mod->isValid()) return NULL;
@@ -983,17 +813,10 @@ bool BPatch_function::getAddressRange(Dyninst::Address &start, Dyninst::Address 
    return true;
 }
 
-/*
- * BPatch_function::isInstrumentable
- *
- * Returns true if the function is instrumentable, false otherwise.
- */
 bool BPatch_function::isInstrumentable()
 {
      return ((func_instance *)func)->isInstrumentable();
 }
-
-// Return TRUE if the function resides in a shared lib, FALSE otherwise
 
 bool BPatch_function::isSharedLib(){
   return mod->isSharedLib();
@@ -1017,8 +840,6 @@ bool BPatch_function::containsSharedBlocks() {
     return func->containsSharedBlocks();
 }
 
-// isPrimary: function will now use this name as a primary output name
-// isMangled: this is the "mangled" name rather than demangled (pretty)
 const char *BPatch_function::addName(const char *name,
                                         bool isPrimary, /* = true */
                                         bool isMangled) { /* = false */

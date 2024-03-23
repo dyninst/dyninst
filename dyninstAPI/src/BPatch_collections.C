@@ -41,19 +41,6 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 
-//#include "BPatch_type.h"
-
-
-/**************************************************************************
- * BPatch_localVarCollection
- *************************************************************************/
-
-/*
- * BPatch_localVarCollection::~BPatch_localVarCollection
- *
- * Destructor for BPatch_localVarCollection.  Deletes all type objects that
- * have been inserted into the collection.
- */
 BPatch_localVarCollection::~BPatch_localVarCollection()
 {
    for (auto iter = localVariablesByName.begin(); iter != localVariablesByName.end(); ++iter) {
@@ -61,24 +48,12 @@ BPatch_localVarCollection::~BPatch_localVarCollection()
    }
 }
 
-/*
- * BPatch_localVarCollection::addLocalVar()
- * This function adds local variables to the set of local variables
- * for function.
- */
-
 void BPatch_localVarCollection::addLocalVar(BPatch_localVar * var){
 
   localVariablesByName[var->getName()]= var;
 
 }
 
-/*
- * BPatch_localVarCollection::findLocalVar()
- * This function finds a local variable by name and returns a pointer to
- * it or NULL if the local variable does not exist in the set of function
- * local variables.
- */
 BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
 
    auto iter = localVariablesByName.find(name);
@@ -86,10 +61,6 @@ BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
    return iter->second;
 }
 
-/*
- * BPatch_localVarCollection::getAllVars()
- * this function returns all the local variables in the collection.
- */
 BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
     BPatch_Vector<BPatch_localVar *> *localVarVec = new BPatch_Vector<BPatch_localVar *>;
 
@@ -100,12 +71,7 @@ BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
     return localVarVec;
 }
   
-// Could be somewhere else... for DWARF-work.
 std::unordered_map<std::string, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap;
-
-/*
- * Reference count
- */
 
 BPatch_typeCollection *BPatch_typeCollection::getGlobalTypeCollection() {
     BPatch_typeCollection *tc = new BPatch_typeCollection();
@@ -146,12 +112,6 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
     }
 }
 
-/*
- * BPatch_typeCollection::BPatch_typeCollection
- *
- * Constructor for BPatch_typeCollection.  Creates the two dictionaries
- * for the type, by Name and ID.
- */
 BPatch_typeCollection::BPatch_typeCollection():
     refcount(0),
     dwarfParsed_(false)
@@ -159,12 +119,6 @@ BPatch_typeCollection::BPatch_typeCollection():
   /* Initialize hash tables: typesByName, typesByID */
 }
 
-/*
- * BPatch_typeCollection::~BPatch_typeCollection
- *
- * Destructor for BPatch_typeCollection.  Deletes all type objects that have
- * been inserted into the collection.
- */
 BPatch_typeCollection::~BPatch_typeCollection()
 {
     // We sometimes directly delete (refcount == 1) or go through the
@@ -181,16 +135,6 @@ BPatch_typeCollection::~BPatch_typeCollection()
     }
 }
 
-/*
- * BPatch_typeCollection::findType
- *
- * Retrieve a pointer to a BPatch_type object representing the named type from
- * the collection.  If no such type exists and no such type can be derived
- * from existing types, then the function returns NULL.
- *
- * name		The name of the type to look up.
- * id           The unique type ID of the type tp look up.
- */
 BPatch_type *BPatch_typeCollection::findType(const char *name)
 {
    auto iter = typesByName.find(name);
@@ -302,15 +246,6 @@ BPatch_type *BPatch_typeCollection::findType(const int & ID)
    }
 }
 
-/*
- * BPatch_typeCollection::findVariableType
- * (Global Variables)
- * Retrieve a pointer to a BPatch_type object representing the named type from
- * the collection.  If no such type exists and no such type can be derived
- * from existing types, then the function returns NULL.
- *
- * name		The name of the type to look up.
- */
 BPatch_type *BPatch_typeCollection::findVariableType(const char *name)
 {
    auto iter = globalVarsByName.find(name);
@@ -320,14 +255,6 @@ BPatch_type *BPatch_typeCollection::findVariableType(const char *name)
    return NULL;
 }
 
-/*
- * BPatch_typeCollection::addType
- *
- * Add a new type to the type collection.  Note that when a type is added to
- * the collection, it becomes the collection's responsibility to delete it
- * when it is no longer needed.  For one thing, this means that a type
- * allocated on the stack should *NEVER* be put into a BPatch_typeCollection.
- */
 void BPatch_typeCollection::addType(BPatch_type *type)
 {
   if(type->getName() != NULL) { //Type could have no name.
@@ -354,25 +281,11 @@ void BPatch_typeCollection::clearNumberedTypes() {
 }
 
 
-/*
- * BPatch_builtInTypeCollection::BPatch_builtInTypeCollection
- *
- * Constructor for BPatch_builtInTypeCollection.  Creates adictionary
- * for the builtInType, by Name and ID.
- *  XXX- Don't know if a collection is needed for types by name, but
- * it is created just in case. jdd 4/21/99
- */
 BPatch_builtInTypeCollection::BPatch_builtInTypeCollection()
 {
   /* Initialize hash tables: builtInTypesByName, builtInTypesByID */
 }
 
-/*
- * BPatch_builtInTypeCollection::~BPatch_builtInTypeCollection
- *
- * Destructor for BPatch_builtInTypeCollection.  Deletes all builtInType objects that have
- * been inserted into the collection.
- */
 BPatch_builtInTypeCollection::~BPatch_builtInTypeCollection()
 {
 
@@ -384,17 +297,6 @@ BPatch_builtInTypeCollection::~BPatch_builtInTypeCollection()
    }
 }
 
-
-/*
- * BPatch_builtInTypeCollection::findBuiltInType
- *
- * Retrieve a pointer to a type object representing the named type from
- * the collection.  If no such type exists and no such type can be derived
- * from existing types, then the function returns NULL.
- *
- * name		The name of the type to look up.
- * id           The unique type ID of the type tp look up.
- */
 BPatch_type *BPatch_builtInTypeCollection::findBuiltInType(const char *name)
 {
    auto iter = builtInTypesByName.find(name);

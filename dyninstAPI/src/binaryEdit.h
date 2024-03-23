@@ -54,9 +54,6 @@ class depRelocation;
 
 class BinaryEdit : public AddressSpace {
  public:
-    // We must implement the following virtual functions
-
-    // "Read"/"Write" to an address space
     bool readDataSpace(const void *inOther, 
                        u_int amount, 
                        void *inSelf, 
@@ -72,7 +69,6 @@ class BinaryEdit : public AddressSpace {
                         u_int amount,
                         const void *inSelf);
 
-    // "Read"/"Write" to an address space with correct endian swapping.
     bool readDataWord(const void *inOther, 
                       u_int amount, 
                       void *inSelf, 
@@ -87,13 +83,6 @@ class BinaryEdit : public AddressSpace {
     bool writeTextWord(void *inOther,
                        u_int amount,
                        const void *inSelf);
-
-    // Memory allocation
-    // We don't specify how it should be done, only that it is. The model is
-    // that you ask for an allocation "near" a point, where "near" has an
-    // internal, platform-specific definition. The allocation mechanism does its
-    // best to give you what you want, but there are no promises - check the
-    // address of the returned buffer to be sure.
 
     Address inferiorMalloc(unsigned size, 
                            inferiorHeapType type=anyHeap,
@@ -112,33 +101,19 @@ class BinaryEdit : public AddressSpace {
     bool isValidAddress(const Address) const;
     */
 
-    // If true is passed for ignore_if_mt_not_set, then an error won't be
-    // initiated if we're unable to determine if the program is multi-threaded.
-    // We are unable to determine this if the daemon hasn't yet figured out
-    // what libraries are linked against the application.  Currently, we
-    // identify an application as being multi-threaded if it is linked against
-    // a thread library (eg. libpthreads.so on Linux).  There are cases where we
-    // are querying whether the app is multi-threaded, but it can't be
-    // determined yet but it also isn't necessary to know.
     bool multithread_capable(bool ignore_if_mt_not_set = false);
     
-    // Do we have the RT-side multithread functions available
     bool multithread_ready(bool ignore_if_mt_not_set = false);
 
-    // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               func_instance *&, 
                               Address) { return false; }
-
-    // Should be easy if the process isn't _executing_ where
-    // we're deleting...
 
     bool needsPIC();
 
     BinaryEdit();
     ~BinaryEdit();
 
-    // And the "open" factory method.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
                                 Dyninst::PatchAPI::Patcher::Ptr patch = Dyninst::PatchAPI::Patcher::Ptr(),
@@ -150,16 +125,12 @@ class BinaryEdit : public AddressSpace {
                                               const std::string &libname = "",
                                               bool search_rt_lib = true);
 
-    // open a shared library and (optionally) all its dependencies
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
 
-    // add a shared library relocation
     void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
 
-    // search for a shared library relocation
     Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
 
-    // Add a library prerequisite
     void addLibraryPrereq(std::string libname);
 
    void setupRTLibrary(std::vector<BinaryEdit *> &r);
@@ -211,7 +182,6 @@ class BinaryEdit : public AddressSpace {
 
     bool archSpecificMultithreadCapable();
 
-   /* Function specific to rewritting static binaries */
    bool doStaticBinarySpecialCases();
     
     codeRangeTree memoryTracker_;
@@ -224,14 +194,12 @@ class BinaryEdit : public AddressSpace {
                              SymtabAPI::Region *newSec,
                              SymtabAPI::Module *newMod);
 
-    // `mobj` is only a view. The actual object is owned by AddressSpace::mapped_objects
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
     bool writing_;
 
-    // Symbols that other people (e.g., functions) want us to add
     std::vector<SymtabAPI::Symbol *> newDyninstSyms_;
 
 };
@@ -260,11 +228,9 @@ public:
   }
   ~memoryTracker() = default;
 
-  // Not copyable
   memoryTracker(memoryTracker const &) = delete;
   memoryTracker &operator=(memoryTracker const &) = delete;
 
-  // move-only
   memoryTracker(memoryTracker &&) = default;
   memoryTracker &operator=(memoryTracker &&) = default;
 

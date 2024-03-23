@@ -42,27 +42,8 @@
 
 namespace Dyninst {
 
-// We fully template the three types of nodes we have so that
-// users can specify their own. This basically makes the AST
-// a fully generic class. 
-//
-// TODO: do we want Variable and Constant to be different classes?
-// I'm using the Absloc case as the basis here; EAX and '5' are
-// very different things...
-//
-// Possible fourth template type: Type
-// though I'm currently arguing that Type is an artifact of the
-// Eval method you apply here. 
-// ... and are Eval methods independent of Operation/Variable/Constant?
-// I think they are...x
-
 class ASTVisitor;  
 
- // For this to work, the ASTVisitor has to have a virtual
- // visit() method for every instantiation of an AST-typed
- // class. Yes, this means that if you add an AST class
- // somewhere else you have to come back and put it in here. 
- // Well, if you want to run a visitor over it, that is.
  class AST;
 
  // SymEval...
@@ -74,10 +55,6 @@ class ASTVisitor;
  }
  // Stack analysis...
  class StackAST;
-
- // InsnAPI...
-
- // Codegen...
 
  // Concolic execution...
  class InputVariableAST;
@@ -166,10 +143,6 @@ class name : public AST {						\
 class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
  public:
 
-  // This is a global list of all AST types, including those that are not
-  // yet implemented. The format is a "V_" string prepending the class name.
-  // If you add an AST type you should update this list.
-
   typedef enum {
     V_AST,
     // SymEval
@@ -211,17 +184,13 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
 
   virtual const std::string format() const = 0;
 
-  // Substitutes every occurrence of a with b in
-  // AST in. Returns a new AST. 
-
   static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
 
-  // breaks execution if the tree has a cycle. visited should be an empty map.
+  // Detects if ``in`` exists in the set of ``visited`` nodes.
   static void hasCycle(AST::Ptr in,std::map<AST::Ptr, int> &visited);
   
   virtual ID getID() const { return V_AST; }
 
-  // VISITOR wooo....
   virtual Ptr accept(ASTVisitor *);
 
   Ptr ptr() { return shared_from_this(); }

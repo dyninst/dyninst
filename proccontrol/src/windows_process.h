@@ -110,7 +110,7 @@ public:
 	virtual void clearPendingDebugBreak();
 	virtual void setPendingDebugBreak();
 	virtual bool pendingDebugBreak() const;
-	// Windows lets us do this directly.
+
 	virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
 	virtual bool direct_infFree(Dyninst::Address addr);
 
@@ -121,7 +121,6 @@ public:
 	// Is this in ntdll or another lib we consider a system lib?
 	virtual bool addrInSystemLib(Address addr);
 
-	// Hacky system thread RPC idea
     virtual int_thread *RPCThread();
     virtual int_thread *createRPCThread(int_thread* best_candidate);
     void destroyRPCThread();

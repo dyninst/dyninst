@@ -46,7 +46,6 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-// Normal constructor
 baseTramp::baseTramp() :
    point_(NULL),
    as_(NULL),
@@ -82,9 +81,6 @@ baseTramp *baseTramp::create(instPoint *p) {
 }
 
 baseTramp *baseTramp::createForIRPC(AddressSpace *as) {
-    // We use baseTramps to generate save and restore code for iRPCs
-    // iRPCs don't have a corresponding instPoint so the AddressSpace
-    // needs to be specified
     baseTramp *bt = new baseTramp();
     bt->as_ = as;
     return bt;
@@ -262,40 +258,8 @@ bool baseTramp::generateCode(codeGen &gen,
 
 bool baseTramp::generateCodeInlined(codeGen &gen,
                                     Dyninst::Address) {
-   // We're generating something like so:
-   //
-   // <Save state>
-   // <If>
-   //    <compare>
-   //      <load>
-   //        <add>
-   //          <tramp guard addr>
-   //          <multiply>
-   //            <thread index>
-   //            <sizeof (int)>
-   //      <0>
-   //    <sequence>
-   //      <store>
-   //        <... tramp guard addr>
-   //        <1>
-   //      <mini tramp sequence>
-   //      <store>
-   //        <... tramp guard addr>
-   //        <0>
-   // <Cost section>
-   // <Load state>
-
-   // Break it down...
-   // <Save state>
-   //   -- TODO: an AST for saves that knows how many registers
-   //      we're using...
-
-   // Now we start building up the ASTs to generate. Let's get the
-   // pieces.
-
-   // Specialize for the instPoint...
-	
-   gen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
+  //Now we start building up the ASTs to generate. Let's get the pieces.
+  gen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
 
    std::vector<AstNodePtr> miniTramps;
 
