@@ -75,10 +75,6 @@
 #define SYS_lwp_exit 1009
 #endif
 
-typedef int procWaitpidStatus_t;
-class EventRecord;
-bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
-
 #define SYSSET_MAP(x, pid)  (x)
 
 typedef unsigned long eventInfo_t;
