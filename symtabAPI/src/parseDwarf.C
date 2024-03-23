@@ -89,11 +89,6 @@ std::string convertCharToString(char *ptr)
   return str;	
 }
 
-void Object::parseDwarfTypes( Symtab *) 
-{
-   assert(0);
-} /* end parseDwarfTypes() */
-
 bool Object::hasFrameDebugInfo()
 {
    dwarf->frame_dbg();
