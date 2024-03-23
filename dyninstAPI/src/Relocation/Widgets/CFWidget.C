@@ -87,17 +87,6 @@ CFWidget::CFWidget(InstructionAPI::Instruction insn, Address addr)  :
       if (iter->isConditional) isConditional_ = true;
    }
 
-#if 0
-   // Old way
-   if (insn->getCategory() == c_CallInsn) {
-      // Calls have a fallthrough but are not conditional.
-      // TODO: conditional calls work how?
-      isCall_ = true;
-   } else if (insn->allowsFallThrough()) {
-      isConditional_ = true;
-   }
-#endif
-
    // This whole next section is obsolete, but IAPI's CFT interface doesn't say
    // what a "return" is (aka, they don't include "indirect"). So I'm using it
    // so that things work. 
@@ -114,7 +103,6 @@ CFWidget::CFWidget(InstructionAPI::Instruction insn, Address addr)  :
    }
 
    exp->bind(thePC.get(), Result(u64, addr_));
-   //exp->bind(thePCFixme.get(), Result(u64, addr_));
    Result res = exp->eval();
    if (!res.defined) {
       if (!isIndirect_) {
