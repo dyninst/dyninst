@@ -439,15 +439,6 @@ std::string CFWidget::format() const {
    return ret.str();
 }
 
-#if 0
-unsigned CFWidget::size() const
-{ 
-   if (insn_ != NULL) 
-      return insn_->size(); 
-   return 0;
-}
-#endif
-
 /////////////////////////
 // Patching!
 /////////////////////////
@@ -484,7 +475,6 @@ unsigned CFPatch::estimate(codeGen &) {
 PaddingPatch::PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b)
   : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) 
 {
-   //malware_cerr << hex << "PaddingPatch(" << size << "," << registerDefensive << "," << noop << ", [" << b->start() << " " << b->end() << ") )" << dec <<  endl;
 }
 
 
@@ -495,7 +485,6 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
       bpwarn("WARNING: Disabling post-call block padding %s[%d]\n",FILE__,__LINE__);
       return true;
    }
-   //malware_cerr << "PaddingPatch::apply, addr [" << hex << block_->end() << "]["<< gen.currAddr() << "], size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
    if (noop_) {
       gen.fill(size_, codeGen::cgNOP);
    }
@@ -504,8 +493,6 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
    } else {
       gen.fill(size_, codeGen::cgTrap);
    }
-   //cerr << "\t After filling, current addr " << hex << gen.currAddr() << dec << endl;
-   //gen.fill(10, codeGen::cgNOP);
    return true;
 }
 
