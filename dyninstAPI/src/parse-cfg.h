@@ -165,8 +165,6 @@ parse_block::getSize() const {
     return ParseAPI::Block::size();
 }
 
-void checkIfRelocatable (instruction insn, bool &canBeRelocated);
-
 class image_edge : public ParseAPI::Edge {
     friend class parse_block;
  public:
