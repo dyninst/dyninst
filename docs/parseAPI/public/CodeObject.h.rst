@@ -50,11 +50,24 @@ CodeObject.h
       enables recursive traversal parsing when enabled; otherwise only instructions
       reachable through intraprocedural control flow are visited.
 
+  .. cpp:function:: void parse(const std::vector<Address> &targets, bool recursive)
+
+      The same as :cpp:func:`void CodeObject::parse(Address target, bool recursive)`, but for multiple targets.
+
+      This is optimized to be faster than calling ``parse`` multiple times.
+
   .. cpp:function:: void parse(CodeRegion* cr, Address target, bool recursive)
 
       Parses the region, ``cr``, of the binary starting at ``target``. ``recursive``
       enables recursive traversal parsing when enabled; otherwise only instructions
       reachable through intraprocedural control flow are visited.
+
+  .. cpp:function:: void parse(const std::vector<std::pair<Address, CodeRegion *>> &targets, bool recursive)
+
+      The same as :cpp:func:`void CodeObject::parse(CodeRegion* cr, Address target, bool recursive)`, but
+      for multiple targets.
+
+      This is optimized to be faster than calling ``parse`` multiple times.
 
   .. cpp:function:: bool parseNewEdges(vector<NewEdgeToParse>& worklist)
 
