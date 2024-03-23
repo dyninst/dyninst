@@ -263,9 +263,6 @@ private:
     bool parseTypesIfNecessary();
     BPatch_typeCollection *moduleTypes;
 
-    // We understand the type information in DWARF format.
-    void parseDwarfTypes();
-
    BPatch_funcMap func_map;
    BPatch_instpMap instp_map;
    BPatch_varMap var_map;
