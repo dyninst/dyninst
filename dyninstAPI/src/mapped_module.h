@@ -49,9 +49,6 @@ class image;
 #include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
 
-#define CHECK_ALL_CALL_POINTS  // paradyn might need it
-
-
 // pdmodule equivalent The internals tend to use images, while the
 // BPatch layer uses modules. On the other hand, "module" means
 // "compilation unit for the a.out, or the entire image for a
