@@ -233,14 +233,6 @@ inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
 
-#if 0 
-// not initially needed
-inline int P_rexec(char **ahost, u_short inport, char *user,
-		   char *passwd, char *cmd, int *fd2p) {
-  return (rexec(ahost, inport, user, passwd, cmd, fd2p));
-}
-#endif
-
 extern std::string COMMON_EXPORT P_cplus_demangle( const std::string &symbol,
 				bool includeTypes = false );
 
