@@ -47,13 +47,6 @@ using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InsnAdapter;
 
-//#warning "The reg defines are not correct now!"
-static RegisterAST::Ptr aarch64_R11 (new RegisterAST (aarch64::x11));
-static RegisterAST::Ptr aarch64_LR  (new RegisterAST (aarch64::x30));
-//SP is an independent reg in aarch64
-static RegisterAST::Ptr aarch64_SP  (new RegisterAST (aarch64::sp));
-
-
 IA_aarch64::IA_aarch64(Dyninst::InstructionAPI::InstructionDecoder dec_,
                Address start_, 
 	       Dyninst::ParseAPI::CodeObject* o,
