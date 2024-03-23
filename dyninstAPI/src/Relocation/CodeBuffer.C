@@ -134,15 +134,6 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
    else {
       gen.fill(size_ - newSize, codeGen::cgNOP);
    }
-#if 0
-   else if (newSize < size_) {
-      shift -= size_ - newSize;
-      size_ = newSize;
-      regenerate = true;
-   }
-#endif
-   //relocation_cerr << "BufferElement::generate, new size " << size_ << endl;
-
    return true;
 }
 
@@ -150,25 +141,19 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker *t) {
    // Update tracker information (address, size) and add it to the
    // CodeTracker we were handed in.
 
-   //relocation_cerr << "*** Begin tracker extraction from BufferElement" << endl;
-
    for (Trackers::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {
       TrackerElement *e = iter->second;
       if (!e) continue; // 0-length "mark me" Widgets may not have trackers
 
-      //relocation_cerr << "\t Tracker element: " << *e << endl;
       unsigned size = 0;
       Trackers::iterator next = iter; ++next;
       if (next != trackers_.end()) {
-         //relocation_cerr << "\t\t\t Size calc: " << next->first << " - " << iter->first << endl;
          size = next->first - iter->first;
       }
       else {
-         //relocation_cerr << "\t\t\t Size calc: " << size_ << " - " << iter->first << endl;
          size = size_ - iter->first;
       }
-      //relocation_cerr << "\t\t Calculated size: " << size << endl;
       if (!size) continue;
       
       Address relocAddr = iter->first + addr_;
@@ -177,7 +162,6 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker *t) {
       t->addTracker(e);
    }
 
-   //relocation_cerr << "*** End tracker extraction from BufferElement" << endl;
    return true;
 }
 
@@ -320,11 +304,7 @@ void CodeBuffer::updateLabel(unsigned id, Address offset, bool &regenerate) {
    Label &l = labels_[id];
    if (!l.valid()) return;
 
-   //relocation_cerr << "\t Updating label " << id 
-//                   << " -> " << std::hex << offset << std::dec << endl;
    if (l.addr != offset) {
-      //relocation_cerr << "\t\t Old value " << std::hex << labels_[id].addr
-//                      << ", regenerating!" << std::dec << endl;
       regenerate = true;
    }
    l.addr = offset;
@@ -347,16 +327,10 @@ Address CodeBuffer::predictedAddr(unsigned id) {
    Label &label = labels_[id];
    switch(label.type) {
       case Label::Absolute:
-         //relocation_cerr << "\t\t Requested predicted addr for " << id
-//                         << ", label is absolute, ret " << std::hex << label.addr << std::dec << endl;
          return label.addr;
       case Label::Relative:
          assert(gen_.startAddr());
          assert(gen_.startAddr() != (Address) -1);
-         //relocation_cerr << "\t\t Requested predicted addr for " << id
-//                         << ", label is relative, ret " << std::hex << label.addr + gen_.startAddr()
-//                         << " = " << label.addr << " + " << gen_.startAddr()
-            //             << std::dec << endl;
          return label.addr + gen_.startAddr();
       case Label::Estimate: {
          // In this case we want to adjust the address by 
@@ -368,12 +342,6 @@ Address CodeBuffer::predictedAddr(unsigned id) {
          Address ret = label.addr + gen_.startAddr();
          if (label.iteration < curIteration_)
             ret += shift_;
-         //relocation_cerr << "\t\t Requested predicted addr for " << id
-//                         << ", label is relative, ret " << std::hex << ret
-    //                     << " = " << label.addr << " + " << gen_.startAddr()
-   //                      << " + (" << label.iteration << " < " 
-   //                      << curIteration_ << ") ? " << shift_ 
-   //                      << " : 0" << std::dec << endl;
          return ret;
       }
       default:
