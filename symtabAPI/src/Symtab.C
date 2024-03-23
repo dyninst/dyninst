@@ -498,10 +498,6 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
 	createDefaultModule();
     }
 
-//    const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
-//    for (unsigned i=0; i< mods.size(); i++) {
-//       getOrCreateModule(mods[i].first, mods[i].second);
-//    }
     for (unsigned i = 0; i < raw_syms.size(); i++) {
         fixSymModule(raw_syms[i]);
     }
@@ -715,15 +711,6 @@ bool Symtab::doNotAggregate(const Symbol* sym) {
     return true;
   }
 
-#if 0
-  // Disabling as a test; this means we find _zero_ Function objects. 
-  // PPC64 Linux symbols in the .opd section appear to be functions,
-  // but are not.
-  if (sym->getRegion() && sym->getRegion()->getRegionName() == ".opd") {
-      return true;
-  }
-#endif
-  // return !isDefined(sym);
     return false;
 }
 
@@ -945,11 +932,6 @@ bool Symtab::extractInfo(Object *linkedFile)
            }
        }
    }
-	
-  //  if (!imageLen_ || !linkedFile->code_ptr()) {
-  //      serr = Obj_Parsing; 
-  //      return false; 
-   // }
 
     no_of_sections = linkedFile->no_of_sections();
     newSectionInsertPoint = no_of_sections;
@@ -1024,9 +1006,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     is_eel_ = linkedFile->isEEL();
     linkedFile->getSegments(segments_);
 
-    // define all of the functions
-    //statusLine("winnowing functions");
-
     // a vector to hold all created symbols until they are properly classified
     std::vector<Symbol *> raw_syms;
 
@@ -1078,7 +1057,6 @@ bool Symtab::extractInfo(Object *linkedFile)
 #endif
 
     
-    //addSymtabVariables();
     linkedFile->getAllExceptions(excpBlocks);
     sort(excpBlocks.begin(), excpBlocks.end(), ExceptionBlockCmp);
 
