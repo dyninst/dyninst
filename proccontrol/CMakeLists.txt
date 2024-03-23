@@ -28,7 +28,6 @@ set(_private_headers
     src/loadLibrary/injector.h
     src/memcache.h
     src/mmapalloc.h
-    src/notify_pipe.h
     src/ppc_process.h
     src/processplat.h
     src/procpool.h
