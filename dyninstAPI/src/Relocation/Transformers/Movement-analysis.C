@@ -87,7 +87,6 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
     {
         if(adhoc_required)
         {
-            // sensitivity_cerr << "Warning: No block, running adhoc: " << adhoc_result << endl;
             return adhoc_result;
         }
         else return true;
@@ -125,9 +124,6 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             continue;
         }
 
-
-        // sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
-
         // Optimization: before we do some heavyweight analysis, see if we can shortcut
         bool intSens = false;
         bool extSens = false;
@@ -158,15 +154,12 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                 for (AssignList::iterator a_iter = sensitiveAssignments.begin();
                      a_iter != sensitiveAssignments.end(); ++a_iter) {
 
-                    //cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << block->func()->prettyName() << endl;
-
                     Graph::Ptr slice = forwardSlice(*a_iter,
                                                     block->llb(),
                                                     func->ifunc());
 
                     if (!slice) {
                         // Safe assumption, as always
-                        // sensitivity_cerr << "\t slice failed!" << endl;
                         approx = true;
                     }
                     else {
@@ -176,12 +169,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                         }
                         else if (!determineSensitivity(slice, intSens, extSens)) {
                             // Analysis failed for some reason... go conservative
-                            // cerr << "\t Warning: sensitivity analysis failed!" << endl;
                             approx = true;
-                        }
-                        else {
-                            //sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / "
-                            //<< (extSens ? "extSens" : "") << endl;
                         }
                     }
 
@@ -230,7 +218,6 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                 } 
             }
 
-            // cerr << "\tEmulating instruction..." << endl; 
             // And now to the real work. Replace this instruction with an emulation sequence
 
             emulateInsn(reloc,
@@ -242,7 +229,6 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
         
         if(!adhoc_required)
         {
-            // sensitivity_cerr << "\tRunning cache analysis..." << endl; 
             cacheAnalysis(block, addr, intSens, extSens);
         }
     }
@@ -250,8 +236,6 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
     /* do we still have to run the adhoc analysis? */
     if(adhoc_required)
     {
-        // bool adhoc_result = adhoc.process(reloc, g);
-        // sensitivity_cerr << "Completing analysis with adhoc process: " << adhoc_result << endl;
         return adhoc_result;
     }
 
@@ -287,7 +271,6 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction insn,
     for (std::vector<AbsRegion>::const_iterator i = ins.begin();
 	 i != ins.end(); ++i) {
       if (i->contains(pc)) {
-	//relocation_cerr << insn->format() << " @" << hex << addr << dec << " is PCsens" << endl;
 	sensitiveAssignments.push_back(*a_iter);
       }
     }
@@ -392,13 +375,11 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 
     // By definition, a widen point is potentially behavior changing.
     if (Slicer::isWidenNode(*exitBegin)) {
-      // cerr << "\t\t isWidenNode!" << endl;
       return false;
     }
     
     AST::Ptr ast = results[aNode->assign()];
     if (ast == AST::Ptr()) {
-      // cerr << "\t\t Symbolic expansion failed" << endl;
       return false;
     }
 
@@ -409,12 +390,9 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
     ExtPCSensVisitor v(aNode->assign()->out());
 
     if (v.isExtSens(ast)) {
-      //cerr << "\t\t is externally sensitive" << endl;
-      //cerr << "\t\t\t @ " << hex << aNode->addr() << dec << endl;
       external = true;
     }
     else {
-      //cerr << "\t\t is internally sensitive" <<endl;
       internal = true;
     }
   }
@@ -447,7 +425,6 @@ bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
   Result res = CFT->eval();
 
   if (!res.defined) {
-    //relocation_cerr << "      ... CFT not evallable, ret false from isGetPC" << endl;
     return false;
   }
 
@@ -470,9 +447,6 @@ bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
 
     Instruction firstInsn = decoder.decode();
     Instruction secondInsn = decoder.decode();
-    //relocation_cerr << "      ... decoded target insns "
-		    //<< firstInsn->format() << ", " 
-		    //<< secondInsn->format() << endl;
 
     if(firstInsn.isValid() && firstInsn.getOperation().getID() == e_mov
        && firstInsn.readsMemory() && !firstInsn.writesMemory()
@@ -540,7 +514,7 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
                                          RelocBlock::WidgetList::iterator &iter,
                                          Instruction insn,
                                          Address addr) {
-  //cerr << "Emulating @" << std::hex << addr << std::dec  << endl;
+
   // We emulate calls by replacing them with push/jump combinations. The jump will be handled
   // by a CFWidget, so we just need a "push" (and then to create everything else).
 
@@ -555,13 +529,11 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
 
   // Okay, now wire this in as appropriate.
   if ((*iter) != reloc->elements().back()) {
-    //cerr << "... middle of block" << endl;
     // Easy case; no worries.
     // This is the case for call+5s...
     (*iter).swap(replacement);
   }
   else {
-    //cerr << "... end of block" << endl;
      CFWidget::Ptr cf = boost::dynamic_pointer_cast<CFWidget>(*iter);
      // We don't want to be doing this pre-CF-creation...
      assert(cf); 
@@ -576,13 +548,6 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
 
     // And skip it
     ++iter;
-
-#if 0
-    // Remove all non-call edges
-    // Replace a call edge with a taken edge
-    Predicates::NonCall pred;
-    cfg->removeEdge(pred, reloc->outs());
-#endif
 
     Predicates::Call pred2;
     cfg->changeType(pred2, reloc->outs(), ParseAPI::DIRECT);
@@ -670,9 +635,6 @@ void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address ad
 }
 
 bool PCSensitiveTransformer::queryCache(const block_instance *bbl, Address addr, bool &intSens, bool &extSens) {
-	//intSens = true;
-	//extSens = true;
-	//return true;
 	AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
    if (iter == analysisCache_.end()) return false;
    CacheEntry::const_iterator iter2 = iter->second.find(addr);
