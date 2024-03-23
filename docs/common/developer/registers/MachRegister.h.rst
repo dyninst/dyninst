@@ -20,8 +20,8 @@ MachRegister.h
 
     Creates an empty, invalid register.
 
-  .. cpp:function:: explicit MachRegister(signed int r)
-  .. cpp:function:: explicit MachRegister(signed int r, std::string n)
+  .. cpp:function:: explicit MachRegister(int32_t r)
+  .. cpp:function:: explicit MachRegister(int32_t r, std::string n)
 
 
 .. _`sec-dev:MachRegister-DWARF-encodings`:
