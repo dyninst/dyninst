@@ -1670,8 +1670,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             case operandType::origRegister:
                gen.rs()->writeProgramRegister(gen, (Dyninst::Register)(long)loperand->getOValue(),
                                               src1, getSize());
-               //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
-               //src1, gen, getSize(), noCost);
                loperand->decUseCount(gen);
                break;
             case operandType::Param:

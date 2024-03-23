@@ -2299,14 +2299,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     }
 }
 
-void emitStorePreviousStackFrameRegister(Address,
-                                         Register,
-                                         codeGen &,
-                                         int,
-                                         bool) {
-    assert(0);
-}
-
 using namespace Dyninst::InstructionAPI; 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr, 

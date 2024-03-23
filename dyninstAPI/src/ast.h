@@ -914,11 +914,6 @@ void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num,
                                         codeGen &gen,
 					int size,
 					bool noCost);
-void emitStorePreviousStackFrameRegister(Dyninst::Address register_num,
-                                         Dyninst::Register src,
-                                         codeGen &gen,
-                                         int size,
-                                         bool noCost);
 
 #define SCAST_AST(ast) boost::static_pointer_cast<AstNode>(ast)
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)

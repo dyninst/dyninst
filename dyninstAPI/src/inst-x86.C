@@ -2255,14 +2255,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
 
-void emitStorePreviousStackFrameRegister(Address register_num,
-                                        Dyninst::Register src,
-                                        codeGen &gen,
-                                        int,
-                                        bool) {
-    gen.codeEmitter()->emitStoreOrigRegister(register_num, src, gen);
-}
-
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well 

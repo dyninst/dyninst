@@ -1167,14 +1167,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
 
-void emitStorePreviousStackFrameRegister(Address,
-                                         Register,
-                                         codeGen &,
-                                         int,
-                                         bool) {
-    assert(0);
-}
-
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well
