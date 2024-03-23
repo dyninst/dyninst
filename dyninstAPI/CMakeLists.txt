@@ -102,7 +102,6 @@ set(_private_headers
     src/RegisterConversion.h
     src/registerSpace.h
     src/syscallNotification.h
-    src/syscalltrap.h
     src/trapMappings.h
     src/unix.h
     src/util.h)
