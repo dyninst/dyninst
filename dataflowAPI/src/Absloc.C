@@ -172,10 +172,6 @@ bool AbsRegion::contains(const Absloc &loc) const {
      return (type_ == loc.type());
   }
 
-  //if (loc.type() != Absloc::Unknown) {
-  //return (type() == loc.type());
-  //}
-
   // See if any of our abslocs matches
   if (absloc_ == loc) return true;
 
@@ -223,37 +219,6 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
 
   return false;
 }
-/*
-bool AbsRegion::overlaps(const AbsRegion &rhs) const {
-  if (type_ != Absloc::Unknown) {
-    // We're a typed region, so we contain rhs
-    // if either it has the same type as us or if all
-    // of its abslocs are the same type
-    if (rhs.type_ == type_) return true;
-    for (std::set<Absloc>::const_iterator iter = rhs.abslocs_.begin();
-	 iter != rhs.abslocs_.end(); ++iter) {
-      if ((*iter).type() == type_) return true;
-    }
-    return false;
-  }
-
-  // We don't have a type, therefore we are a set. 
-  // If they are a type...
-  if (rhs.type_ != Absloc::Unknown) {
-    return containsOfType(rhs.type_);
-  }
-
-  // Neither a type, so see if there is any overlap in our sets.
-
-  for (std::set<Absloc>::const_iterator iter = rhs.abslocs_.begin();
-       iter != rhs.abslocs_.end(); ++iter) {
-    if (abslocs_.find(*iter) != abslocs_.end()) {
-      return true;
-    }
-  }
-  return false;
-}
-*/
 
 bool AbsRegion::containsOfType(Absloc::Type t) const {
   if (type_ == t) return true;
@@ -263,7 +228,6 @@ bool AbsRegion::containsOfType(Absloc::Type t) const {
 }
 
 bool AbsRegion::operator==(const AbsRegion &rhs) const {
-  // return contains(rhs) && rhs.contains(*this));
   return ((type_ == rhs.type_) &&
 	  (absloc_ == rhs.absloc_));
 }
@@ -288,41 +252,6 @@ bool AbsRegion::operator<(const AbsRegion &rhs) const {
 
    return type() < rhs.type();
 }
-
-/*
-void AbsRegion::insert(const Absloc &abs) {
-  assert(a
-  if (type_ != Absloc::Unknown) 
-    assert(0 && "Unimplemented");
-  abslocs_.insert(abs);
-}
-
-void AbsRegion::insert(const AbsRegion &rhs) {
-  if (type_ != Absloc::Unknown)
-    assert(0 && "Unimplemented");
-  if (rhs.type_ != Absloc::Unknown)
-    assert(0 && "Unimplemented");
-
-  abslocs_.insert(rhs.abslocs_.begin(),
-		  rhs.abslocs_.end());
-}
-
-void AbsRegion::erase(const Absloc &rhs) {
-  if (type_ != Absloc::Unknown)
-    assert(0 && "Unimplemented");
-  abslocs_.erase(rhs);
-}
-
-void AbsRegion::erase(const AbsRegion &rhs) {
-  if (type_ != Absloc::Unknown)
-    assert(0 && "Unimplemented");
-  if (rhs.type_ != Absloc::Unknown)
-    assert(0 && "Unimplemented");
-
-  abslocs_.erase(rhs.abslocs_.begin(),
-		 rhs.abslocs_.end());
-}
-*/
 
 Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
                              const Address a,
@@ -391,60 +320,3 @@ const std::string Assignment::format() const {
 
   return ret.str();
 }
-
-
-
-#if 0
-bool AbsRegion::equivalent(const AbsRegion &lhs,
-			   const AbsRegion &rhs,
-			   Address addr,
-			   ParseAPI::Function *caller,
-			   ParseAPI::Function *callee) {
-  // Check equivalence given a particular location (and thus
-  // possible stack overlap)
-  if (lhs == rhs) return true;
-  if (lhs.abslocs().empty() || rhs.abslocs().empty()) return false;
-
-  if (lhs.abslocs().size() > 1) return false;
-  if (rhs.abslocs().size() > 1) return false;
-
-  // Only stack slots can overlap (for now)
-  const Absloc &lLoc = *(lhs.abslocs().begin());
-  const Absloc &rLoc = *(rhs.abslocs().begin());
-  if (lLoc.type() != Absloc::Stack) return false;
-  if (rLoc.type() != Absloc::Stack) return false;
-
-  int caller_offset = -1;
-  int callee_offset = -1;
-
-  if (lLoc.func() == caller->name()) {
-    if (rLoc.func() != callee->name()) return false;
-    caller_offset = lLoc.off();
-    callee_offset = rLoc.off();
-  }
-  else if (rLoc.func() == caller->name()) {
-    if (lLoc.func() != callee->name()) return false;
-    caller_offset = rLoc.off();
-    callee_offset = lLoc.off();
-  }
-  else {
-    return false;
-  }
-
-  StackAnalysis sA(caller);
-
-  StackAnalysis::Height heightSA = sA.findSP(addr);
-
-  // Ensure that analysis has been performed.
-  assert(!heightSA.isTop());
-  
-  if (heightSA.isBottom()) {
-    return false;
-  }
-
-  if ((caller_offset - heightSA.height()) == callee_offset)
-    return true;
-  else
-    return false;
-}
-#endif

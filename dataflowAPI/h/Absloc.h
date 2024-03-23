@@ -212,12 +212,6 @@ class AbsRegion {
 
   DATAFLOW_EXPORT const std::string format() const;
 
-  DATAFLOW_EXPORT void insert(const Absloc &abs);
-  DATAFLOW_EXPORT void insert(const AbsRegion &reg);
-
-  DATAFLOW_EXPORT void erase(const Absloc &abs);
-  DATAFLOW_EXPORT void erase(const AbsRegion &reg);
-
   DATAFLOW_EXPORT AbsRegion() :
     type_(Absloc::Unknown),
     size_(0) {}
@@ -239,12 +233,6 @@ class AbsRegion {
   DATAFLOW_EXPORT void setSize(size_t size) {
     size_ = size;
   }
-
-  DATAFLOW_EXPORT static bool equivalent(const AbsRegion &lhs,
-			 const AbsRegion &rhs,
-			 Address addr,
-			 ParseAPI::Function *caller,
-			 ParseAPI::Function *callee);
 
   DATAFLOW_EXPORT Absloc absloc() const { return absloc_; }
   DATAFLOW_EXPORT Absloc::Type type() const { return type_; }
