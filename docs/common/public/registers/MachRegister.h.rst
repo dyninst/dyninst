@@ -137,3 +137,9 @@ MachRegister.h
   .. cpp:function:: static MachRegister getArchReg(unsigned int regNum, Architecture arch)
 
     This is only valid when ``arch`` is :cpp:enumerator:`Arch_aarch64`.
+
+  .. cpp:function:: static std::vector<MachRegister> const& getAllRegistersForArch(Dyninst::Architecture arch)
+
+    Returns all registers available on ``arch``.
+
+    The registers are returned in the order they are declared in :ref:`sec:dyn_regs.h`.
