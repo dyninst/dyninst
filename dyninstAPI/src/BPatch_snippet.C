@@ -143,7 +143,6 @@ bool BPatch_snippet::is_trivial()
  */
 BPatch_snippet::~BPatch_snippet()
 {
-    //if (ast_wrapper) delete ast_wrapper;
 }
 
 
@@ -242,13 +241,6 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
                 assert(0);
                 return AstNodePtr();
         }
-
-        //fprintf(stderr, "%s[%d]:  indexing with type %s\n", __FILE__, __LINE__,
-        //        indexType->getName());
-
-        //
-        // Convert a[i] into *(&a + (* i sizeof(element)))
-        //
 
         AstNodePtr arrayBase = generateVariableBase(lOperand);
         AstNodePtr ast = AstNode::operandNode(AstNode::operandType::DataIndir,
@@ -505,16 +497,6 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
    }
 
    case BPatch_deref: {
-#if 0
-       // Handle constant addresses...
-       if (lOperand.ast_wrapper->getoType() == AstNode::Constant) {
-           ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::DataAddr,
-                                                         const_cast<void *>(lOperand.ast_wrapper->getOValue())));
-       }
-       else {
-           ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::DataIndir, lOperand.ast_wrapper));
-       }
-#endif
           ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::DataIndir, lOperand.ast_wrapper));
 
           BPatch_type *type = const_cast<BPatch_type *> (lOperand.ast_wrapper->getType());
@@ -522,7 +504,6 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
               ast_wrapper->setType(BPatch::bpatch->stdTypes->findType("long"));
           } else {
               ast_wrapper->setType(type->getConstituentType());
-//              ast_wrapper->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
           }
           break;
       }
@@ -892,7 +873,6 @@ BPatch_registerExpr::BPatch_registerExpr(BPatch_register reg)
 
     // Registers can hold a lot of different types...
     ast_wrapper->setTypeChecking(false);
-    //ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 BPatch_registerExpr::BPatch_registerExpr(Dyninst::MachRegister mach) {
@@ -904,7 +884,6 @@ BPatch_registerExpr::BPatch_registerExpr(Dyninst::MachRegister mach) {
 
     // Registers can hold a lot of different types...
     ast_wrapper->setTypeChecking(false);
-    //ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 /*
@@ -1141,7 +1120,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
    variableAst->setType(type);
    variableASTs.push_back(variableAst);
    ast_wrapper = AstNode::variableNode(variableASTs);
-   //    ast_wrapper = variableAst;
    assert(BPatch::bpatch != NULL);
    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
@@ -1198,7 +1176,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                                 address = in_address;
                                 break;
                         case BPatch_storageAddrRef:
-                                //assert( 0 ); // Not implemented yet.
                                 continue;
                         case BPatch_storageReg:
                                 variableAst = AstNode::operandNode(AstNode::operandType::origRegister,
@@ -1206,7 +1183,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                                 isLocal = true;
                                 break;
                         case BPatch_storageRegRef:
-                                //assert( 0 ); // Not implemented yet.
                                 continue;
                         case BPatch_storageRegOffset:
                                 variableAst = AstNode::operandNode(AstNode::operandType::RegOffset,
@@ -1237,7 +1213,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                 ranges->push_back(pair<Address, Address>(low, hi));
         }
         ast_wrapper = AstNodePtr(AstNode::variableNode(variableASTs, ranges));
-        //    ast_wrapper = variableAst;
         assert(BPatch::bpatch != NULL);
         ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
@@ -1489,8 +1464,6 @@ BPatch_threadIndexExpr::BPatch_threadIndexExpr()
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
     BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
     assert(type != NULL);
-    //ast_wrapper->setType(type);
-
 }
 
 BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
