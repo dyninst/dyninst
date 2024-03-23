@@ -57,30 +57,12 @@ using namespace NS_power;
 static const unsigned PPC32_WIDTH = 4;
 static const unsigned PPC64_WIDTH = 8;
 
-static const Elf64_Word X86_HEADER = 0xffffffff;
-static const Elf64_Word X86_TRAILER = 0x00000000;
-static const Elf64_Xword X86_64_HEADER = 0xffffffffffffffffULL;
-static const Elf64_Xword X86_64_TRAILER = 0x0000000000000000ULL;
-
 static const Offset GOT_RESERVED_SLOTS = 0;
 
 unsigned int setBits(unsigned int target, unsigned int pos, unsigned int len, unsigned int value) {
   rewrite_printf("setBits target 0x%lx value 0x%lx pos %u len %u \n", (unsigned long)target, (unsigned long)value, pos, len);
 // There are three parts of the target - 0:pos, pos:len, len:32 
 // We want to create a mask with 0:pos and len:32 set to 1
-
-  /*
-    unsigned int mask, mask1, mask2;
-    mask1 = ~(~0 << pos);
-    mask1 = (mask1 << (32-pos));
-    mask2 = ~(~0 << (32-(pos+len)));
-    mask = mask1 | mask2;
-    target = target & mask;
-    rewrite_printf(" mask1 0x%lx mask2 0x%lx mask 0x%lx target 0x%lx \n", mask1, mask2, mask, target);
-
-    if(len != 32)
-    	mask = ~mask;
-*/
     unsigned int mask;
     mask = ((1 << len) - 1) << pos;
     rewrite_printf(" mask 0x%lx value 0x%lx \n", (unsigned long)mask, (unsigned long)value);
@@ -159,7 +141,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 {
     if( PPC64_WIDTH == addressWidth_ ) {
 	Symbol *dynsym = rel.getDynSym();
-	//	Offset TOCoffset = srcSymtab->getTOCoffset();
 	
 	Offset newTOCoffset = 0;
 
@@ -267,13 +248,11 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  /* PowerPC64 relocations defined by the ABIs */
 	case R_PPC64_ADDR64:
 	case R_PPC64_GLOB_DAT:	
-	  //	  rewrite_printf("ADDR64 or GLOB_DAT\n");
 	  relocation_length = 64;
 	  relocation = symbolOffset + addend;
 	  break;
 	case R_PPC64_REL24:
 	case R_PPC64_GOT_TPREL16_DS:
-	  //rewrite_printf("GOT_TPREL16_DS or REL24\n");
 	  relocation_length = 24;
 	  // Skip the last bit, which is 1 representing setting link register
 	  // Skip the second-last bit, which represents relative branch
@@ -282,8 +261,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  //Relocation R_PPC64_REL24 means R2 is already set up by the caller.
 	  //So, we skip the first two instructions to the local entry
 	  relocation = symbolOffset + addend - relOffset + 8;
-	  //rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
-	  //symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
 	  break;
 	case R_PPC64_GOT_TPREL16_HA:
 	  relocation_length = 16;
@@ -296,20 +273,17 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  relocation = relocation & 0xffff;
 	  break;
 	case R_PPC64_REL32:
-	  //rewrite_printf("REL32\n");
 	  relocation_length = 24;
 	  relocation_pos = 6;
 	  relocation = symbolOffset + addend - relOffset;
 	  break;
 	case R_PPC64_REL64:
-	  //rewrite_printf("REL64\n");
 	  relocation = symbolOffset + addend - relOffset;
 	  break;
 	case R_PPC64_TLS:
 	  rewrite_printf("TLS - UNIMPLEMENTED\n");
 	  break;
 	case R_PPC64_TOC16:
-	  //rewrite_printf("TOC16\n");
 	  relocation_length = 16;
 	  relocation = symbolOffset + addend - newTOCoffset;
 	  break;
@@ -325,7 +299,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  break;
 
 	case R_PPC64_TOC16_DS:
-	  //rewrite_printf("TOC16_DS\n");
 	  relocation_length = 16;
 	  relocation = (symbolOffset + addend - newTOCoffset) >> 2 ;
 	  relocation = relocation << 2;
@@ -333,7 +306,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	case R_PPC64_TOC16_LO_DS:
 	  relocation_length = 16;
 	  relocation = symbolOffset + addend - newTOCoffset;
-	  //relocation = (relocation & 0xffff) >> 2;
 	  relocation = relocation & 0xffff;
 	  break;
 
@@ -379,134 +351,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	}
 
         rewrite_printf("\tafter: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", (unsigned long)relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
-
-/*
-    if (branch_pred >= 0) {
-	unsigned int *td = (unsigned int *) targetData;
-	unsigned int target;
-	target = td[dest/4];
-	target = setBits(target, 10, 1, branch_pred);
-        memcpy(&td[dest/4], &target, sizeof(Elf64_Word));
-    } 
-*/
-
-#if 0
-switch(0){
-case R_PPC64_NONE           :/* R_PPC_NONE */
-case R_PPC64_ADDR32         :/* R_PPC_ADDR32  32bit absolute address */
-case R_PPC64_ADDR24         :/* R_PPC_ADDR24  26bit address, word aligned */
-case R_PPC64_ADDR16         :/* R_PPC_ADDR16  16bit absolute address */
-case R_PPC64_ADDR16_LO      :/* R_PPC_ADDR16_LO  lower 16bits of address */
-case R_PPC64_ADDR16_HI      :/* R_PPC_ADDR16_HI  high 16bits of address. */
-case R_PPC64_ADDR16_HA      :/* R_PPC_ADDR16_HA  adjusted high 16bits.  */
-case R_PPC64_ADDR14         :/* R_PPC_ADDR14  16bit address, word aligned */
-case R_PPC64_ADDR14_BRTAKEN :/* R_PPC_ADDR14_BRTAKEN */
-case R_PPC64_ADDR14_BRNTAKEN:/* R_PPC_ADDR14_BRNTAKEN */
-case R_PPC64_REL24          :/* R_PPC_REL24 PC-rel. 26 bit, word aligned */
-case R_PPC64_REL14          :/* R_PPC_REL14  PC relative 16 bit */
-case R_PPC64_REL14_BRTAKEN  :/* R_PPC_REL14_BRTAKEN */
-case R_PPC64_REL14_BRNTAKEN :/* R_PPC_REL14_BRNTAKEN */
-case R_PPC64_GOT16          :/* R_PPC_GOT16 */
-case R_PPC64_GOT16_LO       :/* R_PPC_GOT16_LO */
-case R_PPC64_GOT16_HI       :/* R_PPC_GOT16_HI */
-case R_PPC64_GOT16_HA       :/* R_PPC_GOT16_HA*/
-case R_PPC64_COPY           :/* R_PPC_COPY*/
-case R_PPC64_GLOB_DAT       :/* R_PPC_GLOB_DAT*/
-case R_PPC64_JMP_SLOT       :/* R_PPC_JMP_SLOT*/
-case R_PPC64_RELATIVE       :/* R_PPC_RELATIVE*/
-case R_PPC64_UADDR32        :/* R_PPC_UADDR32*/
-case R_PPC64_UADDR16        :/* R_PPC_UADDR16*/
-case R_PPC64_REL32          :/* R_PPC_REL32*/
-case R_PPC64_PLT32          :/* R_PPC_PLT32*/
-case R_PPC64_PLTREL32       :/* R_PPC_PLTREL32*/
-case R_PPC64_PLT16_LO       :/* R_PPC_PLT16_LO*/
-case R_PPC64_PLT16_HI       :/* R_PPC_PLT16_HI*/
-case R_PPC64_PLT16_HA       :/* R_PPC_PLT16_HA*/
-case R_PPC64_SECTOFF        :/* R_PPC_SECTOFF*/
-case R_PPC64_SECTOFF_LO     :/* R_PPC_SECTOFF_LO*/
-case R_PPC64_SECTOFF_HI     :/* R_PPC_SECTOFF_HI*/
-case R_PPC64_SECTOFF_HA     :/* R_PPC_SECTOFF_HA*/
-case R_PPC64_ADDR30         : /* 37  word30 (S + A - P) >> 2 */
-case R_PPC64_ADDR64         : /* 38 doubleword64 S + A */
-case R_PPC64_ADDR16_HIGHER  : /* 39 half16 #higher(S + A) */
-case R_PPC64_ADDR16_HIGHERA :/* 40 half16 #highera(S + A) */
-case R_PPC64_ADDR16_HIGHEST :/*41 half16 #highest(S + A) */
-case R_PPC64_ADDR16_HIGHESTA:/*42  half16 #highesta(S + A) */
-case R_PPC64_UADDR64        :/*43  doubleword64 S + A */
-case R_PPC64_REL64          :/*44  doubleword64 S + A - P */
-case R_PPC64_PLT64          :/*45  doubleword64 L + A */
-case R_PPC64_PLTREL64       :/*46  doubleword64 L + A - P */
-case R_PPC64_TOC16          :/*47  half16* S + A - .TOC */
-case R_PPC64_TOC16_LO       :/*48  half16 #lo(S + A - .TOC.) */
-case R_PPC64_TOC16_HI       :/*49  half16 #hi(S + A - .TOC.) */
-case R_PPC64_TOC16_HA       :/*50  half16 #ha(S + A - .TOC.) */
-case R_PPC64_TOC            :/*51  doubleword64 .TOC */
-case R_PPC64_PLTGOT16       :/*52  half16* M + A */
-case R_PPC64_PLTGOT16_LO    :/*53  half16 #lo(M + A) */
-case R_PPC64_PLTGOT16_HI    :/*54  half16 #hi(M + A) */
-case R_PPC64_PLTGOT16_HA    :/*55  half16 #ha(M + A) */
-
-case R_PPC64_ADDR16_DS      :/*56  half16ds* (S + A) >> 2 */
-case R_PPC64_ADDR16_LO_DS   :/*57  half16ds  #lo(S + A) >> 2 */
-case R_PPC64_GOT16_DS       :/*58  half16ds* (G + A) >> 2 */
-case R_PPC64_GOT16_LO_DS    :/*59  half16ds  #lo(G + A) >> 2 */
-case R_PPC64_PLT16_LO_DS    :/*60  half16ds  #lo(L + A) >> 2 */
-case R_PPC64_SECTOFF_DS     :/*61  half16ds* (R + A) >> 2 */
-case R_PPC64_SECTOFF_LO_DS  :/*62  half16ds  #lo(R + A) >> 2 */
-case R_PPC64_TOC16_DS       :/*63  half16ds* (S + A - .TOC.) >> 2 */
-case R_PPC64_TOC16_LO_DS    :/*64  half16ds  #lo(S + A - .TOC.) >> 2 */
-case R_PPC64_PLTGOT16_DS    :/*65  half16ds* (M + A) >> 2 */
-case R_PPC64_PLTGOT16_LO_DS :/*66  half16ds  #lo(M + A) >> 2 */
-
-/* PowerPC64 relocations defined for the TLS access ABI.  */
-case R_PPC64_TLS            :/*67  none      (sym+add)@tls */
-case R_PPC64_DTPMOD64       :/*68  doubleword64 (sym+add)@dtpmod */
-case R_PPC64_TPREL16        :/*69  half16*   (sym+add)@tprel */
-case R_PPC64_TPREL16_LO     :/*70  half16    (sym+add)@tprel@l */
-case R_PPC64_TPREL16_HI     :/*71  half16    (sym+add)@tprel@h */
-case R_PPC64_TPREL16_HA     :/*72  half16    (sym+add)@tprel@ha */
-case R_PPC64_TPREL64        :/*73  doubleword64 (sym+add)@tprel */
-case R_PPC64_DTPREL16       :/*74  half16*   (sym+add)@dtprel */
-case R_PPC64_DTPREL16_LO    :/*75  half16    (sym+add)@dtprel@l */
-case R_PPC64_DTPREL16_HI    :/*76  half16    (sym+add)@dtprel@h */
-case R_PPC64_DTPREL16_HA    :/*77  half16    (sym+add)@dtprel@ha */
-case R_PPC64_DTPREL64       :/*78  doubleword64 (sym+add)@dtprel */
-case R_PPC64_GOT_TLSGD16    :/*79  half16*   (sym+add)@got@tlsgd */
-case R_PPC64_GOT_TLSGD16_LO :/*80  half16    (sym+add)@got@tlsgd@l */
-case R_PPC64_GOT_TLSGD16_HI :/*81  half16    (sym+add)@got@tlsgd@h */
-case R_PPC64_GOT_TLSGD16_HA :/*82  half16    (sym+add)@got@tlsgd@ha */
-case R_PPC64_GOT_TLSLD16    :/*83  half16*   (sym+add)@got@tlsld */
-case R_PPC64_GOT_TLSLD16_LO :/*84  half16    (sym+add)@got@tlsld@l */
-case R_PPC64_GOT_TLSLD16_HI :/*85  half16    (sym+add)@got@tlsld@h */
-case R_PPC64_GOT_TLSLD16_HA :/*86  half16    (sym+add)@got@tlsld@ha */
-case R_PPC64_GOT_TPREL16_DS :/*87  half16ds* (sym+add)@got@tprel */
-case R_PPC64_GOT_TPREL16_LO_DS:/*88  half16ds (sym+add)@got@tprel@l */
-case R_PPC64_GOT_TPREL16_HI :/*89  half16    (sym+add)@got@tprel@h */
-case R_PPC64_GOT_TPREL16_HA :/*90  half16    (sym+add)@got@tprel@ha */
-case R_PPC64_GOT_DTPREL16_DS:/*91  half16ds* (sym+add)@got@dtprel */
-case R_PPC64_GOT_DTPREL16_LO_DS:/*92  half16ds (sym+add)@got@dtprel@l */
-case R_PPC64_GOT_DTPREL16_HI:/*93  half16    (sym+add)@got@dtprel@h */
-case R_PPC64_GOT_DTPREL16_HA:/*94  half16    (sym+add)@got@dtprel@ha */
-case R_PPC64_TPREL16_DS     :/*95  half16ds* (sym+add)@tprel */
-case R_PPC64_TPREL16_LO_DS  :/*96  half16ds  (sym+add)@tprel@l */
-case R_PPC64_TPREL16_HIGHER :/*97  half16    (sym+add)@tprel@higher */
-case R_PPC64_TPREL16_HIGHERA:/*98  half16    (sym+add)@tprel@highera */
-case R_PPC64_TPREL16_HIGHEST:/*99  half16    (sym+add)@tprel@highest */
-case R_PPC64_TPREL16_HIGHESTA:/*100  half16  (sym+add)@tprel@highesta */
-case R_PPC64_DTPREL16_DS    :/*101  half16ds* (sym+add)@dtprel */
-case R_PPC64_DTPREL16_LO_DS :/*102  half16ds (sym+add)@dtprel@l */
-case R_PPC64_DTPREL16_HIGHER:/*103  half16   (sym+add)@dtprel@higher */
-case R_PPC64_DTPREL16_HIGHERA:/*104  half16  (sym+add)@dtprel@highera */
-case R_PPC64_DTPREL16_HIGHEST:/*105  half16  (sym+add)@dtprel@highest */
-case R_PPC64_DTPREL16_HIGHESTA:/*106  half16 (sym+add)@dtprel@highesta */
-
-/* Keep this the last entry.  */
-case R_PPC64_NUM            :/*107 */
-
-		default:
-			break;
-	}
-#endif
     } else if (PPC32_WIDTH == addressWidth_ ){
 	int relocation_length = sizeof(Elf32_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
@@ -814,7 +658,6 @@ default:
 	target = td[dest/4];
 	target = setBits(target, relocation_pos, relocation_length, relocation);
         memcpy(&td[dest/4], &target, sizeof(Elf32_Word));
-//        memcpy(&targetData[dest], r+2, relocation_size);
         rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx %lx %lx %lx \n", relocation, relOffset, targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
 	}
     if (branch_pred >= 0) {
@@ -875,17 +718,6 @@ Offset emitElfStatic::getGOTSize(Symtab * /*target*/, LinkMap &lmap, Offset & /*
         size = (lmap.gotSymbolTable.size()+GOT_RESERVED_SLOTS)*slotSize;
     }
 
-    // DISABLED
-#if 0
-    // On PPC64 we move the original GOT as well, as we can't guarantee that we can reach
-    // the new GOT from the old. 
-    if (PPC64_WIDTH == addressWidth_) {
-       rewrite_printf("New GOT size is 0x%lx, adding original GOT size 0x%lx\n", size, target->getObject()->gotSize());
-       layoutStart = target->getObject()->gotSize();
-       size += layoutStart;
-    }
-#endif
-
     return size;
 }
 
@@ -922,18 +754,6 @@ void emitElfStatic::buildGOT(Symtab * /*target*/, LinkMap &lmap) {
     }
 
     Offset curOffset = 0;
-#if 0
-    // DISABLED
-    // Copy over the original GOT
-    // Inefficient lookup, but it's easy to debug :)
-    Region *origGOT = NULL; 
-    if (target->findRegion(origGOT, ".got")) {
-       memcpy(&targetData[lmap.gotRegionOffset + curOffset], origGOT->getPtrToRawData(), origGOT->getDiskSize());
-       curOffset += origGOT->getDiskSize();
-       rewrite_printf("Copying 0x%lx bytes of original GOT to new, curOffset is 0x%lx\n",
-		      origGOT->getDiskSize(), curOffset);
-    }
-#endif
 
     // For each GOT symbol, allocate an entry and copy the value of the
     // symbol into the table, additionally store the offset in the GOT
@@ -1340,13 +1160,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
             case R_PPC64_RELATIVE:
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
-/*          case R_PPC64_JMP_SLOT:
- *            For PowerPC ABI V2, .plt is a nobit section.
- *            We do not need to adjust the relocation entry.
- */
             default:
-                //fprintf(stderr, "Unimplemented relType for architecture: %d\n", rel.getRelType());
-                //assert(0);
                 break;
         }
     }
@@ -1364,9 +1178,6 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
 
     // In order to implement this, would have determine the final address of a new .dynamic
     // section before outputting the patched GOT data -- this will require some refactoring.
-
-    //rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
-    //(void) obj; (void) rel; (void) library_adjust; //silence warnings
 
     return true;
 }
