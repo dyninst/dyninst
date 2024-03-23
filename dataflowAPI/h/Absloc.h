@@ -203,13 +203,8 @@ class AbsRegion {
   DATAFLOW_EXPORT bool contains(const Absloc::Type t) const;
   DATAFLOW_EXPORT bool contains(const Absloc &abs) const;
   DATAFLOW_EXPORT bool contains(const AbsRegion &rhs) const;
-  // Logically, "intersect(rhs) != 0"
-  //bool overlaps(const AbsRegion &rhs) const;
 
   DATAFLOW_EXPORT bool containsOfType(Absloc::Type t) const;
-
-  //iterator &begin();
-  //iterator &end();
 
   DATAFLOW_EXPORT bool operator==(const AbsRegion &rhs) const;
   DATAFLOW_EXPORT bool operator!=(const AbsRegion &rhs) const;
