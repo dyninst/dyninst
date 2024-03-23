@@ -94,7 +94,6 @@ class EmitterPOWER : public Emitter {
     // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const std::vector<AstNodePtr> &,
 			      bool, func_instance *);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
     virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
