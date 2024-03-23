@@ -39,9 +39,6 @@
 
 using namespace std;
 
-extern bool ia32_is_mode_64();
-
-
 namespace Dyninst
 {
   namespace InstructionAPI
