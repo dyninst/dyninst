@@ -204,7 +204,6 @@ void DYNINSTinit(void)
           0,
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
-   // stOut = fopen("rtdump.txt","w");
 
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
    fakeTickCount=0;
@@ -430,27 +429,8 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ",
                    (unsigned long)pointAddr, (unsigned long)flags, (unsigned long)calculation);
 
-#if 0 && defined STACKDUMP
-    //if (0 && ((unsigned long)calculation == 0x9746a3 ||
-    //          (unsigned long)calculation == 0x77dd761b))
-    //{
-        fprintf(stOut,"RT_st: %lx(%lx)\n", (long)pointAddr,&calculation);
-        fprintf(stOut,"at instr w/ targ=%lx\n",(long)calculation);
-        for (bidx=0; bidx < 0x100; bidx+=4) {
-            fprintf(stOut,"0x%x:  ", (int)stackBase+bidx);
-            fprintf(stOut,"%02hhx", stackBase[bidx]);
-            fprintf(stOut,"%02hhx", stackBase[bidx+1]);
-            fprintf(stOut,"%02hhx", stackBase[bidx+2]);
-            fprintf(stOut,"%02hhx", stackBase[bidx+3]);
-            fprintf(stOut,"\n");
-        }
-    //}
-    // fsg: read from 40a4aa, how did it become 40a380?
-#endif
-
     if ((((long)flags) & 0x04) ) {
         rtdebug_printf("ret-addr stopThread yields %lx", (unsigned long)calculation);
-        //fprintf(stderr,"[$0x%lx]\n", (long)calculation);
     }
 
     if (0 != (((long)flags) & 0x03)) {
@@ -524,8 +504,6 @@ DLLEXPORT RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
     int idx = (int)arrayLen / 4 * 2;
     int lowIdx = 0;
     int highIdx = (int)arrayLen;
-    //fprintf(stderr,"D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
-    //rtdebug_printf("D_bc@%p: boundsArray=%p target=%lx idx=%d arrayLen=%d [%d]\n", (void*)DYNINST_boundsCheck, boundsArray_, writeTarget_, idx, arrayLen, __LINE__);
     if ((unsigned long)boundsArray < 0x10000000) {
         printf("D_bc: boundsArray_ = %lx, returning false\n",(unsigned long) boundsArray);
         return RT_FALSE;
