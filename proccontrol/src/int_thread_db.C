@@ -1066,46 +1066,6 @@ async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> 
    return aret_success; //Swallow these errors, thread_db failure does not bring down rest of startup
 }
 
-#if 0
-#warning TODO fix detach part in post attach rewrite
-bool thread_db_process::post_attach(bool wasDetached) {
-    if( !int_process::post_attach(wasDetached) ) return false;
-
-    if( !wasDetached ) {
-        return initThreadDB();
-    }else{
-        // Need to initialize all new threads
-        bool success = true;
-        td_err_e errVal;
-        for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
-           thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(*i);
-           if( tdb_thread->thread_initialized ) continue;
-
-           tdb_thread->threadHandle = new td_thrhandle_t;
-
-           errVal = td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
-           if (errVal != TD_OK) {
-              perr_printf("Failed to map LWP %d to thread_db thread: %s(%d)\n",
-                          tdb_thread->getLWP(), tdErr2Str(errVal), errVal);
-              setLastError(err_internal, "Failed to get thread_db thread handle");
-              delete tdb_thread->threadHandle;
-              tdb_thread->threadHandle = NULL;
-              success = false;
-              continue;
-           }
-           tdb_thread->threadHandle_alloced = true;
-
-           if( !handleThreadAttach(tdb_thread->threadHandle) ) {
-               perr_printf("Error handling thread_db attach\n");
-               success = false;
-           }
-        }
-
-        return success;
-    }
-}
-#endif
-
 bool thread_db_process::isSupportedThreadLib(string libName) {
    return (libName.find("libpthread") != string::npos);
 }
