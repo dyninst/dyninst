@@ -236,15 +236,6 @@ bool IA_power::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Fun
           DataflowAPI::Result_t slRes;
           DataflowAPI::SymEval::expand(slGraph,slRes);
           pcDef = slRes[*ait];
-          /*
-          for (DataflowAPI::SymEval::Result_t::const_iterator r_iter = slRes.begin();
-               r_iter != slRes.end(); ++r_iter) {
-              cout << "-----------------" << endl;
-              cout << r_iter->first->format();
-              cout << " == ";
-              cout << (r_iter->second ? r_iter->second->format() : "<NULL>") << endl;
-          }
-          */
           break;
       }
   }
@@ -263,16 +254,6 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
 {
   RegisterAST::Ptr regLR, regSP;
   regLR = ppc32_LR; regSP = ppc32_SP;
-
- /* FIXME: InstructionAPI doesn't handle ppc64:LR correctly. 
-  * For now, use ppc32:LR for ppc64 also.
-
-  switch (_isrc->getArch()) {
-  case Arch_ppc32: regLR = ppc32_LR; regSP = ppc32_SP; break;
-  case Arch_ppc64: regLR = ppc64_LR; regSP = ppc64_SP; break;
-  default: assert(0 && "Inappropriate _isrc architechture.");
-  }
-  */
 
   std::set < RegisterAST::Ptr > regs;
   RegisterAST::Ptr destLRReg;
@@ -347,17 +328,6 @@ bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI
       RegisterAST::Ptr regLR, regSP, reg11;
 		regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11;
 
- /* FIXME: InstructionAPI doesn't handle ppc64:LR correctly. 
-  * For now, use ppc32:LR for ppc64 also.
-
-      switch (_isrc->getArch()) {
-      case Arch_ppc32:
-          regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11; break;
-      case Arch_ppc64:
-          regLR = ppc64_LR; regSP = ppc64_SP; reg11 = ppc64_R11; break;
-      default: assert(0 && "Inappropriate _isrc architechture.");
-      }
-*/
       std::set < RegisterAST::Ptr > regs;
       RegisterAST::Ptr sourceLRReg;
 
@@ -476,12 +446,7 @@ AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::VariableAST *v) {
   }
   return v->ptr();
 }
-/*
-AST::Ptr PPC_BLR_Visitor::visit(StackAST *s) {
-  return_ = UNKNOWN;
-  return s->Ptr();
-}
-*/
+
 AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::RoseAST *r) {
   if (return_ != PPC_BLR_UNSET) {
     return r->ptr();
@@ -510,17 +475,6 @@ AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::RoseAST *r) {
   return r->ptr();
 }
       
-
- 
-
-#if 0
-ParseAPI::StackTamper
-IA_power::tampersStack(ParseAPI::Function *, Address &) const
-{
-    return TAMPER_NONE;
-}
-#endif
-
 bool IA_power::isNopJump() const
 {
     return false;
