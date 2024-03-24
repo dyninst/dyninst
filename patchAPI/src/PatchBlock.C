@@ -166,19 +166,6 @@ PatchBlock::isShared() {
 }
 
 PatchBlock::~PatchBlock() {
-#if 0
-   // Our predecessor may be deleted...
-  for (std::vector<PatchEdge *>::iterator iter = srclist_.begin();
-       iter != srclist_.end(); ++iter) {
-    PatchBlock* blk = (*iter)->source();
-    blk->removeTargetEdge(*iter);
-  }
-  for (std::vector<PatchEdge *>::iterator iter = trglist_.begin();
-       iter != trglist_.end(); ++iter) {
-    PatchBlock* blk = (*iter)->target();
-    blk->removeSourceEdge(*iter);
-  }
-#endif
 }
 
 Address
