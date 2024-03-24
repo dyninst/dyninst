@@ -251,14 +251,6 @@ bool IA_aarch64::isLinkerStub() const
     return false;
 }
 
-#if 0
-ParseAPI::StackTamper
-IA_aarch64::tampersStack(ParseAPI::Function *, Address &) const
-{
-    return TAMPER_NONE;
-}
-#endif
-
 bool IA_aarch64::isNopJump() const
 {
     return false;
