@@ -855,27 +855,6 @@ void func_instance::split_block_cb(block_instance *b1, block_instance *b2)
     }
 }
 
-void func_instance::add_block_cb(block_instance * /*block*/)
-{
-#if 0 // KEVINTODO: eliminate this?  as presently constituted, 
-      // these if cases will never execute anyway, at least not 
-      // when we intend them to
-    if (block->llb()->unresolvedCF()) {
-       size_t prev = ifunc()->getPrevBlocksUnresolvedCF();
-       if (ifunc()->blocks().size() == prev) {
-          unresolvedCF_.insert(block);
-          ifunc()->setPrevBlocksUnresolvedCF(prev+1);
-       }
-    }
-    if (block->llb()->abruptEnd() && 
-        prevBlocksAbruptEnds_ == ifunc()->blocks().size())
-    {
-        abruptEnds_.insert(block);
-        prevBlocksAbruptEnds_ ++;
-    }
-#endif
-}
-
 void func_instance::markModified() {
    proc()->addModifiedFunction(this);
 }
