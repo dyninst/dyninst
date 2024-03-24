@@ -46,11 +46,7 @@ static signed long r_thrd_id;
 static signed long w_thrd_id;
 
 FILE *pctrl_err_out;
-#if 0
-bool dyninst_debug_proccontrol = true;
-#else
 bool dyninst_debug_proccontrol = false;
-#endif
 static Mutex<true> print_lock;
 
 void pc_print_lock()
