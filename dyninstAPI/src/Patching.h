@@ -55,7 +55,6 @@ class DynPatchCallback : public PatchAPI::PatchCallback {
   protected:
     virtual void split_block_cb(PatchAPI::PatchBlock *, 
                                 PatchAPI::PatchBlock *);
-    virtual void add_block_cb(PatchAPI::PatchFunction *, PatchAPI::PatchBlock *);
     virtual void destroy_cb(PatchAPI::Point *); // really remove, not destroy
 
     virtual void destroy_cb(PatchAPI::PatchBlock *);
