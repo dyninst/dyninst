@@ -132,11 +132,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_,
 template<typename ElfTypes>
 bool emitElf<ElfTypes>::cannotRelocatePhdrs()
 {
-//#if defined(bug_phdrs_first_page)
     return true;
-//#else
-    //  return false;
-//#endif
 }
 
 static int elfSymType(Symbol *sym)
@@ -255,8 +251,6 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     symbols.push_back(sym);
 
     if (dynSymFlag) {
-        //printf("dynamic symbol: %s\n", symbol->getMangledName().c_str());
-
         char msg[2048];
         char *mpos = msg;
         msg[0] = '\0';
@@ -415,14 +409,6 @@ template<class ElfTypes>
 bool emitElf<ElfTypes>::driver(std::string fName) {
     vector<ExceptionBlock *> exceptions;
     obj->getAllExceptions(exceptions);
-    //  cerr << "Dumping exception info: " << endl;
-
-    /*for (auto eb = exceptions.begin();
-         eb != exceptions.end();
-         ++eb) {
-        //cerr << **eb << endl;
-    }*/
-
 
     int newfd;
     Region *foundSec = NULL;
@@ -443,14 +429,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
     fchmod(newfd, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP);
     rewrite_printf("Emitting to temporary file %s\n", buf.get());
-
-#if 0
-    //open ELF File for writing
-  if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){
-    log_elferror(err_func_, "error opening file to write symbols");
-    return false;
-  }
-#endif
 
     if ((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL) {
         log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
@@ -654,15 +632,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             renameSection((string) name, newName, false);
         }
 
-#if defined(arch_power) && defined(arch_64bit)
-        // DISABLED
-    if (0 && isStaticBinary && strcmp(name, ".got") == 0) {
-      string newName = ".o";
-      newName.append(name, 2, strlen(name));
-      renameSection((string) name, newName, false);
-    }
-#endif
-
         if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
             string newName = ".o";
             newName.append(name, 2, strlen(name));
@@ -778,18 +747,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         if (0 > elf_update(newElf, ELF_C_NULL)) {
             return false;
         }
-
-        // code to change interpreter for test
-        /*if (strcmp(name, INTERP_NAME)==0)
-        {
-            cerr << "interpreter: ";
-            cerr << (char *) newdata->d_buf << endl;
-            const char* libc_path = "/tmp/libc/ld-2.29.so\0";
-            strcpy((char*)newdata->d_buf, libc_path);
-            cerr << "new interpreter: ";
-            cerr << (char *) newdata->d_buf << endl;
-        }*/
-
     } // end of for each elf section
 
     // Add non-loadable sections at the end of object file
@@ -1513,7 +1470,6 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
 
     newdata->d_size = secNameIndex;
     newshdr->sh_size = newdata->d_size;
-    //elf_update(newElf, ELF_C_NULL);
 
     newdata->d_align = 4;
     newdata->d_version = 1;
@@ -1587,15 +1543,6 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
             newshdr->sh_link = SHN_UNDEF;
             newshdr->sh_flags = 0;
         }
-        /*
-          else if(nonLoadableSecs[i]->getFlags() & Section::dynsymtabSection)
-          {
-      newshdr->sh_type = SHT_DYNSYM;
-      newshdr->sh_entsize = sizeof(Elf_Sym);
-      newdata->d_type = ELF_T_SYM;
-      //newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
-      newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
-          }*/
         newshdr->sh_offset = prevshdr->sh_offset + prevshdr->sh_size;
         if (prevshdr->sh_type == SHT_NOBITS) {
             newshdr->sh_offset = prevshdr->sh_offset;
@@ -1613,14 +1560,11 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
         newdata->d_buf = nonLoadableSecs[i]->getPtrToRawData();
         newdata->d_size = nonLoadableSecs[i]->getDiskSize();
         newshdr->sh_size = newdata->d_size;
-        //elf_update(newElf, ELF_C_NULL);
 
         newdata->d_align = 4;
         newdata->d_off = 0;
         newdata->d_version = 1;
         currEndOffset = newshdr->sh_offset + newshdr->sh_size;
-        //currEndAddress = newshdr->sh_addr + newshdr->sh_size;
-        /* DEBUG */
 
         prevshdr = newshdr;
     }
@@ -1806,7 +1750,6 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     */
 
     for (i = 0; i < allSymSymbols.size(); i++) {
-        //allSymSymbols[i]->setStrIndex(symbolNamesLength);
         createElfSymbol(allSymSymbols[i], symbolNamesLength, symbols);
         symbolStrs.push_back(allSymSymbols[i]->getMangledName());
         symbolNamesLength += allSymSymbols[i]->getMangledName().length() + 1;
@@ -1814,7 +1757,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     int nTmp = dynsymVector.size();
     for (i = 0; i < allDynSymbols.size(); i++) {
         createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
-        dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = i + nTmp; //allDynSymbols[i]->getIndex();
+        dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = i + nTmp;
         dynsymVector.push_back(allDynSymbols[i]);
     }
 
@@ -1892,19 +1835,6 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         if (obj->findRegion(sec, ".dynamic")) {
             // Need to ensure that DT_REL and related fields added to .dynamic
             // The values of these fields will be set
-/*
-        if( !object_->hasReldyn() && !object_->hasReladyn() ) {
-            if( object_->getRelType() == Region::RT_REL ) {
-                new_dynamic_entries.push_back(make_pair(DT_REL,0));
-                new_dynamic_entries.push_back(make_pair(DT_RELSZ,0));
-            }else if( object_->getRelType() == Region::RT_RELA ) {
-                new_dynamic_entries.push_back(make_pair(DT_RELA,0));
-                new_dynamic_entries.push_back(make_pair(DT_RELASZ,0));
-            }else{
-                assert(!"Relocation type not set to known RT_REL or RT_RELA.");
-            }
-        }
-*/
             createDynamicSection(sec->getPtrToRawData(), sec->getDiskSize(), dynsecData, dynsecSize,
                                  dynsymbolNamesLength, dynsymbolStrs);
         }
@@ -2323,7 +2253,6 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
             for (unsigned i = 0; i < original_nbuckets + original_nchains; i++) {
                 if (oldHashSec[2 + i] != 0) {
                     originalHashEntries.push_back(oldHashSec[2 + i]);
-                    //printf(" ELF HASH pushing hash entry %d \n", oldHashSec[2+i] );
                 }
             }
         }
@@ -2336,7 +2265,6 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
             if (dynsymSize != 0)
                 for (unsigned i = symndx; i < dynsymSize; i++) {
                     originalHashEntries.push_back(i);
-                    //printf(" GNU HASH pushing hash entry %d \n", i);
                 }
         }
     }
