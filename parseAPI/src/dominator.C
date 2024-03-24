@@ -224,14 +224,6 @@ void dominatorCFG::performComputation() {
       while (!parent->bucket.empty())
       {
          dominatorBB *u, *v;
-
-         //parent->bucket.extract(v);
-#if 0
-         std::set<dominatorBB *>::iterator iter = parent->bucket.begin();
-         std::advance(iter, parent->bucket.size() / 2);
-         v = *iter;
-         parent->bucket.erase(iter);
-#endif
          v = *(parent->bucket.begin());
          parent->bucket.erase(parent->bucket.begin());
 
