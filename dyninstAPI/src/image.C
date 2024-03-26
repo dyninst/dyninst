@@ -1037,11 +1037,7 @@ pdmodule *image::findModule(const string &name, bool wildcard)
       }
    }
 
-   if (found) {
-      return found;
-   }
-
-   return NULL;
+   return found;
 }
 
 const CodeObject::funclist &
