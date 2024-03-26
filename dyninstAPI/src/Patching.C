@@ -59,11 +59,6 @@ void DynPatchCallback::split_block_cb(PatchBlock *first, PatchBlock *second)
     //KEVINTODO: clean up BPatch-level items from here instead of top-down
 }
 
-void DynPatchCallback::add_block_cb(PatchFunction *func, PatchBlock *block)
-{
-    SCAST_FI(func)->add_block_cb(SCAST_BI(block));
-}
-
 void DynPatchCallback::remove_block_cb(PatchFunction *f, PatchBlock *b)
 {
    SCAST_FI(f)->removeBlock(SCAST_BI(b));

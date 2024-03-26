@@ -177,7 +177,6 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
             break;
     }
 
-    //evProc->decPendingEvents();
     evProc->setInEventHandling(prevEventHandlingState);
 
     if( dyn_debug_proccontrol ) {
@@ -254,20 +253,7 @@ bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) cons
 		 BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
 	       }
 	       
-    }else{
-#if 0
-		std::vector<PCThread*> thrds;
-		evProc->getThreads(thrds);
-		for(std::vector<PCThread*>::iterator i = thrds.begin();
-			i != thrds.end();
-			++i)
-		{
-			// Whether we got thread exits or not, all remaining threads are gone post-exit.
-			BPatch::bpatch->registerThreadExit(evProc, *i);
-		}
-		if(!reportPreExit) BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
-#endif	
-	}
+    }
 
     return true;
 }
@@ -408,8 +394,6 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
     }
 
     evProc->addThread(newThr);
-
-    //if( !evProc->registerThread(newThr) ) return false;
     
     if (bpproc)
        bpproc->triggerThreadCreate(newThr);

@@ -44,48 +44,6 @@
 class baseTramp;
 class AddressSpace;
 
-#if 0
-class instWaitingList {
-  public:
-    instWaitingList(instruction *i,int s,Address a,Address pc,
-		    instruction r, Address ra, process *wp){
-        instructionSeq = i;
-	instSeqSize = s;
-	addr_ = a;
-	pc_ = pc;
-	relocatedInstruction = r;
-	relocatedInsnAddr = ra;
-	which_proc = wp;
-    }
-    ~instWaitingList(){} 
-    void cleanUp(process *proc, Address pc);
-
-    instruction *instructionSeq;
-    int instSeqSize;
-    Address addr_;
-    Address pc_;
-    instruction relocatedInstruction;
-    Address relocatedInsnAddr;
-    process *which_proc;
-};
-
-extern std::vector<instWaitingList*> instWList;
-
-#endif
-
-#if 0
-extern baseTramp *installMergedTramp(process *proc, 
-					 instPoint *&location,
-					 char * insn, Address count,
-					 registerSpace * regS,
-					 callWhen when,
-					 returnInstance *&retInstance,
-					 bool trampRecursiveDesired,
-					 bool noCost,
-					 bool &deferred,
-					 bool allowTrap);
-#endif
-
 extern void initRegisters();
 extern void generateBranch(unsigned char *buffer, unsigned &offset,
                            Address fromAddr, Address toAddr);

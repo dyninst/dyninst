@@ -451,26 +451,6 @@ bool StackModChecker::addModsInternal(std::set<StackMod*> mods)
                         // To insert a canary elsewhere, set to true and update canaryHeight
                         bool canaryAfterPrologue = false;
                         long canaryHeight = 0;
-                        if (canaryAfterPrologue) {
-                            // This is the old handling code for non-entry canaries; needs to be updated
-#if 0
-                            ParseAPI::Function* pf = ParseAPI::convert(func);
-                            StackAnalysis sa(pf);
-
-                            ParseAPI::Block* pb = ParseAPI::convert(block);
-                            assert(pb);
-                            StackAnalysis::Height spHeight = sa.findSP(pb, addr);
-                            if (spHeight.isBottom()) {
-                                assert(0 && "spHeight is bottom and prologue_canary; this shouldn't happen");
-                            }
-
-                            fprintf(stderr, "BPatch_canaryCheckExpr: prologue_canary, spHeight = %s (decimal)\n", spHeight.format().c_str());
-
-                            // Calculate the stack height of the canary
-                            size_t width = func->getModule()->getAddressWidth();
-                            canaryHeight = spHeight + width + width; // spHeight - RA - saved FP  
-#endif
-                        }
                         stackmods_printf("\t Generating CANARY CHECK at 0x%lx\n", addr);
                         BPatch_snippet* snip = new BPatch_canaryCheckExpr(failFunc, canaryAfterPrologue, canaryHeight);
                         BPatchSnippetHandle* handle = bfunc->getAddSpace()->insertSnippet(*snip, *point, BPatch_callAfter, BPatch_firstSnippet);

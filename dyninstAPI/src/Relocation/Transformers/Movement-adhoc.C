@@ -480,22 +480,6 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
                       << firstInsn.getOperand(1).format(firstInsn.getArch()) << endl;
       firstInsn.getOperand(1).getValue()->apply(&visitor);
       if (!visitor.isThunk) return false;
-
-#if 0
-      // Check to be sure we're reading memory
-      std::set<RegisterAST::Ptr> reads;
-      firstInsn->getReadSet(reads);
-      bool found = false;
-      for (std::set<RegisterAST::Ptr>::iterator iter = reads.begin();
-	   iter != reads.end(); ++iter) {
-	if ((*iter)->getID().isStackPointer()) {
-	  found = true;
-	  break;
-	}
-      }
-      if (!found) return false;
-
-#endif
       
       std::set<RegisterAST::Ptr> writes;
       firstInsn.getWriteSet(writes);

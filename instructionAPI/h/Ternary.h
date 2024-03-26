@@ -79,8 +79,6 @@ namespace Dyninst
       /// The \c format method on a %TernaryAST object returns the name associated with its ID.
       virtual std::string format(formatStyle how = defaultStyle) const;
 
-      static TernaryAST makePC(Dyninst::Architecture arch);
-
       /// We define a partial order by the order of its children
       bool operator<(const TernaryAST& rhs) const;
 

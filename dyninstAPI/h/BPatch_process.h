@@ -155,8 +155,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
  protected:
   void getAS(std::vector<AddressSpace *> &as);
 
- public:
-  void PDSEP_updateObservedCostAddr(unsigned long a);
  private:
 
   //References to lower level objects
@@ -460,9 +458,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
   // Various system calls can still be used by the debuggee to recognize that 
   // it is being debugged, so this is not a complete solution.  
   bool hideDebugger();
-#if 0
-  void  printDefensiveStats();
-#endif
 
   // BPatch_process::loadLibrary
   //

@@ -105,10 +105,6 @@ class AnnotationClass : public AnnotationClassBase {
 	  }
 
 	  size_t size() {return sizeof(T);}
-#if 0
-	  bool isSparselyAnnotatable(); 
-	  bool isDenselyAnnotatable(); 
-#endif
 };
 
 
@@ -336,7 +332,6 @@ class COMMON_EXPORT AnnotatableDense
 	  }
 };
 
-#define NON_STATIC_SPARSE_MAP 1
 #define AN_INLINE inline
 
 class COMMON_EXPORT AnnotatableSparse
@@ -417,11 +412,7 @@ class COMMON_EXPORT AnnotatableSparse
 		  }
 	  }
 
-#if defined (NON_STATIC_SPARSE_MAP)
-      //COMMON_EXPORT static annos_t *annos;
-#else
       static annos_t annos;
-#endif
 	  annos_t *getAnnos() const;
 	  static dyn_hash_map<void *, unsigned short> ser_ndx_map;
 
@@ -642,7 +633,6 @@ class COMMON_EXPORT AnnotatableSparse
 
 				if (iter->second != a) 
 				{
-					//fprintf(stderr, "%s[%d]:  WEIRD:  already have annotation of type %s: %p, replacing with %p\n", FILE__, __LINE__, a_id.getName().c_str(), iter->second, a);
 					iter->second = (void *)const_cast<T *>(a);
 				}
 
@@ -718,7 +708,6 @@ class COMMON_EXPORT AnnotatableSparse
 
 			  if (iter == abt->end()) 
 			  {
-				  //	fprintf(stderr, "%s[%d]:  nothing for this obj\n", FILE__, __LINE__);
 				  continue;
 			  }
 
@@ -743,6 +732,6 @@ class COMMON_EXPORT AnnotatableSparse
 
 };
 
-} // namespace
+}
 
 #endif

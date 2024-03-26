@@ -702,19 +702,6 @@ void BPatch_function::addParam(Dyninst::SymtabAPI::localVar *lvar)
   params.push_back(param);
 }
 
-#if 0
-void BPatch_function::addParam(const char * _name, BPatch_type *_type,
-			       int _linenum, long _frameOffset, int _reg,
-			       BPatch_storageClass _sc)
-{
-  BPatch_localVar * param = new BPatch_localVar(_name, _type, _linenum,
-						_frameOffset, _reg, _sc);
-
-  // Add parameter to list of parameters
-  params.push_back(param);
-}
-#endif
-
 /*
  * BPatch_function::findLocalVar()
  *

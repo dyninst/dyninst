@@ -213,21 +213,6 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
     lwpid_t ret = procInfo[numEntries-1].ki_tid;
     free(procInfo);
     return ret;
-#if 0
-
-    for(int i = 0; i < numEntries; ++i) {
-      fprintf(stderr, "%d: %s\n", i+1, procInfo[i].ki_ocomm);
-        if( std::string(procInfo[i].ki_ocomm).find("initial") != std::string::npos ) {
-            lwpid_t ret = procInfo[i].ki_tid;
-            free(procInfo);
-            return ret;
-        }
-    }
-
-    free(procInfo);
-    fprintf(stderr, "Failed to find initial thread\n");
-    return -1;
-#endif
 }
 
 // returns true if the process is running

@@ -194,10 +194,6 @@ inline int P_connect(int socket, struct sockaddr *addr, socklen_t len) {
    return (::connect(socket, addr, len));}
 inline struct hostent * P_gethostbyname (const char *NAME) {
   return (gethostbyname(NAME));}
-/* inline int P_gethostname(char *name, size_t size) {
-   return (gethostname(name, size));} */
-/* inline int P_getrusage(int i, struct rusage *ru) { 
-   return (getrusage(i, ru));} */
 inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
@@ -209,8 +205,6 @@ inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen)
    return setsockopt(s, level, optname, (const char*)optval, optlen);
 }
 
-/* inline int P_gettimeofday (struct timeval *TP, struct timezone *TZP) {
-  return (gettimeofday(TP, TZP));} */
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}
 inline caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
 		      int fd, off_t off) {
@@ -233,20 +227,9 @@ inline ssize_t P_recv(int s, void *buf, int len, int flags) {
    return (recv(s, buf, len, flags));
 }
 
-/* Ugly */
-#if 0
-inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int word_len = -1) {
-    if (word_len != -1 && word_len != sizeof(Dyninst::Address)) {
-	return (ptrace((enum __ptrace_request)req, pid, (uint32_t)addr, (uint32_t)data));
-    } else {
-	return (ptrace((enum __ptrace_request)req, pid, addr, data));
-    }
-}
-// long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int word_len);
-#else
+
 inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int = -1) {
 	return (ptrace((enum __ptrace_request)req, pid, addr, data));}
-#endif
 
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {

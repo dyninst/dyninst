@@ -88,14 +88,6 @@ BPatch_basicBlock::~BPatch_basicBlock(){
     delete (*eIter);
     eIter++;
   }
-/* Don't delete outgoing edges; the target block will get them. */
-#if 0
-  eIter = outgoingEdges.begin();
-  while (eIter != outgoingEdges.end()) {
-    delete (*eIter);
-    eIter++;
-  }
-#endif
   return;
 }
 
@@ -130,17 +122,6 @@ void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
 			    boost::ref(srcs),
 			    flowGraph,
 			    func));
-  
-  /*
-  for (Block::edgelist::const_iterator eit = isrcs.begin(&epred_); 
-       eit != isrcs.end(&epred_); 
-       ++eit) 
-  {
-    b = flowGraph->findBlock(func->obj()->findBlock((*eit)->src()));
-    assert(b);
-    srcs.push_back(b);
-  }
-  */
 }
 
 //returns the successors of the basic block in a set
@@ -423,26 +404,18 @@ struct findInsns : public insnPredicate
 
   result_type operator()(argument_type i)
   {
-    //static int counter = 0;
     if(findLoads && isLoad(i))
       {
-        //counter++;
-        //fprintf(stderr, "Instruction #%d %s is a load\n", counter, i->format().c_str());
         return true;
       }
     if(findStores && isStore(i))
       {
-        //counter++;
-        //fprintf(stderr, "Instruction #%d %s is a store\n", counter, i->format().c_str());
         return true;
       }
     if(findPrefetch && isPrefetch(i))
       {
-        //counter++;
-        //fprintf(stderr, "Instruction #%d %s is a prefetch\n", counter, i->format().c_str());
         return true;
       }
-    //  fprintf(stderr, "Instruction %s failed filter\n", i->format().c_str());
     return false;
   }
   bool findLoads;

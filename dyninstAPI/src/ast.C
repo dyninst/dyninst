@@ -1670,8 +1670,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             case operandType::origRegister:
                gen.rs()->writeProgramRegister(gen, (Dyninst::Register)(long)loperand->getOValue(),
                                               src1, getSize());
-               //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
-               //src1, gen, getSize(), noCost);
                loperand->decUseCount(gen);
                break;
             case operandType::Param:
@@ -2736,33 +2734,9 @@ void AstNode::decUseCount(codeGen &gen)
 // Return all children of this node ([lre]operand, ..., operands[])
 
 void AstNode::getChildren(std::vector<AstNodePtr > &) {
-#if 0
-    fprintf(stderr, "Undefined call to getChildren for type: ");
-    if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
-    else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
-    else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
-    else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
-    else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
-    else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
-    else if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
-    else fprintf(stderr, "unknownNode\n");
-#endif
 }
 
 void AstNode::setChildren(std::vector<AstNodePtr > &) {
-#if 0
-    fprintf(stderr, "Undefined call to setChildren for type: ");
-    if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
-    else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
-    else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
-    else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
-    else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
-    else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
-    else if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
-    else fprintf(stderr, "unknownNode\n");
-#endif
 }
 
 void AstOperatorNode::getChildren(std::vector<AstNodePtr > &children) {
@@ -2860,7 +2834,6 @@ AstNodePtr AstCallNode::deepCopy(){
    }else{
       copy = new AstCallNode(func_name_, empty_args);
    }
-//   copy->func_name_ = func_name_;
    copy->func_addr_ = func_addr_;
    copy->func_ = func_;
 
@@ -3003,7 +2976,6 @@ void AstSequenceNode::setVariableAST(codeGen &g) {
 }
 
 void AstVariableNode::setVariableAST(codeGen &gen){
-    //fprintf(stderr, "Generating code for variable in function %s with start address 0x%lx at address 0x%lx\n",gen.func()->prettyName().c_str(), gen.func()->getAddress(),gen.point()->addr());
     if(!ranges_)
         return;
     if(!gen.point())    //oneTimeCode. Set the AST at the beginning of the function??
@@ -3361,7 +3333,6 @@ void AstOperandNode::emitVariableStore(opCode op, Dyninst::Register src1, Dynins
 bool AstNode::decRefCount()
 {
    referenceCount--;
-   //return referenceCount <= 0;
    return true;
 }
 

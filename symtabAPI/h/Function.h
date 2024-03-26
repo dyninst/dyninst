@@ -197,7 +197,6 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    virtual ~InlinedFunction();
 
    Module* getModule() const override { return module_; }
-   typedef std::vector<std::string>::const_iterator name_iter;
    std::pair<std::string, Dyninst::Offset> getCallsite();
    bool removeSymbol(Symbol *sym);
    bool addMangledName(std::string name, bool isPrimary, bool isDebug=false) override;

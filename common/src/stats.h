@@ -38,20 +38,6 @@
 #include "Timer.h"
 #include "common/h/util.h"
 
-#if 0
-extern void printDyninstStats();
-
-class CntStatistic;
-
-extern CntStatistic insnGenerated;
-extern CntStatistic totalMiniTramps;
-extern CntStatistic trampBytes;
-extern CntStatistic ptraceOps;
-extern CntStatistic ptraceOtherOps;
-extern CntStatistic ptraceBytes;
-extern CntStatistic pointsUsed;
-
-#endif
 class StatContainer;  // All your class declarations are forward. 
 
 class COMMON_EXPORT Statistic  {

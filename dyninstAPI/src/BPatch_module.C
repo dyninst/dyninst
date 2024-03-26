@@ -295,15 +295,6 @@ bool BPatch_module::parseTypesIfNecessary()
 		}
 
 		moduleTypes->addGlobalVariable(var_name.c_str(), var_type);
-#if 0
-		if (!globalVars[i].second->getUpPtr())
-		{
-			new BPatch_type(globalVars[i].second);
-		}
-
-		moduleTypes->addGlobalVariable(globalVars[i].first.c_str(), 
-				(BPatch_type *)globalVars[i].second->getUpPtr());
-#endif
 	}
 	return true; 
 }
@@ -415,7 +406,6 @@ BPatch_module::findFunction(const char *name,
                if (incUninstrumentable || int_funcs[miter]->isInstrumentable()) 
                {
                   BPatch_function * bpfunc = addSpace->findOrCreateBPFunc(int_funcs[miter], this);
-                  //						BPatch_function * bpfunc = proc->findOrCreateBPFunc(int_funcs[miter], this);
                   funcs.push_back(bpfunc);
                }
             }
@@ -434,8 +424,6 @@ BPatch_module::findFunction(const char *name,
 
       if ( !regex_case_sensitive )
          cflags |= REG_ICASE;
-
-      //cerr << "compiling regex: " <<name<<endl;
 
       if (0 != (err = regcomp( &comp_pat, name, cflags ))) {
          char errbuf[80];

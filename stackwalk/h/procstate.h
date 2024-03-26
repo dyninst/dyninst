@@ -96,7 +96,6 @@ public:
 
   Walker *getWalker() const;
 
-  void setLibraryTracker(LibraryState *);
   void setDefaultLibraryTracker();
   virtual LibraryState *getLibraryTracker();
 

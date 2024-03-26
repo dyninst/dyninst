@@ -150,9 +150,6 @@
 #include "unaligned_memory_access.h"
 #include <cstdint>
 
-// #define VEX_DEBUG
-// #define VEX_PEDANTIC
-
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst;
@@ -9655,30 +9652,6 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
             default:
                 break;
         }
-
-        // debug output for memory access decoding
-#if 0
-        for (int i = 0; i < 3; i++) 
-        {
-	        if (instruct.mac[i].is) 
-            {
-	            fprintf(stderr, "%d)", i);
-
-	            if (instruct.mac[i].read)
-		            fprintf(stderr, " read");
-	            if (instruct.mac[i].write)
-		            fprintf(stderr, " write");
-	            if (instruct.mac[i].nt)
-		            fprintf(stderr, " nt");
-	            if (instruct.mac[i].sizehack)
-		            fprintf(stderr, " sizehack");
-
-	            fprintf(stderr, "\n");
-	            instruct.mac[i].print();
-	        }
-        }
-#endif
-
     }
 
     instruct.entry = gotit;

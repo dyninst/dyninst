@@ -36,26 +36,11 @@
 
 using namespace Dyninst;
 
-#if defined (NON_STATIC_SPARSE_MAP)
-char buffer[1024];
-//AnnotatableSparse::annos_t *AnnotatableSparse::annos = NULL;
-AnnotatableSparse::annos_t *annos = NULL;
-AnnotatableSparse::annos_t *AnnotatableSparse::getAnnos() const
-{
-	if (!annos)
-	{
-		sprintf(buffer, "booga_booga");
-		annos = new annos_t();
-	}
-	return annos;
-}
-#else
 AnnotatableSparse::annos_t AnnotatableSparse::annos;
 AnnotatableSparse::annos_t *AnnotatableSparse::getAnnos() const
 {
 	return &annos;
 }
-#endif
 
 dyn_hash_map<void *, unsigned short> AnnotatableSparse::ser_ndx_map;
 
@@ -91,18 +76,10 @@ int annotatable_printf(const char *format, ...)
 	if (!dyn_debug_annotations) return 0;
 	if (NULL == format) return -1;
 
-	//debugPrintLock->_Lock(FILE__, __LINE__);
-
-	//  probably want to have basic thread-id routines in libcommon...
-	//  uh...  later....
-
-	//fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
 	va_list va;
 	va_start(va, format);
 	int ret = vfprintf(stderr, format, va);
 	va_end(va);
-
-	//debugPrintLock->_Unlock(FILE__, __LINE__);
 
 	return ret;
 }
@@ -161,46 +138,7 @@ AnnotationClassBase::AnnotationClassBase(std::string n,
 
 AnnotationClassBase::~AnnotationClassBase()
 {
-	//  Still waffling...  maybe a bad idea
-#if 0 
-	//  The general rule in dyninst/symtab etc is to use global/static
-	//  Annotation classes, so they never go away.  This is good.
-	//  But in the testsuite, we have a bunch of transient fly-by-night
-	//  AnnotationClasses for the purposes of testing.  
-	//
-	//  This may be a bit dangerous and might require a bit more thought,
-	//  but for now, if this AnnotationClass was the last one allocated
-	//  remove it from the static mapping so it can be reused.
-
-	if (!annotation_types)  return; //  should never happen
-	if (id >= annotation_types->size()) return; //  should never happen
-	if (id == (annotation_types->size() -1))
-	{
-		annotatable_printf("%s[%d]:  removing annotation class %d: %s\n", 
-				FILE__, __LINE__, id, name.c_str());
-		//  this is the special case where we can "undo" the existence of
-		// the annotation type
-		annotation_types->pop_back();
-		assert((*annotation_types)[id] == this);
-		dyn_hash_map<std::string, AnnotationClassID>::iterator iter;
-		iter = annotation_ids_by_name->find(name);
-		if (iter != annotation_ids_by_name->end()) 
-		{
-			annotation_ids_by_name->erase(iter);
-		}
-	}
-#endif
 }
-
-#if 0
-void AnnotationClassBase::clearAnnotationIDMap()
-{
-	if (!annotation_ids_by_name) return;
-	annotation_ids_by_name->clear();
-	delete annotation_ids_by_name;
-	annotation_ids_by_name = NULL;
-}
-#endif
 
 Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned int id)
 {

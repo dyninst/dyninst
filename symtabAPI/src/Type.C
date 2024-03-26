@@ -51,9 +51,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-//#include "collections.h"
-//#include "debug.h" TODO: We want such behaviour. LATER!
-
 static int findIntrensicType(std::string &name);
 
 // This is the ID that is decremented for each type a user defines. It is
@@ -334,7 +331,6 @@ bool typeEnum::isCompatible(Type *otype)
    
    if ( fields1.size() != fields2.size()) 
    {
-      //reportError(BPatchWarning, 112, "enumerated type mismatch ");
       return false;
    }
    
@@ -347,7 +343,6 @@ bool typeEnum::isCompatible(Type *otype)
       if ( (field1.second != field2.second) ||
           (field1.first != field2.first))
       {
-         // reportError(BPatchWarning, 112, "enum element mismatch ");
    	 return false;
       } 
    }
@@ -381,8 +376,6 @@ typePointer *typePointer::create(std::string &name, boost::shared_ptr<Type> ptr,
 
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -396,8 +389,6 @@ typePointer *typePointer::create(std::string &name, boost::shared_ptr<Type> ptr,
 
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -421,8 +412,6 @@ bool typePointer::isCompatible(Type *otype) {
    typePointer *oPointertype = dynamic_cast<typePointer *>(otype);
 
    if (oPointertype == NULL) {
-      //reportError(BPatchWarning, 112, 
-      //                   "Pointer and non-Pointer are not type compatible");
       return false;
    }
    // verify type that each one points to is compatible
@@ -464,8 +453,6 @@ typeFunction *typeFunction::create(std::string &name, boost::shared_ptr<Type> re
 	type->addParam(paramTypes[i]);
     if(obj)
         obj->addType(type);
-    //obj->addType(type); TODO: declare a static container if obj is NULL and add to it.
-    //Symtab::noObjTypes->push_back(type); ??
     return type;
 }
 
@@ -505,16 +492,12 @@ bool typeFunction::isCompatible(Type *otype) {
    dyn_c_vector<boost::shared_ptr<Type>>& fields2 = oFunctiontype->getParams();
    
    if (fields1.size() != fields2.size()) {
-      //reportError(BPatchWarning, 112, 
-      //                   "function number of params mismatch ");
       return false;
    }
     
    //need to compare componment by component to verify compatibility
    for (unsigned int i=0;i<fields1.size();i++) {
       if(!(fields1[i]->isCompatible(fields2[i]))) {
-         //reportError(BPatchWarning, 112, 
-         //                   "function param type mismatch ");
          return false;
       }
    }
@@ -541,11 +524,6 @@ void typeFunction::fixupUnknowns(Module *module)
 /*
  * RANGE
  */
-
-//typeSubRange::typeSubRange(int ID, int size, const char *_low, const char *_hi, const char *_name)
-//   : rangedType(_name, _ID, BPatchSymTypeRange, _size, _low, _hi) 
-//{
-//}
 
 typeSubrange::typeSubrange(typeId_t ID, int size, long low, long hi, std::string name)
   : rangedType(name, ID, dataSubrange, size, low, hi)
@@ -594,7 +572,6 @@ typeArray::typeArray(typeId_t ID,
 	arrayElem(base), 
 	sizeHint_(sizeHint) 
 {
-	//if (!base) arrayElem = Symtab::type_Error;
 }
 
 typeArray::typeArray(boost::shared_ptr<Type> base,
@@ -647,7 +624,6 @@ void typeArray::merge(Type *other)
 	if ( otherarray == NULL || this->ID_ != otherarray->ID_ || 
 			this->arrayElem->getDataClass() != dataUnknownType) 
 	{
-		//bperr( "Ignoring attempt to merge dissimilar types.\n" );
 		return;
 	}
 
@@ -701,8 +677,6 @@ bool typeArray::isCompatible(Type *otype)
 
 	if (oArraytype == NULL) 
 	{
-		//reportError(BPatchWarning, 112, 
-		//                   "Array and non-array are not type compatible");
 		return false;      
 	}
 	unsigned int ec1, ec2;
@@ -712,16 +686,6 @@ bool typeArray::isCompatible(Type *otype)
 
    if (ec1 != ec2) 
    {
-//      char message[126];
-//      int r = snprintf(message, sizeof message,
-//              "Incompatible number of elements [%lu..%lu] vs. [%lu..%lu]",
-//              this->low_, this->hi_, oArraytype->low_, oArraytype->hi_);
-//      if (r < 0 || (size_t)r >= sizeof message)  {
-//         // Ignore truncation this is just debugging, and if unsigned
-//         // longs are 64-bit this cannot overflow
-//         ;
-//      }
-//      //reportError(BPatchWarning, 112, message);
       return false;
    }
 
@@ -765,8 +729,6 @@ typeStruct *typeStruct::create(std::string &name, dyn_c_vector< std::pair<std::s
    }
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -778,20 +740,16 @@ typeStruct *typeStruct::create(std::string &name, dyn_c_vector<Field *> &flds, S
    	typ->addField(flds[i]);
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
-				   
+
    return typ;	
 }
 
 void typeStruct::merge(Type *other) {
    // Merging is only for forward references
-//   assert(!fieldList.size());
 
    typeStruct *otherstruct = dynamic_cast<typeStruct *>(other);
 
    if( otherstruct == NULL || this->ID_ != otherstruct->ID_) {
-      //bperr( "Ignoring attempt to merge dissimilar types.\n" );
       return;
    }
 
@@ -849,8 +807,6 @@ bool typeStruct::isCompatible(Type *otype)
    const dyn_c_vector<Field *> * fields2 = oStructtype->getComponents();
    
    if (fields1->size() != fields2->size()) {
-      //reportError(BPatchWarning, 112, 
-      //                   "struct/union numer of elements mismatch ");
       return false;
    }
     
@@ -860,8 +816,6 @@ bool typeStruct::isCompatible(Type *otype)
       Field * field2 = (*fields2)[i];
             
       if(!(field1->getType(Type::share)->isCompatible(field2->getType(Type::share)))) {
-         //reportError(BPatchWarning, 112, 
-         //                   "struct/union field type mismatch ");
          return false;
       }
    }
@@ -896,9 +850,7 @@ typeUnion *typeUnion::create(std::string &name, dyn_c_vector< std::pair<std::str
    	typ->addField(flds[i]->first, flds[i]->second, 0);
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
-				   
+
    return typ;	
 }
 
@@ -909,8 +861,6 @@ typeUnion *typeUnion::create(std::string &name, dyn_c_vector<Field *> &flds, Sym
    	typ->addField(flds[i]);
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -919,7 +869,6 @@ void typeUnion::merge(Type *other) {
    typeUnion *otherunion = dynamic_cast<typeUnion *>(other);
 
    if( otherunion == NULL || this->ID_ != otherunion->ID_) {
-      //bperr( "Ignoring attempt to merge dissimilar types.\n" );
       return;
    }
 
@@ -980,8 +929,6 @@ bool typeUnion::isCompatible(Type *otype) {
    const dyn_c_vector<Field *> * fields2 = oUniontype->getComponents();
    
    if (fields1->size() != fields2->size()) {
-      //reportError(BPatchWarning, 112, 
-      //                   "struct/union numer of elements mismatch ");
       return false;
    }
     
@@ -991,8 +938,6 @@ bool typeUnion::isCompatible(Type *otype) {
       Field * field2 = (*fields2)[i];
       
       if(!(field1->getType(Type::share)->isCompatible(field2->getType(Type::share)))) {
-         //reportError(BPatchWarning, 112, 
-         //                   "struct/union field type mismatch ");
          return false;
       }
    }
@@ -1013,8 +958,6 @@ typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
    
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -1090,18 +1033,11 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr)
 	    localVar *locVar;
     	locVar = new localVar(fieldList[j]->getName(), 
 	        			     fieldList[j]->getType(Type::share), "", 0, (Function *) func);
-#if 0
-    	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-#endif
     	VariableLocation loc;
         loc.stClass = storageAddr;
         loc.refClass = storageNoRef;
         loc.frameOffset = fieldList[j]->getOffset()+(Offset) baseAddr;
         locVar->addLocation(loc);
-
-	// localVar->addField() TODO????
-	//fieldList[j]->getOffset()+(Offset) baseAddr, -1, storageAddr);
-	
         func->getFunction()->addLocalVar(locVar);
     }
 
@@ -1147,12 +1083,6 @@ typeTypedef::typeTypedef(typeId_t ID, boost::shared_ptr<Type> base, std::string 
     derivedType(name, ID, 0, dataTypedef) 
 {
 	baseType_ = base;
-#if 0
-	if (NULL == base)
-		baseType_ = Symtab::type_Error;
-	else
-		baseType_ = base;
-#endif
 	sizeHint_ = sizeHint / 8;
 }
 
@@ -1172,8 +1102,6 @@ typeTypedef *typeTypedef::create(std::string &name, boost::shared_ptr<Type> base
 
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -1243,8 +1171,6 @@ typeRef *typeRef::create(std::string &name, boost::shared_ptr<Type> ref, Symtab 
 
    if(obj)
    	obj->addType(typ);
-   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -1341,38 +1267,32 @@ dyn_c_vector<Field *> *fieldListType::getFields() const
 
 void fieldListType::fixupComponents() 
 {
-   // bperr "Getting the %d components of '%s' at 0x%x\n", fieldList.size(), getName(), this );
    /* Iterate over the field list.  Recursively (replace)
       '{superclass}' with the superclass's non-private fields. */
    derivedFieldList = new dyn_c_vector< Field * >();
    for( unsigned int i = 0; i < fieldList.size(); i++ ) {
       Field * currentField = fieldList[i];
-      // bperr( "Considering field '%s'\n", currentField->getName() );
       if( currentField->getName() ==  "{superclass}" ) {
          /* Note that this is a recursive call.  However, because
             the class-graph is acyclic (Stroustrup SpecialEd pg 308),
             we're OK. */
-         // bperr( "Found superclass '%s'...\n", currentField->getType()->getName() );
          auto& superclass = dynamic_cast<fieldListInterface&>(*currentField->getType(Type::share));
          const dyn_c_vector<Field *> * superClassFields = superclass.getComponents();
-         // bperr( "Superclass has %d components.\n", superClassFields->size() );
          /* FIXME: do we also need to consider the visibility of the superclass itself? */
          /* FIXME: visibility can also be described on a per-name basis in the
             subclass.  We have now way to convey this information currently, but I'm not
             sure that it matters for our purposes... */
          for( unsigned int j = 0; j < superClassFields->size(); j++ ) {
             Field * currentSuperField = (*superClassFields)[j];
-            // bperr( "Considering superfield '%s'\n", currentSuperField->getName() );
-            
             if( currentSuperField->getVisibility() != visPrivate ) {
                derivedFieldList->push_back( currentSuperField );
             }
-         } /* end super-class iteration */
-      } /* end if currentField is a superclass */
+         }
+      }
       else {
          derivedFieldList->push_back( currentField );
       }
-   } /* end field iteration */
+   }
 }
 
 /*
@@ -1438,15 +1358,6 @@ void fieldListType::addField(unsigned num, Field *fld)
   postFieldInsert(newField->getSize());
 }
 
-//void fieldListType::fixupUnknown(Module *m)
-//{
-//  type *t = dynamic_cast<Type *>(this);
-//  assert(t);
-//  t->fixupUnknown(m);
-  //((Type *)this)->fixupUnknown(m);
-//}
-
-
 /*
  * DERIVED
  */
@@ -1454,14 +1365,14 @@ void fieldListType::addField(unsigned num, Field *fld)
 derivedType::derivedType(std::string &name, typeId_t id, int size, dataClass typeDes)
    :Type(name, id, typeDes)
 {
-	baseType_ = NULL; //Symtab::type_Error;
+	baseType_ = NULL;
    size_ = size;
 }
 
 derivedType::derivedType(std::string &name, int size, dataClass typeDes)
    :Type(name, ::getUniqueTypeId(), typeDes)
 {
-	baseType_ = NULL; //Symtab::type_Error;
+	baseType_ = NULL;
    size_ = size;
 }
 
@@ -1472,7 +1383,6 @@ boost::shared_ptr<Type> derivedType::getConstituentType(Type::do_share_t) const
 
 bool derivedType::operator==(const Type &otype) const {
    try {
-      //const derivedType &oderivedtype = dynamic_cast<const derivedType &>(otype);
       return Type::operator==(otype);
    } catch (...) {
       return false;
@@ -1499,18 +1409,6 @@ rangedType::rangedType(std::string &name, dataClass typeDes, int size, unsigned 
 {
    size_ = size;
 }
-
-/*
-rangedType::rangedType(const char *_name, int _ID, dataClass _class, int _size, const char *_low, const char *_hi) 
-   : Type(_name, _ID, _class) {
-
-   low = strdup(_low);
-   hi = strdup(_hi);
-
-   size = _size;
-}
-*/
-
 
 bool rangedType::operator==(const Type &otype) const 
 {

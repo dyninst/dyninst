@@ -405,13 +405,6 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    const MemoryUsageSet *getMemoryUsage() const;
 };
 
-/**
- * Return a unique ProcessSet representing every running process.  It is an error to try to
- * manually modify this ProcessSet.  Modifications are done automatically by ProcControlAPI
- * as processes are created and destroyed.
- **/
-ProcessSet::const_ptr getAllProcs();
-
 class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
   private:
    int_threadSet *ithrset;

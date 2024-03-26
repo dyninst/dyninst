@@ -240,12 +240,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    // TODO...
    // Needs some way of marking what to save and restore... should be a registerSpace, really
 
-#if 0
-   static AstNodePtr saveStateNode();
-   static AstNodePtr restoreStateNode();
-   static AstNodePtr trampGuardNode();
-#endif
-
    static AstNodePtr miniTrampNode(AstNodePtr tramp);
 
    static AstNodePtr originalAddrNode();
@@ -255,7 +249,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
 
    AstNode(AstNodePtr src);
-   //virtual AstNode &operator=(const AstNode &src);
         
    virtual ~AstNode();
         
@@ -378,13 +371,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	{
       assert(!"Never call this on anything but an operand");
 	}
-	// only function that's defined in metric.C (only used in metri.C)
-	bool condMatch(AstNode* a,
-                  std::vector<dataReqNode*> &data_tuple1,
-                  std::vector<dataReqNode*> &data_tuple2,
-                  std::vector<dataReqNode*> datareqs1,
-                  std::vector<dataReqNode*> datareqs2);
-
 
 	// DEBUG
    virtual operandType getoType() const { return operandType::undefOperandType; }
@@ -400,7 +386,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
-	//AstNode(operandType ot, int which); // for memory access
 	BPatch_type *getType();
 	void		  setType(BPatch_type *t);
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
@@ -579,8 +564,6 @@ class AstOperandNode : public AstNode {
     AstOperandNode(operandType ot, const image_variable* iv);
     
     ~AstOperandNode() {
-        //printf("at ~AstOperandNode()\n");
-        //debugPrint();
         if (oType == operandType::ConstantString) free((char *)oValue);
     }
         
@@ -931,11 +914,6 @@ void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num,
                                         codeGen &gen,
 					int size,
 					bool noCost);
-void emitStorePreviousStackFrameRegister(Dyninst::Address register_num,
-                                         Dyninst::Register src,
-                                         codeGen &gen,
-                                         int size,
-                                         bool noCost);
 
 #define SCAST_AST(ast) boost::static_pointer_cast<AstNode>(ast)
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)

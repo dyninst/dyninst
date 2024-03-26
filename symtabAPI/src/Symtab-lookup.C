@@ -59,8 +59,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-// extern thread_local SymtabError serr;
-
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase );
 bool pattern_match( const char *p, const char *s, bool checkCase );
 
@@ -550,15 +548,6 @@ bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long siz
    for(unsigned index=0;index<regions_.size();index++) {
       if(regions_[index]->getMemOffset() == addr && regions_[index]->getMemSize() == size) {
          if (ret) {
-#if 0
-            cerr << "Error: region inconsistency" << endl;
-            cerr << "\t" << ret->getRegionName() << " @ "
-                 << hex << ret->getMemOffset() << "/" << ret->getMemSize() 
-		 << ", type " << Region::regionType2Str(ret->getRegionType()) << endl;
-            cerr << "\t" << regions_[index]->getRegionName() << " @ "
-                 << regions_[index]->getMemOffset() << "/" << regions_[index]->getMemSize() 
-		 << ", type " << Region::regionType2Str(regions_[index]->getRegionType()) << endl;
-#endif
 	   assert((addr == 0) ||
 		  (ret->getRegionType() == Region::RT_BSS) ||
 		  (regions_[index]->getRegionType() == Region::RT_BSS));
@@ -602,9 +591,6 @@ bool regexEquiv( const std::string &str,const std::string &them, bool checkCase 
 
 bool
 pattern_match( const char *p, const char *s, bool checkCase ) {
-   //const char *p = ptrn;
-   //char *s = str;
-
     while ( true ) {
         // If at the end of the pattern, it matches if also at the end of the string
         if( *p == '\0' )

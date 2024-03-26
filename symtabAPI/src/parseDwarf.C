@@ -50,31 +50,6 @@
 #include "annotations.h"
 #include "debug.h"
 
-#if 0
-#ifndef DW_FRAME_CFA_COL3
-//  This is a newer feature of libdwarf (which has been causing some other 
-//  compilation problems locally) -- so we just fudge it for the moment
-#define DW_FRAME_CFA_COL3               1036
-/* Use this to get the cfa. */
-extern "C" {
-int dwarf_get_fde_info_for_cfa_reg3(
-		Dwarf_FDE /*fde*/,
-		Dwarf_Addr       /*pc_requested*/, 
-		Dwarf_Small  *   /*value_type*/, 
-		Dwarf_Sword *   /*offset_relevant*/,
-		Dwarf_Sword *    /*register*/,  
-		Dwarf_Sword *    /*offset_or_block_len*/,
-		Dwarf_Ptr   *    /*block_ptr */,
-		Dwarf_Addr*      /*row_pc_out*/,
-		Dwarf_Error*     /*error*/)
-{
-	fprintf(stderr, "%s[%d]:  WARNING:  inside dummy dwarf functions\n", FILE__, __LINE__);
-	return 0;
-}
-}
-#endif
-#endif
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -88,11 +63,6 @@ std::string convertCharToString(char *ptr)
     str = "";
   return str;	
 }
-
-void Object::parseDwarfTypes( Symtab *) 
-{
-   assert(0);
-} /* end parseDwarfTypes() */
 
 bool Object::hasFrameDebugInfo()
 {

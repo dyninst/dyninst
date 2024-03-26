@@ -43,9 +43,6 @@
 
 using namespace std;
 
-extern bool ia32_is_mode_64();
-
-
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -183,11 +180,6 @@ namespace Dyninst
     }
     bool RegisterAST::checkRegID(MachRegister r, unsigned int low, unsigned int high) const
     {
-#if defined(DEBUG)
-      fprintf(stderr, "%s (%d-%d/%x) compared with %s (%d-%d/%x)",
-                    format().c_str(), m_Low, m_High, m_Reg.getBaseRegister().val(),
-                    r.name().c_str(), low, high, r.getBaseRegister().val());
-#endif
         return (r.getBaseRegister() == m_Reg.getBaseRegister()) && (low <= m_High) &&
                 (high >= m_Low);
     }
@@ -200,15 +192,12 @@ namespace Dyninst
         if(Expression::bind(e, val)) {
             return true;
         }
-	//        fprintf(stderr, "checking %s against %s with checkRegID in RegisterAST::bind... %p", e->format().c_str(),
-	//format().c_str(), this);
+
         if(e->checkRegID(m_Reg, m_Low, m_High))
         {
-	  //fprintf(stderr, "yes\n");
             setValue(val);
             return true;
         }
-        //fprintf(stderr, "no\n");
         return false;
     }
   }

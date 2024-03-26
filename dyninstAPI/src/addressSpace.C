@@ -475,10 +475,7 @@ void AddressSpace::inferiorMallocAlign(unsigned &size) {
 }
     
 bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
-  //#if defined (cap_dynamic_heap)
-   // This is why it's not a reference...
    inferiorMallocAlign(newSize);
-   //#endif
     
    infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %u\n",
                     FILE__, __LINE__, block, newSize);
@@ -725,11 +722,6 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
    if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
       return NULL;
 
-   if (allFuncs.size() > 1) 
-   {
-      //cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
-   }
-
    return allFuncs[0];
 }
 
@@ -913,14 +905,6 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
            wildcardEquiv(obj_name, mapped_objects[j]->fileName())))
          return mapped_objects[j];
    }
-#if 0
-   cerr << "Warning: failed to find mapped_object matching " << obj_name
-        << " (originally " << orig_name << ")"
-        << " with wildcard " << (wildcard ? "<on>" : "<off>") << endl;
-   for (unsigned int i = 0; i < mapped_objects.size(); ++i) {
-      cerr << "\t" << mapped_objects[i]->fileName() << " / " << mapped_objects[i]->fullName() << endl;
-   }
-#endif
    return NULL;
 }
 
@@ -1654,8 +1638,6 @@ bool AddressSpace::relocate() {
         unsigned int num = modFuncs.size();
         FuncSet overlappingFuncs;
         for (FuncSet::iterator iter2 = modFuncs.begin(); iter2 != modFuncs.end(); ++iter2) {
-//           block_instance *entry = (*iter2)->entryBlock();
-//           entry->getFuncs(std::inserter(overlappingFuncs,overlappingFuncs.begin()));
            // Check whether any blocks in the function are are members of any other functions
             func_instance* curFunc = *iter2;
             for (auto iter3 = curFunc->blocks().begin(); iter3 != curFunc->blocks().end(); ++iter3) {
@@ -1719,8 +1701,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
 
   // Create a CodeMover covering these functions
-  //cerr << "Creating a CodeMover" << endl;
-
   relocatedCode_.push_back(new CodeTracker());
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
@@ -1927,8 +1907,6 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
      return 0;
   }
 
-  //addrMap.debug();
-
   return baseAddr;
 }
 
@@ -1976,10 +1954,9 @@ void AddressSpace::getRelocAddrs(Address orig,
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
-    //springboard_cerr << "\t Checking CodeTracker " << hex << *iter << dec << endl;
+
     if ((*iter)->origToReloc(orig, block, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
-       //springboard_cerr << "\t\t ... match" << endl;
        if (!reloc.instrumentation.empty() && getInstrumentationAddrs) {
           for (std::map<instPoint *, Address>::iterator iter2 = reloc.instrumentation.begin();
                iter2 != reloc.instrumentation.end(); ++iter2) {
@@ -2165,7 +2142,6 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
         {
             // build "srcList" worklist
             SingleContext epred_((*fit)->ifunc(),true,true);
-            //Intraproc epred(&epred_);
             std::list<ParseAPI::Edge*> srcList;
 	    std::for_each(boost::make_filter_iterator(epred_, sourceEdges.begin(), sourceEdges.end()),
 			  boost::make_filter_iterator(epred_, sourceEdges.end(), sourceEdges.end()),

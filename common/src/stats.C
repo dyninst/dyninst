@@ -38,41 +38,8 @@
 #include "common/h/util.h"
 #include <sstream>
 #include <string>
-#if 0
-#include "dyninstAPI/src/stats.h"
-
-CntStatistic trampBytes;
-CntStatistic pointsUsed;
-CntStatistic insnGenerated;
-CntStatistic totalMiniTramps;
-double timeCostLastChanged=0;
-// HTable<resourceListRec*> fociUsed;
-// HTable<metric*> metricsUsed;
-CntStatistic ptraceOtherOps, ptraceOps, ptraceBytes;
-
-void printDyninstStats()
-{
-    sprintf(errorLine, "    %ld total points used\n", pointsUsed.value());
-    logLine(errorLine);
-    sprintf(errorLine, "    %ld mini-tramps used\n", totalMiniTramps.value());
-    logLine(errorLine);
-    sprintf(errorLine, "    %ld tramp bytes\n", trampBytes.value());
-    logLine(errorLine);
-    sprintf(errorLine, "    %ld ptrace other calls\n", ptraceOtherOps.value());
-    logLine(errorLine);
-    sprintf(errorLine, "    %ld ptrace write calls\n", 
-                ptraceOps.value()-ptraceOtherOps.value());
-    logLine(errorLine);
-    sprintf(errorLine, "    %ld ptrace bytes written\n", ptraceBytes.value());
-    logLine(errorLine);
-    sprintf(errorLine, "    %ld instructions generated\n", 
-                insnGenerated.value());
-    logLine(errorLine);
-}
-#endif
 
 StatContainer::StatContainer() 
-   //stats_(::Dyninst::hash)
 {
 }
 

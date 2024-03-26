@@ -165,8 +165,6 @@ parse_block::getSize() const {
     return ParseAPI::Block::size();
 }
 
-void checkIfRelocatable (instruction insn, bool &canBeRelocated);
-
 class image_edge : public ParseAPI::Edge {
     friend class parse_block;
  public:
@@ -344,7 +342,6 @@ class parse_func : public ParseAPI::Function
    /****** OpenMP Parsing Functions *******/
    std::string calcParentFunc(const parse_func * imf, std::vector<image_parRegion *> & pR);
    void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
-   void parseOMPSectFunc(parse_func * parentFunc);
    void parseOMPFunc(bool hasLoop);
    bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
    void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }

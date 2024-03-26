@@ -89,7 +89,6 @@ instPoint *instPoint::postCall(func_instance *f, block_instance *b) {
 }
 
 instPoint *instPoint::edge(func_instance *f, edge_instance *e) {
-  //   return f->findPoint(EdgeDuring, e, true);
   return f->edgePoint(e, true);
 }
 

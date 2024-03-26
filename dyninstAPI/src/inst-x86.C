@@ -1326,15 +1326,6 @@ Dyninst::Register EmitterIA32::emitCall(opCode op,
                                const std::vector<AstNodePtr> &operands, 
                                bool noCost, func_instance *callee) {
     bool inInstrumentation = true;
-#if 0
-    if (gen.obj() &&
-        dynamic_cast<replacedInstruction *>(gen.obj())) {
-        // We're replacing an instruction - so don't do anything
-        // that requires a base tramp.
-        inInstrumentation = false;
-    }
-#endif
-
     if (op != callOp) {
       cerr << "ERROR: emitCall with op == " << op << endl;
     }
@@ -1354,7 +1345,6 @@ Dyninst::Register EmitterIA32::emitCall(opCode op,
 
    param_size = emitCallParams(gen, operands, callee, saves, noCost);
 
-   //Dyninst::Register ret = gen.rs()->allocateRegister(gen, noCost);
    Dyninst::Register ret = REGNUM_EAX;
 
    emitCallInstruction(gen, callee, ret);
@@ -1378,8 +1368,6 @@ Dyninst::Register EmitterIA32::emitCall(opCode op,
 codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
                      codeGen &gen, RegControl rc, bool /*noCost*/)
 {
-   //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
-   
    // retval is the address of the jump (if one is created). 
    // It's always the _start_ of the jump, which means that if we need
    // to offset (like x86 (to - (from + insnsize))) we do it later.
@@ -1415,8 +1403,6 @@ Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src
                codeGen &gen, bool noCost,
                const instPoint *location, bool /*for_multithreaded*/)
 {
-    //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
-
    bool get_addr_of = (src2 != Null_Register);
    switch (op) {
        case getRetValOp:
@@ -1456,7 +1442,6 @@ Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src
 
 void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen)
 {
-  //bperr( "Emiting SHL\n");
    gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
    append_memory_as_byte(insn, 0xC1);
@@ -1475,8 +1460,6 @@ void EmitterIA32::emitRestoreFlags(codeGen &, unsigned )
 {
     assert(!"never use this!");
     return;
-//   emitOpRMReg(PUSH_RM_OPC1, RealRegister(REGNUM_ESP), offset*4, RealRegister(PUSH_RM_OPC2), gen);
-//    emitSimpleInsn(POPFD, gen); // popfd
 }
 
 void EmitterIA32::emitRestoreFlagsFromStackSlot(codeGen &gen)
@@ -1799,7 +1782,6 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register
 
    if(rb >= IA32_EMULATE) {
       bool neg = false;
-      //bperr( "!!!In case rb >= IA32_EMULATE!!!\n");
       switch(rb) {
         case IA32_NESCAS:
            neg = true;
@@ -1891,7 +1873,6 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register
       }
    }
    else if(rb > -1) {
-      //bperr( "!!!In case rb > -1!!!\n");
       // TODO: 16-bit pseudoregisters
       assert(rb < 8); 
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
@@ -1975,9 +1956,6 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace * /* proc */, bool s)
 {
-    //bperr( "emitV(op=%d,src1=%d,src2=%d,dest=%d)\n", op, src1,
-    //        src2, dest);
-    
     assert ((op!=branchOp) && (op!=ifOp) &&
             (op!=trampPreamble));         // !emitA
     assert ((op!=getRetValOp) && (op!=getRetAddrOp) && 
@@ -2253,14 +2231,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
                                         int,
                                         bool){
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
-}
-
-void emitStorePreviousStackFrameRegister(Address register_num,
-                                        Dyninst::Register src,
-                                        codeGen &gen,
-                                        int,
-                                        bool) {
-    gen.codeEmitter()->emitStoreOrigRegister(register_num, src, gen);
 }
 
 // First AST node: target of the call

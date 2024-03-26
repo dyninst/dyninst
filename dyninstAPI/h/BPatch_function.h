@@ -151,9 +151,6 @@ public:
 
     void addParam(Dyninst::SymtabAPI::localVar *lvar);
 
-//    void addParam(const char * _name, BPatch_type *_type, int _linenum,
-//                  long _frameOffset, int _reg = -1,
-//                  BPatch_storageClass _sc = BPatch_storageFrameOffset);
     void fixupUnknown(BPatch_module *);
     
 

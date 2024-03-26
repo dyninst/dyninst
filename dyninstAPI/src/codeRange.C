@@ -366,7 +366,6 @@ bool codeRangeTree::find(Dyninst::Address key, codeRange *& value) const{
     // Check to see if the range works
     if (!value->get_size()) {
         // XXX do we really need this warning?
-        //fprintf(stderr, "%s[%d]:  Warning:  size was 0...\n", FILE__, __LINE__);
         if(key > value->get_address())
             return false;
     }
@@ -379,21 +378,6 @@ bool codeRangeTree::find(Dyninst::Address key, codeRange *& value) const{
     }
     
     return true;
-#if 0
-    fprintf(stderr, "codeRangeTree::find for 0x%x\n", key);
-    entry* x = find_internal(key);
-    fprintf(stderr, "find_internal returned %p\n", x);
-    if (!x) return false;
-    value = x->value;
-    assert(value->get_address() <= key); // Otherwise it wouldn't have been returned.
-
-    if (key >= (value->get_address() + value->get_size())) {
-        fprintf(stderr, "... ret false\n");
-        return false;
-    }
-    fprintf(stderr, "... ret true\n");
-    return true;
-#endif
 }
 
 bool codeRangeTree::precessor(Dyninst::Address key, codeRange * &value) const{
@@ -491,8 +475,6 @@ void codeRange::print_range(Dyninst::Address) {
     * (i.e the fact we have a function pointer, doesn't mean we have a 
     * mapped_object pointer).  Build up more information from what we have
     **/
-   //if (base_ptr && !func_ptr) 
-   //   func_ptr = base_ptr->func();
    if (func_ptr && !mapped_ptr)
       mapped_ptr = func_ptr->obj();
    if (mapped_ptr && !img_ptr)

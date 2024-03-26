@@ -203,25 +203,14 @@ class AbsRegion {
   DATAFLOW_EXPORT bool contains(const Absloc::Type t) const;
   DATAFLOW_EXPORT bool contains(const Absloc &abs) const;
   DATAFLOW_EXPORT bool contains(const AbsRegion &rhs) const;
-  // Logically, "intersect(rhs) != 0"
-  //bool overlaps(const AbsRegion &rhs) const;
 
   DATAFLOW_EXPORT bool containsOfType(Absloc::Type t) const;
-
-  //iterator &begin();
-  //iterator &end();
 
   DATAFLOW_EXPORT bool operator==(const AbsRegion &rhs) const;
   DATAFLOW_EXPORT bool operator!=(const AbsRegion &rhs) const;
   DATAFLOW_EXPORT bool operator<(const AbsRegion &rhs) const;
 
   DATAFLOW_EXPORT const std::string format() const;
-
-  DATAFLOW_EXPORT void insert(const Absloc &abs);
-  DATAFLOW_EXPORT void insert(const AbsRegion &reg);
-
-  DATAFLOW_EXPORT void erase(const Absloc &abs);
-  DATAFLOW_EXPORT void erase(const AbsRegion &reg);
 
   DATAFLOW_EXPORT AbsRegion() :
     type_(Absloc::Unknown),
@@ -244,12 +233,6 @@ class AbsRegion {
   DATAFLOW_EXPORT void setSize(size_t size) {
     size_ = size;
   }
-
-  DATAFLOW_EXPORT static bool equivalent(const AbsRegion &lhs,
-			 const AbsRegion &rhs,
-			 Address addr,
-			 ParseAPI::Function *caller,
-			 ParseAPI::Function *callee);
 
   DATAFLOW_EXPORT Absloc absloc() const { return absloc_; }
   DATAFLOW_EXPORT Absloc::Type type() const { return type_; }

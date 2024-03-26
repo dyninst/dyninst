@@ -223,17 +223,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
      SET_PTR(insn, gen);
      return;
   }
-  /*  
-  disp = toAddr - (fromAddr + 4);
-  if (is_disp16(disp) && gen.addrSpace()->getAddressWidth() != 8) {
-     append_memory_as_byte(insn, 0x66);
-     append_memory_as_byte(insn, 0xE9);
-     *((signed short*) insn) = (signed short) disp;
-     insn += sizeof(signed short);
-     SET_PTR(insn, gen);
-     return;
-  }
-  */
+
   disp = toAddr - fromAddr;
   if (is_disp32(disp) || gen.addrSpace()->getAddressWidth() == 4) {
      generateBranch(gen, disp);
@@ -275,14 +265,6 @@ void insnCodeGen::generateBranch(codeGen &gen,
 void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 {
   GET_PTR(insn, gen);
-#if 0
-  for (int i = 3; i >= 0; i--) {
-    uint16_t word = static_cast<unsigned short>((val >> (16 * i)) & 0xffff);
-    append_memory_as_byte(insn, 0x66); // operand size override
-    append_memory_as_byte(insn, 0x68); // push immediate (16-bits b/c of prefix)
-    append_memory_as(insn, uint32_t{word});
-  }
-#endif
   // NOTE: The size of this generated instruction(+1 for the ret) is stored in CALL_ABS64_SZ
   unsigned int high = static_cast<unsigned int>(val >> 32);
   unsigned int low = static_cast<unsigned int>(val);
@@ -498,19 +480,6 @@ unsigned pcRelJCC::apply(Dyninst::Address addr)
 
    //Can't convert short E0-E3 loops/jumps to 32-bit equivalents
    if (*origInsn < 0xE0 || *origInsn > 0xE3) {
-     /*
-      //16-bit jump
-      potential = addr + 5;
-      disp = target - potential;
-      if (is_disp16(disp) && gen->addrSpace()->getAddressWidth() != 8) {
-         *newInsn++ = 0x66; //Prefix to shift 32-bit to 16-bit
-         convert_to_rel32(origInsn, newInsn);
-         *((signed short *) newInsn) = (signed short) disp;
-         newInsn += 2;
-         SET_PTR(newInsn, *gen);
-         return (unsigned) (newInsn - orig_loc);
-      }
-     */
       //32-bit jump
       potential = addr + 6;
       disp = target - potential;
@@ -836,12 +805,6 @@ bool insnCodeGen::generateMem(codeGen &gen,
       return false; // e.g., leave, pushad instruction
    }
 
-   //if (loc.address_size == 1) {
-   //  //Don't support 16-bit instructions yet
-   //  cerr << "Error: insn is 16-bit" << endl;
-   //  return false;
-   //}
-
    if (loc.modrm_reg == 4 && !loc.rex_r && loc.address_size != 1) {
       //cerr << "Error: insn uses esp/rsp" << endl;
       //The non-memory access register is %rsp/%esp, we can't work with
@@ -966,27 +929,6 @@ bool insnCodeGen::generateMem(codeGen &gen,
    {
      *walker++ = insn_ptr[loc.imm_position[0] + i];
    }
-
-   //Debug output.  Fix the end of testdump.c, compile it, the do an
-   // objdump -D
-   /*   static FILE *f = NULL;
-   if (f == NULL)
-   {
-      f = fopen("testdump.c", "w+");
-      if (!f)
-         perror("Couldn't open");
-      fprintf(f, "char buffer[] = {\n");
-   }
-   fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
-   for (unsigned i=0; i<orig_instr.getSize(); i++) {
-      fprintf(f, "%u, ", (unsigned) insn_ptr[i]);
-   }
-   fprintf(f, "\n");
-   for (int i=0; i<(walker-insnBuf); i++) {
-      fprintf(f, "%u, ", (unsigned) insnBuf[i]);
-   }
-   fprintf(f, "\n");
-   fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");*/
    SET_PTR(walker, gen);
    return true;
 }
@@ -1035,19 +977,6 @@ bool insnCodeGen::modifyJcc(Dyninst::Address targetAddr, NS_x86::instruction &in
 
    //Can't convert short E0-E3 loops/jumps to 32-bit equivalents
    if (*origInsn < 0xE0 || *origInsn > 0xE3) {
-     /*
-      //16-bit jump
-      potential = from + 5;
-      disp = targetAddr - potential;
-      if (is_disp16(disp) && gen.fromSpace()->getAddressWidth() != 8) {
-         *newInsn++ = 0x66; //Prefix to shift 32-bit to 16-bit
-         convert_to_rel32(origInsn, newInsn);
-         *((signed short *) newInsn) = (signed short) disp;
-         newInsn += 2;
-         SET_PTR(newInsn, gen);
-         return true;
-      }
-     */
       //32-bit jump
       potential = from + 6;
       disp = targetAddr - potential;

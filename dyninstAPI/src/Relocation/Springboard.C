@@ -40,8 +40,6 @@
 using namespace Dyninst;
 using namespace Relocation;
 
-extern int dyn_debug_trap;
-
 const int InstalledSpringboards::Allocated(0);
 const int InstalledSpringboards::UnallocatedStart(1);
 
@@ -170,32 +168,11 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter blocks_begi
     Address start = bbl->start();
     Address end = bbl->end();
 
-#if 0
-    // HACK for small, aligned functions
-    if ((f->blocks().size() == 1) &&
-        (start % 16 == 0) &&
-        ((end - start) < 16)) {
-       end = start + 16;
-    }
-#endif
-
     // Extend the block to include any subsequent no-ops that are not part of other blocks
     ParseAPI::CodeObject* co = func->ifunc()->obj();
     ParseAPI::CodeRegion* cr = func->ifunc()->region();
     std::set<ParseAPI::Block*> blocks;
     co->findBlocks(cr, end, blocks);
-
-    // Removal of the below code limits the size of range to the size of the block
-    // Future fix is to actually do what the above comment ("int size" 
-    //  suggest and look for noop's explicitly
-/*  int size = bbl->size();
- *     while (isNoneContained(blocks) && cr->contains(end)) {
-        end++;
-        size++;
-        blocks.clear();
-        co->findBlocks(cr, end, blocks);
-    }
-*/
 
     SpringboardInfo* info = new SpringboardInfo(func->addr(), func);
 
@@ -298,8 +275,6 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 
 bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
 						  const SpringboardReq &) {
-   //debugRanges();
-   //if (false) cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
    // For now we give up and hope it all works out for the best. 
    return true;
 }
@@ -434,16 +409,6 @@ bool InstalledSpringboards::conflictInRelocated(Address start, Address end) {
       }
    }
    if ( (end-start) > 1 && relocTraps_.end() != relocTraps_.find(start) ) {
-#if 0
-       malware_cerr << "Springboard conflict for " << hex << start  
-           << " our previous springboard here needed a trap, "
-           << "but due to overwrites we may (erroneously) think "
-           << "a branch can fit" << dec << endl;
-       springboard_cerr << "Springboard conflict for " << hex << start  
-           << " our previous springboard here needed a trap, "
-           << "but due to overwrites we may (erroneously) think "
-           << "a branch can fit" << dec << endl;
-#endif
        return true;
    }
 
@@ -554,24 +519,6 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   insnCodeGen::generateBranch(gen, from, to);
 
   springboard_cerr << "Generated springboard branch " << hex << from << "->" << to << dec << endl;
-
-#if 0
-#include "InstructionDecoder.h"
-    using namespace Dyninst::InstructionAPI;
-    Address base = 0;
-    InstructionDecoder deco(gen.start_ptr(),gen.size(),Arch_aarch64);
-    Instruction::Ptr insn = deco.decode();
-    while(base<gen.used()+5) {
-        std::stringstream rawInsn;
-        unsigned idx = insn->size();
-        while(idx--) rawInsn << hex << setfill('0') << setw(2) << (unsigned int) insn->rawByte(idx);
-
-        cerr << "\t" << hex << base << ":   " << rawInsn.str() << "   "
-            << insn->format(base) << dec << endl;
-        base += insn->size();
-        insn = deco.decode();
-    }
-#endif
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {

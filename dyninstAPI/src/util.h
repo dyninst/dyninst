@@ -51,24 +51,6 @@ extern CntStatistic ptraceOtherOps;
 extern CntStatistic ptraceBytes;
 extern CntStatistic pointsUsed;
 
-bool waitForFileToExist(char *fname, int timeout_seconds);
-int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds);
-
-inline unsigned uiHash(const unsigned &val) {
-  return val;
-}
-
-inline unsigned CThash(const unsigned &val) {
-  return val % 1048573;
-}
-
-unsigned ptrHash4(void *ptr);
-unsigned ptrHash16(void *ptr);
-
-inline unsigned intHash(const int &val) {
-  return val;
-}
-
 void
 dyninst_log_perror(const char* msg);
 

@@ -199,19 +199,6 @@ namespace Dyninst
             }
 #endif
 
-#if 0 /* Which parts of the operand are available? */
-            if(list.base)
-                std::cout << "\tBase:         " << list.base << std::endl;
-            if(list.offset)
-                std::cout << "\tOffset:       " << list.offset << std::endl;
-            if(list.segment)
-                std::cout << "\tSegment:      " << list.segment << std::endl;
-            if(list.scale)
-                std::cout << "\tScale:        " << list.scale << std::endl;
-            if(list.displacement)
-                std::cout << "\tDisplacement: " << list.displacement << std::endl;
-#endif
-
             return ArchSpecificFormatter::getFormatter(arch).formatDeref(addressToDereference->format(arch));
         }
 

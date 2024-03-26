@@ -131,17 +131,8 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
 #if defined(os_windows)
     if(extract_pathname_tail(file_) == extract_pathname_tail(fd.file_)) file_match_ = true;
 #endif
-#if 0
-    cerr << hex << "Addr comparison: " << code_ << " ? " << fd.code_
-         << ", " << data_ << " ? " << fd.data_ << dec << endl;
-#endif
+
     bool addr_match = (code_ == fd.code_ && data_ == fd.data_);
-#if 0
-    cerr << "file " << file_match_ 
-         << ", addr " << addr_match
-         << ", member_ " << (member_ == fd.member_)
-         << ", pid_ " << (pid_ == fd.pid_) << endl;
-#endif
     if (file_match_ &&
         (addr_match) &&
         (member_ == fd.member_) &&
@@ -1021,12 +1012,9 @@ bool image::addSymtabVariables()
 pdmodule *image::findModule(const string &name, bool wildcard)
 {
    pdmodule *found = NULL;
-   //cerr << "image::findModule " << name << " , " << find_if_excluded
-   //     << " called" << endl;
 
    if (!wildcard) {
       if (modsByFileName.find(name) != modsByFileName.end()) {
-         //cerr << " (image::findModule) found module in modsByFileName" << endl;
          found = modsByFileName[name];
       }
    }
@@ -1049,15 +1037,7 @@ pdmodule *image::findModule(const string &name, bool wildcard)
       }
    }
 
-   //cerr << " (image::findModule) did not find module, returning NULL" << endl;
-   if (found) {
-      // Just-in-time...
-      //if (parseState_ == symtab)
-      //analyzeImage();
-      return found;
-   }
-
-   return NULL;
+   return found;
 }
 
 const CodeObject::funclist &
@@ -1244,30 +1224,13 @@ void image::removeImage(image *img)
   // Here's a question... do we want to actually delete images?
   // Pro: free up memory. Con: we'd just have to parse them again...
   // I guess the question is "how often do we serially open files".
-  /* int refCount = */ img->destroy();
-  
-
-  /*
-    // We're not deleting when the refcount hits 0, so we may as well
-    // keep the vector. It's a time/memory problem. 
-  if (refCount == 0) {
-    std::vector<image*> newImages;
-    // It's gone... remove from image vector
-    for (unsigned i = 0; i < allImages.size(); i++) {
-      if (allImages[i] != img)
-	newImages.push_back(allImages[i]);
-    }
-    allImages = newImages;
-  }
-  */
+  img->destroy();
 }
 
 int image::destroy() {
     refCount--;
     if (refCount == 0) {
         if (linkedFile->isExec()) {
-            // a.out... destroy it
-            //delete this;
             return 0;
         }
     }
@@ -1460,7 +1423,6 @@ image::image(fileDescriptor &desc,
 
    name_ = extract_pathname_tail(string(desc.file().c_str()));
 
-   //   fprintf(stderr,"img name %s\n",name_.c_str());
    pathname_ = desc.file().c_str();
 
    // initialize (data members) codeOffset_, dataOffset_,
@@ -1518,7 +1480,6 @@ image::image(fileDescriptor &desc,
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
 
    // Continue ParseAPI init
-//   fprintf(stderr, "#### create CodeObject for %s\n", desc.file().c_str());
    img_fact_ = new DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
@@ -1630,7 +1591,6 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
             found.push_back((*obj_funcs)[i]);
     }
     if (found.size() > orig_size) {
-        //exec()->analyzeIfNeeded();
         return true;
     }
     
@@ -1656,7 +1616,6 @@ bool pdmodule::findFunctionByPretty( const std::string &name,
             found.push_back((*obj_funcs)[i]);
     }
     if (found.size() > orig_size) {
-        //exec()->analyzeIfNeeded();
         return true;
     }
     
@@ -1675,9 +1634,6 @@ void pdmodule::dumpMangled(std::string &prefix) const
 
       if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
           cerr << pdf->symTabName() << " ";
-      }
-      else {
-          // bperr( "%s is not a prefix of %s\n", prefix, pdf->symTabName().c_str() );
       }
   }
   cerr << endl;
@@ -1942,7 +1898,6 @@ const std::vector <image_variable *> *image::findVarVectorByPretty(const std::st
 
 const std::vector <image_variable *> *image::findVarVectorByMangled(const std::string &name)
 {
-    //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
     std::vector<image_variable *>* res = new std::vector<image_variable *>;
 
     vector<Variable *> vars;
@@ -1968,12 +1923,6 @@ const std::vector <image_variable *> *image::findVarVectorByMangled(const std::s
         delete res;
     	return NULL;
     }
-  /*
-  if (varsByMangled.defines(name)) {
-      //analyzeIfNeeded();
-      return varsByMangled[name];
-  }
-  return NULL;*/
 }
 
 bool pdmodule::getFunctions(std::vector<parse_func *> &funcs)  {
@@ -1990,7 +1939,7 @@ bool pdmodule::getFunctions(std::vector<parse_func *> &funcs)  {
     }
   
     return (funcs.size() > curFuncSize);
-} /* end getFunctions() */
+}
 
 /* Instrumentable-only, by the last version's source. */
 bool pdmodule::getVariables(std::vector<image_variable *> &vars)  {
@@ -2003,20 +1952,7 @@ bool pdmodule::getVariables(std::vector<image_variable *> &vars)  {
     }
   
     return (vars.size() > curVarSize);
-} /* end getFunctions() */
-
-/*
-void *image::getPtrToDataInText( Address offset ) const {
-    if( isData(offset) ) { return NULL; }
-    if( ! isCode(offset) ) { return NULL; }
-	
-    Region *reg = linkedFile->findEnclosingRegion(offset);
-    if(reg != NULL) {
-        return (void*) ((Address)reg->getPtrToRawData() + offset 
-                        - reg->getMemOffset());
-    }
-    return NULL;
-} *//* end getPtrToDataInText() */
+}
     
 bool image::getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges)
 {

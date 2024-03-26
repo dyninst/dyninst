@@ -77,8 +77,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
   friend class BPatch_addressSpace;
   friend class BPatch_binaryEdit;
   friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *);
-
-  BPatch_variableExpr *findOrCreateVariable(int_variable *);
  public:
 
   // The following functions are for internal use by  the library only:

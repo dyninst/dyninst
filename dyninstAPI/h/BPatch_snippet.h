@@ -136,9 +136,6 @@ class BPATCH_DLL_EXPORT BPatch_snippet {
 
     public:
 
-    int PDSEP_astMinCost(); // This will go away too
-
-
     //  BPatch_snippet::BPatch_snippet
     //  Default constructor
 

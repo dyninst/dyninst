@@ -72,14 +72,12 @@ IA_IAPI::IA_IAPI(const IA_IAPI &rhs)
     cachedLinkerStubState(rhs.cachedLinkerStubState),
     hascftstatus(rhs.hascftstatus),
     tailCalls(rhs.tailCalls) {
-        //curInsnIter = allInsns.find(rhs.curInsnIter->first);
         curInsnIter = allInsns.end()-1;
     }
 
 IA_IAPI &IA_IAPI::operator=(const IA_IAPI &rhs) {
     dec = rhs.dec;
     allInsns = rhs.allInsns;
-    //curInsnIter = allInsns.find(rhs.curInsnIter->first);
     curInsnIter = allInsns.end()-1;
     validCFT = rhs.validCFT;
     cachedCFT = rhs.cachedCFT;
@@ -192,7 +190,6 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
     hascftstatus.first = false;
     tailCalls.clear();
 
-    //boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
     curInsnIter =
         allInsns.insert(
                 allInsns.end(),
@@ -233,11 +230,6 @@ IA_IAPI::reset(
 
 void IA_IAPI::advance()
 {
-    //    if(!curInsn()) {
-    //        parsing_printf("..... WARNING: failed to advance InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
-    //                       allInsns.size());
-    //        return;
-    //    }
     InstructionAdapter::advance();
     current += curInsn().size();
 
@@ -246,10 +238,6 @@ void IA_IAPI::advance()
                 allInsns.end(),
                 std::make_pair(current, dec.decode()));
 
-    //    if(!curInsn())
-    //    {
-    //        parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
-    //    }
     validCFT = false;
     validLinkerStubState = false;
     hascftstatus.first = false;
@@ -258,11 +246,6 @@ void IA_IAPI::advance()
 
 bool IA_IAPI::retreat()
 {
-    //    if(!curInsn()) {
-    //        parsing_printf("..... WARNING: failed to retreat InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
-    //                       allInsns.size());
-    //        return false;
-    //    }
     InstructionAdapter::retreat();
     allInsns_t::iterator remove = curInsnIter;
     if(curInsnIter != allInsns.begin()) {
@@ -410,20 +393,6 @@ bool IA_IAPI::isGarbageInsn() const
                         }
                         break;
             case e_push: // pushes of segment registers do not occur frequently in real code (and crash Rose)
-#if 0 // instructionAPI implementation
-                        set<RegisterAST::Ptr> regs;
-                        curInsn()->getWriteSet(regs);
-                        for (set<RegisterAST::Ptr>::iterator rit = regs.begin();
-                                rit != regs.end(); rit++) 
-                        {
-                            if (Dyninst::isSegmentRegister((*rit)->getID().regClass())) {
-                                cerr << "REACHED A PUSH OF A SEGMENT REGISTER AT "<< std::hex 
-                                    << current << std::dec <<" COUNTING AS INVALID" << endl;
-                                ret = true;
-                                break;
-                            }
-                        }
-#else // faster raw-byte implementation 
                         switch (curInsn().rawByte(0)) {
                             case 0x06:
                             case 0x0e:
@@ -445,7 +414,6 @@ bool IA_IAPI::isGarbageInsn() const
                             default:
                                 break;
                         }
-#endif
             default:
                         break;
         }
@@ -918,9 +886,5 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
 InstrumentableLevel IA_IAPI::getInstLevel(Function * context, unsigned int num_insns) const
 {
     InstrumentableLevel ret = InstructionAdapter::getInstLevel(context, num_insns);
-    /*    if(ret == HAS_BR_INDIR && isIPRelativeBranch())
-          {
-          return NORMAL;
-          }*/
     return ret;
 }

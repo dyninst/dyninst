@@ -896,14 +896,6 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
        emitSimpleInsn(rex, gen);
 }
 
-#if 0
-/* build the MOD/RM byte of an instruction */
-static unsigned char makeModRMbyte(unsigned Mod, unsigned Reg, unsigned RM)
-{
-   return static_cast<unsigned char>(((Mod & 0x3) << 6) + ((Reg & 0x7) << 3) + (RM & 0x7));
-}
-#endif
-
 void EmitterIA32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) 
 {
    emitMovImmToMem(addr, imm, gen);
@@ -1349,17 +1341,6 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
 void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
                                 codeGen &gen, bool s)
 {
-/* disabling hack
-   // HACKITY - remove before doing anything else
-   // 
-   // If the input is a character, then mask off the value in the register so that we're
-   // only comparing the low bytes. 
-   if (src2imm < 0xff) {
-      // Use a 32-bit mask instead of an 8-bit since it sign-extends...
-      emitOpRegImm64(0x81, EXTENDED_0x81_AND, src1, 0xff, true, gen); 
-  }
-*/
-
    // cmp $src2imm, %src1
    emitOpRegImm64(0x81, 7, src1, src2imm, true, gen);
 
@@ -2125,26 +2106,6 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPoint::Ty
    else 
       emitLEA(loc.reg.reg(), Null_Register, 0, loc.offset, dest, gen);
 }
-
-// Commented out until we need it to avoid warnings
-#if 0
-static void emitPushImm16_64(unsigned short imm, codeGen &gen)
-{
-   GET_PTR(insn, gen);
-
-   // operand-size prefix
-   append_memory_as_byte(insn, 0x66);
-
-   // PUSH imm opcode
-   append_memory_as_byte(insn, 0x68);
-
-   // and the immediate
-   *(unsigned short*)insn = imm;
-   insn += 2;
-
-   SET_PTR(insn, gen);
-}
-#endif
 
 void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen)
 {

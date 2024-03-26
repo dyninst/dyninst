@@ -1227,22 +1227,9 @@ bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
             return false;
         }
 
-        /*
-        int oldRights = pcProc_->setMemoryAccessRights((Address)inTracedProcess,
-                                                       amount,
-                                                       PAGE_EXECUTE_READWRITE);
-
-        if( oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY ) {
-        */
-
         if( origRights.isRX() || origRights.isR() ) {
             result = pcProc_->writeMemory((Dyninst::Address)inTracedProcess, inSelf,
                                           amount);
-
-            /*
-            if( pcProc_->setMemoryAccessRights((Address)inTracedProcess,
-                                               amount, oldRights) == false ) {
-            */
 
             PCMemPerm tmpRights;
             if( !pcProc_->setMemoryAccessRights((Address)inTracedProcess,
@@ -1364,8 +1351,6 @@ bool PCProcess::removeThread(dynthread_t tid) {
     if( result == threadsByTid_.end() ) return false;
 
     PCThread *toDelete = result->second;
-
-    //if( !unregisterThread(toDelete) ) return false;
 
     threadsByTid_.erase(result);
 
@@ -1545,7 +1530,6 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
         case AsIs: 
             infmalloc_printf("%s[%d]:  (1) AsIs\n", FILE__, __LINE__);
             break;
-	    //#if defined(cap_dynamic_heap)
         case DeferredFree: 
             infmalloc_printf("%s[%d]:  (2) garbage collecting and compacting\n",
                              FILE__, __LINE__);
@@ -1587,12 +1571,6 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
             infmalloc_printf("%s[%d]: inferiorMalloc: recompacting\n", FILE__, __LINE__);
             inferiorFreeCompact();
             break;
-	    //#else /* !(cap_dynamic_heap) */
-	    //case DeferredFree: // deferred free, compact free blocks
-            //inferiorFreeCompact();
-            //break;
-	    //#endif /* cap_dynamic_heap */
-
         default: // error - out of memory
             infmalloc_printf("%s[%d]: failed to allocate memory\n", FILE__, __LINE__);
             if( err ) *err = true;
@@ -1869,10 +1847,6 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
     irpcBuf.endTrackRegDefs();
 
-    //#sasha printing code patch for DYNINSTos_malloc
-    //cerr << "BUFFER for IRPC" << endl;
-    //cerr << irpcBuf.format() << endl;
-
     return postIRPC_internal(irpcBuf.start_ptr(),
                              irpcBuf.used(),
                              breakOffset,
@@ -1948,17 +1922,6 @@ bool PCProcess::postIRPC_internal(void *buf,
     else
        newRPC->rpc = IRPC::createIRPC(buf, size);
 
-#if 0
-   // DEBUG
-   InstructionAPI::InstructionDecoder d(buf,size,getArch());
-   Address foo = addr;
-   InstructionAPI::Instruction::Ptr insn = d.decode();
-   while(insn) {
-      cerr << "\t" << hex << foo << ": " << insn->format(foo) << dec << endl;
-      foo += insn->size();
-      insn = d.decode();
-   }
-#endif
     newRPC->rpc->setData(newRPC);
 
     unsigned int start_offset = 0;
@@ -2745,20 +2708,6 @@ Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint,
            // into memory regions that are allocated at runtime
         mapped_object *obj = findObject(target);
         if (!obj) {
-
-#if 0           
-           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
-           for (unsigned i = 0; i < 0x100; ++i) {
-		          Address stackTOP = activeFrame.esp;
-		          Address stackTOPVAL =0;
-                readDataSpace((void *) (stackTOP + 4*i), 
-                              sizeof(getAddressWidth()), 
-                              &stackTOPVAL, false);
-		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
-                             << stackTOPVAL << dec << endl;
-           }
-#endif
-
             obj = createObjectNoFile(target);
             if (!obj) {
                 fprintf(stderr,"ERROR, point %lx has target %lx that responds "
@@ -2769,22 +2718,6 @@ Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint,
             }
         }
     }
-
-#if 0
-           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
-           Address stackTOP = activeFrame.esp;
-           Address stackTOPVAL =0;
-           for (unsigned i = 0; 
-                i < 0x100 && 0 != ((stackTOP + 4*i) % memoryPageSize_); 
-                ++i) 
-           {
-                readDataSpace((void *) (stackTOP + 4*i), 
-                              sizeof(getAddressWidth()), 
-                              &stackTOPVAL, false);
-		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
-                             << stackTOPVAL << dec << endl;
-           }
-#endif
 
     return unrelocTarget;
 }

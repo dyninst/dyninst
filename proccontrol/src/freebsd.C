@@ -552,28 +552,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     event = Event::ptr(new EventChangePCStop());
                     break;
                 }
-#if 0
-                //Debugging code
-                if (stopsig == SIGSEGV) {
-                   Dyninst::MachRegisterVal addr;
-                   result = thread->getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
-                   if (!result) {
-                      fprintf(stderr, "Failed to read PC address upon crash\n");
-                   }
-                   fprintf(stderr, "Got crash at %lx\n", addr);
 
-                   unsigned char bytes[10];
-                   proc->readMem((void *)bytes, addr, 10);
-
-                   for(int i = 0; i < 10; i++) {
-                       fprintf(stderr, "%#hx ", bytes[i]);
-                   }
-                   fprintf(stderr, "\n");
-
-                   ptrace(PT_CONTINUE, proc->getPid(), (caddr_t)1, SIGABRT);
-                   assert(!"Received SIGSEGV");
-                }
-#endif
                 event = Event::ptr(new EventSignal(stopsig));
                 break;
         }
@@ -1721,29 +1700,6 @@ static void init_dynreg_to_user() {
 
     init_lock.unlock();
 }
-
-#if 0
-// Debugging
-static void dumpRegisters(struct reg *regs) {
-#if defined(arch_x86)
-    fprintf(stderr, "r_fs = 0x%x\n", regs->r_fs);
-    fprintf(stderr, "r_es = 0x%x\n", regs->r_es);
-    fprintf(stderr, "r_ds = 0x%x\n", regs->r_ds);
-    fprintf(stderr, "r_edi = 0x%x\n", regs->r_edi);
-    fprintf(stderr, "r_esi = 0x%x\n", regs->r_esi);
-    fprintf(stderr, "r_ebp = 0x%x\n", regs->r_ebp);
-    fprintf(stderr, "r_ebx = 0x%x\n", regs->r_ebx);
-    fprintf(stderr, "r_ecx = 0x%x\n", regs->r_ecx);
-    fprintf(stderr, "r_eax = 0x%x\n", regs->r_eax);
-    fprintf(stderr, "r_eip = 0x%x\n", regs->r_eip);
-    fprintf(stderr, "r_cs = 0x%x\n", regs->r_cs);
-    fprintf(stderr, "r_eflags = 0x%x\n", regs->r_eflags);
-    fprintf(stderr, "r_esp = 0x%x\n", regs->r_esp);
-    fprintf(stderr, "r_ss = 0x%x\n", regs->r_ss);
-    fprintf(stderr, "r_gs = 0x%x\n", regs->r_gs);
-#endif
-}
-#endif
 
 bool freebsd_process::plat_individualRegAccess() 
 {

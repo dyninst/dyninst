@@ -39,9 +39,6 @@
 
 using namespace std;
 
-extern bool ia32_is_mode_64();
-
-
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -71,13 +68,11 @@ namespace Dyninst
     bool TernaryAST::isUsed(InstructionAST::Ptr) const
     {
         return false; //TODO
-        //return findMe->checkRegID(m_Reg, m_Low, m_High);
     }
 
     std::string TernaryAST::format(Architecture, formatStyle f) const
     {
         return TernaryAST::format(f); // TODO
-        //return ArchSpecificFormatter::getFormatter(arch).formatTernary(m_Reg.name());
     }
 
     std::string TernaryAST::format(formatStyle) const
@@ -98,23 +93,10 @@ namespace Dyninst
 
     void TernaryAST::apply(Visitor*)
     {
-        //v->visit(this); // TODO need to support this in visitor
     }
     bool TernaryAST::bind(Expression*, const Result&)
     {
         return false; // TODO
-
-        /*if(Expression::bind(e, val)) {
-            return true;
-        }*/
-	    //fprintf(stderr, "checking %s against %s with checkRegID in TernaryAST::bind... %p", e->format().c_str(),
-	    //format().c_str(), this);
-        /*if(e->checkRegID(m_Reg, m_Low, m_High))
-        {
-            setValue(val);
-            return true;
-        }*/
-        //fprintf(stderr, "no\n");
     }
   }
 }

@@ -239,7 +239,6 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
 
    bool  getVersionFileName(std::string &fileName) const;
    bool  getVersions(std::vector<std::string> *&vers) const;
-   bool  getVersionNum(unsigned &verNum) const;
    bool  getVersionHidden() const { return versionHidden_; }
 
    friend

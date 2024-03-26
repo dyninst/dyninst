@@ -281,20 +281,6 @@ bool mapped_module::findFuncsByAddr(const Address addr,
    return (funcs.size() > size);
 }
 
-#if 0
-bool mapped_module::findBlocksByAddr(const Address addr,
-                                     std::set<block_instance *> &blocks) {
-   std::set<block_instance *> allBlocks;
-   unsigned size = blocks.size();
-   if (!obj()->findBlocksByAddr(addr, allBlocks)) return false;
-   for (std::set<block_instance *>::iterator iter = allBlocks.begin();
-        iter != allBlocks.end(); ++iter) {
-      if ((*iter)->func()->mod() == this) blocks.insert(*iter);
-   }
-   return (blocks.size() > size);
-}
-#endif
-
 void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
 {
     assert(proc()->proc());
@@ -302,9 +288,6 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
     int pageSize = proc()->proc()->getMemoryPageSize();
     const std::vector<func_instance *> funcs = getAllFunctions();
     for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
-      /*        const func_instance::BlockSet&
-            blocks = funcs[fidx]->blocks();
-	    func_instance::BlockSet::const_iterator bIter;*/
       const PatchFunction::Blockset&
             blocks = funcs[fidx]->blocks();
       PatchFunction::Blockset::const_iterator bIter;

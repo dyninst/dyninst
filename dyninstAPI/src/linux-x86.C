@@ -39,8 +39,6 @@
 #include <sys/resource.h>
 #include <math.h> // for floor()
 #include <unistd.h> // for sysconf()
-//#include <elf.h>
-//#include <libelf.h>
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/image.h"
@@ -182,74 +180,6 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
 
     return AstNode::funcCallNode(mprot, args);
 }
-
-// For now, this isn't defined
-#if 0 
-/* Find libc and add it as a shared object
- * Search for __libc_start_main
- * Save old code at beginning of __libc_start_main
- * Insert trap
- * Signal thread to continue
- */
-bool PCProcess::instrumentLibcStartMain() 
-{
-    unsigned int maps_size =0;
-    map_entries *maps = getVMMaps(getPid(), maps_size);
-    unsigned int libcIdx=0;
-    while (libcIdx < maps_size &&
-           ! (strstr(maps[libcIdx].path,"/libc")
-              && strstr(maps[libcIdx].path,".so"))) {
-       libcIdx++;
-    }
-    assert(libcIdx != maps_size);
-    //TODO: address code and data are not always 0,0: need to fix this
-    fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path,0,0,true);
-    mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
-    addASharedObject(libc);
-
-    // find __libc_startmain
-    const std::vector<func_instance*> *funcs;
-    funcs = libc->findFuncVectorByPretty("__libc_start_main");
-    if(funcs->size() == 0 || (*funcs)[0] == NULL) {
-        logLine( "Couldn't find __libc_start_main\n");
-        return false;
-    } else if (funcs->size() > 1) {
-       startup_printf("[%s:%u] - Found %d functions called __libc_start_main, weird\n",
-                      FILE__, __LINE__, funcs->size());
-    }
-    if (!(*funcs)[0]->isInstrumentable()) {
-        logLine( "__libc_start_main is not instrumentable\n");
-        return false;
-    }
-    Address addr = (*funcs)[0]->addr();
-    startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
-                   FILE__, __LINE__, (int)addr);
-
-    // save original code at beginning of function
-    if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer),savedCodeBuffer,true)) {
-        fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-        fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
-            __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
-      return false;
-   }
-   startup_printf("%s[%d]: Saved %d bytes from entry of __libc_start_main\n", 
-         FILE__, __LINE__, sizeof(savedCodeBuffer));
-   // insert trap
-   codeGen gen(1);
-   insnCodeGen::generateTrap(gen);
-   if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
-      fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
-            __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      return false;
-   }
-   libcstartmain_brk_addr = addr;
-   // TODO continueProc(); // signal process to continue
-   return true;
-}// end instrumentLibcStartMain
-
-#endif
-
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance *, Address target_addr) {

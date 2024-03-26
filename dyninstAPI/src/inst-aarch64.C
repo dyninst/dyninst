@@ -1023,80 +1023,6 @@ int getInsnCost(opCode) {
     return 0;
 }
 
-#if 0
-// What does this do???
-void registerSpace::saveClobberInfo(const instPoint *location)
-{
-  registerSlot *regSlot = NULL;
-  registerSlot *regFPSlot = NULL;
-  if (location == NULL)
-    return;
-  if (location->actualGPRLiveSet_ != NULL && location->actualFPRLiveSet_ != NULL)
-    {
-
-      // REG guard registers, if live, must be saved
-      if (location->actualGPRLiveSet_[ REG_GUARD_ADDR ] == LIVE_REG)
-    location->actualGPRLiveSet_[ REG_GUARD_ADDR ] = LIVE_CLOBBERED_REG;
-
-      if (location->actualGPRLiveSet_[ REG_GUARD_OFFSET ] == LIVE_REG)
-    location->actualGPRLiveSet_[ REG_GUARD_OFFSET ] = LIVE_CLOBBERED_REG;
-
-      // GPR and FPR scratch registers, if live, must be saved
-      if (location->actualGPRLiveSet_[ REG_SCRATCH ] == LIVE_REG)
-    location->actualGPRLiveSet_[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
-
-      if (location->actualFPRLiveSet_[ REG_SCRATCH ] == LIVE_REG)
-    location->actualFPRLiveSet_[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
-
-      // Return func call register, since we make a call because
-      // of multithreading (regardless if it's threaded) from BT
-      // we must save return register
-      if (location->actualGPRLiveSet_[ 3 ] == LIVE_REG)
-    location->actualGPRLiveSet_[ 3 ] = LIVE_CLOBBERED_REG;
-
-
-      for (u_int i = 0; i < getRegisterCount(); i++)
-    {
-      regSlot = getRegSlot(i);
-
-      if (  location->actualGPRLiveSet_[ (int) registers[i].number ] == LIVE_REG )
-        {
-          if (!registers[i].beenClobbered)
-        location->actualGPRLiveSet_[ (int) registers[i].number ] = LIVE_UNCLOBBERED_REG;
-          else
-        location->actualGPRLiveSet_[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
-        }
-
-
-      if (  location->actualGPRLiveSet_[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG )
-        {
-          if (registers[i].beenClobbered)
-        location->actualGPRLiveSet_[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
-        }
-    }
-
-      for (u_int i = 0; i < getFPRegisterCount(); i++)
-    {
-      regFPSlot = getFPRegSlot(i);
-
-      if (  location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] == LIVE_REG )
-        {
-          if (!fpRegisters[i].beenClobbered)
-        location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] = LIVE_UNCLOBBERED_REG;
-          else
-        location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
-        }
-
-      if (  location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] == LIVE_UNCLOBBERED_REG )
-        {
-          if (fpRegisters[i].beenClobbered)
-        location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
-        }
-    }
-    }
-}
-#endif
-
 // This is used for checking wether immediate value should be encoded
 // into a instruction. In fact, only being used for loading constant
 // value into a register, and in ARMv8 there are 16 bits for immediate
@@ -1133,12 +1059,10 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 				&bound_addr, true)){
 		sprintf(errorLine, "read error in PCProcess::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
 		logLine(errorLine);
-		//print_read_error_info(entry, target_pdf, base_addr);
 		fprintf(stderr, "%s[%d]: %s\n", FILE__, __LINE__, errorLine);
 		return false;
 	}
 
-   //fprintf(stderr, "%s[%d]:  hasBeenBound:  %p ?= %p ?\n", FILE__, __LINE__, bound_addr, entry.target_addr() + 6 + base_addr);
 	if ( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
 	  // the callee function has been bound by the runtime linker
 	  // find the function and return it
@@ -1167,14 +1091,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
 
-void emitStorePreviousStackFrameRegister(Address,
-                                         Register,
-                                         codeGen &,
-                                         int,
-                                         bool) {
-    assert(0);
-}
-
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well
@@ -1200,8 +1116,6 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     args.push_back(AstNode::operandNode(AstNode::operandType::origRegister,(void *)(long)branch_target));
     args.push_back(AstNode::operandNode(AstNode::operandType::Constant, (void *) addr));
 
-    //inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
-    //        FILE__, __LINE__, cft->format(insn.getArch()).c_str());
     return true;
 }
 
@@ -1228,24 +1142,6 @@ Emitter *AddressSpace::getEmitter() {
 #define LWZ_11_30   0x817e0000
 #define ADDIS_11_30 0x3d7e0000
 
-/*
- * If the target stub_addr is a glink stub, try to determine the actual
- * function called (through the GOT) and fill in that information.
- *
- * The function at stub_addr may not have been created when this method
- * is called.
- *
- * XXX Is this a candidate to move into general parsing code, or is
- *     this properly a Dyninst-only technique?
- */
-
-/*
-bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
-{
-	assert(0); //Not implemented
-    return true;
-}
-*/
 
 bool EmitterAARCH64::emitCallRelative(Register, Address, Register, codeGen &) {
     assert(0); //Not implemented
@@ -1281,8 +1177,6 @@ void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register
                 base, offset, size, insnCodeGen::Pre);
     else{
         assert(0 && "offset in emitStoreRelative not in (-256,255)");
-        //insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-        //        base, offset, size, insnCodeGen::Pre);
     }
 }
 
@@ -1293,159 +1187,10 @@ bool EmitterAARCH64::emitMoveRegToReg(registerSlot *,
     return true;
 }
 
-/*
-bool EmitterAARCH6432Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAddr) {
-
-      Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-      std::vector<Register> excludeReg;
-      excludeReg.push_back(scratchPCReg);
-      Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-      bool newStackFrame = false;
-      int stack_size = 0;
-      int gpr_off, fpr_off, ctr_off;
-      //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx Registers PC %d scratch %d \n", origAddr, relocAddr, scratchPCReg, scratchReg);
-      if ((scratchPCReg == Null_Register) || (scratchReg == Null_Register)) {
-		//fprintf(stderr, " Creating new stack frame for 0x%lx to 0x%lx \n", origAddr, relocAddr);
-
-		newStackFrame = true;
-		//create new stack frame
-	        gpr_off = TRAMP_GPR_OFFSET_32;
-	        fpr_off = TRAMP_FPR_OFFSET_32;
-	        ctr_off = STK_CTR_32;
-
-		// Make a stack frame.
-	    	pushStack(gen);
-
-    		// Save GPRs
-	      stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, 2);
-
-	      scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-	      assert(scratchPCReg != Null_Register);
-	      excludeReg.clear();
-	      excludeReg.push_back(scratchPCReg);
-	      scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-	      assert(scratchReg != Null_Register);
-	      // relocaAddr has moved since we added instructions to setup a new stack frame
-	      relocAddr = relocAddr + ((stack_size + 1)*(gen.width()));
-              //fprintf(stderr, " emitPIC origAddr 0x%lx reloc 0x%lx stack size %d Registers PC %d scratch %d \n", origAddr, relocAddr, stack_size, scratchPCReg, scratchReg);
-
-	}
-	emitMovePCToReg(scratchPCReg, gen);
-	Address varOffset = origAddr - relocAddr;
-	emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
-      	insnCodeGen::generateMoveToLR(gen, scratchReg);
-	if(newStackFrame) {
-	      // GPRs
-	      restoreGPRegisters(gen, gen.rs(), gpr_off);
-	      popStack(gen);
-	}
-
-      return 0;
-}
-
-bool EmitterAARCH64Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAddr) {
-	assert(0);
-	return false;
-}
-bool EmitterAARCH64Dyn::emitPIC(codeGen &gen, Address origAddr, Address relocAddr) {
-
-	Address origRet = origAddr + 4;
-	Register scratch = gen.rs()->getScratchRegister(gen, true);
-	assert(scratch != Null_Register);
-	instruction::loadImmIntoReg(gen, scratch, origRet);
-	insnCodeGen::generateMoveToLR(gen, scratch);
-	return true;
-
-}
-*/
-
 bool EmitterAARCH64Stat::emitPLTCommon(func_instance *, bool, codeGen &) {
     assert(0); //Not implemented
     return true;
 }
-
-#if 0
-bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
-  // In PPC64 Linux, function descriptors are used in place of direct
-  // function pointers.  The descriptors have the following layout:
-  //
-  // Function Descriptor --> + 0: <Function Text Address>
-  //                         + 8: <TOC Pointer Value>
-  //                         +16: <Environment Pointer [Optional]>
-  //
-  // Additionally, this should be able to stomp on the link register (LR)
-  // and TOC register (r2), as they were saved by Emitter::emitCall() if
-  // necessary.
-  //
-  // So here's a brief sketch of the code this function generates:
-  //
-  //   Set up new branch target in LR from function descriptor
-  //   Set up new TOC in R2 from function descriptor + 8
-  //   Call
-  bool isStaticBinary = false;
-
-  if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
-    isStaticBinary = true;
-  }
-
-  const unsigned TOCreg = 2;
-  const unsigned wordsize = gen.width();
-  assert(wordsize == 8);
-  Address dest = getInterModuleFuncAddr(callee, gen);
-  Address caller_toc = 0;
-  Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
-  // Instead of saving the TOC (if we can't), just reset it afterwards.
-  if (gen.func()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
-  }
-  else if (gen.point()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
-  }
-  else {
-    // Don't need it, and this might be an iRPC
-  }
-
-  if(isStaticBinary)
-    caller_toc = 0;
-
-  //Offset destOff = dest - gen.currAddr();
-  Offset destOff = dest - caller_toc;
-
-  //    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
-  // Broken to see if any of this generates intellible code.
-
-  Register scratchReg = 3; // = gen.rs()->getScratchRegister(gen, true);
-  int stackSize = 0;
-  if (scratchReg == Null_Register) {
-    std::vector<Register> freeReg;
-    std::vector<Register> excludeReg;
-    stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
-    assert (stackSize == 1);
-    scratchReg = freeReg[0];
-  }
-  insnCodeGen::loadImmIntoReg<Offset?(gen, scratchReg, destOff);
-
-  if(!isStaticBinary) {
-    insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
-
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                     TOCreg, scratchReg, 8);
-  }
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                   scratchReg, scratchReg, 0);
-
-  insnCodeGen::generateMoveToCR(gen, scratchReg);
-
-  if (stackSize > 0)
-    insnCodeGen::removeStackFrame(gen);
-
-
-  instruction branch_insn(call ? BCTRLraw : BCTRraw);
-  insnCodeGen::generate(gen, branch_insn);
-
-  return true;
-}
-#endif
 
 bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *, bool, codeGen &) {
     assert(0); //Not implemented

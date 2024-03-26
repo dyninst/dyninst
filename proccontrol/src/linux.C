@@ -414,25 +414,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             DYNINST_FALLTHROUGH;
 
          case SIGTRAP: {
-            {
-#if 0
-               //Debugging code
-               Dyninst::MachRegisterVal addr;
-               Dyninst::MachRegisterVal x30_val;
-
-               result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
-               result = thread->plat_getRegister(Dyninst::aarch64::x30, x30_val);
-               if (!result) {
-                  fprintf(stderr, "Failed to read PC address upon crash\n");
-               }
-               fprintf(stderr, "Got SIGTRAP at %lx\n", addr);
-	       fprintf(stderr, "X30 : %lx\n", x30_val);
-
-               Dyninst::MachRegisterVal X0;
-               result = thread->plat_getRegister(Dyninst::aarch64::x0 ,X0);
-               pthrd_printf("ARM-debug: x0 is 0x%lx/%u\n", X0, X0);
-#endif
-            }
             ext = status >> 16;
             if (ext) {
                bool postpone = false;
@@ -546,13 +527,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             Dyninst::Address adjusted_addr;
 
             result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
-#if 0
-            //ARM-Debug
-            pthrd_printf("ARM-debug: PC = 0x%lx\n", addr);
-            char buffer_inst[4];
-            proc->plat_readMem(thread, buffer_inst, addr, 4);
-            printf("0x%8x\n", *((unsigned int*)buffer_inst) );
-#endif
 
             if (!result) {
                perr_printf("Failed to read PC address upon SIGTRAP\n");
@@ -671,23 +645,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
-#if 0
-            //Debugging code
-            if (stopsig == 11 || stopsig == 4) {
-               Dyninst::MachRegisterVal addr;
-               result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
-               if (!result) {
-                  fprintf(stderr, "Failed to read PC address upon crash\n");
-               }
-               fprintf(stderr, "Got crash at %lx\n", addr);
-	       fprintf(stderr, "ARM-debug: PC = 0x%lx\n", addr);
-	       char buffer_inst[4];
-	       proc->plat_readMem(thread, buffer_inst, addr, 4);
-	       fprintf(stderr,"0x%8x\n", *((unsigned int*)buffer_inst) );
 
-               //while (1) sleep(1);
-            }
-#endif
             Dyninst::MachRegisterVal addr;
             result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
             event = Event::ptr(new EventSignal(stopsig, addr, EventSignal::Unknown, false));

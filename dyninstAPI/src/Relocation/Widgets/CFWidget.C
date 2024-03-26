@@ -87,17 +87,6 @@ CFWidget::CFWidget(InstructionAPI::Instruction insn, Address addr)  :
       if (iter->isConditional) isConditional_ = true;
    }
 
-#if 0
-   // Old way
-   if (insn->getCategory() == c_CallInsn) {
-      // Calls have a fallthrough but are not conditional.
-      // TODO: conditional calls work how?
-      isCall_ = true;
-   } else if (insn->allowsFallThrough()) {
-      isConditional_ = true;
-   }
-#endif
-
    // This whole next section is obsolete, but IAPI's CFT interface doesn't say
    // what a "return" is (aka, they don't include "indirect"). So I'm using it
    // so that things work. 
@@ -114,7 +103,6 @@ CFWidget::CFWidget(InstructionAPI::Instruction insn, Address addr)  :
    }
 
    exp->bind(thePC.get(), Result(u64, addr_));
-   //exp->bind(thePCFixme.get(), Result(u64, addr_));
    Result res = exp->eval();
    if (!res.defined) {
       if (!isIndirect_) {
@@ -451,15 +439,6 @@ std::string CFWidget::format() const {
    return ret.str();
 }
 
-#if 0
-unsigned CFWidget::size() const
-{ 
-   if (insn_ != NULL) 
-      return insn_->size(); 
-   return 0;
-}
-#endif
-
 /////////////////////////
 // Patching!
 /////////////////////////
@@ -496,7 +475,6 @@ unsigned CFPatch::estimate(codeGen &) {
 PaddingPatch::PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b)
   : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) 
 {
-   //malware_cerr << hex << "PaddingPatch(" << size << "," << registerDefensive << "," << noop << ", [" << b->start() << " " << b->end() << ") )" << dec <<  endl;
 }
 
 
@@ -507,7 +485,6 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
       bpwarn("WARNING: Disabling post-call block padding %s[%d]\n",FILE__,__LINE__);
       return true;
    }
-   //malware_cerr << "PaddingPatch::apply, addr [" << hex << block_->end() << "]["<< gen.currAddr() << "], size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
    if (noop_) {
       gen.fill(size_, codeGen::cgNOP);
    }
@@ -516,8 +493,6 @@ bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
    } else {
       gen.fill(size_, codeGen::cgTrap);
    }
-   //cerr << "\t After filling, current addr " << hex << gen.currAddr() << dec << endl;
-   //gen.fill(10, codeGen::cgNOP);
    return true;
 }
 

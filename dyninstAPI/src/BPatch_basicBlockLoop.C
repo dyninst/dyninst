@@ -108,13 +108,6 @@ int BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_edge*> &edges)
 {
    edges.insert(edges.end(), backEdges.begin(), backEdges.end());
    return edges.size();
-
-#if 0
-    for (unsigned idx =0; idx < edges.size(); idx++) {
-        backEdges.insert(edges[idx]);
-    }
-    return edges.size();
-#endif
 }
 
 // this is a private function, invoked by BPatch_flowGraph::createLoops

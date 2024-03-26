@@ -713,10 +713,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             bssscnp = scnp;
             if (!dataddr) dataddr = scn.sh_addr();
         }
-            /* End data region search */
-            /*else if (strcmp( name, FINI_NAME) == 0) {
-      fini_addr_ = scn.sh_addr();
-      }*/
         else if (strcmp(name, SYMTAB_NAME) == 0) {
             if (!symscnp) {
                 symscnp = scnp;
@@ -776,8 +772,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 // some other linker.  (Does BSD fall into this category?)
                 // If the two linkers set the entry size differently, we may
                 // need to re-evaluate this code.
-                //
-                //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
                 plt_entry_size_ = 16;
             } else {
                 plt_entry_size_ = scn.sh_entsize();
@@ -896,10 +890,6 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
   cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
 #endif
 
-    if (!dataddr || !symscnp || !strscnp) {
-        //log_elferror(err_func_, "no text/bss/symbol/string section");
-    }
-    //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
     return true;
 }
 
@@ -934,8 +924,6 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
             case DT_RELENT:
             case DT_RELAENT:
                 rel_entry_size_ = dyns.d_val(i);
-                /* Maybe */
-                //rel_plt_entry_size_ = dyns.d_val(i);
                 break;
             case DT_INIT:
                 init_addr_ = dyns.d_val(i);
@@ -1072,7 +1060,6 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     for (unsigned iter = 0; iter < regions_.size(); ++iter) {
                         std::string name = regions_[iter]->getRegionName();
                         if (name == PLT_NAME) plt = regions_[iter];
-                            // else if (name == REL_PLT_NAME) relplt = regions_[iter];
                         else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
                         else if (name == GOT_NAME) got = regions_[iter];
                     }
@@ -1489,14 +1476,11 @@ void Object::load_object(bool alloc_syms) {
         get_valid_memory_areas(*elfHdr);
 
 #if (defined(os_linux) || defined(os_freebsd))
-//        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64)
-//        {
         if (eh_frame_scnp != 0 && gcc_except != 0) {
             find_catch_blocks(eh_frame_scnp, gcc_except,
                               txtaddr, dataddr, catch_addrs_);
         }
 
-//        }
 #endif
         if (interp_scnp) {
             interpreter_name_ = (char *) interp_scnp->get_data().d_buf();
@@ -1545,8 +1529,6 @@ void Object::load_object(bool alloc_syms) {
             // Else add dynamic symbol to dictionary
             // (or) Have two sepearate dictionaries. Makes life easy!
             // Think about it today!!
-
-            //allsymbols = merge(allsymbols, alldynSymbols);
 
 #if defined(TIMED_PARSE)
             struct timeval endtime;
@@ -1649,12 +1631,6 @@ static Symbol::SymbolVisibility pdelf_visibility(int elf_visibility) {
 }
 
 //============================================================================
-
-//#include "dyninstAPI/src/arch.h"
-//#include "dyninstAPI/src/inst.h"
-//#include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
-//#include "dyninstAPI/src/instP.h" // class returnInstance
-//#include "dyninstAPI/src/rpcMgr.h"
 
 //linear search
 bool lookUpSymbol(std::vector<Symbol *> &allsymbols, Offset &addr) {
@@ -1803,12 +1779,6 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym) {
         ++i;
     }
     retval->setSymbolType(Symbol::ST_FUNCTION);
-#if 0
-    retval->tag_ = Symbol::TAG_INTERNAL;  // Not sure if this is an appropriate
-                                        // use of the tag field, but we need
-                                        // to mark this symbol somehow as a
-                                        // fake.
-#endif
     return retval;
 }
 
@@ -1947,7 +1917,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             }
         }
         }
-    } // syms.isValid()
+    }
 #if defined(TIMED_PARSE)
     struct timeval endtime;
   gettimeofday(&endtime, NULL);
@@ -2093,16 +2063,10 @@ dyn_scnp, Elf_X_Data &symdata,
                 bool hidden = raw >> 15;
                 int index = raw & 0x7fff;
                 if (versionFileNameMapping.find(index) != versionFileNameMapping.end()) {
-                    //printf("version filename for %s: %s\n", sname.c_str(),
-                    //versionFileNameMapping[index].c_str());
                     newsym->setVersionFileName(versionFileNameMapping[index]);
                 }
                 if (versionMapping.find(index) != versionMapping.end()) {
-                    //printf("versions for %s: ", sname.c_str());
-                    //for (unsigned k=0; k < versionMapping[index].size(); k++)
-                    //printf(" %s", versionMapping[index][k].c_str());
                     newsym->setVersions(versionMapping[index]);
-                    //printf("\n");
                 }
                 if (hidden) {
                     newsym->setVersionHidden();
@@ -2268,17 +2232,6 @@ void Object::find_code_and_data(Elf_X &elf,
         Elf_X_Phdr &phdr = elf.get_phdr(i);
 
         char *file_ptr = (char *) mf->base_addr();
-        /*
-      if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags())) {
-      Region *reg = new Region(i, "", phdr.p_paddr(), phdr.p_filesz(),
-      phdr.p_vaddr(), phdr.p_memsz(),
-      &file_ptr[phdr.p_offset()],
-      getSegmentPerms(phdr.p_flags()),
-      getSegmentType(phdr.p_type(), phdr.p_flags()));
-      reg->setFileOffset(phdr.p_offset());
-      regions_.push_back(reg);
-      }
-    */
         // The code pointer, offset, & length should be set even if
         // txtaddr=0, so in this case we set these values by
         // identifying the segment that contains the entryAddress
@@ -2303,7 +2256,6 @@ void Object::find_code_and_data(Elf_X &elf,
             }
         }
     }
-    //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
 }
 
 Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
@@ -2359,7 +2311,6 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
     }
 
     // ELF header: sanity check
-    //if (!elfHdr->isValid()|| !pdelf_check_ehdr(elfHdr))
     if (!elfHdr->isValid()) {
         log_elferror(err_func_, "ELF header");
         has_error = true;
@@ -2967,21 +2918,17 @@ int read_except_table_gcc3(
             //The 'region' is the try block, the 'landing pad' is the catch.
             mi.pc = except_scn->sh_addr() + except_off;
             tryStart = except_off;
-            //cerr << "Reading tryStart at " <<  except_off;
 
             except_off += read_val_of_type(table_format, &region_start,
                                            datap + except_off, mi);
             mi.pc = except_scn->sh_addr() + except_off;
             tryEnd = except_off;
-            //cerr << "Reading tryEnd at " << except_off;
             except_off += read_val_of_type(table_format, &region_size,
                                            datap + except_off, mi);
             mi.pc = except_scn->sh_addr() + except_off;
             catchStart = except_off;
-            //cerr << "Reading catchStart at " <<  except_off;
             except_off += read_val_of_type(table_format, &catch_block,
                                            datap + except_off, mi);
-            //cerr << "Reading action (uleb128) at " << except_off;
             except_off += read_val_of_type(DW_EH_PE_uleb128, &action,
                                            datap + except_off, mi);
 
@@ -3139,7 +3086,6 @@ bool AObject::getSegments(vector<Segment> &segs) const {
             seg.loadaddr = regions_[i]->getDiskOffset();
             seg.size = regions_[i]->getDiskSize();
             seg.name = regions_[i]->getRegionName();
-            //            seg.segFlags = regions_[i]->getFlags();
             segs.push_back(seg);
         }
     }
@@ -3291,7 +3237,6 @@ void Object::parseLineInfoForCU(Offset offset_, LineInformation* li_for_module)
                 current_statement.start_addr = new_lineAddr;
         }
 
-        //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char *file_name = dwarf_linesrc(line, NULL, NULL);
         if (!file_name) {
         	lineinfo_printf("dwarf_linesrc - empty name\n");
@@ -3588,7 +3533,6 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
                 current_statement.start_addr = new_lineAddr;
         }
 
-        //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char * file_name = dwarf_linesrc(line, NULL, NULL);
         if ( !file_name ) {
             cout << "dwarf_linesrc - empty name" << endl;
@@ -3816,7 +3760,6 @@ void Object::insertDynamicEntry(long name, long value) {
 bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
-    //const char *shnames = pdelf_get_shnames(*elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
     Elf_X_Data dynsym_data, dynstr_data;
@@ -3929,7 +3872,6 @@ bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                     symbol_index = rela.R_SYM(j);
                     regType = Region::RT_RELA;
                     addend = rela.r_addend(j);
-		    //fprintf(stderr, "Handle RELA symbol_index %d, type is R_PPC^$_REL16_HA %d\n", symbol_index, relType == R_PPC64_REL16_HA);
                     break;
                 default:
                     continue;
@@ -3940,8 +3882,6 @@ bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
             // Use dynstr to ensure we've initialized dynsym...
             if (dynstr && curSymHdr && curSymHdr->sh_offset() == dynsym_offset) {
                 name = string(&dynstr[dynsym.st_name(symbol_index)]);
-//		fprintf(stderr, "find DYN relocation for %s, rel offset %lx, addend %lx\n", name.c_str(), relOff, addend);
-
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = dynsymByIndex.find(symbol_index);
                 if (sym_it != dynsymByIndex.end()) {
@@ -3952,7 +3892,6 @@ bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                 }
             } else if (strtab && curSymHdr && curSymHdr->sh_offset() == symtab_offset) {
                 name = string(&strtab[symtab.st_name(symbol_index)]);
-//		fprintf(stderr, "find relocation for %s, rel offset %lx, addend %lx\n", name.c_str(), relOff, addend);
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = symtabByIndex.find(symbol_index);
                 if (sym_it != symtabByIndex.end()) {

@@ -436,8 +436,6 @@ private:
     LineInformation* li_for_object;
     LineInformation* parseLineInfoForObject(StringTablePtr strings);
 
-  void parseDwarfTypes(Symtab *obj);
-
   void load_object(bool);
 
   // initialize relocation_table_ from .rel[a].plt section entries 

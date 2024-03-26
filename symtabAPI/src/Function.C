@@ -287,21 +287,6 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
       newloc.frameOffset = loc.frameOffset + i->frameOffset;
       newloc.lowPC = low;
       newloc.hiPC = high;
-
-/*
-      cerr << "Created frame pointer ["
-           << hex << newloc.lowPC << ".." << newloc.hiPC
-           << "], reg " << newloc.mr_reg.name()
-           << " /w/ offset " << newloc.frameOffset
-           << " = (" << loc.frameOffset
-           << "+" << i->frameOffset << ")"
-           << ", "
-           << storageClass2Str(newloc.stClass)
-           << ", "
-           << storageRefClass2Str(newloc.refClass) << endl;
-*/
-
-
       ret.push_back(newloc);
    }
    return;
@@ -402,14 +387,6 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f
 		<< " type=" << tname
             << " framePtrRegNum_=" << f.getFramePtrRegnum()
 		<< " FramePtrLocationList=[";
-#if 0
-	for (unsigned int i = 0; i < f.frameBase_.size(); ++i)
-	{
-		os << f.frameBase_[i];
-		if ( (i + 1) < f.frameBase_.size())
-			os << ", ";
-	}
-#endif
 	os  << "] ";
 	os  <<  *ag;
 	os  <<  "}";
@@ -482,7 +459,7 @@ Offset InlinedFunction::getOffset() const
 
 unsigned InlinedFunction::getSize() const
 {
-    return functionSize_;//inline_parent->getSize();
+    return functionSize_;
 }
 
 void InlinedFunction::setFile(string filename) {
