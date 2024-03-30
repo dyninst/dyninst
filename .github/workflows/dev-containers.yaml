@@ -5,38 +5,57 @@ on:
     branches:
       - master
   workflow_dispatch:
+  workflow_call:
 
 jobs:
-  build:
-    permissions:
-      packages: write
+
+  get-oses:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.all.outputs.all }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  dev-containers:
+    runs-on: ubuntu-latest
+    needs: get-oses
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-23.04', 'ubuntu-23.10', 'ubuntu-24.04', 'fedora-37', 'fedora-38', 'fedora-39']
-    runs-on: ubuntu-latest
+        os: ${{ fromJson(needs.get-oses.outputs.all) }}
+    permissions:
+      packages: write
     name: Update dev containers
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: GHCR Login
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v3.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull base image
-        run: docker pull ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
-
-      - name: Build Dyninst Dev Container
+      - name: Build
+        shell: bash
         run: |
-           cd docker/
-           docker build --build-arg base=ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest \
-                        --build-arg build_jobs=2 \
-                        -f Dockerfile \
-                        -t ghcr.io/dyninst/amd64/${{ matrix.os }}:latest ../
+          set -ex
+          
+          base="ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest"
+          dev="ghcr.io/dyninst/amd64/${{ matrix.os }}:latest"
 
-      - name: Deploy
-        run: docker push ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+          # Grab the respective base container to update cache
+          docker pull $base
+
+          docker build -f docker/Dockerfile \
+                       -t ${dev} \ 
+                       --build-arg base=${base} \
+                       --build-arg build_jobs=2 \
+                       .
+
+          docker push ${dev}

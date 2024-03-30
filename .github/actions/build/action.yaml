@@ -1,0 +1,58 @@
+name: Build single config
+
+inputs:
+  os:
+    required: true
+  extra-cmake-flags:
+    required: false
+  compiler:
+    required: true
+  compiler-version:
+    required: false
+  build-type:
+    required: false
+    default: "RELWITHDEBINFO"
+  install-dir:
+    required: false
+    default: "/dyninst/install"
+  src-dir:
+    required: false
+    default: "/dyninst/src"
+  num-jobs:
+    required: false
+    default: 2
+  extra-libs:
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        path: "build-checkout"
+
+    - name: Build
+      if: ${{ startsWith(inputs.os, 'fedora') }}
+      uses: ./build-checkout/.github/actions/build-fedora 
+      with:
+        extra-cmake-flags: ${{ inputs.extra-cmake-flags }}
+        compiler: ${{ inputs.compiler }}
+        compiler-version: ${{ inputs.compiler-version }}
+        build-type: ${{ inputs.build-type }}
+        install-dir: ${{ inputs.install-dir }}
+        src-dir: ${{ inputs.src-dir }}
+        num-jobs: ${{ inputs.num-jobs }}
+        extra-libs: ${{ inputs.extra-libs }}
+
+    - name: Build
+      if: ${{ startsWith(inputs.os, 'ubuntu') }}
+      uses: ./build-checkout/.github/actions/build-ubuntu
+      with:
+        extra-cmake-flags: ${{ inputs.extra-cmake-flags }}
+        compiler: ${{ inputs.compiler }}
+        compiler-version: ${{ inputs.compiler-version }}
+        build-type: ${{ inputs.build-type }}
+        install-dir: ${{ inputs.install-dir }}
+        src-dir: ${{ inputs.src-dir }}
+        num-jobs: ${{ inputs.num-jobs }}
+        extra-libs: ${{ inputs.extra-libs }}

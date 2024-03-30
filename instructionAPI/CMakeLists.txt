@@ -104,7 +104,7 @@ if(NOT instructionDecoderPowerExtraFlags STREQUAL "")
     src/InstructionDecoder-power.C PROPERTIES COMPILE_FLAGS
                                               "${instructionDecoderPowerExtraFlags}")
 endif()
-
+message(STATUS "instructionDecoderPowerExtraFlags = ${instructionDecoderPowerExtraFlags}")
 set(finalizeOperandsExtraFlags "")
 if(debugMaxFrameSizeOverrideFinalizeOperands)
   string(

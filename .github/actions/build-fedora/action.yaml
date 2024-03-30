@@ -1,0 +1,62 @@
+name: Build Fedora single-config
+
+inputs:
+  extra-cmake-flags:
+    required: false
+  compiler:
+    required: true
+  compiler-version:
+    required: false
+  build-type:
+    required: false
+    default: "RELWITHDEBINFO"
+  install-dir:
+    required: false
+    default: "/dyninst/install"
+  src-dir:
+    required: false
+    default: "/dyninst/src"
+  num-jobs:
+    required: false
+    default: 2
+  extra-libs:
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install extra libs
+      if: ${{ inputs.extra-libs != '' }}
+      shell: bash
+      run: |
+        set -ex
+        yum install -y ${{ inputs.extra-libs }}
+
+    - name: Compiler names
+      id: compiler-name
+      shell: bash
+      run: |
+        set -ex
+        
+        case "${{ inputs.compiler }}" in
+          clang) cc=clang; cxx=clang++; ;;
+            gcc) cc=gcc; cxx=g++; ;;
+        esac
+        if [[ ! -z "${{ inputs.compiler-version }}" ]]; then
+          cc+="-${{ inputs.compiler-version }}"
+          cxx+="-${{ inputs.compiler-version }}"
+        fi
+        echo "value={ \"c\" : \"${cc}\", \"cxx\" : \"${cxx}\" }" >> $GITHUB_OUTPUT
+
+    - name: Build Dyninst (${{ fromJson(steps.compiler-name.outputs).c }}, ${{ inputs.build-type }} ${{ inputs.extra-cmake-flags }})
+      shell: bash
+      run: |
+        cmake_args="-DCMAKE_C_COMPILER=${{ fromJson(steps.compiler-name.outputs.value).c }} "
+        cmake_args+="-DCMAKE_CXX_COMPILER=${{ fromJson(steps.compiler-name.outputs.value).cxx }} "
+        cmake_args+="-DCMAKE_BUILD_TYPE=${{ inputs.build-type }} "
+        cmake_args+="${{ inputs.extra-cmake-flags }} "
+
+        src="${{ inputs.src-dir }}"
+        dest="${{ inputs.install-dir }}"
+        
+        bash ${src}/docker/build.sh $src $dest -v -j ${{ inputs.num-jobs }} -c "${cmake_args}"

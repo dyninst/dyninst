@@ -1,0 +1,401 @@
+name: CMake build options
+
+on:
+#  pull_request:
+#    branches: [ master ]
+  schedule:
+    - cron: '0 3 * * 1'  # 3AM on Monday
+  workflow_dispatch:
+
+jobs:
+
+  get-oses:
+    runs-on: ubuntu-latest
+    outputs:
+      latest: ${{ steps.all.outputs.latest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  get-options:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.all.outputs.all }}
+    steps:
+      - id: all
+        shell: bash
+        run: |
+          set -ex
+          opts+="'ADD_VALGRIND_ANNOTATIONS', "
+          opts+="'BUILD_RTLIB_32', "
+          opts+="'ENABLE_DEBUGINFOD', "
+          opts+="'DYNINST_ENABLE_LTO', "
+          opts+="'ENABLE_STATIC_LIBS', "
+          opts+="'SW_ANALYSIS_STEPPER', "
+          opts+="'USE_OpenMP' "
+
+          echo "all=[ ${opts} ]" >> $GITHUB_OUTPUT
+
+  get-compilers:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.compilers.outputs.value }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - id: compilers
+        shell: bash
+        run: |
+          set -ex
+          script="./.github/scripts/compiler_configs.py"
+          names=$(python3 ${script} --print-names)
+          echo "value=${names}" >> $GITHUB_OUTPUT
+
+
+############################################################################
+#
+#  Build with one option either on or off
+#
+  one-option:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-options, get-compilers]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+        opt: ${{ fromJson(needs.get-options.outputs.all) }}
+        state: ['ON', 'OFF']
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: One option (${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.opt }}=${{ matrix.state }})
+    steps:
+      - name: Install Valgrind
+        if: ${{ matrix.opt == 'ADD_VALGRIND_ANNOTATIONS' }}
+        shell: bash
+        run: |
+          set -ex
+          if [[ "${{ matrix.os }}" =~ "ubuntu" ]]; then
+            apt update -qq
+            apt install -y valgrind
+          elif [[ "${{ matrix.os }}" =~ "fedora" ]]; then
+            yum install -y valgrind valgrind-devel
+          fi
+
+      - name: Install 32-bit libs
+        if: ${{ matrix.opt == 'BUILD_RTLIB_32' }}
+        shell: bash
+        run: |
+          set -ex
+          # clang uses gcc-multilib
+          if [[ "${{ matrix.os }}" =~ "ubuntu" ]]; then
+            apt update -qq
+            apt install -y gcc-multilib
+          elif [[ "${{ matrix.os }}" =~ "fedora" ]]; then
+            yum install -y glibc.i686 glibc-devel.i686
+          fi
+
+      - name: Install debuginfod
+        if: ${{ matrix.opt == 'ENABLE_DEBUGINFOD' }}
+        shell: bash
+        run: |
+          set -ex
+          if [[ "${{ matrix.os }}" =~ "ubuntu" ]]; then
+            apt update -qq
+            apt install -y debuginfod libdebuginfod-dev
+          elif [[ "${{ matrix.os }}" =~ "fedora" ]]; then
+            yum install -y elfutils-debuginfod elfutils-debuginfod-client elfutils-debuginfod-client-devel
+          fi
+
+      - name: Checkout Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+        # The LLVM-18 Ubuntu package is broken
+        # https://github.com/llvm/llvm-project/issues/87553
+      - name: Check for bad Ubuntu package
+        id: skip
+        shell: bash
+        run: |
+          set -ex
+
+          skip="false"
+          if test ${{ matrix.opt }} = "DYNINST_ENABLE_LTO" \
+               -a ${{ matrix.os }} = "ubuntu-24.04" \
+               -a ${{ matrix.compiler }} = "clang"; then
+            skip="true"
+          elif test ${{ matrix.opt }} = "ENABLE_STATIC_LIBS" \
+                 -a ${{ matrix.os }} = "ubuntu-24.04"; then
+             skip="true"
+          elif test ${{ matrix.opt }} = "ENABLE_STATIC_LIBS" \
+                 -a ${{ matrix.os }} = "fedora-39"; then
+             skip="true"
+          fi
+          echo "value=${skip}" >> $GITHUB_OUTPUT
+
+      - name: Check for extra libs
+        id: extra-libs
+        shell: bash
+        run: |
+          set -ex
+
+          # clang needs llvm-ar to do LTO
+          libs=
+          if test ${{ matrix.opt }} = "DYNINST_ENABLE_LTO" \
+               -a ${{ matrix.compiler }} = "clang"; then
+           libs="llvm"
+          fi
+          echo "value=${libs}" >> $GITHUB_OUTPUT
+
+      - name: Build Dyninst
+        uses: ./src/.github/actions/build
+        if: ${{ steps.skip.outputs.value == 'false' }}
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          extra-cmake-flags: "-D${{ matrix.opt }}=${{ matrix.state }}"
+          src-dir: "${GITHUB_WORKSPACE}/src"
+          extra-libs: ${{ steps.extra-libs.outputs.value }}
+
+
+
+#############################################################################
+#
+#  Build with all options ON (like "Christmas tree" packet)
+#
+  xmas-tree:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-options, get-compilers]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: xmas tree (${{ matrix.os }}, ${{ matrix.compiler }})
+    steps:
+      - name: Parse options
+        id: opts
+        shell: bash
+        run: |
+          set -ex
+          for o in ${{ join(fromJson(needs.get-options.outputs.all), ' ') }}; do
+            opts+="-D${o}=ON "
+          done
+          echo "opts=$opts" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies (Ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          set -ex
+          apt update -qq
+          apt install -y valgrind gcc-multilib debuginfod libdebuginfod-dev
+
+      - name: Install dependencies (Fedora)
+        if: ${{ startsWith(matrix.os, 'fedora') }}
+        shell: bash
+        run: |
+          set -ex
+          yum install -y valgrind valgrind-devel glibc.i686 glibc-devel.i686 \
+          elfutils-debuginfod elfutils-debuginfod-client elfutils-debuginfod-client-devel
+
+      - name: Checkout Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Check for bad Ubuntu package
+        id: skip
+        shell: bash
+        run: |
+          set -ex
+          
+          skip="false"
+          if test ${{ matrix.os }} = "ubuntu-24.04" \
+               -a ${{ matrix.compiler }} = "clang"; then
+            skip="true"
+          fi
+          echo "value=${skip}" >> $GITHUB_OUTPUT
+
+      - name: Check for extra libs
+        id: extra-libs
+        shell: bash
+        run: |
+          set -ex
+
+          # clang needs llvm-ar to do LTO
+          libs=
+          if test ${{ matrix.compiler }} = "clang"; then
+           libs="llvm"
+          fi
+          echo "value=${libs}" >> $GITHUB_OUTPUT
+
+      - name: Build Dyninst
+        uses: ./src/.github/actions/build
+        # The LLVM-18 Ubuntu package is broken
+        # https://github.com/llvm/llvm-project/issues/87553
+        if: ${{ steps.skip.outputs.value == 'false' }}
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          extra-cmake-flags: ${{ steps.opts.outputs.opts }}
+          src-dir: "${GITHUB_WORKSPACE}/src"
+          extra-libs: ${{ steps.extra-libs.outputs.value }}
+
+
+#############################################################################
+#
+#  Build with all options OFF (i.e., "dark")
+#
+  dark:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-options, get-compilers]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: dark (${{ matrix.os }}, ${{ matrix.compiler }})
+    steps:
+      - name: Parse options
+        id: opts
+        shell: bash
+        run: |
+          set -ex
+          for o in ${{ join(fromJson(needs.get-options.outputs.all), ' ') }}; do
+            opts+="-D${o}=OFF "
+          done
+          echo "opts=$opts" >> $GITHUB_OUTPUT
+
+      - name: Checkout Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Build Dyninst
+        uses: ./src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          extra-cmake-flags: ${{ steps.opts.outputs.opts }}
+          src-dir: "${GITHUB_WORKSPACE}/src"
+
+
+#############################################################################
+#
+#  Build with different linkers
+#
+  linkers:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-compilers]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+        linker: ['bfd', 'gold', 'mold', 'lld']
+        include:
+          - linker: 'lld'
+            extra-libs: 'lld'
+          - linker: 'mold'
+            extra-libs: 'mold'
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: linkers (${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.linker }})
+    steps:
+      - name: Checkout Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Build Dyninst
+        uses: ./src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          extra-cmake-flags: "-DDYNINST_LINKER=${{ matrix.linker }}"
+          extra-libs: ${{ matrix.extra-libs }}
+          src-dir: "${GITHUB_WORKSPACE}/src"
+
+
+#############################################################################
+#
+#    -- DISABLED because we have build errors with libc++ --
+#
+#  Build with different C++ standard libraries
+#
+#   Currently, this is only libstdc++ and libc++. Since libstdc++ is the
+#   default for all supported compilers, we just test libc++ here.
+#
+#  stdlibs:
+#    runs-on: ubuntu-latest
+#    needs: get-oses
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+#    permissions:
+#      packages: read
+#    container:
+#      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+#      credentials:
+#        username: ${{ github.actor }}
+#        password: ${{ secrets.github_token }}
+#    name: stdlibs (${{ matrix.os }})
+#    steps:
+#      - name: Extra libs
+#        id: extra-libs
+#        shell: bash
+#        run: |
+#          set -ex
+#          libs=
+#          if [[ "${{ matrix.os }}" =~ "ubuntu" ]]; then
+#            libs="libc++1 libc++-dev"
+#          elif [[ "${{ matrix.os }}" =~ "fedora" ]]; then
+#            libs="libcxx libcxx-devel"
+#          fi
+#          echo "value='$libs'" >> $GITHUB_OUTPUT
+#
+#      - name: Checkout Dyninst
+#        uses: actions/checkout@v4
+#        with:
+#          path: "src"  # relative to ${GITHUB_WORKSPACE}
+#
+#      - name: Build Dyninst
+#        uses: ./src/.github/actions/build
+#        with:
+#          os: ${{ matrix.os }}
+#          compiler: 'clang'
+#          extra-libs: ${{ steps.extra-libs.outputs.value }}
+#          extra-cmake-flags: "-DDYNINST_CXXSTDLIB=libc++"
+#          src-dir: "${GITHUB_WORKSPACE}/src"
+#

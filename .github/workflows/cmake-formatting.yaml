@@ -12,15 +12,19 @@ on:
 jobs:
   cmake-formatting:
     runs-on: ubuntu-latest
-
+    if: github.event.pull_request.draft == false
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
     - name: Install dependencies
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-pip
         python3 -m pip install cmake-format
+
     - name: cmake-format
+      shell: bash
       run: |
         set +e
         cmake-format -i $(find . -type f | egrep 'CMakeLists.txt|\.cmake$')

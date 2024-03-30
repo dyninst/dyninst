@@ -1,5 +1,3 @@
-# Build the latest versions of applications that consume Dyninst
-
 name: Build Consumers
 
 on:
@@ -8,163 +6,122 @@ on:
   workflow_dispatch:
 
 jobs:
-  spack-build:
+
+  get-oses:
+    runs-on: ubuntu-latest
+    outputs:
+      latest: ${{ steps.all.outputs.latest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  get-compilers:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.compilers.outputs.value }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - id: compilers
+        shell: bash
+        run: |
+          set -ex
+          script="./.github/scripts/compiler_configs.py"
+          names=$(python3 ${script} --print-names)
+          echo "value=${names}" >> $GITHUB_OUTPUT
+
+
+  hpctoolkit:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-compilers]
     strategy:
       fail-fast: false
       matrix:
-        consumer: [
-          "hpctoolkit@develop",
-          "must+stackwalker~backward~tsan"
-#           extrae+dyninst    - not yet tested, may not support dyninst >10.0.0
-#           omnitrace         - Needs updated cmake
-#           timemory          - Needs updated cmake
-        ]
-    runs-on: ubuntu-latest
+         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+         compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: HPCToolkit (${{ matrix.os }}, ${{ matrix.compiler }})
     steps:
-    - name: ${{ matrix.consumer }}
-      run: |
-        sudo apt update -qq
-        sudo apt install -y -qq --no-install-recommends build-essential gcc g++ gfortran m4 cmake autoconf python3 git unzip openmpi-bin libopenmpi-dev
-        git clone --depth=1 --branch=develop https://github.com/spack/spack
-        spack/bin/spack compiler find
-        spack/bin/spack external find --not-buildable cmake git m4 openmpi gmake
-        spack/bin/spack install ${{ matrix.consumer }} ^dyninst@master
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: "src"  # relative to $GITHUB_WORKSPACE
 
-  systemtap:
-    permissions:
-      packages: read
-    strategy:
-      fail-fast: true
-      matrix:
-         os: ['ubuntu-23.10']
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    name: systemtap ${{ matrix.os }}
-    steps:
-      - name: Install dependencies
+      - name: Install dependencies (Ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash
         run: |
-          apt update
-          apt install -y git python3 libjson-c-dev m4 autoconf
-      - name: Fetch systemtap
+          set -ex
+          apt update -qq
+          apt install -y -qq gfortran m4 autoconf python3 python3-venv unzip meson ninja-build pkgconf \
+                             libxerces-c-dev libyaml-cpp-dev libpfm4-dev libunwind-dev libxxhash-dev \
+                             libboost-chrono-dev libboost-graph-dev libboost-regex-dev
+          
+      - name: Install dependencies (Fedora)
+        if: ${{ startsWith(matrix.os, 'fedora') }}
+        shell: bash
         run: |
-          git clone --depth=1 https://sourceware.org/git/systemtap.git
-      - name: Make symlinks
-        run: |
-          ln -s /dyninst/install/include /usr/include/dyninst
-          ln -s /dyninst/install/lib* /usr/lib64/dyninst
-      - name: Build systemtap
-        run: |
-          cd systemtap
-          autoreconf
-          mkdir build
-          cd build
-          ../configure --with-dyninst --without-python3-probes
-          make -j2
+          set -ex
+          yum install -y gcc-gfortran m4 autoconf python3 unzip meson ninja-build pkgconf xerces-c-devel \
+                         yaml-cpp-devel libunwind-devel xxhash-devel boost-chrono boost-graph boost-regex xz \
+                         lbzip2
 
-  llnl-stat:
-    permissions:
-      packages: read
-    strategy:
-      fail-fast: true
-      matrix:
-         os: ['ubuntu-20.04']
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    name: llnl-stat ${{ matrix.os }}
-    steps:
-      - name: Install dependencies
+      - name: Install spack
+        shell: bash
         run: |
-          apt update
-          apt install -y nano git bison flex python3 build-essential dh-autoreconf wget libgcrypt20-dev libboost-program-options-dev libboost-regex-dev libboost-wave-dev libpython3-dev python3-distutils
-      - name: Install GraphLib
+          set -ex
+          git clone --depth=1 --branch=develop https://github.com/spack/spack
+          spack/bin/spack compiler find
+
+      - name: Install spack externals
+        shell: bash
         run: |
-          git clone --depth=1 https://github.com/LLNL/graphlib
-          cd graphlib
-          mkdir build
-          cd build
-          cmake ..
-          cmake --build . --parallel 2
-          cmake --install .  # /usr
-      - name: Install GraphViz
+          set -ex
+          spack/bin/spack external find --not-buildable cmake git m4 gmake meson ninja pkgconf curl python
+
+      - name: Install spack externals (Ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash
         run: |
-          cd /
-          git clone --depth=1 https://gitlab.com/graphviz/graphviz.git
-          cd graphviz
-          ./autogen.sh
-          mkdir build
-          cd build
-          ../configure --without-qt --without-gts --without-doc --without-expat --without-ghostscript --without-gtkplus --without-libgd --without-pangocairo --without-popler --without-quartz --without-x
-          make -j2
-          make install
-      - name: Install launchmon
+          set -ex
+          add="${GITHUB_WORKSPACE}/src/.github/scripts/add_spack_package.py"
+          python3 ${add} $HOME/.spack --lib intel-tbb --version 2021.11.0 --location /usr
+          python3 ${add} $HOME/.spack --lib elfutils --version 0.191 --location /usr
+          python3 ${add} $HOME/.spack --lib dyninst --version master --location /dyninst/install
+          python3 ${add} $HOME/.spack --lib boost --version 1.83.0 --location /usr
+          python3 ${add} $HOME/.spack --lib xerces-c --version 3.2.4 --location /usr
+          python3 ${add} $HOME/.spack --lib yaml-cpp --version 0.8.0 --location /usr
+          python3 ${add} $HOME/.spack --lib libpfm4 --version 4.13.0 --location /usr
+          python3 ${add} $HOME/.spack --lib libunwind --version 1.6.2 --location /usr
+          python3 ${add} $HOME/.spack --lib xxhash --version 0.8.2 --location /usr
+
+      - name: Install spack externals (Fedora)
+        if: ${{ startsWith(matrix.os, 'fedora') }}
+        shell: bash
         run: |
-          cd /
-          git clone --depth=1 https://github.com/llnl/launchmon.git
-          cd launchmon
-          ./bootstrap
-          mkdir build
-          cd build
-          ../configure
-          make -j2
-          make install
-      - name: Install MRNet
+          set -ex
+          add="${GITHUB_WORKSPACE}/src/.github/scripts/add_spack_package.py"
+          python3 ${add} $HOME/.spack --lib intel-tbb --version 2020.3 --location /usr
+          python3 ${add} $HOME/.spack --lib elfutils --version 0.190 --location /usr
+          python3 ${add} $HOME/.spack --lib dyninst --version master --location /dyninst/install
+          python3 ${add} $HOME/.spack --lib boost --version 1.81.0 --location /usr
+          python3 ${add} $HOME/.spack --lib xerces-c --version 3.2.5 --location /usr
+          python3 ${add} $HOME/.spack --lib yaml-cpp --version 0.7.0 --location /usr
+          python3 ${add} $HOME/.spack --lib libunwind --version 1.7.0 --location /usr
+          python3 ${add} $HOME/.spack --lib xxhash --version 0.8.2 --location /usr
+
+      - name: Build
+        shell: bash
         run: |
-          cd /
-          git clone --depth=1 https://github.com/dyninst/mrnet.git
-          cd mrnet
-          mkdir build
-          cd build
-          CC=gcc CXX=g++ ../configure --enable-shared
-          make -j2
-          make install
-      - name: Install STAT
-        run: |
-          cd /
-          git clone --depth=1 https://github.com/llnl/stat.git
-          cd stat
-          ./bootstrap
-          mkdir build
-          cd build
-          ../configure --disable-gui --disable-examples --with-stackwalker=/dyninst/install --with-mrnet=/usr/local
-          make -j2
-  tau:
-    permissions:
-      packages: read
-    strategy:
-      fail-fast: true
-      matrix:
-         os: ['ubuntu-20.04']
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    name: TAU ${{ matrix.os }}
-    steps:
-      - name: Install dependencies
-        run: |
-            # TAU assumes Dyninst needs libdwarf instead of libdw. This has no real
-            # effect on Dyninst as we RPATH our deps. It just makes the manually-constructed
-            # link line in the TAU build work.
-            apt update
-            apt install -y git libdwarf1
-      - name: Fix libdwarf
-        run: |
-          ln -s /usr/lib/x86_64-linux-gnu/libdwarf.so.1.0.0 /usr/lib/x86_64-linux-gnu/libdwarf.so
-      - name: Fetch TAU
-        run: |
-          git clone --depth=1 https://github.com/UO-OACISS/tau2
-      - name: Build TAU
-        run: |
-          cd tau2
-          ./configure -dyninst=/dyninst/install
-          make -j2
+          set -ex
+          spack/bin/spack install -j2 hpctoolkit@develop~viewer~papi ^intel-tbb ^dyninst@master %${{ matrix.compiler }}

@@ -6,14 +6,86 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+
+  get-oses:
     runs-on: ubuntu-latest
+    outputs:
+      latest: ${{ steps.all.outputs.latest }}
     steps:
-    - name: spack
-      run: |
-        sudo apt update -qq
-        sudo apt install -y -qq --no-install-recommends build-essential gcc g++ m4 cmake autoconf python3 git
-        git clone --depth=1 --branch=develop https://github.com/spack/spack
-        spack/bin/spack compiler find
-        spack/bin/spack external find --not-buildable cmake
-        spack/bin/spack install dyninst@master
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  get-compilers:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.compilers.outputs.value }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - id: compilers
+        shell: bash
+        run: |
+          set -ex
+          script="./.github/scripts/compiler_configs.py"
+          names=$(python3 ${script} --print-names)
+          echo "value=${names}" >> $GITHUB_OUTPUT
+
+
+  spack-build:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-compilers]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: Spack (${{ matrix.os }}, ${{ matrix.compiler }})
+    steps:
+      - name: Install dependencies (Ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          set -ex
+          apt update -qq
+          apt install -y -qq m4 autoconf python3 
+          
+      - name: Install dependencies (Fedora)
+        if: ${{ startsWith(matrix.os, 'fedora') }}
+        shell: bash
+        run: |
+          set -ex
+          yum install -y m4 autoconf python3 xz lbzip2 patch
+
+      - name: Install spack
+        shell: bash
+        run: |
+          set -ex
+          git clone --depth=1 --branch=develop https://github.com/spack/spack
+          spack/bin/spack compiler find
+          spack/bin/spack external find --not-buildable cmake m4
+
+        # gettext fails with clang-17's -Wincompatible-function-pointer-types
+      - name: Fedora clang-17 workaround
+        if: ${{ matrix.os == 'fedora-39' && matrix.compiler == 'clang' }}
+        shell: bash
+        run: |
+          set -ex
+          yum install -y gettext
+          spack/bin/spack external find --not-buildable gettext
+
+      - name: Build
+        shell: bash
+        run: |
+          set -ex
+          spack/bin/spack install -j2 dyninst@master %${{ matrix.compiler }}

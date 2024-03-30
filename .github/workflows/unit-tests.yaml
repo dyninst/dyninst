@@ -1,72 +1,96 @@
-name: Unit tests
+name: Unit Tests
 
 on:
   pull_request:
      branches:
         - master
      paths:
-       - 'common/**'
-       - 'dataflowAPI/**'
-       - 'dwarf/**'
-       - 'dynC_API/**'
-       - 'dyninstAPI/**'
-       - 'dyninstAPI_RT/**'
-       - 'elf/**'
-       - 'external/**'
-       - 'instructionAPI/**'
-       - 'parseAPI/**'
-       - 'parseThat/**'
-       - 'patchAPI/**'
-       - 'proccontrol/**'
-       - 'stackwalk/**'
-       - 'symlite/**'
-       - 'symtabAPI/**'
+       - '**.h'
+       - '**.C'
+       - '**.c'
      types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
+
+  get-oses:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.all.outputs.all }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  get-compilers:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.compilers.outputs.value }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - id: compilers
+        shell: bash
+        run: |
+          set -ex
+          script="./.github/scripts/compiler_configs.py"
+          names=$(python3 ${script} --print-names)
+          echo "value=${names}" >> $GITHUB_OUTPUT
+
+
   unit-tests:
     if: github.event.pull_request.draft == false
-    permissions:
-      packages: read
+    needs: [get-oses, get-compilers]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-         os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-23.04', 'ubuntu-23.10', 'ubuntu-24.04', 'fedora-37', 'fedora-38', 'fedora-39']
-    runs-on: ubuntu-latest
+        os: ${{ fromJson(needs.get-oses.outputs.all) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+    permissions:
+      packages: read
     container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: unit tests
+    name: Unit tests ${{ matrix.os }}, ${{ matrix.compiler }}
     steps:
       - name: Checkout Dyninst
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          path: dyninst/src
+          path: "src"    # Relative to $GITHUB_WORKSPACE
 
       - name: Build Dyninst
-        run: |
-           ln -s $PWD/dyninst /dyninst
-           export DYNINST_C_FLAGS="-Werror" DYNINST_CXX_FLAGS="-Werror"
-           export DYNINST_C_COMPILER="gcc" DYNINST_CXX_COMPILER="g++"
-           export EXTRA_CMAKE_FLAGS="-DDYNINST_EXPORT_ALL=1"
-           bash /dyninst/src/docker/build.sh /dyninst/src 2
+        uses: ./src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          extra-cmake-flags: "-DDYNINST_EXPORT_ALL=ON"
+          src-dir: "${GITHUB_WORKSPACE}/src"
+          install-dir: "${GITHUB_WORKSPACE}/install"
 
       - name: Checkout Unit Tests
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: dyninst/unit-tests
-          path: unit-tests
+          path: unit-tests  # Relative to $GITHUB_WORKSPACE
 
       - name: Build unit tests
+        shell: bash
         run: |
-           cd unit-tests; mkdir build; cd build
-           cmake .. -DDyninst_ROOT=/dyninst/install -DDYNINST_SOURCE_TREE=/dyninst/src
-           cmake --build . --parallel 2
+          set -ex
+          cd unit-tests; mkdir build; cd build
+          cmake .. -DDyninst_ROOT=${GITHUB_WORKSPACE}/install -DDYNINST_SOURCE_TREE=${GITHUB_WORKSPACE}/src
+          cmake --build . --parallel 2
 
       - name: Run unit tests
+        shell: bash
         run: |
-          cd unit-tests/build
+          set -ex
+          cd ${GITHUB_WORKSPACE}/unit-tests/build
+          export DYNINSTAPI_RT_LIB=$(find ${GITHUB_WORKSPACE}/install/ -name libdyninstAPI_RT.so)
           ctest -VV --output-on-failure .

@@ -1,0 +1,34 @@
+name: Dyninst OSes
+
+outputs:
+  all:
+    value: ${{ steps.all.outputs.names }}
+  latest:
+    value: ${{ steps.latest.outputs.names }}
+
+runs:
+  using: "composite"
+
+  steps:
+    - id: all
+      shell: bash
+      run: |
+        set -ex
+        declare -a names=(
+                          ubuntu-20.04 ubuntu-22.04 ubuntu-23.04
+                          ubuntu-23.10 ubuntu-24.04
+                          
+                          fedora-37 fedora-38 fedora-39
+                         )
+
+        # Make them json
+        out=$(printf "\"%s\"," ${names[@]})
+        
+        # json doesn't allow trailing commas
+        echo "names=[${out::-1}]" >> $GITHUB_OUTPUT
+
+    - id: latest
+      shell: bash
+      run: |
+        set -ex
+        echo 'names=["ubuntu-24.04", "fedora-39"]' >> $GITHUB_OUTPUT
