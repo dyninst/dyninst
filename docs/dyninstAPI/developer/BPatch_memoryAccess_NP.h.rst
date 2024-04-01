@@ -126,7 +126,7 @@ BPatch_memoryAccess_NP.h
   .. cpp:function:: int getReg(unsigned i)
 
     Return the register number for the ``ith`` register in the sum,
-    where ``0 ≤ i ≤ 2``. Register numbers are positive; a value of -1 means no
+    where ``0 <= i <= 2``. Register numbers are positive; a value of -1 means no
     register.
 
   .. cpp:function:: int getScale()

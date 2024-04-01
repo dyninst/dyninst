@@ -76,7 +76,7 @@ PatchCFG.h
 
   .. cpp:function:: PatchBlock* getImmediateDominator(PatchBlock* A)
 
-      Return the immediate dominator of block ``A``\ ，\ ``NULL`` if the block
+      Return the immediate dominator of block ``A``\ ,\ ``NULL`` if the block
       ``A`` does not have an immediate dominator.
 
   .. cpp:function:: void getImmediateDominates(PatchBlock* A, set<PatchBlock*>& imm)
@@ -93,7 +93,7 @@ PatchCFG.h
 
   .. cpp:function:: PatchBlock* getImmediatePostDominator(PatchBlock* A)
 
-      Return the immediate post-dominator of block ``A``\ ，\ ``NULL`` if the
+      Return the immediate post-dominator of block ``A``\ ,\ ``NULL`` if the
       block ``A`` does not have an immediate post-dominator.
 
   .. cpp:function:: void getImmediatePostDominates(PatchBlock* A, set<PatchBlock*>& imm)
