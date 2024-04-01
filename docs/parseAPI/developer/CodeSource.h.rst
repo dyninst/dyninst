@@ -34,7 +34,7 @@ CodeSource.h
 
   .. cpp:function:: bool contains(Address addr)
 
-      Checks if :cpp:func:`low` :math:`\le` ``addr`` :math:`\lt` :cpp:func:`high`.
+      Checks if :cpp:func:`low` < ``addr`` < :cpp:func:`high`.
 
   .. cpp:function:: virtual bool wasUserAdded() const
 
