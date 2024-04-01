@@ -29,6 +29,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.imgconverter",
     "sphinxarg.ext",
     "myst_parser",
     "sphinxcontrib.remoteliteralinclude"
