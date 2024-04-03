@@ -63,8 +63,6 @@ namespace Dyninst
 
       virtual std::string format(formatStyle how = defaultStyle) const;
 
-      static TernaryAST makePC(Dyninst::Architecture arch);
-
       bool operator<(const TernaryAST& rhs) const;
 
       

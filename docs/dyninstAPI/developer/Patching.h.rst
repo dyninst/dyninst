@@ -9,7 +9,7 @@ Patching.h
   .. cpp:function:: DynPatchCallback()
   .. cpp:function:: ~DynPatchCallback()
   .. cpp:function:: protected virtual void split_block_cb(Dyninst::PatchAPI::PatchBlock *, Dyninst::PatchAPI::PatchBlock *)
-  .. cpp:function:: protected virtual void add_block_cb(Dyninst::PatchAPI::PatchFunction *, Dyninst::PatchAPI::PatchBlock *)
+
   .. cpp:function:: protected virtual void destroy_cb(Dyninst::PatchAPI::Point *)
 
     really remove, not destroy

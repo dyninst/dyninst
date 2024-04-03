@@ -316,8 +316,6 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    const MemoryUsageSet *getMemoryUsage() const;
 };
 
-ProcessSet::const_ptr getAllProcs();
-
 class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
   private:
    int_threadSet *ithrset;

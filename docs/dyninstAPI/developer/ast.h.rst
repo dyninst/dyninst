@@ -189,7 +189,6 @@ ast.h
   .. cpp:function:: virtual const image_variable *getOVar() const
   .. cpp:function:: virtual void emitVariableStore(opCode, Dyninst::Register, Dyninst::Register, codeGen &, bool, registerSpace *, int, const instPoint *, AddressSpace *)
   .. cpp:function:: virtual void emitVariableLoad(opCode, Dyninst::Register, Dyninst::Register, codeGen &, bool, registerSpace *, int, const instPoint *, AddressSpace *)
-  .. cpp:function:: bool condMatch(AstNode *a, std::vector<dataReqNode *> &data_tuple1, std::vector<dataReqNode *> &data_tuple2, std::vector<dataReqNode *> datareqs1, std::vector<dataReqNode *> datareqs2)
   .. cpp:function:: virtual operandType getoType() const
   .. cpp:function:: virtual void setConstFunc(bool)
   .. cpp:function:: BPatch_type *getType()

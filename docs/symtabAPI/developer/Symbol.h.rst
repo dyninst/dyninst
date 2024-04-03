@@ -45,7 +45,6 @@ Symbol.h
   .. cpp:function:: Symtab *getSymtab() const
   .. cpp:function:: bool getVersionFileName(std::string &fileName) const
   .. cpp:function:: bool getVersions(std::vector<std::string> *&vers) const
-  .. cpp:function:: bool getVersionNum(unsigned &verNum) const
   .. cpp:function:: bool getVersionHidden() const
   .. cpp:function:: int getInternalType() const
   .. cpp:function:: Symbol* getReferringSymbol() const

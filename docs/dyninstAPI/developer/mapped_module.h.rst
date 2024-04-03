@@ -44,10 +44,3 @@ major pain.
   .. cpp:function:: private mapped_module(mapped_object *obj, pdmodule *pdmod)
   .. cpp:member:: private std::vector<func_instance *> everyUniqueFunction
   .. cpp:member:: private std::vector<int_variable *> everyUniqueVariable
-
-
-.. code:: cpp
-
-  paradyn might need it
-  #define CHECK_ALL_CALL_POINTS
-
