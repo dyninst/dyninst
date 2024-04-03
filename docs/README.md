@@ -3,11 +3,11 @@
 To prepare the local docs for preview:
 
 ```bash
-$ python -m venv env
-$ source env/bin/activate
-$ pip install -r requirements.txt
-$ `cd $(find env/lib -type d -name sphinxcontrib) && wget https://raw.githubusercontent.com/wpilibsuite/sphinxext-remoteliteralinclude/main/sphinxext/remoteliteralinclude.py`
-$ for file in $(find . -name "*.dot"); do dot -Tpng "$file" -o "${file%.*}.png"; done
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+wget -P $(find env/lib -type d -name sphinxcontrib) https://raw.githubusercontent.com/wpilibsuite/sphinxext-remoteliteralinclude/main/sphinxext/remoteliteralinclude.py`
+for file in $(find . -name "*.dot"); do dot -Tpng "$file" -o "${file%.*}.png"; done
 ```
 
 Then build the thing you want:
