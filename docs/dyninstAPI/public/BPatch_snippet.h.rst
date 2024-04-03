@@ -215,7 +215,7 @@ BPatch_snippet.h
 
 .. cpp:class:: BPatch_variableExpr : public BPatch_snippet
    
-  **A variable or area of memory in a process’s address space**
+  **A variable or area of memory in a process's address space**
 
   A BPatch_variableExpr can be obtained from a
   BPatch_process using the malloc member function, or from a BPatch_image
@@ -241,34 +241,34 @@ BPatch_snippet.h
 
   .. cpp:function:: void readValue(void *dst)
 
-    Read the value of the variable in an application’s address space that is
+    Read the value of the variable in an application's address space that is
     represented by this BPatch_variableExpr. The dst parameter is assumed to
-    point to a buffer large enough to hold a value of the variable’s type.
+    point to a buffer large enough to hold a value of the variable's type.
     If the size of the
     variable is unknown (i.e., no type information), no data is copied and
     the method returns false.
 
   .. cpp:function:: void readValue(void *dst, int size)
 
-    Read the value of the variable in an application’s address space that is
+    Read the value of the variable in an application's address space that is
     represented by this BPatch_variableExpr. The dst parameter is assumed to
-    point to a buffer large enough to hold a value of the variable’s type.
+    point to a buffer large enough to hold a value of the variable's type.
     If the size parameter is supplied, then the number of bytes it specifies
     will be read.
 
   .. cpp:function:: void writeValue(void *src)
 
-    Change the value of the variable in an application’s address space that
+    Change the value of the variable in an application's address space that
     is represented by this BPatch_variableExpr. The src parameter should
-    point to a value of the variable’s type. If the size of the variable is unknown
+    point to a value of the variable's type. If the size of the variable is unknown
     (i.e., no type information), no data is copied and the method returns
     false.
 
   .. cpp:function:: void writeValue(void *src, int size)
 
-    Change the value of the variable in an application’s address space that
+    Change the value of the variable in an application's address space that
     is represented by this BPatch_variableExpr. The src parameter should
-    point to a value of the variable’s type. If the size parameter is
+    point to a value of the variable's type. If the size parameter is
     supplied, then the number of bytes it specifies will be written.
 
   .. cpp:function:: const char* getName()
@@ -298,7 +298,7 @@ BPatch_snippet.h
 
     Define a snippet that stops a process when executed by it. The stop can
     be detected using the isStopped member function of BPatch_process, and
-    the program’s execution can be resumed by calling the continueExecution
+    the program's execution can be resumed by calling the continueExecution
     member function of BPatch_process.
 
 

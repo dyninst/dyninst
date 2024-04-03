@@ -17,13 +17,13 @@ AddrLookup.h
   **A mapping for determining the address in a process where a SymtabAPI object is loaded**
 
   A single dynamic library may load at different addresses in different processes.
-  The ‘address’ fields in a dynamic library’s symbol tables will contain
+  The ``address`` fields in a dynamic library's symbol tables will contain
   offsets rather than absolute addresses. These offsets can be added to
-  the library’s load address, which is computed at runtime, to determine
+  the library's load address, which is computed at runtime, to determine
   the absolute address where a symbol is loaded.
 
   It also examines a process and finds its dynamic
-  libraries and executables and each one’s load address. This information
+  libraries and executables and each one's load address. This information
   can be used to map between SymtabAPI objects and absolute addresses.
   Each AddressLookup instance is associated with one process. An
   AddressLookup object can be created to work with the currently
@@ -91,7 +91,7 @@ AddrLookup.h
 
     Retrieves all :cpp:class:`Symtab` objects contained in the process.
 
-    This includes the process’s executable and all shared objects loaded into its address space.
+    This includes the process's executable and all shared objects loaded into its address space.
 
     Returns ``false`` on error.
 
@@ -100,7 +100,7 @@ AddrLookup.h
     Retrieve the address where :cpp:class:`Symtab` resides in the process.
 
     On systems where an object can have one load address for its code and one
-    for its data, this function will return the code’s load address. Use
+    for its data, this function will return the code's load address. Use
     :cpp:func:`getDataLoadAddress` to get the data load address.
 
     Returns ``false`` on error.
@@ -139,7 +139,7 @@ AddrLookup.h
     of the libraries currently loaded in a process, which is then used to
     answer queries into this API. As the process runs more libraries may be
     loaded and unloaded, and this snapshot may become out of date. An
-    AddressLookup’s view of a process can be updated by calling this
+    AddressLookup's view of a process can be updated by calling this
     function which causes it to examine the process for loaded and unloaded
     objects and update its data structures accordingly.
 
@@ -154,13 +154,13 @@ Notes
 =====
 
 On Linux, it needs to read from the
-process’ address space to determine its shared objects and load
+process' address space to determine its shared objects and load
 addresses. By default, it will attach to another process
 using a debugger interface to read the necessary information, or simply
 use ``memcpy`` if reading from the current process. This behavior
 can be changed by implementing a custum reader derived from :cpp:class:`Dyninst::ProcessReader`.
 
-When created for a running process, it takes a snapshot of the process’
+When created for a running process, it takes a snapshot of the process'
 loaded libraries and their addresses. These values can then be queried.
 However, they are not automatically updated when the process loads or unloads libraries,
 so users need to call :cpp:func:`refresh` to update them.

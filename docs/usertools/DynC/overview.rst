@@ -142,7 +142,7 @@ First open files:
     FILE *entryFile = fopen("myEntryDynC.txt", "r");
     FILE *exitFile = fopen("myExitDynC.txt", "r");
 
-Next call DynC API with each function’s entry and exit points:
+Next call DynC API with each function's entry and exit points:
 
 .. code-block:: cpp
 
@@ -151,7 +151,7 @@ Next call DynC API with each function’s entry and exit points:
     BPatch_snippet *exitSnippet = 
          dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
 
-Finally insert the snippets at each function’s entry and exit points:
+Finally insert the snippets at each function's entry and exit points:
 
 .. code-block:: cpp
 
@@ -233,7 +233,7 @@ Domains
 
 Domains are special keywords that allow the programmer to precisely
 indicate which resource to use. DynC domains follow the form of
-``<domain>‘<identifier>``, with a back-tick separating the domain and
+``<domain>'<identifier>``, with a back-tick separating the domain and
 the identifier. The DynC domains are as follows:
 
 .. table:: DynC API Domains
@@ -243,7 +243,7 @@ the identifier. The DynC domains are as follows:
    +=============+=======================================================+
    | ``inf``     | The inferior process (the program being               |
    |             | instrumented). Allows access to functions of the      |
-   |             | mutatee and it’s loaded libraries.                    |
+   |             | mutatee and it's loaded libraries.                    |
    +-------------+-------------------------------------------------------+
    | ``dyninst`` | Dyninst utility functions. Allows access to context   |
    |             | information as well as the ``break()`` function. See  |
@@ -488,7 +488,7 @@ Creating Global Variables That Work With DynC
 
 To declare a global variable that is accessible to all snippets inserted
 into a mutatee, one must use the DyninstAPI
-``BPatch_addressSpace::malloc(...)`` method (see *Dyninst Programmer’s
+``BPatch_addressSpace::malloc(...)`` method (see *Dyninst Programmer's
 Guide*). This code is located in mutator code (*not* in dynC code).
 
 **myMutator.C:**

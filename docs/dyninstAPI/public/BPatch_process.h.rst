@@ -124,7 +124,7 @@ BPatch_process.h
 
     When a process forks all existing BPatch_variableExprs are copied to the child process, but the Dyninst
     handles for these objects are not valid in the child BPatch_process.
-    This function is invoked on the child process’ BPatch_process, parentVar
+    This function is invoked on the child process' BPatch_process, parentVar
     is a variable from the parent process, and a handle to a variable in the
     child process is returned. If parentVar was not allocated in the parent
     process, then NULL is returned.

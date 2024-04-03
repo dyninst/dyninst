@@ -111,7 +111,7 @@ Dynamic libraries
    
 .. cpp:function:: BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback func)
    
-  Note that in versions previous to 9.1, BPatchDynLibraryCallback’s
+  Note that in versions previous to 9.1, BPatchDynLibraryCallback's
   signature took a BPatch_module instead of a BPatch_object.
 
 Errors
@@ -168,7 +168,7 @@ Exit
   process exits, but while its process state still exists. This allows
   final actions to be taken on the process before it actually exits. The
   function BPatch_thread::isTerminated() will return true in this context
-  even though the process hasn’t yet actually exited. In the case of an
+  even though the process hasn't yet actually exited. In the case of an
   exit due to a signal, the process will have already exited.
 
 Fork
@@ -246,7 +246,7 @@ Stopped Threads
   during the creation of the stopThreadExpr snippet type. Whenever a
   stopThreadExpr snippet executes in a given thread, the snippet evaluates
   the calculation snippet that stopThreadExpr takes as a parameter, stops
-  the thread’s execution and invokes this callback. The at_point parameter
+  the thread's execution and invokes this callback. The at_point parameter
   is the BPatch_point at which the stopThreadExpr snippet was inserted,
   and returnValue contains the computation made by the calculation
   snippet.

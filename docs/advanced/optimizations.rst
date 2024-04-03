@@ -55,7 +55,7 @@ If the user knows that they will be inserting multiple pieces of
 instrumentation into one function, they can batch the instrumentation
 into one bundle, so that the function will only be re-written once,
 using the BPatch_process::beginInsertionSet and
-BPatch_­process::end­Inser­tion­Set functions (see section 4.4). Using
+BPatch_­process::end ­Inser­tionSet functions (see section 4.4). Using
 these functions can result in a significant performance win when
 inserting instrumentation in many locations.
 
@@ -86,7 +86,7 @@ that increments a counter, the Dyninst overhead will dominate the time
 spent in instrumentation. Remember, optimizing the instrumentation being
 inserted may sometimes be more important than optimizing the Dyninst
 overhead. Many users have had success writing tools that make use of
-Dyninst’s ability to dynamically remove instrumentation as a performance
+Dyninst's ability to dynamically remove instrumentation as a performance
 improvement.
 
 The instrumentation overhead results from safety and correctness checks
@@ -99,7 +99,7 @@ post-Dyninst 5.0 instrumentation snippet looks like the following:
 
 +----------------------------------+----------------------------------+
 | **Save General Purpose           | In order to ensure that          |
-| Registers**                      | instrumentation doesn’t corrupt  |
+| Registers**                      | instrumentation doesn't corrupt  |
 |                                  | the program, Dyninst saves all   |
 |                                  | live general purpose registers.  |
 +----------------------------------+----------------------------------+
@@ -166,7 +166,7 @@ possible. The Dyninst user can assist Dyninst by doing the following:
    This will cause Dyninst to stop generating a trampoline guard and
    thread index calculation on all future pieces of instrumentation. An
    example of instrumentation recursion would be instrumenting a call to
-   write with instrumentation that calls printf—write will start calling
+   write with instrumentation that calls printf-write will start calling
    printf printf will re-call write.
 
 -  **Call BPatch::setSaveFPR(false) if instrumentation will not clobber
@@ -178,7 +178,7 @@ possible. The Dyninst user can assist Dyninst by doing the following:
    attempt to recognize, peep-hole optimize, and simplify frequently
    used code snippets when it finds them. For example, on x86 based
    platforms Dyninst will recognize snippets that do operations like
-   ‘var = constant’ or ‘var++’ and turn these into optimized assembly
+   'var = constant' or 'var++' and turn these into optimized assembly
    instructions that take advantage of CISC machine instructions.
 
 -  **Call BPatch::setInstrStackFrames(false) before inserting

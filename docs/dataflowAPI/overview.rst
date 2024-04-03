@@ -70,7 +70,7 @@ Abstract Region
 
 Abstract Syntax Tree
   An :cpp:class:`Abstract Syntax Tree <Dyninst::AST>` (AST) represents a symbolic expression of an
-  instruction’s semantics. Specifically, an AST specifies how the value
+  instruction's semantics. Specifically, an AST specifies how the value
   of an abstract location is modified by the instruction.
 
 Assignment
@@ -82,7 +82,7 @@ Assignment
 
 Stack Height
   :ref:`Stack Height <sec:stackanalysis.h>` represents the difference between a value
-  in an abstract location and the stack pointer at a function’s call site. See
+  in an abstract location and the stack pointer at a function's call site. See
   :cpp:class:`StackAnalysis::Height` for details.
 
 .. _`sec:dataflow-usage`:

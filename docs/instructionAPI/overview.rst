@@ -78,15 +78,15 @@ Decoding
   given machine language and transforms them into an instruction
   representation. It determines the opcode of the machine instruction,
   translates that opcode to an Operation object, uses that Operation to
-  determine how to decode the instruction’s Operands, and produces a
+  determine how to decode the instruction's Operands, and produces a
   decoded Instruction.
 
   .. figure:: fig/decoder_use.png
-     :alt: The InstructionDecoder’s inputs and outputs
+     :alt: The InstructionDecoder's inputs and outputs
      :name: fig:decoder-use
      :align: center
 
-     The InstructionDecoder’s inputs and outputs
+     The InstructionDecoder's inputs and outputs
 
   It is possible to generalize the construction of
   Instructions from Operations and Operands to an entirely

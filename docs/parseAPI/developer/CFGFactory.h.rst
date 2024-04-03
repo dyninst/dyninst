@@ -42,7 +42,7 @@ routines to generate and work with extensions of the base types
       Returns an object derived from Function as though the provided
       parameters had been passed to the Function constructor. The ParseAPI
       parser will never invoke ``mkfunc()`` twice with identical ``addr``, and
-      ``region`` parameters—that is, Functions are guaranteed to be unique by
+      ``region`` parameters-that is, Functions are guaranteed to be unique by
       address within a region.
 
   .. cpp:function:: virtual Block* mkblock(Function* func, CodeRegion* region, Address addr)
@@ -59,7 +59,7 @@ routines to generate and work with extensions of the base types
 
   .. cpp:function:: virtual Block* mksink(CodeObject *obj, CodeRegion *r)
 
-      Returns a “sink” block derived from Block to which all unresolvable
+      Returns a "sink" block derived from Block to which all unresolvable
       control flow instructions will be linked. Implementors may return a
       unique sink block per CodeObject or a single global sink.
 

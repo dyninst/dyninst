@@ -83,7 +83,7 @@ frame.h
 
   .. cpp:function:: bool getName(std::string &str) const
 
-      Returns the stack frame’s symbolic name.
+      Returns the stack frame's symbolic name.
 
       Most stack frames are created by functions or function-like objects such as signal handlers
       or system calls. This method returns the name of the object that created this stack frame.

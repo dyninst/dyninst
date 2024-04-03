@@ -31,7 +31,7 @@ Various values used throughout the codebase. These can have different underlying
   An integer value capable of holding an address in the target process.
   Address variables should not, and in many cases cannot, be used directly
   as a pointer. It may refer to an address in a different process, and it
-  may not directly match the target process’ pointer representation.
+  may not directly match the target process' pointer representation.
   Address is guaranteed to be at least large enough to hold an address in
   a target process, but may be larger.
 

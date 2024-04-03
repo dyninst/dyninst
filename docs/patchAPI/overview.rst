@@ -5,9 +5,9 @@
 PatchAPI
 ########
 
-PatchAPI is a library for binary code patching. It provides a thin layer on top of ParseAPI’s Control Flow Graph
+PatchAPI is a library for binary code patching. It provides a thin layer on top of ParseAPI's Control Flow Graph
 (:ref:`CFG <sec:CFG.h>`) layer, which associates some useful information for the ease of
-binary code patching, for example, a shared library’s load address.
+binary code patching, for example, a shared library's load address.
 PatchAPI can instrument (insert code into) and modify a binary executable or library by
 annotating this CFG with :cpp:class:`snippets <Snippet>`. It is designed to
 be flexible and extensible by using :ref:`plugins <sec:parseapi-plugin-interface>`
@@ -37,7 +37,7 @@ PatchAPI may be used both in the same address space as the process
 debug interface (3rd-party instrumentation). Similarly, developers may
 define their own types of Snippets to encapsulate their own code
 generation techniques. These capabilities are provided by a plugin
-interface; by implementing a plugin a developer may extend PatchAPI’s
+interface; by implementing a plugin a developer may extend PatchAPI's
 capabilities.
 
 .. _`sec:patchapi-abstractions`:
@@ -211,7 +211,7 @@ Address Space
 
 This implements the address space plugin to manage memory. The instrumentation engine will
 utilize these memory management methods during the code patching process. For example, the
-instrumentation engine needs to malloc a buffer in a mutatee’s address space
+instrumentation engine needs to malloc a buffer in a mutatee's address space
 and then write the code snippet into this buffer.
 
 .. rli:: https://raw.githubusercontent.com/dyninst/examples/master/patchAPI/addressSpace.cpp

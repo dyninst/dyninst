@@ -165,21 +165,21 @@ PCProcess.h
 
   A ``Library`` represents a single shared library (frequently referred to as
   a DLL or DSO, depending on the OS) that has been loaded into the target
-  process. In addition, it will be used to represent the process’
-  executable. Process’ with statically linked executables will only
+  process. In addition, it will be used to represent the process'
+  executable. Process' with statically linked executables will only
   contain the single ``Library`` that represents the executable.
 
   Each Library contains a load address and a file name. The load address
   is the address at which the OS loaded the library, and the file name is
-  the path to the library’s file. Note that on some operating systems
+  the path to the library's file. Note that on some operating systems
   (e.g., Linux) the load address does not necessarily represent the beginning
   of the library in memory. Instead, it is a value that can be added to
-  a library’s symbol offsets to compute the dynamic address of a symbol.
+  a library's symbol offsets to compute the dynamic address of a symbol.
 
   Libraries may be loaded and unloaded by the process during execution. A
   library load or unload can trigger a callback with an EventLibrary
   parameter. The current list of libraries loaded into a process can be
-  accessed via a Process’ :cpp:class:`LibraryPool`.
+  accessed via a Process' :cpp:class:`LibraryPool`.
 
   .. cpp:type:: boost::shared_ptr<Library> ptr
   .. cpp:type:: boost::shared_ptr<const Library> const_ptr
@@ -232,7 +232,7 @@ PCProcess.h
 
 .. cpp:class:: LibraryPool
 
-  A container representing the executable and set of shared libraries (e.g., .dll and .so libraries) loaded into the target process’
+  A container representing the executable and set of shared libraries (e.g., .dll and .so libraries) loaded into the target process'
   address space. A statically linked target process will only have a
   single executable, while a dynamically linked target process will have
   an executable and zero or more shared libraries.
@@ -269,11 +269,11 @@ PCProcess.h
 
   .. cpp:function:: ptr getExecutable()
 
-    Returns a ``const`` pointer to the :cpp:class:`Library` object that represents the target process’ executable.
+    Returns a ``const`` pointer to the :cpp:class:`Library` object that represents the target process' executable.
 
   .. cpp:function:: const_ptr getExecutable() const
 
-    Returns a pointer to the :cpp:class:`Library` object that represents the target process’ executable.
+    Returns a pointer to the :cpp:class:`Library` object that represents the target process' executable.
 
   .. cpp:function:: Library::ptr getLibraryByName(std::string name)
 
@@ -338,7 +338,7 @@ PCProcess.h
 
     The new Process object will be returned from this
     function upon success. The ``executable`` argument is optional, and can be
-    used to assist ProcControlAPI in finding the process’ executable on
+    used to assist ProcControlAPI in finding the process' executable on
     operating systems where this cannot be easily determined. The new process
     will be returned with all of its threads in the stopped state.
 
@@ -585,7 +585,7 @@ PCProcess.h
 
   .. cpp:function:: Dyninst::Address mallocMemory(size_t size)
 
-    Allocates a region of memory in the target process’ address space of ``size`` bytes that is readable, writeable,
+    Allocates a region of memory in the target process' address space of ``size`` bytes that is readable, writeable,
     and executable at any available address.
 
     .. attention:: ProcControlAPI may deliver callbacks when this function is called.
@@ -598,7 +598,7 @@ PCProcess.h
 
   .. cpp:function:: Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr)
 
-    Allocates a region of memory in the target process’ address space of ``size`` bytes that is readable, writeable,
+    Allocates a region of memory in the target process' address space of ``size`` bytes that is readable, writeable,
     and executable at the specified address.
 
     .. attention:: ProcControlAPI may deliver callbacks when this function is called.
@@ -626,7 +626,7 @@ PCProcess.h
 
   .. cpp:function:: bool writeMemory(Dyninst::Address addr, void* buffer, size_t size) const
 
-    Write to the target process’s memory, starting at address ``addr``, ``size`` bytes of ``buffer``
+    Write to the target process's memory, starting at address ``addr``, ``size`` bytes of ``buffer``
 
     .. error:: It is an error to call this function on a process that does not have at least one :cpp:class:`Thread` in a stopped state.
 
@@ -634,7 +634,7 @@ PCProcess.h
 
   .. cpp:function:: bool readMemory(void* buffer, Dyninst::Address addr, size_t size) const
 
-    Read into into ``buffer`` ``size`` bytes from the target process’ memory starting at address ``addr``.
+    Read into into ``buffer`` ``size`` bytes from the target process' memory starting at address ``addr``.
 
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
@@ -697,7 +697,7 @@ PCProcess.h
     Posts the given irpc to the process.
 
     ProcControlAPI selects a :cpp:class:`Thread` from the process to run the :ref:`sec:proccontrol-intro-irpcs` on
-    and puts it into that Thread’s queue of posted IRPCs. Each instance of an IRPC object can be posted at most once.
+    and puts it into that Thread's queue of posted IRPCs. Each instance of an IRPC object can be posted at most once.
 
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.
 
@@ -1087,8 +1087,8 @@ PCProcess.h
     Reads from a symbol in thread local storage (TLS) memory.
 
     TLS is memory that is local to a thread and has a lifetime matching the
-    thread. The tls_symbol_offset is the TLS symbol’s offset in lib, and can
-    be found by reading a TLS symbol’s value. The lib parameter can point to
+    thread. The tls_symbol_offset is the TLS symbol's offset in lib, and can
+    be found by reading a TLS symbol's value. The lib parameter can point to
     a library or the executable. The buffer parameter specifies an address
     in the controller process where ProcControlAPI should write the copied
     bytes.
@@ -1103,8 +1103,8 @@ PCProcess.h
 
     This function writes to a symbol in thread local storage (TLS) memory.
     TLS is memory that is local to a thread and has a lifetime matching the
-    thread. The tls_symbol_offset is the TLS symbol’s offset in lib, and can
-    be found by reading a TLS symbol’s value. The lib parameter can point to
+    thread. The tls_symbol_offset is the TLS symbol's offset in lib, and can
+    be found by reading a TLS symbol's value. The lib parameter can point to
     a library or the executable. The buffer parameter specifies an address
     in the controller process where ProcControlAPI should read the bytes to
     be copied.
@@ -1118,8 +1118,8 @@ PCProcess.h
   .. cpp:function:: bool getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_symbol_offset, Dyninst::Address &result_addr) const
 
     This function looks up the address of a symbol in thread local storage
-    (TLS) memory. The tls_symbol_offset is the TLS symbol’s offset in lib,
-    and can be found by reading a TLS symbol’s value. The lib parameter can
+    (TLS) memory. The tls_symbol_offset is the TLS symbol's offset in lib,
+    and can be found by reading a TLS symbol's value. The lib parameter can
     point to a library or the executable. The result_addr parameter will be
     set to the target address for the TLS symbol in this Thread.
 
@@ -1131,7 +1131,7 @@ PCProcess.h
 
   .. cpp:function:: bool haveUserThreadInfo() const
 
-    Returns ``true`` if information about this Thread’s underlying
+    Returns ``true`` if information about this Thread's underlying
     user-level thread is available.
 
   .. cpp:function:: Dyninst::THR_ID getTID() const
@@ -1148,19 +1148,19 @@ PCProcess.h
 
   .. cpp:function:: Dyninst::Address getStackBase() const
 
-    Returns the address of the bottom of the user-level thread’s stack.
+    Returns the address of the bottom of the user-level thread's stack.
 
     .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
 
   .. cpp:function:: unsigned long getStackSize() const
 
-    Returns the size in bytes of the user-level thread’s allocated stack.
+    Returns the size in bytes of the user-level thread's allocated stack.
 
     .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
 
   .. cpp:function:: Dyninst::Address getTLS() const
 
-    Returns the address of the user-level thread’s thread local storage area.
+    Returns the address of the user-level thread's thread local storage area.
 
     .. warning:: :cpp:func:`haveUserThreadInfo` should be checked before calling this function.
 
@@ -1170,7 +1170,7 @@ PCProcess.h
 
     Posts the given irpc to the thread.
 
-    The IRPC is put irpc into the Thread’s queue of posted IRPCs and will be run when ready.
+    The IRPC is put irpc into the Thread's queue of posted IRPCs and will be run when ready.
     See :ref:`sec:proccontrol-intro-irpcs` for details on iRPCs.
 
     Returns ``false`` on error. The specific error can be retrieved from :cpp:func:`getLastError`.

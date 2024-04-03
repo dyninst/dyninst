@@ -7,11 +7,11 @@ BPatch_loopTreeNode.h
    
   **A tree interface to a collection of basic blocks a CFG**
 
-  The structure of the tree follows the nesting relationship of the loops in a function’s flow graph. Each
+  The structure of the tree follows the nesting relationship of the loops in a function's flow graph. Each
   ``BPatch_­loopTreeNode`` contains a pointer to a loop (represented by ``BPatch_basicBlockLoop``), and a
   set of sub-loops (represented by other ``BPatch_loopTreeNode`` objects). The root ``BPatch_­loopTreeNode``
   instance has a null loop member since a function may contain multiple outer loops. The outer loops are
-  contained in the root instance’s vector of children.
+  contained in the root instance's vector of children.
 
   .. cpp:var:: BPatch_basicBlockLoop *loop
 
@@ -27,11 +27,11 @@ BPatch_loopTreeNode.h
 
   .. cpp:function:: const char *getCalleeName(unsigned int i)
 
-    This function return the name of the ``ith`` function called in the loop’s body.
+    This function return the name of the ``ith`` function called in the loop's body.
 
   .. cpp:function:: unsigned int numCallees()
 
-    Returns the number of callees contained in this loop’s body.
+    Returns the number of callees contained in this loop's body.
 
   .. cpp:function:: bool getCallees(std::vector<BPatch_function*>& v, BPatch_addressSpace* p)
 

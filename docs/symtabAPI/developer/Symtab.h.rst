@@ -165,14 +165,14 @@ Symtab.h
 
   .. cpp:function:: bool deleteFunction(Function *func)
 
-      This method deletes the ``Function`` ``func`` from all of symtab’s data
+      This method deletes the ``Function`` ``func`` from all of symtab's data
       structures. It will not be available for further queries. Return
       ``true`` on success and ``false`` if ``func`` is not owned by the
       ``Symtab``.
 
   .. cpp:function:: bool deleteVariable(Variable *var)
 
-      This method deletes the variable ``var`` from all of symtab’s data
+      This method deletes the variable ``var`` from all of symtab's data
       structures. It will not be available for further queries. Return
       ``true`` on success and ``false`` if ``var`` is not owned by the
       ``Symtab``.
@@ -264,7 +264,7 @@ Symtab.h
   .. cpp:function:: void getSegmentsSymReader(std::vector<SymSegment> &segs)
   .. cpp:function:: bool deleteSymbol(Symbol *sym)
 
-      This method deletes the symbol ``sym`` from all of symtab’s data
+      This method deletes the symbol ``sym`` from all of symtab's data
       structures. It will not be available for further queries. Return
       ``true`` on success and ``false`` if func is not owned by the
       ``Symtab``.
@@ -370,7 +370,7 @@ Symtab.h
 Notes
 =====
 
-An Elf Object that can be loaded into memory to form an executable’s
+An Elf Object that can be loaded into memory to form an executable's
 image has one of two types: ET_EXEC and ET_DYN. ET_EXEC type objects are
 executables that are loaded at a fixed address determined at link time.
 ET_DYN type objects historically were shared libraries that are loaded
@@ -389,7 +389,7 @@ classify some libraries that are also executables as an executable. This
 can happen in object is a shared library and an executable, and its
 entry point happens to be at the start of the .text section.
 
-``isExecutable()`` is equivalent to elfutils’ ``elfclassify --program``
+``isExecutable()`` is equivalent to elfutils' ``elfclassify --program``
 test with the refinement of the soname value and entry point tests.
 Pseudocode for the algorithm is shown below:
 
@@ -405,18 +405,18 @@ Pseudocode for the algorithm is shown below:
 
 -  **if** (DT_DEBUG tag exists in PT_DYNAMIC segment) **return** *true*
 
--  **if** (has a soname and its value is “linux-gate.so.1”) **return**
+-  **if** (has a soname and its value is "linux-gate.so.1") **return**
    *false*
 
 -  **if** (entry point is in range .text section offset plus 1 to the
    end of the .text section) **return** *true*
 
--  **if** (has a soname and its value starts with “ld-linux”) **return**
+-  **if** (has a soname and its value starts with "ld-linux") **return**
    *true*
 
 -  **otherwise return** *false*
 
-``isSharedLibrary()`` is equivalent to elfutils’
+``isSharedLibrary()`` is equivalent to elfutils'
 ``elfclassify --library``. Pseudocode for the algorithm is shown below:
 
 -  **if** (**not** loadable()) **return** *false*
@@ -436,7 +436,7 @@ Elf files can also store data that is neither an executable nor a shared
 library including object files, core files and debug symbol files. To
 distinguish these cases the ``loadable()`` function is defined using the
 pseudocode shown below and returns true is the file can loaded into a
-process’s address space:
+process's address space:
 
 -  **if** (object type is neither ET_EXEC nor ET_DYN) **return** *false*
 

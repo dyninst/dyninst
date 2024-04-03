@@ -94,7 +94,7 @@ AddrSpace.h
 
   .. cpp:function:: PatchMgrPtr mgr()
 
-      Returns the PatchMgr’s pointer, where the PatchMgr contains this address
+      Returns the PatchMgr's pointer, where the PatchMgr contains this address
       space.
 
   .. cpp:function:: std::string format() const

@@ -29,7 +29,7 @@ BPatch_thread.h
   .. cpp:function:: unsigned getBPatchID()
 
     This function returns a Dyninst-specific identifier for this thread.
-    These ID’s apply only to running threads, the BPatch ID of an already
+    These ID's apply only to running threads, the BPatch ID of an already
     terminated thread my be repeated in a new thread.
 
   .. cpp:function:: BPatch_function * getInitialFunc()
@@ -40,7 +40,7 @@ BPatch_thread.h
 
   .. cpp:function:: unsigned long getStackTopAddr()
 
-    Returns the base address for this thread’s stack.
+    Returns the base address for this thread's stack.
 
   .. cpp:function:: bool isDeadOnArrival()
 

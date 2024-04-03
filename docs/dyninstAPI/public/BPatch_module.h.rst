@@ -141,7 +141,7 @@ BPatch_module.h
 
   .. cpp:function:: BPatch_hybridMode getHybridMode()
 
-    Return the mutator’s analysis mode for the mutatee.
+    Return the mutator's analysis mode for the mutatee.
 
   .. cpp:function:: void enableDefensiveMode(bool on)
 

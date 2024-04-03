@@ -53,12 +53,12 @@ Processes and Threads
   paused by ProcControlAPI - the OS will not schedule the thread to run. A
   thread in a running state is allowed to execute as normal. A thread in a
   running state may block for other reasons, e.g. blocking on IO calls,
-  but this does not affect ProcControlAPI’s view of the thread state. A
+  but this does not affect ProcControlAPI's view of the thread state. A
   thread is only in the stopped state if ProcControlAPI has explicitly
   stopped it.
 
   A Process object is not considered to have a stopped or running
-  state—only its Thread objects are stopped or running. A stop operation
+  state-only its Thread objects are stopped or running. A stop operation
   on a Process triggers a stop operation on each of its Threads, and
   similarly a continue operation on a Process triggers continue operations
   on each Thread.
@@ -77,7 +77,7 @@ Breakpoints
   Some Breakpoint objects can be created as *control-transfer
   breakpoints*. When a process is continued after executing a
   control-transfer the process will resume at an alternate location,
-  rather than at the breakpoint’s installation point.
+  rather than at the breakpoint's installation point.
 
   A single Breakpoint can be inserted into multiple locations within a
   target process. This can be useful when a user has wants to perform a
@@ -222,7 +222,7 @@ or poll to block a thread that handles ProcControlAPI events.
 Alternatively, the ProcControlAPI user can register a light-weight
 callback that is invoked when a callback is ready. This light-weight
 callback provides no information about the Event and may occur on
-another thread or from a signal handler—the ProcControlAPI user is
+another thread or from a signal handler-the ProcControlAPI user is
 encouraged to keep this callback minimal.
 
 It is important for a user to respond promptly to a callback
@@ -245,7 +245,7 @@ iRPCs
 
 An iRPC (Inferior Remote Procedure Call) is a mechanism for executing
 code in a target process. Despite the name, an iRPC does not necessarily
-have to involve a procedure call—any piece of code can be executed.
+have to involve a procedure call-any piece of code can be executed.
 
 A ProcControlAPI user can invoke an iRPC by providing ProcControlAPI
 with a buffer of machine code and specifying a Process or Thread on
@@ -274,7 +274,7 @@ Before an iRPC can be run it must be posted to a process or thread using
 :cpp:func:`Process::postIRPC` or :cpp:func:`Thread::postIRPC`.
 ``Process::postIRPC`` selects a thread to post the iRPC to.
 Multiple iRPCs can be posted to the same thread, but only one iRPC will
-run at a time—subsequent iRPCs will be queued and run after the
+run at a time-subsequent iRPCs will be queued and run after the
 preceding iRPC completes. If multiple iRPCs are posted to different
 threads in a multi-threaded process, then they may run in parallel.
 
@@ -300,7 +300,7 @@ ProcControlAPI.
 
 An instance of :cpp:class:`Dyninst::MachRegister` is defined for each register ProcControlAPI
 can name. These instances live inside a namespace that represents the
-register’s architecture. For example, we can name a register from an
+register's architecture. For example, we can name a register from an
 AMD64 machine with `Dyninst::x86_64::rax` or a register from a Power
 machine with `Dyninst::ppc32::r1`.
 
@@ -402,7 +402,7 @@ error handling and checking have been left out for brevity.
    information about the new thread in the target process. It is worth
    noting that :cpp:type:`Event::const_ptr` is a not a regular pointer, but a
    reference counted shared pointer. This means that we do not have to
-   be concerned with cleaning the Event—it will be automatically cleaned
+   be concerned with cleaning the Event-it will be automatically cleaned
    when the last reference disappears. The :cpp:class:`Process::cb_ret_t` describes
    what action should be taken on the process in response to this event.
 
@@ -411,7 +411,7 @@ error handling and checking have been left out for brevity.
    and then extract information about the new thread from the
    EventNewThread.
 
-6. In step 6, we’ve finished handling the new thread event and need to
+6. In step 6, we've finished handling the new thread event and need to
    tell ProcControlAPI what to do in response to this event. For
    example, we could choose to stop the process from further execution
    by returning a value of :cpp:enumerator:`Process::cb_action_t::cbProcStop`. Instead, we choose let
@@ -421,7 +421,7 @@ error handling and checking have been left out for brevity.
    callback).
 
 7. The registering of our callback in step 3 did not actually trigger
-   any calls to the callback function—the target process was created in
+   any calls to the callback function-the target process was created in
    a stopped state and has not yet been able to create any threads. We
    tell ProcControlAPI to continue the target process in this step,
    which allows it to execute and possibly start generating new events.

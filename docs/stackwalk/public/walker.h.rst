@@ -100,7 +100,7 @@ walker.h
       
       If ``thread`` is provided, then only the thread with that id is walked. If it is
       omitted, then a default thread will be chosen. When doing a third-party stackwalk, the
-      default thread will be the process’ initial thread. When doing a first-party stackwalk,
+      default thread will be the process' initial thread. When doing a first-party stackwalk,
       the default thread will be the thread that called this function. The default
       ``StepperGroup`` provided to a Walker will support collecting call stacks from almost
       all types of functions, including signal handlers and optimized, frameless functions.
@@ -115,7 +115,7 @@ walker.h
 
   .. cpp:function:: bool walkSingleFrame(const Frame &in, Frame &out)
 
-      Walks the single frame ``in``. ``out`` is set to ``in``\ ’s caller frame.
+      Walks the single frame ``in``. ``out`` is set to ``in``\ 's caller frame.
 
       Returns ``false`` on failure.
 
@@ -124,7 +124,7 @@ walker.h
       Returns in ``frame`` the top of the stack for thread ``thread``.
       
       If ``thread`` is omitted, then a default thread is chosen. When doing a third-party walk,
-      the default thread is the process’ initial thread. For a first-party walk, the thread that
+      the default thread is the process' initial thread. For a first-party walk, the thread that
       called this function is used.
 
       Returns ``false`` on error.

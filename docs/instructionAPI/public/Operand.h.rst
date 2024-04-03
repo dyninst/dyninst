@@ -106,9 +106,9 @@ This classes can be used to determine which of the registers that appear in
 the Operand are read and which are written, as well as whether any
 memory accesses are reads, writes, or both. An Operand, given full
 knowledge of the values of the leaves of the AST, and knowledge of the
-logic associated with the tree’s internal nodes, can determine the
+logic associated with the tree's internal nodes, can determine the
 result of any computations that are encoded in it. It will rarely be the
-case that an :cpp:class:``Instruction`` is built with its Operands’ state fully
+case that an :cpp:class:``Instruction`` is built with its Operands' state fully
 specified. This mechanism is instead intended to allow users to fill in
 knowledge about the state of the processor at the time the instruction
 is executed.

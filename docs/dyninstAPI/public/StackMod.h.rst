@@ -89,7 +89,7 @@ StackMod.h
 
     ``failFunc`` cannot take any arguments.
 
-    This uses the same canary as GCC’s ``-fstack-protector``. If the canary
+    This uses the same canary as GCC's ``-fstack-protector``. If the canary
     check at function exit fails, failFunc is called. failFunc must be
     non-returning and take no arguments. If no failFunc is provided,
     ``__stack_chk_fail`` from libc is called; libc must be open in the

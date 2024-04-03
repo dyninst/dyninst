@@ -1724,7 +1724,7 @@ namespace Dyninst {
         break;
       case Arch_aarch64: {
         // this info can be found in
-        // DWARF for the ARM ® 64-bit Architecture (AArch64)
+        // DWARF for the ARM 64-bit Architecture (AArch64)
         switch(encoding) {
           case 0: return Dyninst::aarch64::x0;
           case 1: return Dyninst::aarch64::x1;

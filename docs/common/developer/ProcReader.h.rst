@@ -10,7 +10,7 @@ ProcReader.h
   **Read from a process' memory space**
 
   The implementation of the :cpp:class:`AddressLookup` on Linux requires it to be
-  able to read from the target process’s address space.
+  able to read from the target process's address space.
 
 .. note:: The ``ProcessReader`` is defined, but not used, on non-Linux systems.
 

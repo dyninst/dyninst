@@ -50,7 +50,7 @@ Blocks
   sequences of instructions :math:`I_i \ldots I_j` where for each
   :math:`i < k \le j`, :math:`I_k` postdominates :math:`I_{k-1}`.
   Importantly, on some instruction set architectures basic blocks
-  can overlap on the same address range—variable length instruction
+  can overlap on the same address range-variable length instruction
   sets allow for multiple interpretations of the bytes making up the
   basic block.
 
@@ -76,7 +76,7 @@ Loops
   The :cpp:class:`Loop` represents code in the binary that may execute
   repeatedly, corresponding to source language constructs like *for*
   loop or *while* loop. We use a formal definition of loops from
-  “Nesting of Reducible and Irreducible Loops" by Paul Havlak. We
+  "Nesting of Reducible and Irreducible Loops" by Paul Havlak. We
   support identifying both natural loops (single-entry loops) and
   irreducible loops (multi-entry loops).
 
@@ -92,7 +92,7 @@ Code Objects
 Instruction Source
   An :cpp:class:`instruction source <InstructionSource>` describes a backing store
   containing binary code. A binary file, a library, a memory dump, or a
-  process’s executing memory image can all be described as an
+  process's executing memory image can all be described as an
   instruction source, allowing parsing of a variety of binary code
   objects.
 
@@ -173,7 +173,7 @@ Defensive Mode Parsing
 **********************
 
 Binary code that defends itself against analysis may violate the
-assumptions made by the the ParseAPI’s standard parsing algorithm.
+assumptions made by the the ParseAPI's standard parsing algorithm.
 Enabling defensive mode parsing activates more conservative assumptions
 that substantially reduce the percentage of code that is analyzed by the
 ParseAPI. For this reason, defensive mode parsing is best-suited for use

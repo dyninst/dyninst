@@ -142,7 +142,7 @@ Event.h
 .. cpp:class:: EventNewUserThread : public EventNewThread
 
   An EventNewUserThread triggers when a process spawns a new user-level
-  thread. The Event class’ getThread function returns the original Thread
+  thread. The Event class' getThread function returns the original Thread
   that performed the spawn operation. This thread may have already been
   created if the platform supports the EventNewLWP event. If not, the
   getNewThread function returns the newly created Thread.
@@ -163,8 +163,8 @@ Event.h
 .. cpp:class:: EventNewLWP : public EventNewThread
 
   An EventNewLWP triggers when a process spawns a new LWP. The Event
-  class’ getThread function returns the original Thread that performed the
-  spawn operation, while EventNewThread’s getNewThread returns the newly
+  class' getThread function returns the original Thread that performed the
+  spawn operation, while EventNewThread's getNewThread returns the newly
   created Thread.
 
   A callback function that receives an EventNewThread can use the two

@@ -29,7 +29,7 @@ BinaryFunction.h
     Returns the evaluation of the contained expressions.
 
     This result is cached after its initial calculation; the caching mechanism also
-    allows outside information to override the results of the ``BinaryFunction``\ ’s
+    allows outside information to override the results of the ``BinaryFunction``\ 's
     internal computation. If the cached result exists, it is guaranteed to be returned
     even if the arguments or the function cannot be evaluated.
 

@@ -76,7 +76,7 @@ CodeSource.h
 
   .. cpp:member:: protected Address _table_of_contents
 
-      Many binary format have “table of contents” structures for position
+      Many binary format have "table of contents" structures for position
       independant references. If such a structure exists, its address should
       be filled in.
 

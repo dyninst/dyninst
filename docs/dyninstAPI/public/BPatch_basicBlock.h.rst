@@ -64,7 +64,7 @@ BPatch_basicBlock.h
 
   .. cpp:function:: bool getSourceBlocks(std::vector<BPatch_sourceBlock*>&)
 
-    Returns the source blocks contributing to this basic block’s instruction sequence.
+    Returns the source blocks contributing to this basic block's instruction sequence.
 
   .. cpp:function:: int getBlockNumber()
 
@@ -134,7 +134,7 @@ BPatch_basicBlock.h
 
     Fills the given vector with InstructionAPI Instruction objects
     representing the instructions in this basic block, and Checks if
-    successful. See the InstructionAPI Programmer’s Guide for details. The
+    successful. See the InstructionAPI Programmer's Guide for details. The
     second call also returns the address each instruction starts at.
 
   .. cpp:function:: bool getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Dyninst::Address> >& insnInstances)

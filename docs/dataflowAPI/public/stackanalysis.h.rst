@@ -27,7 +27,7 @@ stack heights mean.
 |                       | the specified abstract location has a stack |
 |                       | height of *x*. On all other paths, the      |
 |                       | abstract location either has a stack height |
-|                       | of *x* or doesn’t point to the stack.       |
+|                       | of *x* or doesn't point to the stack.       |
 +-----------------------+---------------------------------------------+
 |                       |                                             |
 +-----------------------+---------------------------------------------+

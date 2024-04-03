@@ -37,7 +37,7 @@ procstate.h
 
 .. cpp:class:: ProcDebug : public ProcessState
 
-  Access to StackwalkerAPI’s debugger is through the ``ProcDebug`` class,
+  Access to StackwalkerAPI's debugger is through the ``ProcDebug`` class,
   which inherits from the ``ProcessState`` interface.
 
   .. cpp:member:: protected Dyninst::ProcControlAPI::Process::ptr proc
@@ -50,7 +50,7 @@ procstate.h
 
   ``LibraryState`` is a helper class for ``ProcessState`` that provides
   information about the current DSOs (libraries and executables) that are
-  loaded into a process’ address space. FrameSteppers frequently use the
+  loaded into a process' address space. FrameSteppers frequently use the
   LibraryState to get the DSO through which they are attempting to stack
   walk.
 
@@ -82,7 +82,7 @@ procstate.h
   .. cpp:function:: virtual void notifyOfUpdate() = 0
 
       This method is called by the ``ProcessState`` when it detects a change
-      in the process’ list of loaded libraries. Implementations of
+      in the process' list of loaded libraries. Implementations of
       ``LibraryStates`` should use this method to refresh their lists of
       loaded libraries.
 

@@ -17,7 +17,7 @@ PatchCFG.h
 
   .. cpp:function:: const string& name()
 
-      Returns the function’s mangled name.
+      Returns the function's mangled name.
 
   .. cpp:function:: Address addr() const
 
@@ -281,11 +281,11 @@ PatchCFG.h
 
   .. cpp:function:: bool containsAddress(Address addr)
 
-      Checks if ``addr`` is contained in the range of this loop’s basic blocks.
+      Checks if ``addr`` is contained in the range of this loop's basic blocks.
 
   .. cpp:function:: bool containsAddressInclusive(Address addr)
 
-      Checks if ``addr`` is contained in the range of this loop’s basic blocks or its children.
+      Checks if ``addr`` is contained in the range of this loop's basic blocks or its children.
 
   .. cpp:function:: int getLoopEntries(vector<PatchBlock*>& entries)
 
@@ -368,7 +368,7 @@ PatchCFG.h
 
   .. cpp:function:: unsigned int numCallees()
 
-      Returns the number of callees contained in this loop’s body.
+      Returns the number of callees contained in this loop's body.
 
   .. cpp:function:: bool getCallees(vector<PatchFunction* >& v)
 

@@ -57,7 +57,7 @@ ProcessSet.h
 
       Every successfully created Process will be added to a new ProcessSet
       that is returned by this function. Each element in ``cinfo`` is updated
-      so that each entry’s proc field points to the Process created by that entry,
+      so that each entry's proc field points to the Process created by that entry,
       and the error_ret entry will contain an error code for any process launch that failed.
 
   .. cpp:function:: static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo)
@@ -69,7 +69,7 @@ ProcessSet.h
 
       Every successfully attached Process will be added to a new ProcessSet
       that is returned by this function. Each element in ``ainfo`` is updated so that each
-      entry’s proc field points to the Process attached by that entry, and the error_ret
+      entry's proc field points to the Process attached by that entry, and the error_ret
       entry will contain an error code any process attach that failed.
 
   .. cpp:function:: ProcessSet::ptr set_union(ProcessSet::ptr pp) const
@@ -270,7 +270,7 @@ ProcessSet.h
 
       Allocates ``size`` bytes in all processes in this set.
 
-      .. Attention:: It is the user’s responsibility to free the memory returned.
+      .. Attention:: It is the user's responsibility to free the memory returned.
 
       .. Warning:: This behavior is undefined if ``addrs`` contains processes not included in this set.
 
@@ -299,7 +299,7 @@ ProcessSet.h
 
       The memory read is returned ``result``.
 
-      .. Attention:: It is the user’s responsibility to free the memory returned.
+      .. Attention:: It is the user's responsibility to free the memory returned.
 
       .. Warning:: This behavior is undefined if ``addrs`` contains processes not included in this set.
 

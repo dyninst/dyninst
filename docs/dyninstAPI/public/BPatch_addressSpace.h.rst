@@ -322,7 +322,7 @@ BPatch_addressSpace.h
   .. cpp:function:: virtual BPatch_object* loadLibrary(const char* libname, bool reload = false) = 0
 
     For dynamic rewriting, this function loads a dynamically linked library
-    into the process’s address space. For static rewriting, this function
+    into the process's address space. For static rewriting, this function
     adds a library as a library dependency in the rewritten file. In both
     cases Dyninst creates a new BPatch_module to represent this library.
 

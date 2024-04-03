@@ -92,8 +92,8 @@ Mangled Name
   example, the method ``foo`` of class ``C`` with signature ```int C::foo(int, int)``
   has a mangled name ``_ZN1C3fooEii`` when compiled with gcc.
   Mangled names may include a sequence of clone suffixes (begins with
-  ‘.’ that indicate a compiler synthesized function), and this may be
-  followed by a version suffix (begins with ‘@’).
+  ``.`` that indicate a compiler synthesized function), and this may be
+  followed by a version suffix (begins with ``@``).
 
 Pretty Name
   A pretty name for a symbol is the demangled user-level symbolic name
@@ -140,7 +140,7 @@ Archive
 Object File
    An :cpp:class:`object <Object>` file is the representation of code that a compiler or
    assembler generates by processing a source code file. It represents
-   .o’s, a.out’s and shared libraries.
+   .o's, a.out's and shared libraries.
 
 Region
    A :cpp:class:`region <Region>` is a contiguous area of the file that contains

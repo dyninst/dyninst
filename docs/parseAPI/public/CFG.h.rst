@@ -10,7 +10,7 @@ CFG.h
   **The portion of the program CFG that is reachable through intraprocedural control flow transfers**
 
   Functions have a single entry point; multiple-entry functions such as those found
-  in Fortran programs are represented as several functions that “share” a subset of
+  in Fortran programs are represented as several functions that "share" a subset of
   the CFG. Functions may be non-contiguous and may share blocks with other
   functions.
 
@@ -260,11 +260,11 @@ CFG.h
 
   .. cpp:function:: bool containsAddress(Address addr)
 
-      Checks if the given address is within the range of this loop’s basic blocks.
+      Checks if the given address is within the range of this loop's basic blocks.
 
   .. cpp:function:: bool containsAddressInclusive(Address addr)
 
-      Checks if the given address is within the range of this loop’s basic blocks or its children.
+      Checks if the given address is within the range of this loop's basic blocks or its children.
 
   .. cpp:function:: int getLoopEntries(vector<Block*>& entries);
 
@@ -338,7 +338,7 @@ CFG.h
 
   .. cpp:function:: unsigned int numCallees()
 
-      Returns the number of callees contained in this loop’s body.
+      Returns the number of callees contained in this loop's body.
 
   .. cpp:function:: bool getCallees(vector<Function *> &v)
 
@@ -421,7 +421,7 @@ flow is split by incoming transfers from another location, such as a
 branch. While not all blocks end in a control transfer instruction, all
 control transfer instructions end basic blocks and have outgoing edges;
 in the case of unresolvable control flow, the edge will target a special
-“sink” block (see ``sinkEdge()``, below).
+"sink" block (see ``sinkEdge()``, below).
 
 LoopTreeNode
 ^^^^^^^^^^^^

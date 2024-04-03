@@ -224,7 +224,7 @@ procstate.h
 .. cpp:type:: std::pair<std::string, Dyninst::Address> LibAddrPair
 
   The first field is the file path of the library that was loaded. The second is the load
-  address of that library in the process’ address space. The load address of a library can be
+  address of that library in the process' address space. The load address of a library can be
   added to a symbol offset from the file in order to get its absolute address.
 
 

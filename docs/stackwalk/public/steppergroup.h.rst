@@ -9,7 +9,7 @@ steppergroup.h
 
   **A collection of frame steppers criteria for their use**
 
-  The ``StepperGroup``\ ’s primary job is to decide which :cpp:class:`FrameStepper`
+  The ``StepperGroup``\ 's primary job is to decide which :cpp:class:`FrameStepper`
   should be used to walk through a stack frame given a return address. The default
   ``StepperGroup`` keeps a set of address ranges for each ``FrameStepper``. If multiple
   ``FrameStepper`` objects overlap an address, then the default ``StepperGroup`` will use a
@@ -43,7 +43,7 @@ steppergroup.h
 
       The default version of this method uses address ranges to decide which
       ``FrameStepper`` to use. The address ranges are contained within the
-      process’ code space, and map a piece of the code space to a
+      process' code space, and map a piece of the code space to a
       ``FrameStepper`` that can walk through stack frames created in that code
       range. If multiple ``FrameStepper`` objects share the same range, then
       the one with the highest priority will be tried first.

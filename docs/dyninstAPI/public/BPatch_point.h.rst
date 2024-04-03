@@ -7,7 +7,7 @@ BPatch_point.h
 
 .. cpp:class:: BPatch_point
 
-  **A location in an application’s code at which the library can insert instrumentation**
+  **A location in an application's code at which the library can insert instrumentation**
 
   A :cpp:class:`BPatch_image` object is used to retrieve a BPatch_point representing a desired point in the application.
 
@@ -57,7 +57,7 @@ BPatch_point.h
 
   .. cpp:function:: Dyninst::InstructionAPI::Instruction getInsnAtPoint()
 
-    Returns the first machine instruction at this point’s address.
+    Returns the first machine instruction at this point's address.
 
   .. cpp:function:: const BPatch_Vector<BPatchSnippetHandle*> getCurrentSnippets()
 

@@ -8,12 +8,12 @@ The StackwalkerAPI interface for accessing the values of local variables is clos
 to the SymtabAPI interface for collecting information about local variables - SymtabAPI
 handles for functions, local variables, and types are part of this interface.
 
-A local variable only has a limited scope with-in a target process’ execution. StackwalkerAPI
+A local variable only has a limited scope with-in a target process' execution. StackwalkerAPI
 cannot guarantee that it can collect the correct return value of a local variable from a call
 stack if the target process is continued after the call stack is collected.
 
 Finding and collecting the values of local variables is dependent on debugging information
-being present in a target process’ binary. Not all binaries contain debugging information,
+being present in a target process' binary. Not all binaries contain debugging information,
 and in some cases, such as for binaries built with high compiler optimization levels, that
 debugging information may be incorrect.
 
@@ -48,12 +48,12 @@ debugging information may be incorrect.
 
 .. cpp:var:: static int glvv_EOutOfScope = -2
 
-  An error occurred. The variable exists in the function but isn’t live
+  An error occurred. The variable exists in the function but isn't live
   at the current execution point.
 
 .. cpp:var:: static int glvv_EBufferSize = -3
 
-  An error occurred. The variable’s value does not fit in the requested destination.
+  An error occurred. The variable's value does not fit in the requested destination.
 
 .. cpp:var:: static int glvv_EUnknown = -4
 

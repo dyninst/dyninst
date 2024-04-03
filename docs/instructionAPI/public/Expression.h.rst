@@ -33,7 +33,7 @@ Expression.h
 
   .. cpp:function:: int size() const
 
-    Returns the size of this expression’s result in **bytes**.
+    Returns the size of this expression's result in **bytes**.
 
   .. cpp:function:: bool bind(Expression * expr, const Result & value)
 
@@ -82,7 +82,7 @@ Sign extension, type promotion, truncation, and all other necessary
 conversions are handled automatically based on the input types and the
 output type. If both of the results that are combined have defined
 values, the combination will also have a defined value. Otherwise, the
-combination’s value will be undefined.
+combination's value will be undefined.
 
 A user may specify the result of evaluating a given expression. This
 mechanism is designed to allow the user to provide a ``Dereference`` or

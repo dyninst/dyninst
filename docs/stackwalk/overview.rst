@@ -32,7 +32,7 @@ Stack Frame
 
 Bottom of the Stack
    The bottom of the stack is the earliest stack frame in a call stack,
-   usually a thread’s initial function. The stack grows from bottom to
+   usually a thread's initial function. The stack grows from bottom to
    the top.
 
 Top of the Stack
@@ -77,7 +77,7 @@ Walker
    walk the call stacks of multiple threads within that process.
 
 SP (Stack Pointer)
-   A frame’s SP member points to the top of its stack frame (a
+   A frame's SP member points to the top of its stack frame (a
    stack frame grows from bottom to top, similar to a call stack). The
    frame for the top of the stack has a SP that is equal to the
    value in the stack pointer register at the time the frame was
@@ -85,14 +85,14 @@ SP (Stack Pointer)
    equal to the top address in the stack frame.
 
 FP (Frame Pointer)
-   A frame’s FP member points to the beginning (or bottom) of its
+   A frame's FP member points to the beginning (or bottom) of its
    stack frame. The frame for the top of the stack has a FP that
    is equal to the value in the frame pointer register at the time the
    frame was created. The frame for any other stack frame
    has a FP that is equal to the beginning of the stack frame.
 
 RA (Return Address)
-   A frame’s RA member points to the location in the code space
+   A frame's RA member points to the location in the code space
    where control will resume when the function that created the stack
    frame resumes. The frame for the top of the stack has a RA
    that is equal to the value in the program counter register at the
@@ -185,7 +185,7 @@ ProcessState
 SymbolLookup
   The :cpp:class:`SymbolLookup` interface is used to associate a symbolic name with
   a stack frame. A stackwalk returns a collection of addresses in the
-  code space of a binary. This class uses the binary’s symbol table to
+  code space of a binary. This class uses the binary's symbol table to
   map those addresses into symbolic names. The default implementation
   uses :ref:`sec:symtab-intro`.
 
@@ -216,7 +216,7 @@ these helper classes.
 Access process data
 ===================
 To walk a call stack, Stackwalker uses a :cpp:class:`ProcessState` to be able to read a
-process’ memory and registers. When doing a first party stackwalk,
+process' memory and registers. When doing a first party stackwalk,
 this is done by directly reading them from the current address space.
 When doing a third party stackwalk, this is done by reading them
 using a debugger interface. The callback interface can be used to
@@ -274,7 +274,7 @@ Default Implementations
 Usage
 *****
 
-Stackwalker’s ease-of-use comes from it providing a platform
+Stackwalker's ease-of-use comes from it providing a platform
 independent interface that allows users to access detailed information
 about the call stack. For example, the following C++ code-snippet is all
 that is needed to walk and print the call stack of the currently running
@@ -299,7 +299,7 @@ Stackwalker as a Debugger
 =========================
 
 This section describes how to use Stackwalker for collecting 3rd
-party stack walks. In 3rd party mode Stackwalker uses the OS’s
+party stack walks. In 3rd party mode Stackwalker uses the OS's
 debugger interface to connect to another process and walk its call
 stacks. As part of being a debugger Stackwalker receives and needs to
 handle debug events. When a debugger event occurs, Stackwalker must

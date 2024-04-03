@@ -42,7 +42,7 @@ BPatch_function.h
 
   .. cpp:function:: void* getBaseAddr()
 
-      Return the starting address of the function in the mutatee’s address space.
+      Return the starting address of the function in the mutatee's address space.
 
   .. cpp:function:: BPatch_type* getReturnType()
 

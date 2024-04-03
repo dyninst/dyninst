@@ -37,7 +37,7 @@ to more effectively use different aspects of binary analysis for building their 
 
 :ref:`sec:patchapi-intro`
    Instrument (insert code into) and modify a binary executable or library by manipulating
-   the binary’s control flow graph (CFG)
+   the binary's control flow graph (CFG)
 
 :ref:`sec:proccontrolapi-intro`
    An API and library for controlling processes

@@ -15,7 +15,7 @@ interrupt-driven handling is enabled, the associated process may be
 modified to accommodate timely handling (e.g., inserting breakpoints).
 When polling-driven handling is enabled, the associated process is not
 modified and events are handled on demand by calling the appropriate
-“refresh” member function.
+"refresh" member function.
 
 
 .. cpp:class:: LibraryTracking
@@ -166,7 +166,7 @@ modified and events are handled on demand by calling the appropriate
 
 .. cpp:class:: FollowFork
 
-  The FollowFork class is used to configure ProcControlAPI’s behavior when
+  The FollowFork class is used to configure ProcControlAPI's behavior when
   the associated :cpp:class:`Process` forks.
 
   .. cpp:function:: static void setDefaultFollowFork(follow_t f)

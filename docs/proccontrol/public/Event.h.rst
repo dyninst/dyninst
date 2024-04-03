@@ -548,7 +548,7 @@ Event.h
 
   .. cpp:function:: int getExitCode() const
 
-      Returns the process’ exit code.
+      Returns the process' exit code.
 
 
 .. cpp:class:: EventCrash : public EventTerminate
@@ -605,7 +605,7 @@ Event.h
 
   .. cpp:function:: std::string getExecPath() const
 
-      Returns the file path to the process’ new executable.
+      Returns the file path to the process' new executable.
 
 
 .. cpp:class:: EventStop : public Event
@@ -615,7 +615,7 @@ Event.h
   receipt of a SIGSTOP signal.
 
   Unlike most other events, an EventStop will explicitly move the
-  associated thread or process (see the Event’s SyncType to tell which) to
+  associated thread or process (see the Event's SyncType to tell which) to
   a stopped state. Returning cbDefault from a callback function that has
   received EventStop will leave the target process in a stopped state
   rather than restore it to the pre-event state.
@@ -630,8 +630,8 @@ Event.h
 .. cpp:class:: EventNewThread : public Event
 
   An EventNewThread triggers when a process spawns a new thread. The Event
-  class’ getThread function returns the original Thread that performed the
-  spawn operation, while EventNewThread’s getNewThread returns the newly
+  class' getThread function returns the original Thread that performed the
+  spawn operation, while EventNewThread's getNewThread returns the newly
   created Thread.
 
   This event is never instantiated by ProcControlAPI and simply serves as
@@ -652,7 +652,7 @@ Event.h
 
 .. cpp:class:: EventThreadDestroy : public Event
 
-  An EventThreadDestroy triggers when a thread exits. Event’s getThread
+  An EventThreadDestroy triggers when a thread exits. Event's getThread
   member function returns the thread that exited.
 
   This event is never instantiated by ProcControlAPI and simply serves as
@@ -667,7 +667,7 @@ Event.h
 
 .. cpp:class:: EventUserThreadDestroy : public EventThreadDestroy
 
-  An EventUserThreadDestroy triggers when a thread exits. Event’s
+  An EventUserThreadDestroy triggers when a thread exits. Event's
   getThread member function returns the thread that exited.
 
   If the platform also supports EventLWPDestroy events, this event will
@@ -681,7 +681,7 @@ Event.h
 
 .. cpp:class:: EventLWPDestroy : public EventThreadDestroy
 
-  An LWPThreadDestroy triggers when a thread exits. Event’s getThread
+  An LWPThreadDestroy triggers when a thread exits. Event's getThread
   member function returns the thread that exited.
 
   .. cpp:type:: boost::shared_ptr<EventLWPDestroy> ptr
@@ -694,8 +694,8 @@ Event.h
 
   An EventFork triggers when a process performs a UNIX-style fork
   operation. The process that performed the initial fork is returned via
-  Event’s getProcess member function, while the newly created process can
-  be found via EventFork’s getChildProcess member function.
+  Event's getProcess member function, while the newly created process can
+  be found via EventFork's getChildProcess member function.
 
   .. cpp:type:: boost::shared_ptr<EventFork> ptr
   .. cpp:type:: boost::shared_ptr<const EventFork> const_ptr
@@ -794,11 +794,11 @@ Event.h
 
   .. cpp:function:: const std::set<Library::ptr> &libsAdded() const
 
-      Returns the libraries loaded into the target process’ address space.
+      Returns the libraries loaded into the target process' address space.
 
   .. cpp:function:: const std::set<Library::ptr> &libsRemoved() const
 
-      Returns the libraries unloaded from the target process’ address space.
+      Returns the libraries unloaded from the target process' address space.
 
 
 .. cpp:class:: EventChangePCStop : public Event
