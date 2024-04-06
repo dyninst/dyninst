@@ -1537,9 +1537,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 	}
 	if (range.first == range.second) assert(0);
 	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter){
-        fprintf(stderr,"Mach Register = %x\n",iter->second);
         auto index = live->getIndex(iter->second);
-        fprintf(stderr,"table size = %lu, looking up index = %d\n",liveRegs.size(),index);
 		if (liveRegs[live->getIndex(iter->second)]){ 
           return true;
         }
