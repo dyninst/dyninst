@@ -88,6 +88,10 @@ public:
   void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest,
                  Register src1, RegValue src2imm, codeGen &gen);
 
+  // The above signature is wierd, hence add the one below for general use. TODO: later on, clean up the above mess
+  void emitOpImmSimple(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen);
+
+
   // SALU relational operations on AMDGPU use SOPC encoding, and destination is
   // always SCC, have placeholder value as 0 for dest, mention in comment /*
   // SCC_DUMMY = */ when calling this.

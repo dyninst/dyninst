@@ -1371,13 +1371,20 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          retReg = Dyninst::Null_Register;
          break;
       }
+
+
+      case divOp:
+        assert(false && "divOp needs an algorithmic implementation. AMDGPU doesn't have integer division opcode.");
+        break;
       case plusOp:
       case minusOp:
       case xorOp:
+          // todo
       case timesOp:
-      case divOp:
       case orOp:
+        // todo
       case andOp:
+        // todo
       case eqOp:
       case neOp:
       case lessOp:
@@ -1390,8 +1397,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Dyninst::Null_Register;
          right_dest = Dyninst::Null_Register;
-            if (!loperand->generateCode_phase2(gen,
-                                               noCost, addr, src1)) ERROR_RETURN;
+
+         if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
 
          if ((roperand->getoType() == operandType::Constant) &&
@@ -1411,8 +1418,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             // We do not .generateCode for roperand, so need to update its
             // refcounts manually
             roperand->decUseCount(gen);
-         }
-         else {
+         } else {
                if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
                REGISTER_CHECK(right_dest);
             if (retReg == Dyninst::Null_Register) {
