@@ -121,6 +121,40 @@ void EmitterAmdgpuVega::emitOp(unsigned opcode, Register dest, Register src1,
   emitSop2(opcodeSop2, dest, src1, src2, gen);
 }
 
+void EmitterAmdgpuVega::emitOpImmSimple(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen) {
+  uint32_t opcodeSopK = 0;
+  switch (op) {
+    case plusOp:
+      opcodeSopK = S_ADDK_I32;
+      break;
+    case timesOp:
+      opcodeSopK = S_MULK_I32;
+      break;
+  case lessOp:
+    opcodeSopK = S_CMPK_LT_I32;
+    break;
+  case leOp:
+    opcodeSopK = S_CMPK_LE_I32;
+    break;
+  case greaterOp:
+    opcodeSopK = S_CMPK_GT_I32;
+    break;
+  case geOp:
+    opcodeSopK = S_CMPK_GE_I32;
+    break;
+  case eqOp:
+    opcodeSopK = S_CMPK_EQ_I32;
+    break;
+  case neOp:
+    opcodeSopK = S_CMPK_LG_I32;
+    break;
+  default:
+    assert(false &&
+           "opcode must correspond to a supported SOPK operation");
+  }
+  emitSopK(opcodeSopK, src1, src2imm, gen);
+
+}
 void EmitterAmdgpuVega::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest,
                               Register src1, RegValue src2imm, codeGen &gen) {
   printf("not implemented yet\n");
@@ -165,28 +199,17 @@ void EmitterAmdgpuVega::emitRelOpImm(unsigned op, Register dest, Register src1,
   uint32_t opcodeSopK = 0;
   switch (op) {
   case lessOp:
-    opcodeSopK = S_CMPK_LT_I32;
-    break;
   case leOp:
-    opcodeSopK = S_CMPK_LE_I32;
-    break;
   case greaterOp:
-    opcodeSopK = S_CMPK_GT_I32;
-    break;
   case geOp:
-    opcodeSopK = S_CMPK_GE_I32;
-    break;
   case eqOp:
-    opcodeSopK = S_CMPK_EQ_I32;
-    break;
   case neOp:
-    opcodeSopK = S_CMPK_LG_I32;
+    emitOpImmSimple(op, dest, src1, src2imm, gen);
     break;
   default:
     assert(false &&
            "opcode must correspond to a supported SOPK relational operation");
   }
-  emitSopK(opcodeSopK, src1, src2imm, gen);
 }
 
 void EmitterAmdgpuVega::emitDiv(Register dest, Register src1, Register src2,
