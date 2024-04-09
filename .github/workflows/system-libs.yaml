@@ -37,11 +37,14 @@ jobs:
         run: |
            set -e
            cd /
-           LIB_DIRS=( /dyninst/install/lib* $LD_LIBRARY_PATH )
-           FIRST_DIR=${LIB_DIRS[0]}
-           unset LIB_DIRS[0]
-           # join first dir with subsequent dirs prepended with :
-           export LD_LIBRARY_PATH="${FIRST_DIR}${LIB_DIRS[*]/#/:}"
+           for d in /dyninst/install/lib*; do
+             if [ -n "LD_LIBRARY_PATH" ]; then
+               LD_LIBRARY_PATH="$d:$LD_LIBRARY_PATH"
+             else
+               LD_LIBRARY_PATH="$d"
+             fi
+           done
+           export LD_LIBRARY_PATH
            for dir in /usr/lib /usr/lib64; do                       \
               for file in $(find $dir -type f -name "*.so.*"); do   \
                 echo $file;                                         \
