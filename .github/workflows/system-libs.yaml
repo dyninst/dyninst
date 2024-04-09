@@ -29,7 +29,7 @@ jobs:
            cd external-tests
            mkdir build
            cd build
-           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst
+           cmake .. -DDyninst_ROOT=/dyninst/install
            cmake --build .
            cp parseAPI/simpleParser /
 
@@ -37,7 +37,11 @@ jobs:
         run: |
            set -e
            cd /
-           export LD_LIBRARY_PATH=/dyninst/install/lib:$LD_LIBRARY_PATH
+           LIB_DIRS=( /dyninst/install/lib* $LD_LIBRARY_PATH )
+           FIRST_DIR=${LIB_DIRS[0]}
+           unset LIB_DIRS[0]
+           # join first dir with subsequent dirs prepended with :
+           export LD_LIBRARY_PATH="${FIRST_DIR}${LIB_DIRS[*]/#/:}"
            for dir in /usr/lib /usr/lib64; do                       \
               for file in $(find $dir -type f -name "*.so.*"); do   \
                 echo $file;                                         \

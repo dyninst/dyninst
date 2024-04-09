@@ -55,7 +55,7 @@ jobs:
       - name: Make symlinks
         run: |
           ln -s /dyninst/install/include /usr/include/dyninst
-          ln -s /dyninst/install/lib /usr/lib64/dyninst
+          ln -s /dyninst/install/lib* /usr/lib64/dyninst
       - name: Build systemtap
         run: |
           cd systemtap

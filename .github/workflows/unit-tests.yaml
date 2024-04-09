@@ -63,7 +63,7 @@ jobs:
       - name: Build unit tests
         run: |
            cd unit-tests; mkdir build; cd build
-           cmake .. -DDyninst_DIR=/dyninst/install/lib/cmake/Dyninst -DDYNINST_SOURCE_TREE=/dyninst/src
+           cmake .. -DDyninst_ROOT=/dyninst/install -DDYNINST_SOURCE_TREE=/dyninst/src
            cmake --build . --parallel 2
 
       - name: Run unit tests

@@ -29,4 +29,4 @@ target_link_libraries(parseThat PRIVATE dyninstAPI)
 target_include_directories(parseThat BEFORE
                            PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>")
 
-install(TARGETS parseThat RUNTIME DESTINATION bin)
+install(TARGETS parseThat RUNTIME DESTINATION "${DYNINST_INSTALL_BINDIR}")
