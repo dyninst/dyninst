@@ -1379,9 +1379,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case plusOp:
       case minusOp:
       case xorOp:
+          // todo
       case timesOp:
       case orOp:
+        // todo
       case andOp:
+        // todo
       case eqOp:
       case neOp:
       case lessOp:
@@ -1393,85 +1396,43 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          if(!roperand) { return false; }
          bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Dyninst::Null_Register;
-         src2 = Dyninst::Null_Register;
          right_dest = Dyninst::Null_Register;
 
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
 
-            // In case of constants, we will not generate immediate instructions
-            // because AMDGPU doesn't have immedate instructions for many of the
-            // above operations. So for simplicity of implementation due to
-            // already plenty workarounds, we emit the following instruction
-            // sequence: spgr_lhs (i.e src1) is already allocated.
-            //
-            // allocate sgpr_rhs (i.e src2)
-            // allocate sgpr_dest (ie. retReg)
-            // mov sgpr_rhs, rhs_immedate_value
-            // op spgr_dest, sgpr_lhs, sgpr_rhs
-            //
-            // In the future we'd want to emit more efficient code to reduce
-            // instrumentation overhead.
-            if ((roperand->getoType() == operandType::Constant) &&
-                doNotOverflow((int64_t)roperand->getOValue())) {
-
-              // allocating src2
-              if (src2 == Dyninst::Null_Register) {
-                src2 = allocateAndKeep(gen, noCost);
-                ast_printf("Operator node, const RHS, allocated register %u to "
-                           "store constant\n",
-                           src2);
-              } else {
-                ast_printf("Operator node, const RHS, keeping register %u to "
-                           "store constant\n",
-                           src2);
-              }
-
-              // allocating dest
-              if (retReg == Dyninst::Null_Register) {
-                retReg = allocateAndKeep(gen, noCost);
-                ast_printf("Operator node, const RHS, allocated register %u\n",
-                           retReg);
-              } else {
-                ast_printf("Operator node, const RHS, keeping register %u\n",
-                           retReg);
-              }
-
-              Emitter *emitter = gen.emitter();
-              uint32_t *immediateValue = (uint32_t *)roperand->getOValue();
-              emitter->emitMovLiteral(src2, *immediateValue, gen);
-              emitter->emitOp(op, retReg, src1, src2, gen);
-
-              if (src1 != Dyninst::Null_Register && loperand->decRefCount())
-                gen.rs()->freeRegister(src1);
-
-              if (src2 !=
-                  Dyninst::Null_Register) // src2 just holds the immediate
-                gen.rs()->freeRegister(src2);
-
-              // We do not .generateCode for roperand, so need to update its
-              // refcounts manually
-              roperand->decUseCount(gen);
-            } else {
-              if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest))
-                ERROR_RETURN;
-              REGISTER_CHECK(right_dest);
-              if (retReg == Dyninst::Null_Register) {
-                retReg = allocateAndKeep(gen, noCost);
-              }
-
-              Emitter *emitter = gen.emitter();
-              emitter->emitOp(op, retReg, src1, right_dest, gen);
-
-              if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
-                // Don't free inputs until afterwards; we have _no_ idea
-                gen.rs()->freeRegister(src1);
-              }
-              // what the underlying code might do with a temporary register.
-              if (right_dest != Dyninst::Null_Register &&
-                  roperand->decRefCount())
-                gen.rs()->freeRegister(right_dest);
+         if ((roperand->getoType() == operandType::Constant) &&
+             doNotOverflow((int64_t)roperand->getOValue())) {
+            if (retReg == Dyninst::Null_Register) {
+               retReg = allocateAndKeep(gen, noCost);
+               ast_printf("Operator node, const RHS, allocated register %u\n", retReg);
             }
+            else
+               ast_printf("Operator node, const RHS, keeping register %u\n", retReg);
+
+            emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
+
+            if (src1 != Dyninst::Null_Register && loperand->decRefCount())
+               gen.rs()->freeRegister(src1);
+
+            // We do not .generateCode for roperand, so need to update its
+            // refcounts manually
+            roperand->decUseCount(gen);
+         } else {
+               if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
+               REGISTER_CHECK(right_dest);
+            if (retReg == Dyninst::Null_Register) {
+               retReg = allocateAndKeep(gen, noCost);
+            }
+            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
+            if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
+               // Don't free inputs until afterwards; we have _no_ idea
+               gen.rs()->freeRegister(src1);
+            }
+            // what the underlying code might do with a temporary register.
+            if (right_dest != Dyninst::Null_Register && roperand->decRefCount())
+               gen.rs()->freeRegister(right_dest);
+         }
       }
    }
 	decUseCount(gen);
