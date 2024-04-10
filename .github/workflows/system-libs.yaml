@@ -46,8 +46,10 @@ jobs:
            done
            export LD_LIBRARY_PATH
            for dir in /usr/lib /usr/lib64; do                       \
-              for file in $(find $dir -type f -name "*.so.*"); do   \
-                echo $file;                                         \
-                ./simpleParser $file;                               \
-              done                                                  \
-            done
+             for file in $(find $dir -type f -name "*.so.*"); do    \
+               if ! expr "$file" : ".*\.hmac" >/dev/null 2>&1; then \
+                 echo $file;                                        \
+                 ./simpleParser $file;                              \
+               fi                                                   \
+             done                                                   \
+           done
