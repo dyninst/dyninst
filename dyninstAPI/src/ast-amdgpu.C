@@ -1379,12 +1379,9 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case plusOp:
       case minusOp:
       case xorOp:
-          // todo
       case timesOp:
       case orOp:
-        // todo
       case andOp:
-        // todo
       case eqOp:
       case neOp:
       case lessOp:
@@ -1401,38 +1398,23 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
 
-         if ((roperand->getoType() == operandType::Constant) &&
-             doNotOverflow((int64_t)roperand->getOValue())) {
-            if (retReg == Dyninst::Null_Register) {
-               retReg = allocateAndKeep(gen, noCost);
-               ast_printf("Operator node, const RHS, allocated register %u\n", retReg);
-            }
-            else
-               ast_printf("Operator node, const RHS, keeping register %u\n", retReg);
+         if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
+            REGISTER_CHECK(right_dest);
 
-            emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
-
-            if (src1 != Dyninst::Null_Register && loperand->decRefCount())
-               gen.rs()->freeRegister(src1);
-
-            // We do not .generateCode for roperand, so need to update its
-            // refcounts manually
-            roperand->decUseCount(gen);
-         } else {
-               if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
-               REGISTER_CHECK(right_dest);
-            if (retReg == Dyninst::Null_Register) {
-               retReg = allocateAndKeep(gen, noCost);
-            }
-            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
-            if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
-               // Don't free inputs until afterwards; we have _no_ idea
-               gen.rs()->freeRegister(src1);
-            }
-            // what the underlying code might do with a temporary register.
-            if (right_dest != Dyninst::Null_Register && roperand->decRefCount())
-               gen.rs()->freeRegister(right_dest);
+         if (retReg == Dyninst::Null_Register) {
+            retReg = allocateAndKeep(gen, noCost);
          }
+
+         Emitter *emitter = gen.emitter();
+         emitter->emitOp(op, retReg, src1, right_dest, gen);
+
+         if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
+            // Don't free inputs until afterwards; we have _no_ idea
+            gen.rs()->freeRegister(src1);
+         }
+         // what the underlying code might do with a temporary register.
+         if (right_dest != Dyninst::Null_Register && roperand->decRefCount())
+          gen.rs()->freeRegister(right_dest);
       }
    }
 	decUseCount(gen);
@@ -1459,11 +1441,14 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    int len;
    BPatch_type *Type;
    switch (oType) {
-   case operandType::Constant:
+   case operandType::Constant: {
      assert(oVar == NULL);
-     emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen,
-		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+     // Move constant into retReg
+     Emitter *emitter = gen.emitter();
+     const uint32_t immediateValue = (uint32_t)((uint64_t)this->getOValue());
+     emitter->emitMovLiteral(retReg, immediateValue, gen);
      break;
+   }
    case operandType::DataIndir:
       if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
       REGISTER_CHECK(src);
@@ -1480,11 +1465,12 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case operandType::DataReg:
        retReg = (Dyninst::Register) (long) oValue;
        break;
-   case operandType::origRegister:
-      gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
-       //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
-       //size, noCost);
-       break;
+   case operandType::origRegister: {
+      // For AMDGPU, we will treat origRegister as normal register (DataReg) until we support spilling.
+      // gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
+      retReg = (Dyninst::Register) (long) oValue;
+      break;
+   }
    case operandType::variableAddr:
      assert(oVar);
      emitVariableLoad(loadConstOp, retReg, retReg, gen,
