@@ -32,7 +32,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_ACCVGPR(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -45,7 +45,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_ATTR(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -58,7 +58,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_DSMEM(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -71,7 +71,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_FLAT_SCRATCH(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -84,7 +84,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_PARAM(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -97,7 +97,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_PC(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -110,7 +110,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SDST(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -123,7 +123,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SDST_EXEC(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -136,7 +136,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SDST_M0(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -149,7 +149,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -162,7 +162,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC_ACCVGPR(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -175,7 +175,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC_ACCVGPR_OR_CONST(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -188,7 +188,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC_NOLDS(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -201,7 +201,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC_NOLIT(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -214,7 +214,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC_SIMPLE(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -227,7 +227,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC_VGPR(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -240,7 +240,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SRC_VGPR_OR_ACCVGPR(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -253,7 +253,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SREG(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -266,7 +266,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SREG_NOVCC(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -279,7 +279,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SSRC(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -292,7 +292,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SSRC_LANESEL(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -305,7 +305,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SSRC_NOLIT(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -318,7 +318,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_SSRC_SPECIAL_SCC(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -331,7 +331,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_TGT(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -344,7 +344,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_VCC(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -357,7 +357,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_VGPR(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
@@ -370,7 +370,7 @@ namespace InstructionAPI {
     {
         Expression::Ptr first = decodeOPR_VGPR_OR_LDS(input,vec_len);
         insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        if (boost::dynamic_pointer_cast<RegisterAST::Ptr>(first) != NULL)
+        if (boost::dynamic_pointer_cast<RegisterAST>(first) != NULL)
         {
             for (uint32_t vec_id = 1; vec_id < vec_len; vec_id++)
             {
