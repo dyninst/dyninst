@@ -11,17 +11,25 @@ endif()
 # Equivalent to CMAKE_HOST_SYSTEM_PROCESSOR and `uname -m` on Unixes
 cmake_host_system_information(RESULT _host_arch QUERY OS_PLATFORM)
 
-set(_known_arches "x86_64" "ppc64le" "aarch64" "i386" "amd64")
+set(_32bit_x86_arches "i386" "i686")
+set(_64bit_x86_arches "x86_64" "amd64")
+set(_known_arches "ppc64le" "aarch64" ${_32bit_x86_arches} ${_64bit_x86_arches})
+
 if(NOT ${_host_arch} IN_LIST _known_arches)
   message(FATAL_ERROR "Unsupported architecture: '${_host_arch}'")
+endif()
+
+set(_is_32bit_x86 FALSE)
+if(_host_arch IN_LIST _32bit_x86_arches)
+  set(_is_32bit_x86 TRUE)
 endif()
 
 # Equivalent to checking CMAKE_SIZEOF_VOID_P
 cmake_host_system_information(RESULT _is64bit QUERY IS_64BIT)
 
-# 32-bit is only supported on i386
-if(NOT _is64bit AND NOT ${_host_arch} STREQUAL "i386")
-  message(FATAL_ERROR "32-bit programming is only supported on i386")
+# 32-bit is only supported on 32-bit x86
+if(NOT _is64bit AND NOT ${_is_32bit_x86})
+  message(FATAL_ERROR "32-bit programming is only supported on ${_32bit_x86_arches}")
 endif()
 
 # These checks are redundant, but protect against string name changes
@@ -39,13 +47,13 @@ if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
   set(DYNINST_OS_UNIX TRUE)
 endif()
 
-if(${_host_arch} STREQUAL "x86_64" OR ${_host_arch} STREQUAL "amd64")
+if(${_host_arch} IN_LIST _64bit_x86_arches)
   set(DYNINST_ARCH_x86_64 TRUE)
 elseif(${_host_arch} STREQUAL "aarch64")
   set(DYNINST_ARCH_aarch64 TRUE)
 elseif(${_host_arch} STREQUAL "ppc64le")
   set(DYNINST_ARCH_ppc64le TRUE)
-elseif(${_host_arch} STREQUAL "i386")
+elseif(${_host_arch} IN_LIST _32bit_x86_arches)
   set(DYNINST_ARCH_i386 TRUE)
 endif()
 
@@ -55,7 +63,7 @@ if(${_host_os} STREQUAL "Linux")
   if(NOT _is64bit)
     set(DYNINST_PLATFORM i386-unknown-linux2.4)
   else()
-    if(${_host_arch} STREQUAL "x86_64")
+    if(${_host_arch} IN_LIST _64bit_x86_arches)
       set(DYNINST_PLATFORM x86_64-unknown-linux2.4)
     elseif(${_host_arch} STREQUAL "aarch64")
       set(DYNINST_PLATFORM aarch64-unknown-linux)
