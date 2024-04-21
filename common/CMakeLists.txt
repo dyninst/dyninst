@@ -77,7 +77,6 @@ set(_private_headers
     src/parseauxv.h
     src/pathName.h
     src/pool_allocators.h
-    src/registers/MachRegister.C
     src/sha1.h
     src/singleton_object_pool.h
     src/stats.h
@@ -111,6 +110,7 @@ set(_sources
     src/debug_common.C
     src/VariableLocation.C
     src/Buffer.C
+    src/registers/MachRegister.C
     src/MachSyscall.C)
 
 if(DYNINST_OS_UNIX)
