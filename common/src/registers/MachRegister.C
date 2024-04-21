@@ -12,12 +12,13 @@
 #include <vector>
 
 namespace {
-  std::unordered_map<signed int, std::string> names;
   const std::string invalid_reg_name{"<INVALID_REG>"};
-  std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>> all_regs;
 }
 
 namespace Dyninst {
+
+  extern std::unordered_map<signed int, std::string> names;
+  extern std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>> all_regs;
 
   MachRegister::MachRegister() : reg(0) {}
 

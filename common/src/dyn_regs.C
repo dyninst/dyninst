@@ -28,6 +28,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "registers/MachRegister.h"
+
+#include <unordered_map>
+#include <map>
+#include <vector>
+#include <string>
+
+namespace Dyninst {
+  std::unordered_map<signed int, std::string> names;
+  std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>> all_regs;
+}
+
 //clang-format: off
 #define DYN_DEFINE_REGS
 #include "dyn_regs.h"
