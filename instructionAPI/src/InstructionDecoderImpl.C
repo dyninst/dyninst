@@ -144,6 +144,12 @@ namespace Dyninst
             return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8,num_elements));
         }
         
+        Expression::Ptr InstructionDecoderImpl::makeMultiRegisterExpression(MachRegister registerID, uint32_t num_elements )
+        {
+            return make_shared(singleton_object_pool<MultiRegisterAST>::construct(registerID, num_elements));
+        }
+        
+       
 
         Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, unsigned int start , unsigned int end)
         {

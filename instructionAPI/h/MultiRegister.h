@@ -93,7 +93,7 @@ namespace Dyninst
       
       RegisterAST::Ptr getBaseRegAST() const { return m_Regs[0]; } 
       uint32_t length() const { return m_Regs.size(); }
-      const std::vector<RegisterAST::Ptr> getRegs() const { return m_Regs; }
+      const std::vector<RegisterAST::Ptr> &getRegs() const { return m_Regs; }
     protected:
 
       virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const;

@@ -80,7 +80,7 @@ namespace Dyninst
     }
     bool MultiRegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
-        for (const auto regAST : m_Regs) {
+        for (const auto &regAST : m_Regs) {
             if (findMe->checkRegID(regAST->getID(), regAST->lowBit(), regAST->highBit()))
                 return true;
         }
@@ -89,24 +89,24 @@ namespace Dyninst
 
     std::string MultiRegisterAST::format(Architecture arch, formatStyle) const
     {
-        /*if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940){
-            return AmdgpuFormatter::formatRegister(m_Reg,m_num_elements,m_Low,m_High);
-        }*/
-        return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Regs[0]->getID().name());
+        if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940){
+            return AmdgpuFormatter::formatMultiRegister(m_Regs[0]->getID(),m_Regs.size());
+        }
+        assert(0 && " multi register currently defined for amdgpu formats only ");
+        return std::string("");
     }
 
     std::string MultiRegisterAST::format(formatStyle) const
     {
-        std::string name = m_Regs[0]->getID().name();
-        std::string::size_type substr = name.rfind("::");
-        if(substr != std::string::npos)
-        {
-            name = name.substr(substr + 2, name.length());
+        std::string ret("[");
+        ret.append(m_Regs[0]->format()); 
+        for (uint32_t i = 1; i < m_Regs.size(); i++){
+            ret.append(std::string(","));
+            ret.append(m_Regs[i]->format());
         }
-        /* we have moved to AT&T syntax (lowercase registers) */
-        for(char &c : name) c = std::toupper(c);
+        ret.append(std::string("]"));
 
-        return name;
+        return ret;
     }
 
     bool MultiRegisterAST::operator<(const MultiRegisterAST& rhs) const
