@@ -69,10 +69,11 @@ namespace Dyninst
       
       DYNINST_EXPORT SgAsmExpression *getRoseExpression() { return roseExpression; }
       
-      DYNINST_EXPORT virtual void visit(InstructionAPI::BinaryFunction *binfunc);
-      DYNINST_EXPORT virtual void visit(InstructionAPI::Immediate *immed);
-      DYNINST_EXPORT virtual void visit(InstructionAPI::RegisterAST *regast);
-      DYNINST_EXPORT virtual void visit(InstructionAPI::Dereference *deref);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::BinaryFunction *binfunc);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::Immediate *immed);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::RegisterAST *regast);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::Dereference *deref);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::MultiRegisterAST *multiregast);
       
     private:
 

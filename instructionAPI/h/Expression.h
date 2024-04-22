@@ -124,7 +124,10 @@ namespace Dyninst
       typedef boost::shared_ptr<Expression> Ptr;
     protected:      
       Expression(Result_Type t);
+      Expression(uint32_t total_size);
       Expression(MachRegister r);
+      Expression(MachRegister r, uint32_t len);
+      Expression(std::vector<MachRegister> rs);
     public:
       virtual ~Expression();
       Expression(const Expression&) = default;

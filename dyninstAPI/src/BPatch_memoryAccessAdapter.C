@@ -33,6 +33,7 @@
 #include "Instruction.h"
 #include "Immediate.h"
 #include "Register.h"
+#include "MultiRegister.h"
 #include "Dereference.h"
 
 #include "common/src/arch.h"
@@ -298,6 +299,12 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
     }
 	#endif        
 }
+void BPatch_memoryAccessAdapter::visit(MultiRegisterAST* mr)
+{
+    for (auto my_Reg : mr->getRegs())
+        visit(my_Reg.get());
+}
+
 
 void BPatch_memoryAccessAdapter::visit(Immediate* i)
 {

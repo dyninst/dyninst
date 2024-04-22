@@ -34,6 +34,7 @@
 #include "AbslocInterface.h"
 
 #include "Register.h"
+#include "MultiRegister.h"
 // Pile of InstructionAPI includes
 #include "Expression.h"
 #include "Result.h"
@@ -266,6 +267,14 @@ public:
         defined = false;
         results.push_back(0);
     }
+    virtual void visit(MultiRegisterAST* r)
+    {
+      for (auto my_Reg : r->getRegs() ){
+          visit(my_Reg.get());
+      }
+      // TODO
+    }
+
     virtual void visit(Dereference* )
     {
         //defined = false;
