@@ -42,6 +42,7 @@
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/Register.h"
+#include "instructionAPI/h/MultiRegister.h"
 #include "instructionAPI/h/Result.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
@@ -1119,7 +1120,12 @@ public:
          defined = false;
       }
    }
+   virtual void visit(MultiRegisterAST *multirast) {
+      if (!defined) return;
+      for(auto my_Reg : multirast->getRegs())
+          visit(my_Reg.get());
 
+   }
    virtual void visit(Dereference *) {
       defined = false;
    }

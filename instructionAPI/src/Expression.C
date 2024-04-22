@@ -38,10 +38,10 @@ namespace Dyninst
             InstructionAST(), userSetValue(t)
         {
         } 
-        Expression::Expression(MachRegister r) :
+        Expression::Expression(uint32_t size) :
             InstructionAST()
         {
-            switch(r.size())
+            switch(size)
             {
                 case 1:
                     userSetValue = Result(u8);
@@ -78,6 +78,19 @@ namespace Dyninst
                     assert(!"unexpected machine register size!");
             }
         }
+        Expression::Expression(std::vector<MachRegister> rs) :
+            Expression::Expression(rs.size() * rs[0].size())
+        {
+        }
+        Expression::Expression(MachRegister r) :
+            Expression::Expression(r.size())
+        {
+        }
+         Expression::Expression(MachRegister r, uint32_t len) :
+            Expression::Expression(r.size() * len)
+        {
+        }
+
         Expression::~Expression()
         {
         }
