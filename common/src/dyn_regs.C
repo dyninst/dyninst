@@ -36,6 +36,7 @@
 #include <string>
 
 namespace Dyninst {
+  // These are used in MachRegister.C
   std::unordered_map<signed int, std::string> names;
   std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>> all_regs;
 }

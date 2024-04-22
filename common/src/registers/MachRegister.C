@@ -17,6 +17,7 @@ namespace {
 
 namespace Dyninst {
 
+  // These are defined in dyn_regs.C to ensure global constructor initialization ordering
   extern std::unordered_map<signed int, std::string> names;
   extern std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>> all_regs;
 
