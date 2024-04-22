@@ -28,16 +28,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "registers/MachRegisterCache.h"
+#ifndef DYNINST_COMMON_REGISTERS_MACHREGISTERCACHE_H
+#define DYNINST_COMMON_REGISTERS_MACHREGISTERCACHE_H
+
+#include "registers/MachRegister.h"
+
+#include <unordered_map>
+#include <map>
+#include <vector>
+#include <string>
 
 namespace Dyninst { namespace registers {
-  // These are used in MachRegister.C
-  name_cache names;
-  register_cache all_regs;
+
+  using name_cache = std::unordered_map<signed int, std::string>;
+  using register_cache = std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>>;
+
 }}
 
-//clang-format: off
-#define DYN_DEFINE_REGS
-#include "dyn_regs.h"
-#undef DYN_DEFINE_REGS
-//clang-format: on
+
+#endif

@@ -39,7 +39,6 @@ set(_public_headers
     h/registers/AMDGPU/amdgpu_gfx90a_regs.h
     h/registers/AMDGPU/amdgpu_gfx940_regs.h
     h/registers/cuda_regs.h
-    h/registers/MachRegister.h
     h/registers/ppc32_regs.h
     h/registers/ppc64_regs.h
     h/registers/reg_def.h
@@ -72,12 +71,12 @@ set(_private_headers
     src/lprintf.h
     src/lru_cache.h
     src/MappedFile.h
+    src/registers/MachRegisterCache.h
     src/NodeIterator.h
     src/ntHeaders.h
     src/parseauxv.h
     src/pathName.h
     src/pool_allocators.h
-    src/registers/MachRegister.C
     src/sha1.h
     src/singleton_object_pool.h
     src/stats.h
@@ -111,6 +110,7 @@ set(_sources
     src/debug_common.C
     src/VariableLocation.C
     src/Buffer.C
+    src/registers/MachRegister.C
     src/MachSyscall.C)
 
 if(DYNINST_OS_UNIX)

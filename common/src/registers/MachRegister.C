@@ -1,4 +1,5 @@
 #include "common/h/registers/MachRegister.h"
+#include "registers/MachRegisterCache.h"
 #include "debug_common.h"
 #include "dyn_regs.h"
 #include "external/rose/amdgpuInstructionEnum.h"
@@ -12,10 +13,14 @@
 #include <vector>
 
 namespace {
-  std::unordered_map<signed int, std::string> names;
   const std::string invalid_reg_name{"<INVALID_REG>"};
-  std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>> all_regs;
 }
+
+namespace Dyninst { namespace registers {
+  // These are defined in dyn_regs.C to ensure global constructor initialization ordering
+  extern name_cache names;
+  extern register_cache all_regs;
+}}
 
 namespace Dyninst {
 
@@ -24,8 +29,8 @@ namespace Dyninst {
   MachRegister::MachRegister(signed int r) : reg(r) {}
 
   MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) {
-    names.emplace(r, std::move(n));
-    all_regs[getArchitecture()].push_back(*this);
+    registers::names.emplace(r, std::move(n));
+    registers::all_regs[getArchitecture()].push_back(*this);
   }
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
@@ -112,8 +117,8 @@ namespace Dyninst {
   bool MachRegister::isValid() const { return (reg != InvalidReg.reg); }
 
   std::string const& MachRegister::name() const {
-    auto iter = names.find(reg);
-    if(iter != names.end()) {
+    auto iter = registers::names.find(reg);
+    if(iter != registers::names.end()) {
 	return iter->second;
     }
     common_parsing_printf("No MachRegister found with value %x\n", static_cast<unsigned int>(reg));
@@ -2636,6 +2641,6 @@ namespace Dyninst {
   }
 
   std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
-    return all_regs[arch];
+    return registers::all_regs[arch];
   }
 }
