@@ -71,6 +71,7 @@ set(_private_headers
     src/lprintf.h
     src/lru_cache.h
     src/MappedFile.h
+    src/registers/MachRegisterCache.h
     src/NodeIterator.h
     src/ntHeaders.h
     src/parseauxv.h
