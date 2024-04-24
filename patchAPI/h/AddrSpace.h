@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Plugin Interface */
-
 #ifndef PATCHAPI_H_ADDRSPACE_H_
 #define PATCHAPI_H_ADDRSPACE_H_
 
@@ -42,9 +40,6 @@
 namespace Dyninst {
 namespace PatchAPI {
 
-/* Interface specification for the interation between a PatchMgr and
-   the address space */
-
 class PATCHAPI_EXPORT AddrSpace {
     friend class PatchMgr;
     friend class PatchFunction;
@@ -53,11 +48,9 @@ class PATCHAPI_EXPORT AddrSpace {
     static AddrSpace* create(PatchObject* obj);
     virtual ~AddrSpace();
 
-    // Write data in mutatee's address space
     virtual bool write(PatchObject* /*obj*/, Dyninst::Address /*to*/,
                                        Dyninst::Address /*from*/, size_t /*size*/);
 
-    // Memory allocation / reallocation / deallocation in mutatee's addressSpace
     virtual Dyninst::Address malloc(PatchObject* /*obj*/, size_t /*size*/,
                                            Dyninst::Address /*near*/);
 
@@ -66,14 +59,12 @@ class PATCHAPI_EXPORT AddrSpace {
 
     virtual bool free(PatchObject* /*obj*/, Dyninst::Address /*orig*/);
 
-    // Load a binary oject into the address space
     virtual bool loadObject(PatchObject* obj);
 
-    // Getters
     typedef std::map<const ParseAPI::CodeObject*, PatchObject*> ObjMap;
     ObjMap& objMap() { return obj_map_; }
     PatchObject* findObject(const ParseAPI::CodeObject*) const;
-    template <class Iter> void objs(Iter iter); // EXPORTED
+    template <class Iter> void objs(Iter iter);
     PatchObject* executable() { return first_object_; }
     PatchMgrPtr mgr() const { return mgr_; }
 

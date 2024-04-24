@@ -70,7 +70,6 @@ public:
         Offset
     };
 
-    // All of these write into a buffer
     static void generateTrap(codeGen &gen);
 
     static void generateIllegal(codeGen &gen);
@@ -93,17 +92,13 @@ public:
                                    Dyninst::Address to,
                                    bool isCall);
 
-    // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
                                       Dyninst::Address from,
                                       Dyninst::Address to,
                                       bool isCall);
 
-    // Generate conditional branch
     static void generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s);
 
-    // LDR/STR (immediate)
-    // immd in the range -256 to 255
     static void generateMemAccess(codeGen &gen, LoadStore accType, Dyninst::Register r1,
             Dyninst::Register r2, int immd, unsigned size, IndexMode im=Post);
 
@@ -125,7 +120,6 @@ public:
 
     static void restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im=Offset);
 
-    /** TODO **/
     static void generateLoadReg(codeGen &gen, Dyninst::Register rt,
                                 Dyninst::Register ra, Dyninst::Register rb);
 
@@ -170,8 +164,6 @@ public:
                             Dyninst::Register newLoadReg,
                             Dyninst::Register newStoreReg);
 
-    /** *** **/
-
     static void generateAddSubShifted(
             codeGen &gen, ArithOp op, int shift, int imm6, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
@@ -185,10 +177,8 @@ public:
     static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift,
             Dyninst::Register rm, int imm6, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
-    // This is for MOVK, MOVN, and MOVZ. For MOV use the other generateMove()
     static void generateMove(codeGen &gen, int imm16, int shift, Dyninst::Register rd, MoveOp movOp);
 
-    // This is for MOV, which is an alias for ORR. See ARMv8 Documentation.
     static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, bool is64bit = true);
 
     static void generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
@@ -197,7 +187,6 @@ public:
 
     static void generate(codeGen &gen, instruction &insn);
 
-    // Copy instruction at position in codeGen buffer
     static void generate(codeGen &gen, instruction &insn, unsigned position);
 
     static void write(codeGen &gen, instruction &insn) { generate(gen, insn); }
@@ -210,12 +199,9 @@ public:
                          patchTarget *fallthroughOverride = NULL,
                          patchTarget *targetOverride = NULL);
 
-    //TODO
-    // Routines to create/remove a new stack frame for getting scratch registers
     static int createStackFrame(codeGen &gen, int numRegs, std::vector <Dyninst::Register> &freeReg,
             std::vector <Dyninst::Register> &excludeReg);
 
-    //TODO
     static void removeStackFrame(codeGen &gen);
 
 

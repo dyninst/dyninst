@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// pathName.C
 #include "common/src/headers.h"  // P_strrchr()
 #include <ctype.h>
 #include <assert.h>

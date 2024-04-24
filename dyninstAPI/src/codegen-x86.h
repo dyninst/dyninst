@@ -47,8 +47,6 @@
 #ifndef _CODEGEN_X86_H
 #define _CODEGEN_X86_H
 
-// Code generation
-
 typedef unsigned char codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
@@ -62,17 +60,14 @@ namespace NS_x86 {
 class insnCodeGen {
  public:
 
-  // More code generation
   static void generatePush64(codeGen &gen, Dyninst::Address val);
 
-  // Code generation
   static void generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to);
   static void generateBranch(codeGen &gen, int disp);
   static void generateBranch64(codeGen &gen, Dyninst::Address to);
   static void generateBranch32(codeGen &gen, Dyninst::Address to);
   static void generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to);
 
-  // We may want to generate an efficient set 'o nops
   static void generateNOOP(codeGen &gen, unsigned size = 1);
   
   static void generateIllegal(codeGen &gen);
@@ -80,10 +75,6 @@ class insnCodeGen {
 
   static void generate(codeGen &gen, instruction & insn);
 
-  // And generate an equivalent stream somewhere else...
-  // fallthroughOverride and targetOverride are used for
-  // making the behavior of jumps change. It won't work for 
-  // jumptables; that should be cleared up sometime.
   static bool generate(codeGen &gen,
                 instruction & insn,
                 AddressSpace *addrSpace,

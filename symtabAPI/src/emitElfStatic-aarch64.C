@@ -28,12 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* 
- * Holds architecture specific stub functions needed by static executable
- * rewriter. This file should be used for architectures where this feature is
- * not implemented.
- */
-
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
@@ -51,14 +45,7 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-// This needs to be a #define so the assert actually shows the message
 #define EMIT_STATIC_ASSERT "This function is currently unimplemented on this architecture."
-
-/* NOTE:
- * As most of these functions are defined per architecture, the description of
- * each of these functions is in the emitElfStatic header. Comments describing
- * the function interface are explicitly left out.
- */
 
 bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *, relocationEntry &,
         Offset, Offset, Offset, LinkMap &, string &) {
@@ -66,7 +53,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *, relocatio
     return false;
 }
 
-//steve: TODO not sure
 bool emitElfStatic::checkSpecialCaseSymbols(Symtab *, Symbol *) {
     return true;
 }
@@ -97,7 +83,6 @@ bool emitElfStatic::isGOTRelocation(unsigned long) {
     return false;
 }
 
-//steve: TODO
 Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
@@ -108,7 +93,6 @@ Offset emitElfStatic::getGOTAlign(LinkMap &) {
     return 0;
 }
 
-//steve: TODO
 void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
 }
@@ -152,8 +136,6 @@ void emitElfStatic::getExcludedSymbolNames(set<string> &) {
     assert(!EMIT_STATIC_ASSERT);
 }
 
-//************
-//steve: added
 Offset emitElfStatic::allocStubRegions(LinkMap &, Offset){
   assert(!EMIT_STATIC_ASSERT);
 	return 0;
@@ -163,8 +145,6 @@ bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset){
   assert(!EMIT_STATIC_ASSERT);
 	return false;
 }
-//***********
-
 
 inline
 static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {

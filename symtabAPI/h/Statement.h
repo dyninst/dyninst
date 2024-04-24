@@ -48,7 +48,7 @@ namespace Dyninst { namespace SymtabAPI {
               Offset start_addr = (Offset)-1L, Offset end_addr = (Offset)-1L)
         : AddressRange(start_addr, end_addr), file_index_(file_index), line_(line), column_(col) {}
 
-    unsigned int file_index_{}; // Maybe this should be module?
+    unsigned int file_index_{};
     unsigned int line_{};
     unsigned int column_{};
     StringTablePtr strings_{};

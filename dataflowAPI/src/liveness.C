@@ -53,8 +53,6 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
-// Code for register liveness detection
-
 LivenessAnalyzer::LivenessAnalyzer(int w): errorno((ErrorType)-1) {
     width = w;
     abi = ABI::getABI(width);
@@ -185,8 +183,6 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
    return;
 }
 
-/* This is used to do fixed point iteration until 
-   the in and out don't change anymore */
 bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDefined) 
 {
   bool change = false;
@@ -218,8 +214,6 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDe
       
   return change;
 }
-
-// Calculate basic block summaries of liveness information
 
 void LivenessAnalyzer::analyze(Function *func) {
     if (liveFuncCalculated.find(func) != liveFuncCalculated.end()) return;
@@ -254,14 +248,6 @@ void LivenessAnalyzer::analyze(Function *func) {
     liveFuncCalculated[func] = true;
 }
 
-
-// This function does two things.
-// First, it does a backwards iteration over instructions in its
-// block to calculate its liveness.
-// At the same time, we cache liveness (which was calculated) in
-// any instPoints we cover. Since an iP only exists if the user
-// asked for it, we take its existence to indicate that they'll
-// also be instrumenting. 
 bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 //TODO: consider the trustness of the location 
 

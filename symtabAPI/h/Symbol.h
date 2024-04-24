@@ -37,10 +37,6 @@
 #define _Symbol_h_
 
 
-/************************************************************************
- * header files.
-************************************************************************/
-
 #include "symutil.h"
 #include "Annotatable.h"
 #include <iosfwd>
@@ -66,10 +62,6 @@ class Variable;
 class Type;
 class typeCollection;
 class Symtab;
-
-/************************************************************************
- * class Symbol
-************************************************************************/
 
 class SYMTAB_EXPORT Symbol : public AnnotatableSparse
 {
@@ -174,9 +166,6 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
 
    bool          operator== (const Symbol &) const;
 
-   /***********************************************************
-     Name Output Functions
-    ***********************************************************/		
    std::string      getMangledName () const;
    std::string	 getPrettyName() const;
    std::string      getTypedName() const;
@@ -214,7 +203,6 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
    void setReferringSymbol (Symbol *referringSymbol);
    Symbol* getReferringSymbol () const;
 
-   //////////////// Modification
    bool setOffset (Offset newOffset);
    bool setPtrOffset (Offset newOffset);
    bool setLocalTOC (Offset localTOC);
@@ -256,17 +244,17 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
    SymbolLinkage linkage_;
    SymbolVisibility visibility_;
    Offset        offset_;
-   Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
+   Offset        ptr_offset_;
    Offset        localTOC_;
    Region*       region_;
    Symbol* 	 referring_;
-   unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
+   unsigned      size_;
 
    bool          isDynamic_;
    bool          isAbsolute_;
    bool          isDebug_;
 
-   Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
+   Aggregate *   aggregate_;
 
    std::string mangledName_;
 

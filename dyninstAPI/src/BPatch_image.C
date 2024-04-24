@@ -67,33 +67,18 @@
 using namespace Dyninst;
 using namespace std;
 
-/*
- * BPatch_image::BPatch_image
- *
- * Construct a BPatch_image for the given process.
- */
-
 BPatch_image::BPatch_image(BPatch_addressSpace *_addSpace) :
    addSpace(_addSpace), defaultModule(NULL)
 {
    _srcType = BPatch_sourceProgram;
 }
 
-/*
- * BPatch_image::BPatch_image
- *
- * Construct a BPatch_image.
- */
 BPatch_image::BPatch_image() :
    addSpace(NULL), defaultModule(NULL)
 {
    _srcType = BPatch_sourceProgram;
 }
 
-/* 
- * Cleanup the image's memory usage when done.
- *
- */
 BPatch_image::~BPatch_image()
 {
    for (ModMap::iterator iter = modmap.begin(); iter != modmap.end(); ++iter) {
@@ -109,10 +94,6 @@ BPatch_image::~BPatch_image()
 }
 
 
-/*
- * getThr - Return the BPatch_thread
- *
- */
 BPatch_thread *BPatch_image::getThr()
 {
    assert(addSpace->getType() == TRADITIONAL_PROCESS);
@@ -135,10 +116,6 @@ BPatch_addressSpace *BPatch_image::getAddressSpace()
    return addSpace;
 }
 
-/* 
- * getSourceObj - Return the children (modules)
- *
- */
 bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
    BPatch_Vector<BPatch_module *> *temp = getModules();
@@ -150,22 +127,10 @@ bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
    }
 }
 
-/* 
- * getObjParent - Return the parent (this is the top level so its null)
- *
- */
-
 BPatch_sourceObj *BPatch_image::getObjParent()
 {
    return NULL;
 }
-
-/*
- * BPatch_image::getProcedures
- *
- * Returns a list of all procedures in the image upon success, and NULL
- * upon failure.
- */
 
 BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures(bool incUninstrumentable)
 {
@@ -227,12 +192,6 @@ BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegions(bool incUninstrum
    return parRegionList;
 }
 
-/*
- * BPatch_image::getGlobalVariables
- *
- * Returns a list of all variables in the image upon success, and NULL
- * upon failure.
- */
 BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 {
    if (!addSpace)
@@ -336,11 +295,6 @@ void BPatch_image::getObjects(std::vector<BPatch_object *> &objs) {
    }
 }
 
-/*
- * BPatch_image::findModule
- *
- * Returns module with <name>, NULL if not found
- */
 BPatch_module *BPatch_image::findModule(const char *name, bool substring_match) 
 {
    char buf[512];
@@ -398,17 +352,6 @@ BPatch_module *BPatch_image::findModule(const char *name, bool substring_match)
    target = findOrCreateModule(mod);
    return target;
 }
-
-/*
- * BPatch_image::findFunction
- *
- * Fills a vector with BPatch_function pointers representing all functions in
- * the image with the given name.  Returns a pointer to the vector that was
- * passed in on success, and NULL on error.
- *
- * name		The name of function to look up.
- * funcs	The vector in which to place the results.
- */
 
 BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name, 
       BPatch_Vector<BPatch_function*> &funcs, 
@@ -549,20 +492,6 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
    return NULL;
 }
 
-/*
- * BPatch_image::findFunction 2
- *
- * Fills a vector with BPatch_function pointers representing all functions in
- * the image according to the user defined sieving function.  
- * Returns a pointer to the vector that was passed in on success, and NULL on error.
- * 
- *
- * bpsieve      User-provided boolean function used to determine inclusion in the
- *              filtered set.
- * user_data    a pointer to a user-defined data space for use by bpsieve
- * funcs	The vector in which to place the results.
- */
-
    BPatch_Vector<BPatch_function *> *
 BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs, 
       BPatchFunctionNameSieve bpsieve,
@@ -614,12 +543,6 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs,
    return NULL;
 }
 
-/*
- * BPatch_image::findFunctionP
- *
- * Finds a function based on an address in the mutatee
- */
-
 BPatch_function *BPatch_image::findFunction(unsigned long addr)
 {
    std::vector<AddressSpace *> as;
@@ -657,18 +580,6 @@ bool BPatch_image::findFunction(Dyninst::Address addr,
    return true;
 }
 
-
-/*
- * BPatch_image::findVariable
- *
- * Returns a BPatch_variableExpr* representing the given variable in the
- * application image.  If no such variable exists, returns NULL.
- *
- * name		The name of the variable to look up.
- *
- * First look for the name with an `_' prepended to it, and if that is not
- *   found try the original name.
- */
 BPatch_variableExpr *BPatch_image::findVariable(const char *name, 
                                                    bool showError)
 {
@@ -727,12 +638,6 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name,
    assert(bpvar);
    return bpvar;
 }
-
-//
-// findVariable
-//	scp	- a BPatch_point that defines the scope of the current search
-//	name	- name of the variable to find.
-//
 
 BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
                                                        const char *name, bool showError)
@@ -796,15 +701,6 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
 	}
 	return gsVar;
 }
-
-/*
- * BPatch_image::findType
- *
- * Returns a BPatch_type* representing the named type.  If no such type
- * exists, returns NULL.
- *
- * name		The name of type to look up.
- */
 
 BPatch_type *BPatch_image::findType(const char *name)
 {
@@ -977,18 +873,6 @@ BPatch_object *BPatch_image::findOrCreateObject(mapped_object *base)
 }
 
 
-/* BPatch_image::parseNewFunctions
- *
- * Uses function entry addresses to trigger the parsing of new
- * functions.  It may re-trigger parsing on existing modules or create
- * new ones to be parsed. 
- *
- * 1. Assign entry points to mapped_objects or existing functions
- * 2. Trigger parsing in mapped_objects that contain function entry points
- * 3. Construct list of modules affected by the parsing
- *
- * (full description in ../h/BPatch_image.h)
- */
 bool BPatch_image::parseNewFunctions(BPatch_Vector<BPatch_module*> &affectedModules, 
 				     const BPatch_Vector<Dyninst::Address> &funcEntryAddrs)
 {

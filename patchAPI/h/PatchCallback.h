@@ -59,7 +59,6 @@ class PATCHAPI_EXPORT PatchCallback {
       source,
       target } edge_type_t;
 
-   // Users override these to provide their callbacks
   protected:
    virtual void destroy_cb(PatchBlock *) {}
    virtual void destroy_cb(PatchEdge *, PatchObject * /*owner*/) {}
@@ -72,7 +71,6 @@ class PATCHAPI_EXPORT PatchCallback {
    virtual void create_cb(PatchFunction *) {}
    virtual void create_cb(PatchObject *) {}
 
-   // Some more abstract ones
    virtual void split_block_cb(PatchBlock *, PatchBlock *) {}
 
    virtual void remove_edge_cb(PatchBlock *, PatchEdge *, edge_type_t) {}
@@ -81,14 +79,13 @@ class PATCHAPI_EXPORT PatchCallback {
    virtual void remove_block_cb(PatchFunction *, PatchBlock *) {}
    virtual void add_block_cb(PatchFunction *, PatchBlock *) {}
 
-   // Points
    virtual void destroy_cb(Point *) {}
    virtual void create_cb(Point *) {}
-   // If we split a block, we may change the block a Point belongs to. 
+
    virtual void change_cb(Point *, PatchBlock *, PatchBlock *) {}
 
   public:
-   // And these methods are used by PatchAPI and should not be overridden.
+
    void batch_begin();
    void batch_end();
 

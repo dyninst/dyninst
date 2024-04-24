@@ -19,7 +19,6 @@ using namespace Dyninst::DataflowAPI;
 const StridedInterval StridedInterval::top = StridedInterval(1, StridedInterval::minValue, StridedInterval::maxValue);
 const StridedInterval StridedInterval::bottom = StridedInterval();
 
-// Greatest common divisor
 static int64_t GCD(int64_t a, int64_t b) {
     if (a == 0 && b == 0) return 0;
     else if (a == 0) return b;

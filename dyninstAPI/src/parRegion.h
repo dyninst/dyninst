@@ -127,8 +127,8 @@ class int_parRegion {
 
   int replaceOMPParameter(const char * key, int value);
 
-  Dyninst::Address addr_; /* Absolute address of start of region */
-  Dyninst::Address endAddr_; /* Dyninst::Address of end of region */
+  Dyninst::Address addr_;
+  Dyninst::Address endAddr_;
 
   func_instance * intFunc_;
 

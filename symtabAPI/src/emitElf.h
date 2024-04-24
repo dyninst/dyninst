@@ -60,7 +60,6 @@ extern const char *pdelf_get_shnames(Dyninst::Elf_X *elf);
 
 namespace Dyninst {
     namespace SymtabAPI {
-// Error reporting
 
         struct sortByOffsetNewIndices {
             bool operator()(Symbol *lhs, Symbol *rhs) const {
@@ -176,7 +175,7 @@ namespace Dyninst {
             Elf *newElf;
             Elf *oldElf;
             Symtab *obj;
-            //New Section & Program Headers
+
             Elf_Ehdr *newEhdr;
             Elf_Ehdr *oldEhdr;
 
@@ -184,8 +183,6 @@ namespace Dyninst {
             Elf_Phdr *oldPhdr;
             Offset phdr_offset;
 
-            //important data sections in the
-            //new Elf that need updated
             Elf_Data *textData;
             Elf_Data *symStrData;
             Elf_Data *dynStrData;
@@ -204,35 +201,27 @@ namespace Dyninst {
             std::vector<std::pair<long, long> > new_dynamic_entries;
             std::vector<std::string> unversionedNeededEntries;
 
-            // Symbol version table data
-            std::map<std::string, std::map<std::string, unsigned> >verneedEntries;    //verneed entries
-            std::map<std::string, unsigned> verdefEntries;                            //verdef entries
+            std::map<std::string, std::map<std::string, unsigned> >verneedEntries;
+            std::map<std::string, unsigned> verdefEntries;
             std::map<unsigned, std::vector<std::string> > verdauxEntries;
             std::map<std::string, unsigned> versionNames;
             std::vector<Elf_Half> versionSymTable;
             int curVersionNum, verneednum, verdefnum, dynsym_info{};
 
-            // Needed when adding a new segment
             Elf_Off newSegmentStart;
-            Elf_Shdr *firstNewLoadSec;// initialize to NULL
+            Elf_Shdr *firstNewLoadSec;
 
-            // data segment end
             Elf_Off dataSegEnd;
             Elf_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
             unsigned dynSegSize;
 
-            //Section Names for all sections
             vector<std::string> secNames;
             unsigned secNameIndex;
             Offset currEndOffset;
             Address currEndAddress;
 
-            // Pointer to all relocatable code and data allocated during a static link,
-            // to be deleted after written out
             char *linkedStaticData;
 
-            //flags
-            // Expand NOBITS sections within the object file to their size
             bool BSSExpandFlag;
             bool movePHdrsFirst;
             bool createNewPhdr;

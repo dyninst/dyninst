@@ -48,26 +48,20 @@ namespace PatchAPI {
    class PatchEdge;
 
 
-/* A factory class to make / copy CFG structures.
-   We provide default implementations.  */
-
 class PATCHAPI_EXPORT CFGMaker {
   public:
     CFGMaker() {}
     virtual ~CFGMaker() {}
 
-    // Make function
     virtual PatchFunction* makeFunction(ParseAPI::Function*,
                                                         PatchObject*);
     virtual PatchFunction* copyFunction(PatchFunction*,
                                                         PatchObject*);
 
-    // Make block
     virtual PatchBlock* makeBlock(ParseAPI::Block*,
                                                   PatchObject*);
     virtual PatchBlock* copyBlock(PatchBlock*, PatchObject*);
 
-    // Make edge
     virtual PatchEdge* makeEdge(ParseAPI::Edge*, PatchBlock*,
                                 PatchBlock*, PatchObject*);
     virtual PatchEdge* copyEdge(PatchEdge*, PatchObject*);

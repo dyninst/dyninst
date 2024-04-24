@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Stubs for now
-
 #if !defined(SymEval_h)
 #define SymEval_h
 
@@ -65,19 +63,6 @@ namespace Dyninst {
    }
 
 namespace DataflowAPI {
-
-// The ROSE symbolic evaluation engine wants a data type that
-// is template parametrized on the number of bits in the data
-// type. However, our ASTs don't have this, and a shared_ptr
-// to an AST _definitely_ doesn't have it. Instead, we use
-// a wrapper class (Handle) that is parametrized appropriately
-// and contains a shared pointer. 
-
-// This uses a pointer to a shared pointer. This is ordinarily a really
-// bad idea, but stripping the pointer part makes the compiler allocate
-// all available memory and crash. No idea why. 
-
-// Define the operations used by ROSE
 
 struct Variable {
   DATAFLOW_EXPORT Variable() : reg(), addr(0) {}
@@ -143,8 +128,6 @@ friend std::ostream& operator<<(std::ostream& stream, const Constant& c)
    uint64_t val;
    size_t size;
 };
-
-// Define the operations used by ROSE
 
 struct ROSEOperation {
 typedef enum {
@@ -320,7 +303,6 @@ class SliceNode;
 
 namespace DataflowAPI {
 
-// compare assignment shared pointers by value.
 typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
     
 DEF_AST_LEAF_TYPE(BottomAST, bool);
@@ -342,31 +324,16 @@ public:
      SKIPPED_INPUT,
      SUCCESS } Retval_t;
 
-  // Return type: mapping AbsRegions to ASTs
-  // We then can map Assignment::AbsRegions to 
-  // SymEval::AbsRegions and come up with the answer
-  // static const AST::Ptr Placeholder;
-  //
-  // Single version: hand in an Assignment, get an AST
     DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
 
-  // Hand in a set of Assignments
-  // get back a map of Assignments->ASTs
-  // We assume the assignments are prepped in the input; whatever
-  // they point to is discarded.
   DATAFLOW_EXPORT static bool expand(Result_t &res, 
                                      std::set<InstructionAPI::Instruction> &failedInsns,
                                      bool applyVisitors = true);
 
-  // Hand in a Graph (of SliceNodes, natch) and get back a Result;
-  // prior results from the Graph
-  // are substituted into anything that uses them.
   DATAFLOW_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
   
  private:
 
-  // Symbolically evaluate an instruction and assign 
-  // an AST representation to every written absloc
  static bool expandInsn(const InstructionAPI::Instruction &insn,
                         const uint64_t addr,
                         Result_t &res);

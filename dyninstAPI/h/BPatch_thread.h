@@ -50,10 +50,6 @@ class PCThread;
 
 typedef Dyninst::THR_ID dynthread_t;
 
-/*
- * Represents a thread of execution.
- */
-
 class BPATCH_DLL_EXPORT BPatch_thread {
     friend class BPatch_frame;
     friend class BPatch_process;
@@ -62,18 +58,14 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 
     BPatch_process *proc;
     PCThread *llthread;
-	// Sometimes we get per-thread exit notifications, sometimes we 
-	// just get whole-process. So keep track of whether we've notified
-	// the user of an exit so we don't duplicate when the process exits.
+
 	bool madeExitCallback_;
 
  protected:
     BPatch_thread(BPatch_process *parent, PCThread *thr);
 
-    //Generator for above constructor
     static BPatch_thread *createNewThread(BPatch_process *proc, PCThread *thr);
 
-    // Currently only used on an exec to replace the underlying PCThread
     void updateThread(PCThread *newThr);
     
 	bool madeExitCallback() { return madeExitCallback_; }
@@ -81,12 +73,8 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 
  public:
 
-    //  BPatch_thread::getCallStack
-    //  Returns a vector of BPatch_frame, representing the current call stack
     bool getCallStack(BPatch_Vector<BPatch_frame>& stack);
 
-    //  BPatch_thread::getProcess
-    //  Returns a pointer to the process that owns this thread
     BPatch_process *  getProcess();
 
     dynthread_t getTid();
@@ -105,12 +93,8 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 
     unsigned long os_handle();
 
-    //  BPatch_thread::oneTimeCode
-    //  Have mutatee execute specified code expr once.  Wait until done.
     void * oneTimeCode(const BPatch_snippet &expr, bool *err = NULL);
 
-    //  BPatch_thread::oneTimeCodeAsync
-    //  Have mutatee execute specified code expr once.  Dont wait until done.
     bool oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL, BPatchOneTimeCodeCallback cb = NULL);
 };
 

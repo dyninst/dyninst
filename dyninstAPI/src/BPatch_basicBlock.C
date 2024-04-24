@@ -71,7 +71,6 @@ BPatch_basicBlock::BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg):
 #endif
 }
 
-//destructor of the class BPatch_basicBlock
 BPatch_basicBlock::~BPatch_basicBlock(){
   if (immediatePostDominates)
     delete immediatePostDominates;
@@ -102,8 +101,6 @@ void source_helper(ParseAPI::Edge* e,
 }
 
 
-// returns the predecessors of the basic block, provided they are in the same
-// function, since our CFGs at the BPatch level are intraprocedural
 void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
   //  BPatch_basicBlock *b;
   std::vector<block_instance *> in_blocks;
@@ -124,7 +121,6 @@ void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
 			    func));
 }
 
-//returns the successors of the basic block in a set
 void BPatch_basicBlock::getTargets(BPatch_Vector<BPatch_basicBlock*>& tgrts){
   BPatch_basicBlock *b;
   std::vector<block_instance *> out_blocks;
@@ -139,7 +135,6 @@ void BPatch_basicBlock::getTargets(BPatch_Vector<BPatch_basicBlock*>& tgrts){
   }
 }
 
-//returns the dominates of the basic block in a set
 void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>& imds){
   flowGraph->fillDominatorInfo();
 
@@ -163,7 +158,6 @@ void BPatch_basicBlock::getImmediatePostDominates(BPatch_Vector<BPatch_basicBloc
   return;
 }
 
-//returns the dominates of the basic block in a set
 void
 BPatch_basicBlock::getAllDominates(std::set<BPatch_basicBlock*>& buffer){
   flowGraph->fillDominatorInfo();
@@ -208,7 +202,6 @@ BPatch_basicBlock::getAllPostDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
 }
 
 
-//returns the immediate dominator of the basic block
 BPatch_basicBlock* BPatch_basicBlock::getImmediateDominator(){
   flowGraph->fillDominatorInfo();
 
@@ -221,7 +214,6 @@ BPatch_basicBlock* BPatch_basicBlock::getImmediatePostDominator(){
   return immediatePostDominator;
 }
 
-//returns whether this basic block dominates the argument
 bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
   if(!bb)
     return false;
@@ -260,8 +252,6 @@ bool BPatch_basicBlock::postdominates(BPatch_basicBlock* bb){
   return false;
 }
 
-//returns the source block corresponding to the basic block
-//which is created looking at the machine code.
 bool
 BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks)
 {
@@ -277,12 +267,10 @@ BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks)
   return true;
 }
 
-//returns the block number of the basic block
 int BPatch_basicBlock::getBlockNumber() {
   return iblock->id();
 }
 
-// returns the range of addresses of the code for the basic block
 bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
                                            void*& _lastInsnAddress)
 {
@@ -337,16 +325,6 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
   return os;
 }
 
-/*
- * BPatch_basicBlock::findPoint (based on VG 09/05/01)
- *
- * Returns a vector of the instrumentation points from a basic block that is
- * identified by the parameters, or returns NULL upon failure.
- * (Points are sorted by address in the vector returned.)
- *
- * ops          The points within the basic block to return. A set of op codes
- *              defined in BPatch_opCode (BPatch_point.h)
- */
 using namespace Dyninst::InstructionAPI;
 bool isLoad(Instruction i)
 {
@@ -430,7 +408,6 @@ BPatch_point* BPatch_basicBlock::findEntryPoint()
                                                        BPatch_locBasicBlockEntry);
 }
 
-// This should be edge instrumentation...
 BPatch_point* BPatch_basicBlock::findExitPoint()
 {
   return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
@@ -505,7 +482,6 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(bool(*filter)(Instruc
   return findPointByPredicate(filterPtr);
 }
 
-// returns BPatch_point for an instPoint, unless the point isn't in this block
 BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
 {
   BPatch_point *bpPt = NULL;
@@ -518,8 +494,6 @@ BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
   return bpPt;
 }
 
-// does not return duplicates even if some points belong to multiple categories
-//
 void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 {
   instPoint *entry = instPoint::blockEntry(ifunc(), iblock);
@@ -541,14 +515,6 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
   if (!callee) return NULL;
   return flowGraph->addSpace->findOrCreateBPFunc(callee, NULL);
 }
-
-
-/*
- * BPatch_basicBlock::getInstructions
- *
- * Returns a vector of the instructions contained within this block
- *
- */
 
 bool BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction>& insns) {
   using namespace InstructionAPI;

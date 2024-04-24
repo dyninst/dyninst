@@ -332,7 +332,6 @@ bool PatchFunction::findInsnPoints(Point::Type type,
       return false;
 }
 
-// remove block points from points_ and blockPoints_
 void PatchFunction::destroyBlockPoints(PatchBlock *block)
 {
     PatchCallback *cb = obj()->cb();
@@ -519,7 +518,6 @@ PatchCallback *PatchFunction::cb() const {
    return obj_->cb();
 }
 
-// the "first" block should already be in the function
 void PatchFunction::splitBlock(PatchBlock *first, PatchBlock *second)
 {
    // 1) add second block to the function
@@ -818,9 +816,6 @@ PatchLoopTreeNode* PatchFunction::getLoopTree() {
   return _loop_root;
 }
 
-// this methods returns the loop objects that exist in the control flow
-// grap. It returns a set. And if there are no loops, then it returns the empty
-// set. not NULL.
 void PatchFunction::getLoopsByNestingLevel(vector<PatchLoop*>& lbb, bool outerMostOnly)
 {
   if (_loop_analyzed == false) {
@@ -839,15 +834,12 @@ void PatchFunction::getLoopsByNestingLevel(vector<PatchLoop*>& lbb, bool outerMo
   return;
 }
 
-
-// get all the loops in this flow graph
 bool PatchFunction::getLoops(vector<PatchLoop*>& lbb)
 {
   getLoopsByNestingLevel(lbb, false);
   return true;
 }
 
-// get the outermost loops in this flow graph
 bool PatchFunction::getOuterLoops(vector<PatchLoop*>& lbb)
 {
   getLoopsByNestingLevel(lbb, true);

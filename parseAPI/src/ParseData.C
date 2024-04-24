@@ -87,7 +87,6 @@ ParseWorkElem * ParseFrame::mkWork(
     return ret;
 
 }
-/**** Standard [no overlapping regions] ParseData ****/
 
 StandardParseData::StandardParseData(Parser *p) :
     ParseData(p), _rdata{}
@@ -183,12 +182,6 @@ StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
     _rdata.setFrameStatus(addr, status);
 }
 
-// This function return NULL
-// if a frame for input function f has exists,
-// or is being created by another thread.
-//
-// Otherwise, the calling thread will create and 
-// register a new frame.
 ParseFrame*
 StandardParseData::createAndRecordFrame(Function* f)
 {
@@ -259,7 +252,6 @@ StandardParseData::remove_extents(const std::vector<FuncExtent*> & extents)
     }
 }
 
-/**** Overlapping region ParseData ****/
 OverlappingParseData::OverlappingParseData(
         Parser *p, vector<CodeRegion *> & regions) :
     ParseData(p)

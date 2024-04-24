@@ -36,13 +36,6 @@
 
 #include "PCProcess.h"
 
-/*
- * pcThread.h
- *
- * A class that encapsulates a ProcControlAPI thread. This class is meant
- * to be a replacement for the old dyn_thread class.
- */
-
 class PCProcess;
 typedef Dyninst::THR_ID dynthread_t;
 class inferiorRPCinProgress; 
@@ -54,19 +47,16 @@ class PCThread {
 public:
     static PCThread *createPCThread(PCProcess *parent, ProcControlAPI::Thread::ptr thr);
 
-    // Stackwalking interface
     bool walkStack(std::vector<Frame> &stackWalk);
     Frame getActiveFrame();
     bool getRegisters(ProcControlAPI::RegisterPool &regs, bool includeFP = false);
     bool changePC(Address newPC);
 
-    // Field accessors
     int getIndex() const;
     Dyninst::LWP getLWP() const;
     PCProcess *getProc() const;
     bool isLive() const;
 	ProcControlAPI::Thread::ptr pcThr() const { return pcThr_; }
-    // Thread info
     dynthread_t getTid() const;
     func_instance *getStartFunc();
     Address getStackAddr();
@@ -94,12 +84,10 @@ protected:
     Address startFuncAddr_;
     func_instance *startFunc_;
 
-    // When we run an inferior RPC we cache the stackwalk of the
-    // process and return that if anyone asks for a stack walk
     int_stackwalk cached_stackwalk_;
 	Dyninst::LWP savedLWP_;
     dynthread_t savedTid_;
-    dynthread_t manuallySetTid_; // retrieved from the mutatee
+    dynthread_t manuallySetTid_;
 };
 
 #endif

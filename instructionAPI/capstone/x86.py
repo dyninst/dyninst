@@ -41,7 +41,7 @@ class x86:
         #
         #   Aliases that come from the LLVM tablegen files are marked as such. Otherwise,
         #   they come from the Volume 2 Instruction Set Referece in the Intel 64 and IA-32
-        #   Architectures Software Developer’s Manual (SDM) June 2021 edition with a heading like
+        #   Architectures Software Developer's Manual (SDM) June 2021 edition with a heading like
         #   X/Y (e.g., CBW/CWDE/CDQE).
         #
         #  All conditional operations are included.

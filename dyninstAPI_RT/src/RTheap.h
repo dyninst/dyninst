@@ -38,7 +38,6 @@
 
 #if defined(os_linux) || defined(os_freebsd)
 
-/* LINUX */
 typedef struct {
      Address pr_vaddr;
      unsigned long pr_size;
@@ -54,19 +53,13 @@ typedef struct {
 #error Dynamic heaps are not implemented on this platform
 #endif
 
-/* 
- * platform-specific variables
- */
+
 
 extern int     DYNINSTheap_align;
 extern Address DYNINSTheap_loAddr;
 extern Address DYNINSTheap_hiAddr;
 extern int     DYNINSTheap_mmapFlags;
 
-
-/* 
- * platform-specific functions
- */
 
 RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi);
 int        DYNINSTheap_mmapFdOpen(void);

@@ -90,23 +90,6 @@ if(!(X)) { \
     throw(stackanalysis_exception(#X));\
 }
 
-//
-// Concepts:
-//
-// There are three terms we throw around:
-// 
-// Stack height: the size of the stack; (cur_stack_ptr - func_start_stack_ptr)
-// Stack delta: the difference in the size of the stack over the execution of
-//   a region of code (basic block here). (block_end_stack_ptr -
-//   block_start_stack_ptr)
-// Stack clean: the amount the callee function shifts the stack. This is an x86
-//   idiom. On x86 the caller pushes arguments onto the stack (and thus shifts
-//   the stack). Normally the caller also cleans the stack (that is, removes
-//   arguments). However, some callee functions perform this cleaning
-//   themselves. We need to account for this in our analysis, which otherwise
-//   assumes that callee functions don't alter the stack.
-
-
 bool StackAnalysis::analyze() {
    genInsnEffects();
 
@@ -220,9 +203,6 @@ void add_target_exclude(std::stack<Block *> &workstack,
    }
 }
 
-// We want to create a transfer function for the block as a whole. This will
-// allow us to perform our fixpoint calculation over blocks (thus, O(B^2))
-// rather than instructions (thus, O(I^2)).
 void StackAnalysis::summarizeBlocks(bool verbose) {
    intra_nosink_nocatch epred;
    std::set<Block *> doneSet;
@@ -394,8 +374,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
 }  // namespace
 
 
-// Looks for return edges in the function, following tail calls if necessary.
-// Returns true if any return edges are found.
+
 bool StackAnalysis::canGetFunctionSummary() {
    std::set<Block *> retBlocks;
    getRetAndTailCallBlocks(func, retBlocks);
@@ -1041,15 +1020,8 @@ std::ostream &operator<<(std::ostream &os,
    return os;
 }
 
-///////////////////
-// Insn effect fragments
-///////////////////
-
-// Visitor class to evaluate stack heights and PC-relative addresses
 class StateEvalVisitor : public Visitor {
 public:
-   // addr is the starting address of instruction insn.
-   // insn is the instruction containing the expression to evaluate.
    StateEvalVisitor(Address addr, Instruction insn,
       StackAnalysis::AbslocState *s) : defined(true), state(s) {
       rip = addr + insn.size();
@@ -1129,8 +1101,6 @@ private:
    StackAnalysis::AbslocState *state;
    Address rip;
 
-   // Stack for calculations
-   // bool is true if the value in Address is a stack height
    std::deque<std::pair<Address, bool> > results;
 
 };
@@ -2317,8 +2287,6 @@ void StackAnalysis::handleSyscall(Instruction insn, Block *block,
    }
 }
 
-// Handle instructions for which we have no special handling implemented.  Be
-// conservative for safety.
 void StackAnalysis::handleDefault(Instruction insn, Block *block,
                                   const Offset off, TransferFuncs &xferFuncs) {
    // Form sets of read/written Abslocs
@@ -2629,7 +2597,6 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
    return true;
 }
 
-// Create transfer functions for tail calls
 bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
                                TransferFuncs &xferFuncs, TransferSet &funcSummary) {
    Address calledAddr = 0;
@@ -2921,7 +2888,6 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
 }
 
 
-// Keep track of up to DEF_LIMIT multiple definitions/heights, then bottom
 StackAnalysis::DefHeightSet StackAnalysis::meetDefHeights(
    const DefHeightSet &s1, const DefHeightSet &s2) {
    DefHeightSet newSet;
@@ -3290,8 +3256,6 @@ bool StackAnalysis::DefHeightSet::isBottomSet() const {
 }
 
 
-// Destructive update of the input map. Assumes inputs are absolute,
-// uninitialized, or bottom; no deltas.
 StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
    const AbslocState &inputs) const {
    STACKANALYSIS_ASSERT(target.isValid());
@@ -3390,7 +3354,6 @@ StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
    return inputSet;
 }
 
-// Returns accumulated transfer function without modifying inputs
 StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
    const TransferSet &inputs) const {
    TransferFunc input;
@@ -3663,8 +3626,6 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
 }
 
 
-// Accumulation to the input map. This is intended to create a summary, so we
-// create something that can take further input.
 void StackAnalysis::TransferFunc::accumulate(TransferSet &inputs) {
    inputs[target] = summaryAccumulate(inputs);
 }
@@ -3774,7 +3735,6 @@ std::string StackAnalysis::format(const TransferSet &input) const {
 }
 
 
-// Converts a delta in a Result to a long
 long StackAnalysis::extractDelta(Result deltaRes) {
    long delta;
    switch(deltaRes.size()) {
@@ -3818,10 +3778,6 @@ bool StackAnalysis::getSubReg(const MachRegister &reg, MachRegister &subreg) {
    return true;
 }
 
-// If reg is an 8 byte register (rax, rbx, rcx, etc.) with a 4 byte subregister,
-// retops the subregister.  If reg is a 4 byte register (eax, ebx, ecx, etc.)
-// with an 8 byte base register, retops the base register.  The appropriate
-// retop transfer function is added to xferFuncs.
 void StackAnalysis::retopBaseSubReg(const MachRegister &reg,
    TransferFuncs &xferFuncs) {
    if (reg.size() == 4 && reg.getBaseRegister().size() == 8) {
@@ -3835,11 +3791,7 @@ void StackAnalysis::retopBaseSubReg(const MachRegister &reg,
    }
 }
 
-// If reg is an 8 byte register (rax, rbx, rcx, etc.) with a 4 byte subregister,
-// copies the subregister into the base register.  If reg is a 4 byte register
-// (eax, ebx, ecx, etc.) with an 8 byte base register, copies the base register
-// into the subregister. The appropriate copy transfer function is added to
-// xferFuncs.
+
 void StackAnalysis::copyBaseSubReg(const MachRegister &reg,
    TransferFuncs &xferFuncs) {
    if (reg.size() == 4 && reg.getBaseRegister().size() == 8) {
@@ -3855,10 +3807,6 @@ void StackAnalysis::copyBaseSubReg(const MachRegister &reg,
    }
 }
 
-// If reg is an 8 byte register (rax, rbx, rcx, etc.) with a 4 byte subregister,
-// bottoms the subregister.  If reg is a 4 byte register (eax, ebx, ecx, etc.)
-// with an 8 byte base register, bottoms the base register.  The appropriate
-// bottom transfer function is added to xferFuncs.
 void StackAnalysis::bottomBaseSubReg(const MachRegister &reg,
    TransferFuncs &xferFuncs) {
    if (reg.size() == 4 && reg.getBaseRegister().size() == 8) {

@@ -13,7 +13,6 @@
 using namespace Dyninst;
 
 class IndirectControlFlowAnalyzer {
-    // The function and block that contain the indirect jump
     ParseAPI::Function *func;
     ParseAPI::Block *block;
     set<ParseAPI::Block*> reachable;

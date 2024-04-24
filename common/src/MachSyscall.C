@@ -108,7 +108,6 @@ MachSyscall::SyscallIDPlatform SyscallInformation::findIDPlatform(Platform plat,
 /* This file is auto-generated from syscalls/generateSyscallInformation.py */
 #include "SyscallInformation.C"
 
-/* Lookup the system call string name based on platform-specific ID */
 MachSyscall::SyscallName MachSyscall::nameLookup(Platform plat, SyscallIDPlatform id)
 {
     return SyscallInformation::getInstance()->findName(plat, id);

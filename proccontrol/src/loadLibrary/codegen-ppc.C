@@ -10,12 +10,6 @@ using namespace NS_power;
 using namespace ProcControlAPI;
 using namespace std;
 
-// User code can use up to 288 bytes under the stack pointer;
-// we skip past this so that we don't mess things up. 
-//
-// And system code can further use 224 bytes more under the stack pointer.
-//
-// To be safe, we move down the stack pointer by 512
 #define STACKSKIP 512
 
 bool Codegen::generateCallPPC32(Address addr, const std::vector<Address> &args) {

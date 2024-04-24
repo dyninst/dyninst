@@ -38,8 +38,6 @@ using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::AddrSpace;
 
-/* Default implementation of Instrumenter */
-
 Instrumenter*
 Instrumenter::create(AddrSpace* as) {
   Instrumenter* ret = new Instrumenter(as);

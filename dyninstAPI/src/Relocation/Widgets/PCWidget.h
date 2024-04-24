@@ -104,7 +104,6 @@ struct IPPatch : public Patch {
   Address addr;
   Register reg;
   Address thunk;
-  // Necessary for live registers
   InstructionAPI::Instruction insn;
   block_instance *block;
   func_instance *func;

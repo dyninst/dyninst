@@ -56,7 +56,6 @@ class DynInstrumenter : public Dyninst::PatchAPI::Instrumenter {
 
 };
 
-/* Dyninst-specific Insert Snippet Command  */
 class DynInsertSnipCommand : public Command {
   public:
     DynInsertSnipCommand(instPoint* pt, callOrder order,
@@ -74,7 +73,6 @@ class DynInsertSnipCommand : public Command {
     Instance::Ptr inst_;
 };
 
-/* Dyninst-specific Remove Snippet Command  */
 class DynRemoveSnipCommand : public Command {
   public:
       DynRemoveSnipCommand(Instance::Ptr inst);
@@ -88,7 +86,6 @@ class DynRemoveSnipCommand : public Command {
     Instance::Ptr inst_;
 };
 
-/* Dyninst-specific Function Replacement */
 class DynReplaceFuncCommand : public Command {
   public:
     DynReplaceFuncCommand(AddressSpace* as,
@@ -108,7 +105,6 @@ class DynReplaceFuncCommand : public Command {
     func_instance *new_func_;
 };
 
-/* Dyninst-specific Modify Function call */
 class DynModifyCallCommand : public Command {
   public:
     DynModifyCallCommand(AddressSpace* as,
@@ -131,7 +127,6 @@ class DynModifyCallCommand : public Command {
     func_instance *context_;
 };
 
-/* Dyninst-specific Remove Function call */
 class DynRemoveCallCommand : public Command {
   public:
     DynRemoveCallCommand(AddressSpace* as,

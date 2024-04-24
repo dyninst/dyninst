@@ -196,8 +196,6 @@ void PatchParseCallback::remove_block_cb(ParseAPI::Function *func, ParseAPI::Blo
    pf->removeBlock(pb);
 }
 
-/* Adds blocks lazily, basically does nothing unless block and function have already
-   been created, in which case it adds the block to the function */
 void PatchParseCallback::add_block_cb(ParseAPI::Function *func, ParseAPI::Block *block) {
    PatchBlock *pb = _obj->getBlock(block, false);
    if (!pb) return; 
@@ -209,7 +207,6 @@ void PatchParseCallback::add_block_cb(ParseAPI::Function *func, ParseAPI::Block 
    _obj->cb()->add_block(pf,pb);
 }
 
-// returns the load address of the code object containing an absolute address
 bool PatchParseCallback::absAddr(Address absolute, 
                                  Address & loadAddr, 
                                  ParseAPI::CodeObject *& codeObj)

@@ -63,55 +63,43 @@ namespace Dyninst {
 
         class CFGModifier;
 
-/** This is the internal parser **/
         class Parser {
-            // The CFG modifier needs to manipulate the lookup structures,
-            // which are internal Parser data.
             friend class CFGModifier;
 
         private:
 
-            // Owning code object
             CodeObject &_obj;
 
-            // CFG object factory
             CFGFactory &_cfgfact;
 
-            // Callback notifications
             ParseCallbackManager &_pcb;
 
-            // region data store
             ParseData *_parse_data;
 
-            // All allocated frames
             LockFreeQueue<ParseFrame *> frames;
 
             boost::atomic<bool> delayed_frames_changed;
             dyn_c_hash_map<Function*, std::set<ParseFrame*> > delayed_frames;
 
-            // differentiate those provided via hints and
-            // those found through RT or speculative parsing
             dyn_c_vector<Function *> hint_funcs;
             dyn_c_vector<Function *> discover_funcs;
 
             set<Function *, Function::less> sorted_funcs;
             set<Function*> deleted_func;
 
-            // PLT, IAT entries
             dyn_hash_map<Address, string> plt_entries;
 
-    // a sink block for unbound edges
     boost::atomic<Block *> _sink;
 #ifdef ADD_PARSE_FRAME_TIMERS
     dyn_c_hash_map<unsigned int, unsigned int > time_histogram;
 #endif
     enum ParseState {
-        UNPARSED,       // raw state
-        PARTIAL,        // parsing has started
-        COMPLETE,       // full parsing -- range queries are invalid
+        UNPARSED,
+        PARTIAL,
+        COMPLETE,
         RETURN_SET,
         FINALIZED,
-        UNPARSEABLE     // error condition
+        UNPARSEABLE
     };
     ParseState _parse_state;
         public:
@@ -119,10 +107,8 @@ namespace Dyninst {
 
             ~Parser();
 
-            /** Initialization & hints **/
             void add_hint(Function *f);
 
-            // functions
             Function *findFuncByEntry(CodeRegion *cr, Address entry);
 
             int findFuncsByBlock(CodeRegion *cr, Block *b, set<Function*> &funcs);
@@ -131,12 +117,10 @@ namespace Dyninst {
 
             int findFuncs(CodeRegion *cr, Address start, Address end, set<Function *> &funcs);
 
-            // blocks
             Block *findBlockByEntry(CodeRegion *cr, Address entry);
 
             int findBlocks(CodeRegion *cr, Address addr, set<Block *> &blocks);
 
-            // returns current blocks without parsing.
             int findCurrentBlocks(CodeRegion *cr, Address addr, std::set<Block *> &blocks);
 
             int findCurrentFuncs(CodeRegion *cr, Address addr, set<Function *> &funcs);
@@ -159,7 +143,6 @@ namespace Dyninst {
 
             CodeObject &obj() { return _obj; }
 
-            // removal
             void remove_block(Block *);
 
             void remove_func(Function *);
@@ -167,7 +150,6 @@ namespace Dyninst {
             void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 
         public:
-            /** XXX all strictly internals below this point **/
             Block* record_block(Block *b);
 
             void record_func(Function *f);
@@ -188,7 +170,6 @@ namespace Dyninst {
 
             ParseFrame::Status frame_status(CodeRegion *cr, Address addr);
 
-            /** CFG structure manipulations **/
             void end_block(Block *b, InstructionAdapter_t *ah);
 
             Block *block_at(ParseFrame &frame,
@@ -225,11 +206,9 @@ namespace Dyninst {
 
     void resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work);
 
-    // defensive parsing details
     void tamper_post_processing(LockFreeQueue<ParseFrame *>&, ParseFrame *);
     ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
-            /* implementation of the parsing loop */
             void ProcessUnresBranchEdge(
                     ParseFrame &,
                     Block *,
@@ -295,12 +274,7 @@ namespace Dyninst {
 
             void updateBlockEnd(Block *b, Address addr, Address previnsn, region_data *rd) const;
 
-            // Range data is initialized through writing to interval trees.
-            // This is intrinsitcally mutual exclusive. So we delay this initialization until
-            // someone actually needs this.
-            //
-            // Note: this has to be run in a single thread.
-            vector<Function*> funcs_to_ranges;            
+           vector<Function*> funcs_to_ranges;
 
             dyn_c_hash_map<Block*, std::set<Function* > > funcsByBlockMap;
         };

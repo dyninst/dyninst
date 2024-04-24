@@ -28,19 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Base representations for locations in program memory and registers
-// We use a two-layered model consisting of AbsLocs (abstract locations)
-// and AbsRegions (abstract regions). 
-//
-// An Absloc defines a unique location in memory or a register. We 
-// consider the stack to be a separate, indexed-from-zero memory location.
-//
-// An AbsRegion is a set of Abslocs. In essence it is a set, though we
-// may be able to use a more efficient internal representation than a
-// set. As a TODO, we wish to provide shortcuts for comparing one type
-// of AbsRegion to another type more efficiently than the fallback
-// point-wise comparison.
-
 #if !defined(ABSLOC_H)
 #define ABSLOC_H
 
@@ -77,7 +64,6 @@ class Absloc {
    DATAFLOW_EXPORT static Absloc makeSP(Dyninst::Architecture arch);
    DATAFLOW_EXPORT static Absloc makeFP(Dyninst::Architecture arch);
   
-  // Some static functions for "well-known" Abslocs
   DATAFLOW_EXPORT bool isPC() const;
   DATAFLOW_EXPORT bool isSPR() const;
   
@@ -197,13 +183,9 @@ class Absloc {
 
 class AbsRegion {
  public:
-  // Set operations get included here? Or third-party
-  // functions?
-  
   DATAFLOW_EXPORT bool contains(const Absloc::Type t) const;
   DATAFLOW_EXPORT bool contains(const Absloc &abs) const;
   DATAFLOW_EXPORT bool contains(const AbsRegion &rhs) const;
-
   DATAFLOW_EXPORT bool containsOfType(Absloc::Type t) const;
 
   DATAFLOW_EXPORT bool operator==(const AbsRegion &rhs) const;
@@ -247,18 +229,9 @@ class AbsRegion {
   }
 
  private:
-  // Type is for "we're on the stack but we don't know where".
-  // Effectively, it's a wildcard.
   Absloc::Type type_;
-
-  // For specific knowledge.
   Absloc absloc_;
-
-  // And the AST that gave rise to this Absloc. We use this
-  // as a generating function (if present and not overridden)
   AST::Ptr generator_;
-
-  // Size in bits
   size_t size_;
 };
 
@@ -286,10 +259,8 @@ class Assignment {
 
   DATAFLOW_EXPORT const std::string format() const;
 
-  // FIXME
   Aliases aliases;
 
-  // Factory functions. 
   DATAFLOW_EXPORT static std::set<Assignment::Ptr> create(InstructionAPI::Instruction insn,
 					  Address addr);
 
@@ -331,11 +302,6 @@ class Assignment {
                              const AbsRegion &o);
 
 
-  // Internally used method; add a dependence on 
-  // a new abstract region. If this is a new region
-  // we'll add it to the dependence list. Otherwise 
-  // we'll join the provided input set to the known
-  // inputs.
   DATAFLOW_EXPORT void addInput(const AbsRegion &reg);
   DATAFLOW_EXPORT void addInputs(const std::vector<AbsRegion> &regions);
 
@@ -358,8 +324,6 @@ class Assignment {
   AbsRegion out_;
 };
 
-// compare assignments by value.
-// note this is a fast comparison--it checks output and address only.
 struct AssignmentPtrValueComp {
     bool operator()(const Assignment::Ptr& a, const Assignment::Ptr& b) const {
         if (a->addr() < b->addr()) { return true; }

@@ -62,7 +62,6 @@ class ASTWidget : public Widget {
  private:
 
   AstNodePtr ast_;
-  // We need this for liveness
   instPoint *point_;
 };
 

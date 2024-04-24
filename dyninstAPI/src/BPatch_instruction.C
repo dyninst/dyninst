@@ -43,9 +43,6 @@
 
 #include "legacy-instruction.h"
 
-/**************************************************************************
- * BPatch_instruction
- *************************************************************************/
 
 #if defined(arch_x86) || defined(arch_x86_64)
 const unsigned int BPatch_instruction::nmaxacc_NP = 2;

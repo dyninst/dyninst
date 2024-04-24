@@ -363,7 +363,6 @@ typedef union {
 
 // instruction is now a class for platform-indep.
 
-// Mmmm alignment
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
@@ -786,10 +785,6 @@ typedef unsigned codeBufIndex_t;
 
 // Helps to mitigate host/target endian mismatches
 COMMON_EXPORT unsigned int swapBytesIfNeeded(unsigned int i);
-
-///////////////////////////////////////////////////////
-// Bum bum bum.....
-///////////////////////////////////////////////////////
 
 class COMMON_EXPORT instruction {
  private:

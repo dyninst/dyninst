@@ -76,8 +76,6 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
   }
 }
 
-/////////// Prefork instrumentation 
-
 bool syscallNotification::installPreFork() {
   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Fork))) {
     return true;
@@ -95,8 +93,6 @@ bool syscallNotification::installPreFork() {
 
    return true;
 }
-
-/////////// Postfork instrumentation
 
 bool syscallNotification::installPostFork() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) return true;
@@ -117,8 +113,6 @@ bool syscallNotification::installPostFork() {
    return true;
 }    
 
-/////////// Pre-exec instrumentation
-
 bool syscallNotification::installPreExec() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exec))) return true;
    AstNodePtr arg0 = AstNode::operandNode(AstNode::operandType::Param, (void *)0);
@@ -136,15 +130,11 @@ bool syscallNotification::installPreExec() {
    return true;
 }    
 
-//////////// Post-exec instrumentation
-
 bool syscallNotification::installPostExec() {
     // OS-handled
     postExecInst = NULL;
     return true;
 }    
-
-/////////// Pre-exit instrumentation
 
 bool syscallNotification::installPreExit() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit))) return true;
@@ -169,10 +159,6 @@ bool syscallNotification::installPreLwpExit() {
    preLwpExitInst = NULL;
    return true;
 }
-
-//////////////////////////////////////////////////////
-
-/////// Remove pre-fork instrumentation
 
 bool syscallNotification::removePreFork() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Fork))) return true;
@@ -208,10 +194,6 @@ bool syscallNotification::removePreFork() {
     return true;
 }
 
-    
-
-/////// Remove post-fork instrumentation
-
 bool syscallNotification::removePostFork() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) return true;
 
@@ -243,8 +225,6 @@ bool syscallNotification::removePostFork() {
     postForkInst = NULL;
     return true;
 }
-
-/////// Remove pre-exec instrumentation
 
 bool syscallNotification::removePreExec() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exec))) return true;
@@ -278,14 +258,10 @@ bool syscallNotification::removePreExec() {
     return true;
 }
 
-/////// Remove post-exec instrumentation
-
 bool syscallNotification::removePostExec() {
     // OS traps this, we don't have a choice.
     return true;
 }
-
-/////// Remove pre-exit instrumentation
 
 bool syscallNotification::removePreExit() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit))) return true;
@@ -322,6 +298,4 @@ bool syscallNotification::removePreExit() {
 bool syscallNotification::removePreLwpExit() {
    return true;
 }
-
-//////////////////////////////////////////////
 

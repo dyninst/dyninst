@@ -47,23 +47,10 @@ class PCProcess;
 class inferiorRPCinProgress;
 class PCEventMuxer;
 
-/*
- * pcEventHandler.h
- *
- * The entry point for event and callback handling.
- *
- * 1:1 class with PCProcess that encapsulates all event handling, including waiting for
- * events and callbacks. 
- */
+
 
 class PCEventHandler {
 	typedef Dyninst::ProcControlAPI::Event::const_ptr EventPtr;
-	// Why syscallNotification is a friend:
-    //
-    // It is a friend because it reaches in to determine whether to install
-    // breakpoints at specific system calls. I didn't want to expose this to
-    // the rest of Dyninst.
-    
     friend class syscallNotification;
 	friend class PCEventMuxer;
 public:
@@ -99,7 +86,6 @@ protected:
     bool handleUserMessage(PCProcess *evProc, BPatch_process *bpProc, Dyninst::Address rt_arg) const;
     bool handleDynFuncCall(PCProcess *evProc, BPatch_process *bpProc, Dyninst::Address rt_arg) const;
 
-    // platform-specific
     static bool shouldStopForSignal(int signal);
     static bool isValidRTSignal(int signal, RTBreakpointVal breakpointVal, Dyninst::Address arg1, int status);
     static bool isCrashSignal(int signal);

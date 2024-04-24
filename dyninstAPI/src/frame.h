@@ -48,10 +48,8 @@ class PCProcess;
 class Frame {
  public:
 
-  // default ctor (zero frame)
   Frame();
 
-  // Real constructor -- fill-in.
   Frame(const Dyninst::Stackwalker::Frame &swf,
 	PCProcess *proc, 
 	PCThread *thread,
@@ -79,7 +77,6 @@ class Frame {
   }
 
   Address  getPC() const { return (Address) sw_frame_.getRA(); }
-  // New method: unwind instrumentation
   Address  getUninstAddr() const;
   Address  getFP() const { return (Address) sw_frame_.getFP(); }
   Address  getSP() const { return (Address) sw_frame_.getSP(); }
@@ -101,14 +98,13 @@ class Frame {
   bool setPC(Address newpc);
 
 #if defined(arch_power)
-  // We store the actual return addr in a word on the stack
   bool setRealReturnAddr(Address retaddr);
 #endif
 
  private:
-  Dyninst::Stackwalker::Frame sw_frame_;        // StackwalkerAPI frame
-  PCProcess *		proc_;				// We're only valid for a single process anyway
-  PCThread *            thread_;                // User-level thread
+  Dyninst::Stackwalker::Frame sw_frame_;
+  PCProcess *		proc_;
+  PCThread *            thread_;
   bool			uppermost_;
 };
 

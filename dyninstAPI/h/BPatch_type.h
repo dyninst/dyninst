@@ -56,21 +56,6 @@ typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymLocalFunc, BPatchSymGlobalFunc, BPatchSymFuncParam,
 	      BPatchSymTypeName, BPatchSymAggType, BPatchSymTypeTag}symDescr_t;
 
-/*
- * Symbol Descriptors:
- * BPatchSymLocalVar       - local variable- gnu sun-(empty)
- * BPatchSymGlobalVar      - global variable- gnu sun-'G'
- * BPatchSymRegisterVar    - register variable- gnu sun-'r'
- * BPatchSymStaticLocalVar - static local variable- gnu sun-'V'
- * BPatchSymStaticGlobal   - static global variable- gnu- sun'S'
- * BPatchSymLocalFunc      - local function- gnu sun-'f'
- * BPatchSymGlobalFunc     - global function- gnu- sun'F'
- * BPatchSymFuncParam      - function paramater - gnu- sun'p'
- * BPatchSymTypeName       - type name- gnu sun-'t'
- * BPatchSymAggType        - aggregate type-struct,union, enum- gnu sun-'T'
- * BPatchSymTypeTag        - C++ type name and tag combination
- */
-
 typedef enum {BPatch_dataScalar, 
 	      BPatch_dataEnumerated,
 	      BPatch_dataTypeClass,
@@ -105,35 +90,9 @@ typedef enum {BPatch_dataScalar,
 #define BPatch_unknownType	BPatch_dataUnknownType
 #define BPatch_typeDefine	BPatch_dataTypeDefine
 
-/*
- * Type Descriptors:
- * BPatchSymTypeReference - type reference- gnu sun-(empty)
- * BPatch_dataArray - array type- gnu sun-'a'
- * BPatch_dataEnumerated - enumerated type- gnu sun-'e'
- * BPatch_dataTypeClass - Class type
- * BPatch_dataFunction - function type- gnu sun-'f'
- * BPatchSymTypeRange - range type- gnu sun-'r'
- * BPatch_dataStructure - structure type- gnu sun-'s'
- * BPatch_dataUnion - union specification- gnu sun-'u'
- * BPatch_dataPointer - pointer type- gnu sun-'*'
- * BPatch_dataReferance - referance type- gnu sun-'*'
- * BPatch_dataTypeAttrib - type attribute (C++)- gnu sun- '@'
- * BPatch_dataReference - C++ reference to another type- gnu sun- '&'
- * BPatch_dataMethod - C++ class method
- */
-
 typedef enum {BPatch_private, BPatch_protected, BPatch_public,
 	      BPatch_optimized=9,BPatch_visUnknown}BPatch_visibility;
-/*
- * BPatch_visibility: Accessibility of member data and functions
- * These values follow the 'field_name:' after the '/' identifier.
- * BPatch_private   == 0 gnu Sun -- private
- * BPatch_protected == 1 gnu Sun -- protected
- * BPatch_public    == 2 gnu Sun -- public
- * BPatch_optimized == 9 gnu Sun -- field optimized out and is public
- * BPatch_visUnknown visibility not known or doesn't apply(ANSIC), the default
- *
- */
+
 
 typedef enum {
     BPatch_storageAddr,
@@ -144,40 +103,18 @@ typedef enum {
     BPatch_storageFrameOffset
 } BPatch_storageClass;
 
-/*
- * BPatch_storageClass: Encodes how a variable is stored.
- * 
- * BPatch_storageAddr		- Absolute address of variable.
- * BPatch_storageAddrRef	- Address of pointer to variable.
- * BPatch_storageReg		- Register which holds variable value.
- * BPatch_storageRegRef		- Register which holds pointer to variable.
- * BPatch_storageRegOffset	- Address of variable = $reg + address.
- * BPatch_storageFrameOffset	- Address of variable = $fp  + address.
- */
-
 class BPatch_type;
 class BPatch_function;
 class BPatch_module;
-
-/*
- * A BPatch_field is equivalent to a field in a enum, struct, or union.
- * A field can be an atomic type, i.e, int  char, or more complex like a
- * union or struct.
- */
-
 
 class BPATCH_DLL_EXPORT BPatch_field {
   friend class BPatch_variableExpr;
   friend class BPatch_cblock;
   
   BPatch_dataClass   typeDes;
-  /* For Enums */
-  int          value;
 
-  /* For structs and unions */
+  int          value;
   int         size;
-  
-  //Symtab field
   Dyninst::SymtabAPI::Field *fld;
 
   protected:
@@ -186,7 +123,6 @@ class BPATCH_DLL_EXPORT BPatch_field {
 
   public:
 
-  // Copy constructor
   BPatch_field(BPatch_field &f);
   BPatch_field(Dyninst::SymtabAPI::Field *fld_ = NULL, 
 	       BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, 
@@ -212,20 +148,15 @@ class BPATCH_DLL_EXPORT BPatch_field {
   int getOffset();
 }; 
 
-//
-// Define an instance of a Common block.  Each subroutine can have its own
-//   version of the common block.
-//
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_cblock
+
 class BPATCH_DLL_EXPORT BPatch_cblock {
 private:
-  // the list of fields
   BPatch_Vector<BPatch_field *> fieldList;
 
-  // which functions use this list
   BPatch_Vector<BPatch_function *> functions;
 
   Dyninst::SymtabAPI::CBlock *cBlk{};
@@ -249,35 +180,27 @@ class BPATCH_DLL_EXPORT BPatch_type{
     friend class BPatch_addressSpace;
     
 protected:
-  int           ID;                /* unique ID of type */
+  int           ID;
   static std::map<Dyninst::SymtabAPI::Type*,  BPatch_type *> type_map;
   BPatch_dataClass   type_;
 
-  //Symtab type
   boost::shared_ptr<Dyninst::SymtabAPI::Type> typ;
 
-  /* For common blocks */
-
   static int USER_BPATCH_TYPE_ID;
-
-  // INTERNAL DATA MEMBERS
 
   unsigned int refCount;
 
  protected:
-  // Simple Destructor
   virtual ~BPatch_type();
   static BPatch_type *findOrCreateType(boost::shared_ptr<Dyninst::SymtabAPI::Type> type);
   static BPatch_type *findOrCreateType(Dyninst::SymtabAPI::Type* ty) {
     return findOrCreateType(ty->reshare());
   }
   
-  // A few convenience functions
   BPatch_dataClass convertToBPatchdataClass(Dyninst::SymtabAPI::dataClass type);
   Dyninst::SymtabAPI::dataClass convertToSymtabType(BPatch_dataClass type);
 
   static BPatch_type *createFake(const char *_name);
-  /* Placeholder for real type, to be filled in later */
   static BPatch_type *createPlaceholder(int _ID, const char *_name = NULL) 
          { return new BPatch_type(_name, _ID, BPatch_dataUnknownType); }
 
@@ -297,7 +220,6 @@ public:
     return getSymtabType(Dyninst::SymtabAPI::Type::share).get();
   }
 
-//Define all of these in .C 
   const char *getName() const;
 
   BPatch_dataClass getDataClass() const { return type_; }
@@ -309,17 +231,10 @@ public:
   BPatch_type *getConstituentType() const;
   BPatch_Vector<BPatch_cblock *> *getCblocks() const;
 
-  // INTERNAL METHODS
-
   void incrRefCount() { ++refCount; }
   void decrRefCount() { assert(refCount > 0); if (!--refCount) delete this; }
   void fixupUnknowns(BPatch_module *) { }
 };
-
-//
-// This class stores information about local variables.
-// It is desgined store information about a variable in a function.
-// Scope needs to be addressed in this class.
 
 class BPATCH_DLL_EXPORT BPatch_localVar{
     friend class BPatch;
@@ -332,7 +247,6 @@ class BPATCH_DLL_EXPORT BPatch_localVar{
     Dyninst::SymtabAPI::localVar *lVar{};
 
 public:
-    //  Internal use only
     BPatch_localVar(Dyninst::SymtabAPI::localVar *lVar_);
     ~BPatch_localVar();
     BPatch_localVar() {}
@@ -342,7 +256,6 @@ public:
     BPatch_storageClass convertToBPatchStorage(Dyninst::VariableLocation *loc);
 
 public:
-    //  end of functions for internal use only
     const char *	getName();
     BPatch_type *	getType();
     int			getLineNum();

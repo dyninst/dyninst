@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//Hashing function for std::unordered_mapes
-
 #if !defined(_symtab_util_h_)
 #define _symtab_util_h_
 

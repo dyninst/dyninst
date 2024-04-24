@@ -68,8 +68,6 @@ private:
 
    void updateCache(Address addr, alloc_frame_t result);
    bool checkCache(Address addr, alloc_frame_t &result);
-   //We need some kind of re-entrant safe synhronization before we can
-   // globally turn this caching on, but it would sure help things.
    static const unsigned int cache_size = 64;
    LRUCache<Address, alloc_frame_t> cache;
 public:

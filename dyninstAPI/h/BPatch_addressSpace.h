@@ -99,13 +99,10 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle {
   friend class BPatch_thread;
 
  private:    
-  // Address Space snippet belogns to
   BPatch_addressSpace *addSpace_;
 
-  // low-level mappings for removal
   std::vector<Dyninst::PatchAPI::InstancePtr> instances_;
 
-  // a list of threads to apply catchup to
   BPatch_Vector<BPatch_thread *> catchup_threads;
     
   BPatchSnippetHandle(BPatch_addressSpace * addSpace);
@@ -116,10 +113,6 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle {
  
   ~BPatchSnippetHandle();
 
-  // Returns whether the installed miniTramps use traps.
-  // Not 100% accurate due to internal Dyninst design; we can
-  // have multiple instances of instrumentation due to function
-  // relocation.
   bool usesTrap();
   bool isEmpty() 
   {
@@ -127,8 +120,6 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle {
   }
   
 
-  // mtHandles_ is not empty, , returns the function that the 
-  // instrumentation was added to 
   BPatch_function * getFunc ();
 
   BPatch_addressSpace * getAddressSpace();
@@ -172,8 +163,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
  protected:
   
   
-  // These callbacks are triggered by lower-level code and forward
-  // calls up to the findOrCreate functions.
   static BPatch_function *createBPFuncCB(AddressSpace *p,
                                          Dyninst::PatchAPI::PatchFunction *f);
   static BPatch_point *createBPPointCB(AddressSpace *p,
@@ -199,50 +188,29 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
 
   virtual ~BPatch_addressSpace();
 
-  // Distinguishes between BPatch_process and BPatch_binaryEdit
   virtual processType getType() = 0;
 
-  // Returns back bools for variables that are BPatch_process member variables,
-  //   the return value is hardcoded for BPatch_binaryEdit
   virtual bool getTerminated() = 0;
   virtual bool getMutationsActive() = 0;
 
-  // internal functions, do not use //
-  BPatch_module *findModuleByAddr(Dyninst::Address addr);//doesn't cause parsing
+  BPatch_module *findModuleByAddr(Dyninst::Address addr);
   bool findFuncsByRange(Dyninst::Address startAddr,
                         Dyninst::Address endAddr,
                         std::set<BPatch_function*> &funcs);
-  // end internal functions........ //
 
-
-  //  BPatch_addressSpace::insertSnippet
-  //  
-  //  Insert new code into the mutatee
   virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr, 
 					      BPatch_point &point,
 					      BPatch_snippetOrder order = BPatch_firstSnippet);
   
-  //BPatch_addressSpace::insertSnippet
-      
-  //Insert new code into the mutatee, specifying "when" (before/after point)
-
   virtual BPatchSnippetHandle* insertSnippet(const BPatch_snippet &expr, 
 					     BPatch_point &point,
 					     BPatch_callWhen when,
 					     BPatch_snippetOrder order = BPatch_firstSnippet);
     
-  //BPatch_addressSpace::insertSnippet
-      
-  //Insert new code into the mutatee at multiple points
-
   virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr,
 					      const BPatch_Vector<BPatch_point *> &points,
 					      BPatch_snippetOrder order = BPatch_firstSnippet);
     
-  // BPatch_addressSpace::insertSnippet
-      
-  //Insert new code into the mutatee at multiple points, specifying "when"
-
   virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr,
 					      const BPatch_Vector<BPatch_point *> &points,
 					      BPatch_callWhen when,
@@ -256,60 +224,22 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   virtual bool finalizeInsertionSet(bool atomic, bool *modified = NULL) = 0;
  
 
-  //  BPatch_addressSpace::deleteSnippet
-  //  
-  //  Remove instrumentation from the mutatee process
-
   bool deleteSnippet(BPatchSnippetHandle *handle);
-
-  //  BPatch_addressSpace::replaceCode
-  //
-  //  Replace a point (must be an instruction...) with a given BPatch_snippet
 
   bool  replaceCode(BPatch_point *point, BPatch_snippet *snippet);
 
-  //  BPatch_addressSpace::replaceFunctionCall
-  //  
-  //  Replace function call at one point with another
-
   bool replaceFunctionCall(BPatch_point &point, BPatch_function &newFunc);
-
-  //  BPatch_addressSpace::removeFunctionCall
-  //  
-  //  Remove function call at one point 
 
   bool removeFunctionCall(BPatch_point &point);
 
-  //  BPatch_addressSpace::replaceFunction
-  //  
-  //  Replace all calls to a function with calls to another
-
   bool replaceFunction(BPatch_function &oldFunc, BPatch_function &newFunc);
 
-  // BPatch_addressSpace::revertReplaceFunction
-  //
-  // Undo the operation of a replace function
   bool  revertReplaceFunction(BPatch_function &oldFunc);
-
-  // BPatch_addressSpace::wrapFunction
-  //
-  // Replace oldFunc with newFunc as above; however, also rename oldFunc
-  // to the provided name so it can still be reached. 
 
   bool wrapFunction(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone);
 
-  // BPatch_addressSpace::revertWrapFunction
-  //
-  // Undo the operations of a wrapFunction, restoring the original
-  // functionality
-
   bool revertWrapFunction(BPatch_function *wrappedFunc);
 
-  //  BPatch_addressSpace::getSourceLines
-  //  
-  //  Method that retrieves the line number and file name corresponding 
-  //  to an address
- 
   bool getSourceLines(unsigned long addr, BPatch_Vector< BPatch_statement > & lines );
  
   typedef BPatch_Vector<BPatch_statement>::const_iterator statement_iter;
@@ -317,48 +247,23 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   statement_iter getSourceLines_end(unsigned long addr);
 
  
-  // BPatch_addressSpace::getAddressRanges
-  //
-  // Method that retrieves address range(s) for a given filename and line number.
-    
   bool getAddressRanges(const char * fileName, unsigned int lineNo, std::vector< Dyninst::SymtabAPI::AddressRange> & ranges );
 
   typedef std::vector<std::pair<unsigned long, unsigned long> >::const_iterator arange_iter;
   statement_iter getAddressRanges_begin(const char* file, unsigned long line);
   statement_iter getAddressRanges_end(const char* file, unsigned long line);
 
-  //  BPatch_addressSpace::findFunctionByEntry
-  //  
-  //  Returns the function starting at the given address
-
   BPatch_function * findFunctionByEntry(Dyninst::Address entry);
-
-  //  BPatch_addressSpace::findFunctionsByAddr
-  //  
-  //  Returns the functions containing an address 
-  //  (multiple functions are returned when code is shared)
 
   bool  findFunctionsByAddr(Dyninst::Address addr, 
 			    std::vector<BPatch_function*> &funcs);
 
 
-  //  BPatch_addressSpace::getImage
-  //
-  //  Obtain BPatch_image associated with this BPatch_addressSpace
-
   BPatch_image * getImage();
 
 
-  //  BPatch_addressSpace::malloc
-  //  
-  //  Allocate memory for a new variable in the mutatee process
-
   BPatch_variableExpr * malloc(int n, std::string name = std::string(""));
 
-  //  BPatch_addressSpace::malloc
-  //  
-  //  Allocate memory for a new variable in the mutatee process
-  
   BPatch_variableExpr * malloc(const BPatch_type &type, std::string name = std::string(""));
   
   BPatch_variableExpr * createVariable(Dyninst::Address at_addr, 
@@ -366,17 +271,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
 				       std::string var_name = std::string(""),
 				       BPatch_module *in_module = NULL);
 
-  //  BPatch_addressSpace::free
-  //  
-  //  Free memory allocated by Dyninst in the mutatee process
-  
   bool free(BPatch_variableExpr &ptr);
 
-  // BPatch_addressSpace::createVariable
-  // 
-  // Wrap an existing piece of allocated memory with a BPatch_variableExpr.
-  // Used (for instance) by the shared memory library to wrap its externally
-  // allocated memory for use by BPatch.
   BPatch_variableExpr * createVariable(std::string name, 
 				       Dyninst::Address addr, 
 				       BPatch_type *type = NULL);
@@ -391,23 +287,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
 
   void allowTraps(bool allowtraps);
 
-  //  BPatch_addressSpace::loadLibrary
-  //  
-  //  Load a shared library into the mutatee's address space
-  //  Returns true if successful
-  //
-  //  the reload argument is used by save the world to determine
-  //  if this library should be reloaded by the mutated binary
-  //  when it starts up. this is up to the user because loading
-  //  an extra shared library could hide access to the 'correct'
-  //  function by redefining a function  
-
   virtual BPatch_object * loadLibrary(const char *libname, bool reload = false) = 0;
 
-  // BPatch_addressSpace::isStaticExecutable
-  //
-  // Returns true if the underlying image represents a 
-  // statically-linked executable, false otherwise
   bool  isStaticExecutable();
 };
 

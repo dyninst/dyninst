@@ -72,7 +72,6 @@ class StackVisitor : public ASTVisitor {
   StackAnalysis::Height frame_;
 };
 
-  // Simplify boolean expressions for PPC
 class BooleanVisitor : public ASTVisitor {
  public:
     BooleanVisitor() {}

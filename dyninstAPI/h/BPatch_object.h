@@ -102,40 +102,17 @@ class BPATCH_DLL_EXPORT BPatch_object {
 
     static const Dyninst::Address E_OUT_OF_BOUNDS;
 
-    // BPatch_object::name
-    // Returns the file name of the object
     std::string name();
 
-    // BPatch_object::pathName
-    // Returns the full pathname of the object
     std::string pathName();
 
     
-    // BPatch_object::offsetToAddr
-    // Converts a file offset into an absolute address suitable for use in looking up
-    // functions or points. 
-    // For dynamic instrumentation, this is an address in memory.
-    // For binary rewriting, this is an offset that can be treated as an address.
-    // Returns E_OUT_OF_BOUNDS (-1) on failure
     Dyninst::Address fileOffsetToAddr(const Dyninst::Offset offset);
 
-    // BPatch_object::regions
-    // Returns a vector of address ranges occupied by this object
-    // May be multiple if there are multiple disjoint ranges, such as
-    // separate code and data or multiple code regions
-    // Ranges are returned as (base, size, type) tuples. 
     void regions(std::vector<Region> &regions);
 
-    // BPatch_object::modules
-    // Returns a vector of BPatch_modules logically contained in this
-    // object. 
-    // By design, shared libraries contain a single module; executable files contain one or more. 
     void modules(std::vector<BPatch_module *> &modules);
 
-    // BPatch_object::findFunction
-    // Returns a vector of functions matching the provided name
-    // Maps this operation over its contained modules
-    // For backwards compatibility, returns a pointer to the vector argument. 
     std::vector<BPatch_function *> * findFunction(std::string name,
 						  std::vector<BPatch_function *> &funcs,
 						  bool notify_on_failure =true,
@@ -143,30 +120,8 @@ class BPATCH_DLL_EXPORT BPatch_object {
 						  bool incUninstrumentable =false,
 						  bool dont_use_regex = false);
 
-    //  BPatch_object::findPoints
-    //
-    //  Returns a vector of BPatch_points that correspond with the provided address, one
-    //  per function that includes an instruction at that address. Will have one element
-    //  if there is not overlapping code. 
     bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points);
 
-    // BPatch_object::addModsAllProcs
-    // Apply stack modifications in mods to all functions in the current
-    // object.  Perform error checking, handle stack alignment requirements, and
-    // generate any modifications required for cleanup at function exit.
-    // Atomically adds all modifications in mods; if any mod is found to be
-    // unsafe, none of the modifications are applied.  If interproc is true,
-    // interprocedural analysis is used for more precise evaluation of
-    // modification safety (i.e. modifications that are actually safe are more
-    // likely to be correctly identified as safe, but analysis will take
-    // longer).  depthLimit specifies the maximum depth allowed for
-    // interprocedural analysis, and is only used if interproc is true.  Note
-    // that depthLimit 0 will still analyze interprocedural edges within the
-    // current object; it just won't analyze edges between this object and
-    // another object.
-    //
-    // Returns in modResults a vector of (function, instrumented) pairs where
-    // instrumented is true if stack modifications were successfully added.
     void addModsAllFuncs(const std::set<StackMod *> &mods, bool interproc,
         std::vector<std::pair<BPatch_function *, bool> > &modResults,
         unsigned depthLimit = 0);

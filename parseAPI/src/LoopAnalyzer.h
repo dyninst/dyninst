@@ -39,16 +39,9 @@
 
 using namespace std;
 
-/** class which finds loops in a function 
-  *
-  */
 namespace Dyninst {
 namespace ParseAPI {
 
-//  Implement WMZC algorithm to detect both natural loops 
-//  and irreducible loops
-//  Reference: "A New Algorithm for Identifying Loops in Decompilation"
-//  by Tao Wei, Jian Mao, Wei Zou and Yu Chen
 class LoopAnalyzer {
  
   
@@ -69,7 +62,7 @@ class LoopAnalyzer {
 
 public:
   bool analyzeLoops();
-  /** create the tree of loops/callees for this flow graph */
+
   void createLoopHierarchy();
  
   LoopAnalyzer (const Function *f);

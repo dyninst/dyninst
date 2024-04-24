@@ -28,10 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// A quick header file defining externally visible types from the PatchAPI
-// namespace. This allows us to reduce cross-pollination of header files.
-
-
 #if !defined(_RELOCATION_H_)
 #define _RELOCATION_H_
 
@@ -54,5 +50,4 @@ typedef boost::shared_ptr<Dyninst::Relocation::SpringboardBuilder> SpringboardBu
 }
 }
 
-// This avoids the requirement to include CodeMover.h
 #endif

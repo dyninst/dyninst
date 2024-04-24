@@ -57,10 +57,6 @@ class AbsRegionConverter {
  DATAFLOW_EXPORT AbsRegionConverter(bool cache, bool stack) :
   cacheEnabled_(cache), stackAnalysisEnabled_(stack) {}
 
-  // Definition: the first AbsRegion represents the expression.
-  // If it's a memory reference, any other AbsRegions represent
-  // registers used in this expression.
-
   DATAFLOW_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
 				  Address addr,
 				  ParseAPI::Function *func,
@@ -74,8 +70,6 @@ class AbsRegionConverter {
 				  std::vector<AbsRegion> &used,
 				  std::vector<AbsRegion> &defined);
 
-  // Single converters
-  
   DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
 
   DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
@@ -87,7 +81,6 @@ class AbsRegionConverter {
           InstructionAPI::RegisterAST::Ptr p,
           bool c);
 
-  // Cons up a stack reference at the current addr
   DATAFLOW_EXPORT AbsRegion stack(Address addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
@@ -99,7 +92,6 @@ class AbsRegionConverter {
 				  bool push);
   
  private:
-  // Returns false if the current height is unknown.
   bool getCurrentStackHeight(ParseAPI::Function *func,
                              ParseAPI::Block *block,
 			     Address addr, 
@@ -115,7 +107,6 @@ class AbsRegionConverter {
   bool usedCache(Address, ParseAPI::Function *, std::vector<AbsRegion> &used);
   bool definedCache(Address, ParseAPI::Function *, std::vector<AbsRegion> &defined);
 
-  // Caching mechanism...
   typedef std::vector<AbsRegion> RegionVec;
 
   typedef std::map<Address, RegionVec> AddrCache;

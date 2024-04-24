@@ -239,8 +239,6 @@ bool AddressSpace::getDyninstRTLibName() {
     return true;
 }
 
-/* dynamic instrumentation support */
-
 bool PCEventMuxer::useBreakpoint(Dyninst::ProcControlAPI::EventType et) {
   // This switch statement can be derived from the EventTypes and Events
   // table in the ProcControlAPI manual -- it states what Events are

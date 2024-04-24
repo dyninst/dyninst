@@ -46,20 +46,13 @@ using namespace Dyninst::ParseAPI;
 block_instance::block_instance(ParseAPI::Block *ib,
                                mapped_object *obj)
   : PatchBlock(ib, obj), _ignorePowerPreamble(false) {
-  // We create edges lazily
 }
 
-// Fork constructor
 block_instance::block_instance(const block_instance *parent,
                                mapped_object *childObj)
   : PatchBlock(parent, childObj), _ignorePowerPreamble(parent->_ignorePowerPreamble) {
-  // We also need to copy edges.
-  // Thing is, those blocks may not exist yet...
-  // So we wait, and do edges after all blocks have
-  // been created
 }
 
-// Edges are deleted at the mapped_object layer
 block_instance::~block_instance() 
 {
 }
@@ -110,7 +103,6 @@ Address block_instance::GetBlockStartingAddress() {
 
 using namespace Dyninst::Relocation;
 void block_instance::triggerModified() {
-    // KEVINTODO: implement this: remove block from Relocation info caching...
    //PCSensitiveTransformer::invalidateCache(this);
 }
 
@@ -127,16 +119,10 @@ void block_instance::setNotAbruptEnd()
 }
 
 std::string block_instance::calleeName() {
-  // How the heck do we do this again?
   return obj()->getCalleeName(this);
 }
 
 void block_instance::updateCallTarget(func_instance *func) {
-  // Update a sink-typed call edge to
-  // have an inter-module target
-   //
-   // Preserving original behavior on sink edges only
-   //
   edge_instance *e = getTarget();
   if (e && e->sinkEdge()) {
      PatchAPI::PatchModifier::redirect(e, func->entryBlock());

@@ -57,10 +57,6 @@ typename boost::enable_if<
     boost::integral_constant<bool, !bool(boost::is_same<Type, T>::value)>,
 boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr<T> type)
 {
-	//Instanciating this function for 'Type' would be a mistake, which
-	//the following assert tries to guard against.  If you trigger this,
-	//then a caller to this function is likely using 'Type'.  Change
-	//this to a more specific call, e.g. typeFunction instead of Type
     // NOTE: Disabled, we use SFINAE instead to handle this.
     // BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
 

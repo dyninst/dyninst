@@ -32,10 +32,6 @@
 
 #if !defined(instP_h)
 #define instP_h
-/*
- * Functions that need to be provided by the inst-arch file.
- *
- */
 
 #include "dyninstAPI/src/inst.h"
 #include "common/src/arch.h"  // for type, instruction

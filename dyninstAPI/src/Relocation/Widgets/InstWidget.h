@@ -43,16 +43,10 @@ class InstWidget : public Widget {
  public:
   typedef boost::shared_ptr<InstWidget> Ptr;
 
-  // I believe I can patch in the current code generation
-  // system here...
   static Ptr create(instPoint *i);
 
      InstWidget(instPoint *i) : point_(i) {}
 
-  // This sucks. It seriously sucks. But hey...
-  // this points to all the baseTramps with instrumentation
-  // at this point. This can be 0, 1, or 2 - 2 if we have
-  // post instruction + pre instruction instrumentation.
 
   bool empty() const;
 

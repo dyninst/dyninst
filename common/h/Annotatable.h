@@ -133,12 +133,6 @@ class COMMON_EXPORT AnnotatableDense
 {
 	typedef void *anno_list_t;
 
-	/**
-    * Inheriting from this class adds a pointer to each object.  Multiple
-    * types of annotations are stored under this pointer in a 
-    * annotation_type -> anno_list_t map.
-    **/
-
    private:
 
       typedef anno_list_t anno_map_t;
@@ -375,16 +369,6 @@ class COMMON_EXPORT AnnotatableSparse
    private:
 	  void ClearAnnotations(const char *reason)
 	  {
-		  //  We need to remove annotations from the static map when objects
-		  //  are destroyed:  (1)  memory may be reclaimed and reused at the same
-		  //  place, and (2) regardless of 1, the map can possibly explode to 
-		  //  unmanageable sizes, with a lot of unused junk in it if a lot of i
-		  //  annotatable objects are created and destroyed.
-
-		  //  Alas this is kinda expensive right now, but the data structure is
-		  //  set up to minimize search time, not deletion time.  It could
-		  //  be changed if this becomes a significant time drain.
-
 		  for (unsigned int i = 0; i < getAnnos()->size(); ++i)
 		  {
 			  annos_by_type_t *abt = (*getAnnos())[i];

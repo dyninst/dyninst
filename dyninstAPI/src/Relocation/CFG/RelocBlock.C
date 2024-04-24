@@ -51,21 +51,6 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-// a RelocBlock is a representation for instructions and instrumentation with
-// a single entry point and (possibly) multiple exit points. For simplicity,
-// we initially map a RelocBlock to a basic block. However, edge instrumentation
-// or post-call padding (in defensive mode) may add additional RelocBlocks. Also,
-// a RelocBlock may exit early if instrumentation explicitly branches out of a
-// RelocBlock. 
-//
-// A RelocBlock is represented as a list of Widgets. An Widget represents a single
-// code generation unit: an instruction, an instrumentation sequence, and
-// the like. 
-//
-// Each RelocBlock ends in a distinguished "CFWidget" that tracks the successors 
-// of the RelocBlock. Arguably this information should be stored in the RelocBlock itself,
-// but then we'd still need the code generation techniques in a CFWidget anyway. 
-
 int RelocBlock::RelocBlockID = 0;
 
 RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) {
@@ -160,12 +145,6 @@ void RelocBlock::getPredecessors(RelocGraph *cfg) {
    }
 
 }
-
-// There's some tricky logic going on here. We want to create the following
-// edges:
-// 1) All out-edges, as _someone_ has to create them
-// 2) In-edges that aren't from RelocBlocks; if it's from a RelocBlock we assume we'll
-//    get it in out-edge construction. 
 
 void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *cfg) {
    ParseAPI::EdgeTypeEnum type = edge->type();
@@ -334,17 +313,6 @@ void RelocBlock::createCFWidget() {
    elements_.push_back(cfWidget_);
 }
 
-// Some defensive binaries put gaps in after call instructions to try
-// and confuse parsing; it's typically something like so:
-//
-// call foo
-// jmp <offset>
-//
-// where foo contains code that increments the stack pointer by one,
-// and <offset> is the encoding of a legal instruction. We really need
-// to preserve that gap if it exists, and to make life easy we bundle
-// it into the CFWidget.
-
 #if defined(arch_x86) || defined(arch_x86_64)
 #define DEFENSIVE_GAP_SIZE 10
 #else
@@ -393,9 +361,6 @@ void RelocBlock::preserveBlockGap() {
    }
 }
 
-// Do the raw computation to determine the target (if it exists) of a
-// jump instruction that we may not have encoded in ParseAPI.
-
 std::pair<bool, Address> RelocBlock::getJumpTarget() {
    InstructionAPI::Instruction insn = cfWidget()->insn();
    if (!insn.isValid()) return std::make_pair(false, 0);
@@ -412,14 +377,6 @@ std::pair<bool, Address> RelocBlock::getJumpTarget() {
    }
    return std::make_pair(false, 0);
 }
-
-// We put in edges for everything - jumps, fallthroughs, you name
-// it. Some of these can be obviated by code layout. Instead of trying
-// to precompute which branches are needed, we do a final
-// pre-generation pass to run through and see which branches we need
-// based on where we plan to lay blocks out.
-//
-// Side note: necessary is set on a per-Target basis. 
 
 void RelocBlock::determineNecessaryBranches(RelocBlock *successor) {
    for (CFWidget::DestinationMap::const_iterator d_iter = cfWidget_->destinations().begin();
@@ -447,26 +404,6 @@ void RelocBlock::determineNecessaryBranches(RelocBlock *successor) {
       }
    }
 }   
-
-// Each RelocBlock generates a mixture of PIC and non-PIC code. For
-// efficiency, we precompute the PIC code and generate function callbacks
-// for the non-PIC code. Thus, what we hand into the code generator
-// looks like so:
-//
-// PIC
-// PIC
-// PIC
-// non-PIC callback
-// PIC
-// non-PIC callback
-// PIC
-// PIC
-// ...
-//
-// This allows us to minimize unnecessary regeneration when we're trying
-// to produce the final code sequence. This function generates the mixture
-// of PIC (as a byte buffer) and non-PIC (in terms of Patch objects) sequences.
-
 
 bool RelocBlock::generate(const codeGen &templ,
 			  CodeBuffer &buffer) {

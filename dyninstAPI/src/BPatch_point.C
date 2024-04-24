@@ -64,9 +64,6 @@
 #include "mapped_object.h"
 #include "Snippet.h"
 
-/*
- * Private constructor, insn
- */
 BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
                            BPatch_function *_func, instPoint *_point,
                            instPoint *_secondary,
@@ -97,9 +94,6 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
     }
 }
 
-/*
- * Private constructor, edge
- */
 BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
                            BPatch_function *_func,
                            BPatch_edge *_edge, instPoint *_point,
@@ -124,21 +118,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    }
 }
 
-/*
- * BPatch_point::setLoop
- *
- * For a BPatch_point representing a loop instrumentation site,
- * set the loop that it represents.
- */
-
 void BPatch_point::setLoop(BPatch_basicBlockLoop *l) {
-  // We currently can use a single BPatch_point to represent
-  // multiple loops. This is a problem, since we would really
-  // like the points to label a unique loop. On the other hand,
-  // then multiple points would share the same physical address..
-  // not good.
-
-
   // Point must be for a loop.
   assert(pointType == BPatch_locLoopEntry ||
          pointType == BPatch_locLoopExit ||
@@ -148,57 +128,26 @@ void BPatch_point::setLoop(BPatch_basicBlockLoop *l) {
   loop = l;
 }
 
-/*
- * BPatch_point::getPointType
- *
- * Returns type of BPatch_point
- */
-
 BPatch_procedureLocation BPatch_point::getPointType()
 {
    return pointType;
 }
-
-/*
- * BPatch_point::getLoop
- *
- * Returns loop if of appropriate type
- */
 
 BPatch_basicBlockLoop *BPatch_point::getLoop()
 {
    return loop;
 }
 
-/*
- * BPatch_point::getAddressSpace
- *
- * Returns the point's address space
- */
-
 BPatch_addressSpace *BPatch_point::getAddressSpace()
 {
    return addSpace;
 }
-
-/*
- * BPatch_point::getFunction
- *
- * Returns function to which this BPatch_point belongs
- */
 
 BPatch_function *BPatch_point::getFunction()
 {
    return func;
 }
 
-/*
- * BPatch_point::getCalledFunction
- *
- * For a BPatch_point representing a call site, returns a pointer to a
- * BPatch_function that represents the function being called.  If the point
- * isn't a call site, returns NULL.
- */
 BPatch_function *BPatch_point::getCalledFunction()
 {
    assert(point);
@@ -237,12 +186,6 @@ std::string BPatch_point::getCalledFunctionName() {
 	assert(point->block());
 	return point->block()->obj()->getCalleeName(point->block());
 }
-
-/*
- * BPatch_point::getBlock
- *
- * Returns block to which this BPatch_point belongs
- */
 
 BPatch_basicBlock *BPatch_point::getBlock()
 {
@@ -342,25 +285,11 @@ bool BPatch_point::getLiveRegisters(std::vector<BPatch_register> &liveRegs)
 
 }
 
-/*
- * BPatch_point::getAddress
- *
- * Returns the original address of the first instruction at this point.
- */
 void *BPatch_point::getAddress()
 {
     return (void *)point->addr_compat();
 }
 
-
-/*
- * BPatch_point::usesTrap_NP
- *
- * Returns true if this point is or would be instrumented with a trap, rather
- * than a jump to the base tramp, false otherwise.  On platforms that do not
- * use traps (everything other than x86), it always returns false;
- *
- */
 bool BPatch_point::usesTrap_NP()
 {
    assert(point);
@@ -368,12 +297,6 @@ bool BPatch_point::usesTrap_NP()
    //return point->usesTrap();
 }
 
-/*
- * BPatch_point::isDynamic
- *
- * Returns true if this point is a dynamic control transfer site.
- *
- */
 bool BPatch_point::isDynamic()
 {
    if (!point) return false;
@@ -415,15 +338,6 @@ bool BPatch_point::isDynamic()
    }
 }
 
-/*
- * BPatch_point::monitorCalls(BPatch_function *userCBFunc)
- *
- * Insert function call to user-defined callback function
- * at dynamic call site.
- *
- * Returns false if BPatch_point is not a dynamic call site.
- *
- */
 void *BPatch_point::monitorCalls( BPatch_function * user_cb )
 {
   BPatch_function *func_to_use = user_cb;
@@ -510,24 +424,11 @@ bool BPatch_point::stopMonitoring()
   return ret;
 }
 
-/*
- * BPatch_point::getDisplacedInstructions
- *
- * Returns the instructions to be relocated when instrumentation is inserted
- * at this point.  Returns the number of bytes taken up by these instructions.
- *
- * maxSize      The maximum number of bytes of instructions to return.
- * insns        A pointer to a buffer in which to return the instructions.
- */
-
 int BPatch_point::getDisplacedInstructions(int /*maxSize*/, void* /*insns*/)
 {
    return 0;
 }
 
-// This isn't a point member because it relies on instPoint.h, which
-// we don't want to include in BPatch_point.h. If we had a public "enumerated types"
-// header file this could move.
 bool BPatchToInternalArgs(BPatch_point *point,
                           BPatch_callWhen when,
                           BPatch_snippetOrder order,
@@ -650,8 +551,6 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 
 }
 
-// Removes snippet from datastructures, doesn't actually remove the
-// instrumentation.  Is invoked by BPatch_addressSpace::deleteSnippet
 bool BPatch_point::removeSnippet(BPatchSnippetHandle *handle)
 {
    bool foundHandle = false;

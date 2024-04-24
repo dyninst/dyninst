@@ -58,10 +58,7 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
     return IsIndexing(rt->child(1), index);
 
 }
-/*
- * Insert edges found into the edges vector, and return true if the vector is non-empty
- *
- * */
+
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     
     parsing_printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
@@ -211,10 +208,6 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     return !jumpTableOutEdges.empty();
 }						       
 
-
-
-
-// Find all blocks that reach the block containing the indirect jump
 void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
     reachable.clear();
     queue<Block*> q;
@@ -235,7 +228,6 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
     }
 
 }
-
 
 static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::Block *b) {
     // After the call to thunk, there is usually

@@ -44,16 +44,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-/**************************************************************************
- * localVarCollection
- *************************************************************************/
-
-/*
- * localVarCollection::~localVarCollection
- *
- * Destructor for localVarCollection.  Deletes all type objects that
- * have been inserted into the collection.
- */
 localVarCollection::~localVarCollection(){
    auto li = localVars.begin();
    for(;li!=localVars.end();li++)
@@ -63,12 +53,6 @@ localVarCollection::~localVarCollection(){
 
    localVars.clear();
 }
-
-/*
- * localVarCollection::addLocalVar()
- * This function adds local variables to the set of local variables
- * for function.
- */
 
 bool localVarCollection::addItem_impl(localVar * var)
 {
@@ -84,12 +68,6 @@ void localVarCollection::addLocalVar(localVar * var)
 	}
 }
 
-/*
- * localVarCollection::findLocalVar()
- * This function finds a local variable by name and returns a pointer to
- * it or NULL if the local variable does not exist in the set of function
- * local variables.
- */
 localVar *localVarCollection::findLocalVar(std::string &name){
 
    auto li = localVars.begin();
@@ -102,16 +80,11 @@ localVar *localVarCollection::findLocalVar(std::string &name){
    return NULL;
 }
 
-/*
- * localVarCollection::getAllVars()
- * this function returns all the local variables in the collection.
- */
 const dyn_c_vector<localVar *> &localVarCollection::getAllVars() const
 {
     return localVars;
 }
 
-// Could be somewhere else... for DWARF-work.
 dyn_c_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
 dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *> *deferred_lookups_p = NULL;
 
@@ -198,10 +171,6 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 	return (!err);
 }
 
-/*
- * Reference count
- */
-
 typeCollection *typeCollection::getModTypeCollection(Module *mod)
 {
     if (!mod) return NULL;
@@ -217,13 +186,6 @@ typeCollection *typeCollection::getModTypeCollection(Module *mod)
     return a->second;
 }
 
-
-/*
- * typeCollection::typeCollection
- *
- * Constructor for typeCollection.  Creates the two dictionaries
- * for the type, by Name and ID.
- */
 typeCollection::typeCollection() :
 	typesByName(),
 	globalVarsByName(),
@@ -233,24 +195,8 @@ typeCollection::typeCollection() :
   /* Initialize hash tables: typesByName, typesByID */
 }
 
-/*
- * typeCollection::~typeCollection
- *
- * Destructor for typeCollection.  Deletes all type objects that have
- * been inserted into the collection.
- */
 typeCollection::~typeCollection() {}
 
-/*
- * typeCollection::findType
- *
- * Retrieve a pointer to a type object representing the named type from
- * the collection.  If no such type exists and no such type can be derived
- * from existing types, then the function returns NULL.
- *
- * name		The name of the type to look up.
- * id           The unique type ID of the type tp look up.
- */
 boost::shared_ptr<Type> typeCollection::findType(std::string name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
@@ -330,15 +276,6 @@ boost::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
     }
 }
 
-/*
- * typeCollection::findVariableType
- * (Global Variables)
- * Retrieve a pointer to a type object representing the named type from
- * the collection.  If no such type exists and no such type can be derived
- * from existing types, then the function returns NULL.
- *
- * name		The name of the type to look up.
- */
 boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
@@ -348,14 +285,6 @@ boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name, Type
         return boost::shared_ptr<Type>();
 }
 
-/*
- * typeCollection::addType
- *
- * Add a new type to the type collection.  Note that when a type is added to
- * the collection, it becomes the collection's responsibility to delete it
- * when it is no longer needed.  For one thing, this means that a type
- * allocated on the stack should *NEVER* be put into a typeCollection.
- */
 void typeCollection::addType(boost::shared_ptr<Type> type)
 {
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
@@ -376,10 +305,6 @@ void typeCollection::clearNumberedTypes()
    typesByID.clear();
 }
 
-/*
- * localVarCollection::getAllVars()
- * this function returns all the local variables in the collection.
- */
 void typeCollection::getAllTypes(std::vector<boost::shared_ptr<Type>>& vec) {
    for (auto it = typesByName.begin();
         it != typesByName.end();
@@ -395,14 +320,6 @@ void typeCollection::getAllGlobalVariables(vector<pair<string, boost::shared_ptr
    }
 }
 
-/*
- * builtInTypeCollection::builtInTypeCollection
- *
- * Constructor for builtInTypeCollection.  Creates adictionary
- * for the builtInType, by Name and ID.
- *  XXX- Don't know if a collection is needed for types by name, but
- * it is created just in case. jdd 4/21/99
- */
 builtInTypeCollection::builtInTypeCollection():
   builtInTypesByID(),
   builtInTypesByName()
@@ -410,27 +327,10 @@ builtInTypeCollection::builtInTypeCollection():
   /* Initialize hash tables: builtInTypesByName, builtInTypesByID */
 }
 
-/*
- * builtInTypeCollection::~builtInTypeCollection
- *
- * Destructor for builtInTypeCollection.  Deletes all builtInType objects that have
- * been inserted into the collection.
- */
 builtInTypeCollection::~builtInTypeCollection()
 {
 }
 
-
-/*
- * builtInTypeCollection::findBuiltInType
- *
- * Retrieve a pointer to a type object representing the named type from
- * the collection.  If no such type exists and no such type can be derived
- * from existing types, then the function returns NULL.
- *
- * name		The name of the type to look up.
- * id           The unique type ID of the type tp look up.
- */
 boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(std::string &name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;

@@ -53,11 +53,6 @@ using namespace Dyninst::SymtabAPI;
 using namespace std;
 
 static Symbol deletedSymbol(std::string("DeletedSymbol"), Symbol::ST_DELETED, Symbol::SL_UNKNOWN, Symbol::SV_UNKNOWN, 0);
-/*
- * We're changing the type of a symbol. Therefore we need to rip it out of the indices
- * for whatever it used to be (also, aggregations) and put it in the new ones. 
- * Oy. 
- */
 
 bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
 {

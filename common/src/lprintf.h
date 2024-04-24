@@ -28,9 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/************************************************************************
- * lprintf.h: interface to printf-like error functions.
-************************************************************************/
 
 
 
@@ -41,10 +38,6 @@
 
 
 
-
-/************************************************************************
- * function prototypes.
-************************************************************************/
 
 extern COMMON_EXPORT void log_msg(const char *);
 extern COMMON_EXPORT void log_printf(void (*)(const char *), const char *, ...)

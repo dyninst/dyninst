@@ -41,7 +41,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace PatchAPI;
 
-/* If target is NULL, user is requesting a redirect to the sink block */
 bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    // Do we want edges to only be in the same object? I don't think so.
    // However, same address space is probably a good idea ;)

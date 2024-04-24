@@ -38,25 +38,15 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-/*
- * A generic interface for handling archives (aka .a files)
- *
- * Specifics of the format for the .a files are handled per platform.
- * See Archive-<platform> files for more info. 
- */
-
 std::vector<Archive *> Archive::allArchives;
 std::string Archive::errMsg;
 SymtabError Archive::serr;
 
-// Error messages used by printError
 static const std::string PARSE_FAILURE = "Failed to parse the archive: ";
 static const std::string NO_MEMBER = "Member not found: ";
 static const std::string NOT_ARCHIVE = "File is not an archive";
 static const std::string DUPLICATE_SYM = "Duplicate symbol found: ";
 static const std::string UNKNOWN_ERR = "Unknown Error";
-
-// Specific error cases
 static const std::string MEMBER_DNE = "member does not exist";
 
 SymtabError Archive::getLastError()
@@ -262,18 +252,6 @@ bool Archive::isMemberInArchive(std::string& member_name)
     return false;
 }
 
-/**
- * This method differs from getMemberByGlobalSymbol in that it searches the
- * underlying Symtab objects in the archive for the symbol while
- * getMemberByGlobalSymbol searches the Archive's symbol table.
- *
- * The reasoning behind this is that searching the Archive's symbol table will
- * be faster than using the Symtab interface because the underlying Symtab
- * object is only created when the symbol is found in the Archive's symbol table.
- * Contrary to this, findMemberWithDefinition requires creating Symtab objects
- * for every member in an Archive and then searching each of these Symtab objects
- * for the symbol.
- */
 bool Archive::findMemberWithDefinition(Symtab * &obj, std::string& name)
 {
     std::vector<Symtab *> members;

@@ -28,21 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/************************************************************************
- * Windows NT/2000 object files.
- ************************************************************************/
-
-
-
-
 #if !defined(_Object_nt_h_)
 #define _Object_nt_h_
-
-
-
-/************************************************************************
- * header files.
-************************************************************************/
 
 #include <map>
 #include <set>
@@ -66,10 +53,6 @@ namespace Dyninst{
 namespace SymtabAPI{
 
 class ExceptionBlock;
-
-/************************************************************************
- * class Object
-************************************************************************/
 
 class Object : public AObject
 {
@@ -172,7 +155,6 @@ class Object : public AObject
  private:
     Module* curModule;
 
-    // declared but not implemented; no copying allowed
     Object(const Object &);
     const Object& operator=(const Object &);
 
@@ -233,8 +215,6 @@ class Object : public AObject
     std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
     PIMAGE_NT_HEADERS getPEHdr() { return peHdr; }
 	void setTOCoffset(Offset) {};
-	// Adjusts the data in all the sections to reflect what
-	// the loader will do if the binary is loaded at actualBaseAddress
 	SYMTAB_EXPORT void rebase(Offset off);
 	SYMTAB_EXPORT Region* findRegionByName(const std::string& name) const;
 	SYMTAB_EXPORT void applyRelocs(Region* relocs, Offset delta);
@@ -252,36 +232,25 @@ private:
     Region *          findEnclosingRegion(const Offset where);
     void AddTLSFunctions();
 	DWORD* get_dword_ptr(Offset rva);
-    Offset baseAddr;     // location of this object in mutatee address space
+    Offset baseAddr;
+	Offset preferedBase;
+    Offset imageBase;
+    PIMAGE_NT_HEADERS   peHdr;
+    Offset trapHeaderPtr_;
+	unsigned int SecAlignment;
 
-	Offset preferedBase; // Virtual address at which the binary is prefered to be loaded
-    Offset imageBase; // Virtual Address at which the binary is loaded in its address space
-
-    PIMAGE_NT_HEADERS   peHdr;      // PE file headers
-    Offset trapHeaderPtr_; // address & size
-	unsigned int SecAlignment; //Section Alignment
-
-	//structure of import table
     std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > idt_;
     std::map<std::string, std::map<std::string, WORD> > hnt_;
 
-	//external reference info
    std::map<std::string,std::map<Offset, std::string> > ref;
 
-	unsigned int textSectionId;		// id of .text segment (section)
-	unsigned int dataSectionId;		// id of .data segment (section)
+	unsigned int textSectionId;
+	unsigned int dataSectionId;
    
-	HANDLE  hProc;					// Process Handle
-    std::vector<Offset> possible_mains; //Addresses of functions that may be main
+	HANDLE  hProc;
+    std::vector<Offset> possible_mains;
 };
 
-// In recent versions of the Platform SDK, the macros naming
-// the value for the Flags field of the SYMBOL_INFO struct have
-// names with a SYMFLAG_ prefix.  Older Platform SDKs, including
-// the version that shipped with the Visual Studio .NET product
-// (i.e., VC7), use names for these macros with a SYMF_ prefix.
-// If we find we are using these older headers, we define the
-// new-style names.
 #if !defined(SYMFLAG_FUNCTION)
 #  define SYMFLAG_FUNCTION      SYMF_FUNCTION
 #  define SYMFLAG_LOCAL         SYMF_LOCAL

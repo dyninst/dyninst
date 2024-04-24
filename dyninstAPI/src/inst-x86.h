@@ -33,59 +33,25 @@
 #ifndef INST_X86_H
 #define INST_X86_H
 
-// some x86 definitions
-
-
-/*
-   We don't use the machine registers to store temporaries,
-   but "virtual registers" that are located on the stack.
-   The stack frame for a tramp is:
-
-     ebp->    saved ebp (4 bytes)
-     ebp-4:   128-byte space for 32 virtual registers (32*4 bytes)
-     ebp-132: saved registers (8*4 bytes)
-     ebp-164: saved flags registers (4 bytes)
-     ebp-168: (MT only) thread index
-
-     The temporaries are assigned numbers from 1 so that it is easier
-     to refer to them: -(reg*4)[ebp]. So the first reg is -4[ebp].
-
-     We are using a fixed number of temporaries now (32), but we could 
-     change to using an arbitrary number.
-
-*/
-
 #include <assert.h>
 #include "dyninstAPI/src/registerSpace.h"
 
-#define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
+#define NUM_VIRTUAL_REGISTERS (32)
 #define NUM_FPR_REGISTERS (1)
 #define IA32_FPR_VIRTUAL_REGISTER (NUM_VIRTUAL_REGISTERS + 1)
 #define IA32_FLAG_VIRTUAL_REGISTER (IA32_FPR_VIRTUAL_REGISTER + 1)
 
-/* Add one for the REG_MT_POS 'reserved' reg */
 #define TRAMP_FRAME_SIZE ((NUM_VIRTUAL_REGISTERS+1)*4)
 
-// offset from EBP of the saved EAX for a tramp
 #define SAVED_EAX_OFFSET (10*4-4)
 #define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
 
-// Undefine REG_MT_POS, basically
 #define REG_MT_POS NUM_VIRTUAL_REGISTERS
 
 #define IA32_STACK_ALIGNMENT     16
-#define AMD64_STACK_ALIGNMENT    32  // This is extremely conservative.
-                                     // 16 may be enough.
+#define AMD64_STACK_ALIGNMENT    32
 #define AMD64_RED_ZONE         0x80
 
-
-
-/*
-   Function arguments are in the stack and are addressed with a displacement
-   from EBP. EBP points to the saved EBP, EBP+4 is the saved return address,
-   EBP+8 is the first parameter.
-   TODO: what about far calls?
- */
 #define FUNC_PARAM_OFFSET (8+(10*4)+STACK_PAD_CONSTANT)
 #define CALLSITE_PARAM_OFFSET (4+(10*4)+STACK_PAD_CONSTANT)
 
@@ -94,8 +60,6 @@
 //#define DEBUG_FUNC_RELOC
 //#endif
 
-// Macro for single x86/x86_64 register access
-// Register names for use with ptrace calls, not instruction generation.
 #if defined(__x86_64__) && __WORDSIZE == 64
 #define PTRACE_REG_15		r15
 #define PTRACE_REG_14		r14
@@ -149,10 +113,8 @@
 
 class codeGen;
 
-// Define access method for saved register (GPR)
 #define GET_GPR(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET-(x*4), insn)
 
-// Define access method for virtual registers (stack-based)
 #define LOAD_VIRTUAL32(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(x*4), insn)
 #define SAVE_VIRTUAL32(x, insn) emitMovRegToRM(REGNUM_EBP, -1*(x*4), REGNUM_EAX, insn)
 #define LOAD_VIRTUAL64(x, insn) emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, -1*(x*8), insn)
@@ -165,7 +127,6 @@ void emitAddressingMode(unsigned base, Dyninst::RegValue disp,
                         unsigned reg_opcode, codeGen &gen);
 
 
-// low-level code generation functions
 void emitOpRegReg(unsigned opcode, RealRegister dest, RealRegister src, 
                   codeGen &gen);
 void emitOpExtReg(unsigned opcode, unsigned char ext, RealRegister reg, 
@@ -221,14 +182,11 @@ void emitAddMemImm32(Dyninst::Address dest, int imm, codeGen &gen);
 void emitCallRel32(unsigned disp32, codeGen &gen);
 
 void emitJmpMC(int condition, int offset, codeGen &gen);
-// helper functions for emitters
 
 unsigned char cmovOpcodeFromRelOp(unsigned op, bool s);
 unsigned char jccOpcodeFromRelOp(unsigned op, bool s);
 
 
-// function that uses cpuid instruction to figure out whether the processor uses 
-// XMM registers
 bool xmmCapable();
 
 void emitBTRegRestores32(baseTramp *bti, codeGen &gen);

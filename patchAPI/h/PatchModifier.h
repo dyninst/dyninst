@@ -35,10 +35,6 @@
 #include <vector>
 #include "dyntypes.h"
 
-// A collection of methods for user-triggered modification of a PatchAPI CFG,
-// including "canned" capabilities such as replacing a function or low-level
-// capabilities such as splitting blocks or redirecting edges. 
-
 #include "PatchMgr.h"
 #include "PatchCommon.h"
 
@@ -70,23 +66,15 @@ class PATCHAPI_EXPORT InsertedCode {
 
 class PATCHAPI_EXPORT PatchModifier {
   public:
-   // These are all static methods as this class has no state; so really, 
-   // it's just a namespace. 
 
-   // Redirect the target of an existing edge. 
    static bool redirect(PatchEdge *edge, PatchBlock *target);
 
-   // Split a block at a provided point.; we double-check whether the address
-   // is a valid instruction boundary unless trust is true. 
    static PatchBlock *split(PatchBlock *, Address, 
                                             bool trust = false, 
                                             Address newlast = (Address)-1);
    
-   // Remove a block from the CFG; the block must be unreachable
-   // (that is, have no in-edges) unless force is true.
    static bool remove(std::vector<PatchBlock *> &blocks, bool force = false);
 
-   // As the above, but for functions. 
    static bool remove(PatchFunction *);
 
    static InsertedCode::Ptr insert(PatchObject *, SnippetPtr snip, Point *point);

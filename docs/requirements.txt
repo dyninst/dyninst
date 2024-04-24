@@ -1,0 +1,8 @@
+sphinx
+sphinxcontrib-napoleon
+sphinx-argparse
+sphinx_rtd_theme
+docutils
+myst_parser
+configargparse
+appdirs

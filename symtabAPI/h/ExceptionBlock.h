@@ -43,14 +43,7 @@ namespace Dyninst {
 namespace SymtabAPI {
 
 
-/**
- * Used to represent something like a C++ try/catch block.
- * Currently only used on Linux
- **/
-
 class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
-  // Accessors provide consistent access to the *original* offsets.
-  // We allow this to be updated (e.g. to account for relocated code
    public:
       ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       ExceptionBlock(Offset cStart);

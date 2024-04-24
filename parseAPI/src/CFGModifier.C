@@ -40,10 +40,6 @@
 using namespace Dyninst;
 using namespace ParseAPI;
 
-
-/* If target is NULL, user is requesting a redirect to the sink block
- * (create edge only if source block doesn't have a sink edge of the 
- * same type already) */
 bool CFGModifier::redirect(Edge *edge, Block *target) {
    // What happens if we try a redirect to the sink? I'm
    // thinking fail, as it's a virtual block.

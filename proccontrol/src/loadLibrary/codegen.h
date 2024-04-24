@@ -1,8 +1,3 @@
-// Codegen.h
-//
-// Interface class for generating a dlopen() call
-//
-
 #if !defined(_INJECTOR_CODEGEN_H_)
 #define _INJECTOR_CODEGEN_H_
 

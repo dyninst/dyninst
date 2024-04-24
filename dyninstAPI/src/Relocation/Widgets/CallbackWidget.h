@@ -44,8 +44,6 @@ class CallbackWidget : public Widget {
  public:
   typedef boost::shared_ptr<CallbackWidget> Ptr;
 
-  // I believe I can patch in the current code generation
-  // system here...
   static Ptr create(Patch *patch);
   
      CallbackWidget(Patch *p) : patch_(p) {}

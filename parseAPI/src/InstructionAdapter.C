@@ -137,8 +137,6 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
     return UNSET;
 }
 
-/* Returns true for indirect calls and unresolved indirect branches 
- */
 bool InstructionAdapter::hasUnresolvedControlFlow(Function* context, unsigned int num_insns) const
 {
     if(isDynamicCall())

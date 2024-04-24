@@ -27,7 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-/* Public Interface */
 
 #ifndef PATCHAPI_H_PATCHMGR_H_
 #define PATCHAPI_H_PATCHMGR_H_
@@ -44,9 +43,6 @@
 
 namespace Dyninst {
 namespace PatchAPI {
-
-/* Interfaces for point query, snippet insertion and removal in batch
-   mode */
 
 class PatchObject;
 class PatchMgr;
@@ -92,28 +88,21 @@ class PATCHAPI_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr>
                                               Instrumenter* inst = NULL,
                                               PointMaker* pf = NULL);
 
-    // Default implementation for filter function,
-    // used in findPoins and removeSnippets
     template <class T>
     class IdentityFilterFunc {
       public:
        bool operator()(Point::Type, Location, T) { return true;}
     };
 
-    // Query Points:
-
-    // Direct interface; specify a Location and a unique Type, receive a Point.
     Point *findPoint(Location loc,
                                      Point::Type type,
                                      bool create = true);
-    // And accumulation version
     template <class OutputIterator> 
     bool findPoint(Location loc,
                    Point::Type type,
                    OutputIterator outputIter,
                    bool create = true);
 
-    // Group interface with one degree of freedom: the Type can be a composition.
     template <class FilterFunc, class FilterArgument, class OutputIterator>
     bool findPoints(Location loc,
                     Point::Type types,
@@ -128,9 +117,6 @@ class PATCHAPI_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr>
                     OutputIterator outputIter,
                     bool create = true);
 
-    // Group interface with two degrees of freedom: Locations are wildcarded
-    // and Type can be a composition. Instead, users provide a Scope and a
-    // FilterFunc that guide which Locations will be considered.
     template <class FilterFunc, class FilterArgument, class OutputIterator>
     bool findPoints(Scope scope,
                     Point::Type types,
@@ -139,19 +125,14 @@ class PATCHAPI_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr>
                     OutputIterator output_iter,
                     bool create = true);
 
-    // Use default identity filter function
     template <class OutputIterator>
     bool findPoints(Scope scope,
                     Point::Type types,
                     OutputIterator output_iter,
                     bool create = true);
 
-    // Snippet instance removal
-    // Return false if no point if found
     bool removeSnippet(InstancePtr);
 
-    // Delete ALL snippets at certain points.
-    // This uses the same filter-based interface as findPoints.
     template <class FilterFunc, class FilterArgument>
     bool removeSnippets(Scope scope,
                         Point::Type types,
@@ -169,7 +150,6 @@ class PATCHAPI_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr>
 
     void destroy(Point *);
 
-    // Use default identity filter function.
     bool removeSnippets(Scope scope,
                         Point::Type types) {
       IdentityFilterFunc<char*> filter_func;
@@ -177,16 +157,10 @@ class PATCHAPI_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr>
       return removeSnippets<IdentityFilterFunc<char *>, char*>(scope, types, filter_func, foo);
     }
 
-    // Getters
     AddrSpace* as() const { return as_; }
     PointMaker* pointMaker() const { return point_maker_; }
     Instrumenter* instrumenter() const { return instor_; }
-    //----------------------------------------------------
-    // Mapping order: Scope -> Type -> Point Set
-    //   The Scope x Type provides us a list of matching locations;
-    //   we then filter those locations. Points are stored in
-    //   their contexts (e.g., Functions or Blocks). 
-    //----------------------------------------------------
+
     bool getCandidates(Scope &, Point::Type types, Candidates &ret);
 
     bool consistency() const;
@@ -283,7 +257,6 @@ bool PatchMgr::findPoints(Location loc, Point::Type types,
    return findPoints(loc, types, filter_func, dummy, outputIter, create);
 }
 
-// Use default identity filter function
 template <class OutputIterator>
 bool PatchMgr::findPoints(Scope scope,
                           Point::Type types,

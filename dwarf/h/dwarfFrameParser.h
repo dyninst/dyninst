@@ -53,7 +53,7 @@ namespace DwarfDyninst {
 class DwarfResult;
 
 typedef enum {
-    FE_Bad_Frame_Data = 15,   /* to coincide with equivalent SymtabError */
+    FE_Bad_Frame_Data = 15,
     FE_No_Frame_Entry,
     FE_Frame_Read_Error,
     FE_Frame_Eval_Error,
@@ -89,10 +89,6 @@ public:
             DwarfResult &cons,
             FrameErrors_t &err_result);
 
-    // Returns whatever Dwarf claims the function covers. 
-    // We use an entryPC (actually, can be any PC in the function)
-    // because common has no idea what a Function is and I don't want
-    // to move this to Symtab. 
     bool getRegsForFunction(
             std::pair<Address, Address> range,
             MachRegister reg,
@@ -129,24 +125,6 @@ private:
     } dwarf_status_t;
     
     static std::map<frameParser_key, Ptr> frameParsers;
-
-    // .debug_frame and .eh_frame are sections that contain frame info.
-    // They might or might not be present, but we need at least one to create a
-    // DwarfFrameParser object, otherwise it wouldn't make sense to create a
-    // frame parser to no frame data.
-    // .debug_frame will be accessed by a Dwarf handle returned by libdw, while
-    // .eh_frame will be accessed by an Elf reference.
-    // Why? Although they can be in the same binary, for the case of separate debug
-    // info, in which we have two binaries, the .eh_frame remains in the stripped binary,
-    // while the .debug_frame (if generated) will be present in the debug info binary.
-    //
-    // Therefore:
-    // dbg			: to access .debug_frame, can be NULL.
-    // dbg_eh_frame	: to access .eh_frame, can be NULL.
-    //
-    // Note: not both can be NULL.
-    // Note: dbg will be a handle to dbg_eh_frame for when we don't have separate
-    //       debug info, which is a redundancy, but necessary.
 
     Dwarf 	* dbg;
     Elf 	* dbg_eh_frame;

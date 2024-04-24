@@ -28,18 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * XXX
- *
- * This class is unnecessary. However, at the time of writing, emitElf was
- * split into two different classes (one for 32-bit and 64-bit). Instead of
- * duplicating code, this class was created to share code between the
- * two emitElf classes.
- *
- * Once the emitElf classes are merged, this class can be merged with the new
- * emitElf class.
- */
-
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
@@ -64,7 +52,6 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-// Section names
 static const string CODE_NAME(".dyninstCode");
 static const string STUB_NAME(".dyninstStub");
 static const string DATA_NAME(".dyninstData");
@@ -78,7 +65,6 @@ static const string PLT_NAME(".dyninstPLT");
 static const string REL_NAME(".dyninstRELA");
 static const string REL_GOT_NAME(".dyninstRELAgot");
 
-/* Used by architecture specific functions, but not architecture specific */
 const string Dyninst::SymtabAPI::SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 const string Dyninst::SymtabAPI::SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 const string Dyninst::SymtabAPI::SYMTAB_IREL_START("__SYMTABAPI_IREL_START__");
@@ -91,23 +77,6 @@ emitElfStatic::emitElfStatic(unsigned addressWidth, bool isStripped) :
 {
 
 }
-
-/**
- * NOTE:
- * Most of these functions take a reference to a StaticLinkError and a string
- * for error reporting purposes. These should prove useful in identifying the
- * cause of an error
- */
-
-/**
- * Statically links relocatable files into the specified Symtab object,
- * as specified by state in the Symtab object
- *
- * target       relocatable files will be linked into this Symtab
- *
- * Returns a pointer to a block of data containing the results of the link
- * The caller is responsible for delete'ing this block of data
- */
 char *emitElfStatic::linkStatic(Symtab *target,
         StaticLinkError &err, string &errMsg)
 {
@@ -221,18 +190,6 @@ char *emitElfStatic::linkStatic(Symtab *target,
     return lmap.allocatedData;
 }
 
-/**
- * Resolves undefined symbols in the specified Symtab object, usually due
- * to the addition of new Symbols to the Symtab object. The target Symtab
- * object must have a collection of Archives associated with it. These
- * Archives will be searched for the defined versions of the undefined
- * symbols in the specified Symtab objects.
- *
- * target               the Symtab containing the undefined symbols
- * relocatableObjects   populated by this function, this collection specifies
- *                      all the Symtabs needed to ensure that the target has
- *                      no undefined Symbols once the link is performed
- */
 bool emitElfStatic::resolveSymbols(Symtab *target,
         vector<Symtab *> &relocatableObjects,
         LinkMap &lmap,
@@ -448,28 +405,6 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
     return true;
 }
 
-/**
- * Given a collection of Symtab objects, combines the code, data, bss and
- * other miscellaneous Regions into groups and places them in a new block
- * of data.
- *
- * Allocates COMMON symbols in the collection of Symtab objects
- * as bss
- *
- * Creates a new TLS initialization image, combining the target image
- * and the image that exists in the collection of Symtab objects
- *
- * Creates a GOT used for indirect memory accesses that is required by some
- * relocations
- *
- * Creates a new global constructor and/or destructor table if necessary,
- * combining tables from the target and collection of Symtab objects
- *
- * target               New code/data/etc. will be linked into this Symtab
- * relocatableObjects   The new code/data/etc.
- * globalOffset         The location of the new block of data in the target
- * lmap                 The LinkMap to be populated by this function
- */
 bool emitElfStatic::createLinkMap(Symtab *target,
         vector<Symtab *> &relocatableObjects,
         Offset & globalOffset,
@@ -990,17 +925,6 @@ bool emitElfStatic::createLinkMap(Symtab *target,
     return true;
 }
 
-/**
- * Lays out the specified regions, storing the layout info in the
- * passed map.
- *
- * regions              A collection of Regions to layout
- * regionAllocs         A map of Regions to their layout information
- * currentOffset        The starting offset for the passed Regions in
- *                      the new storage space
- * globalOffset         The location of the new storage space in the
- *                      target (used for padding calculation)
- */
 Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
                                     map<Region *, LinkMap::AllocPair> &regionAllocs,
                                     Offset currentOffset, Offset globalOffset)
@@ -1032,13 +956,6 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
     return retOffset;
 }
 
-/*
- * Adds new combined Regions to the target at the specified globalOffset
- *
- * target       The Symtab object to which the new Regions will be added
- * globalOffset The offset of the first new Region in the target
- * lmap         Contains all the information about the LinkMap
- */
 bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &lmap) {
     char *newTargetData = lmap.allocatedData;
 
@@ -1143,12 +1060,6 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
     return true;
 }
 
-/**
- * Copys the new Regions, as indicated by the LinkMap, into the
- * allocated storage space
- *
- * lmap         Contains all the information necessary to perform the copy
- */
 void emitElfStatic::copyRegions(LinkMap &lmap) {
     char *targetData = lmap.allocatedData;
 
@@ -1170,12 +1081,6 @@ void emitElfStatic::copyRegions(LinkMap &lmap) {
     }
 }
 
-/**
- * Computes the padding necessary to satisfy the specified alignment
- *
- * candidateOffset      A possible offset for an item
- * alignment            The alignment for an item
- */
 inline
 Offset emitElfStatic::computePadding(Offset candidateOffset, Offset alignment) {
     Offset padding = 0;
@@ -1185,16 +1090,6 @@ Offset emitElfStatic::computePadding(Offset candidateOffset, Offset alignment) {
     return padding;
 }
 
-/**
- * Given a collection of newly allocated regions in the specified storage space,
- * computes relocations and places the values at the location specified by the
- * relocation entry (stored with the Regions)
- *
- * target               The Symtab object being rewritten
- * relocatableObjects   A list of relocatable files being linked into target
- * globalOffset         The location of the new storage space in target
- * lmap                 Contains all the information necessary to apply relocations
- */
 bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatableObjects,
 				     Offset globalOffset, LinkMap &lmap,
 				     StaticLinkError &err, string &errMsg)
@@ -1312,10 +1207,6 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
     return true;
 }
 
-/**
- * A string representation of the StaticLinkError returned by
- * other functions
- */
 string emitElfStatic::printStaticLinkError(StaticLinkError err) {
     switch(err) {
         CASE_RETURN_STR(No_Static_Link_Error);
@@ -1327,73 +1218,9 @@ string emitElfStatic::printStaticLinkError(StaticLinkError err) {
     }
 }
 
-/**
- * Indicates if a new TLS initialization image has been created
- */
 bool emitElfStatic::hasRewrittenTLS() const {
     return hasRewrittenTLS_;
 }
-
-/** The following functions are all somewhat architecture-specific */
-
-/* TLS Info
- *
- * TLS handling is pseudo-architecture dependent. The implementation of the TLS
- * functions depend on the implementation of TLS on a specific architecture.
- *
- * The following material is documented in more detail in the
- * "ELF Handling For TLS" white paper. According to this paper, their are
- * two variants w.r.t. creating a TLS initialization image.
- *
- * ======================
- *
- * The first is:
- *
- *            beginning of image
- *            |
- *            V                              high address
- * +----+-----+----------+---------+---------+
- * |    | TCB | image 1  | image 2 | image 3 |
- * +----+---- +----------+---------+---------+
- *
- * where TCB = thread control block, and each image is the
- * TLS initialization image for an object (in this context an executable or
- * shared library).
- *
- * ========================
- *
- * The second is:
- *
- * beginning of image
- * |
- * V                                        high address
- * +---------+----------+---------+---------+
- * | image 3 | image 2  | image 1 |  TCB    |
- * +---------+----------+---------+---------+
- *
- * An image is:
- *
- * +--------+--------+
- * | DATA   |  BSS   |
- * +--------+--------+
- *
- * New TLS data and bss is added to the original initialization image as follows:
- *
- * +----------+------------------+-------------+------------+-----+
- * | NEW DATA | EXPANDED NEW BSS | TARGET DATA | TARGET BSS | TCB |
- * +----------+------------------+-------------+------------+-----+
- *
- * It is important to note that the TARGET DATA and TARGET BSS blocks are not moved.
- * This ensures that the modifications to the TLS image are safe.
- *
- * ==========================
- *
- * These are the two variants one would see when working with ELF files. So, an
- * architecture either uses variant 1 or 2.
- *
- */
-
-/* See architecture specific functions that call these for descriptions of function interface */
 
 Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap)
 {
@@ -1495,8 +1322,6 @@ Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Re
     return endOffset;
 }
 
-// Note: Variant 1 does not require any modifications, so a separate
-// function is not necessary
 Offset emitElfStatic::tlsAdjustVariant2(Offset curOffset, Offset tlsSize) {
     // For Variant 2, offsets relative to the TCB need to be negative
     Offset retOffset = curOffset;
@@ -1526,21 +1351,6 @@ emitElfUtils::sort_reg(const Region* a, const Region* b)
     return a->getMemOffset() < b->getMemOffset();
 }
 
-/*
- * Sort the sections array so that sections with a non-zero
- * memory offset come first (and are sorted in increasing
- * order of offset). Preserves the ordering of zero-offset
- * sections.
- *
- * If no section has a non-zero offset, the return value will
- * be an address in the virtual memory space big enough to
- * hold all the loadable sections. Otherwise it will be the
- * address of the first non-zero offset section.
- *
- * NB if we need to create a new segment to hold these sections,
- * it needs to be clear up to the next page boundary to avoid
- * potentially clobbering other loadable segments.
- */
 Address
 emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
 {
@@ -1575,7 +1385,6 @@ emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
     return ret;
 }
 
-// There are also some known variables that point to the heap
 bool emitElfUtils::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddress ) {
     unsigned pgSize = (unsigned)getpagesize();
     const std::string minbrk(".minbrk");

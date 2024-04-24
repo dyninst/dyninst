@@ -23,8 +23,6 @@ namespace Dyninst { namespace SymtabAPI {
     std::once_flag funcRangesAreParsed{};
     std::once_flag types_parsed{};
 
-    // Since Functions are unique by address, we require this structure to
-    // efficiently track them.
     dyn_c_hash_map<Offset, Function *> funcsByOffset{};
 
     using VarsByOffsetMap = dyn_c_hash_map<Offset, std::vector<Variable *>>;

@@ -81,7 +81,6 @@ std::string InstWidget::format() const {
    return "InstWidget()";
 }
 
-// Could be a lot smarter here...
 bool InstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
    relocation_cerr << "\t\t InstWidgetPatch::apply " << this << " /w/ tramp " << tramp << std::endl;
 
