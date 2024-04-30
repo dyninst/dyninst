@@ -60,6 +60,7 @@ namespace x86 {
     }
 
     void visit(di::RegisterAST*) override { valid = false; }
+    void visit(di::MultiRegisterAST*) override { valid = false; }
 
     void visit(di::Dereference*) override { found_deref = true; }
   };

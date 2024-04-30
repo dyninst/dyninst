@@ -72,6 +72,7 @@ namespace Dyninst
       DATAFLOW_EXPORT virtual void visit(InstructionAPI::BinaryFunction *binfunc);
       DATAFLOW_EXPORT virtual void visit(InstructionAPI::Immediate *immed);
       DATAFLOW_EXPORT virtual void visit(InstructionAPI::RegisterAST *regast);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::MultiRegisterAST *multiregast);
       DATAFLOW_EXPORT virtual void visit(InstructionAPI::Dereference *deref);
       
     private:

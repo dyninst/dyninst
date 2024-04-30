@@ -41,6 +41,7 @@
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "../CFG/RelocGraph.h"
 #include "instructionAPI/h/Visitor.h"
+#include "instructionAPI/h/MultiRegister.h"
 
 #include "StackMod.h"
 #include "function.h"
@@ -383,6 +384,12 @@ public:
       foundSP = true;
     }
   }
+  virtual void visit(MultiRegisterAST* r)
+  {
+      for (auto my_Reg : r->getRegs())
+          visit(my_Reg.get());
+  }
+
   virtual void visit(Dereference* )
   {
     if (foundDeref) {
