@@ -163,7 +163,7 @@ Location(PatchFunction *f, PatchBlock *b, Dyninst::Address a, InstructionAPI::In
    generation engine happens to put instrumentation from them at the same
    place */
 
-class PATCHAPI_EXPORT Point {
+class DYNINST_EXPORT Point {
   friend class PatchMgr;
   friend class PatchBlock;
   friend class PatchFunction;
@@ -323,7 +323,7 @@ enum SnippetState {
 
 /* A representation of a particular snippet inserted at a
    particular point */
-class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance> {
+class DYNINST_EXPORT Instance : public boost::enable_shared_from_this<Instance> {
   public:
    typedef boost::shared_ptr<Instance> Ptr;
 
@@ -357,7 +357,7 @@ class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance>
 
 /* Factory class for creating a point that could be either PatchAPI::Point or
    the subclass of PatchAPI::Point.   */
-class PATCHAPI_EXPORT PointMaker {
+class DYNINST_EXPORT PointMaker {
    friend class PatchMgr;
   public:
     PointMaker(PatchMgrPtr mgr) : mgr_(mgr) {}

@@ -80,7 +80,7 @@ namespace Dyninst
         /// Component version information corresponding to \c libInstructionAPI.so.(major).(minor).(maintenance)
         /// Note that \c maintenance may be absent from the binary (in which case, it will be zero in the interface).
 
-        INSTRUCTION_EXPORT static void version(int& major, int& minor, int& maintenance);
+        DYNINST_EXPORT static void version(int& major, int& minor, int& maintenance);
       union raw_insn_T
       {
 #if defined(__powerpc__) || defined(__powerpc64__)
@@ -125,47 +125,47 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      INSTRUCTION_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
+      DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                      Dyninst::Architecture arch);
-      INSTRUCTION_EXPORT Instruction();
+      DYNINST_EXPORT Instruction();
 
-      INSTRUCTION_EXPORT virtual ~Instruction();
+      DYNINST_EXPORT virtual ~Instruction();
 
-      INSTRUCTION_EXPORT Instruction(const Instruction& o);
-      INSTRUCTION_EXPORT const Instruction& operator=(const Instruction& rhs);
+      DYNINST_EXPORT Instruction(const Instruction& o);
+      DYNINST_EXPORT const Instruction& operator=(const Instruction& rhs);
 
 
       /// \return The %Operation used by the %Instruction
       ///
       /// See Operation for details of the %Operation interface.
-      INSTRUCTION_EXPORT Operation& getOperation();
-      INSTRUCTION_EXPORT const Operation& getOperation() const;
+      DYNINST_EXPORT Operation& getOperation();
+      DYNINST_EXPORT const Operation& getOperation() const;
 
       /// The vector \c operands has the instruction's operands appended to it
       /// in the same order that they were decoded.
-      INSTRUCTION_EXPORT void getOperands(std::vector<Operand>& operands) const;
+      DYNINST_EXPORT void getOperands(std::vector<Operand>& operands) const;
 
       /// Returns a vector of non-implicit operands in printed order
-      INSTRUCTION_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;
+      DYNINST_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;
 
       /// The \c getOperand method returns the operand at position \c index, or
       /// an empty operand if \c index does not correspond to a valid operand in this
       /// instruction.
-      INSTRUCTION_EXPORT Operand getOperand(int index) const;
+      DYNINST_EXPORT Operand getOperand(int index) const;
 
-      INSTRUCTION_EXPORT Operand getPredicateOperand() const;
-      INSTRUCTION_EXPORT bool hasPredicateOperand() const;
+      DYNINST_EXPORT Operand getPredicateOperand() const;
+      DYNINST_EXPORT bool hasPredicateOperand() const;
 
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
-      INSTRUCTION_EXPORT unsigned char rawByte(unsigned int index) const;
+      DYNINST_EXPORT unsigned char rawByte(unsigned int index) const;
 
       /// Returns the size of the corresponding machine instruction, in bytes.
-      INSTRUCTION_EXPORT size_t size() const;
+      DYNINST_EXPORT size_t size() const;
 
       /// Returns a pointer to the raw byte representation of the corresponding
       /// machine instruction.
-      INSTRUCTION_EXPORT const void* ptr() const;
+      DYNINST_EXPORT const void* ptr() const;
 
       /// \param regsWritten Insert the set of registers written by the instruction into \c regsWritten.
       ///
@@ -184,23 +184,23 @@ namespace Dyninst
       /// read.  Any element of the write set or read set that is not explicitly written or read is implicitly
       /// written or read.
 
-      INSTRUCTION_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
+      DYNINST_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
       /// \param regsRead Insert the set of registers read by the instruction into \c regsRead.
       ///
       /// If an operand is used to compute an effective address, the registers
       /// involved are read but not written, regardless of the effect on the operand.
-      INSTRUCTION_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
+      DYNINST_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
 
       /// \param candidate Subexpression to search for among the values read by this %Instruction object.
       ///
       /// Returns true if \c candidate is read by this %Instruction.
-      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
+      DYNINST_EXPORT bool isRead(Expression::Ptr candidate) const;
 
       /// \param candidate Subexpression to search for among the values written by this %Instruction object.
       ///
       /// Returns true if \c candidate is written by this %Instruction.
-      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
+      DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) const;
 
 
       /// \return Returns true if the instruction reads at least one memory address as data.
@@ -209,9 +209,9 @@ namespace Dyninst
       /// reads the memory at that address.
       /// Also, on platforms where a stack pop is guaranteed to read memory,
       /// \c readsMemory will return true for a pop operation.
-      INSTRUCTION_EXPORT bool readsMemory() const;
+      DYNINST_EXPORT bool readsMemory() const;
 
-      INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter() const;
+      DYNINST_EXPORT ArchSpecificFormatter& getFormatter() const;
 
       /// \return Returns true if the instruction writes at least one memory address.
       ///
@@ -219,7 +219,7 @@ namespace Dyninst
       /// writes the memory at that address.
       /// Also, on platforms where a stack push is guaranteed to write memory,
       /// \c writesMemory will return true for a push operation.
-      INSTRUCTION_EXPORT bool writesMemory() const;
+      DYNINST_EXPORT bool writesMemory() const;
 
       /// \param memAccessors Addresses read by this instruction are inserted into \c memAccessors
       ///
@@ -228,12 +228,12 @@ namespace Dyninst
       /// Note that this method returns ASTs representing address computations, and not address accesses.  For instance,
       /// an instruction accessing memory through a register dereference would return a %Expression tree containing
       /// just the register that determines the address being accessed, not a tree representing a dereference of that register.
-      INSTRUCTION_EXPORT void getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const;
+      DYNINST_EXPORT void getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const;
 
       /// \param memAccessors Addresses written by this instruction are inserted into \c memAccessors
       ///
       /// The addresses written are in the same form as those returned by \c getMemoryReadOperands above.
-      INSTRUCTION_EXPORT void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
+      DYNINST_EXPORT void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
 
       /// \return An expression evaluating to the non-fallthrough control flow targets, if any, of this instruction.
       ///
@@ -251,41 +251,41 @@ namespace Dyninst
       /// in the %Instruction API; if other code performs this type of analysis,
       /// it may update the information in the %Dereference object using the setValue method in the %Expression interface.
       /// More details about this may be found in Expression and Dereference.
-      INSTRUCTION_EXPORT Expression::Ptr getControlFlowTarget() const;
+      DYNINST_EXPORT Expression::Ptr getControlFlowTarget() const;
 
       /// \return False if control flow will unconditionally go to the result of
       /// \c getControlFlowTarget after executing this instruction.
-      INSTRUCTION_EXPORT bool allowsFallThrough() const;
+      DYNINST_EXPORT bool allowsFallThrough() const;
 
       /// \return The instruction as a string of assembly language
       ///
       /// \c format is principally a helper function; %Instructions are meant to be written to
       /// output streams via \c operator<<.  \c format is included in the public interface for
       /// diagnostic purposes.
-      INSTRUCTION_EXPORT std::string format(Address addr = 0) const;
+      DYNINST_EXPORT std::string format(Address addr = 0) const;
 
       /// Returns true if this %Instruction object is valid.  Invalid instructions indicate that
       /// an %InstructionDecoder has reached the end of its assigned range, and that decoding should terminate.
-      INSTRUCTION_EXPORT bool isValid() const;
+      DYNINST_EXPORT bool isValid() const;
 
       /// Returns true if this %Instruction object represents a legal instruction, as specified by the architecture
       /// used to decode this instruction.
-      INSTRUCTION_EXPORT bool isLegalInsn() const;
+      DYNINST_EXPORT bool isLegalInsn() const;
 
-      INSTRUCTION_EXPORT Architecture getArch() const;
+      DYNINST_EXPORT Architecture getArch() const;
 
       /// Currently, the valid categories are c_CallInsn, c_ReturnInsn, c_BranchInsn, c_CompareInsn,
       /// and c_NoCategory, as defined in %InstructionCategories.h.
-      INSTRUCTION_EXPORT InsnCategory getCategory() const;
+      DYNINST_EXPORT InsnCategory getCategory() const;
 
       typedef std::list<CFT>::const_iterator cftConstIter;
-      INSTRUCTION_EXPORT cftConstIter cft_begin() const {
+      DYNINST_EXPORT cftConstIter cft_begin() const {
           return m_Successors.begin();
       }
-        INSTRUCTION_EXPORT cftConstIter cft_end() const {
+        DYNINST_EXPORT cftConstIter cft_end() const {
             return m_Successors.end();
         }
-        INSTRUCTION_EXPORT bool operator<(const Instruction& rhs) const
+        DYNINST_EXPORT bool operator<(const Instruction& rhs) const
         {
             if(m_size < rhs.m_size) return true;
             if(m_size <= sizeof(m_RawInsn.small_insn)) {
@@ -293,14 +293,14 @@ namespace Dyninst
             }
             return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) < 0;
         }
-        INSTRUCTION_EXPORT bool operator==(const Instruction& rhs) const {
+        DYNINST_EXPORT bool operator==(const Instruction& rhs) const {
             if(m_size != rhs.m_size) return false;
             if(m_size <= sizeof(m_RawInsn.small_insn)) {
                 return m_RawInsn.small_insn == rhs.m_RawInsn.small_insn;
             }
             return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) == 0;
         }
-        INSTRUCTION_EXPORT void updateMnemonic(std::string new_mnemonic) {
+        DYNINST_EXPORT void updateMnemonic(std::string new_mnemonic) {
                 m_InsnOp.updateMnemonic(new_mnemonic);
             }
 

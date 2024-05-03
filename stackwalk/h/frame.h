@@ -45,7 +45,7 @@ namespace Stackwalker {
 class Walker;
 class FrameStepper;
 
-class SW_EXPORT Frame : public AnnotatableDense {
+class DYNINST_EXPORT Frame : public AnnotatableDense {
   friend class Walker;
   friend class CallTree;
   friend class ::StackCallback;
@@ -132,19 +132,19 @@ protected:
 
 //Default FrameComparators, if none provided
 typedef bool (*frame_cmp_t)(const Frame &a, const Frame &b); //Return true if a < b, by some comparison
-SW_EXPORT bool frame_addr_cmp(const Frame &a, const Frame &b); //Default
-SW_EXPORT bool frame_lib_offset_cmp(const Frame &a, const Frame &b);
-SW_EXPORT bool frame_symname_cmp(const Frame &a, const Frame &b);
-SW_EXPORT bool frame_lineno_cmp(const Frame &a, const Frame &b);
+DYNINST_EXPORT bool frame_addr_cmp(const Frame &a, const Frame &b); //Default
+DYNINST_EXPORT bool frame_lib_offset_cmp(const Frame &a, const Frame &b);
+DYNINST_EXPORT bool frame_symname_cmp(const Frame &a, const Frame &b);
+DYNINST_EXPORT bool frame_lineno_cmp(const Frame &a, const Frame &b);
 
 class FrameNode;
-struct SW_EXPORT frame_cmp_wrapper {
+struct DYNINST_EXPORT frame_cmp_wrapper {
    frame_cmp_t f;
    bool operator()(const FrameNode *a, const FrameNode *b) const;
 };
 typedef std::set<FrameNode *, frame_cmp_wrapper> frame_set_t;
 
-class SW_EXPORT FrameNode {
+class DYNINST_EXPORT FrameNode {
    friend class CallTree;
    friend class WalkerSet;
    friend struct frame_cmp_wrapper;
@@ -193,7 +193,7 @@ class SW_EXPORT FrameNode {
    const Walker *getWalker() const { return walker; }
 };
 
-class SW_EXPORT CallTree {
+class DYNINST_EXPORT CallTree {
    friend class WalkerSet;
   public:
 

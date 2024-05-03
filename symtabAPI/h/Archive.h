@@ -46,7 +46,7 @@ class Symtab;
 /**
  * Helps facilitate lazy parsing and quick lookup once parsing is finished
  */
-class SYMTAB_EXPORT ArchiveMember {
+class DYNINST_EXPORT ArchiveMember {
     public:
         ArchiveMember() : name_(""), offset_(0), member_(NULL) {}
         ArchiveMember(const std::string name, const Offset offset,
@@ -74,7 +74,7 @@ class SYMTAB_EXPORT ArchiveMember {
         Symtab *member_;
 };
 
-class SYMTAB_EXPORT Archive : public AnnotatableSparse {
+class DYNINST_EXPORT Archive : public AnnotatableSparse {
    public:
       static bool openArchive(Archive *&img, std::string filename);
       static bool openArchive(Archive *&img, char *mem_image, size_t image_size);

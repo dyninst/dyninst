@@ -51,7 +51,7 @@ namespace Dyninst
       c_GPUKernelExitInsn,
       c_NoCategory
     };
-    INSTRUCTION_EXPORT InsnCategory entryToCategory(entryID e);
+    DYNINST_EXPORT InsnCategory entryToCategory(entryID e);
     
   }
 }

@@ -55,7 +55,7 @@ class Node;
 class NodeIterator;
 class EdgeIterator;
     
-class COMMON_EXPORT Graph : public AnnotatableSparse {
+class DYNINST_EXPORT Graph : public AnnotatableSparse {
     friend class Edge;
     friend class Node;
     friend class Creator;

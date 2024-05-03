@@ -45,7 +45,7 @@ using namespace std;
 
 namespace Dyninst {
 
-class COMMON_EXPORT LoadedLib {
+class DYNINST_EXPORT LoadedLib {
    friend class AddressTranslate;
    friend class AddressTranslateSysV;
  protected:
@@ -90,7 +90,7 @@ class COMMON_EXPORT LoadedLib {
 
 struct LoadedLibCmp
 {
-   COMMON_EXPORT bool operator()(const LoadedLib *a, const LoadedLib *b) const
+   DYNINST_EXPORT bool operator()(const LoadedLib *a, const LoadedLib *b) const
    {
       if (a->getCodeLoadAddr() != b->getCodeLoadAddr()) 
          return a->getCodeLoadAddr() < b->getCodeLoadAddr();
@@ -98,7 +98,7 @@ struct LoadedLibCmp
    }
 };
 
-class COMMON_EXPORT AddressTranslate {
+class DYNINST_EXPORT AddressTranslate {
  protected:
    PID pid;
    PROC_HANDLE phandle;

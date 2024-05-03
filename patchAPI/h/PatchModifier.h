@@ -50,7 +50,7 @@ namespace PatchAPI {
    class PatchFunction;
    class PatchModifier;
 
-class PATCHAPI_EXPORT InsertedCode {
+class DYNINST_EXPORT InsertedCode {
    friend class PatchModifier;
 
   public:
@@ -68,7 +68,7 @@ class PATCHAPI_EXPORT InsertedCode {
 };   
    
 
-class PATCHAPI_EXPORT PatchModifier {
+class DYNINST_EXPORT PatchModifier {
   public:
    // These are all static methods as this class has no state; so really, 
    // it's just a namespace. 

@@ -50,8 +50,8 @@
 namespace Dyninst
 {
 
-COMMON_EXPORT bool annotation_debug_flag();
-COMMON_EXPORT int annotatable_printf(const char *format, ...)
+DYNINST_EXPORT bool annotation_debug_flag();
+DYNINST_EXPORT int annotatable_printf(const char *format, ...)
 	DYNINST_PRINTF_ANNOTATION(1, 2);
 
 typedef unsigned short AnnotationClassID;
@@ -60,7 +60,7 @@ typedef bool (*anno_cmp_func_t)(void *, void*);
 extern int newAnnotationClass();
 extern bool void_ptr_cmp_func(void *, void *);
 
-class COMMON_EXPORT AnnotationClassBase
+class DYNINST_EXPORT AnnotationClassBase
 {
    private:
       static std::vector<AnnotationClassBase *> *annotation_types;
@@ -127,9 +127,9 @@ typedef enum {
 	sp_rem_cont_item = 5
 } ser_post_op_t;
 
-COMMON_EXPORT const char *serPostOp2Str(ser_post_op_t);
+DYNINST_EXPORT const char *serPostOp2Str(ser_post_op_t);
 
-class COMMON_EXPORT AnnotatableDense
+class DYNINST_EXPORT AnnotatableDense
 {
 	typedef void *anno_list_t;
 
@@ -334,7 +334,7 @@ class COMMON_EXPORT AnnotatableDense
 
 #define AN_INLINE inline
 
-class COMMON_EXPORT AnnotatableSparse
+class DYNINST_EXPORT AnnotatableSparse
 {
    public:
       struct void_ptr_hasher

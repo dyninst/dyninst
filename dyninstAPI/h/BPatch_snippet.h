@@ -58,7 +58,7 @@ namespace Dyninst {
    namespace PatchAPI {
       class Snippet;
       typedef boost::shared_ptr<Snippet> SnippetPtr;
-      BPATCH_DLL_EXPORT SnippetPtr convert(const BPatch_snippet *);
+      DYNINST_EXPORT SnippetPtr convert(const BPatch_snippet *);
    }
 }
 
@@ -110,7 +110,7 @@ typedef enum {
     BPatch_deref
 } BPatch_unOp;
 
-class BPATCH_DLL_EXPORT BPatch_snippet {
+class DYNINST_EXPORT BPatch_snippet {
 
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
@@ -189,7 +189,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet {
 
 };
 
-class BPATCH_DLL_EXPORT BPatch_arithExpr: public BPatch_snippet {
+class DYNINST_EXPORT BPatch_arithExpr: public BPatch_snippet {
  public:
     //  BPatch_arithExpr::BPatch_arithExpr (Binary Arithmetic Operation)
     //  
@@ -202,7 +202,7 @@ class BPATCH_DLL_EXPORT BPatch_arithExpr: public BPatch_snippet {
     BPatch_arithExpr(BPatch_unOp op, const BPatch_snippet &lOperand);
 };
 
-class BPATCH_DLL_EXPORT BPatch_boolExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_boolExpr : public BPatch_snippet {
  public:
     //  BPatch_boolExpr::BPatch_boolExpr
     //  Creates a representation of boolean operation
@@ -210,7 +210,7 @@ class BPATCH_DLL_EXPORT BPatch_boolExpr : public BPatch_snippet {
                      const BPatch_snippet &rOperand);
 };
 
-class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_constExpr : public BPatch_snippet {
  public:
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (signed int) value
@@ -246,14 +246,14 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 
 };
 
-class BPATCH_DLL_EXPORT BPatch_whileExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_whileExpr : public BPatch_snippet {
   public:
    // BPatch_whileExpr::BPatch_whileExpr (while loop)
    BPatch_whileExpr(const BPatch_snippet &condition,
                     const BPatch_snippet &body);
 };
 
-class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
  public:
     //  BPatch_funcCallExpr::BPatch_funcCallExpr
     //  Creates a representation of a function call
@@ -261,7 +261,7 @@ class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
                          const BPatch_Vector<BPatch_snippet *> &args);
 };
 
-class BPATCH_DLL_EXPORT BPatch_ifExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_ifExpr : public BPatch_snippet {
  public:
     //  BPatch_ifExpr::BPatch_ifExpr
     //  Creates a conditional expression "if <conditional> tClause;"
@@ -276,7 +276,7 @@ class BPATCH_DLL_EXPORT BPatch_ifExpr : public BPatch_snippet {
                    const BPatch_snippet &fClause);
 };
 
-class BPATCH_DLL_EXPORT BPatch_nullExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_nullExpr : public BPatch_snippet {
  public:
     //  BPatch_nullExpr::BPatch_nullExpr
     //  Creates a null snippet that can be used as a placeholder.
@@ -284,7 +284,7 @@ class BPATCH_DLL_EXPORT BPatch_nullExpr : public BPatch_snippet {
 
 };
 
-class BPATCH_DLL_EXPORT BPatch_paramExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_paramExpr : public BPatch_snippet {
  public:
     //  BPatch_paramExpr::BPatch_paramExpr
     //  Represents a parameter of a function (used in creating funcCallExpr)
@@ -295,7 +295,7 @@ class BPATCH_DLL_EXPORT BPatch_paramExpr : public BPatch_snippet {
     BPatch_paramExpr(int n, BPatch_ploc loc=BPatch_ploc_guess);
 };
 
-class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_retExpr : public BPatch_snippet {
  public:
     //  BPatch_retExpr::BPatch_retExpr
     //  Represents the return value from the function in which the 
@@ -303,7 +303,7 @@ class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
     BPatch_retExpr();
 };
 
-class BPATCH_DLL_EXPORT BPatch_retAddrExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_retAddrExpr : public BPatch_snippet {
  public:
     //  BPatch_retAddrExpr::BPatch_retAddrExpr
     //  Represents the return address from the function in which the
@@ -311,7 +311,7 @@ class BPATCH_DLL_EXPORT BPatch_retAddrExpr : public BPatch_snippet {
     BPatch_retAddrExpr();
 };
 
-class BPATCH_DLL_EXPORT BPatch_registerExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_registerExpr : public BPatch_snippet {
  public:
     friend class BPatch_addressSpace;
     //  BPatch_registerExpr::BPatch_registerExpr
@@ -322,14 +322,14 @@ class BPATCH_DLL_EXPORT BPatch_registerExpr : public BPatch_snippet {
                     BPatch_registerExpr(Dyninst::MachRegister reg);
 };
 
-class BPATCH_DLL_EXPORT BPatch_sequence : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_sequence : public BPatch_snippet {
  public:
     //  BPatch_sequence::BPatch_sequence
     //  Represents a sequence of statements
     BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items);
 };
 
-class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet 
+class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet 
 {
     friend class BPatch_process;
     friend class BPatch_addressSpace;
@@ -445,7 +445,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     BPatch_Vector<BPatch_variableExpr *> * getComponents();
 };
 
-class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_breakPointExpr : public BPatch_snippet {
  public:
     //  BPatch_breakPointExpr::BPatch_breakPointExpr
     //  Creates a representation of a break point in the target process
@@ -470,7 +470,7 @@ class BPATCH_DLL_EXPORT BPatch_breakPointExpr : public BPatch_snippet {
 // VG(8/14/02): added conditional parameter
 
 
-class BPATCH_DLL_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
+class DYNINST_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
 {
  public:
   //  BPatch_effectiveAddressExpr:: BPatch_effectiveAddressExpr
@@ -481,7 +481,7 @@ class BPATCH_DLL_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
 
 
 // Number of bytes moved
-class BPATCH_DLL_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
+class DYNINST_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
 {
  public:
   //  BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr
@@ -497,7 +497,7 @@ class BPATCH_DLL_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
 // machineConditionExpr, so that remains TBD...
 
 
-class BPATCH_DLL_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
  public:
   //  BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr
   //  
@@ -506,14 +506,14 @@ class BPATCH_DLL_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
 };
 
 
-class BPATCH_DLL_EXPORT BPatch_threadIndexExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_threadIndexExpr : public BPatch_snippet {
  public:
   //
   // BPatch_threadIndexExpr::BPatch_threadIndexExpr
   BPatch_threadIndexExpr();
 };
 
-class BPATCH_DLL_EXPORT BPatch_tidExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_tidExpr : public BPatch_snippet {
  public:
   //
   // BPatch_tidExpr::BPatch_tidExpr
@@ -528,7 +528,7 @@ typedef enum {
     BPatch_interpAsReturnAddr,
 } BPatch_stInterpret;
 
-class BPATCH_DLL_EXPORT BPatch_shadowExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_shadowExpr : public BPatch_snippet {
  public:
   // BPatch_stopThreadExpr 
   //  This snippet type stops the thread that executes it.  It
@@ -542,7 +542,7 @@ class BPATCH_DLL_EXPORT BPatch_shadowExpr : public BPatch_snippet {
 		    BPatch_stInterpret interp = BPatch_noInterp);
 };
 
-class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
  public:
   // BPatch_stopThreadExpr 
   //  This snippet type stops the thread that executes it.  It
@@ -564,7 +564,7 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
    BPatch_stInterpret interp = BPatch_noInterp);
 };
 
-class BPATCH_DLL_EXPORT BPatch_originalAddressExpr : public BPatch_snippet
+class DYNINST_EXPORT BPatch_originalAddressExpr : public BPatch_snippet
 {
  public:
   //  BPatch_originalAddressExpr
@@ -574,7 +574,7 @@ class BPATCH_DLL_EXPORT BPatch_originalAddressExpr : public BPatch_snippet
   BPatch_originalAddressExpr();
 };
 
-class BPATCH_DLL_EXPORT BPatch_actualAddressExpr : public BPatch_snippet
+class DYNINST_EXPORT BPatch_actualAddressExpr : public BPatch_snippet
 {
  public:
   //  BPatch_actualAddressExpr
@@ -584,7 +584,7 @@ class BPATCH_DLL_EXPORT BPatch_actualAddressExpr : public BPatch_snippet
   BPatch_actualAddressExpr();
 };
 
-class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
+class DYNINST_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
 {
  public:
   //  BPatch_dynamicTargetExpr
@@ -594,7 +594,7 @@ class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
   BPatch_dynamicTargetExpr();
 };
 
-class BPATCH_DLL_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
+class DYNINST_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
 {
 
   public:

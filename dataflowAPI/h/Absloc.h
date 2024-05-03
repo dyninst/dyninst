@@ -73,18 +73,18 @@ class Absloc {
     PredicatedRegister,
     Unknown } Type;
 
-   DATAFLOW_EXPORT static Absloc makePC(Dyninst::Architecture arch);
-   DATAFLOW_EXPORT static Absloc makeSP(Dyninst::Architecture arch);
-   DATAFLOW_EXPORT static Absloc makeFP(Dyninst::Architecture arch);
+   DYNINST_EXPORT static Absloc makePC(Dyninst::Architecture arch);
+   DYNINST_EXPORT static Absloc makeSP(Dyninst::Architecture arch);
+   DYNINST_EXPORT static Absloc makeFP(Dyninst::Architecture arch);
   
   // Some static functions for "well-known" Abslocs
-  DATAFLOW_EXPORT bool isPC() const;
-  DATAFLOW_EXPORT bool isSPR() const;
+  DYNINST_EXPORT bool isPC() const;
+  DYNINST_EXPORT bool isSPR() const;
   
-  DATAFLOW_EXPORT bool isSP() const;
-  DATAFLOW_EXPORT bool isFP() const;
+  DYNINST_EXPORT bool isSP() const;
+  DYNINST_EXPORT bool isFP() const;
 
- DATAFLOW_EXPORT Absloc() :
+ DYNINST_EXPORT Absloc() :
   type_(Unknown),
     reg_(),
     off_(-1),
@@ -93,7 +93,7 @@ class Absloc {
     addr_(-1),
     preg_(),
     trueCond_(false) {}
- DATAFLOW_EXPORT Absloc(MachRegister reg) :
+ DYNINST_EXPORT Absloc(MachRegister reg) :
   type_(Register),
      reg_(reg),
      off_(-1),
@@ -104,7 +104,7 @@ class Absloc {
      trueCond_(false)
      {}
     
- DATAFLOW_EXPORT Absloc(Address addr) :
+ DYNINST_EXPORT Absloc(Address addr) :
     type_(Heap),
     reg_(),
     off_(-1),
@@ -114,7 +114,7 @@ class Absloc {
     preg_(),
     trueCond_(false)
     {}
- DATAFLOW_EXPORT Absloc(int o,
+ DYNINST_EXPORT Absloc(int o,
 			int r,
 			ParseAPI::Function *f) :
     type_(Stack),
@@ -126,7 +126,7 @@ class Absloc {
     preg_(),
     trueCond_(false)
     {}
- DATAFLOW_EXPORT Absloc(MachRegister r, MachRegister p, bool c):
+ DYNINST_EXPORT Absloc(MachRegister r, MachRegister p, bool c):
      type_(PredicatedRegister),
      reg_(r),
      off_(-1),
@@ -136,31 +136,31 @@ class Absloc {
      preg_(p),
      trueCond_(c) {}
     
-  DATAFLOW_EXPORT std::string format() const;
+  DYNINST_EXPORT std::string format() const;
 
-  DATAFLOW_EXPORT const Type &type() const { return type_; }
+  DYNINST_EXPORT const Type &type() const { return type_; }
 
-  DATAFLOW_EXPORT bool isValid() const { return type_ != Unknown; }
+  DYNINST_EXPORT bool isValid() const { return type_ != Unknown; }
 
-  DATAFLOW_EXPORT const MachRegister &reg() const { assert(type_ == Register || type_ == PredicatedRegister); return reg_; }
+  DYNINST_EXPORT const MachRegister &reg() const { assert(type_ == Register || type_ == PredicatedRegister); return reg_; }
 
-  DATAFLOW_EXPORT int off() const { assert(type_ == Stack); return off_; }
-  DATAFLOW_EXPORT int region() const { assert(type_ == Stack); return region_; }
-  DATAFLOW_EXPORT ParseAPI::Function *func() const { assert(type_ == Stack); return func_; }
+  DYNINST_EXPORT int off() const { assert(type_ == Stack); return off_; }
+  DYNINST_EXPORT int region() const { assert(type_ == Stack); return region_; }
+  DYNINST_EXPORT ParseAPI::Function *func() const { assert(type_ == Stack); return func_; }
 
-  DATAFLOW_EXPORT Address addr() const { assert(type_ == Heap); return addr_; }
-  DATAFLOW_EXPORT const MachRegister &predReg() const { assert(type_ == PredicatedRegister); return preg_;}
-  DATAFLOW_EXPORT bool isTrueCondition() const { assert(type_ == PredicatedRegister); return trueCond_;}
-  DATAFLOW_EXPORT void flipPredicateCondition() { assert(type_ == PredicatedRegister); trueCond_ = !trueCond_; }
+  DYNINST_EXPORT Address addr() const { assert(type_ == Heap); return addr_; }
+  DYNINST_EXPORT const MachRegister &predReg() const { assert(type_ == PredicatedRegister); return preg_;}
+  DYNINST_EXPORT bool isTrueCondition() const { assert(type_ == PredicatedRegister); return trueCond_;}
+  DYNINST_EXPORT void flipPredicateCondition() { assert(type_ == PredicatedRegister); trueCond_ = !trueCond_; }
   
-  DATAFLOW_EXPORT bool operator<(const Absloc &rhs) const;
-  DATAFLOW_EXPORT bool operator==(const Absloc &rhs) const;
+  DYNINST_EXPORT bool operator<(const Absloc &rhs) const;
+  DYNINST_EXPORT bool operator==(const Absloc &rhs) const;
 
-  DATAFLOW_EXPORT bool operator!=(const Absloc &rhs) const {
+  DYNINST_EXPORT bool operator!=(const Absloc &rhs) const {
     return !(*this == rhs);
   }
 
-  DATAFLOW_EXPORT static char typeToChar(const Type t) {
+  DYNINST_EXPORT static char typeToChar(const Type t) {
     switch(t) {
     case Register:
       return 'r';
@@ -200,47 +200,47 @@ class AbsRegion {
   // Set operations get included here? Or third-party
   // functions?
   
-  DATAFLOW_EXPORT bool contains(const Absloc::Type t) const;
-  DATAFLOW_EXPORT bool contains(const Absloc &abs) const;
-  DATAFLOW_EXPORT bool contains(const AbsRegion &rhs) const;
+  DYNINST_EXPORT bool contains(const Absloc::Type t) const;
+  DYNINST_EXPORT bool contains(const Absloc &abs) const;
+  DYNINST_EXPORT bool contains(const AbsRegion &rhs) const;
 
-  DATAFLOW_EXPORT bool containsOfType(Absloc::Type t) const;
+  DYNINST_EXPORT bool containsOfType(Absloc::Type t) const;
 
-  DATAFLOW_EXPORT bool operator==(const AbsRegion &rhs) const;
-  DATAFLOW_EXPORT bool operator!=(const AbsRegion &rhs) const;
-  DATAFLOW_EXPORT bool operator<(const AbsRegion &rhs) const;
+  DYNINST_EXPORT bool operator==(const AbsRegion &rhs) const;
+  DYNINST_EXPORT bool operator!=(const AbsRegion &rhs) const;
+  DYNINST_EXPORT bool operator<(const AbsRegion &rhs) const;
 
-  DATAFLOW_EXPORT const std::string format() const;
+  DYNINST_EXPORT const std::string format() const;
 
-  DATAFLOW_EXPORT AbsRegion() :
+  DYNINST_EXPORT AbsRegion() :
     type_(Absloc::Unknown),
     size_(0) {}
 
-  DATAFLOW_EXPORT AbsRegion(Absloc::Type t) :
+  DYNINST_EXPORT AbsRegion(Absloc::Type t) :
     type_(t),
     size_(0) {}
 
-  DATAFLOW_EXPORT AbsRegion(Absloc a) :
+  DYNINST_EXPORT AbsRegion(Absloc a) :
     type_(Absloc::Unknown),
       absloc_(a),
       size_(0) {}
 
 
-  DATAFLOW_EXPORT void setGenerator(AST::Ptr generator) {
+  DYNINST_EXPORT void setGenerator(AST::Ptr generator) {
       generator_ = generator;
   }
 
-  DATAFLOW_EXPORT void setSize(size_t size) {
+  DYNINST_EXPORT void setSize(size_t size) {
     size_ = size;
   }
 
-  DATAFLOW_EXPORT Absloc absloc() const { return absloc_; }
-  DATAFLOW_EXPORT Absloc::Type type() const { return type_; }
-  DATAFLOW_EXPORT size_t size() const { return size_; }
-  DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
+  DYNINST_EXPORT Absloc absloc() const { return absloc_; }
+  DYNINST_EXPORT Absloc::Type type() const { return type_; }
+  DYNINST_EXPORT size_t size() const { return size_; }
+  DYNINST_EXPORT AST::Ptr generator() const { return generator_; }
 
-  DATAFLOW_EXPORT bool isImprecise() const { return type_ != Absloc::Unknown; }
-  DATAFLOW_EXPORT void flipPredicateCondition() { absloc_.flipPredicateCondition(); }
+  DYNINST_EXPORT bool isImprecise() const { return type_ != Absloc::Unknown; }
+  DYNINST_EXPORT void flipPredicateCondition() { absloc_.flipPredicateCondition(); }
   friend std::ostream &operator<<(std::ostream &os, const AbsRegion &a) {
     os << a.format();
     return os;
@@ -274,26 +274,26 @@ class Assignment {
 
   typedef std::set<AbsRegion> Aliases;
 
-  DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
-  DATAFLOW_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
+  DYNINST_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
+  DYNINST_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
-  DATAFLOW_EXPORT const InstructionAPI::Instruction &insn() const { return insn_; }
-  DATAFLOW_EXPORT InstructionAPI::Instruction &insn() { return insn_; }
-  DATAFLOW_EXPORT Address addr() const { return addr_; }
+  DYNINST_EXPORT const InstructionAPI::Instruction &insn() const { return insn_; }
+  DYNINST_EXPORT InstructionAPI::Instruction &insn() { return insn_; }
+  DYNINST_EXPORT Address addr() const { return addr_; }
 
-  DATAFLOW_EXPORT const AbsRegion &out() const { return out_; }
-  DATAFLOW_EXPORT AbsRegion &out() { return out_; }
+  DYNINST_EXPORT const AbsRegion &out() const { return out_; }
+  DYNINST_EXPORT AbsRegion &out() { return out_; }
 
-  DATAFLOW_EXPORT const std::string format() const;
+  DYNINST_EXPORT const std::string format() const;
 
   // FIXME
   Aliases aliases;
 
   // Factory functions. 
-  DATAFLOW_EXPORT static std::set<Assignment::Ptr> create(InstructionAPI::Instruction insn,
+  DYNINST_EXPORT static std::set<Assignment::Ptr> create(InstructionAPI::Instruction insn,
 					  Address addr);
 
-  DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction& i,
+  DYNINST_EXPORT Assignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
@@ -306,7 +306,7 @@ class Assignment {
        inputs_(ins),
        out_(o) {}
 
-  DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction& i,
+  DYNINST_EXPORT Assignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
@@ -317,14 +317,14 @@ class Assignment {
        block_(b),
        out_(o) {}
 
-  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction& i,
+  DYNINST_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
                              const std::vector<AbsRegion> &ins,
                              const AbsRegion &o);
 
-  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction& i,
+  DYNINST_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
@@ -336,12 +336,12 @@ class Assignment {
   // we'll add it to the dependence list. Otherwise 
   // we'll join the provided input set to the known
   // inputs.
-  DATAFLOW_EXPORT void addInput(const AbsRegion &reg);
-  DATAFLOW_EXPORT void addInputs(const std::vector<AbsRegion> &regions);
+  DYNINST_EXPORT void addInput(const AbsRegion &reg);
+  DYNINST_EXPORT void addInputs(const std::vector<AbsRegion> &regions);
 
-  DATAFLOW_EXPORT ParseAPI::Function *func() const { return func_; }
+  DYNINST_EXPORT ParseAPI::Function *func() const { return func_; }
 
-  DATAFLOW_EXPORT ParseAPI::Block *block() const { return block_; }
+  DYNINST_EXPORT ParseAPI::Block *block() const { return block_; }
   friend std::ostream &operator<<(std::ostream &os, const Assignment::Ptr &a) {
     os << a->format();
     return os;

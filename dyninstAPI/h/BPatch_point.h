@@ -63,7 +63,7 @@ namespace Dyninst {
       class Instance;
       class Point;
       typedef boost::shared_ptr<Instance> InstancePtr;
-      BPATCH_DLL_EXPORT Point *convert(const BPatch_point *, BPatch_callWhen);
+      DYNINST_EXPORT Point *convert(const BPatch_point *, BPatch_callWhen);
    }
 }
 
@@ -85,7 +85,7 @@ namespace Dyninst {
    needs to link instPoint back pointer (and we don't want to include
    that here) */
 
-class BPATCH_DLL_EXPORT BPatch_point {
+class DYNINST_EXPORT BPatch_point {
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;

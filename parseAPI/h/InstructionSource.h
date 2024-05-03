@@ -38,7 +38,7 @@
 
 namespace Dyninst {
 
-class PARSER_EXPORT InstructionSource
+class DYNINST_EXPORT InstructionSource
 {
 public:
     InstructionSource() {}

@@ -136,7 +136,7 @@ char *AObject::mem_image() const
 	return NULL;
 }
 
-SYMTAB_EXPORT Offset ExceptionBlock::catchStart() const 
+DYNINST_EXPORT Offset ExceptionBlock::catchStart() const 
 {
 	return catchStart_;
 }
@@ -154,7 +154,7 @@ ostream &operator<<(ostream &os, relocationEntry &q) {
  *
  **************************************************/
 
-SYMTAB_EXPORT unsigned AObject::nsymbols () const 
+DYNINST_EXPORT unsigned AObject::nsymbols () const 
 { 
     unsigned n = 0;
     for (dyn_c_hash_map<std::string, std::vector<Symbol *> >::const_iterator i = symbols_.begin();
@@ -165,7 +165,7 @@ SYMTAB_EXPORT unsigned AObject::nsymbols () const
     return n;
 }
 
-SYMTAB_EXPORT bool AObject::get_symbols(string & name, 
+DYNINST_EXPORT bool AObject::get_symbols(string & name, 
       std::vector<Symbol *> &symbols ) 
 {
    dyn_c_hash_map<std::string, std::vector<Symbol *>>::const_accessor ca;
@@ -177,57 +177,57 @@ SYMTAB_EXPORT bool AObject::get_symbols(string & name,
    return true;
 }
 
-SYMTAB_EXPORT char* AObject::code_ptr () const 
+DYNINST_EXPORT char* AObject::code_ptr () const 
 { 
    return code_ptr_; 
 }
 
-SYMTAB_EXPORT Offset AObject::code_off () const 
+DYNINST_EXPORT Offset AObject::code_off () const 
 { 
    return code_off_; 
 }
 
-SYMTAB_EXPORT Offset AObject::code_len () const 
+DYNINST_EXPORT Offset AObject::code_len () const 
 { 
    return code_len_; 
 }
 
-SYMTAB_EXPORT char* AObject::data_ptr () const 
+DYNINST_EXPORT char* AObject::data_ptr () const 
 { 
    return data_ptr_; 
 }
 
-SYMTAB_EXPORT Offset AObject::data_off () const 
+DYNINST_EXPORT Offset AObject::data_off () const 
 { 
    return data_off_; 
 }
 
-SYMTAB_EXPORT Offset AObject::data_len () const 
+DYNINST_EXPORT Offset AObject::data_len () const 
 { 
    return data_len_; 
 }
 
-SYMTAB_EXPORT bool AObject::is_aout() const 
+DYNINST_EXPORT bool AObject::is_aout() const 
 {
    return is_aout_;  
 }
 
-SYMTAB_EXPORT bool AObject::isDynamic() const 
+DYNINST_EXPORT bool AObject::isDynamic() const 
 {
    return is_dynamic_;  
 }
 
-SYMTAB_EXPORT unsigned AObject::no_of_sections() const 
+DYNINST_EXPORT unsigned AObject::no_of_sections() const 
 { 
    return no_of_sections_; 
 }
 
-SYMTAB_EXPORT unsigned AObject::no_of_symbols() const 
+DYNINST_EXPORT unsigned AObject::no_of_symbols() const 
 { 
    return no_of_symbols_;  
 }
 
-SYMTAB_EXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
+DYNINST_EXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
 {
    for (unsigned i=0;i<catch_addrs_.size();i++)
       excpBlocks.push_back(new ExceptionBlock(catch_addrs_[i]));
@@ -235,43 +235,43 @@ SYMTAB_EXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpB
    return true;
 }
 
-SYMTAB_EXPORT std::vector<Region *> AObject::getAllRegions() const
+DYNINST_EXPORT std::vector<Region *> AObject::getAllRegions() const
 {
    return regions_;	
 }
 
-SYMTAB_EXPORT Offset AObject::loader_off() const 
+DYNINST_EXPORT Offset AObject::loader_off() const 
 { 
    return loader_off_; 
 }
 
-SYMTAB_EXPORT unsigned AObject::loader_len() const 
+DYNINST_EXPORT unsigned AObject::loader_len() const 
 { 
    return loader_len_; 
 }
 
 
-SYMTAB_EXPORT int AObject::getAddressWidth() const 
+DYNINST_EXPORT int AObject::getAddressWidth() const 
 { 
    return addressWidth_nbytes; 
 }
 
-SYMTAB_EXPORT bool AObject::have_deferred_parsing(void) const
+DYNINST_EXPORT bool AObject::have_deferred_parsing(void) const
 { 
    return deferredParse;
 }
 
-SYMTAB_EXPORT void * AObject::getErrFunc() const 
+DYNINST_EXPORT void * AObject::getErrFunc() const 
 {
    return (void *) err_func_; 
 }
 
-SYMTAB_EXPORT dyn_c_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols()
+DYNINST_EXPORT dyn_c_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols()
 {
    return &(symbols_);
 }
 
-SYMTAB_EXPORT AObject::~AObject() 
+DYNINST_EXPORT AObject::~AObject() 
 {
     using std::string;
     using std::vector;
@@ -286,7 +286,7 @@ SYMTAB_EXPORT AObject::~AObject()
 }
 
 // explicitly protected
-SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *), Symtab* st)
+DYNINST_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *), Symtab* st)
 : mf(mf_),
    code_ptr_(0), code_off_(0), code_len_(0),
    data_ptr_(0), data_off_(0), data_len_(0),

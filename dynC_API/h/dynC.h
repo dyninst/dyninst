@@ -40,32 +40,21 @@
 #include <string>
 #include <map>
 #include <vector>
-
-#if !defined(DYNC_EXPORT)
-  #if defined(_MSC_VER)
-    #if defined(DYNC_EXPORTS)
-      #define DYNC_EXPORT __declspec(dllexport)
-    #else
-      #define DYNC_EXPORT __declspec(dllimport)
-    #endif
-  #else
-    #define DYNC_EXPORT __attribute__((visibility ("default")))
-#endif
-#endif
+#include "dyninst_visibility.h"
 
 namespace dynC_API{
-   DYNC_EXPORT BPatch_snippet *createSnippet(const char *s, BPatch_point &point);
-   DYNC_EXPORT std::map<BPatch_point *, BPatch_snippet *> *createSnippet(const char *s, std::vector<BPatch_point *> points);
+   DYNINST_EXPORT BPatch_snippet *createSnippet(const char *s, BPatch_point &point);
+   DYNINST_EXPORT std::map<BPatch_point *, BPatch_snippet *> *createSnippet(const char *s, std::vector<BPatch_point *> points);
 
-   DYNC_EXPORT BPatch_snippet *createSnippet(FILE *f, BPatch_point &point);
-   DYNC_EXPORT std::map<BPatch_point *, BPatch_snippet *> *createSnippet(FILE *f, std::vector<BPatch_point *> points);
+   DYNINST_EXPORT BPatch_snippet *createSnippet(FILE *f, BPatch_point &point);
+   DYNINST_EXPORT std::map<BPatch_point *, BPatch_snippet *> *createSnippet(FILE *f, std::vector<BPatch_point *> points);
 
-   DYNC_EXPORT BPatch_snippet *createSnippet(std::string str, BPatch_point &point);
-   DYNC_EXPORT std::map<BPatch_point *, BPatch_snippet *> *createSnippet(std::string str, std::vector<BPatch_point *> points);
+   DYNINST_EXPORT BPatch_snippet *createSnippet(std::string str, BPatch_point &point);
+   DYNINST_EXPORT std::map<BPatch_point *, BPatch_snippet *> *createSnippet(std::string str, std::vector<BPatch_point *> points);
 
-   DYNC_EXPORT BPatch_snippet *createSnippet(const char *s, BPatch_addressSpace &addSpace);
-   DYNC_EXPORT BPatch_snippet *createSnippet(FILE *f, BPatch_addressSpace &addSpace);
-   DYNC_EXPORT BPatch_snippet *createSnippet(std::string str, BPatch_addressSpace &addSpace);
+   DYNINST_EXPORT BPatch_snippet *createSnippet(const char *s, BPatch_addressSpace &addSpace);
+   DYNINST_EXPORT BPatch_snippet *createSnippet(FILE *f, BPatch_addressSpace &addSpace);
+   DYNINST_EXPORT BPatch_snippet *createSnippet(std::string str, BPatch_addressSpace &addSpace);
    
 //dynC internal
    std::string mangle(const char *varName, const char *snippetName, const char *typeName);

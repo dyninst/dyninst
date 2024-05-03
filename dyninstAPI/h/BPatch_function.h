@@ -61,18 +61,18 @@ class BPatch_function;
 namespace Dyninst {
   namespace ParseAPI {
     class Function;
-     BPATCH_DLL_EXPORT Function *convert(const BPatch_function *);
+     DYNINST_EXPORT Function *convert(const BPatch_function *);
   }
   namespace PatchAPI {
      class PatchFunction;
-     BPATCH_DLL_EXPORT PatchFunction *convert(const BPatch_function *);
+     DYNINST_EXPORT PatchFunction *convert(const BPatch_function *);
   }
 }
 
 
 
 
-class BPATCH_DLL_EXPORT BPatch_function : 
+class DYNINST_EXPORT BPatch_function : 
    public BPatch_sourceObj, 
    public Dyninst::AnnotatableSparse
 {

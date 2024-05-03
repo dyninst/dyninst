@@ -48,7 +48,7 @@ namespace SymtabAPI {
 
 class Symbol;
 
-class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
+class DYNINST_EXPORT relocationEntry : public AnnotatableSparse {
    public:
 
       relocationEntry();
@@ -81,7 +81,7 @@ class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
       //std::ostream & operator<<(std::ostream &s) const;
-      friend SYMTAB_EXPORT std::ostream & operator<<(std::ostream &os, const relocationEntry &q);
+      friend DYNINST_EXPORT std::ostream & operator<<(std::ostream &os, const relocationEntry &q);
 
       enum {pltrel = 1, dynrel = 2};
       bool operator==(const relocationEntry &) const;
@@ -106,7 +106,7 @@ class SYMTAB_EXPORT relocationEntry : public AnnotatableSparse {
 
 
 // relocation information for calls to functions not in this image
-SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
+DYNINST_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
 }//namespace SymtabAPI
 

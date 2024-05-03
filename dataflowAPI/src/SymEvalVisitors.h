@@ -51,19 +51,19 @@ class StackVisitor : public ASTVisitor {
 	       StackAnalysis::Height &frameHeight) :
     addr_(a), func_(func), stack_(stackHeight), frame_(frameHeight) {}
 
-    DATAFLOW_EXPORT virtual AST::Ptr visit(AST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(BottomAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(ConstantAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(VariableAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(RoseAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(StackAST *);
-    DATAFLOW_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual AST::Ptr visit(AST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(BottomAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(ConstantAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(VariableAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(RoseAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(StackAST *);
+    DYNINST_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
 
-    DATAFLOW_EXPORT virtual ~StackVisitor() {}
+    DYNINST_EXPORT virtual ~StackVisitor() {}
 
   private:
   Address addr_;
@@ -77,20 +77,20 @@ class BooleanVisitor : public ASTVisitor {
  public:
     BooleanVisitor() {}
 
-    DATAFLOW_EXPORT virtual AST::Ptr visit(AST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(BottomAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(ConstantAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(VariableAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(RoseAST *);
-    DATAFLOW_EXPORT virtual AST::Ptr visit(StackAST *);
-    DATAFLOW_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
-    DATAFLOW_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual AST::Ptr visit(AST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(BottomAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(ConstantAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(VariableAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(RoseAST *);
+    DYNINST_EXPORT virtual AST::Ptr visit(StackAST *);
+    DYNINST_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
+    DYNINST_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
 
   
-    DATAFLOW_EXPORT virtual ~BooleanVisitor() {}
+    DYNINST_EXPORT virtual ~BooleanVisitor() {}
     
   private:
 };

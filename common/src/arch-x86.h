@@ -541,7 +541,7 @@ enum VEX_TYPE
 #define PREFIX_SZADDR  (unsigned char)(0x67)
 #endif
 
-COMMON_EXPORT void ia32_set_mode_64(bool mode);
+DYNINST_EXPORT void ia32_set_mode_64(bool mode);
 
 /**
  * AVX/AVX2/EVEX addressing modes (not in manual).
@@ -689,7 +689,7 @@ class ia32_instruction;
 
 class ia32_prefixes
 {
-  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
+  friend DYNINST_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
   friend bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes&,
                               ia32_locations *loc);
  private:
@@ -836,10 +836,10 @@ struct ia32_operand {  // operand as given in Intel book tables
 
 // An instruction table entry
 struct ia32_entry {
-  COMMON_EXPORT const char* name(ia32_locations* locs = NULL);
-  COMMON_EXPORT entryID getID(ia32_locations* locs = NULL) const;
+  DYNINST_EXPORT const char* name(ia32_locations* locs = NULL);
+  DYNINST_EXPORT entryID getID(ia32_locations* locs = NULL) const;
   // returns true if any flags are read/written, false otherwise
-  COMMON_EXPORT bool flagsUsed(std::set<Dyninst::MachRegister>& flagsRead, std::set<Dyninst::MachRegister>& flagsWritten,
+  DYNINST_EXPORT bool flagsUsed(std::set<Dyninst::MachRegister>& flagsRead, std::set<Dyninst::MachRegister>& flagsWritten,
 		 ia32_locations* locs = NULL);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
@@ -876,10 +876,10 @@ class ia32_instruction
                                             const ia32_entry& gotit, 
                                             const char* addr, 
                                             ia32_instruction& instruct);
-  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
-  friend COMMON_EXPORT ia32_instruction &
+  friend DYNINST_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
+  friend DYNINST_EXPORT ia32_instruction &
   ia32_decode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, bool mode_64);
-  friend COMMON_EXPORT int
+  friend DYNINST_EXPORT int
   ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, ia32_entry **gotit_ret,
                        bool mode_64);
   friend unsigned int ia32_decode_operands(const ia32_prefixes &pref, const ia32_entry &gotit, const unsigned char *addr,
@@ -918,7 +918,7 @@ class ia32_instruction
   const ia32_condition& getCond() const { return *cond; }
   const ia32_locations& getLocationInfo() const { return *loc; }
 
-  COMMON_EXPORT static dyn_hash_map<entryID, flagInfo> const& getFlagTable();
+  DYNINST_EXPORT static dyn_hash_map<entryID, flagInfo> const& getFlagTable();
   static void initFlagTable(dyn_hash_map<entryID, flagInfo>&);
 private:
     static dyn_hash_map<entryID, flagInfo> flagTable;
@@ -948,7 +948,7 @@ private:
 #define IA32_SIZE_DECODER 0
 
 /* TODO: documentation*/
-COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
+DYNINST_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
 
 /**
  * Decode just the opcode of the given instruction. This implies that
@@ -956,7 +956,7 @@ COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruct
  * and addr has been moved past the prefix bytes. Returns zero on success,
  * non zero otherwise.
  */
-COMMON_EXPORT int
+DYNINST_EXPORT int
 ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, ia32_entry **gotit_ret,
                    bool mode_64);
 
@@ -968,7 +968,7 @@ ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instructio
  * is not defined. capabilities is a mask of the above flags (IA32_DECODE_*).
  * The mask determines what part of the instruction should be decoded.
  */
-COMMON_EXPORT ia32_instruction &
+DYNINST_EXPORT ia32_instruction &
 ia32_decode(unsigned int capabilities, const unsigned char *addr, ia32_instruction &, bool mode_64);
 
 
@@ -982,11 +982,11 @@ enum dynamic_call_address_mode {
    get_instruction: get the instruction that starts at instr.
    return the size of the instruction and set instType to a type descriptor
 */
-COMMON_EXPORT unsigned
+DYNINST_EXPORT unsigned
 get_instruction(const unsigned char *instr, unsigned &instType, const unsigned char **op_ptr, bool mode_64);
 
 /* get the target of a jump or call */
-COMMON_EXPORT Dyninst::Address get_target(const unsigned char *instr, unsigned type, unsigned size,
+DYNINST_EXPORT Dyninst::Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Dyninst::Address addr);
 
 // Size of a jump rel32 instruction
@@ -1047,7 +1047,7 @@ class instruction {
     op_ptr_ = insn.op_ptr_;
   }
   
-  COMMON_EXPORT instruction *copy() const;
+  DYNINST_EXPORT instruction *copy() const;
 
   instruction(const void *ptr, bool mode_64) :
       type_(0), size_(0), ptr_(NULL), op_ptr_(0) {
@@ -1070,7 +1070,7 @@ class instruction {
 
   // And the size necessary to reproduce this instruction
   // at some random point.
-  COMMON_EXPORT unsigned spaceToRelocate() const;
+  DYNINST_EXPORT unsigned spaceToRelocate() const;
 
   // return the type of the instruction
   unsigned type() const { return type_; }
@@ -1087,9 +1087,9 @@ class instruction {
   static unsigned maxInterFunctionJumpSize(unsigned addr_width) { return maxJumpSize(addr_width); }
 
   // And tell us how much space we'll need...
-  COMMON_EXPORT static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
-  COMMON_EXPORT static unsigned jumpSize(long disp, unsigned addr_width);
-  COMMON_EXPORT static unsigned maxJumpSize(unsigned addr_width);
+  DYNINST_EXPORT static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
+  DYNINST_EXPORT static unsigned jumpSize(long disp, unsigned addr_width);
+  DYNINST_EXPORT static unsigned maxJumpSize(unsigned addr_width);
 
     bool isCall() const { return type_ & IS_CALL; }
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
@@ -1150,7 +1150,7 @@ int displacement(const unsigned char *instr, unsigned type);
 
 /** Returns the immediate operand of an instruction **/
 
-    COMMON_EXPORT int count_prefixes(unsigned insnType);
+    DYNINST_EXPORT int count_prefixes(unsigned insnType);
 
 inline bool is_disp8(long disp) {
    return (disp >= -128 && disp < 127);
@@ -1170,9 +1170,9 @@ inline bool is_addr32(Dyninst::Address addr) {
     return (addr < UINT32_MAX);
 }
 
-COMMON_EXPORT void decode_SIB(unsigned sib, unsigned& scale, 
+DYNINST_EXPORT void decode_SIB(unsigned sib, unsigned& scale, 
         Dyninst::Register& index_reg, Dyninst::Register& base_reg);
-COMMON_EXPORT const unsigned char* skip_headers(const unsigned char*, 
+DYNINST_EXPORT const unsigned char* skip_headers(const unsigned char*, 
         ia32_instruction* = NULL);
 
 /* addresses on x86 don't have to be aligned */
@@ -1190,12 +1190,12 @@ inline Dyninst::Address region_hi_64(const Dyninst::Address x) { return x | 0x00
 
 #endif
 
-COMMON_EXPORT bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
-COMMON_EXPORT bool insn_hasDisp8(unsigned ModRM);
-COMMON_EXPORT bool insn_hasDisp32(unsigned ModRM);
+DYNINST_EXPORT bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
+DYNINST_EXPORT bool insn_hasDisp8(unsigned ModRM);
+DYNINST_EXPORT bool insn_hasDisp32(unsigned ModRM);
 
-COMMON_EXPORT bool isStackFramePrecheck_msvs( const unsigned char *buffer );
-COMMON_EXPORT bool isStackFramePrecheck_gcc( const unsigned char *buffer );
+DYNINST_EXPORT bool isStackFramePrecheck_msvs( const unsigned char *buffer );
+DYNINST_EXPORT bool isStackFramePrecheck_gcc( const unsigned char *buffer );
 
 } // namespace arch_x86
 

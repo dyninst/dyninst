@@ -80,58 +80,58 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
 
 class AObject {
 public:
-    SYMTAB_EXPORT unsigned nsymbols () const;
+    DYNINST_EXPORT unsigned nsymbols () const;
     
-    SYMTAB_EXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
+    DYNINST_EXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
 
-    SYMTAB_EXPORT char*       code_ptr () const; 
-    SYMTAB_EXPORT Offset           code_off () const;
-    SYMTAB_EXPORT Offset           code_len () const;
+    DYNINST_EXPORT char*       code_ptr () const; 
+    DYNINST_EXPORT Offset           code_off () const;
+    DYNINST_EXPORT Offset           code_len () const;
 
-    SYMTAB_EXPORT char*       data_ptr () const;
-    SYMTAB_EXPORT Offset           data_off () const;
-    SYMTAB_EXPORT Offset           data_len () const;
+    DYNINST_EXPORT char*       data_ptr () const;
+    DYNINST_EXPORT Offset           data_off () const;
+    DYNINST_EXPORT Offset           data_len () const;
 
-    SYMTAB_EXPORT bool 	      is_aout  () const;
-    SYMTAB_EXPORT bool        isDynamic() const;
+    DYNINST_EXPORT bool 	      is_aout  () const;
+    DYNINST_EXPORT bool        isDynamic() const;
 
-    SYMTAB_EXPORT unsigned	      no_of_sections () const;
-    SYMTAB_EXPORT unsigned	      no_of_symbols  ()	const;
+    DYNINST_EXPORT unsigned	      no_of_sections () const;
+    DYNINST_EXPORT unsigned	      no_of_symbols  ()	const;
 
-    SYMTAB_EXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
-    SYMTAB_EXPORT std::vector<Region *> getAllRegions() const;
+    DYNINST_EXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
+    DYNINST_EXPORT std::vector<Region *> getAllRegions() const;
 
-    SYMTAB_EXPORT Offset loader_off() const;
-    SYMTAB_EXPORT unsigned loader_len() const;
-    SYMTAB_EXPORT int getAddressWidth() const;
+    DYNINST_EXPORT Offset loader_off() const;
+    DYNINST_EXPORT unsigned loader_len() const;
+    DYNINST_EXPORT int getAddressWidth() const;
 
     bool isStaticBinary() const {return is_static_binary_;}
 
-    SYMTAB_EXPORT virtual char *  mem_image() const;
+    DYNINST_EXPORT virtual char *  mem_image() const;
 
-    SYMTAB_EXPORT virtual  bool   needs_function_binding()  const;
-    SYMTAB_EXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
-    SYMTAB_EXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
-    SYMTAB_EXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
-    SYMTAB_EXPORT bool   getSegments(std::vector<Segment> &segs) const;
+    DYNINST_EXPORT virtual  bool   needs_function_binding()  const;
+    DYNINST_EXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
+    DYNINST_EXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
+    DYNINST_EXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
+    DYNINST_EXPORT bool   getSegments(std::vector<Segment> &segs) const;
 
-    SYMTAB_EXPORT bool have_deferred_parsing( void ) const;
+    DYNINST_EXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....
-    SYMTAB_EXPORT const std::ostream &dump_state_info(std::ostream &s);
+    DYNINST_EXPORT const std::ostream &dump_state_info(std::ostream &s);
 
-    SYMTAB_EXPORT void * getErrFunc() const;
-    SYMTAB_EXPORT dyn_c_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+    DYNINST_EXPORT void * getErrFunc() const;
+    DYNINST_EXPORT dyn_c_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
     
-    SYMTAB_EXPORT virtual bool hasFrameDebugInfo() {return false;}
-    SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
+    DYNINST_EXPORT virtual bool hasFrameDebugInfo() {return false;}
+    DYNINST_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
                                                   Dyninst::MachRegister /*reg*/, 
                                                   Dyninst::MachRegisterVal & /*reg_result*/,
                                                   Dyninst::SymtabAPI::MemRegReader * /*reader*/) {return false;}
     
-    SYMTAB_EXPORT virtual Dyninst::Architecture getArch() const { return Arch_none; }
-    SYMTAB_EXPORT bool hasError() const;
-    SYMTAB_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
-    SYMTAB_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
+    DYNINST_EXPORT virtual Dyninst::Architecture getArch() const { return Arch_none; }
+    DYNINST_EXPORT bool hasError() const;
+    DYNINST_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
+    DYNINST_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
 
 
     virtual void setTruncateLinePaths(bool value);
@@ -139,13 +139,13 @@ public:
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
     // Only implemented for ELF right now
-    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {}
-	SYMTAB_EXPORT virtual void rebase(Offset) {}
+    DYNINST_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {}
+	DYNINST_EXPORT virtual void rebase(Offset) {}
     virtual void addModule(SymtabAPI::Module *) {}
 protected:
-    SYMTAB_EXPORT virtual ~AObject();
+    DYNINST_EXPORT virtual ~AObject();
     // explicitly protected
-    SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *), Symtab*);
+    DYNINST_EXPORT AObject(MappedFile *, void (*err_func)(const char *), Symtab*);
 friend class Module;
     virtual void parseLineInfoForCU(Offset , LineInformation* ) { }
 

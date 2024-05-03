@@ -43,7 +43,7 @@ namespace Dyninst
 {
     namespace InstructionAPI
     {
-        INSTRUCTION_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
+        DYNINST_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
         {
             std::set<InstructionAST::Ptr> useSet;
             // This thing returns something only for RegisterAST Expression
@@ -59,7 +59,7 @@ namespace Dyninst
                 }
             }
         }
-        INSTRUCTION_EXPORT void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
+        DYNINST_EXPORT void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
         {
             RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
             if(m_isWritten && op_as_reg)
@@ -68,7 +68,7 @@ namespace Dyninst
             }
         }
 
-        INSTRUCTION_EXPORT RegisterAST::Ptr Operand::getPredicate() const
+        DYNINST_EXPORT RegisterAST::Ptr Operand::getPredicate() const
         {
             RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
             if (m_isTruePredicate || m_isFalsePredicate) {
@@ -77,25 +77,25 @@ namespace Dyninst
             return nullptr;
         }
 
-        INSTRUCTION_EXPORT bool Operand::isRead(Expression::Ptr candidate) const
+        DYNINST_EXPORT bool Operand::isRead(Expression::Ptr candidate) const
         {
             // The whole expression of a read, any subexpression of a write
             return op_value->isUsed(candidate) && (m_isRead || !(*candidate == *op_value));
         }
-        INSTRUCTION_EXPORT bool Operand::isWritten(Expression::Ptr candidate) const
+        DYNINST_EXPORT bool Operand::isWritten(Expression::Ptr candidate) const
         {
             // Whole expression of a write
             return m_isWritten && (*op_value == *candidate);
         }    
-        INSTRUCTION_EXPORT bool Operand::readsMemory() const
+        DYNINST_EXPORT bool Operand::readsMemory() const
         {
             return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isRead);
         }
-        INSTRUCTION_EXPORT bool Operand::writesMemory() const
+        DYNINST_EXPORT bool Operand::writesMemory() const
         {
             return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isWritten);
         }
-        INSTRUCTION_EXPORT void Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const
+        DYNINST_EXPORT void Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const
         {
             if(m_isRead && boost::dynamic_pointer_cast<Dereference>(op_value))
             {
@@ -109,7 +109,7 @@ namespace Dyninst
                 }
             }
         }
-        INSTRUCTION_EXPORT void Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const
+        DYNINST_EXPORT void Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const
         {
             if(m_isWritten && boost::dynamic_pointer_cast<Dereference>(op_value))
             {
@@ -125,7 +125,7 @@ namespace Dyninst
         }
 
 
-        INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
+        DYNINST_EXPORT std::string Operand::format(Architecture arch, Address addr) const
         {
             if(!op_value) return "ERROR: format() called on empty operand!";
             if (addr) {
@@ -146,7 +146,7 @@ namespace Dyninst
             return s;
         }
 
-        INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const
+        DYNINST_EXPORT Expression::Ptr Operand::getValue() const
         {
             return op_value;
         }

@@ -785,13 +785,13 @@ typedef unsigned codeBufIndex_t;
 #define MIN_IMM48      ((long)(~MAX_IMM48)) // compilers.
 
 // Helps to mitigate host/target endian mismatches
-COMMON_EXPORT unsigned int swapBytesIfNeeded(unsigned int i);
+DYNINST_EXPORT unsigned int swapBytesIfNeeded(unsigned int i);
 
 ///////////////////////////////////////////////////////
 // Bum bum bum.....
 ///////////////////////////////////////////////////////
 
-class COMMON_EXPORT instruction {
+class DYNINST_EXPORT instruction {
  private:
     instructUnion insn_;
 

@@ -37,7 +37,7 @@
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class PC_EXPORT Decoder
+class DYNINST_EXPORT Decoder
 {
  public:
    Decoder();

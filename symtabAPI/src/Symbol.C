@@ -61,17 +61,17 @@ Symbol *Symbol::magicEmitElfSymbol() {
                       false);
 }
     
-SYMTAB_EXPORT string Symbol::getMangledName() const 
+DYNINST_EXPORT string Symbol::getMangledName() const 
 {
     return mangledName_;
 }
 
-SYMTAB_EXPORT string Symbol::getPrettyName() const 
+DYNINST_EXPORT string Symbol::getPrettyName() const 
 {
   return P_cplus_demangle(mangledName_, false);
 }
 
-SYMTAB_EXPORT string Symbol::getTypedName() const 
+DYNINST_EXPORT string Symbol::getTypedName() const 
 {
   return P_cplus_demangle(mangledName_, true);
 }
@@ -94,66 +94,66 @@ bool Symbol::setLocalTOC(Offset toc)
     return true;
 }
 
-SYMTAB_EXPORT bool Symbol::setModule(Module *mod) 
+DYNINST_EXPORT bool Symbol::setModule(Module *mod) 
 {
     assert(mod);
     module_ = mod; 
     return true;
 }
 
-SYMTAB_EXPORT bool Symbol::isFunction() const
+DYNINST_EXPORT bool Symbol::isFunction() const
 {
     return (getFunction() != NULL);
 }
 
-SYMTAB_EXPORT bool Symbol::setFunction(Function *func)
+DYNINST_EXPORT bool Symbol::setFunction(Function *func)
 {
     aggregate_ = func;
     return true;
 }
 
-SYMTAB_EXPORT Function * Symbol::getFunction() const
+DYNINST_EXPORT Function * Symbol::getFunction() const
 {
 	if (aggregate_ == NULL) 
 		return NULL;
     return dynamic_cast<Function *>(aggregate_);
 }
 
-SYMTAB_EXPORT bool Symbol::isVariable() const 
+DYNINST_EXPORT bool Symbol::isVariable() const 
 {
     return (getVariable() != NULL);
 }
 
-SYMTAB_EXPORT bool Symbol::setVariable(Variable *var) 
+DYNINST_EXPORT bool Symbol::setVariable(Variable *var) 
 {
     aggregate_ = var;
     return true;
 }
 
-SYMTAB_EXPORT Variable * Symbol::getVariable() const
+DYNINST_EXPORT Variable * Symbol::getVariable() const
 {
     return dynamic_cast<Variable *>(aggregate_);
 }
 
-SYMTAB_EXPORT bool Symbol::setSize(unsigned ns)
+DYNINST_EXPORT bool Symbol::setSize(unsigned ns)
 {
 	size_ = ns;
 	return true;
 }
 
-SYMTAB_EXPORT bool Symbol::setRegion(Region *r)
+DYNINST_EXPORT bool Symbol::setRegion(Region *r)
 {
 	region_ = r;
 	return true;
 }
 
-SYMTAB_EXPORT Symbol::SymbolTag Symbol::tag() const 
+DYNINST_EXPORT Symbol::SymbolTag Symbol::tag() const 
 {
     return tag_;
 }
 
 
-SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
+DYNINST_EXPORT bool Symbol::setSymbolType(SymbolType sType)
 {
     if ((sType != ST_UNKNOWN)&&
         (sType != ST_FUNCTION)&&
@@ -173,7 +173,7 @@ SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
     return true;
 }
 
-SYMTAB_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
+DYNINST_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
 {
    std::string *fn_p = NULL;
    if (getAnnotation(fn_p, SymbolFileNameAnno)) 
@@ -194,7 +194,7 @@ SYMTAB_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
    return false;
 }
 
-SYMTAB_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
+DYNINST_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
 {
    std::vector<std::string> *vn_p = NULL;
    if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
@@ -209,7 +209,7 @@ SYMTAB_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    return true;
 }
 
-SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName) const
+DYNINST_EXPORT bool Symbol::getVersionFileName(std::string &fileName) const
 {
    std::string *fn_p = NULL;
 
@@ -224,7 +224,7 @@ SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName) const
    return false;
 }
 
-SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
+DYNINST_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
 {
    std::vector<std::string> *vn_p = NULL;
 
@@ -240,7 +240,7 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
    return false;
 }
 
-SYMTAB_EXPORT bool Symbol::setMangledName(std::string name)
+DYNINST_EXPORT bool Symbol::setMangledName(std::string name)
 {
    mangledName_ = name;
    setStrIndex(-1);

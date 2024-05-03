@@ -289,22 +289,22 @@ boost::shared_ptr<typeCollection> Symtab::setupStdTypes()
    return stdTypes;
 }
 
-SYMTAB_EXPORT unsigned Symtab::getAddressWidth() const 
+DYNINST_EXPORT unsigned Symtab::getAddressWidth() const 
 {
    return address_width_;
 }
  
-SYMTAB_EXPORT bool Symtab::getABIVersion(int &major, int &minor) const
+DYNINST_EXPORT bool Symtab::getABIVersion(int &major, int &minor) const
 {
    return obj_private->getABIVersion(major, minor);
 }
 
-SYMTAB_EXPORT bool Symtab::isBigEndianDataEncoding() const
+DYNINST_EXPORT bool Symtab::isBigEndianDataEncoding() const
 {
    return obj_private->isBigEndianDataEncoding();
 }
 
-SYMTAB_EXPORT Symtab::Symtab() :
+DYNINST_EXPORT Symtab::Symtab() :
    LookupInterface(),
    AnnotatableSparse(),
    impl{std::unique_ptr<symtab_impl>(new symtab_impl{})}
@@ -312,22 +312,22 @@ SYMTAB_EXPORT Symtab::Symtab() :
     init_debug_symtabAPI();
 }
 
-SYMTAB_EXPORT bool Symtab::isExec() const 
+DYNINST_EXPORT bool Symtab::isExec() const 
 {
     return is_a_out; 
 }
 
-SYMTAB_EXPORT bool Symtab::isExecutable() const
+DYNINST_EXPORT bool Symtab::isExecutable() const
 {
     return obj_private->isExecutable();
 }
 
-SYMTAB_EXPORT bool Symtab::isSharedLibrary() const
+DYNINST_EXPORT bool Symtab::isSharedLibrary() const
 {
     return obj_private->isSharedLibrary();
 }
 
-SYMTAB_EXPORT bool Symtab::isStripped() 
+DYNINST_EXPORT bool Symtab::isStripped() 
 {
 #if defined(os_linux) || defined(os_freebsd)
     Region *sec;
@@ -337,32 +337,32 @@ SYMTAB_EXPORT bool Symtab::isStripped()
 #endif
 }
 
-SYMTAB_EXPORT Offset Symtab::preferedBase() const 
+DYNINST_EXPORT Offset Symtab::preferedBase() const 
 {
     return preferedBase_;
 }
 
-SYMTAB_EXPORT Offset Symtab::imageOffset() const 
+DYNINST_EXPORT Offset Symtab::imageOffset() const 
 {
     return imageOffset_;
 }
 
-SYMTAB_EXPORT Offset Symtab::dataOffset() const 
+DYNINST_EXPORT Offset Symtab::dataOffset() const 
 { 
     return dataOffset_;
 }
 
-SYMTAB_EXPORT Offset Symtab::dataLength() const 
+DYNINST_EXPORT Offset Symtab::dataLength() const 
 {
     return dataLen_;
 } 
 
-SYMTAB_EXPORT Offset Symtab::imageLength() const 
+DYNINST_EXPORT Offset Symtab::imageLength() const 
 {
     return imageLen_;
 }
 
-SYMTAB_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
+DYNINST_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
                                                Offset newImageLength,
                                                Offset newDataOffset,
                                                Offset newDataLength)
@@ -375,34 +375,34 @@ SYMTAB_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
     // Should we update the underlying Object?
 }
 
-SYMTAB_EXPORT const char*  Symtab::getInterpreterName() const 
+DYNINST_EXPORT const char*  Symtab::getInterpreterName() const 
 {
    if (interpreter_name_.length())
       return interpreter_name_.c_str();
    return NULL;
 }
  
-SYMTAB_EXPORT Offset Symtab::getEntryOffset() const 
+DYNINST_EXPORT Offset Symtab::getEntryOffset() const 
 { 
    return entry_address_;
 }
 
-SYMTAB_EXPORT Offset Symtab::getBaseOffset() const 
+DYNINST_EXPORT Offset Symtab::getBaseOffset() const 
 {
    return base_address_;
 }
 
-SYMTAB_EXPORT Offset Symtab::getLoadOffset() const 
+DYNINST_EXPORT Offset Symtab::getLoadOffset() const 
 { 
    return load_address_;
 }
 
-SYMTAB_EXPORT Offset Symtab::getTOCoffset(Function *func) const 
+DYNINST_EXPORT Offset Symtab::getTOCoffset(Function *func) const 
 {
   return getTOCoffset(func ? func->getOffset() : 0); 
 }
 
-SYMTAB_EXPORT Offset Symtab::getTOCoffset(Offset off) const
+DYNINST_EXPORT Offset Symtab::getTOCoffset(Offset off) const
 {
   return obj_private->getTOCoffset(off);
 }
@@ -412,7 +412,7 @@ void Symtab::setTOCOffset(Offset off) {
   return;
 }
 
-SYMTAB_EXPORT string Symtab::getDefaultNamespacePrefix() const
+DYNINST_EXPORT string Symtab::getDefaultNamespacePrefix() const
 {
     return defaultNamespacePrefix;
 }
@@ -1156,13 +1156,13 @@ bool Symtab::isData(const Offset where)  const
    return false;
 }
 
-SYMTAB_EXPORT bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
+DYNINST_EXPORT bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
 {
    fbt = relocation_table_;
    return true;
 }
 
-SYMTAB_EXPORT bool Symtab::findPltEntryByTarget(const Address target_address, relocationEntry &result) const
+DYNINST_EXPORT bool Symtab::findPltEntryByTarget(const Address target_address, relocationEntry &result) const
 {
     /**
      * Object files and static binaries will not have a function binding table
@@ -1186,7 +1186,7 @@ SYMTAB_EXPORT bool Symtab::findPltEntryByTarget(const Address target_address, re
     return true;
 }
 
-SYMTAB_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_addr)
+DYNINST_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_addr)
 {
     int stub_idx = -1, plt_idx = -1;
 
@@ -1206,11 +1206,11 @@ SYMTAB_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_a
     return false;
 }
 
-SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
+DYNINST_EXPORT std::vector<std::string> &Symtab::getDependencies(){
     return deps_;
 }
 
-SYMTAB_EXPORT Archive *Symtab::getParentArchive() const {
+DYNINST_EXPORT Archive *Symtab::getParentArchive() const {
     return parentArchive_;
 }
 
@@ -1522,7 +1522,7 @@ void Symtab::parseLineInformation()
     linkedFile->parseFileLineInfo();
 }
 
-SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
+DYNINST_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
                                             std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
@@ -1549,7 +1549,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    return false;
 }
 
-SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
+DYNINST_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
     Module* m = getContainingModule(addressInRange);
@@ -1565,7 +1565,7 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Of
 
 }
 
-SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+DYNINST_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
     std::vector<Statement::Ptr> tmp;
     getSourceLines(tmp, addressInRange);
@@ -1621,17 +1621,17 @@ bool Symtab::addType(Type *type)
   return true;
 }
 
-SYMTAB_EXPORT void Symtab::getAllstdTypes(vector<boost::shared_ptr<Type>>& v)
+DYNINST_EXPORT void Symtab::getAllstdTypes(vector<boost::shared_ptr<Type>>& v)
 {
    return stdTypes()->getAllTypes(v); 	
 }
 
-SYMTAB_EXPORT void Symtab::getAllbuiltInTypes(vector<boost::shared_ptr<Type>>& v)
+DYNINST_EXPORT void Symtab::getAllbuiltInTypes(vector<boost::shared_ptr<Type>>& v)
 {
    return builtInTypes()->getAllBuiltInTypes(v);
 }
 
-SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string name)
+DYNINST_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string name)
 {
    parseTypesNow();
 
@@ -1652,7 +1652,7 @@ SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string n
    return true;	
 }
 
-SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::do_share_t)
+DYNINST_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::do_share_t)
 {
 	boost::shared_ptr<Type> t;
    parseTypesNow();
@@ -1690,7 +1690,7 @@ SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::d
    return t;	
 }
 
-SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::string name)
+DYNINST_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::string name)
 {
    parseTypesNow();
     type = NULL;
@@ -1708,7 +1708,7 @@ SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::
    return true;	
 }
 
-SYMTAB_EXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::string name)
+DYNINST_EXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
    parseTypesNow();
    unsigned origSize = vars.size();
@@ -1724,37 +1724,37 @@ SYMTAB_EXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::
    return false;	
 }
 
-SYMTAB_EXPORT bool Symtab::hasRel() const
+DYNINST_EXPORT bool Symtab::hasRel() const
 {
    return hasRel_;
 }
 
-SYMTAB_EXPORT bool Symtab::hasRela() const
+DYNINST_EXPORT bool Symtab::hasRela() const
 {
    return hasRela_;
 }
 
-SYMTAB_EXPORT bool Symtab::hasReldyn() const
+DYNINST_EXPORT bool Symtab::hasReldyn() const
 {
    return hasReldyn_;
 }
 
-SYMTAB_EXPORT bool Symtab::hasReladyn() const
+DYNINST_EXPORT bool Symtab::hasReladyn() const
 {
    return hasReladyn_;
 }
 
-SYMTAB_EXPORT bool Symtab::hasRelplt() const
+DYNINST_EXPORT bool Symtab::hasRelplt() const
 {
    return hasRelplt_;
 }
 
-SYMTAB_EXPORT bool Symtab::hasRelaplt() const
+DYNINST_EXPORT bool Symtab::hasRelaplt() const
 {
    return hasRelaplt_;
 }
 
-SYMTAB_EXPORT bool Symtab::isStaticBinary() const
+DYNINST_EXPORT bool Symtab::isStaticBinary() const
 {
    return isStaticBinary_;
 }
@@ -1765,7 +1765,7 @@ bool Symtab::setDefaultNamespacePrefix(string &str)
    return true;
 }
 
-SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
+DYNINST_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Start with all the defined symbols
     std::set<Symbol* > allSyms;
@@ -1779,7 +1779,7 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
     return linkedFile->emitDriver(filename, allSyms, flag);
 }
 
-SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
+DYNINST_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
 	Object *obj = getObject();
 	if (!obj)
@@ -1790,12 +1790,12 @@ SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
    return emitSymbols(obj, filename, flag);
 }
 
-SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
+DYNINST_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
 {
    dynLibSubs[oldName] = newName;
 }
 
-SYMTAB_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
+DYNINST_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
 {
    map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
 
@@ -1805,7 +1805,7 @@ SYMTAB_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
       return loc->second;
 }
 
-SYMTAB_EXPORT bool Symtab::getSegments(vector<Segment> &segs) const
+DYNINST_EXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
    segs = segments_;
 
@@ -1815,7 +1815,7 @@ SYMTAB_EXPORT bool Symtab::getSegments(vector<Segment> &segs) const
    return true;
 }
 
-SYMTAB_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) const
+DYNINST_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) const
 {
    unsigned origSize = mappedRegs.size();
 
@@ -1831,7 +1831,7 @@ SYMTAB_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) c
    return false;
 }
 
-SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, long memSize)
+DYNINST_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, long memSize)
 {
     Region *sec;
 
@@ -1876,7 +1876,7 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
     return true;
 }
 
-SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)
+DYNINST_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)
 {
    Region *sec;
 
@@ -1888,17 +1888,17 @@ SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned
    return true;
 }
 
-SYMTAB_EXPORT bool Symtab::updateCode(void *buffer, unsigned size)
+DYNINST_EXPORT bool Symtab::updateCode(void *buffer, unsigned size)
 {
   return updateRegion(".text", buffer, size);
 }
 
-SYMTAB_EXPORT bool Symtab::updateData(void *buffer, unsigned size)
+DYNINST_EXPORT bool Symtab::updateData(void *buffer, unsigned size)
 {
   return updateRegion(".data", buffer, size);
 }
 
-SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size) 
+DYNINST_EXPORT Offset Symtab::getFreeOffset(unsigned size) 
 {
    // Look through sections until we find a gap with
    // sufficient space.
@@ -1979,53 +1979,53 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 #endif	
 }
 
-SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
+DYNINST_EXPORT ObjectType Symtab::getObjectType() const 
 {
    return object_type_;
 }
 
-SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture() const
+DYNINST_EXPORT Dyninst::Architecture Symtab::getArchitecture() const
 {
    return getObject()->getArch();
 }
 
-SYMTAB_EXPORT char *Symtab::mem_image() const 
+DYNINST_EXPORT char *Symtab::mem_image() const 
 {
    return (char *)mf->base_addr();
 }
 
-SYMTAB_EXPORT std::string Symtab::file() const 
+DYNINST_EXPORT std::string Symtab::file() const 
 {
    assert(mf);
    return mf->filename();
 }
 
-SYMTAB_EXPORT std::string Symtab::name() const 
+DYNINST_EXPORT std::string Symtab::name() const 
 {
   return extract_pathname_tail(mf->filename());
 }
 
-SYMTAB_EXPORT std::string Symtab::memberName() const 
+DYNINST_EXPORT std::string Symtab::memberName() const 
 {
     return member_name_;
 }
 
-SYMTAB_EXPORT unsigned Symtab::getNumberOfRegions() const 
+DYNINST_EXPORT unsigned Symtab::getNumberOfRegions() const 
 {
    return no_of_sections; 
 }
 
-SYMTAB_EXPORT unsigned Symtab::getNumberOfSymbols() const 
+DYNINST_EXPORT unsigned Symtab::getNumberOfSymbols() const 
 {
    return no_of_symbols; 
 }
 
 
-SYMTAB_EXPORT LookupInterface::LookupInterface() 
+DYNINST_EXPORT LookupInterface::LookupInterface() 
 {
 }
 
-SYMTAB_EXPORT LookupInterface::~LookupInterface()
+DYNINST_EXPORT LookupInterface::~LookupInterface()
 {
 }
 
@@ -2068,7 +2068,7 @@ void Symtab::parseTypesNow()
    std::call_once(this->impl->types_parsed, [this](){ this->parseTypes(); });
 }
 
-SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
+DYNINST_EXPORT Offset Symtab::getElfDynamicOffset()
 {
 #if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
@@ -2082,7 +2082,7 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 #endif
 }
 
-SYMTAB_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
+DYNINST_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
 {
 #if defined(os_windows)
    return false;
@@ -2095,7 +2095,7 @@ SYMTAB_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
 #endif
 }
    
-SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
+DYNINST_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
    Object *obj = getObject();
 	if (!obj)
@@ -2149,7 +2149,7 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
    return true;
 }
 
-SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
+DYNINST_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 {
 #if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
@@ -2164,7 +2164,7 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 #endif
 }
 
-SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Region *localRegion,
+DYNINST_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Region *localRegion,
         relocationEntry localRel)
 {
     // Adjust this to the correct value
@@ -2198,7 +2198,7 @@ SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regio
 
 // on windows we can't specify the trap table's location by adding a dynamic
 // symbol as we don on windows
-SYMTAB_EXPORT bool Symtab::addTrapHeader_win(Address ptr)
+DYNINST_EXPORT bool Symtab::addTrapHeader_win(Address ptr)
 {
 #if defined(os_windows)
    getObject()->setTrapHeader(ptr);
@@ -2215,18 +2215,18 @@ bool Symtab::getExplicitSymtabRefs(std::set<Symtab *> &refs) {
     return (refs.size() != 0);
 }
 
-SYMTAB_EXPORT bool Symtab::addLinkingResource(Archive *library) {
+DYNINST_EXPORT bool Symtab::addLinkingResource(Archive *library) {
     linkingResources_.push_back(library);
 
     return true;
 }
 
-SYMTAB_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
+DYNINST_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
     libs = linkingResources_;
     return (linkingResources_.size() != 0);
 }
 
-SYMTAB_EXPORT Address Symtab::getLoadAddress()
+DYNINST_EXPORT Address Symtab::getLoadAddress()
 {
 #if defined(os_linux) || defined(os_freebsd)
    return getObject()->getLoadAddress();
@@ -2235,17 +2235,17 @@ SYMTAB_EXPORT Address Symtab::getLoadAddress()
 #endif
 }
 
-SYMTAB_EXPORT bool Symtab::isDefensiveBinary() const
+DYNINST_EXPORT bool Symtab::isDefensiveBinary() const
 {
     return isDefensiveBinary_;
 }
 
-SYMTAB_EXPORT bool Symtab::canBeShared()
+DYNINST_EXPORT bool Symtab::canBeShared()
 {
    return mf->canBeShared();
 }
 
-SYMTAB_EXPORT Offset Symtab::getInitOffset()
+DYNINST_EXPORT Offset Symtab::getInitOffset()
 {
 #if defined(os_linux) || defined(os_freebsd)
    return getObject()->getInitAddr();
@@ -2255,7 +2255,7 @@ SYMTAB_EXPORT Offset Symtab::getInitOffset()
 
 }
 
-SYMTAB_EXPORT Offset Symtab::getFiniOffset()
+DYNINST_EXPORT Offset Symtab::getFiniOffset()
 {
 #if defined(os_linux) || defined(os_freebsd)
    return getObject()->getFiniAddr();

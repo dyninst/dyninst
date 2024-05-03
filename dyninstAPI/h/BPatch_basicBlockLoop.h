@@ -58,7 +58,7 @@ class PatchLoop;
 class BPatch_variableExpr;
 class BPatch_loopTreeNode;
 
-class BPATCH_DLL_EXPORT BPatch_basicBlockLoop : 
+class DYNINST_EXPORT BPatch_basicBlockLoop : 
    public Dyninst::AnnotatableSparse 
 {
 	friend class BPatch_flowGraph;

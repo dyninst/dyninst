@@ -47,7 +47,7 @@ namespace Dyninst
     ///
       class InstructionDecoderImpl;
 
-    class INSTRUCTION_EXPORT InstructionDecoder
+    class DYNINST_EXPORT InstructionDecoder
     {
       friend class Instruction;
         public:
@@ -57,9 +57,9 @@ namespace Dyninst
       InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
       InstructionDecoder(const void* buffer, size_t size, Architecture arch);
 
-      INSTRUCTION_EXPORT ~InstructionDecoder() = default;
-      INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o) = default;
-      INSTRUCTION_EXPORT InstructionDecoder& operator=(const InstructionDecoder  & o) = default;
+      DYNINST_EXPORT ~InstructionDecoder() = default;
+      DYNINST_EXPORT InstructionDecoder(const InstructionDecoder& o) = default;
+      DYNINST_EXPORT InstructionDecoder& operator=(const InstructionDecoder  & o) = default;
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
@@ -71,7 +71,7 @@ namespace Dyninst
       /// the size of the instruction decoded.
       Instruction decode(const unsigned char *buffer);
       void doDelayedDecode(const Instruction* insn_to_complete);
-      struct INSTRUCTION_EXPORT buffer
+      struct DYNINST_EXPORT buffer
       {
           const unsigned char* start;
           const unsigned char* end;

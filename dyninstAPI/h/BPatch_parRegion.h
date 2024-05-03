@@ -46,7 +46,7 @@ typedef enum{
   OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED, OMP_ANY
 } parRegType;
 
-class BPATCH_DLL_EXPORT BPatch_parRegion {
+class DYNINST_EXPORT BPatch_parRegion {
   BPatch_function * func;
   int_parRegion * parReg;
   

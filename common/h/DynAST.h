@@ -163,7 +163,7 @@ class name : public AST {						\
   Children kids_;							\
  }									\
 
-class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
+class DYNINST_EXPORT AST : public boost::enable_shared_from_this<AST> {
  public:
 
   // This is a global list of all AST types, including those that are not
@@ -234,7 +234,7 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
   virtual bool isStrictEqual(const AST &rhs) const = 0;
 };
 
- class COMMON_EXPORT ASTVisitor {
+ class DYNINST_EXPORT ASTVisitor {
  public:
    typedef boost::shared_ptr<AST> ASTPtr;
 

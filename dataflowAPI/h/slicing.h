@@ -80,7 +80,7 @@ typedef boost::shared_ptr<Graph> GraphPtr;
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
-class DATAFLOW_EXPORT SliceNode : public Node {
+class DYNINST_EXPORT SliceNode : public Node {
  public:
   typedef boost::shared_ptr<SliceNode> Ptr;
       
@@ -120,7 +120,7 @@ class SliceEdge : public Edge {
   public:
    typedef boost::shared_ptr<SliceEdge> Ptr;
 
-   DATAFLOW_EXPORT static SliceEdge::Ptr create(SliceNode::Ptr source,
+   DYNINST_EXPORT static SliceEdge::Ptr create(SliceNode::Ptr source,
                                                 SliceNode::Ptr target,
                                                 AbsRegion const&data) {
       return Ptr(new SliceEdge(source, target, data)); 
@@ -146,29 +146,29 @@ class Slicer {
   // The cache is keyed with basic block starting address.
   typedef dyn_hash_map<Address, InsnVec> InsnCache;
 
-  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
+  DYNINST_EXPORT Slicer(AssignmentPtr a,
 	 ParseAPI::Block *block,
 	 ParseAPI::Function *func,
 	 bool cache = true,
 	 bool stackAnalysis = true);
 
-  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
+  DYNINST_EXPORT Slicer(AssignmentPtr a,
           ParseAPI::Block *block,
           ParseAPI::Function *func,
           AssignmentConverter *ac);
 
-  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
+  DYNINST_EXPORT Slicer(AssignmentPtr a,
           ParseAPI::Block *block,
           ParseAPI::Function *func,
           AssignmentConverter *ac,
           InsnCache *c);
 
 
-  DATAFLOW_EXPORT ~Slicer();
+  DYNINST_EXPORT ~Slicer();
     
-  DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
+  DYNINST_EXPORT static bool isWidenNode(Node::Ptr n);
 
-  struct DATAFLOW_EXPORT ContextElement {
+  struct DYNINST_EXPORT ContextElement {
     // We can implicitly find the callsite given a block,
     // since calls end blocks. It's easier to look up 
     // the successor this way than with an address.
@@ -196,7 +196,7 @@ class Slicer {
 
 
   // Where we are in a particular search...
-  struct DATAFLOW_EXPORT Location {
+  struct DYNINST_EXPORT Location {
     // The block we're looking through
     ParseAPI::Function *func;
     ParseAPI::Block *block; // current block
@@ -226,7 +226,7 @@ class Slicer {
   // keep a list of the currently active elements
   // that are at the `leading edge' of the 
   // under-construction slice
-  struct DATAFLOW_EXPORT Element {
+  struct DYNINST_EXPORT Element {
     Element(ParseAPI::Block * b,
         ParseAPI::Function * f,
         AbsRegion const& r,
@@ -254,7 +254,7 @@ class Slicer {
 
   // State for recursive slicing is a context, location pair
   // and a list of AbsRegions that are being searched for.
-  struct DATAFLOW_EXPORT SliceFrame {
+  struct DYNINST_EXPORT SliceFrame {
     SliceFrame(
         Location const& l,
         Context const& c)
@@ -285,55 +285,55 @@ class Slicer {
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
 
-    DATAFLOW_EXPORT bool performCacheClear() { if (clearCache) {clearCache = false; return true;} else return false; }
-    DATAFLOW_EXPORT void setClearCache(bool b) { clearCache = b; }
-    DATAFLOW_EXPORT bool searchForControlFlowDep() { return controlFlowDep; }
-    DATAFLOW_EXPORT void setSearchForControlFlowDep(bool cfd) { controlFlowDep = cfd; }
+    DYNINST_EXPORT bool performCacheClear() { if (clearCache) {clearCache = false; return true;} else return false; }
+    DYNINST_EXPORT void setClearCache(bool b) { clearCache = b; }
+    DYNINST_EXPORT bool searchForControlFlowDep() { return controlFlowDep; }
+    DYNINST_EXPORT void setSearchForControlFlowDep(bool cfd) { controlFlowDep = cfd; }
 
     // A negative number means that we do not bound slicing size.
-    DATAFLOW_EXPORT virtual int slicingSizeLimitFactor() { return -1; }
+    DYNINST_EXPORT virtual int slicingSizeLimitFactor() { return -1; }
 
-    DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
-    DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
-    DATAFLOW_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
-    DATAFLOW_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
+    DYNINST_EXPORT virtual bool allowImprecision() { return false; }
+    DYNINST_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
+    DYNINST_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
+    DYNINST_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
                                            CallStack_t & /*cs*/,
                                            AbsRegion /*argument*/) { 
        return false; 
     }
-    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *> 
+    DYNINST_EXPORT virtual std::vector<ParseAPI::Function *> 
         followCallBackward(ParseAPI::Block * /*callerB*/,
             CallStack_t & /*cs*/,
             AbsRegion /*argument*/) {
             std::vector<ParseAPI::Function *> vec;
             return vec;
         }
-    DATAFLOW_EXPORT virtual bool addPredecessor(AbsRegion /*reg*/) {
+    DYNINST_EXPORT virtual bool addPredecessor(AbsRegion /*reg*/) {
         return true;
     }
-    DATAFLOW_EXPORT virtual bool widenAtAssignment(const AbsRegion & /*in*/,
+    DYNINST_EXPORT virtual bool widenAtAssignment(const AbsRegion & /*in*/,
                                                   const AbsRegion & /*out*/) { 
        return false; 
     }
-    DATAFLOW_EXPORT virtual ~Predicates() {}
+    DYNINST_EXPORT virtual ~Predicates() {}
 
     // Callback function when adding a new node to the slice.
     // Return true if we want to continue slicing
-    DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr,
+    DYNINST_EXPORT virtual bool addNodeCallback(AssignmentPtr,
                                                  std::set<ParseAPI::Edge*> &) { return true;}
     // Callback function after we have added new a node and corresponding new edges to the slice.
     // This function allows users to inspect the current slice graph and determine which abslocs
     // need further slicing and which abslocs are no longer interesting, by modifying the current
     // SliceFrame.
-    DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr, Slicer*) {return true;} 						
-    DATAFLOW_EXPORT virtual bool ignoreEdge(ParseAPI::Edge*) { return false;}
-    DATAFLOW_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
+    DYNINST_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr, Slicer*) {return true;} 						
+    DYNINST_EXPORT virtual bool ignoreEdge(ParseAPI::Edge*) { return false;}
+    DYNINST_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
 
   };
 
-  DATAFLOW_EXPORT GraphPtr forwardSlice(Predicates &predicates);
+  DYNINST_EXPORT GraphPtr forwardSlice(Predicates &predicates);
   
-  DATAFLOW_EXPORT GraphPtr backwardSlice(Predicates &predicates);
+  DYNINST_EXPORT GraphPtr backwardSlice(Predicates &predicates);
 
  private:
 

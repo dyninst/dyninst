@@ -54,7 +54,7 @@ typedef Dyninst::THR_ID dynthread_t;
  * Represents a thread of execution.
  */
 
-class BPATCH_DLL_EXPORT BPatch_thread {
+class DYNINST_EXPORT BPatch_thread {
     friend class BPatch_frame;
     friend class BPatch_process;
     friend class BPatch_addressSpace;

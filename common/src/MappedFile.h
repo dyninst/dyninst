@@ -39,22 +39,22 @@ class MappedFile {
      static dyn_hash_map<std::string, MappedFile *> mapped_files;
 
    public:
-      COMMON_EXPORT static MappedFile *createMappedFile(std::string fullpath_);
-      COMMON_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_, const std::string &name);
-      COMMON_EXPORT static void closeMappedFile(MappedFile *&mf);
+      DYNINST_EXPORT static MappedFile *createMappedFile(std::string fullpath_);
+      DYNINST_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_, const std::string &name);
+      DYNINST_EXPORT static void closeMappedFile(MappedFile *&mf);
 
-      COMMON_EXPORT std::string filename();
-      COMMON_EXPORT void *base_addr() {return map_addr;}
+      DYNINST_EXPORT std::string filename();
+      DYNINST_EXPORT void *base_addr() {return map_addr;}
 #if defined(os_windows)
-      COMMON_EXPORT HANDLE getFileHandle() {return hFile;}
+      DYNINST_EXPORT HANDLE getFileHandle() {return hFile;}
 #else
-      COMMON_EXPORT int getFD() {return fd;}
+      DYNINST_EXPORT int getFD() {return fd;}
 #endif
-      COMMON_EXPORT unsigned long size() {return file_size;}
-      COMMON_EXPORT MappedFile *clone() { refCount++; return this; }
+      DYNINST_EXPORT unsigned long size() {return file_size;}
+      DYNINST_EXPORT MappedFile *clone() { refCount++; return this; }
 
-      COMMON_EXPORT void setSharing(bool s);
-      COMMON_EXPORT bool canBeShared();
+      DYNINST_EXPORT void setSharing(bool s);
+      DYNINST_EXPORT bool canBeShared();
 
    private:
 

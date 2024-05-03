@@ -35,7 +35,7 @@
 #include <map>
 #include "dyntypes.h"
 
-class COMMON_EXPORT AuxvParser
+class DYNINST_EXPORT AuxvParser
 {
  private:
    int pid;

@@ -47,7 +47,7 @@
  * class timer
 ************************************************************************/
 
-class COMMON_EXPORT timer {
+class DYNINST_EXPORT timer {
 public:
      timer ();
      timer (const timer &);

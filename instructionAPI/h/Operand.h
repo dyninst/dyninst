@@ -72,45 +72,45 @@ namespace Dyninst
 
       /// \brief Get the registers read by this operand
       /// \param regsRead Has the registers read inserted into it
-      INSTRUCTION_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
+      DYNINST_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
       /// \brief Get the registers written by this operand
       /// \param regsWritten Has the registers written  inserted into it
-      INSTRUCTION_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
+      DYNINST_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
-      INSTRUCTION_EXPORT RegisterAST::Ptr getPredicate() const;
+      DYNINST_EXPORT RegisterAST::Ptr getPredicate() const;
 
       /// Returns true if this operand is read
-      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
+      DYNINST_EXPORT bool isRead(Expression::Ptr candidate) const;
       /// Returns true if this operand is written
-      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
+      DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) const;
 
-      INSTRUCTION_EXPORT bool isRead() const { return m_isRead; }
-      INSTRUCTION_EXPORT bool isWritten() const { return m_isWritten; }
+      DYNINST_EXPORT bool isRead() const { return m_isRead; }
+      DYNINST_EXPORT bool isWritten() const { return m_isWritten; }
 
-      INSTRUCTION_EXPORT bool isImplicit() const { return m_isImplicit; }
-      INSTRUCTION_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
+      DYNINST_EXPORT bool isImplicit() const { return m_isImplicit; }
+      DYNINST_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
 
-      INSTRUCTION_EXPORT bool isTruePredicate() const { return m_isTruePredicate; }
-      INSTRUCTION_EXPORT bool isFalsePredicate() const { return m_isFalsePredicate; }
+      DYNINST_EXPORT bool isTruePredicate() const { return m_isTruePredicate; }
+      DYNINST_EXPORT bool isFalsePredicate() const { return m_isFalsePredicate; }
       
       /// Returns true if this operand reads memory
-      INSTRUCTION_EXPORT bool readsMemory() const;
+      DYNINST_EXPORT bool readsMemory() const;
       /// Returns true if this operand writes memory
-      INSTRUCTION_EXPORT bool writesMemory() const;
+      DYNINST_EXPORT bool writesMemory() const;
       /// \brief Inserts the effective addresses read by this operand into memAccessors
       /// \param memAccessors If this is a memory read operand, insert the \c %Expression::Ptr representing
       /// the address being read into \c memAccessors.
-      INSTRUCTION_EXPORT void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
+      DYNINST_EXPORT void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
       /// \brief Inserts the effective addresses written by this operand into memAccessors
       /// \param memAccessors If this is a memory write operand, insert the \c %Expression::Ptr representing
       /// the address being written into \c memAccessors.
-      INSTRUCTION_EXPORT void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
+      DYNINST_EXPORT void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
       /// \brief Return a printable string representation of the operand.
       /// \return The operand in a disassembly format
-      INSTRUCTION_EXPORT std::string format(Architecture arch, Address addr = 0) const;
+      DYNINST_EXPORT std::string format(Architecture arch, Address addr = 0) const;
 
       /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
-      INSTRUCTION_EXPORT Expression::Ptr getValue() const;
+      DYNINST_EXPORT Expression::Ptr getValue() const;
       
     private:
       Expression::Ptr op_value{};

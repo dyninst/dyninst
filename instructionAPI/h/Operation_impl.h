@@ -109,43 +109,43 @@ namespace Dyninst
       friend class Instruction; // to make use of the update size function
       
     public:
-      INSTRUCTION_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+      DYNINST_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
                                   Architecture arch = Arch_none);
-      INSTRUCTION_EXPORT Operation(const Operation& o);
-      INSTRUCTION_EXPORT Operation();
-      INSTRUCTION_EXPORT Operation(entryID id, std::string m, Architecture arch);
+      DYNINST_EXPORT Operation(const Operation& o);
+      DYNINST_EXPORT Operation();
+      DYNINST_EXPORT Operation(entryID id, std::string m, Architecture arch);
 
-      INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
+      DYNINST_EXPORT const Operation& operator=(const Operation& o);
       
       /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
-      INSTRUCTION_EXPORT const registerSet& implicitReads() ;
+      DYNINST_EXPORT const registerSet& implicitReads() ;
       /// Returns the set of registers implicitly written (i.e. those not included in the operands, but written anyway)
-      INSTRUCTION_EXPORT const registerSet& implicitWrites() ;
+      DYNINST_EXPORT const registerSet& implicitWrites() ;
       /// Returns the mnemonic for the operation.  Like \c instruction::format, this is exposed for debugging
       /// and will be replaced with stream operators in the public interface.
-      INSTRUCTION_EXPORT std::string format() const;
+      DYNINST_EXPORT std::string format() const;
       /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
       /// to assembly mnemonics.
-      INSTRUCTION_EXPORT entryID getID() const;
+      DYNINST_EXPORT entryID getID() const;
       /// Returns the prefix entry ID corresponding to this operation, if any.
       /// Prefix IDs are enumerated values that correspond to assembly prefix mnemonics.
-      INSTRUCTION_EXPORT prefixEntryID getPrefixID() const;
+      DYNINST_EXPORT prefixEntryID getPrefixID() const;
 
       /// Returns true if the expression represented by \c candidate is read implicitly.
-      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) ;
+      DYNINST_EXPORT bool isRead(Expression::Ptr candidate) ;
       /// Returns true if the expression represented by \c candidate is written implicitly.
-      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) ;
+      DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) ;
       /// Returns the set of memory locations implicitly read.
-      INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() ;
+      DYNINST_EXPORT const VCSet& getImplicitMemReads() ;
       /// Returns the set of memory locations implicitly written.
-      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() ;
+      DYNINST_EXPORT const VCSet& getImplicitMemWrites() ;
 
       void updateMnemonic(std::string new_mnemonic){
         mnemonic = new_mnemonic;
       }
 
 
-      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
+      DYNINST_EXPORT const VCSet& getImplicitMemWrites() const;
       bool isVectorInsn;
 
     private:

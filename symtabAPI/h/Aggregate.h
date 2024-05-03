@@ -58,7 +58,7 @@ class DwarfWalker;
 
 struct SymbolCompareByAddr;
 
-class SYMTAB_EXPORT Aggregate
+class DYNINST_EXPORT Aggregate
 {
    friend class Symtab;
    friend struct SymbolCompareByAddr;

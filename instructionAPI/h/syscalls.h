@@ -42,7 +42,7 @@ namespace Dyninst { namespace InstructionAPI {
    *  as well as by idioms. This checks for both for all supported
    *  platforms.
    */
-bool INSTRUCTION_EXPORT isSystemCall(Instruction const& ins);
+bool DYNINST_EXPORT isSystemCall(Instruction const& ins);
 
 }}
 

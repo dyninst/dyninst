@@ -85,11 +85,11 @@ namespace Dyninst {
             typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
             uint64_t _addr = 0 ;
         public:
-            DATAFLOW_EXPORT RoseInsnFactory(void) { }
+            DYNINST_EXPORT RoseInsnFactory(void) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnFactory(void) { }
+            DYNINST_EXPORT virtual ~RoseInsnFactory(void) { }
 
-            DATAFLOW_EXPORT virtual SgAsmInstruction *convert(const InstructionAPI::Instruction &insn, uint64_t addr);
+            DYNINST_EXPORT virtual SgAsmInstruction *convert(const InstructionAPI::Instruction &insn, uint64_t addr);
 
         protected:
             virtual SgAsmInstruction *createInsn() = 0;
@@ -112,9 +112,9 @@ namespace Dyninst {
 
         class RoseInsnX86Factory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnX86Factory(Architecture arch) : a(arch) { }
+            DYNINST_EXPORT RoseInsnX86Factory(Architecture arch) : a(arch) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnX86Factory() { }
+            DYNINST_EXPORT virtual ~RoseInsnX86Factory() { }
 
         private:
             Architecture a;
@@ -137,9 +137,9 @@ namespace Dyninst {
 
         class RoseInsnPPCFactory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnPPCFactory(void) { }
+            DYNINST_EXPORT RoseInsnPPCFactory(void) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnPPCFactory(void) { }
+            DYNINST_EXPORT virtual ~RoseInsnPPCFactory(void) { }
 
         private:
             virtual SgAsmInstruction *createInsn();
@@ -163,9 +163,9 @@ namespace Dyninst {
 
         class RoseInsnArmv8Factory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnArmv8Factory(Architecture arch) : a(arch) { }
+            DYNINST_EXPORT RoseInsnArmv8Factory(Architecture arch) : a(arch) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnArmv8Factory() { }
+            DYNINST_EXPORT virtual ~RoseInsnArmv8Factory() { }
 
         private:
             Architecture a;
@@ -188,9 +188,9 @@ namespace Dyninst {
 
         class RoseInsnAMDGPUFactory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnAMDGPUFactory(Architecture arch) : a(arch) { }
+            DYNINST_EXPORT RoseInsnAMDGPUFactory(Architecture arch) : a(arch) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnAMDGPUFactory() { }
+            DYNINST_EXPORT virtual ~RoseInsnAMDGPUFactory() { }
 
         private:
             Architecture a;

@@ -80,7 +80,7 @@ typedef boost::shared_ptr<const ThreadSet> ThreadSet_const_ptr;
  * Iteration over AddressSet is sorted by the Address. So, all Processes
  * that share an Address will appear together when iterating over the set.
  **/
-class PC_EXPORT AddressSet
+class DYNINST_EXPORT AddressSet
 {
   private:
    int_addressSet *iaddrs;
@@ -164,7 +164,7 @@ class PC_EXPORT AddressSet
  * perform collective operations on the entire set, which may be more effecient
  * than the equivalent sequential operations.
  **/
-class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
+class DYNINST_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
 {
    friend class ThreadSet;
   private:
@@ -227,7 +227,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    /**
     * Iterator and standard set utilities
     **/
-   class PC_EXPORT iterator {
+   class DYNINST_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ProcessSet;
      private:
       int_processSet::iterator int_iter;
@@ -246,7 +246,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
 	  typedef std::forward_iterator_tag iterator_category;
    };
 
-   class PC_EXPORT const_iterator {
+   class DYNINST_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ProcessSet;
      private:
       int_processSet::iterator int_iter;
@@ -405,7 +405,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    const MemoryUsageSet *getMemoryUsage() const;
 };
 
-class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
+class DYNINST_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
   private:
    int_threadSet *ithrset;
    TSetFeatures *features;
@@ -440,7 +440,7 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
    /**
     * Iterator and standard set utilities
     **/
-   class PC_EXPORT iterator {
+   class DYNINST_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadSet;
      protected:
       std::set<Thread::ptr>::iterator int_iter;
@@ -453,7 +453,7 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
       ThreadSet::iterator operator++(int);
    };
 
-   class PC_EXPORT const_iterator {
+   class DYNINST_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadSet;
      protected:
       std::set<Thread::ptr>::iterator int_iter;

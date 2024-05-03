@@ -69,7 +69,7 @@ struct comparison {
 };
 
 template<class Key, class Compare = comparison<Key> >
-class BPATCH_DLL_EXPORT BPatch_Set {
+class DYNINST_EXPORT BPatch_Set {
    friend class BPatch_basicBlock;
    friend class BPatch_function;
    friend class BPatch_flowGraph;

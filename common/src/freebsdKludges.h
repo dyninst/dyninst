@@ -47,8 +47,8 @@ bool sysctl_getRunningStates(pid_t pid, std::map<Dyninst::LWP, bool> &runningSta
 
 map_entries *getVMMaps(int pid, unsigned &maps_size);
 
-COMMON_EXPORT bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
-COMMON_EXPORT bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
+DYNINST_EXPORT bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
+DYNINST_EXPORT bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
 
 #endif
 

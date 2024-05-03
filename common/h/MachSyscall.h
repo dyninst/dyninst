@@ -38,7 +38,7 @@ namespace ProcControlAPI
     MachSyscall makeFromID(boost::shared_ptr<Process> proc, unsigned long id);
 }
 
-class COMMON_EXPORT MachSyscall 
+class DYNINST_EXPORT MachSyscall 
 {
     public: 
         typedef unsigned long SyscallIDPlatform;

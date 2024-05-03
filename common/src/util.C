@@ -41,7 +41,7 @@ using namespace std;
 
 namespace Dyninst {
 
-COMMON_EXPORT unsigned addrHashCommon(const Address &addr)
+DYNINST_EXPORT unsigned addrHashCommon(const Address &addr)
 {
    // inspired by hashs of string class
 
@@ -57,29 +57,29 @@ COMMON_EXPORT unsigned addrHashCommon(const Address &addr)
    return result;
 }
 
-COMMON_EXPORT unsigned addrHash(const Address & iaddr)
+DYNINST_EXPORT unsigned addrHash(const Address & iaddr)
 {
    return Dyninst::addrHashCommon(iaddr);
 }
 
-COMMON_EXPORT unsigned ptrHash(const void * iaddr)
+DYNINST_EXPORT unsigned ptrHash(const void * iaddr)
 {
    return Dyninst::addrHashCommon((Address)iaddr);
 }
 
-COMMON_EXPORT unsigned ptrHash(void * iaddr)
+DYNINST_EXPORT unsigned ptrHash(void * iaddr)
 {
    return Dyninst::addrHashCommon((Address)iaddr);
 }
 
-COMMON_EXPORT unsigned addrHash4(const Address &iaddr)
+DYNINST_EXPORT unsigned addrHash4(const Address &iaddr)
 {
    // call when you know that the low 2 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
    return Dyninst::addrHashCommon(iaddr >> 2);
 }
 
-COMMON_EXPORT unsigned addrHash16(const Address &iaddr)
+DYNINST_EXPORT unsigned addrHash16(const Address &iaddr)
 {
    // call when you know that the low 4 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
@@ -219,7 +219,7 @@ const char *platform_string()
 //the cache information.  Thus the cache will live in libcommon.
 class SymElf;
 
-COMMON_EXPORT map<string, SymElf *> *getSymelfCache() {
+DYNINST_EXPORT map<string, SymElf *> *getSymelfCache() {
    static map<string, SymElf *> elfmap;
    return &elfmap;
 }

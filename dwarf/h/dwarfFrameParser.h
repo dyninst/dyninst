@@ -60,7 +60,7 @@ typedef enum {
     FE_No_Error
 } FrameErrors_t;
 
-class DYNDWARF_EXPORT DwarfFrameParser {
+class DYNINST_EXPORT DwarfFrameParser {
 public:
 
     typedef boost::shared_ptr<DwarfFrameParser> Ptr;

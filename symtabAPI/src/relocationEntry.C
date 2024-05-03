@@ -38,7 +38,7 @@ namespace Dyninst  {
 namespace SymtabAPI  {
 
 
-SYMTAB_EXPORT relocationEntry::relocationEntry() :
+DYNINST_EXPORT relocationEntry::relocationEntry() :
    target_addr_(0),
    rel_addr_(0),
    addend_(0),
@@ -50,7 +50,7 @@ SYMTAB_EXPORT relocationEntry::relocationEntry() :
 {
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n,
+DYNINST_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n,
       Symbol *dynref, unsigned long relType) :
    target_addr_(ta),
    rel_addr_(ra),
@@ -63,7 +63,7 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string
 {
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
+DYNINST_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
       std::string n, Symbol *dynref, unsigned long relType) :
    target_addr_(ta),
    rel_addr_(ra),
@@ -76,7 +76,7 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
 {
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n,
+DYNINST_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n,
       Symbol *dynref, unsigned long relType, Region::RegionType rtype) :
    target_addr_(0),
    rel_addr_(ra),
@@ -89,7 +89,7 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n,
 {
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
+DYNINST_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
         std::string n, Symbol *dynref, unsigned long relType,
         Region::RegionType rtype) :
     target_addr_(ta),
@@ -103,68 +103,68 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
 {
 }
 
-SYMTAB_EXPORT Offset relocationEntry::target_addr() const
+DYNINST_EXPORT Offset relocationEntry::target_addr() const
 {
     return target_addr_;
 }
 
-SYMTAB_EXPORT void relocationEntry::setTargetAddr(const Offset off)
+DYNINST_EXPORT void relocationEntry::setTargetAddr(const Offset off)
 {
     target_addr_ = off;
 }
 
-SYMTAB_EXPORT Offset relocationEntry::rel_addr() const
+DYNINST_EXPORT Offset relocationEntry::rel_addr() const
 {
     return rel_addr_;
 }
 
-SYMTAB_EXPORT void relocationEntry::setRelAddr(const Offset value)
+DYNINST_EXPORT void relocationEntry::setRelAddr(const Offset value)
 {
     rel_addr_ = value;
 }
 
-SYMTAB_EXPORT const std::string &relocationEntry::name() const
+DYNINST_EXPORT const std::string &relocationEntry::name() const
 {
     return name_;
 }
 
-SYMTAB_EXPORT Symbol *relocationEntry::getDynSym() const
+DYNINST_EXPORT Symbol *relocationEntry::getDynSym() const
 {
     return dynref_;
 }
 
-SYMTAB_EXPORT bool relocationEntry::addDynSym(Symbol *dynref)
+DYNINST_EXPORT bool relocationEntry::addDynSym(Symbol *dynref)
 {
     dynref_ = dynref;
     return true;
 }
 
-SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const
+DYNINST_EXPORT Region::RegionType relocationEntry::regionType() const
 {
 	return rtype_;
 }
 
-SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const
+DYNINST_EXPORT unsigned long relocationEntry::getRelType() const
 {
     return relType_;
 }
 
-SYMTAB_EXPORT Offset relocationEntry::addend() const
+DYNINST_EXPORT Offset relocationEntry::addend() const
 {
         return addend_;
 }
 
-SYMTAB_EXPORT void relocationEntry::setAddend(const Offset value)
+DYNINST_EXPORT void relocationEntry::setAddend(const Offset value)
 {
         addend_ = value;
 }
 
-SYMTAB_EXPORT void relocationEntry::setRegionType(const Region::RegionType value)
+DYNINST_EXPORT void relocationEntry::setRegionType(const Region::RegionType value)
 {
         rtype_ = value;
 }
 
-SYMTAB_EXPORT void relocationEntry::setName(const std::string &newName) {
+DYNINST_EXPORT void relocationEntry::setName(const std::string &newName) {
     name_ = newName;
 }
 

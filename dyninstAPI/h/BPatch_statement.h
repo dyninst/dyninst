@@ -36,7 +36,7 @@
 class BPatch_module;
 
 
-class BPATCH_DLL_EXPORT BPatch_statement
+class DYNINST_EXPORT BPatch_statement
 {
   friend class BPatch_module;
   friend class BPatch_image;

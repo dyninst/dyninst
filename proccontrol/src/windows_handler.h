@@ -62,7 +62,7 @@ public:
    DEBUG_EVENT evt;
 };
 
-class PC_EXPORT WinEventNewThread : public EventNewLWP
+class DYNINST_EXPORT WinEventNewThread : public EventNewLWP
 {
    friend void boost::checked_delete<WinEventNewThread>(WinEventNewThread *) CHECKED_DELETE_NOEXCEPT;
    friend void boost::checked_delete<const WinEventNewThread>(const WinEventNewThread *) CHECKED_DELETE_NOEXCEPT;
@@ -84,7 +84,7 @@ private:
 	LPVOID tls_base;
 };
 
-class PC_EXPORT WinEventThreadInfo : public Event
+class DYNINST_EXPORT WinEventThreadInfo : public Event
 {
    friend void boost::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *) CHECKED_DELETE_NOEXCEPT;
    friend void boost::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *) CHECKED_DELETE_NOEXCEPT;

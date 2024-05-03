@@ -195,7 +195,7 @@ public:
      return (char *)mf->base_addr();
   }
 
-  SYMTAB_EXPORT ObjectType objType() const;
+  DYNINST_EXPORT ObjectType objType() const;
   const char *interpreter_name() const;
 
 
@@ -279,12 +279,12 @@ public:
     bool hasModinfo() const { return hasModinfo_; }
     bool hasGnuLinkonceThisModule() const { return hasGnuLinkonceThisModule_; }
     bool isLoadable() const;
-    SYMTAB_EXPORT bool isOnlyExecutable() const;
-    SYMTAB_EXPORT bool isExecutable() const;
-    SYMTAB_EXPORT bool isSharedLibrary() const;
-    SYMTAB_EXPORT bool isOnlySharedLibrary() const;
-    SYMTAB_EXPORT bool isDebugOnly() const;
-    SYMTAB_EXPORT bool isLinuxKernelModule() const;
+    DYNINST_EXPORT bool isOnlyExecutable() const;
+    DYNINST_EXPORT bool isExecutable() const;
+    DYNINST_EXPORT bool isSharedLibrary() const;
+    DYNINST_EXPORT bool isOnlySharedLibrary() const;
+    DYNINST_EXPORT bool isDebugOnly() const;
+    DYNINST_EXPORT bool isLinuxKernelModule() const;
 
     std::vector<relocationEntry> &getPLTRelocs() { return fbt_; }
     std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
@@ -300,7 +300,7 @@ public:
     unsigned gotSize() const { return got_size_; }
     Offset gotAddr() const { return got_addr_; }
 
-    SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs) override;
+    DYNINST_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs) override;
 
     private:
     std::vector<std::vector<boost::shared_ptr<void> > > freeList;

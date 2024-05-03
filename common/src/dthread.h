@@ -56,7 +56,7 @@
 
 
 
-class PC_EXPORT DThread {
+class DYNINST_EXPORT DThread {
 #if defined(cap_pthreads)
    pthread_t thrd;
  public:
@@ -94,7 +94,7 @@ struct boost_mutex_selector<true>
 };
 
 template <bool isRecursive = false>
-class PC_EXPORT Mutex : public boost_mutex_selector<isRecursive>::mutex {
+class DYNINST_EXPORT Mutex : public boost_mutex_selector<isRecursive>::mutex {
 public:
 	typedef Mutex<isRecursive> type;
    
@@ -102,7 +102,7 @@ public:
 
 
 template <typename mutex_t = Mutex<false> >
-class PC_EXPORT CondVar {
+class DYNINST_EXPORT CondVar {
    boost::condition_variable_any cond;
    mutex_t *mutex;
    bool created_mutex;

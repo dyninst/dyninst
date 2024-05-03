@@ -87,7 +87,7 @@ typedef enum {dataEnum,
 	      dataTypeClass
 } dataClass;
 
-SYMTAB_EXPORT const char *dataClass2Str(dataClass dc);
+DYNINST_EXPORT const char *dataClass2Str(dataClass dc);
 
 typedef int typeId_t;
 
@@ -108,11 +108,11 @@ typedef enum {
  *
  */
  
-SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
+DYNINST_EXPORT const char *visibility2Str(visibility_t v);
 				  
 #define TYPE_ANNOTATABLE_CLASS AnnotatableDense
 
-class SYMTAB_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
+class DYNINST_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
 {
    friend class typeCollection;
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
@@ -245,7 +245,7 @@ public:
 
 #define FIELD_ANNOTATABLE_CLASS AnnotatableDense
 
-class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
+class DYNINST_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
 {
    friend class typeStruct;
    friend class typeUnion;
@@ -287,14 +287,14 @@ class SYMTAB_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
 // We have to do this thanks to reference types and C++'s lovely 
 // multiple inheritance
 
-class SYMTAB_EXPORT fieldListInterface {
+class DYNINST_EXPORT fieldListInterface {
  public:
    virtual ~fieldListInterface() = default;
    fieldListInterface& operator=(const fieldListInterface&) = default;
    virtual dyn_c_vector<Field *> *getComponents() const = 0;
 };
 
-class SYMTAB_EXPORT rangedInterface {
+class DYNINST_EXPORT rangedInterface {
  public:
    virtual ~rangedInterface() = default;
    rangedInterface& operator=(const rangedInterface&) = default;
@@ -302,7 +302,7 @@ class SYMTAB_EXPORT rangedInterface {
    virtual unsigned long getHigh() const  = 0;
 };  
 
-class SYMTAB_EXPORT derivedInterface{
+class DYNINST_EXPORT derivedInterface{
  public:
    virtual ~derivedInterface() = default;
    derivedInterface& operator=(const derivedInterface&) = default;
@@ -312,7 +312,7 @@ class SYMTAB_EXPORT derivedInterface{
 
 // Intermediate types (interfaces + Type)
 
-class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface 
+class DYNINST_EXPORT fieldListType : public Type, public fieldListInterface 
 {
  private:
    void fixupComponents();
@@ -351,7 +351,7 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
 fieldListType& Type::asFieldListType() { return dynamic_cast<fieldListType&>(*this); }
 bool Type::isFieldListType() { return dynamic_cast<fieldListType*>(this) != NULL; }
 
-class SYMTAB_EXPORT rangedType : public Type, public rangedInterface {
+class DYNINST_EXPORT rangedType : public Type, public rangedInterface {
  protected:
    unsigned long low_;
    unsigned long hi_;
@@ -369,7 +369,7 @@ class SYMTAB_EXPORT rangedType : public Type, public rangedInterface {
 rangedType& Type::asRangedType() { return dynamic_cast<rangedType&>(*this); }
 bool Type::isRangedType() { return dynamic_cast<rangedType*>(this) != NULL; }
 
-class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
+class DYNINST_EXPORT derivedType : public Type, public derivedInterface {
  protected:
    boost::shared_ptr<Type> baseType_;
  protected:
@@ -387,7 +387,7 @@ bool Type::isDerivedType() { return dynamic_cast<derivedType*>(this) != NULL; }
 
 // Derived classes from Type
 
-class SYMTAB_EXPORT typeEnum : public derivedType {
+class DYNINST_EXPORT typeEnum : public derivedType {
  private:  
    dyn_c_vector<std::pair<std::string, int> > consts;
    bool is_scoped_{false}; // C++11 scoped enum (i.e., 'enum class')?
@@ -408,7 +408,7 @@ class SYMTAB_EXPORT typeEnum : public derivedType {
 typeEnum& Type::asEnumType() { return dynamic_cast<typeEnum&>(*this); }
 bool Type::isEnumType() { return dynamic_cast<typeEnum*>(this) != NULL; }
 
-class SYMTAB_EXPORT typeFunction : public Type {
+class DYNINST_EXPORT typeFunction : public Type {
  protected:
    void fixupUnknowns(Module *);
  private:
@@ -443,7 +443,7 @@ class SYMTAB_EXPORT typeFunction : public Type {
 };
 typeFunction& Type::asFunctionType() { return dynamic_cast<typeFunction&>(*this); }
 
-class SYMTAB_EXPORT typeScalar : public Type {
+class DYNINST_EXPORT typeScalar : public Type {
 public:
   struct properties_t {
 	  // Summary properties
@@ -499,7 +499,7 @@ public:
   bool isCompatible(Type *otype);
 };
 
-class SYMTAB_EXPORT typeCommon : public fieldListType {
+class DYNINST_EXPORT typeCommon : public fieldListType {
  private:
    dyn_c_vector<CBlock *> cblocks;
  protected:
@@ -518,7 +518,7 @@ class SYMTAB_EXPORT typeCommon : public fieldListType {
 typeCommon& Type::asCommonType() { return dynamic_cast<typeCommon&>(*this); }
 bool Type::isCommonType() { return dynamic_cast<typeCommon*>(this) != NULL; }
 
-class SYMTAB_EXPORT CBlock : public AnnotatableSparse
+class DYNINST_EXPORT CBlock : public AnnotatableSparse
 {
    friend class typeCommon;
  private:
@@ -536,7 +536,7 @@ class SYMTAB_EXPORT CBlock : public AnnotatableSparse
    void fixupUnknowns(Module *);
 };
 
-class SYMTAB_EXPORT typeStruct : public fieldListType {
+class DYNINST_EXPORT typeStruct : public fieldListType {
  protected:
    void updateSize();
    void postFieldInsert(int nsize);
@@ -566,7 +566,7 @@ class SYMTAB_EXPORT typeStruct : public fieldListType {
 };
 bool Type::isStructType() { return dynamic_cast<typeStruct*>(this) != NULL; }
 
-class SYMTAB_EXPORT typeUnion : public fieldListType {
+class DYNINST_EXPORT typeUnion : public fieldListType {
  protected:
    void updateSize();
    void postFieldInsert(int nsize);
@@ -594,7 +594,7 @@ class SYMTAB_EXPORT typeUnion : public fieldListType {
    bool isCompatible(Type *otype);
 };
 
-class SYMTAB_EXPORT typePointer : public derivedType {
+class DYNINST_EXPORT typePointer : public derivedType {
  protected: 
    void fixupUnknowns(Module *);
  public:
@@ -621,7 +621,7 @@ class SYMTAB_EXPORT typePointer : public derivedType {
    bool setPtr(Type* ptr) { return setPtr(ptr->reshare()); }
 };
 
-class SYMTAB_EXPORT typeTypedef: public derivedType {
+class DYNINST_EXPORT typeTypedef: public derivedType {
  private:
    unsigned int sizeHint_;
  
@@ -648,7 +648,7 @@ class SYMTAB_EXPORT typeTypedef: public derivedType {
    bool operator==(const typeTypedef &otype) const { return *this == static_cast<const Type&>(otype); }
 };
 
-class SYMTAB_EXPORT typeRef : public derivedType {
+class DYNINST_EXPORT typeRef : public derivedType {
  private:
 	bool is_rvalue_{false};
  protected:
@@ -675,7 +675,7 @@ class SYMTAB_EXPORT typeRef : public derivedType {
    bool is_rvalue() const noexcept { return is_rvalue_; }
 };
 
-class SYMTAB_EXPORT typeSubrange : public rangedType {
+class DYNINST_EXPORT typeSubrange : public rangedType {
  private:
    //typeSubrange(int ID, int size, const char *low, const char *hi, const char *name);
  public:
@@ -687,7 +687,7 @@ class SYMTAB_EXPORT typeSubrange : public rangedType {
    bool isCompatible(Type *otype);
 };
 
-class SYMTAB_EXPORT typeArray : public rangedType {
+class DYNINST_EXPORT typeArray : public rangedType {
  private:
    boost::shared_ptr<Type> arrayElem;
    unsigned int sizeHint_;

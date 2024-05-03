@@ -61,7 +61,7 @@ namespace Dyninst {
    namespace SymtabAPI {
       class Module;
        struct AddressRange;
-      BPATCH_DLL_EXPORT Module *convert(const BPatch_module *);
+      DYNINST_EXPORT Module *convert(const BPatch_module *);
    }
    namespace PatchAPI {
 	   class PatchFunction;
@@ -72,7 +72,7 @@ namespace Dyninst {
 extern BPatch_builtInTypeCollection * builtInTypes;
 
 
-class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj{
+class DYNINST_EXPORT BPatch_module: public BPatch_sourceObj{
 
     friend class BPatch_function;
     friend class BPatch_flowGraph;

@@ -61,11 +61,11 @@ class BPatch_basicBlock;
 namespace Dyninst {
   namespace ParseAPI {
     class Block;
-    BPATCH_DLL_EXPORT Block *convert(const BPatch_basicBlock *);
+    DYNINST_EXPORT Block *convert(const BPatch_basicBlock *);
   }
   namespace PatchAPI {
     class PatchBlock;
-    BPATCH_DLL_EXPORT PatchBlock *convert(const BPatch_basicBlock *);
+    DYNINST_EXPORT PatchBlock *convert(const BPatch_basicBlock *);
   }
 }
 
@@ -73,13 +73,13 @@ namespace Dyninst {
 namespace std {
 template <>
    struct less<BPatch_basicBlock *> {
-   BPATCH_DLL_EXPORT bool operator()(const BPatch_basicBlock * const &l, const BPatch_basicBlock * const &r) const;
+   DYNINST_EXPORT bool operator()(const BPatch_basicBlock * const &l, const BPatch_basicBlock * const &r) const;
 };
 }
 
 template <>
 struct comparison <BPatch_basicBlock *> {
-   BPATCH_DLL_EXPORT bool operator()(const BPatch_basicBlock * const &x, 
+   DYNINST_EXPORT bool operator()(const BPatch_basicBlock * const &x, 
                    const BPatch_basicBlock * const &y) const;
 };
 
@@ -94,7 +94,7 @@ struct comparison <BPatch_basicBlock *> {
  */
 class BPatch_flowGraph;
 
-struct BPATCH_DLL_EXPORT insnPredicate
+struct DYNINST_EXPORT insnPredicate
 {
   using result_type = bool;
   using argument_type = Dyninst::InstructionAPI::Instruction;
@@ -103,7 +103,7 @@ struct BPATCH_DLL_EXPORT insnPredicate
     
 };
 
-class BPATCH_DLL_EXPORT BPatch_basicBlock {
+class DYNINST_EXPORT BPatch_basicBlock {
   friend class BPatch_flowGraph;
   friend class TarjanDominator;
   friend class dominatorCFG;
@@ -318,6 +318,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
 
 };
 
-BPATCH_DLL_EXPORT std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
+DYNINST_EXPORT std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
 #endif /* _BPatch_basicBlock_h_ */

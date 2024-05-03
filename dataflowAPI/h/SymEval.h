@@ -80,21 +80,21 @@ namespace DataflowAPI {
 // Define the operations used by ROSE
 
 struct Variable {
-  DATAFLOW_EXPORT Variable() : reg(), addr(0) {}
-  DATAFLOW_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {}
-  DATAFLOW_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {}
+  DYNINST_EXPORT Variable() : reg(), addr(0) {}
+  DYNINST_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {}
+  DYNINST_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {}
 
-  DATAFLOW_EXPORT bool operator==(const Variable &rhs) const { 
+  DYNINST_EXPORT bool operator==(const Variable &rhs) const { 
     return ((rhs.addr == addr) && (rhs.reg == reg));
   }
 
-  DATAFLOW_EXPORT bool operator<(const Variable &rhs) const { 
+  DYNINST_EXPORT bool operator<(const Variable &rhs) const { 
     if (addr < rhs.addr) return true;
     if (reg < rhs.reg) return true;
     return false;
   }
 
-  DATAFLOW_EXPORT const std::string format() const {
+  DYNINST_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << "V(" << reg;
     if (addr) ret << ":" << std::hex << addr << std::dec;
@@ -112,21 +112,21 @@ struct Variable {
 };
 
 struct Constant {
-  DATAFLOW_EXPORT Constant() : val(0), size(0) {}
-  DATAFLOW_EXPORT Constant(uint64_t v) : val(v), size(0) {}
-  DATAFLOW_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {}
+  DYNINST_EXPORT Constant() : val(0), size(0) {}
+  DYNINST_EXPORT Constant(uint64_t v) : val(v), size(0) {}
+  DYNINST_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {}
 
- DATAFLOW_EXPORT  bool operator==(const Constant &rhs) const {
+ DYNINST_EXPORT  bool operator==(const Constant &rhs) const {
     return ((rhs.val == val) && (rhs.size == size));
   }
 
-  DATAFLOW_EXPORT bool operator<(const Constant &rhs) const {
+  DYNINST_EXPORT bool operator<(const Constant &rhs) const {
     if (val < rhs.val) return true;
     if (size < rhs.size) return true;
     return false;
   }
 
-  DATAFLOW_EXPORT const std::string format() const {
+  DYNINST_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << val;
     if (size) {
@@ -181,14 +181,14 @@ typedef enum {
     extendMSBOp
 } Op;
 
-DATAFLOW_EXPORT ROSEOperation(Op o) : op(o), size(0) {}
-DATAFLOW_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {}
+DYNINST_EXPORT ROSEOperation(Op o) : op(o), size(0) {}
+DYNINST_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {}
 
-DATAFLOW_EXPORT bool operator==(const ROSEOperation &rhs) const {
+DYNINST_EXPORT bool operator==(const ROSEOperation &rhs) const {
     return ((rhs.op == op) && (rhs.size == size));
 }
 
-DATAFLOW_EXPORT const std::string format() const {
+DYNINST_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << "<";
     switch(op) {
@@ -348,20 +348,20 @@ public:
   // static const AST::Ptr Placeholder;
   //
   // Single version: hand in an Assignment, get an AST
-    DATAFLOW_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
+    DYNINST_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
 
   // Hand in a set of Assignments
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
-  DATAFLOW_EXPORT static bool expand(Result_t &res, 
+  DYNINST_EXPORT static bool expand(Result_t &res, 
                                      std::set<InstructionAPI::Instruction> &failedInsns,
                                      bool applyVisitors = true);
 
   // Hand in a Graph (of SliceNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
-  DATAFLOW_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
+  DYNINST_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
   
  private:
 

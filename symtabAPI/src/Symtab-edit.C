@@ -372,7 +372,7 @@ Variable *Symtab::createVariable(std::string name,
     return var;
 }
 
-SYMTAB_EXPORT bool Symtab::updateRelocations(Address start,
+DYNINST_EXPORT bool Symtab::updateRelocations(Address start,
                                              Address end,
                                              Symbol *oldsym,
                                              Symbol *newsym) {

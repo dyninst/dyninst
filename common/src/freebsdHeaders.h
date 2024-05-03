@@ -233,7 +233,7 @@ inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
 
-extern std::string COMMON_EXPORT P_cplus_demangle( const std::string &symbol,
+extern std::string DYNINST_EXPORT P_cplus_demangle( const std::string &symbol,
 				bool includeTypes = false );
 
 inline int P_mkdir(const char *pathname, mode_t mode) {

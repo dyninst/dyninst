@@ -44,7 +44,7 @@ class relocationEntry;
 class Symtab;
 
 
-class SYMTAB_EXPORT Region : public AnnotatableSparse {
+class DYNINST_EXPORT Region : public AnnotatableSparse {
    friend class Object;
    friend class Symtab;
    friend class SymtabTranslatorBase;

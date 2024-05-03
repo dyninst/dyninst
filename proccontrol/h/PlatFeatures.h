@@ -63,7 +63,7 @@ class int_fileInfo;
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class PC_EXPORT LibraryTracking
+class DYNINST_EXPORT LibraryTracking
 {
    friend class ::int_libraryTracking;
    friend class ::int_process;
@@ -80,7 +80,7 @@ class PC_EXPORT LibraryTracking
    bool refreshLibraries();
 };
 
-class PC_EXPORT LibraryTrackingSet
+class DYNINST_EXPORT LibraryTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
@@ -94,7 +94,7 @@ class PC_EXPORT LibraryTrackingSet
    bool refreshLibraries() const;
 };
 
-class PC_EXPORT LWPTracking
+class DYNINST_EXPORT LWPTracking
 {
    friend class ::linux_process;
    friend class ::int_process;
@@ -113,7 +113,7 @@ class PC_EXPORT LWPTracking
    bool refreshLWPs();
 };
 
-class PC_EXPORT LWPTrackingSet
+class DYNINST_EXPORT LWPTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
@@ -127,7 +127,7 @@ class PC_EXPORT LWPTrackingSet
    bool refreshLWPs() const;
 };
 
-class PC_EXPORT ThreadTracking
+class DYNINST_EXPORT ThreadTracking
 {
    friend class ::int_process;
    friend class ::thread_db_process;
@@ -146,7 +146,7 @@ class PC_EXPORT ThreadTracking
    bool refreshThreads();
 };
 
-class PC_EXPORT ThreadTrackingSet
+class DYNINST_EXPORT ThreadTrackingSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
@@ -160,7 +160,7 @@ class PC_EXPORT ThreadTrackingSet
    bool refreshThreads() const;
 };
 
-class PC_EXPORT FollowFork
+class DYNINST_EXPORT FollowFork
 {
    friend class ::linux_process;
    friend class ::int_process;
@@ -187,7 +187,7 @@ class PC_EXPORT FollowFork
    static follow_t default_should_follow_fork;
 };
 
-class PC_EXPORT FollowForkSet
+class DYNINST_EXPORT FollowForkSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
@@ -199,7 +199,7 @@ class PC_EXPORT FollowForkSet
    bool setFollowFork(FollowFork::follow_t f) const;
 };
 
-class PC_EXPORT CallStackCallback
+class DYNINST_EXPORT CallStackCallback
 {
   private:
    static const bool top_first_default_value = false;
@@ -212,7 +212,7 @@ class PC_EXPORT CallStackCallback
    virtual ~CallStackCallback();
 };
 
-class PC_EXPORT CallStackUnwinding
+class DYNINST_EXPORT CallStackUnwinding
 {
    friend class ::int_process;
    friend class ::int_thread;
@@ -225,7 +225,7 @@ class PC_EXPORT CallStackUnwinding
    bool walkStack(CallStackCallback *stk_cb) const;
 };
 
-class PC_EXPORT MemoryUsage
+class DYNINST_EXPORT MemoryUsage
 {
    friend class ::int_process;
    friend class ::int_memUsage;
@@ -240,7 +240,7 @@ class PC_EXPORT MemoryUsage
    bool resident(unsigned long &resident) const;
 };
 
-class PC_EXPORT MemoryUsageSet
+class DYNINST_EXPORT MemoryUsageSet
 {
    friend class ProcessSet;
    friend class PSetFeatures;
@@ -262,7 +262,7 @@ class PC_EXPORT MemoryUsageSet
    bool resident(std::map<Process::const_ptr, unsigned long> &res) const;
 };
 
-class PC_EXPORT CallStackUnwindingSet
+class DYNINST_EXPORT CallStackUnwindingSet
 {
   private:
    ThreadSet::weak_ptr wts;
@@ -272,7 +272,7 @@ class PC_EXPORT CallStackUnwindingSet
    bool walkStack(CallStackCallback *stk_cb);
 };
 
-class PC_EXPORT MultiToolControl
+class DYNINST_EXPORT MultiToolControl
 {
    friend class ::int_process;
    friend class ::int_multiToolControl;
@@ -305,7 +305,7 @@ typedef sigset_t dyn_sigset_t;
 #endif
 
 //On posix system, the sigset referenced below is a pointer to a sigset_t
-class PC_EXPORT SignalMask
+class DYNINST_EXPORT SignalMask
 {
    friend class ::int_process;
    friend class ::int_signalMask;
@@ -375,7 +375,7 @@ class FileInfo {
 
 typedef std::multimap<Process::const_ptr, FileInfo> FileSet;
 
-class PC_EXPORT RemoteIO
+class DYNINST_EXPORT RemoteIO
 {
   protected:
    Process::weak_ptr proc;
@@ -398,7 +398,7 @@ class PC_EXPORT RemoteIO
    bool readFileContents(const FileSet *fset);
 };
 
-class PC_EXPORT RemoteIOSet
+class DYNINST_EXPORT RemoteIOSet
 {
   protected:
    ProcessSet::weak_ptr pset;

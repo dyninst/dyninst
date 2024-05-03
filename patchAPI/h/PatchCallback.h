@@ -49,7 +49,7 @@ class PatchBlock;
 class PatchEdge;
 class Point;
 
-class PATCHAPI_EXPORT PatchCallback {
+class DYNINST_EXPORT PatchCallback {
 
   public:
   PatchCallback() : batching_(false) {}

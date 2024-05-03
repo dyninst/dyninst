@@ -52,7 +52,7 @@
 namespace Dyninst {
     namespace SymtabAPI {
 
-        struct SYMTAB_EXPORT AddressRange : std::pair<Offset, Offset>
+        struct DYNINST_EXPORT AddressRange : std::pair<Offset, Offset>
         {
             template <typename T>
             AddressRange(Dyninst::SimpleInterval<T> i) {

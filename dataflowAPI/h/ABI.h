@@ -43,27 +43,27 @@ class ABI{
     int addr_width;
 
  public:
-    DATAFLOW_EXPORT const bitArray &getCallReadRegisters() const;
-    DATAFLOW_EXPORT const bitArray &getCallWrittenRegisters() const;
-    DATAFLOW_EXPORT const bitArray &getReturnReadRegisters() const;
-    DATAFLOW_EXPORT const bitArray &getReturnRegisters() const;
-    DATAFLOW_EXPORT const bitArray &getParameterRegisters() const;
+    DYNINST_EXPORT const bitArray &getCallReadRegisters() const;
+    DYNINST_EXPORT const bitArray &getCallWrittenRegisters() const;
+    DYNINST_EXPORT const bitArray &getReturnReadRegisters() const;
+    DYNINST_EXPORT const bitArray &getReturnRegisters() const;
+    DYNINST_EXPORT const bitArray &getParameterRegisters() const;
     // No such thing as return written...
 
     // Syscall!
-    DATAFLOW_EXPORT const bitArray &getSyscallReadRegisters() const;
-    DATAFLOW_EXPORT const bitArray &getSyscallWrittenRegisters() const;
+    DYNINST_EXPORT const bitArray &getSyscallReadRegisters() const;
+    DYNINST_EXPORT const bitArray &getSyscallWrittenRegisters() const;
 
-    DATAFLOW_EXPORT const bitArray &getAllRegs() const;
+    DYNINST_EXPORT const bitArray &getAllRegs() const;
 
-    DATAFLOW_EXPORT int getIndex(MachRegister machReg);
-    DATAFLOW_EXPORT std::map<MachRegister,int>* getIndexMap();
+    DYNINST_EXPORT int getIndex(MachRegister machReg);
+    DYNINST_EXPORT std::map<MachRegister,int>* getIndexMap();
 
-    DATAFLOW_EXPORT static void initialize32();
-    DATAFLOW_EXPORT static void initialize64();
+    DYNINST_EXPORT static void initialize32();
+    DYNINST_EXPORT static void initialize64();
 
-    DATAFLOW_EXPORT static ABI* getABI(int addr_width);
-    DATAFLOW_EXPORT bitArray getBitArray();
+    DYNINST_EXPORT static ABI* getABI(int addr_width);
+    DYNINST_EXPORT bitArray getBitArray();
  private:
     static dyn_tls bitArray* callRead_;
     static dyn_tls bitArray* callRead64_;

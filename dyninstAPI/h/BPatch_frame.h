@@ -45,7 +45,7 @@ typedef enum {
 class BPatch_function;
 class BPatch_thread;
 
-class BPATCH_DLL_EXPORT BPatch_frame {
+class DYNINST_EXPORT BPatch_frame {
     friend class BPatch_thread;
     BPatch_thread *thread;
 

@@ -48,16 +48,16 @@ namespace SymtabAPI {
  * Currently only used on Linux
  **/
 
-class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
+class DYNINST_EXPORT ExceptionBlock : public AnnotatableSparse {
   // Accessors provide consistent access to the *original* offsets.
   // We allow this to be updated (e.g. to account for relocated code
    public:
       ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       ExceptionBlock(Offset cStart);
-      SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb) = default;
-      SYMTAB_EXPORT ~ExceptionBlock() = default;
-      SYMTAB_EXPORT ExceptionBlock() = default;
-      SYMTAB_EXPORT ExceptionBlock& operator=(const ExceptionBlock &eb) = default;
+      DYNINST_EXPORT ExceptionBlock(const ExceptionBlock &eb) = default;
+      DYNINST_EXPORT ~ExceptionBlock() = default;
+      DYNINST_EXPORT ExceptionBlock() = default;
+      DYNINST_EXPORT ExceptionBlock& operator=(const ExceptionBlock &eb) = default;
 
       bool hasTry() const;
       Offset tryStart() const;
@@ -90,7 +90,7 @@ class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
       }
 
 
-      friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
+      friend DYNINST_EXPORT std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
    private:
       Offset tryStart_{};
       unsigned trySize_{};
@@ -103,7 +103,7 @@ class SYMTAB_EXPORT ExceptionBlock : public AnnotatableSparse {
       Offset fdeEnd_ptr{};
 };
 
-SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
+DYNINST_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 
 }//namespace SymtabAPI
 

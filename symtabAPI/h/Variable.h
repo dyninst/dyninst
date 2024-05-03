@@ -50,7 +50,7 @@ class Aggregate;
 class Function;
 class FunctionBase;
 
-class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
+class DYNINST_EXPORT Variable : public Aggregate, public AnnotatableSparse {
 	friend class Symtab;
 	friend std::ostream &operator<<(std::ostream &os, const Variable &);
 	private:
@@ -80,7 +80,7 @@ class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
    void print(std::ostream &) const;
 };
 
-class SYMTAB_EXPORT localVar : public AnnotatableSparse
+class DYNINST_EXPORT localVar : public AnnotatableSparse
 {
 	friend class typeCommon;
 	friend class localVarCollection;

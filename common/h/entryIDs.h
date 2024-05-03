@@ -56,8 +56,8 @@ enum prefixEntryID : unsigned int {
 };
 
 namespace NS_x86 {
-COMMON_EXPORT extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
-COMMON_EXPORT extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
+DYNINST_EXPORT extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
+DYNINST_EXPORT extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
 }
 
 #endif

@@ -63,15 +63,15 @@ namespace Dyninst
         {
             friend class Instruction;
             public:
-                INSTRUCTION_EXPORT InstructionDecoder_x86(Architecture a);
+                DYNINST_EXPORT InstructionDecoder_x86(Architecture a);
       
-                INSTRUCTION_EXPORT virtual ~InstructionDecoder_x86();
+                DYNINST_EXPORT virtual ~InstructionDecoder_x86();
             private:
-                INSTRUCTION_EXPORT InstructionDecoder_x86(const InstructionDecoder_x86& o);
+                DYNINST_EXPORT InstructionDecoder_x86(const InstructionDecoder_x86& o);
             public:
-                INSTRUCTION_EXPORT virtual Instruction decode(InstructionDecoder::buffer& b);
+                DYNINST_EXPORT virtual Instruction decode(InstructionDecoder::buffer& b);
       
-                INSTRUCTION_EXPORT virtual void setMode(bool is64);
+                DYNINST_EXPORT virtual void setMode(bool is64);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
             protected:

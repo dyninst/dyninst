@@ -45,7 +45,7 @@ class DwarfFrameParser;
 
 typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 
-class DYNDWARF_EXPORT DwarfHandle {
+class DYNINST_EXPORT DwarfHandle {
   public:
    typedef DwarfHandle* ptr;
   private:

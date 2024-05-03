@@ -41,7 +41,7 @@
 namespace Dyninst {
   typedef unsigned long MachRegisterVal;
 
-  class COMMON_EXPORT MachRegister {
+  class DYNINST_EXPORT MachRegister {
   private:
     int32_t reg;
 

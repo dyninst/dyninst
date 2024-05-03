@@ -115,7 +115,7 @@ typedef struct {
 } BPatch_remoteHost;
 // --------------------------------------------------------------------
 
-class BPATCH_DLL_EXPORT BPatch {
+class DYNINST_EXPORT BPatch {
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_point;
