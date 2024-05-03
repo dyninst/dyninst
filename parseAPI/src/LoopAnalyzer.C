@@ -79,8 +79,8 @@ void LoopAnalyzer::dfsCreateLoopHierarchy(LoopTreeNode * parent,
   for (unsigned int i = 0; i < loops_.size(); i++) {
     // loop name is hierarchical level
     std::string clevel = (level_ != "")
-      ? level_ + "." + utos(i+1)
-      : utos(i+1);
+      ? level_ + "." + std::to_string(i+1)
+      : std::to_string(i+1);
 
     // add new tree nodes to parent
     LoopTreeNode * child =
