@@ -58,7 +58,7 @@ class DwarfWalker;
  */
 
 
-class SYMTAB_EXPORT localVarCollection {
+class DYNINST_EXPORT localVarCollection {
 
   dyn_c_vector<localVar* > localVars;
 
@@ -78,7 +78,7 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class SYMTAB_EXPORT typeCollection
+class DYNINST_EXPORT typeCollection
 {
     friend class Symtab;
     friend class Object;
@@ -181,7 +181,7 @@ public:
  *
  */
 
-class SYMTAB_EXPORT builtInTypeCollection {
+class DYNINST_EXPORT builtInTypeCollection {
 
     dyn_c_hash_map<int, boost::shared_ptr<Type>> builtInTypesByID;
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>> builtInTypesByName;

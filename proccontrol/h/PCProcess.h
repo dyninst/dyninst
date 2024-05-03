@@ -81,7 +81,7 @@ class SymbolReaderFactory;
 
 namespace ProcControlAPI {
 
-   extern PC_EXPORT bool is_restricted_ptrace;
+   extern DYNINST_EXPORT bool is_restricted_ptrace;
  
 
 class Process;
@@ -106,7 +106,7 @@ class MemoryUsage;
 
 class ExecFileInfo;
 
-class PC_EXPORT Breakpoint 
+class DYNINST_EXPORT Breakpoint 
 {
    friend class ::int_breakpoint;
    friend void boost::checked_delete<Breakpoint>(Breakpoint *) CHECKED_DELETE_NOEXCEPT;
@@ -140,7 +140,7 @@ class PC_EXPORT Breakpoint
    bool suppressCallbacks() const;
 };
 
-class PC_EXPORT Library
+class DYNINST_EXPORT Library
 {
    friend class ::int_library;
    friend void boost::checked_delete<Library>(Library *) CHECKED_DELETE_NOEXCEPT;
@@ -165,7 +165,7 @@ class PC_EXPORT Library
    void setData(void *p) const;
 };
 
-class PC_EXPORT LibraryPool
+class DYNINST_EXPORT LibraryPool
 {
    friend class ::int_process;
    friend class Dyninst::ProcControlAPI::Process;
@@ -174,7 +174,7 @@ class PC_EXPORT LibraryPool
    LibraryPool();
    ~LibraryPool();
  public:
-   class PC_EXPORT iterator  {
+   class DYNINST_EXPORT iterator  {
       friend class Dyninst::ProcControlAPI::LibraryPool;
    private:
       std::set<int_library *>::iterator int_iter;
@@ -193,7 +193,7 @@ class PC_EXPORT LibraryPool
       typedef std::forward_iterator_tag iterator_category;
   };
 
-   class PC_EXPORT const_iterator  {
+   class DYNINST_EXPORT const_iterator  {
      friend class Dyninst::ProcControlAPI::LibraryPool;
   private:
      std::set<int_library *>::iterator int_iter;
@@ -230,7 +230,7 @@ class PC_EXPORT LibraryPool
 
 };
 
-class PC_EXPORT IRPC
+class DYNINST_EXPORT IRPC
 {
    friend class ::int_iRPC;
    friend void boost::checked_delete<IRPC>(IRPC *) CHECKED_DELETE_NOEXCEPT;
@@ -280,7 +280,7 @@ class PC_EXPORT IRPC
    bool continueStoppedIRPC();
 };
 
-class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
+class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 {
  private:
    friend class ::int_process;
@@ -421,7 +421,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    /**
     * Memory management
     **/
-   class PC_EXPORT mem_perm {
+   class DYNINST_EXPORT mem_perm {
        bool read;
        bool write;
        bool execute;
@@ -556,7 +556,7 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
 	ExecFileInfo* getExecutableInfo() const;
 };
 
-class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
+class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 {
  protected:
    friend class ::int_thread;
@@ -642,7 +642,7 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    void setData(void *p) const;
 };
 
-class PC_EXPORT ThreadPool
+class DYNINST_EXPORT ThreadPool
 {
  private:
    friend class ::int_threadPool;
@@ -654,7 +654,7 @@ class PC_EXPORT ThreadPool
    /**
     * Iterators
     **/
-   class PC_EXPORT iterator {
+   class DYNINST_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
       static const int uninitialized_val = -1;
@@ -674,7 +674,7 @@ class PC_EXPORT ThreadPool
    iterator end();
    iterator find(Dyninst::LWP lwp);
 
-   class PC_EXPORT const_iterator {
+   class DYNINST_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
       static const int uninitialized_val = -1;
@@ -707,7 +707,7 @@ class PC_EXPORT ThreadPool
    Thread::ptr getInitialThread();
 };
 
-class PC_EXPORT RegisterPool
+class DYNINST_EXPORT RegisterPool
 { 
    friend class Dyninst::ProcControlAPI::Thread;
    friend class Dyninst::ProcControlAPI::ThreadSet;
@@ -718,7 +718,7 @@ class PC_EXPORT RegisterPool
    RegisterPool(const RegisterPool &rp);
    ~RegisterPool();
    
-   class PC_EXPORT iterator {
+   class DYNINST_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::RegisterPool;
    private:
       typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal>::iterator int_iter; 
@@ -736,7 +736,7 @@ class PC_EXPORT RegisterPool
    iterator end();
    iterator find(Dyninst::MachRegister r);
 
-   class PC_EXPORT const_iterator {
+   class DYNINST_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::RegisterPool;
    private:
       typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal>::const_iterator int_iter; 
@@ -762,7 +762,7 @@ class PC_EXPORT RegisterPool
    Thread::ptr getThread();
 };
 
-class PC_EXPORT EventNotify
+class DYNINST_EXPORT EventNotify
 {
  private:
    friend class ::int_notify;
@@ -776,9 +776,9 @@ class PC_EXPORT EventNotify
    void registerCB(notify_cb_t cb);
    void removeCB(notify_cb_t cb);
 };
-PC_EXPORT EventNotify *evNotify();
+DYNINST_EXPORT EventNotify *evNotify();
 
-class PC_EXPORT ExecFileInfo
+class DYNINST_EXPORT ExecFileInfo
 {
   public:
 	void* fileHandle;

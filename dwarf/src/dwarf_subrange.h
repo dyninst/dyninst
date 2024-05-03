@@ -51,8 +51,8 @@ struct dwarf_bounds {
 	dwarf_result lower, upper;
 };
 
-DYNDWARF_EXPORT dwarf_bounds dwarf_subrange_bounds(Dwarf_Die *die);
-DYNDWARF_EXPORT dwarf_result dwarf_subrange_length_from_enum(Dwarf_Die *die);
+DYNINST_EXPORT dwarf_bounds dwarf_subrange_bounds(Dwarf_Die *die);
+DYNINST_EXPORT dwarf_result dwarf_subrange_length_from_enum(Dwarf_Die *die);
 
 } // namespace DwarfDyninst
 } // namespace Dyninst

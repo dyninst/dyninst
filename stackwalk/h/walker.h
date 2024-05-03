@@ -70,7 +70,7 @@ class StepperGroup;
 class CallTree;
 class int_walkerSet;
 
-class SW_EXPORT Walker {
+class DYNINST_EXPORT Walker {
  private:
    //Object creation functions
    Walker(ProcessState *p,
@@ -169,7 +169,7 @@ class SW_EXPORT Walker {
    static SymbolReaderFactory *symrfact;
 };
 
-class SW_EXPORT WalkerSet {
+class DYNINST_EXPORT WalkerSet {
   private:
    int_walkerSet *iwalkerset;
    WalkerSet();

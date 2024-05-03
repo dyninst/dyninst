@@ -51,7 +51,7 @@ class StepperGroup;
 
 typedef enum { gcf_success, gcf_stackbottom, gcf_not_me, gcf_error } gcframe_ret_t;
 
-class SW_EXPORT FrameStepper {
+class DYNINST_EXPORT FrameStepper {
 protected:
   Walker *walker;
 public:
@@ -80,7 +80,7 @@ public:
   static const unsigned wanderer_priority = 0x10060;
 };
 
-class SW_EXPORT FrameFuncHelper
+class DYNINST_EXPORT FrameFuncHelper
 {
  protected:
    ProcessState *proc;
@@ -116,7 +116,7 @@ class ARM_FrameHelper : public FrameFuncHelper {
 */
 
 class FrameFuncStepperImpl;
-class SW_EXPORT FrameFuncStepper : public FrameStepper {
+class DYNINST_EXPORT FrameFuncStepper : public FrameStepper {
 private:
    FrameFuncStepperImpl *impl;
 public:
@@ -129,7 +129,7 @@ public:
 };
 
 class DebugStepperImpl;
-class SW_EXPORT DebugStepper : public FrameStepper {
+class DYNINST_EXPORT DebugStepper : public FrameStepper {
 private:
    DebugStepperImpl *impl;
 public:
@@ -142,7 +142,7 @@ public:
 };
 
 class CallChecker;
-class SW_EXPORT WandererHelper
+class DYNINST_EXPORT WandererHelper
 {
  private:
    ProcessState *proc;
@@ -161,7 +161,7 @@ class SW_EXPORT WandererHelper
 };
 
 class StepperWandererImpl;
-class SW_EXPORT StepperWanderer : public FrameStepper {
+class DYNINST_EXPORT StepperWanderer : public FrameStepper {
  private:
    StepperWandererImpl *impl;
  public:
@@ -175,7 +175,7 @@ class SW_EXPORT StepperWanderer : public FrameStepper {
 };
 
 class SigHandlerStepperImpl;
-class SW_EXPORT SigHandlerStepper : public FrameStepper {
+class DYNINST_EXPORT SigHandlerStepper : public FrameStepper {
  private:
    SigHandlerStepperImpl *impl;
  public:
@@ -189,7 +189,7 @@ class SW_EXPORT SigHandlerStepper : public FrameStepper {
 };
 
 class BottomOfStackStepperImpl;
-class SW_EXPORT BottomOfStackStepper : public FrameStepper {
+class DYNINST_EXPORT BottomOfStackStepper : public FrameStepper {
  private:
    BottomOfStackStepperImpl *impl;
  public:
@@ -203,7 +203,7 @@ class SW_EXPORT BottomOfStackStepper : public FrameStepper {
 };
 
 class DyninstInstrStepperImpl;
-class SW_EXPORT DyninstInstrStepper : public FrameStepper {
+class DYNINST_EXPORT DyninstInstrStepper : public FrameStepper {
  private:
    DyninstInstrStepperImpl *impl;
  public:
@@ -216,7 +216,7 @@ class SW_EXPORT DyninstInstrStepper : public FrameStepper {
 };
 
 class AnalysisStepperImpl;
-class SW_EXPORT AnalysisStepper : public FrameStepper {
+class DYNINST_EXPORT AnalysisStepper : public FrameStepper {
   private:
    AnalysisStepperImpl *impl;
   public:
@@ -228,7 +228,7 @@ class SW_EXPORT AnalysisStepper : public FrameStepper {
    virtual const char *getName() const;
 };
 
-class SW_EXPORT DyninstDynamicHelper
+class DYNINST_EXPORT DyninstDynamicHelper
 {
  public:
    virtual bool isInstrumentation(Address ra, Address *orig_ra,
@@ -237,7 +237,7 @@ class SW_EXPORT DyninstDynamicHelper
 };
 
 class DyninstDynamicStepperImpl;
-class SW_EXPORT DyninstDynamicStepper : public FrameStepper {
+class DYNINST_EXPORT DyninstDynamicStepper : public FrameStepper {
  private:
    DyninstDynamicStepperImpl *impl;
  public:
@@ -250,7 +250,7 @@ class SW_EXPORT DyninstDynamicStepper : public FrameStepper {
 };
 
 class DyninstInstFrameStepperImpl;
-class SW_EXPORT DyninstInstFrameStepper : public FrameStepper {
+class DYNINST_EXPORT DyninstInstFrameStepper : public FrameStepper {
  private:
    DyninstInstFrameStepperImpl *impl;
  public:

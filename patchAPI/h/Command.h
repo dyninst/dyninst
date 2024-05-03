@@ -42,7 +42,7 @@ namespace PatchAPI {
    instrumentation request (public interface) or an internal step of
    instrumentation (plugin interface) */
 
-class PATCHAPI_EXPORT Command {
+class DYNINST_EXPORT Command {
   public:
     Command() {}
     virtual ~Command() {}
@@ -56,7 +56,7 @@ class PATCHAPI_EXPORT Command {
 /* A BatchCommand is in fact a list of Commands, and is to iterate all Commands
    in the list to run() or undo(). */
 
-class PATCHAPI_EXPORT BatchCommand : public Command {
+class DYNINST_EXPORT BatchCommand : public Command {
   public:
     BatchCommand* create();
     BatchCommand() {}
@@ -80,7 +80,7 @@ class PATCHAPI_EXPORT BatchCommand : public Command {
    after executing all Commands in its list. Instrumenter is for code relocation
    and code generation. */
 
-class PATCHAPI_EXPORT Patcher : public BatchCommand {
+class DYNINST_EXPORT Patcher : public BatchCommand {
   public:
    using Ptr = boost::shared_ptr<Patcher>;
    static Ptr create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
@@ -96,7 +96,7 @@ class PATCHAPI_EXPORT Patcher : public BatchCommand {
 
 /* Default implementation of some basic instrumentation Commands */
 
-class PATCHAPI_EXPORT PushFrontCommand : public Command {
+class DYNINST_EXPORT PushFrontCommand : public Command {
   public:
     static PushFrontCommand* create(Dyninst::PatchAPI::Point* pt,
                       Dyninst::PatchAPI::SnippetPtr snip) {
@@ -115,7 +115,7 @@ class PATCHAPI_EXPORT PushFrontCommand : public Command {
    Dyninst::PatchAPI::InstancePtr instance_;
 };
 
-class PATCHAPI_EXPORT PushBackCommand : public Command {
+class DYNINST_EXPORT PushBackCommand : public Command {
   public:
     static PushBackCommand* create(Dyninst::PatchAPI::Point* pt,
                       Dyninst::PatchAPI::SnippetPtr snip) {
@@ -136,7 +136,7 @@ class PATCHAPI_EXPORT PushBackCommand : public Command {
     Dyninst::PatchAPI::InstancePtr instance_;
 };
 
-class PATCHAPI_EXPORT RemoveSnippetCommand : public Command {
+class DYNINST_EXPORT RemoveSnippetCommand : public Command {
   public:
     static RemoveSnippetCommand* create(Dyninst::PatchAPI::InstancePtr instance) {
       return new RemoveSnippetCommand(instance);
@@ -151,7 +151,7 @@ class PATCHAPI_EXPORT RemoveSnippetCommand : public Command {
     Dyninst::PatchAPI::InstancePtr instance_;
 };
 
-class PATCHAPI_EXPORT RemoveCallCommand : public Command {
+class DYNINST_EXPORT RemoveCallCommand : public Command {
   public:
     static RemoveCallCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchBlock* call_block,
@@ -172,7 +172,7 @@ class PATCHAPI_EXPORT RemoveCallCommand : public Command {
     Dyninst::PatchAPI::PatchFunction* context_;
 };
 
-class PATCHAPI_EXPORT ReplaceCallCommand : public Command {
+class DYNINST_EXPORT ReplaceCallCommand : public Command {
   public:
     static ReplaceCallCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchBlock* call_block,
@@ -196,7 +196,7 @@ class PATCHAPI_EXPORT ReplaceCallCommand : public Command {
     Dyninst::PatchAPI::PatchFunction* context_;
 };
 
-class PATCHAPI_EXPORT ReplaceFuncCommand : public Command {
+class DYNINST_EXPORT ReplaceFuncCommand : public Command {
   public:
     static ReplaceFuncCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchFunction* old_func,

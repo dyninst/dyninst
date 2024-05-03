@@ -117,7 +117,7 @@ namespace Dyninst
     /// the state of the registers known and the state of memory
     /// unknown"
     ///
-    class INSTRUCTION_EXPORT Expression : public InstructionAST
+    class DYNINST_EXPORT Expression : public InstructionAST
     {
     public:
       /// \brief A type definition for a reference counted pointer to a %Expression.
@@ -172,7 +172,7 @@ namespace Dyninst
       Result userSetValue;
       
     };
-    class INSTRUCTION_EXPORT DummyExpr : public Expression
+    class DYNINST_EXPORT DummyExpr : public Expression
     {
         public:
             virtual void getChildren(vector<InstructionAST::Ptr>& ) const {}

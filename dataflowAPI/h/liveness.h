@@ -51,7 +51,7 @@ struct livenessData{
 	bitArray in, out, use, def;
 };
 
-class DATAFLOW_EXPORT LivenessAnalyzer{
+class DYNINST_EXPORT LivenessAnalyzer{
 	std::map<ParseAPI::Block*, livenessData> blockLiveInfo;
 	std::map<ParseAPI::Function*, bool> liveFuncCalculated;
         std::map<ParseAPI::Function*, bitArray> funcRegsDefined;

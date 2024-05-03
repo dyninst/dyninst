@@ -40,7 +40,7 @@ namespace Dyninst { namespace SymtabAPI {
 
   class LineInformation;
 
-  class SYMTAB_EXPORT Statement : public AddressRange {
+  class DYNINST_EXPORT Statement : public AddressRange {
     friend class Module;
     friend class LineInformation;
 

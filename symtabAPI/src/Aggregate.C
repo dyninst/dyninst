@@ -164,7 +164,7 @@ bool Aggregate::addMangledNameInternal(std::string name, bool /*isPrimary*/, boo
     return true;
 }
 
-SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool isDebug)
+DYNINST_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool isDebug)
 {
    if (!addMangledNameInternal(name, isPrimary, false))
       return false;
@@ -203,7 +203,7 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool i
     return true;
  }
 
-SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary, bool isDebug)
+DYNINST_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary, bool isDebug)
 {
     // Check to see if we're duplicating
    {
@@ -218,7 +218,7 @@ SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary, bool is
    return addMangledName(name, isPrimary, isDebug);
 }
 
-SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary, bool isDebug)
+DYNINST_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary, bool isDebug)
 {
     // Check to see if we're duplicating
    {

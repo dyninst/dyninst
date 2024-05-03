@@ -40,7 +40,7 @@
 
 class StatContainer;  // All your class declarations are forward. 
 
-class COMMON_EXPORT Statistic  {
+class DYNINST_EXPORT Statistic  {
  public:
     virtual bool is_count()  { return false; }
     virtual bool is_timer()  { return false; }
@@ -63,7 +63,7 @@ class COMMON_EXPORT Statistic  {
     StatContainer *container_;
 };
 
-class COMMON_EXPORT CntStatistic : public Statistic {
+class DYNINST_EXPORT CntStatistic : public Statistic {
  friend class StatContainer;
 
  protected:
@@ -107,7 +107,7 @@ class COMMON_EXPORT CntStatistic : public Statistic {
 };
 
 /* Wraps the timer class */
-class COMMON_EXPORT TimeStatistic : public Statistic {
+class DYNINST_EXPORT TimeStatistic : public Statistic {
  friend class StatContainer;
 
  protected:
@@ -150,15 +150,15 @@ typedef enum {
 /* A container for a group of (one expects) mutually related statistics. */
 class StatContainer {
  public:
-    COMMON_EXPORT StatContainer(); 
+    DYNINST_EXPORT StatContainer(); 
 
     /* Access or create a statistic indexed by the provided name.
      *
      * This operator may return null if the named statistic does
      * not exist.
      */
-    COMMON_EXPORT Statistic * operator[](const std::string &);
-    COMMON_EXPORT Statistic * operator[](const char *s) {
+    DYNINST_EXPORT Statistic * operator[](const std::string &);
+    DYNINST_EXPORT Statistic * operator[](const char *s) {
        std::string namestr(s);
        return (*this)[namestr];
     }
@@ -166,19 +166,19 @@ class StatContainer {
     // Create a new statistic of the given type indexed by name.
     // **This will replace any existing stat with the same index
     //   within this container**
-    COMMON_EXPORT void add(const std::string& name, StatType type);
+    DYNINST_EXPORT void add(const std::string& name, StatType type);
 
     // Access all of the existing statistics
-    COMMON_EXPORT dyn_hash_map< std::string, Statistic * > &
+    DYNINST_EXPORT dyn_hash_map< std::string, Statistic * > &
        allStats() { return stats_; }
 
     // And some pass-through methods, encapsulated for
     // ease of use
-    COMMON_EXPORT void startTimer(const std::string&);
-    COMMON_EXPORT void stopTimer(const std::string&);
-    COMMON_EXPORT void incrementCounter(const std::string&);
-    COMMON_EXPORT void decrementCounter(const std::string&);
-    COMMON_EXPORT void addCounter(const std::string&, int);
+    DYNINST_EXPORT void startTimer(const std::string&);
+    DYNINST_EXPORT void stopTimer(const std::string&);
+    DYNINST_EXPORT void incrementCounter(const std::string&);
+    DYNINST_EXPORT void decrementCounter(const std::string&);
+    DYNINST_EXPORT void addCounter(const std::string&, int);
 
  private:
     dyn_hash_map< std::string, Statistic * > stats_;

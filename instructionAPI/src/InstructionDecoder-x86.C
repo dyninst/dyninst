@@ -136,7 +136,7 @@ namespace Dyninst
         }
 
 
-    INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a) :
+    DYNINST_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a) :
       InstructionDecoderImpl(a),
       locs(NULL),
       decodedInstruction(NULL),
@@ -146,14 +146,14 @@ namespace Dyninst
       if(a == Arch_x86_64) InstructionDecoder_x86::setMode(true);
       
     }
-    INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
+    DYNINST_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
     {
         free(decodedInstruction);
         free(locs);
     }
     static const unsigned char modrm_use_sib = 4;
     
-    INSTRUCTION_EXPORT void InstructionDecoder_x86::setMode(bool is64)
+    DYNINST_EXPORT void InstructionDecoder_x86::setMode(bool is64)
     {
         InstructionDecoder_x86::is64BitMode = is64;
     }
@@ -1924,7 +1924,7 @@ namespace Dyninst
     }
 
     
-      INSTRUCTION_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b)
+      DYNINST_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b)
     {
         return InstructionDecoderImpl::decode(b);
     }

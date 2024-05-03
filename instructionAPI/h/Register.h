@@ -51,7 +51,7 @@ namespace Dyninst
     ///
 
 
-    class INSTRUCTION_EXPORT RegisterAST : public Expression
+    class DYNINST_EXPORT RegisterAST : public Expression
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %RegisterAST.
@@ -125,7 +125,7 @@ namespace Dyninst
      * class except it handles the syntactial differences between register operands
      * and mask register operands.
      */
-    class INSTRUCTION_EXPORT MaskRegisterAST : public RegisterAST
+    class DYNINST_EXPORT MaskRegisterAST : public RegisterAST
     {
         public:
             MaskRegisterAST(MachRegister r) : RegisterAST(r) {}

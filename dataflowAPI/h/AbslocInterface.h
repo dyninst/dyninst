@@ -54,20 +54,20 @@ namespace Dyninst {
 
 class AbsRegionConverter {
  public:
- DATAFLOW_EXPORT AbsRegionConverter(bool cache, bool stack) :
+ DYNINST_EXPORT AbsRegionConverter(bool cache, bool stack) :
   cacheEnabled_(cache), stackAnalysisEnabled_(stack) {}
 
   // Definition: the first AbsRegion represents the expression.
   // If it's a memory reference, any other AbsRegions represent
   // registers used in this expression.
 
-  DATAFLOW_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
+  DYNINST_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
 				  Address addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
 				  std::vector<AbsRegion> &regions);
   
-  DATAFLOW_EXPORT void convertAll(const InstructionAPI::Instruction &insn,
+  DYNINST_EXPORT void convertAll(const InstructionAPI::Instruction &insn,
 				  Address addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
@@ -76,24 +76,24 @@ class AbsRegionConverter {
 
   // Single converters
   
-  DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
+  DYNINST_EXPORT AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
 
-  DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
+  DYNINST_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block);
 
-  DATAFLOW_EXPORT AbsRegion convertPredicatedRegister(InstructionAPI::RegisterAST::Ptr r,
+  DYNINST_EXPORT AbsRegion convertPredicatedRegister(InstructionAPI::RegisterAST::Ptr r,
           InstructionAPI::RegisterAST::Ptr p,
           bool c);
 
   // Cons up a stack reference at the current addr
-  DATAFLOW_EXPORT AbsRegion stack(Address addr,
+  DYNINST_EXPORT AbsRegion stack(Address addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
 				  bool push);
   
-  DATAFLOW_EXPORT AbsRegion frame(Address addr,
+  DYNINST_EXPORT AbsRegion frame(Address addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
 				  bool push);
@@ -129,9 +129,9 @@ class AbsRegionConverter {
 
 class AssignmentConverter {
  public:  
- DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack) : cacheEnabled_(cache), aConverter(false, stack) {}
+ DYNINST_EXPORT AssignmentConverter(bool cache, bool stack) : cacheEnabled_(cache), aConverter(false, stack) {}
 
-  DATAFLOW_EXPORT void convert(const InstructionAPI::Instruction &insn,
+  DYNINST_EXPORT void convert(const InstructionAPI::Instruction &insn,
                                const Address &addr,
                                ParseAPI::Function *func,
                                ParseAPI::Block *block,

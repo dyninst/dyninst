@@ -65,28 +65,28 @@ typedef enum {
 class CodeObject {
    friend class CFGModifier;
  public:
-    PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
+    DYNINST_EXPORT static void version(int& major, int& minor, int& maintenance);
     typedef std::set<Function*,Function::less> funclist;
 
-    PARSER_EXPORT CodeObject(CodeSource * cs, 
+    DYNINST_EXPORT CodeObject(CodeSource * cs, 
                              CFGFactory * fact = NULL, 
                              ParseCallback * cb = NULL,
                              bool defensiveMode = false,
                              bool ignoreParse = false);
-    PARSER_EXPORT ~CodeObject();
+    DYNINST_EXPORT ~CodeObject();
 
     /** Parsing interface **/
     
     // `hint-based' parsing
-    PARSER_EXPORT void parse();
+    DYNINST_EXPORT void parse();
     
     // `exact-target' parsing; optinally recursive
-    PARSER_EXPORT void parse(Address target, bool recursive);
-    PARSER_EXPORT void parse(const std::vector<Address> &targets, bool recursive);
+    DYNINST_EXPORT void parse(Address target, bool recursive);
+    DYNINST_EXPORT void parse(const std::vector<Address> &targets, bool recursive);
 
     // `even-more-exact-target' parsing; optinally recursive
-    PARSER_EXPORT void parse(CodeRegion *cr, Address target, bool recursive);
-    PARSER_EXPORT void parse(const std::vector<std::pair<Address, CodeRegion *>> &targets, bool recursive);
+    DYNINST_EXPORT void parse(CodeRegion *cr, Address target, bool recursive);
+    DYNINST_EXPORT void parse(const std::vector<std::pair<Address, CodeRegion *>> &targets, bool recursive);
 
     // parses new edges in already parsed functions
 	struct NewEdgeToParse {
@@ -98,45 +98,45 @@ class CodeObject {
         NewEdgeToParse(Block* a, Address b, bool c, EdgeTypeEnum d) : source(a), target(b), edge_type(d), checked(c) { }
 	};
 
-    PARSER_EXPORT bool parseNewEdges( std::vector<NewEdgeToParse> & worklist ); 
+    DYNINST_EXPORT bool parseNewEdges( std::vector<NewEdgeToParse> & worklist ); 
 
     // `speculative' parsing
-    PARSER_EXPORT void parseGaps(CodeRegion *cr, GapParsingType type=IdiomMatching);
+    DYNINST_EXPORT void parseGaps(CodeRegion *cr, GapParsingType type=IdiomMatching);
 
     /** Lookup routines **/
 
     // functions
-    PARSER_EXPORT Function * findFuncByEntry(CodeRegion * cr, Address entry);
-    PARSER_EXPORT int findFuncsByBlock(CodeRegion *cr, Block* b, std::set<Function*> &funcs);
-    PARSER_EXPORT int findFuncs(CodeRegion * cr, 
+    DYNINST_EXPORT Function * findFuncByEntry(CodeRegion * cr, Address entry);
+    DYNINST_EXPORT int findFuncsByBlock(CodeRegion *cr, Block* b, std::set<Function*> &funcs);
+    DYNINST_EXPORT int findFuncs(CodeRegion * cr, 
             Address addr, 
             std::set<Function*> & funcs);
       // Find functions overlapping the range [start,end)
-    PARSER_EXPORT int findFuncs(CodeRegion * cr,
+    DYNINST_EXPORT int findFuncs(CodeRegion * cr,
             Address start, Address end,
             std::set<Function*> & funcs);
-    PARSER_EXPORT int findCurrentFuncs(CodeRegion * cr,
+    DYNINST_EXPORT int findCurrentFuncs(CodeRegion * cr,
             Address addr,
             std::set<Function*> & funcs);
 
 
-    PARSER_EXPORT const funclist & funcs() { return flist; }
+    DYNINST_EXPORT const funclist & funcs() { return flist; }
 
     // blocks
-    PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
-    PARSER_EXPORT int findBlocks(CodeRegion * cr, 
+    DYNINST_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
+    DYNINST_EXPORT int findBlocks(CodeRegion * cr, 
         Address addr, std::set<Block*> & blocks);
     // finds blocks without parsing. 
-    PARSER_EXPORT int findCurrentBlocks(CodeRegion * cr, 
+    DYNINST_EXPORT int findCurrentBlocks(CodeRegion * cr, 
         Address addr, std::set<Block*> & blocks);
-    PARSER_EXPORT Block * findNextBlock(CodeRegion * cr, Address addr);
+    DYNINST_EXPORT Block * findNextBlock(CodeRegion * cr, Address addr);
 
     /* Misc */
-    PARSER_EXPORT CodeSource * cs() const { return _cs; }
-    PARSER_EXPORT CFGFactory * fact() const { return _fact; }
-    PARSER_EXPORT bool defensiveMode() { return defensive; }
+    DYNINST_EXPORT CodeSource * cs() const { return _cs; }
+    DYNINST_EXPORT CFGFactory * fact() const { return _fact; }
+    DYNINST_EXPORT bool defensiveMode() { return defensive; }
 
-    PARSER_EXPORT bool isIATcall(Address insn, std::string &calleeName);
+    DYNINST_EXPORT bool isIATcall(Address insn, std::string &calleeName);
 
     // This is for callbacks; it is often much more efficient to 
     // batch callbacks and deliver them all at once than one at a time. 
@@ -144,28 +144,28 @@ class CodeObject {
     // "The following blocks were deleted" than "block 1 was deleted;
     // block 2 lost an edge; block 2 was deleted..."
 
-    PARSER_EXPORT void startCallbackBatch();
-    PARSER_EXPORT void finishCallbackBatch();
-    PARSER_EXPORT void registerCallback(ParseCallback *cb);
-    PARSER_EXPORT void unregisterCallback(ParseCallback *cb);
+    DYNINST_EXPORT void startCallbackBatch();
+    DYNINST_EXPORT void finishCallbackBatch();
+    DYNINST_EXPORT void registerCallback(ParseCallback *cb);
+    DYNINST_EXPORT void unregisterCallback(ParseCallback *cb);
 
     /*
      * Calling finalize() forces completion of all on-demand
      * parsing operations for this object, if any remain.
      */
-    PARSER_EXPORT void finalize();
+    DYNINST_EXPORT void finalize();
 
     /*
      * Deletion support
      */
-    PARSER_EXPORT void destroy(Edge *);
-    PARSER_EXPORT void destroy(Block *);
-    PARSER_EXPORT void destroy(Function *);
+    DYNINST_EXPORT void destroy(Edge *);
+    DYNINST_EXPORT void destroy(Block *);
+    DYNINST_EXPORT void destroy(Function *);
 
     /*
      * Hacky "for insertion" method
      */
-    PARSER_EXPORT Address getFreeAddr() const;
+    DYNINST_EXPORT Address getFreeAddr() const;
     ParseData* parse_data();
 
  private:

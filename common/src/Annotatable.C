@@ -84,7 +84,7 @@ int annotatable_printf(const char *format, ...)
 	return ret;
 }
 
-COMMON_EXPORT int AnnotationClass_nextId;
+DYNINST_EXPORT int AnnotationClass_nextId;
 
 bool void_ptr_cmp_func(void *v1, void *v2)
 {

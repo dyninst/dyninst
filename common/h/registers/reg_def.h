@@ -54,11 +54,11 @@
 // const.
 #  define DEF_REGISTER(name, value, Arch)                                                          \
     const signed int i##name = (value);                                                            \
-    COMMON_EXPORT MachRegister name(i##name, Arch "::" #name)
+    DYNINST_EXPORT MachRegister name(i##name, Arch "::" #name)
 #else
 #  define DEF_REGISTER(name, value, Arch)                                                          \
     const signed int i##name = (value);                                                            \
-    COMMON_EXPORT extern MachRegister name
+    DYNINST_EXPORT extern MachRegister name
 
 #endif
 

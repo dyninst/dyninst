@@ -177,42 +177,42 @@ class Object : public AObject
     const Object& operator=(const Object &);
 
  public:
-    SYMTAB_EXPORT Object(MappedFile *, bool defensive, 
+    DYNINST_EXPORT Object(MappedFile *, bool defensive, 
                          void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
   
-    SYMTAB_EXPORT virtual ~Object( void );
-	SYMTAB_EXPORT std::string getFileName() const { return mf->filename(); }
-    SYMTAB_EXPORT bool isForwarded( Offset addr );
-    SYMTAB_EXPORT bool isEEL() const { return false; }
-    SYMTAB_EXPORT bool isText( const Offset addr ) const; 
-    SYMTAB_EXPORT Offset get_base_addr() const { return (Offset)mf->base_addr();} 
-    SYMTAB_EXPORT Module* GetCurrentModule( void )				    { return curModule; }
+    DYNINST_EXPORT virtual ~Object( void );
+	DYNINST_EXPORT std::string getFileName() const { return mf->filename(); }
+    DYNINST_EXPORT bool isForwarded( Offset addr );
+    DYNINST_EXPORT bool isEEL() const { return false; }
+    DYNINST_EXPORT bool isText( const Offset addr ) const; 
+    DYNINST_EXPORT Offset get_base_addr() const { return (Offset)mf->base_addr();} 
+    DYNINST_EXPORT Module* GetCurrentModule( void )				    { return curModule; }
    
-    SYMTAB_EXPORT bool getCatchBlock(ExceptionBlock &b, Offset addr, unsigned size = 0) const;
-    SYMTAB_EXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
-    SYMTAB_EXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
-    SYMTAB_EXPORT PVOID GetMapAddr( void ) const                      { return mf->base_addr(); }
-    SYMTAB_EXPORT Offset getEntryPoint( void ) const                {
+    DYNINST_EXPORT bool getCatchBlock(ExceptionBlock &b, Offset addr, unsigned size = 0) const;
+    DYNINST_EXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
+    DYNINST_EXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
+    DYNINST_EXPORT PVOID GetMapAddr( void ) const                      { return mf->base_addr(); }
+    DYNINST_EXPORT Offset getEntryPoint( void ) const                {
 		if (peHdr) return peHdr->OptionalHeader.AddressOfEntryPoint;
 		return 0;}
     //+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
     // TODO. Change these later.
-    SYMTAB_EXPORT Offset getLoadAddress() const { return imageBase; }
-	SYMTAB_EXPORT Offset getPreferedBase() const { return preferedBase; }
-    SYMTAB_EXPORT Offset getEntryAddress() const { return getEntryPoint(); }
-    SYMTAB_EXPORT Offset getBaseAddress() const { return get_base_addr(); }
-    SYMTAB_EXPORT Offset getTOCoffset(Offset /*ignored*/) const { return 0; }
-    SYMTAB_EXPORT ObjectType objType() const;
-    SYMTAB_EXPORT const char *interpreter_name() const { return NULL; }
-    SYMTAB_EXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
-    SYMTAB_EXPORT void parseTypeInfo();
-    SYMTAB_EXPORT virtual Dyninst::Architecture getArch() const;
-    SYMTAB_EXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
-    SYMTAB_EXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
-    SYMTAB_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-    SYMTAB_EXPORT bool emitDriver(std::string fName, std::set<Symbol*> &allSymbols, unsigned flag);
-    SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
-    SYMTAB_EXPORT void insertPrereqLibrary(std::string lib);
+    DYNINST_EXPORT Offset getLoadAddress() const { return imageBase; }
+	DYNINST_EXPORT Offset getPreferedBase() const { return preferedBase; }
+    DYNINST_EXPORT Offset getEntryAddress() const { return getEntryPoint(); }
+    DYNINST_EXPORT Offset getBaseAddress() const { return get_base_addr(); }
+    DYNINST_EXPORT Offset getTOCoffset(Offset /*ignored*/) const { return 0; }
+    DYNINST_EXPORT ObjectType objType() const;
+    DYNINST_EXPORT const char *interpreter_name() const { return NULL; }
+    DYNINST_EXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
+    DYNINST_EXPORT void parseTypeInfo();
+    DYNINST_EXPORT virtual Dyninst::Architecture getArch() const;
+    DYNINST_EXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
+    DYNINST_EXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
+    DYNINST_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
+    DYNINST_EXPORT bool emitDriver(std::string fName, std::set<Symbol*> &allSymbols, unsigned flag);
+    DYNINST_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
+    DYNINST_EXPORT void insertPrereqLibrary(std::string lib);
     virtual char *mem_image() const 
     {
         assert(mf);
@@ -221,13 +221,13 @@ class Object : public AObject
     void setTrapHeader(Offset ptr);
     Offset trapHeader();
 
-    SYMTAB_EXPORT DWORD ImageOffset2SectionNum(DWORD dwRO);
-    SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageOffset2Section(DWORD dwRO);
-    SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageRVA2Section(DWORD dwRVA);
-    SYMTAB_EXPORT DWORD RVA2Offset(DWORD dwRVA);
-    SYMTAB_EXPORT DWORD Offset2RVA(DWORD dwRO);
-    SYMTAB_EXPORT void addReference(Offset, std::string, std::string);
-    SYMTAB_EXPORT std::map<std::string, std::map<Offset, std::string> > & getRefs() { return ref; }
+    DYNINST_EXPORT DWORD ImageOffset2SectionNum(DWORD dwRO);
+    DYNINST_EXPORT PIMAGE_SECTION_HEADER ImageOffset2Section(DWORD dwRO);
+    DYNINST_EXPORT PIMAGE_SECTION_HEADER ImageRVA2Section(DWORD dwRVA);
+    DYNINST_EXPORT DWORD RVA2Offset(DWORD dwRVA);
+    DYNINST_EXPORT DWORD Offset2RVA(DWORD dwRO);
+    DYNINST_EXPORT void addReference(Offset, std::string, std::string);
+    DYNINST_EXPORT std::map<std::string, std::map<Offset, std::string> > & getRefs() { return ref; }
 
     std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > & getImportDescriptorTable();
     std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
@@ -235,20 +235,20 @@ class Object : public AObject
 	void setTOCoffset(Offset) {};
 	// Adjusts the data in all the sections to reflect what
 	// the loader will do if the binary is loaded at actualBaseAddress
-	SYMTAB_EXPORT void rebase(Offset off);
-	SYMTAB_EXPORT Region* findRegionByName(const std::string& name) const;
-	SYMTAB_EXPORT void applyRelocs(Region* relocs, Offset delta);
-	SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &);
+	DYNINST_EXPORT void rebase(Offset off);
+	DYNINST_EXPORT Region* findRegionByName(const std::string& name) const;
+	DYNINST_EXPORT void applyRelocs(Region* relocs, Offset delta);
+	DYNINST_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &);
 
 private:
-    SYMTAB_EXPORT void    ParseSymbolInfo( bool );
-    SYMTAB_EXPORT void parseFileLineInfo();
-    SYMTAB_EXPORT void parseLineInfoForAddr(Offset)
+    DYNINST_EXPORT void    ParseSymbolInfo( bool );
+    DYNINST_EXPORT void parseFileLineInfo();
+    DYNINST_EXPORT void parseLineInfoForAddr(Offset)
     {
       parseFileLineInfo();
     }
     
-    SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
+    DYNINST_EXPORT void    FindInterestingSections( bool, bool );
     Region *          findEnclosingRegion(const Offset where);
     void AddTLSFunctions();
 	DWORD* get_dword_ptr(Offset rva);

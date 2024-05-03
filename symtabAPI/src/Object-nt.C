@@ -1076,7 +1076,7 @@ Object::Object(MappedFile *mf_,
    rebase(0);
 }
 
-SYMTAB_EXPORT ObjectType Object::objType() const 
+DYNINST_EXPORT ObjectType Object::objType() const 
 {
 	return is_aout() ? obj_Executable : obj_SharedLib;
 }

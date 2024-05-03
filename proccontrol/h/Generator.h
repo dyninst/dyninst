@@ -53,7 +53,7 @@ class ArchEvent;
 class Event;
 class Mailbox;
 
-class PC_EXPORT Generator
+class DYNINST_EXPORT Generator
 {
  public:
    static Generator *getDefaultGenerator();
@@ -126,7 +126,7 @@ class PC_EXPORT Generator
    bool eventBlock_;
 };
 
-class PC_EXPORT GeneratorMT : public Generator
+class DYNINST_EXPORT GeneratorMT : public Generator
 {
  private:
    GeneratorMTInternals *sync;

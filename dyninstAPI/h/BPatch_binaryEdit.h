@@ -60,7 +60,7 @@ class func_instance;
 class rpcMgr;
 struct batchInsertionRecord;
 
-class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
+class DYNINST_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     friend class BPatch;
     friend class BPatch_image;
     friend class BPatch_function;

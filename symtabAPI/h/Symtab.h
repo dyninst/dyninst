@@ -76,7 +76,7 @@ struct symtab_impl;
 
 typedef Dyninst::ProcessReader MemRegReader;
 
-class SYMTAB_EXPORT Symtab : public LookupInterface,
+class DYNINST_EXPORT Symtab : public LookupInterface,
                public AnnotatableSparse
 {
    friend class Archive;

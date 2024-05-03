@@ -45,7 +45,7 @@ class internal_instruction;
 #endif
 #define DYNINST_CLASS_NAME BPatch_instruction
 
-class BPATCH_DLL_EXPORT BPatch_instruction {
+class DYNINST_EXPORT BPatch_instruction {
   friend class BPatch_basicBlock;
 
  public:
@@ -114,7 +114,7 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
   int  conditionCode_NP(int which = 0) const { return condition[which]; }
 };
 
-class BPATCH_DLL_EXPORT BPatch_branchInstruction : public BPatch_instruction{
+class DYNINST_EXPORT BPatch_branchInstruction : public BPatch_instruction{
     friend class BPatch_basicBlock;
 
  public:
@@ -138,7 +138,7 @@ class BPatch_registerExpr;
 class BPatch_addressSpace;
 class BPatch_point;
 
-class BPATCH_DLL_EXPORT BPatch_register {
+class DYNINST_EXPORT BPatch_register {
     friend class BPatch_registerExpr;
     friend class BPatch_addressSpace;
     friend class BPatch_point;

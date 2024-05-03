@@ -16,6 +16,7 @@ set(_public_headers
     h/dyn_regs.h
     h/dyn_syscalls.h
     h/dyntypes.h
+    h/dyninst_visibility.h
     h/Edge.h
     h/entryIDs.h
     h/Graph.h

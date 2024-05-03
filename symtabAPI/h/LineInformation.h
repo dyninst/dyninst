@@ -44,7 +44,7 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-class SYMTAB_EXPORT LineInformation final :
+class DYNINST_EXPORT LineInformation final :
                         private RangeLookupTypes< Statement >::type
 {
 public:

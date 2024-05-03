@@ -52,7 +52,7 @@ class Graph;
 class NodeIterator;
 class EdgeIterator;
 
-class COMMON_EXPORT Node  {
+class DYNINST_EXPORT Node  {
     friend class Edge;
     friend class Graph;
     
@@ -114,7 +114,7 @@ class COMMON_EXPORT Node  {
     static const Address INVALID_ADDR;
 };
  
-class COMMON_EXPORT PhysicalNode : public Node {
+class DYNINST_EXPORT PhysicalNode : public Node {
 public:
 	typedef boost::shared_ptr<PhysicalNode> Ptr;
      
@@ -136,7 +136,7 @@ public:
     Address addr_; 
 };
 
-class  COMMON_EXPORT VirtualNode : public Node {
+class  DYNINST_EXPORT VirtualNode : public Node {
     friend class Edge;
     friend class Graph;
 
@@ -166,7 +166,7 @@ class  COMMON_EXPORT VirtualNode : public Node {
 
  class NodeIteratorImpl;
 
-class COMMON_EXPORT NodeIterator {
+class DYNINST_EXPORT NodeIterator {
     friend class Node;
     friend class Graph;
     friend class Edge;

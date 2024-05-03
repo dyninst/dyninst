@@ -61,14 +61,14 @@ namespace Stackwalker {
   const err_t err_nothrd         = 0x10016;
   const err_t err_proccontrol    = 0x10017;
 
-  SW_EXPORT err_t getLastError();
-  SW_EXPORT void clearLastError();
-  SW_EXPORT const char *getLastErrorMsg();
-  SW_EXPORT void setLastError(err_t err, const char *msg = NULL);
-  SW_EXPORT void setDebugChannel(FILE *f);
-  SW_EXPORT void setDebug(bool enable);
+  DYNINST_EXPORT err_t getLastError();
+  DYNINST_EXPORT void clearLastError();
+  DYNINST_EXPORT const char *getLastErrorMsg();
+  DYNINST_EXPORT void setLastError(err_t err, const char *msg = NULL);
+  DYNINST_EXPORT void setDebugChannel(FILE *f);
+  DYNINST_EXPORT void setDebug(bool enable);
 
-  SW_EXPORT FILE *getDebugChannel();
+  DYNINST_EXPORT FILE *getDebugChannel();
 
   extern int sw_printf(const char *format, ...) DYNINST_PRINTF_ANNOTATION(1, 2);
   extern int dyn_debug_stackwalk;

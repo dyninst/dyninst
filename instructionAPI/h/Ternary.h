@@ -49,7 +49,7 @@ namespace Dyninst
     ///
 
 
-    class INSTRUCTION_EXPORT TernaryAST : public Expression
+    class DYNINST_EXPORT TernaryAST : public Expression
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %TernaryAST.

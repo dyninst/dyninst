@@ -50,7 +50,7 @@ namespace Dyninst {
             virtual bool        operandPrintOrderReversed() const;
             virtual ~ArchSpecificFormatter() = default;
             ArchSpecificFormatter& operator=(const ArchSpecificFormatter&) = default;
-            static INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter(Dyninst::Architecture a);
+            static DYNINST_EXPORT ArchSpecificFormatter& getFormatter(Dyninst::Architecture a);
 
         };
 

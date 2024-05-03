@@ -34,7 +34,7 @@
 #define _symtab_util_h_
 
 #include "dyntypes.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 #include <string>
 
 #if defined(_MSC_VER)	
@@ -64,7 +64,7 @@ typedef enum {
    lang_CMFortran
 } supportedLanguages;
 
-SYMTAB_EXPORT const char *supportedLanguages2Str(supportedLanguages s);
+DYNINST_EXPORT const char *supportedLanguages2Str(supportedLanguages s);
 
 typedef enum {
    obj_Unknown,

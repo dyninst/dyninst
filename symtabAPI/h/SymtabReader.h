@@ -48,7 +48,7 @@ class Symtab;
 class Region;
 class FastParser;
 
-class SYMTAB_EXPORT SymtabReaderFactory : public SymbolReaderFactory
+class DYNINST_EXPORT SymtabReaderFactory : public SymbolReaderFactory
 {
   private:
    std::map<std::string, SymReader *> open_syms;
@@ -60,7 +60,7 @@ class SYMTAB_EXPORT SymtabReaderFactory : public SymbolReaderFactory
    virtual bool closeSymbolReader(SymReader *sr);
 };
 
-class SYMTAB_EXPORT SymtabReader : public SymReader {
+class DYNINST_EXPORT SymtabReader : public SymReader {
    friend class SymtabReaderFactory;
   protected:
    Symtab *symtab;
@@ -107,7 +107,7 @@ class SYMTAB_EXPORT SymtabReader : public SymReader {
 };
 
 extern "C" {
-   SYMTAB_EXPORT SymbolReaderFactory *getSymtabReaderFactory();
+   DYNINST_EXPORT SymbolReaderFactory *getSymtabReaderFactory();
 }
 
 }

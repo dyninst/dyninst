@@ -64,7 +64,7 @@ typedef enum BPatch_sourceType {
 } BPatch_sourceType;
 
 
-class BPATCH_DLL_EXPORT BPatch_sourceObj {
+class DYNINST_EXPORT BPatch_sourceObj {
  public:
     virtual ~BPatch_sourceObj() { }
 

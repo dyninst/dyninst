@@ -48,7 +48,7 @@ namespace Dyninst {
 // Dyninst internal codeGen structure that aims to be more user-friendly. Tiers 2 and 3 
 // are TODO. 
 
-class COMMON_EXPORT Buffer {
+class DYNINST_EXPORT Buffer {
   public:
    Buffer(Address addr, unsigned initial_size);
    Buffer();

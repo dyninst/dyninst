@@ -38,7 +38,6 @@
 #include <limits>
 #include <algorithm>
 // For Mutex
-#define PROCCONTROL_EXPORTS
 
 #include "dyntypes.h"
 

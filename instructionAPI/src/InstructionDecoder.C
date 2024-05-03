@@ -45,20 +45,20 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer_, size_t size, Architecture arch) :
+    DYNINST_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer_, size_t size, Architecture arch) :
         m_buf(buffer_, size)
     {
         m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
         m_Impl->setMode(arch == Arch_x86_64);
     }
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const void* buffer_, size_t size, Architecture arch) :
+    DYNINST_EXPORT InstructionDecoder::InstructionDecoder(const void* buffer_, size_t size, Architecture arch) :
         m_buf(reinterpret_cast<const unsigned char*>(buffer_), size)
     {
         m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
         m_Impl->setMode(arch == Arch_x86_64);
     }
     
-    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
+    DYNINST_EXPORT Instruction InstructionDecoder::decode()
     {
       if(m_buf.start >= m_buf.end) return Instruction();
       Instruction const& ins = m_Impl->decode(m_buf);
@@ -79,12 +79,12 @@ namespace Dyninst
       return ins;
     }
     
-    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* b)
+    DYNINST_EXPORT Instruction InstructionDecoder::decode(const unsigned char* b)
     {
       buffer tmp(b, b+maxInstructionLength);
       return m_Impl->decode(tmp);
     }
-    INSTRUCTION_EXPORT void InstructionDecoder::doDelayedDecode(const Instruction* i)
+    DYNINST_EXPORT void InstructionDecoder::doDelayedDecode(const Instruction* i)
     {
         m_Impl->doDelayedDecode(i);
     }

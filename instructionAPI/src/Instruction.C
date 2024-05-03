@@ -80,7 +80,7 @@ namespace Dyninst
         }
 
         int Instruction::numInsnsAllocated = 0;
-        INSTRUCTION_EXPORT Instruction::Instruction(Operation what,
+        DYNINST_EXPORT Instruction::Instruction(Operation what,
                 size_t size, const unsigned char* raw,
                 Dyninst::Architecture arch)
             : m_InsnOp(what), m_Valid(what.getID() != e_No_Entry), arch_decoded_from(arch),
@@ -129,7 +129,7 @@ namespace Dyninst
             dec.doDelayedDecode(this);
         }
 
-        INSTRUCTION_EXPORT Instruction::Instruction() :
+        DYNINST_EXPORT Instruction::Instruction() :
             m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(nullptr)
         {
 #if defined(DEBUG_INSN_ALLOCATIONS)
@@ -141,7 +141,7 @@ namespace Dyninst
 #endif
         }
 
-        INSTRUCTION_EXPORT Instruction::~Instruction()
+        DYNINST_EXPORT Instruction::~Instruction()
         {
 
             if(m_size > sizeof(m_RawInsn.small_insn))
@@ -158,7 +158,7 @@ namespace Dyninst
 #endif      
         }
 
-        INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
+        DYNINST_EXPORT Instruction::Instruction(const Instruction& o) :
             m_Operands(o.m_Operands),
             m_InsnOp(o.m_InsnOp),
             m_Valid(o.m_Valid),
@@ -188,7 +188,7 @@ namespace Dyninst
 #endif
         }
 
-        INSTRUCTION_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs)
+        DYNINST_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs)
         {
             m_Operands = rhs.m_Operands;
             //m_Operands.reserve(rhs.m_Operands.size());
@@ -218,28 +218,28 @@ namespace Dyninst
             return *this;
         }    
 
-        INSTRUCTION_EXPORT bool Instruction::isValid() const
+        DYNINST_EXPORT bool Instruction::isValid() const
         {
             return m_Valid;
         }
 
-        INSTRUCTION_EXPORT Operation& Instruction::getOperation()
+        DYNINST_EXPORT Operation& Instruction::getOperation()
         {
             return m_InsnOp;
         }
-        INSTRUCTION_EXPORT const Operation& Instruction::getOperation() const
+        DYNINST_EXPORT const Operation& Instruction::getOperation() const
         {
             return m_InsnOp;
         }
 
-        INSTRUCTION_EXPORT void Instruction::getOperands(std::vector<Operand>& operands) const
+        DYNINST_EXPORT void Instruction::getOperands(std::vector<Operand>& operands) const
         {
 
             DECODE_OPERANDS();
             std::copy(m_Operands.begin(), m_Operands.end(), std::back_inserter(operands));
         }
 
-        INSTRUCTION_EXPORT std::vector<Operand> Instruction::getDisplayOrderedOperands() const
+        DYNINST_EXPORT std::vector<Operand> Instruction::getDisplayOrderedOperands() const
         {
             DECODE_OPERANDS();
 
@@ -256,7 +256,7 @@ namespace Dyninst
             return operands;
         }
 
-        INSTRUCTION_EXPORT Operand Instruction::getOperand(int index) const
+        DYNINST_EXPORT Operand Instruction::getOperand(int index) const
         {
             DECODE_OPERANDS();
             if(index < 0 || index >= (int)(m_Operands.size()))
@@ -269,7 +269,7 @@ namespace Dyninst
             return *found;
         }
 
-        INSTRUCTION_EXPORT const void* Instruction::ptr() const
+        DYNINST_EXPORT const void* Instruction::ptr() const
         {
             if(m_size > sizeof(m_RawInsn.small_insn))
             {
@@ -280,7 +280,7 @@ namespace Dyninst
                 return reinterpret_cast<const void*>(&m_RawInsn.small_insn);
             }
         }
-        INSTRUCTION_EXPORT unsigned char Instruction::rawByte(unsigned int index) const
+        DYNINST_EXPORT unsigned char Instruction::rawByte(unsigned int index) const
         {
             if(index >= m_size) return 0;
             if(m_size > sizeof(m_RawInsn.small_insn))
@@ -293,13 +293,13 @@ namespace Dyninst
             }
         }
 
-        INSTRUCTION_EXPORT size_t Instruction::size() const
+        DYNINST_EXPORT size_t Instruction::size() const
         {
             return m_size;
 
         }
 
-        INSTRUCTION_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
+        DYNINST_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
         {
             DECODE_OPERANDS();
             for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
@@ -313,7 +313,7 @@ namespace Dyninst
 
         }
 
-        INSTRUCTION_EXPORT void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
+        DYNINST_EXPORT void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
         { 
             DECODE_OPERANDS();
             for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
@@ -327,7 +327,7 @@ namespace Dyninst
 
         }
 
-        INSTRUCTION_EXPORT bool Instruction::isRead(Expression::Ptr candidate) const
+        DYNINST_EXPORT bool Instruction::isRead(Expression::Ptr candidate) const
         {
             DECODE_OPERANDS();
             for(std::list<Operand >::const_iterator curOperand = m_Operands.begin();
@@ -344,7 +344,7 @@ namespace Dyninst
             return m_InsnOp.isRead(candidate);
         }
 
-        INSTRUCTION_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
+        DYNINST_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
         {
             DECODE_OPERANDS();
 
@@ -360,7 +360,7 @@ namespace Dyninst
             return m_InsnOp.isWritten(candidate);
         }
 
-        INSTRUCTION_EXPORT bool Instruction::readsMemory() const
+        DYNINST_EXPORT bool Instruction::readsMemory() const
         {
             DECODE_OPERANDS();
             if(getCategory() == c_PrefetchInsn)
@@ -379,7 +379,7 @@ namespace Dyninst
             return !m_InsnOp.getImplicitMemReads().empty();
         }
 
-        INSTRUCTION_EXPORT bool Instruction::writesMemory() const
+        DYNINST_EXPORT bool Instruction::writesMemory() const
         {
             DECODE_OPERANDS();
             for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
@@ -394,7 +394,7 @@ namespace Dyninst
             return !m_InsnOp.getImplicitMemWrites().empty();
         }
 
-        INSTRUCTION_EXPORT void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const
+        DYNINST_EXPORT void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const
         {
             DECODE_OPERANDS();
             for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
@@ -407,7 +407,7 @@ namespace Dyninst
                         memAccessors.begin()));
         }
 
-        INSTRUCTION_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
+        DYNINST_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
         {
             DECODE_OPERANDS();
             for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
@@ -420,7 +420,7 @@ namespace Dyninst
                         memAccessors.begin()));
         }
 
-        INSTRUCTION_EXPORT Operand Instruction::getPredicateOperand() const
+        DYNINST_EXPORT Operand Instruction::getPredicateOperand() const
         {
             DECODE_OPERANDS();
             for(auto const &op : m_Operands) {
@@ -431,7 +431,7 @@ namespace Dyninst
 
             return Operand(Expression::Ptr(), false, false);
         }
-        INSTRUCTION_EXPORT bool Instruction::hasPredicateOperand() const
+        DYNINST_EXPORT bool Instruction::hasPredicateOperand() const
         {
             DECODE_OPERANDS();
             for(auto const &op : m_Operands) {
@@ -443,7 +443,7 @@ namespace Dyninst
             return false;
         }
 
-        INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
+        DYNINST_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
         {
             // We assume control flow transfer instructions have the PC as
             // an implicit write, and that we have decoded the control flow
@@ -467,11 +467,11 @@ namespace Dyninst
             return m_Successors.front().target;
         }
 
-        INSTRUCTION_EXPORT ArchSpecificFormatter& Instruction::getFormatter() const {
+        DYNINST_EXPORT ArchSpecificFormatter& Instruction::getFormatter() const {
             return *formatter;
         }
 
-        INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
+        DYNINST_EXPORT std::string Instruction::format(Address addr) const
         {
             // if Arch_none, this is an error and the formatter is nullptr,
             // so return an error string (could also abort or except)
@@ -543,7 +543,7 @@ namespace Dyninst
             return opstr + formatter->getInstructionString(formattedOperands);
         }
 
-        INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
+        DYNINST_EXPORT bool Instruction::allowsFallThrough() const
         {
             switch(m_InsnOp.getID())
             {
@@ -598,12 +598,12 @@ namespace Dyninst
             // can't happen but make the compiler happy
             return false;
         }
-        INSTRUCTION_EXPORT bool Instruction::isLegalInsn() const
+        DYNINST_EXPORT bool Instruction::isLegalInsn() const
         {
             return (m_InsnOp.getID() != e_No_Entry);
         }
 
-        INSTRUCTION_EXPORT Architecture Instruction::getArch() const {
+        DYNINST_EXPORT Architecture Instruction::getArch() const {
             return arch_decoded_from;
         }
 
@@ -614,7 +614,7 @@ namespace Dyninst
             Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
             return retLoc;
         }
-        INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
+        DYNINST_EXPORT InsnCategory Instruction::getCategory() const
         {
             if(m_InsnOp.isVectorInsn) return c_VectorInsn;
             InsnCategory c = entryToCategory(m_InsnOp.getID());

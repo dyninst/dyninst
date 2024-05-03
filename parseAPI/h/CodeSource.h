@@ -59,7 +59,7 @@ class CFGModifier;
 **/
 
 
-class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::SimpleInterval<Address> {
+class DYNINST_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::SimpleInterval<Address> {
  public:
 
     /* Fills a vector with any names associated with the function at at 
@@ -111,7 +111,7 @@ struct Hint {
     }
 };
 
-class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
+class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
    friend class CFGModifier;
  private:
     bool _regions_overlap;
@@ -225,7 +225,7 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     binaries supported by the SymtabAPI 
 **/
 
-class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
+class DYNINST_EXPORT SymtabCodeRegion : public CodeRegion {
  private:
     SymtabAPI::Symtab * _symtab;
     SymtabAPI::Region * _region;
@@ -258,7 +258,7 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     SymtabAPI::Region * symRegion() const { return _region; }
 };
 
-class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable_adapter<boost::recursive_mutex> {
+class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable_adapter<boost::recursive_mutex> {
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;

@@ -46,7 +46,7 @@
   * @see BPatch_basicBlock
   */
 
-class BPATCH_DLL_EXPORT BPatch_sourceBlock {
+class DYNINST_EXPORT BPatch_sourceBlock {
 	friend class BPatch_flowGraph;
 
 private:

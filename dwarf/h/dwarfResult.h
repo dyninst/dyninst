@@ -44,7 +44,7 @@ class ProcessReader;
 
 namespace DwarfDyninst {
 
-class DYNDWARF_EXPORT DwarfResult {
+class DYNINST_EXPORT DwarfResult {
     // An interface for building representations of Dwarf expressions.
     // In concrete mode, we have access to process state and
     // can calculate a value. In symbolic mode we lack this information
@@ -110,7 +110,7 @@ protected:
 
 };
 
-class DYNDWARF_EXPORT SymbolicDwarfResult : public DwarfResult {
+class DYNINST_EXPORT SymbolicDwarfResult : public DwarfResult {
 
 public:
     SymbolicDwarfResult(VariableLocation &v, Architecture a) :
@@ -139,7 +139,7 @@ private:
     VariableLocation &var;
 };
 
-class DYNDWARF_EXPORT ConcreteDwarfResult : public DwarfResult {
+class DYNINST_EXPORT ConcreteDwarfResult : public DwarfResult {
 
 public:
     ConcreteDwarfResult(ProcessReader *r, Architecture a, 

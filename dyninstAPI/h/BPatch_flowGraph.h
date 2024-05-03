@@ -62,7 +62,7 @@ namespace Dyninst {
         class PatchLoop;
     }
 }    
-class BPATCH_DLL_EXPORT BPatch_flowGraph : 
+class DYNINST_EXPORT BPatch_flowGraph : 
       public Dyninst::AnnotatableSparse 
 {
   friend class BPatch_basicBlock;

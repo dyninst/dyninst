@@ -864,7 +864,7 @@ enum {
   fCMPS
 };
 
-COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
+DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_aaa, "aaa")
   (e_aad, "aad")
   (e_aam, "aam")
@@ -2025,7 +2025,7 @@ dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
 dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
 
 
-COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
+DYNINST_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
   static std::once_flag flagTableInit;
   std::call_once(flagTableInit, [&]() {

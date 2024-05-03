@@ -46,7 +46,7 @@ namespace Dyninst
     /// and \c clearValue interface are disabled on %Immediate objects.
     /// If an immediate value is being modified, a new %Immediate object should
     /// be created to represent the new value.
-    class INSTRUCTION_EXPORT Immediate : public Expression
+    class DYNINST_EXPORT Immediate : public Expression
     {
     public:
       Immediate(const Result& val);
@@ -74,7 +74,7 @@ namespace Dyninst
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
     };
 
-    class INSTRUCTION_EXPORT NamedImmediate : public Immediate
+    class DYNINST_EXPORT NamedImmediate : public Immediate
     {
     public:
         NamedImmediate(std::string name, const Result &val);
@@ -88,7 +88,7 @@ namespace Dyninst
     };
 
 
-    class INSTRUCTION_EXPORT ArmConditionImmediate : public Immediate
+    class DYNINST_EXPORT ArmConditionImmediate : public Immediate
     {
     public:
         ArmConditionImmediate(const Result &val);
@@ -101,7 +101,7 @@ namespace Dyninst
         std::map<unsigned int, std::string> m_condLookupMap;
     };
 
-    class INSTRUCTION_EXPORT ArmPrfmTypeImmediate : public Immediate
+    class DYNINST_EXPORT ArmPrfmTypeImmediate : public Immediate
     {
     public:
 	ArmPrfmTypeImmediate(const Result &val);

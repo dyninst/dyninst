@@ -71,7 +71,7 @@ class Symtab;
  * class Symbol
 ************************************************************************/
 
-class SYMTAB_EXPORT Symbol : public AnnotatableSparse
+class DYNINST_EXPORT Symbol : public AnnotatableSparse
 {
    friend class typeCommon;
    friend class Symtab;
@@ -281,7 +281,7 @@ class SYMTAB_EXPORT Symbol : public AnnotatableSparse
    bool versionHidden_;
 };
 
-class SYMTAB_EXPORT LookupInterface 
+class DYNINST_EXPORT LookupInterface 
 {
    public:
       LookupInterface();
@@ -312,7 +312,7 @@ class SYMTAB_EXPORT LookupInterface
       virtual ~LookupInterface();
 };
 
-SYMTAB_EXPORT std::ostream& operator<< (std::ostream &os, const Symbol &s);
+DYNINST_EXPORT std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
 }//namespace SymtabAPI
 }//namespace Dyninst

@@ -46,7 +46,7 @@
 #include "Variable.h"
 #include "VariableLocation.h"
 
-SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
+DYNINST_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -56,7 +56,7 @@ class Type;
 class FunctionBase;
 class DwarfWalker;
 
-class SYMTAB_EXPORT FuncRange {
+class DYNINST_EXPORT FuncRange {
   public:
    FuncRange(Dyninst::Offset off_, size_t size_, FunctionBase *cont_) :
      container(cont_),
@@ -78,7 +78,7 @@ class SYMTAB_EXPORT FuncRange {
 typedef std::vector<FuncRange> FuncRangeCollection;
 typedef std::vector<FunctionBase *> InlineCollection;
 
-class SYMTAB_EXPORT FunctionBase
+class DYNINST_EXPORT FunctionBase
 {
    friend class InlinedFunction;
    friend class Function;
@@ -154,7 +154,7 @@ class SYMTAB_EXPORT FunctionBase
  *  `Function` can be derived from (e.g., ParseAPI::PLTFunction), but does not create an
  *  interface separate from FunctionBase.
  */
- class SYMTAB_EXPORT Function : public FunctionBase, public Aggregate
+ class DYNINST_EXPORT Function : public FunctionBase, public Aggregate
 {
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
@@ -187,7 +187,7 @@ class SYMTAB_EXPORT FunctionBase
      Module * getModule() const override;
  };
 
-class SYMTAB_EXPORT InlinedFunction : public FunctionBase
+class DYNINST_EXPORT InlinedFunction : public FunctionBase
 {
    friend class Symtab;
    friend class DwarfWalker;

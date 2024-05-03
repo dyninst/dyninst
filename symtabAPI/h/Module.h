@@ -51,7 +51,7 @@ namespace Dyninst { namespace SymtabAPI {
 
   typedef Dyninst::SimpleInterval<Offset, Module *> ModRange;
 
-  class SYMTAB_EXPORT Module : public LookupInterface {
+  class DYNINST_EXPORT Module : public LookupInterface {
     friend class Symtab;
 
   public:

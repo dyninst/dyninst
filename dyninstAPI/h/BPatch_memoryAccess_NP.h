@@ -60,7 +60,7 @@ class internal_instruction;
 //extern void initOpCodeInfo();
 
 /* This is believed to be machine independent, modulo register numbers of course */
-class BPATCH_DLL_EXPORT BPatch_addrSpec_NP
+class DYNINST_EXPORT BPatch_addrSpec_NP
 {
   // the formula is regs[0] + 2 ^ scale * regs[1] + imm
   long imm;      // immediate
@@ -80,7 +80,7 @@ public:
 };
 
 typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
-class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
+class DYNINST_EXPORT BPatch_memoryAccess : public BPatch_instruction
 {
   friend class BPatch_function;
   friend class AstMemoryNode;

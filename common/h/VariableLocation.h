@@ -52,7 +52,7 @@ typedef enum {
    storageRegOffset
 } storageClass;
 
-COMMON_EXPORT const char *storageClass2Str(storageClass sc);
+DYNINST_EXPORT const char *storageClass2Str(storageClass sc);
 
 /*
  * storageRefClass: Encodes if a variable can be accessed through a register/address.
@@ -66,7 +66,7 @@ typedef enum {
    storageNoRef
 } storageRefClass;
 
-COMMON_EXPORT const char *storageRefClass2Str(storageRefClass sc);
+DYNINST_EXPORT const char *storageRefClass2Str(storageRefClass sc);
 
 //location for a variable
 //Use mr_reg instead of reg for new code.  reg left in for backwards

@@ -36,7 +36,7 @@
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class PC_EXPORT Mailbox
+class DYNINST_EXPORT Mailbox
 {
 public:
 	typedef enum {
@@ -58,7 +58,7 @@ public:
    virtual void unlock_queue() = 0;
 };
 
-extern PC_EXPORT Mailbox* mbox();
+extern DYNINST_EXPORT Mailbox* mbox();
 
 }
 }

@@ -32,23 +32,23 @@
 #define _BPatch_dll_h_
 
 // TEMPORARY PARADYND FLOWGRAPH KLUGE
-// If we are building BPatch classes into paradynd we want BPATCH_DLL_EXPORT 
+// If we are building BPatch classes into paradynd we want DYNINST_EXPORT 
 // to be defined as the empty string (for all platforms). This currently tests
 // SHM_SAMPLING because it is defined for paradynd and not for the dyninst
 // dll or dyninst clients, read '#if PARADYND'. 
 #ifdef SHM_SAMPLING
-#define	BPATCH_DLL_EXPORT
+#define	DYNINST_EXPORT
 #else
 #if defined(_MSC_VER)
 
 #ifdef BPATCH_DLL_BUILD
 // we are building the dyninstAPI DLL
-#define	BPATCH_DLL_EXPORT	__declspec(dllexport)
+#define	DYNINST_EXPORT	__declspec(dllexport)
 
 #else
 
 // we are not building the dyninstAPI DLL
-#define	BPATCH_DLL_EXPORT	__declspec(dllimport)
+#define	DYNINST_EXPORT	__declspec(dllimport)
 #if _MSC_VER >= 1300
 #define	BPATCH_DLL_IMPORT   1
 #endif
@@ -57,7 +57,7 @@
 #else
 
 // we are not building for a Windows target 
-#define	BPATCH_DLL_EXPORT  __attribute__((visibility ("default")))
+#define	DYNINST_EXPORT  __attribute__((visibility ("default")))
 
 #endif
 
@@ -65,6 +65,6 @@
 
 
 // declare our version string
-extern "C" BPATCH_DLL_EXPORT const char V_libdyninstAPI[];
+extern "C" DYNINST_EXPORT const char V_libdyninstAPI[];
 
 #endif /* _BPatch_dll_h_ */

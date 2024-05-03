@@ -44,7 +44,7 @@ class BPatch_type;
 namespace Dyninst { 
    namespace SymtabAPI {
       class Type;
-      BPATCH_DLL_EXPORT boost::shared_ptr<Type> convert(const BPatch_type *, Type::do_share_t);
+      DYNINST_EXPORT boost::shared_ptr<Type> convert(const BPatch_type *, Type::do_share_t);
       inline Type* convert(const BPatch_type* t) {
         return convert(t, Type::share).get();
       }
@@ -166,7 +166,7 @@ class BPatch_module;
  */
 
 
-class BPATCH_DLL_EXPORT BPatch_field {
+class DYNINST_EXPORT BPatch_field {
   friend class BPatch_variableExpr;
   friend class BPatch_cblock;
   
@@ -220,7 +220,7 @@ class BPATCH_DLL_EXPORT BPatch_field {
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_cblock
-class BPATCH_DLL_EXPORT BPatch_cblock {
+class DYNINST_EXPORT BPatch_cblock {
 private:
   // the list of fields
   BPatch_Vector<BPatch_field *> fieldList;
@@ -239,7 +239,7 @@ public:
   BPatch_Vector<BPatch_function *> * getFunctions();
 };
 
-class BPATCH_DLL_EXPORT BPatch_type{
+class DYNINST_EXPORT BPatch_type{
     friend class BPatch;
     friend class BPatch_module;
     friend class BPatch_function;
@@ -321,7 +321,7 @@ public:
 // It is desgined store information about a variable in a function.
 // Scope needs to be addressed in this class.
 
-class BPATCH_DLL_EXPORT BPatch_localVar{
+class DYNINST_EXPORT BPatch_localVar{
     friend class BPatch;
     friend class BPatch_function;
 

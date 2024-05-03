@@ -47,12 +47,12 @@
 namespace Dyninst {
 
 namespace dyn_c_annotations {
-    void COMMON_EXPORT rwinit(void*);
-    void COMMON_EXPORT rwdeinit(void*);
-    void COMMON_EXPORT wlock(void*);
-    void COMMON_EXPORT wunlock(void*);
-    void COMMON_EXPORT rlock(void*);
-    void COMMON_EXPORT runlock(void*);
+    void DYNINST_EXPORT rwinit(void*);
+    void DYNINST_EXPORT rwdeinit(void*);
+    void DYNINST_EXPORT wlock(void*);
+    void DYNINST_EXPORT wunlock(void*);
+    void DYNINST_EXPORT rlock(void*);
+    void DYNINST_EXPORT runlock(void*);
 }
 
 namespace concurrent {
@@ -207,7 +207,7 @@ public:
     using unique_lock = boost::unique_lock<dyn_mutex>;
 };
 
-class COMMON_EXPORT dyn_rwlock {
+class DYNINST_EXPORT dyn_rwlock {
     // Reader management members
     boost::atomic<unsigned int> rin;
     boost::atomic<unsigned int> rout;
@@ -234,7 +234,7 @@ public:
     using shared_lock = boost::shared_lock<dyn_rwlock>;
 };
 
-class COMMON_EXPORT dyn_thread {
+class DYNINST_EXPORT dyn_thread {
 public:
     dyn_thread();
     unsigned int getId();

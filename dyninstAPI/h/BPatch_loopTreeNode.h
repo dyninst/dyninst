@@ -56,7 +56,7 @@ class PatchLoopTreeNode;
  *  @see BPatch_flowGraph
  */
 
-class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
+class DYNINST_EXPORT BPatch_loopTreeNode {
     friend class BPatch_flowGraph;
 
  public:

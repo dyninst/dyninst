@@ -82,7 +82,7 @@ struct SymSegment {
  * that the underlying implementation could be made re-enterant safe (so it 
  * could be called from a signal handler).
  **/
-class COMMON_EXPORT SymReader
+class DYNINST_EXPORT SymReader
 {
  protected:
    SymReader() {}
@@ -123,7 +123,7 @@ class COMMON_EXPORT SymReader
    
 };
 
-class COMMON_EXPORT SymbolReaderFactory
+class DYNINST_EXPORT SymbolReaderFactory
 {
  public:
    SymbolReaderFactory() {}

@@ -68,7 +68,7 @@ namespace Dyninst
     /// For example, the %Expression shown in Figure 6 could have its root %Dereference, which interprets the memory being dereferenced
     /// as a unsigned 16-bit integer, replaced with a %Dereference that
     /// interprets the memory being dereferenced as any other type.  The remainder of the %Expression tree would, however, remain unchanged.
-    class INSTRUCTION_EXPORT Dereference : public Expression
+    class DYNINST_EXPORT Dereference : public Expression
     {
 
     public:

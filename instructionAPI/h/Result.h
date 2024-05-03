@@ -232,7 +232,7 @@ namespace Dyninst
         // machine states.  From this, you may construct abstractions to represent the set of possible results.
         // Alternately, you may use instrumentation to determine the exact machine state at the time an
         // instruction executes, which will allow you to evaluate the %Result of an %Expression in its actual context.
-        class INSTRUCTION_EXPORT Result
+        class DYNINST_EXPORT Result
         {
             public:
                 Result_Value val;
@@ -776,12 +776,12 @@ namespace Dyninst
                 }
         };
 
-        INSTRUCTION_EXPORT Result operator+(const Result& arg1, const Result& arg2);
-        INSTRUCTION_EXPORT Result operator*(const Result& arg1, const Result& arg2);
-        INSTRUCTION_EXPORT Result operator<<(const Result& arg1, const Result& arg2);
-        INSTRUCTION_EXPORT Result operator>>(const Result& arg1, const Result& arg2);
-        INSTRUCTION_EXPORT Result operator&(const Result& arg1, const Result& arg2);
-        INSTRUCTION_EXPORT Result operator|(const Result& arg1, const Result& arg2);
+        DYNINST_EXPORT Result operator+(const Result& arg1, const Result& arg2);
+        DYNINST_EXPORT Result operator*(const Result& arg1, const Result& arg2);
+        DYNINST_EXPORT Result operator<<(const Result& arg1, const Result& arg2);
+        DYNINST_EXPORT Result operator>>(const Result& arg1, const Result& arg2);
+        DYNINST_EXPORT Result operator&(const Result& arg1, const Result& arg2);
+        DYNINST_EXPORT Result operator|(const Result& arg1, const Result& arg2);
 
     }
 }

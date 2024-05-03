@@ -56,40 +56,40 @@ class CFGModifier {
    // it's just a namespace. 
 
    // Redirect the target of an existing edge. 
-   PARSER_EXPORT static bool redirect(Edge *edge, Block *target);
+   DYNINST_EXPORT static bool redirect(Edge *edge, Block *target);
 
    // Split a block at a provided point.; we double-check whether the address
    // is a valid instruction boundary unless trust is true. 
    // Newlast is the new "last insn" of the original block; provide it if
    // you don't want to waste time disassembling to figure it out.
-   PARSER_EXPORT static Block *split(Block *, Address, bool trust = false, Address newlast = -1);
+   DYNINST_EXPORT static Block *split(Block *, Address, bool trust = false, Address newlast = -1);
    
    // Parse and add a new region of code to a CodeObject
    // The void * becomes "owned" by the CodeObject, as it's used
    // as a backing store; it cannot be ephemeral.
    // Returns the new entry block. 
-   PARSER_EXPORT static InsertedRegion *insert(CodeObject *obj, 
+   DYNINST_EXPORT static InsertedRegion *insert(CodeObject *obj, 
                                                Address base, void *data, 
                                                unsigned size);
 
    // Remove blocks from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.
-   PARSER_EXPORT static bool remove(std::vector<Block *> &, bool force = false);
+   DYNINST_EXPORT static bool remove(std::vector<Block *> &, bool force = false);
 
    // As the above, but for functions. 
-   PARSER_EXPORT static bool remove(Function *);
+   DYNINST_EXPORT static bool remove(Function *);
 
    // Label a block as the entry of a new function. If the block is already an
    // entry that function is returned; otherwise we create a new function and
    // return it.
-   PARSER_EXPORT static Function *makeEntry(Block *);
+   DYNINST_EXPORT static Function *makeEntry(Block *);
 };
 
 class InsertedRegion : public CodeRegion {
   public:
    
-   PARSER_EXPORT InsertedRegion(Address base, void *data, unsigned size, Architecture arch); 
-   PARSER_EXPORT virtual ~InsertedRegion();
+   DYNINST_EXPORT InsertedRegion(Address base, void *data, unsigned size, Architecture arch); 
+   DYNINST_EXPORT virtual ~InsertedRegion();
    
    
    // names: not overriden (as there are no names [yet])
@@ -98,32 +98,32 @@ class InsertedRegion : public CodeRegion {
    // Addresses are provided by the user, as Dyninst etc. have
    // well-known ways of allocating additional code by extending
    // the binary or allocating memory, etc. 
-   PARSER_EXPORT Address low() const { return base_; }
-   PARSER_EXPORT Address high() const { return base_ + size_; }
+   DYNINST_EXPORT Address low() const { return base_; }
+   DYNINST_EXPORT Address high() const { return base_ + size_; }
 
    /** InstructionSource implementation **/
-   PARSER_EXPORT bool isValidAddress(const Address a) const { 
+   DYNINST_EXPORT bool isValidAddress(const Address a) const { 
       return (a >= low() && a < high());
    }
-   PARSER_EXPORT void* getPtrToInstruction(const Address a) const {
+   DYNINST_EXPORT void* getPtrToInstruction(const Address a) const {
       if (!isValidAddress(a)) return NULL;
       return (void *)((char *)buf_ + (a - base_));
    }
-   PARSER_EXPORT void* getPtrToData(const Address) const {
+   DYNINST_EXPORT void* getPtrToData(const Address) const {
       return NULL; 
    }
-   PARSER_EXPORT bool isCode(const Address a) const { return isValidAddress(a); }
-   PARSER_EXPORT bool isData(const Address) const { return false; }
-   PARSER_EXPORT bool isReadOnly(const Address) const { return false; }
-   PARSER_EXPORT Address offset() const { return base_; }
-   PARSER_EXPORT Address length() const { return size_; }
-   PARSER_EXPORT unsigned int getAddressWidth() const {
+   DYNINST_EXPORT bool isCode(const Address a) const { return isValidAddress(a); }
+   DYNINST_EXPORT bool isData(const Address) const { return false; }
+   DYNINST_EXPORT bool isReadOnly(const Address) const { return false; }
+   DYNINST_EXPORT Address offset() const { return base_; }
+   DYNINST_EXPORT Address length() const { return size_; }
+   DYNINST_EXPORT unsigned int getAddressWidth() const {
       if (arch_ == Arch_ppc64 || arch_ == Arch_x86_64 || arch_ == Arch_aarch64) return 8;
       else return 4;
    }
-   PARSER_EXPORT Architecture getArch() const { return arch_; }
+   DYNINST_EXPORT Architecture getArch() const { return arch_; }
 
-   PARSER_EXPORT bool wasUserAdded() const { return true; }
+   DYNINST_EXPORT bool wasUserAdded() const { return true; }
 
   private:
     Address base_;

@@ -52,7 +52,7 @@ class PatchBlock;
 class PatchFunction;
 class PatchCallback;
 
-class PATCHAPI_EXPORT PatchEdge {
+class DYNINST_EXPORT PatchEdge {
    friend class PatchBlock;
    friend class PatchFunction;
    friend class PatchObject;
@@ -95,7 +95,7 @@ class PATCHAPI_EXPORT PatchEdge {
     EdgePoints points_;
 };
 
-class PATCHAPI_EXPORT PatchBlock {
+class DYNINST_EXPORT PatchBlock {
   friend class PatchEdge;
   friend class PatchFunction;
   friend class PatchObject;
@@ -178,7 +178,7 @@ class PATCHAPI_EXPORT PatchBlock {
 class PatchLoop;
 class PatchLoopTreeNode;
 
-class PATCHAPI_EXPORT PatchFunction {
+class DYNINST_EXPORT PatchFunction {
    friend class PatchEdge;
    friend class PatchBlock;
    friend class PatchObject;
@@ -311,7 +311,7 @@ class PATCHAPI_EXPORT PatchFunction {
 };
 
 
-class PATCHAPI_EXPORT PatchLoop  
+class DYNINST_EXPORT PatchLoop  
 {
 	friend class PatchFunction;
 private:
@@ -388,7 +388,7 @@ private:
 }; // class PatchLoop
 
 
-class PATCHAPI_EXPORT PatchLoopTreeNode {
+class DYNINST_EXPORT PatchLoopTreeNode {
 
  public:
     // A loop node contains a single Loop instance

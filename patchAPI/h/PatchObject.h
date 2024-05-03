@@ -47,7 +47,7 @@ class PatchParseCallback;
 
 /* PatchObject represents a binary object, which could be either a library or
    executable. It is also an instrumentation  unit. */
-class PATCHAPI_EXPORT PatchObject {
+class DYNINST_EXPORT PatchObject {
   friend class AddrSpace;
   friend class PatchParseCallback;
 

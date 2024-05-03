@@ -55,29 +55,29 @@ class SymReaderCodeRegion : public CodeRegion {
     void* rawData;
     
  public:
-    PARSER_EXPORT SymReaderCodeRegion(SymReader *, SymSegment *);
-    PARSER_EXPORT ~SymReaderCodeRegion();
+    DYNINST_EXPORT SymReaderCodeRegion(SymReader *, SymSegment *);
+    DYNINST_EXPORT ~SymReaderCodeRegion();
 
-    PARSER_EXPORT void names(Address, std::vector<std::string> &) override;
-    PARSER_EXPORT bool findCatchBlock(Address addr, Address & catchStart) override;
+    DYNINST_EXPORT void names(Address, std::vector<std::string> &) override;
+    DYNINST_EXPORT bool findCatchBlock(Address addr, Address & catchStart) override;
 
     /** InstructionSource implementation **/
-    PARSER_EXPORT bool isValidAddress(const Address) const override;
-    PARSER_EXPORT void* getPtrToInstruction(const Address) const override;
-    PARSER_EXPORT void* getPtrToData(const Address) const override;
-    PARSER_EXPORT unsigned int getAddressWidth() const override;
-    PARSER_EXPORT bool isCode(const Address) const override;
-    PARSER_EXPORT bool isData(const Address) const override;
-    PARSER_EXPORT bool isReadOnly(const Address) const override;
-    PARSER_EXPORT Address offset() const override;
-    PARSER_EXPORT Address length() const override;
-    PARSER_EXPORT Architecture getArch() const override;
+    DYNINST_EXPORT bool isValidAddress(const Address) const override;
+    DYNINST_EXPORT void* getPtrToInstruction(const Address) const override;
+    DYNINST_EXPORT void* getPtrToData(const Address) const override;
+    DYNINST_EXPORT unsigned int getAddressWidth() const override;
+    DYNINST_EXPORT bool isCode(const Address) const override;
+    DYNINST_EXPORT bool isData(const Address) const override;
+    DYNINST_EXPORT bool isReadOnly(const Address) const override;
+    DYNINST_EXPORT Address offset() const override;
+    DYNINST_EXPORT Address length() const override;
+    DYNINST_EXPORT Architecture getArch() const override;
 
     /** interval **/
-    PARSER_EXPORT Address low() const override { return offset(); }
-    PARSER_EXPORT Address high() const override { return offset() + length(); }
+    DYNINST_EXPORT Address low() const override { return offset(); }
+    DYNINST_EXPORT Address high() const override { return offset() + length(); }
 
-    PARSER_EXPORT SymSegment * symRegion() const { return _region; }
+    DYNINST_EXPORT SymSegment * symRegion() const { return _region; }
 };
 
 class SymReaderCodeSource : public CodeSource {
@@ -91,37 +91,37 @@ class SymReaderCodeSource : public CodeSource {
     bool _have_stats;
     
  public:
-    PARSER_EXPORT SymReaderCodeSource(SymReader *);
-    PARSER_EXPORT SymReaderCodeSource(const char *);
+    DYNINST_EXPORT SymReaderCodeSource(SymReader *);
+    DYNINST_EXPORT SymReaderCodeSource(const char *);
 
-    PARSER_EXPORT ~SymReaderCodeSource();
+    DYNINST_EXPORT ~SymReaderCodeSource();
 
-    PARSER_EXPORT bool nonReturning(Address func_entry);
-    PARSER_EXPORT bool nonReturningSyscall(int num);
+    DYNINST_EXPORT bool nonReturning(Address func_entry);
+    DYNINST_EXPORT bool nonReturningSyscall(int num);
 
-    PARSER_EXPORT bool resizeRegion(SymSegment *, Address newDiskSize);
+    DYNINST_EXPORT bool resizeRegion(SymSegment *, Address newDiskSize);
 
-    PARSER_EXPORT SymReader * getSymReaderObject() {return _symtab;} 
+    DYNINST_EXPORT SymReader * getSymReaderObject() {return _symtab;} 
 
     /** InstructionSource implementation **/
-    PARSER_EXPORT bool isValidAddress(const Address) const;
-    PARSER_EXPORT void* getPtrToInstruction(const Address) const;
-    PARSER_EXPORT void* getPtrToData(const Address) const;
-    PARSER_EXPORT unsigned int getAddressWidth() const;
-    PARSER_EXPORT bool isCode(const Address) const;
-    PARSER_EXPORT bool isData(const Address) const;
-    PARSER_EXPORT bool isReadOnly(const Address) const;
-    PARSER_EXPORT Address offset() const;
-    PARSER_EXPORT Address length() const;
-    PARSER_EXPORT Architecture getArch() const;
+    DYNINST_EXPORT bool isValidAddress(const Address) const;
+    DYNINST_EXPORT void* getPtrToInstruction(const Address) const;
+    DYNINST_EXPORT void* getPtrToData(const Address) const;
+    DYNINST_EXPORT unsigned int getAddressWidth() const;
+    DYNINST_EXPORT bool isCode(const Address) const;
+    DYNINST_EXPORT bool isData(const Address) const;
+    DYNINST_EXPORT bool isReadOnly(const Address) const;
+    DYNINST_EXPORT Address offset() const;
+    DYNINST_EXPORT Address length() const;
+    DYNINST_EXPORT Architecture getArch() const;
 
-    PARSER_EXPORT void removeHint(Hint);
+    DYNINST_EXPORT void removeHint(Hint);
 
-    PARSER_EXPORT static void addNonReturning(std::string func_name);
+    DYNINST_EXPORT static void addNonReturning(std::string func_name);
     
     // statistics accessor
-    PARSER_EXPORT void print_stats() const;
-    PARSER_EXPORT bool have_stats() const { return _have_stats; }
+    DYNINST_EXPORT void print_stats() const;
+    DYNINST_EXPORT bool have_stats() const { return _have_stats; }
 
     // manage statistics
     void incrementCounter(const std::string& name) const;

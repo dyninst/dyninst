@@ -34,7 +34,7 @@ namespace Dyninst  {
 namespace SymtabAPI  {
 
 
-SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart,
+DYNINST_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart,
       unsigned tSize,
       Offset cStart)
 : tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true),
@@ -42,33 +42,33 @@ SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart,
 {
 }
 
-   SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset cStart)
+   DYNINST_EXPORT ExceptionBlock::ExceptionBlock(Offset cStart)
 : tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false),
   tryStart_ptr(0), tryEnd_ptr(0), catchStart_ptr(0), fdeStart_ptr(0), fdeEnd_ptr(0)
 {
 }
 
-SYMTAB_EXPORT bool ExceptionBlock::hasTry() const
+DYNINST_EXPORT bool ExceptionBlock::hasTry() const
 {
    return hasTry_;
 }
 
-SYMTAB_EXPORT Offset ExceptionBlock::tryStart() const
+DYNINST_EXPORT Offset ExceptionBlock::tryStart() const
 {
    return tryStart_;
 }
 
-SYMTAB_EXPORT Offset ExceptionBlock::tryEnd() const
+DYNINST_EXPORT Offset ExceptionBlock::tryEnd() const
 {
    return tryStart_ + trySize_;
 }
 
-SYMTAB_EXPORT Offset ExceptionBlock::trySize() const
+DYNINST_EXPORT Offset ExceptionBlock::trySize() const
 {
    return trySize_;
 }
 
-SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
+DYNINST_EXPORT bool ExceptionBlock::contains(Offset a) const
 {
    return (a >= tryStart_ && a < tryStart_ + trySize_);
 }

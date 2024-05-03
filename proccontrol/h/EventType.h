@@ -36,7 +36,7 @@
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class PC_EXPORT EventType
+class DYNINST_EXPORT EventType
 {
  public:
    static const int Error               = -1;

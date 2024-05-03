@@ -80,7 +80,7 @@ class Elf_X_Nhdr;
 // ------------------------------------------------------------------------
 // Class Elf_X simulates the Elf(32|64)_Ehdr structure.
 // Also works for ELF archives. 
-class DYNELF_EXPORT Elf_X {
+class DYNINST_EXPORT Elf_X {
   public:
     static Elf_X *newElf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL, std::string name = std::string());
     static Elf_X *newElf_X(char *mem_image, size_t mem_size, std::string name = std::string());
@@ -170,7 +170,7 @@ class DYNELF_EXPORT Elf_X {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Phdr simulates the Elf(32|64)_Phdr structure.
-class DYNELF_EXPORT Elf_X_Phdr {
+class DYNINST_EXPORT Elf_X_Phdr {
    friend class Elf_X;
   public:
     Elf_X_Phdr();
@@ -206,7 +206,7 @@ class DYNELF_EXPORT Elf_X_Phdr {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Shdr simulates the Elf(32|64)_Shdr structure.
-class DYNELF_EXPORT Elf_X_Shdr {
+class DYNINST_EXPORT Elf_X_Shdr {
     friend class Elf_X;
 
   public:
@@ -264,7 +264,7 @@ class DYNELF_EXPORT Elf_X_Shdr {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Data simulates the Elf_Data structure.
-class DYNELF_EXPORT Elf_X_Data {
+class DYNINST_EXPORT Elf_X_Data {
   public:
     Elf_X_Data();
     Elf_X_Data(bool is64_, Elf_Data *input);
@@ -308,7 +308,7 @@ class DYNELF_EXPORT Elf_X_Data {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Versym simulates the SHT_GNU_versym structure.
-class DYNELF_EXPORT Elf_X_Versym {
+class DYNINST_EXPORT Elf_X_Versym {
   public:
     Elf_X_Versym();
     Elf_X_Versym(bool is64_, Elf_Data *input);
@@ -329,7 +329,7 @@ class DYNELF_EXPORT Elf_X_Versym {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Verdaux simulates the Elf(32|64)_Verdaux structure.
-class DYNELF_EXPORT Elf_X_Verdaux {
+class DYNINST_EXPORT Elf_X_Verdaux {
   public:
     Elf_X_Verdaux();
     Elf_X_Verdaux(bool is64_, void *input);
@@ -351,7 +351,7 @@ class DYNELF_EXPORT Elf_X_Verdaux {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Verdef simulates the Elf(32|64)_Verdef structure.
-class DYNELF_EXPORT Elf_X_Verdef {
+class DYNINST_EXPORT Elf_X_Verdef {
   public:
     Elf_X_Verdef();
     Elf_X_Verdef(bool is64_, void *input);
@@ -379,7 +379,7 @@ class DYNELF_EXPORT Elf_X_Verdef {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Vernaux simulates the Elf(32|64)_Vernaux structure.
-class DYNELF_EXPORT Elf_X_Vernaux {
+class DYNINST_EXPORT Elf_X_Vernaux {
   public:
     Elf_X_Vernaux();
     Elf_X_Vernaux(bool is64_, void *input);
@@ -404,7 +404,7 @@ class DYNELF_EXPORT Elf_X_Vernaux {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Verneed simulates the Elf(32|64)_Verneed structure.
-class DYNELF_EXPORT Elf_X_Verneed {
+class DYNINST_EXPORT Elf_X_Verneed {
   public:
     Elf_X_Verneed();
     Elf_X_Verneed(bool is64_, void *input);
@@ -431,7 +431,7 @@ class DYNELF_EXPORT Elf_X_Verneed {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Sym simulates the Elf(32|64)_Sym structure.
-class DYNELF_EXPORT Elf_X_Sym {
+class DYNINST_EXPORT Elf_X_Sym {
   public:
     Elf_X_Sym();
     Elf_X_Sym(bool is64_, Elf_Data *input);
@@ -470,7 +470,7 @@ class DYNELF_EXPORT Elf_X_Sym {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Rel simulates the Elf(32|64)_Rel structure.
-class DYNELF_EXPORT Elf_X_Rel {
+class DYNINST_EXPORT Elf_X_Rel {
   public:
    Elf_X_Rel();
    Elf_X_Rel(bool is64_, Elf_Data *input);
@@ -498,7 +498,7 @@ class DYNELF_EXPORT Elf_X_Rel {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Rela simulates the Elf(32|64)_Rela structure.
-class DYNELF_EXPORT Elf_X_Rela {
+class DYNINST_EXPORT Elf_X_Rela {
   public:
     Elf_X_Rela();
     Elf_X_Rela(bool is64_, Elf_Data *input);
@@ -528,7 +528,7 @@ class DYNELF_EXPORT Elf_X_Rela {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Dyn simulates the Elf(32|64)_Dyn structure.
-class DYNELF_EXPORT Elf_X_Dyn {
+class DYNINST_EXPORT Elf_X_Dyn {
   public:
     Elf_X_Dyn();
     Elf_X_Dyn(bool is64_, Elf_Data *input);
@@ -556,7 +556,7 @@ class DYNELF_EXPORT Elf_X_Dyn {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Nhdr simulates the Elf(32|64)_Shdr structure.
-class DYNELF_EXPORT Elf_X_Nhdr {
+class DYNINST_EXPORT Elf_X_Nhdr {
     friend class Elf_X;
 
   public:

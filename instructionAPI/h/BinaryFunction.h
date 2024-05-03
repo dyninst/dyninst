@@ -52,10 +52,10 @@ namespace Dyninst
     /// For the purposes of representing a single operand of an instruction, the %BinaryFunctions of interest are addition and multiplication of
     /// integer values; this allows a %Expression to represent all addressing modes on the architectures currently
     /// supported by the %Instruction API.
-    class INSTRUCTION_EXPORT BinaryFunction : public Expression
+    class DYNINST_EXPORT BinaryFunction : public Expression
     {
 		public:
-			class INSTRUCTION_EXPORT funcT
+			class DYNINST_EXPORT funcT
 			{
 				public:
 					funcT(std::string name) : m_name(name) 
@@ -80,7 +80,7 @@ namespace Dyninst
 			};
       
       
-			class INSTRUCTION_EXPORT addResult : public funcT
+			class DYNINST_EXPORT addResult : public funcT
 			{
 				public:
 					addResult() : funcT("+") 
@@ -97,7 +97,7 @@ namespace Dyninst
 					}
 			};
 			
-			class INSTRUCTION_EXPORT multResult : public funcT
+			class DYNINST_EXPORT multResult : public funcT
 			{
 				public:
 					multResult() : funcT("*")
@@ -114,7 +114,7 @@ namespace Dyninst
 					}
 			};
       
-			class INSTRUCTION_EXPORT leftShiftResult : public funcT
+			class DYNINST_EXPORT leftShiftResult : public funcT
 			{
 				public:
 					leftShiftResult() : funcT("<<")
@@ -131,7 +131,7 @@ namespace Dyninst
 					}
 			};
 			
-			class INSTRUCTION_EXPORT rightArithmeticShiftResult : public funcT
+			class DYNINST_EXPORT rightArithmeticShiftResult : public funcT
 			{
 				public:
 					rightArithmeticShiftResult() : funcT("ASR")
@@ -148,7 +148,7 @@ namespace Dyninst
 					}
 			};
 			
-			class INSTRUCTION_EXPORT andResult : public funcT
+			class DYNINST_EXPORT andResult : public funcT
 			{
 				public:
 					andResult() : funcT("&")
@@ -165,7 +165,7 @@ namespace Dyninst
 					}
 			};
 			
-			class INSTRUCTION_EXPORT orResult : public funcT
+			class DYNINST_EXPORT orResult : public funcT
 			{
 				public:
 					orResult() : funcT("|")
@@ -182,7 +182,7 @@ namespace Dyninst
 					}
 			};
 			
-			class INSTRUCTION_EXPORT rightLogicalShiftResult : public funcT
+			class DYNINST_EXPORT rightLogicalShiftResult : public funcT
 			{
 				public:
 					rightLogicalShiftResult() : funcT("LSR")
@@ -221,7 +221,7 @@ namespace Dyninst
 					}
 			};
 			
-			class INSTRUCTION_EXPORT rightRotateResult : public funcT
+			class DYNINST_EXPORT rightRotateResult : public funcT
 			{
 				public:
 					rightRotateResult() : funcT("ROR")

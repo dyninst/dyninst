@@ -78,7 +78,7 @@ enum EdgeState {
     destroyed_all
 };
 
-class PARSER_EXPORT CFGFactory  {
+class DYNINST_EXPORT CFGFactory  {
  public:
     CFGFactory() {}
     virtual ~CFGFactory();

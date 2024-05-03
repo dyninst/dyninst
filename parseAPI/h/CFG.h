@@ -86,11 +86,11 @@ enum EdgeTypeEnum {
     _edgetype_end_
 };
 
-PARSER_EXPORT std::string format(EdgeTypeEnum e);
+DYNINST_EXPORT std::string format(EdgeTypeEnum e);
 
 class Block;
 
-class PARSER_EXPORT Edge {
+class DYNINST_EXPORT Edge {
    friend class CFGModifier;
     friend class Block;
  protected:
@@ -155,7 +155,7 @@ class PARSER_EXPORT Edge {
  * 
  * EdgePredicates are composable by AND.
  */
-class PARSER_EXPORT EdgePredicate 
+class DYNINST_EXPORT EdgePredicate 
 {
  public:
     virtual bool pred_impl(Edge *) const;
@@ -169,14 +169,14 @@ class PARSER_EXPORT EdgePredicate
  };
 
 /* may follow branches into the function if there is shared code */
-class PARSER_EXPORT Intraproc : public EdgePredicate {
+class DYNINST_EXPORT Intraproc : public EdgePredicate {
  public:
     bool pred_impl(Edge *) const;
 
 };
 
 /* follow interprocedural edges */
- class PARSER_EXPORT Interproc : public EdgePredicate {
+ class DYNINST_EXPORT Interproc : public EdgePredicate {
     public:
         bool pred_impl(Edge *) const;
 };
@@ -185,7 +185,7 @@ class PARSER_EXPORT Intraproc : public EdgePredicate {
  * For proper ostritch-like denial of 
  * unresolved control flow edges
  */
- class PARSER_EXPORT NoSinkPredicate : public ParseAPI::EdgePredicate {
+ class DYNINST_EXPORT NoSinkPredicate : public ParseAPI::EdgePredicate {
  public:
     NoSinkPredicate() { }
 
@@ -196,7 +196,7 @@ class PARSER_EXPORT Intraproc : public EdgePredicate {
 
 /* doesn't follow branches into the function if there is shared code */
 class Function;
- class PARSER_EXPORT SingleContext : public EdgePredicate {
+ class DYNINST_EXPORT SingleContext : public EdgePredicate {
  private:
     const Function * _context;
     bool _forward;
@@ -211,7 +211,7 @@ class Function;
 
 /* Doesn't follow branches into the function if there is shared code. 
  * Will follow interprocedural call/return edges */
- class PARSER_EXPORT SingleContextOrInterproc : public EdgePredicate {
+ class DYNINST_EXPORT SingleContextOrInterproc : public EdgePredicate {
     private:
         const Function * _context;
         bool _forward;
@@ -231,7 +231,7 @@ class Function;
 
 class CodeRegion;
 
-class PARSER_EXPORT Block :
+class DYNINST_EXPORT Block :
         public Dyninst::SimpleInterval<Address, int>,
         public boost::lockable_adapter<boost::recursive_mutex> {
     friend class CFGModifier;
@@ -376,7 +376,7 @@ class FuncExtent;
 class Loop;
 class LoopTreeNode;
 
-class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
+class DYNINST_EXPORT Function : public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
    friend class CFGModifier;
    friend class LoopAnalyzer;
  protected:
@@ -701,7 +701,7 @@ inline std::pair<Address, Block*> Function::get_next_block(
 }
 
 /* Describes a contiguous extent of a Function object */
-class PARSER_EXPORT FuncExtent : public Dyninst::SimpleInterval<Address, Function* > {
+class DYNINST_EXPORT FuncExtent : public Dyninst::SimpleInterval<Address, Function* > {
  private:
     Function * _func;
     Address _start;
@@ -741,7 +741,7 @@ class PARSER_EXPORT FuncExtent : public Dyninst::SimpleInterval<Address, Functio
 /** Natural loops
   */
 
-class PARSER_EXPORT Loop  
+class DYNINST_EXPORT Loop  
 {
 	friend class LoopAnalyzer;
 
@@ -854,7 +854,7 @@ private:
  *  @see BPatch_flowGraph
  */
 
-class PARSER_EXPORT LoopTreeNode {
+class DYNINST_EXPORT LoopTreeNode {
     friend class LoopAnalyzer;
 
  public:

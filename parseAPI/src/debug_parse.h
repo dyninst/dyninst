@@ -39,11 +39,11 @@
 namespace Dyninst {
 namespace ParseAPI {
 
-    extern int PARSER_EXPORT parsing_printf_int(const char *format, ...)
+    extern int DYNINST_EXPORT parsing_printf_int(const char *format, ...)
             DYNINST_PRINTF_ANNOTATION(1, 2);
-    extern int PARSER_EXPORT malware_printf_int(const char *format, ...)
+    extern int DYNINST_EXPORT malware_printf_int(const char *format, ...)
             DYNINST_PRINTF_ANNOTATION(1, 2);
-    extern int PARSER_EXPORT indirect_collect_printf_int(const char *format, ...)
+    extern int DYNINST_EXPORT indirect_collect_printf_int(const char *format, ...)
             DYNINST_PRINTF_ANNOTATION(1, 2);
     extern int dyn_debug_parsing;
     extern int dyn_debug_malware;

@@ -82,7 +82,7 @@ public:
    // This class represents a stack pointer definition by recording the block
    // and address of the definition, as well as the original absloc that was
    // defined by the definition.
-   class DATAFLOW_EXPORT Definition {
+   class DYNINST_EXPORT Definition {
    public:
       typedef enum {TOP, BOTTOM, DEF} Type;
       Address addr;
@@ -133,7 +133,7 @@ public:
    };
 
    // This class represents offsets on the stack, which we call heights.
-   class DATAFLOW_EXPORT Height {
+   class DYNINST_EXPORT Height {
    public:
       typedef signed long Height_t;
       typedef enum {TOP, BOTTOM, HEIGHT} Type;
@@ -241,7 +241,7 @@ public:
    // pointer definitions to adjust the locations of variables on the stack.
    // Thus, it makes sense to associate each stack pointer (Height) to the point
    // at which it was defined (Definition).
-   class DATAFLOW_EXPORT DefHeight {
+   class DYNINST_EXPORT DefHeight {
    public:
       DefHeight(const Definition &d, const Height &h) : def(d), height(h) {}
 
@@ -265,7 +265,7 @@ public:
    // result, we need a structure to hold sets of DefHeights.  This class fills
    // that role, providing several useful methods to build, modify, and
    // extract information from such sets.
-   class DATAFLOW_EXPORT DefHeightSet {
+   class DYNINST_EXPORT DefHeightSet {
    public:
       bool operator==(const DefHeightSet &other) const {
          return defHeights == other.defHeights;
@@ -354,7 +354,7 @@ public:
    // function T : (RegisterVector, RegisterID, RegisterID, value) ->
    // (RegisterVector).
    typedef std::map<Absloc, DefHeightSet> AbslocState;
-   class DATAFLOW_EXPORT TransferFunc {
+   class DYNINST_EXPORT TransferFunc {
    public:
       typedef enum {TOP, BOTTOM, OTHER} Type;
 
@@ -495,31 +495,31 @@ public:
    typedef std::map<ParseAPI::Block *, std::map<Offset, TransferSet> >
       CallEffects;
 
-   DATAFLOW_EXPORT StackAnalysis();
-   DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
-   DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f,
+   DYNINST_EXPORT StackAnalysis();
+   DYNINST_EXPORT StackAnalysis(ParseAPI::Function *f);
+   DYNINST_EXPORT StackAnalysis(ParseAPI::Function *f,
       const std::map<Address, Address> &crm,
       const std::map<Address, TransferSet> &fs,
       const std::set<Address> &toppable = std::set<Address>());
 
-    DATAFLOW_EXPORT virtual ~StackAnalysis() = default;
-    DATAFLOW_EXPORT StackAnalysis& operator=(const Dyninst::StackAnalysis&) = default;
+    DYNINST_EXPORT virtual ~StackAnalysis() = default;
+    DYNINST_EXPORT StackAnalysis& operator=(const Dyninst::StackAnalysis&) = default;
 
-    DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
-    DATAFLOW_EXPORT DefHeightSet findDefHeight(ParseAPI::Block *block,
+    DYNINST_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
+    DYNINST_EXPORT DefHeightSet findDefHeight(ParseAPI::Block *block,
         Address addr, Absloc loc);
-   DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
-   DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
-   DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr,
+   DYNINST_EXPORT Height findSP(ParseAPI::Block *, Address addr);
+   DYNINST_EXPORT Height findFP(ParseAPI::Block *, Address addr);
+   DYNINST_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr,
       std::vector<std::pair<Absloc, Height> >& heights);
    // TODO: Update DataflowAPI manual
-   DATAFLOW_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
+   DYNINST_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
       std::vector<std::pair<Absloc, DefHeightSet> > &defHeights);
 
-   DATAFLOW_EXPORT bool canGetFunctionSummary();
-   DATAFLOW_EXPORT bool getFunctionSummary(TransferSet &summary);
+   DYNINST_EXPORT bool canGetFunctionSummary();
+   DYNINST_EXPORT bool getFunctionSummary(TransferSet &summary);
 
-   DATAFLOW_EXPORT void debug();
+   DYNINST_EXPORT void debug();
 
 private:
    std::string format(const AbslocState &input) const;

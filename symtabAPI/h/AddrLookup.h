@@ -49,7 +49,7 @@ typedef struct {
    Address dataAddr;
 } LoadedLibrary;
 
-class SYMTAB_EXPORT AddressLookup : public AnnotatableSparse
+class DYNINST_EXPORT AddressLookup : public AnnotatableSparse
 {
  private:
    AddressTranslate *translator;

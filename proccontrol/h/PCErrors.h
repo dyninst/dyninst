@@ -42,8 +42,8 @@
 #include "util.h"
 #include "dyntypes.h"
 
-PC_EXPORT extern void pc_print_lock();
-PC_EXPORT extern void pc_print_unlock();
+DYNINST_EXPORT extern void pc_print_lock();
+DYNINST_EXPORT extern void pc_print_unlock();
 #if defined(PROCCTRL_LOCK_PRINTS)
 #define PC_PRINT_LOCK pc_print_lock()
 #define PC_PRINT_UNLOCK pc_print_unlock()
@@ -118,11 +118,11 @@ PC_EXPORT extern void pc_print_unlock();
 
 #endif
 
-PC_EXPORT extern bool dyninst_debug_proccontrol;
-PC_EXPORT extern const char *thrdName();
-PC_EXPORT extern FILE* pctrl_err_out;
+DYNINST_EXPORT extern bool dyninst_debug_proccontrol;
+DYNINST_EXPORT extern const char *thrdName();
+DYNINST_EXPORT extern FILE* pctrl_err_out;
 
-PC_EXPORT extern unsigned long gettod();
+DYNINST_EXPORT extern unsigned long gettod();
 
 namespace Dyninst {
 namespace ProcControlAPI {
@@ -154,14 +154,14 @@ const err_t err_notfound       = 0x10014;
 const err_t err_dstack         = 0x10107;
 const err_t err_eof            = 0x10108;
 
-PC_EXPORT err_t getLastError();
-PC_EXPORT void clearLastError();
-PC_EXPORT const char* getLastErrorMsg();
-PC_EXPORT void globalSetLastError(err_t err, const char *msg = NULL);
-PC_EXPORT void setDebugChannel(FILE *f);
-PC_EXPORT void setDebug(bool enable);
-PC_EXPORT const char *getGenericErrorMsg(err_t e);
-PC_EXPORT FILE *getDebugChannel();
+DYNINST_EXPORT err_t getLastError();
+DYNINST_EXPORT void clearLastError();
+DYNINST_EXPORT const char* getLastErrorMsg();
+DYNINST_EXPORT void globalSetLastError(err_t err, const char *msg = NULL);
+DYNINST_EXPORT void setDebugChannel(FILE *f);
+DYNINST_EXPORT void setDebug(bool enable);
+DYNINST_EXPORT const char *getGenericErrorMsg(err_t e);
+DYNINST_EXPORT FILE *getDebugChannel();
 
 }
 }
