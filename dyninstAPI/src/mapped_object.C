@@ -840,8 +840,8 @@ const std::string mapped_object::debugString() const
 {
     std::string debug;
     debug = std::string(fileName_.c_str()) + ":"
-       + utos(codeBase_)
-       + "/" + utos(imageSize());
+       + std::to_string(codeBase_)
+       + "/" + std::to_string(imageSize());
     return debug;
 }
 

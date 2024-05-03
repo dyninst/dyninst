@@ -958,7 +958,7 @@ BPatch_object *BPatch_process::loadLibrary(const char *libname, bool)
          break;
       }
       if (bpfv.size() > 1) {
-         std::string msg = std::string("Found ") + utos(bpfv.size()) +
+         std::string msg = std::string("Found ") + std::to_string(bpfv.size()) +
             std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
          BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
