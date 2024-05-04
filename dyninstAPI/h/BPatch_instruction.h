@@ -31,8 +31,8 @@
 #ifndef _BPatch_instruction_h_
 #define _BPatch_instruction_h_
 
-#include "BPatch_dll.h"
 #include "dyntypes.h"
+#include "dyninst_visibility.h"
 #include <string>
 
 class BPatch_basicBlock;

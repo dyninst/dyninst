@@ -35,7 +35,6 @@
 #include <set>
 #include <utility>
 #include <vector>
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_sourceBlock.h" 

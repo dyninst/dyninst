@@ -36,7 +36,6 @@
 #include <set>
 #include <utility>
 #include "dyntypes.h"
-#include "BPatch_dll.h"
 #include "StackMod.h"
 
 class mapped_object;

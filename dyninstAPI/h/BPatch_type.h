@@ -31,7 +31,6 @@
 #ifndef _BPatch_type_h_
 #define _BPatch_type_h_
 
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include <string.h>	
 #include <assert.h>

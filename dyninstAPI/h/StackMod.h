@@ -32,7 +32,6 @@
 #define _StackMod_h_
 
 #include <string>
-#include "BPatch_dll.h"
 #include "stackanalysis.h"
 
 class BPatch_function;

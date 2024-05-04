@@ -36,7 +36,6 @@
 #include <string>
 #include <vector>
 #include "Annotatable.h"
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_enums.h"
@@ -45,6 +44,7 @@
 #include "BPatch_memoryAccess_NP.h"
 #include "StackMod.h"
 #include "dyntypes.h"
+#include "dyninst_visibility.h"
 
 class func_instance;
 

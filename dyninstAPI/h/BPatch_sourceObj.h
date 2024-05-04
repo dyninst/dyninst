@@ -31,8 +31,8 @@
 #ifndef _BPatch_sourceObj_h_
 #define _BPatch_sourceObj_h_
 
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include "dyninst_visibility.h"
 
 class BPatch_type;
 class BPatch_variableExpr;

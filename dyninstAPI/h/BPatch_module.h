@@ -30,11 +30,11 @@
 
 #ifndef _BPatch_module_h_
 #define _BPatch_module_h_
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_enums.h"
 #include "dyntypes.h"
+#include "dyninst_visibility.h"
 #include <stddef.h>
 #include <vector>
 #include <map>

@@ -33,7 +33,6 @@
 
 #include <string>
 #include <vector>
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_enums.h"

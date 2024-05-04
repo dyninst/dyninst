@@ -33,7 +33,6 @@
 
 #include <map>
 #include <string>
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_function.h"
 

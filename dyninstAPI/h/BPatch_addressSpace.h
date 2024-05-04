@@ -32,7 +32,6 @@
 #define _BPatch_addressSpace_h_
 
 #include "boost/shared_ptr.hpp"
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_enums.h"
 #include "BPatch_instruction.h" // for register type

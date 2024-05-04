@@ -33,7 +33,6 @@
 
 
 //#include "BPatch_snippet.h"
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_image.h"
 #include "BPatch_addressSpace.h"

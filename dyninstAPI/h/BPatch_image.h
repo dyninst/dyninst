@@ -31,7 +31,6 @@
 #ifndef _BPatch_image_h_
 #define _BPatch_image_h_
 
-#include "BPatch_dll.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
 #include "BPatch_module.h"
