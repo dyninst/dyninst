@@ -32,7 +32,7 @@
 #define _BPatch_snippet_h_
 
 #include <string>
-#include "BPatch_dll.h"
+#include "dyninst_visibility.h"
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_type.h"

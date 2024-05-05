@@ -38,12 +38,13 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <set>
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include <iostream>
 #include <algorithm>
 #include <iterator>
 #include <functional>
+#include "dyninst_visibility.h"
+
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
 #endif

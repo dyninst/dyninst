@@ -31,8 +31,8 @@
 #ifndef _BPatch_sourceBlock_h_
 #define _BPatch_sourceBlock_h_
 
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include "dyninst_visibility.h"
 #include <set>
 
 /** this class represents the basic blocks in the source

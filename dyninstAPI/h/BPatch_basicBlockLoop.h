@@ -36,7 +36,6 @@
 #include <set>
 #include <vector>
 #include "Annotatable.h"
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"

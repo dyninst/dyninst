@@ -32,7 +32,6 @@
 #define _BPatch_h_
 
 #include <stdio.h>
-#include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_thread.h"
