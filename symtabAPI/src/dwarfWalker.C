@@ -108,9 +108,12 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf *dbg, std::shared_ptr<ParsedFun
 DwarfWalker::~DwarfWalker() {
 }
 
+#ifdef _OPENMP
 static inline void ompc_leftmost(Module* &out, Module* &in) {
     out = out == NULL ? out : in;
 }
+#endif
+
 #pragma omp declare \
     reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
     initializer(omp_priv = NULL)
