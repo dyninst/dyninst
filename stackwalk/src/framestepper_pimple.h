@@ -162,6 +162,7 @@ PIMPL_CLASS::PIMPL_CLASS(Walker *w
   FrameStepper(w),
   impl(NULL)
 {
+  impl=nullptr;
 }
 
 gcframe_ret_t PIMPL_CLASS::getCallerFrame(const Frame &, Frame &)
