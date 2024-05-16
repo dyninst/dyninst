@@ -123,6 +123,8 @@ jobs:
           make install
 
       - name: Run abidiff
+        # libabigail doesn't handle some DWARF5 in gcc 13
+        if: ${{ matrix.os != 'fedora-39' && matrix.os != 'ubuntu-24.04' }}
         shell: bash
         run: |
           # Don't use 'vx' here because abidiff is very chatty
