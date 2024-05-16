@@ -1,6 +1,9 @@
 name: Build and deploy base containers
 
 on:
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
   workflow_call:
 
@@ -50,7 +53,7 @@ jobs:
             extra="--build-arg build_elfutils=yes"
           fi
           
-          base="ghcr.io/dyninst/amd64/${distro}-${version}-base:latest"
+          base="ghcr.io/hainest/amd64/${distro}-${version}-base:latest"
           
           # Always use latest distro image; ignoring any cached versions
           docker pull ${distro}:${version}
