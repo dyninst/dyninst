@@ -1,9 +1,6 @@
 name: Purge old workflow runs
 
 on:
-  pull_request:
-     branches:
-        - master
   schedule:
     - cron: '0 5 1 * *'
   workflow_dispatch:
@@ -20,5 +17,5 @@ jobs:
           repository: ${{ github.repository }}
           # remove anything older than two weeks
           retain_days: 14
-          # keep at least one run of any workflow (even if it's more than two weeks old)
+          # keep at least one run of any workflow
           keep_minimum_runs: 1
