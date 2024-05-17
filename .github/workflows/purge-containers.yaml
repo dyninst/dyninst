@@ -24,6 +24,8 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.get-oses.outputs.all) }}
+    permissions:
+      packages: write
     name: Purge ${{ matrix.os }}
     steps:
       - name: Development containers

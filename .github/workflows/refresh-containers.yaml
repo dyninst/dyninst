@@ -12,11 +12,17 @@ jobs:
   
   purge:
     uses: ./.github/workflows/purge-containers.yaml
+    permissions:
+      packages: write
 
   build-base:
     needs: purge
     uses: ./.github/workflows/base-containers.yaml
+    permissions:
+      packages: write
 
   build-deploy-dev:
     needs: build-base
     uses: ./.github/workflows/dev-containers.yaml
+    permissions:
+      packages: write
