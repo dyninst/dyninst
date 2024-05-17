@@ -9,7 +9,7 @@ jobs:
   get-oses:
     runs-on: ubuntu-latest
     outputs:
-      all: ${{ steps.all.outputs.all) }}
+      all: ${{ steps.all.outputs.all }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
