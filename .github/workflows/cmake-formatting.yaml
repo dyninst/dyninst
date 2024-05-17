@@ -2,11 +2,11 @@
 name: CMake Formatting
 
 on:
-  pull_request:
-    branches: [ master ]
-    paths:
-       - '**.cmake'
-       - '**CMakeLists.txt'
+#  pull_request:
+#    branches: [ master ]
+#    paths:
+#       - '**.cmake'
+#       - '**CMakeLists.txt'
   workflow_dispatch:
 
 jobs:

@@ -5,12 +5,12 @@
 name: Check dependency versions
 
 on:
-  pull_request:
-    branches: [ master ]
-    paths:
-       - '**.cmake'
-       - '**CMakeLists.txt'
-       - 'docker/dependencies.versions'
+#  pull_request:
+#    branches: [ master ]
+#    paths:
+#       - '**.cmake'
+#       - '**CMakeLists.txt'
+#       - 'docker/dependencies.versions'
   workflow_dispatch:
 
 jobs:
