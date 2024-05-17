@@ -52,10 +52,6 @@ jobs:
           # Grab the respective base container to update cache
           docker pull $base
 
-          docker build -f docker/Dockerfile \
-                       -t ${dev} \ 
-                       --build-arg base=${base} \
-                       --build-arg build_jobs=2 \
-                       .
+          docker build -f docker/Dockerfile -t ${dev} --build-arg base=${base} --build-arg build_jobs=2 .
 
           docker push ${dev}
