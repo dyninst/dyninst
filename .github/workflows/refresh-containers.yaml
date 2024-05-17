@@ -1,6 +1,9 @@
 name: Refresh base and dev containers
 
 on:
+  pull_request:
+     branches:
+        - master
   schedule:
     - cron: '0 3 25 * *'
   workflow_dispatch:
@@ -8,15 +11,18 @@ on:
 jobs:
   
   purge:
+    name: Purge old containers
     runs-on: ubuntu-latest
     uses: ./.github/workflows/purge-containers.yaml
 
   build-base:
     runs-on: ubuntu-latest
+    name: Build base containers
     needs: purge
     uses: ./.github/workflows/base-containers.yaml
 
   build-deploy-dev:
     runs-on: ubuntu-latest
+    name: Build dev containers
     needs: build-base
     uses: ./.github/workflows/dev-containers.yaml
