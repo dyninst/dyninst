@@ -9949,7 +9949,6 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 {
                     idx = gotit->tabidx;
                     unsigned int reg  = (addr[0] >> 3) & 7;
-                    vextab = true;
                     if(idx < Grp12)
                         switch(idx)
                         {
@@ -9972,6 +9971,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                         unsigned int mod = addr[0] >> 6;
                         gotit = &groupMap2[idx-Grp12][mod==3][reg];
                         nxtab = gotit->otable;
+                        vextab = true;
                     }
                     break;
                 }
