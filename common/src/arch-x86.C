@@ -10161,7 +10161,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
     assert(gotit != NULL);
     instruct.legacy_type = gotit->legacyType;
 
-    if(pref.vex_present && !vextab && false)
+    if(pref.vex_present && !vextab)
     {
 #ifdef VEX_DEBUG
         printf("ERROR: This instruction doesn't support VEX prefixes.\n");
