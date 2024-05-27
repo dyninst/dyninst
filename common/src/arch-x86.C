@@ -706,6 +706,7 @@ static int vex3_simdop_convert[3][4] = {
 #define Jv   { am_J, op_v }
 #define Jz   { am_J, op_z }
 #define Lb   { am_L, op_b }
+#define Ldq  { am_L, op_dq }
 #define Ma   { am_M, op_a }
 #define Mb   { am_M, op_b }
 #define Mlea { am_M, op_lea }
@@ -1439,8 +1440,19 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vphsubd, "vphsubd")
   (e_vpmovb2m, "vpmovb2m")
   (e_vpmacsdd, "vpmacsdd")
+  (e_vpmacsdqh, "vpmacsdqh")
+  (e_vpmacssdd, "vpmacssdd")
+  (e_vpmacssdqh, "vpmacssdqh")
+  (e_vpmacsww, "vpmacsww")
+  (e_vpmacswd, "vpmacswd")
+  (e_vpmacsdql, "vpmacsdql")
+  (e_vpmacssww, "vpmacssww")
+  (e_vpmacsswd, "vpmacsswd")
+  (e_vpmacssdql, "vpmacssdql")
   (e_vpmaddubsw, "vpmaddubsw")
   (e_vpmaddwd, "vpmaddwd")
+  (e_vpmadcswd, "vpmadcswd")
+  (e_vpmadcsswd, "vpmadcsswd")
   (e_vpmovm2d, "vpmovm2d")
   (e_vpmovmskb, "vpmovmskb")
   (e_vpmovm2b, "vpmovm2b")
@@ -8608,9 +8620,9 @@ static struct ia32_entry XOP8[256] =
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpmacssww, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
+		{ e_vpmacsswd, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
+		{ e_vpmacssdql, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
 		/* 88 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -8618,17 +8630,17 @@ static struct ia32_entry XOP8[256] =
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpmacssdd, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
+		{ e_vpmacssdqh, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
 		/* 90 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpmacsww, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
+		{ e_vpmacswd, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
+		{ e_vpmacsdql, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
 		/* 98 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -8636,8 +8648,8 @@ static struct ia32_entry XOP8[256] =
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_vpmacsdd, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpmacsdd, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
+		{ e_vpmacsdqh, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
 		/* A0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -8645,7 +8657,7 @@ static struct ia32_entry XOP8[256] =
 		{ e_No_Entry, t_xop_8_w, XOP8_A3, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpmadcsswd, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* A8 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -8663,7 +8675,7 @@ static struct ia32_entry XOP8[256] =
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpmadcswd, t_done, 0, true, { Vdq, Hdq, Wdq, Ldq }, 0, s1W2R3R4R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* B8 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -9710,6 +9722,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 instruct.entry = NULL;
                 return -1;
         }
+        vextab = true;
         nxtab = gotit->otable;
     } else if(pref.vex_present)
     /* Is there a VEX prefix for this instruction? */
