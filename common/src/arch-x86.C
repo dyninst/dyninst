@@ -9486,6 +9486,13 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
 
     /* Do the operand decoding */
     ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac, mode_64);
+
+    if(gotit->otable == t_3dnow)
+    {
+      // 3DNow has opcode as a suffix. Skip it.
+      instruct.size++;
+    }
+
     /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
     {
@@ -10017,6 +10024,15 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
             case t_3dnow:
                 // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
                 // Right now we don't care what the actual opcode is, so there's no table
+                if(pref.vex_present)
+                {
+#ifdef VEX_PEDANTIC
+                    assert(!"3DNow! can't be VEX-prefixed!\n");
+#endif
+                    instruct.legacy_type = ILLEGAL;
+                    instruct.entry = gotit;
+                    return -1;
+                }
                 nxtab = t_done;
                 break;
             case t_vexl:
