@@ -498,6 +498,9 @@ namespace Dyninst
                                 case x86::iif_:
                                     otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
                                     break;
+                                case x86::irf:
+                                    otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::rf : x86_64::rf));
+                                    break;
                                 default:
                                     assert(0);
                             }
@@ -534,6 +537,9 @@ namespace Dyninst
                                     break;
                                 case x86::iif_:
                                     otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
+                                    break;
+                                case x86::irf:
+                                    otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::rf : x86_64::rf));
                                     break;
                                 default:
                                     fprintf(stderr, "ERROR: unhandled entry %s\n",
