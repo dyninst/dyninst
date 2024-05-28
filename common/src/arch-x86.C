@@ -163,7 +163,7 @@ unsigned int swapBytesIfNeeded(unsigned int i)
 
 // groups
 enum {
-  Grp1a=0, Grp1b, Grp1c, Grp1d, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,
+  Grp1a=0, Grp1b, Grp1c, Grp1d, Grp1A, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,
   Grp8, Grp9, Grp11, Grp12, Grp13, Grp14, Grp15, Grp16, Grp17, GrpAMD
 };
 
@@ -2383,7 +2383,7 @@ static ia32_entry oneByteMap[256] = {
   { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, IS_NOP, s1W2R, 0 }, // this is just M in the book
                                                         // AFAICT the 2nd operand is not accessed
   { e_mov, t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R, 0 },
-  { e_pop, t_done, 0, true, { Ev, eSP, Zz }, 0, s1W2RW, s2I }, // or VEX XOP
+  { e_No_Entry, t_grp, Grp1A, true, { Zz, Zz, Zz }, 0, 0, 0 }, // POP or VEX XOP
   /* 90 */
   { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 }, // actually xchg eax,eax
   { e_xchg, t_done, 0, false, { rCX, rAX, Zz }, 0, s1RW2RW, 0 },
@@ -3663,6 +3663,16 @@ static ia32_entry groupMap[][8] = {
     { e_sub, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R, 0 },
     { e_xor, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R, 0 },
     { e_cmp, t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R, 0 },
+  },
+  { /* group 1A */
+    { e_pop, t_done, 0, true, { Ev, eSP, Zz }, 0, s1W2RW, s2I },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   },
 
 
@@ -11368,7 +11378,13 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
             break;
 
          case PREFIX_XOP:
-         // XOP prefix has the same structure as VEX3
+            // XOP.map_select value can't be less than 0x8
+            // The value less than 0x8 means this is POP instruction
+            if ((addr[1] & 0x1f) < 0x8) {
+              in_prefix = false;
+              break;
+            }
+            // XOP prefix has the same structure as VEX3
             pref.XOP = true;
 	    DYNINST_FALLTHROUGH;
          case PREFIX_VEX3:
