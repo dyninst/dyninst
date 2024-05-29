@@ -189,7 +189,7 @@ enum {
   SSEE0, SSEE1, SSEE2, SSEE3, SSEE4, SSEE5, SSEE6, SSEE7,
   SSEE8, SSEE9, SSEEA, SSEEB, SSEEC, SSEED, SSEEE, SSEEF,
   SSEF0, SSEF1, SSEF2, SSEF3, SSEF4, SSEF5, SSEF6, SSEF7,
-  SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE, SSEFF
+  SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE
 };
 /** END_DYNINST_TABLE_DEF */
 
@@ -1404,8 +1404,9 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_test, "test")
   (e_ucomisd, "ucomisd")
   (e_ucomiss, "ucomiss")
+  (e_ud0, "ud0")
+  (e_ud1, "ud1")
   (e_ud2, "ud2")
-  (e_ud2grp10, "ud2grp10")
   (e_unpckhpd, "unpckhpd")
   (e_unpckhps, "unpckhps")
   (e_unpcklpd, "unpcklpd")
@@ -2739,7 +2740,7 @@ static ia32_entry twoByteMap[256] = {
   { e_movzx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R, 0 },
   /* B8 */
   { e_No_Entry, t_sse, SSEB8, 0, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_ud2grp10, t_ill, 0, 0, { Zz, Zz, Zz }, 0, sNONE, 0 },
+  { e_ud1, t_done, 0, true, { Gv, Ev, Zz }, 0, sNONE, 0 },
   { e_No_Entry, t_grp, Grp8, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_btc, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
   { e_bsf, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
@@ -2817,7 +2818,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSEFC, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSEFD, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSEFE, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_No_Entry, t_sse, SSEFF, false, { Zz, Zz, Zz }, 0, 0, 0 }
+  { e_ud0, t_done, 0, true, { Gv, Ev, Zz }, 0, sNONE, 0 },
 };
 
 /**
@@ -4866,12 +4867,6 @@ static ia32_entry sseMap[][4] = {
     { e_paddd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_paddd, t_sse_mult, SSEFE_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-  },
-  { /* SSEFF */
-    { e_ud0, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_ud0, t_done, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
 };
