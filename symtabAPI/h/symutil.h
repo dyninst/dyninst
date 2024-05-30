@@ -70,7 +70,9 @@ typedef enum {
    obj_Unknown,
    obj_SharedLib,
    obj_Executable,
-   obj_RelocatableFile
+   obj_RelocatableFile,
+   obj_PEExecutable,
+   obj_PESharedLib
 } ObjectType;
 
 typedef enum { 

@@ -87,7 +87,7 @@ using namespace boost::assign;
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
 
-bool Object::truncateLineFilenames = false;
+bool ObjectELF::truncateLineFilenames = false;
 
 std::vector<Symbol *> opdsymbols_;
 
@@ -155,7 +155,7 @@ Region::RegionType getSegmentType(unsigned long type, unsigned long flags) {
 }
 
 /* binary search to find the section starting at a particular address */
-Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
+Elf_X_Shdr *ObjectELF::getRegionHdrByAddr(Offset addr) {
     unsigned end = allRegionHdrs.size() - 1, start = 0;
     unsigned mid = 0;
     while (start < end) {
@@ -174,7 +174,7 @@ Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
 
 /* binary search to find the index into the RegionHdrs vector
    of the section starting at a partidular address*/
-int Object::getRegionHdrIndexByAddr(Offset addr) {
+int ObjectELF::getRegionHdrIndexByAddr(Offset addr) {
     int end = allRegionHdrs.size() - 1, start = 0;
     int mid = 0;
     while (start < end) {
@@ -191,7 +191,7 @@ int Object::getRegionHdrIndexByAddr(Offset addr) {
     return -1;
 }
 
-Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index) {
+Elf_X_Shdr *ObjectELF::getRegionHdrByIndex(unsigned index) {
     if (index >= allRegionHdrs.size())
         return NULL;
     return allRegionHdrs[index];
@@ -199,7 +199,7 @@ Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index) {
 
 /* Check if there is a section which belongs to the segment and update permissions of that section.
  * Return value indicates whether the segment has to be added to the list of regions*/
-bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms) {
+bool ObjectELF::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms) {
     bool present = false;
     for (unsigned i = 0; i < regions_.size(); i++) {
         if ((regions_[i]->getDiskOffset() >= segmentStart) &&
@@ -327,7 +327,7 @@ set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
-bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
+bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         Elf_X_Shdr *&bssscnp,
                         Elf_X_Shdr *&symscnp, Elf_X_Shdr *&strscnp,
                         Elf_X_Shdr *&rel_plt_scnp, Elf_X_Shdr *&plt_scnp,
@@ -893,11 +893,11 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
     return true;
 }
 
-bool Object::is_offset_in_plt(Offset offset) const {
+bool ObjectELF::is_offset_in_plt(Offset offset) const {
     return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
 }
 
-void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
+void ObjectELF::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                           Elf_X_Shdr *&dynstr_scnp) {
     Elf_X_Data data = dyn_scnp->get_data();
     Elf_X_Dyn dyns = data.get_dyn();
@@ -942,7 +942,7 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
 /* parse relocations for the sections represented by DT_REL/DT_RELA in
  * the dynamic section. This section is the one we would want to emit
  */
-bool Object::get_relocationDyn_entries(unsigned rel_scnp_index,
+bool ObjectELF::get_relocationDyn_entries(unsigned rel_scnp_index,
                                        Elf_X_Shdr *&dynsym_scnp,
                                        Elf_X_Shdr *&dynstr_scnp) {
     Elf_X_Data symdata = dynsym_scnp->get_data();
@@ -1022,7 +1022,7 @@ bool Object::get_relocationDyn_entries(unsigned rel_scnp_index,
     return true;
 }
 
-bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
+bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                                     Elf_X_Shdr *&dynsym_scnp,
                                     Elf_X_Shdr *&dynstr_scnp) {
     if (rel_plt_size_ && rel_plt_addr_) {
@@ -1432,7 +1432,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
     return false;
 }
 
-void Object::load_object(bool alloc_syms) {
+void ObjectELF::load_object(bool alloc_syms) {
     Elf_X_Shdr *bssscnp = 0;
     Elf_X_Shdr *symscnp = 0;
     Elf_X_Shdr *strscnp = 0;
@@ -1679,7 +1679,7 @@ void printSyms(std::vector<Symbol *> &allsymbols) {
 // .opd section. We need to apply the relocations before using
 // opd symbols.
 
-void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
+void ObjectELF::parse_opd(Elf_X_Shdr *opd_hdr) {
     // If the OPD is filled in, parse it and fill in our TOC table
     if (!opd_hdr) return;
 
@@ -1721,7 +1721,7 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
     }
 }
 
-void Object::handle_opd_relocations() {
+void ObjectELF::handle_opd_relocations() {
 
     unsigned int i = 0, opdregion = 0;
     while (i < regions_.size()) {
@@ -1756,7 +1756,7 @@ void Object::handle_opd_relocations() {
     opdsymbols_.clear();
 }
 
-Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym) {
+Symbol *ObjectELF::handle_opd_symbol(Region *opd, Symbol *sym) {
     if (!sym) return NULL;
 
     Offset soffset = sym->getOffset();
@@ -1783,7 +1783,7 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym) {
 }
 
 // parse_symbols(): populate "allsymbols"
-bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
+bool ObjectELF::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr *bssscnp,
                            Elf_X_Shdr *symscnp,
                            Elf_X_Shdr *symtab_shndx_scnp,
@@ -1934,7 +1934,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 // Lazy parsing of dynamic symbol  & string tables
 // Parsing the dynamic symbols lazily would certainly
 // not increase the overhead of the entire parse
-void Object::parse_dynamicSymbols(Elf_X_Shdr *&
+void ObjectELF::parse_dynamicSymbols(Elf_X_Shdr *&
 dyn_scnp, Elf_X_Data &symdata,
                                   Elf_X_Data &strdata,
                                   bool /*shared*/) {
@@ -2114,7 +2114,7 @@ dyn_scnp, Elf_X_Data &symdata,
 
 #if defined(cap_dwarf)
 
-bool Object::fix_global_symbol_modules_static_dwarf() {
+bool ObjectELF::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr) return false;
@@ -2212,7 +2212,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 #else
 
 // dummy definition for non-DWARF platforms
-bool Object::fix_global_symbol_modules_static_dwarf()
+bool ObjectELF::fix_global_symbol_modules_static_dwarf()
 { return false; }
 
 #endif // cap_dwarf
@@ -2220,7 +2220,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 // find_code_and_data(): populates the following members:
 //   code_ptr_, code_off_, code_len_
 //   data_ptr_, data_off_, data_len_
-void Object::find_code_and_data(Elf_X &elf,
+void ObjectELF::find_code_and_data(Elf_X &elf,
                                 Offset txtaddr,
                                 Offset dataddr) {
     /* Note:
@@ -2258,9 +2258,9 @@ void Object::find_code_and_data(Elf_X &elf,
     }
 }
 
-Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
-               bool alloc_syms, Symtab *st) :
-        AObject(mf_, err_func, st),
+ObjectELF::ObjectELF(MappedFile *mf_, bool, void (*err_func)(const char *),
+                     bool alloc_syms, Symtab *st) :
+        Object(mf_, err_func, st),
         elfHdr(NULL),
         hasReldyn_(false),
         hasReladyn_(false),
@@ -2349,7 +2349,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 #endif
 }
 
-Object::~Object() {
+ObjectELF::~ObjectELF() {
     relocation_table_.clear();
     fbt_.clear();
     allRegionHdrs.clear();
@@ -2362,30 +2362,30 @@ Object::~Object() {
     }
 }
 
-void Object::log_elferror(void (*err_func)(const char *), const char *msg) {
+void ObjectELF::log_elferror(void (*err_func)(const char *), const char *msg) {
     const char *err = elf_errmsg(elf_errno());
     err = err ? err : "(bad elf error)";
     string str = string(err) + string(msg);
     err_func(str.c_str());
 }
 
-bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
+bool ObjectELF::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
     if (!plt_addr_ || (!fbt_.size())) return false;
     fbt = fbt_;
     return true;
 }
 
-bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const {
+bool ObjectELF::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const {
     if (!plt_addr_ || (!fbt_.size())) return false;
     fbt = &fbt_;
     return true;
 }
 
-void Object::getDependencies(std::vector<std::string> &deps) {
+void ObjectELF::getDependencies(std::vector<std::string> &deps) {
     deps = deps_;
 }
 
-bool Object::addRelocationEntry(relocationEntry &re) {
+bool ObjectELF::addRelocationEntry(relocationEntry &re) {
     relocation_table_.push_back(re);
     return true;
 }
@@ -2393,12 +2393,12 @@ bool Object::addRelocationEntry(relocationEntry &re) {
 #ifdef DEBUG
 
 // stream-based debug output
-const ostream &Object::dump_state_info(ostream &s)
+const ostream &ObjectELF::dump_state_info(ostream &s)
 {
   s << "Debugging Information for Object (address) : " << this << endl;
 
   s << " <<begin debugging info for base object>>" << endl;
-  AObject::dump_state_info(s);
+  ObjectELF::dump_state_info(s);
   s << " <<end debuggingo info for base object>>" << endl;
 
   s << " dynsym_addr_ = " << dynsym_addr_ << endl;
@@ -2427,7 +2427,7 @@ const ostream &Object::dump_state_info(ostream &s)
 #endif
 
 
-Offset Object::getPltSlot(string funcName) const {
+Offset ObjectELF::getPltSlot(string funcName) const {
     relocationEntry re;
     Offset offset = 0;
 
@@ -2445,7 +2445,7 @@ Offset Object::getPltSlot(string funcName) const {
 //                       sections mapped to them
 //
 
-void Object::get_valid_memory_areas(Elf_X &elf) {
+void ObjectELF::get_valid_memory_areas(Elf_X &elf) {
     for (unsigned i = 0; i < elf.e_shnum(); ++i) {
         Elf_X_Shdr &shdr = elf.get_shdr(i);
         if (!shdr.isValid()) {
@@ -2963,7 +2963,7 @@ struct exception_compare  {
  *  'eh_frame' should point to the .eh_frame section
  *  the addresses will be pushed into 'addresses'
  **/
-bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
+bool ObjectELF::find_catch_blocks(Elf_X_Shdr *eh_frame,
                                Elf_X_Shdr *except_scn,
                                Address txtaddr, Address dataaddr,
                                std::vector<ExceptionBlock> & catch_addrs)
@@ -2994,15 +2994,15 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
 
 #endif
 
-ObjectType Object::objType() const {
+ObjectType ObjectELF::objType() const {
     return obj_type_;
 }
 
-void Object::addModule(SymtabAPI::Module* m) {
+void ObjectELF::addModule(SymtabAPI::Module* m) {
   associated_symtab->addModule(m);
 }
 
-void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs) {
+void ObjectELF::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs) {
     string working_module;
     string mod_string;
 
@@ -3074,7 +3074,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
 #endif
 }
 
-bool AObject::getSegments(vector<Segment> &segs) const {
+bool ObjectELF::getSegments(vector<Segment> &segs) const {
     unsigned i;
     for (i = 0; i < regions_.size(); i++) {
         if ((regions_[i]->getRegionName() == ".text") || (regions_[i]->getRegionName() == ".init") ||
@@ -3093,7 +3093,7 @@ bool AObject::getSegments(vector<Segment> &segs) const {
 }
 
 
-bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned) {
+bool ObjectELF::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned) {
     if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32) {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_,
@@ -3118,11 +3118,11 @@ bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned) 
     return false;
 }
 
-const char *Object::interpreter_name() const {
+const char *ObjectELF::interpreter_name() const {
     return interpreter_name_;
 }
 
-void Object::parseLineInfoForCU(Offset offset_, LineInformation* li_for_module)
+void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_module)
 {
     Dwarf_Die cuDIE{};
     if(!DwarfDyninst::find_cu(*dwarf->type_dbg(), offset_, &cuDIE)) {
@@ -3319,14 +3319,14 @@ dumpLineWithInlineContext
 
 
 void
-Object::recordLine
+ObjectELF::recordLine
 (
  Region *debug_str,
  open_statement &saved_statement,
  vector<open_statement> &inline_context
 )
 {
-  lineinfo_printf("Object::recordLine for [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
+  lineinfo_printf("ObjectELF::recordLine for [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
   // record line map entry
   li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
 			 (unsigned int)(saved_statement.line_number),
@@ -3377,7 +3377,7 @@ Object::recordLine
   }
 }
 
-InlinedFunction* Object::recordAnInlinedFunction(
+InlinedFunction* ObjectELF::recordAnInlinedFunction(
     open_statement& caller,
     open_statement& callee,
     StringTablePtr strings,
@@ -3402,7 +3402,7 @@ InlinedFunction* Object::recordAnInlinedFunction(
 
 
 void
-Object::lookupInlinedContext
+ObjectELF::lookupInlinedContext
 (
  vector<open_statement> &inline_context,
  open_statement &saved_statement
@@ -3422,7 +3422,7 @@ Object::lookupInlinedContext
 }
 
 
-LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
+LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
 {
     Region *debug_str = nullptr;
     std::string debug_str_secname = ".debug_str";
@@ -3630,7 +3630,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 }
 
 
-void Object::parseLineInfoForAddr(Offset addr_to_find) {
+void ObjectELF::parseLineInfoForAddr(Offset addr_to_find) {
     Dwarf **dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
@@ -3639,7 +3639,7 @@ void Object::parseLineInfoForAddr(Offset addr_to_find) {
     // no mod for offset means no line info for sure if we've parsed all ranges...
 }
 
-bool Object::hasDebugInfo()
+bool ObjectELF::hasDebugInfo()
 {
     Region *unused;
     std::string debug_info = ".debug_info";
@@ -3648,7 +3648,7 @@ bool Object::hasDebugInfo()
 }
 
 // Dwarf Debug Format parsing
-void Object::parseDwarfFileLineInfo()
+void ObjectELF::parseDwarfFileLineInfo()
 {
 
     vector<Module*> mods;
@@ -3660,7 +3660,7 @@ void Object::parseDwarfFileLineInfo()
     }
 } /* end parseDwarfFileLineInfo() */
 
-void Object::parseFileLineInfo() {
+void ObjectELF::parseFileLineInfo() {
     if (parsedAllLineInfo) return;
 
     parseDwarfFileLineInfo();
@@ -3668,7 +3668,7 @@ void Object::parseFileLineInfo() {
 
 }
 
-void Object::parseTypeInfo() {
+void ObjectELF::parseTypeInfo() {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -3690,12 +3690,12 @@ void Object::parseTypeInfo() {
 #endif
 }
 
-bool sort_dbg_map(const Object::DbgAddrConversion_t &a,
-                  const Object::DbgAddrConversion_t &b) {
+bool sort_dbg_map(const ObjectELF::DbgAddrConversion_t &a,
+                  const ObjectELF::DbgAddrConversion_t &b) {
     return (a.dbg_offset < b.dbg_offset);
 }
 
-bool Object::convertDebugOffset(Offset off, Offset &new_off)
+bool ObjectELF::convertDebugOffset(Offset off, Offset &new_off)
 {
     dyn_mutex::unique_lock l(dsm_lock);
     int hi = DebugSectionMap.size();
@@ -3738,26 +3738,26 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
 
 }
 
-void Object::insertPrereqLibrary(std::string libname) {
+void ObjectELF::insertPrereqLibrary(std::string libname) {
     prereq_libs.insert(libname);
 }
 
-bool Object::removePrereqLibrary(std::string libname) {
+bool ObjectELF::removePrereqLibrary(std::string libname) {
     rmd_deps.push_back(libname);
     return true;
 }
 
-std::vector<std::string> &Object::libsRMd() {
+std::vector<std::string> &ObjectELF::libsRMd() {
     return rmd_deps;
 }
 
-void Object::insertDynamicEntry(long name, long value) {
+void ObjectELF::insertDynamicEntry(long name, long value) {
     new_dynamic_entries.push_back(std::pair<long, long>(name, value));
 }
 
 // Parses sections with relocations and links these relocations to
 // existing symbols
-bool Object::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
+bool ObjectELF::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
     // Setup symbol table access
@@ -3939,19 +3939,19 @@ bool Region::isStandardCode() {
              (name_ == std::string(".fini"))));
 }
 
-void Object::setTruncateLinePaths(bool value) {
+void ObjectELF::setTruncateLinePaths(bool value) {
     truncateLineFilenames = value;
 }
 
-bool Object::getTruncateLinePaths() {
+bool ObjectELF::getTruncateLinePaths() {
     return truncateLineFilenames;
 }
 
-Dyninst::Architecture Object::getArch() const {
+Dyninst::Architecture ObjectELF::getArch() const {
     return elfHdr->getArch();
 }
 
-bool Object::getABIVersion(int &major, int &minor) const {
+bool ObjectELF::getABIVersion(int &major, int &minor) const {
     if (elfHdr->e_machine() == EM_PPC64 && elfHdr->e_flags() == 0x2) {
         major = elfHdr->e_flags();
         minor = 0;
@@ -3961,11 +3961,11 @@ bool Object::getABIVersion(int &major, int &minor) const {
     }
 }
 
-bool Object::isBigEndianDataEncoding() const {
+bool ObjectELF::isBigEndianDataEncoding() const {
     return (elfHdr->e_endian() != 0);
 }
 
-Offset Object::getTOCoffset(Offset off) const {
+Offset ObjectELF::getTOCoffset(Offset off) const {
     if (TOC_table_.empty()) return 0;
     Offset baseTOC = TOC_table_.find(0)->second;
     // We only store exceptions to the base TOC, so if we can't find it
@@ -3978,12 +3978,12 @@ Offset Object::getTOCoffset(Offset off) const {
     return iter->second;
 }
 
-void Object::setTOCoffset(Offset off) {
+void ObjectELF::setTOCoffset(Offset off) {
     TOC_table_.clear();
     TOC_table_[0] = off;
 }
 
-void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
+void ObjectELF::getSegmentsSymReader(vector<SymSegment> &segs) {
     for (unsigned i = 0; i < elfHdr->e_phnum(); ++i) {
         Elf_X_Phdr &phdr = elfHdr->get_phdr(i);
 
@@ -3999,11 +3999,11 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
     }
 }
 
-// Object::isLoadable
+// ObjectELF::isLoadable
 //   True if this object is a loadable executable or library.  This function
 //   should produce the same result as the is_loadable() function in elfutils'
 //   elfclassify.c
-bool Object::isLoadable() const
+bool ObjectELF::isLoadable() const
 {
     return (objType() == obj_Executable || objType() == obj_SharedLib)
 		&& hasProgramLoad()
@@ -4011,18 +4011,18 @@ bool Object::isLoadable() const
 }
 
 
-// Object::isOnlyExecutable
+// ObjectELF::isOnlyExecutable
 //   True if this object can only be an executable.  This function should
 //   produce the same result as the is_executable() function in elfutils'
 //   elfclassify.c
-bool Object::isOnlyExecutable() const
+bool ObjectELF::isOnlyExecutable() const
 {
 
     return isLoadable() && !isOnlySharedLibrary();
 }
 
 
-// Object::isExecutable
+// ObjectELF::isExecutable
 //   True if this object is an executable, but can also be a shared library
 //   (use isSharedLibrary to determine).  This function should produce the same
 //   result as the is_program() function in elfutils' elfclassify.c with the
@@ -4035,7 +4035,7 @@ bool Object::isOnlyExecutable() const
 //   vdso32.so (soname linux-gate.so.1) which sets the entry point to the
 //   LINUX_2.5 version of __kernel_vsyscall which is used to set the AT_SYSINFO
 //   auxv value.
-bool Object::isExecutable() const
+bool ObjectELF::isExecutable() const
 {
     if (!isLoadable())  {
 	return false;
@@ -4075,11 +4075,11 @@ bool Object::isExecutable() const
 }
 
 
-// Object::isSharedLibrary
+// ObjectELF::isSharedLibrary
 //   True if this object is  a shared library, but could also be an executable
 //   (use isExecutable to determine).  This function should produce the same
 //   result as the is_library() function in elfutils' elfclassify.c
-bool Object::isSharedLibrary() const
+bool ObjectELF::isSharedLibrary() const
 {
     if (!isLoadable())  {
 	return false;
@@ -4097,11 +4097,11 @@ bool Object::isSharedLibrary() const
 }
 
 
-// Object::isOnlySharedLibrary
+// ObjectELF::isOnlySharedLibrary
 //   True if this object can only be an shared library.  This function should
 //   produce the same result as the is_shared() function in elfutils'
 //   elfclassify.c
-bool Object::isOnlySharedLibrary() const
+bool ObjectELF::isOnlySharedLibrary() const
 {
     if (!isLoadable())  {
 	return false;
@@ -4123,11 +4123,11 @@ bool Object::isOnlySharedLibrary() const
 }
 
 
-// Object::isDebugOnly
+// ObjectELF::isDebugOnly
 //   True if this object only contains debug information for another object.
 //   This function should produce the same result as the is_debug_only()
 //   function in elfutils' elfclassify.c
-bool Object::isDebugOnly() const
+bool ObjectELF::isDebugOnly() const
 {
     auto type = objType();
 
@@ -4138,11 +4138,11 @@ bool Object::isDebugOnly() const
 }
 
 
-// Object::isLinuxKernelModule
+// ObjectELF::isLinuxKernelModule
 //   True if this object is a linux kernel module.  This function should
 //   produce the same result as the is_linux_kernel_module() function in
 //   elfutils' elfclassify.c
-bool Object::isLinuxKernelModule() const
+bool ObjectELF::isLinuxKernelModule() const
 {
     return objType() == obj_RelocatableFile
             && hasModinfo()

@@ -241,7 +241,7 @@ namespace Dyninst {
 
             bool isStripped;
             int library_adjust;
-            Object *object;
+            ObjectELF *object;
 
             void (*err_func_)(const char*);
 

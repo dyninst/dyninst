@@ -192,6 +192,8 @@ class DYNINST_EXPORT InlinedFunction : public FunctionBase
    friend class Symtab;
    friend class DwarfWalker;
    friend class Object;
+   friend class ObjectELF;
+   friend class ObjectPE;
   public:
    InlinedFunction(FunctionBase *parent);
    virtual ~InlinedFunction();

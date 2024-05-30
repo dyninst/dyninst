@@ -90,6 +90,8 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    friend class Aggregate;
    friend class relocationEntry;
    friend class Object;
+   friend class ObjectELF;
+   friend class ObjectPE;
 
    // Hide implementation details that are complex or add large dependencies
    const std::unique_ptr<symtab_impl> impl;

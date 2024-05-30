@@ -72,7 +72,8 @@ if(DYNINST_OS_UNIX)
     src/LinkMap.C
     src/emitElf.C
     src/emitElfStatic.C
-    src/dwarfWalker.C)
+    src/dwarfWalker.C
+    src/Object-pe.C)
 
   if(DYNINST_ARCH_x86_64 OR DYNINST_ARCH_i386)
     list(APPEND _sources src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)
@@ -96,7 +97,7 @@ dyninst_library(
   DEFINES SYMTAB_LIB
   DYNINST_DEPS common dynElf dynDwarf
   PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost
-  PUBLIC_DEPS Dyninst::ElfUtils
+  PUBLIC_DEPS Dyninst::ElfUtils Dyninst::PeParse
 )
 # cmake-format: on
 
