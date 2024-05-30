@@ -3472,10 +3472,8 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0x741d: return aarch64::tlbi_vale3is;
     case 0xc021: return aarch64::id_aa64pfr1_el1;
     case 0xf089: return aarch64::sder32_el3;
-    case 0xf664: return aarch64::icc_ctlr_el3;
     case 0xe180: return aarch64::dacr32_el2;
     case 0xe659: return aarch64::ich_vtr_el2;
-    case 0xc659: return aarch64::icc_dir_el1;
     case 0x6425: return aarch64::tlbi_ipas2le1;
     case 0xda20: return aarch64::fpcr;
     case 0xf288: return aarch64::afsr0_el3;
@@ -3485,7 +3483,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xe080: return aarch64::sctlr_el2;
     case 0x63c0: return aarch64::at_s1e2r;
     case 0x43a8: return aarch64::ic_iallu;
-    case 0xf667: return aarch64::icc_igrpen1_el3;
     case 0xdce6: return aarch64::pmceid0_el0;
     case 0xde82: return aarch64::tpidr_el0;
     case 0x6405: return aarch64::tlbi_ipas2le1is;
@@ -3531,16 +3528,12 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xc208: return aarch64::sp_el0;
     case 0xc00d: return aarch64::id_mmfr1_el1;
     case 0x5ba9: return aarch64::ic_ivau;
-    case 0xc641: return aarch64::icc_eoir0_el1;
-    case 0xc65f: return aarch64::icc_sgi0r_el1;
-    case 0xc65d: return aarch64::icc_sgi1r_el1;
     case 0x6439: return aarch64::tlbi_vae2;
     case 0xdf11: return aarch64::cntp_ctl_el0;
     case 0xc684: return aarch64::tpidr_el1;
     case 0x5bf1: return aarch64::dc_civac;
     case 0x6401: return aarch64::tlbi_ipas2e1is;
     case 0xdf1a: return aarch64::cntv_cval_el0;
-    case 0xc643: return aarch64::icc_bpr0_el1;
     case 0x9808: return aarch64::mdccsr_el0;
     case 0x83c6: return aarch64::dbgclaimset_el1;
     case 0xe640: return aarch64::ich_ap0r0_el2;
@@ -3551,7 +3544,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xe65d: return aarch64::ich_elrsr_el2;
     case 0xe658: return aarch64::ich_hcr_el2;
     case 0xe600: return aarch64::vbar_el2;
-    case 0xc65e: return aarch64::icc_asgi1r_el1;
     case 0xc02d: return aarch64::id_aa64afr1_el1;
     case 0xda10: return aarch64::nzcv;
     case 0xc100: return aarch64::ttbr0_el1;
@@ -3562,11 +3554,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xf601: return aarch64::rvbar_el3;
     case 0xc00a: return aarch64::id_dfr0_el1;
     case 0x43c0: return aarch64::at_s1e1r;
-    case 0xc648: return aarch64::icc_ap1r0_el1;
-    case 0xc649: return aarch64::icc_ap1r1_el1;
-    case 0xc64a: return aarch64::icc_ap1r2_el1;
-    case 0xc64b: return aarch64::icc_ap1r3_el1;
-    case 0xc230: return aarch64::icc_pmr_el1;
     case 0xdce7: return aarch64::pmceid1_el0;
     case 0x43d2: return aarch64::dc_csw;
     case 0xc009: return aarch64::id_pfr1_el1;
@@ -3614,8 +3601,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xc601: return aarch64::rvbar_el1;
     case 0x5bd9: return aarch64::dc_cvau;
     case 0xe288: return aarch64::afsr0_el2;
-    case 0xc640: return aarch64::icc_iar0_el1;
-    case 0xc663: return aarch64::icc_bpr1_el1;
     case 0x43f2: return aarch64::dc_cisw;
     case 0xe304: return aarch64::hpfar_el2;
     case 0xe219: return aarch64::spsr_abt;
@@ -3677,19 +3662,15 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xc801: return aarch64::clidr_el1;
     case 0xe108: return aarch64::vttbr_el2;
     case 0xc02c: return aarch64::id_aa64afr0_el1;
-    case 0xc65b: return aarch64::icc_rpr_el1;
     case 0xff11: return aarch64::cntps_ctl_el1;
     case 0xc289: return aarch64::afsr1_el1;
     case 0xc210: return aarch64::spsel;
     case 0xda21: return aarch64::fpsr;
     case 0xdce0: return aarch64::pmcr_el0;
     case 0x441b: return aarch64::tlbi_vaae1is;
-    case 0xc665: return aarch64::icc_sre_el1;
     case 0xdf01: return aarch64::cntpct_el0;
     case 0x6418: return aarch64::tlbi_alle2is;
-    case 0xc667: return aarch64::icc_igrpen1_el1;
     case 0xe281: return aarch64::ifsr32_el2;
-    case 0xc666: return aarch64::icc_igrpen0_el1;
     case 0xde83: return aarch64::tpidrro_el0;
     case 0xe08f: return aarch64::hacr_el2;
     case 0x43c3: return aarch64::at_s1e0w;
@@ -3697,7 +3678,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xe710: return aarch64::cnthp_tval_el2;
     case 0x63c6: return aarch64::at_s12e0r;
     case 0xe703: return aarch64::cntvoff_el2;
-    case 0xe64d: return aarch64::icc_sre_el2;
     case 0xc200: return aarch64::spsr_el1;
     case 0xc608: return aarch64::isr_el1;
     case 0xe708: return aarch64::cnthctl_el2;
@@ -3706,10 +3686,8 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xdce4: return aarch64::pmswinc_el0;
     case 0xc00c: return aarch64::id_mmfr0_el1;
     case 0xdf12: return aarch64::cntp_cval_el0;
-    case 0xc642: return aarch64::icc_hppir0_el1;
     case 0xf099: return aarch64::mdcr_el3;
     case 0x83f6: return aarch64::dbgauthstatus_el1;
-    case 0xc661: return aarch64::icc_eoir1_el1;
     case 0xe201: return aarch64::elr_el2;
     case 0x4388: return aarch64::ic_ialluis;
     case 0xf102: return aarch64::tcr_el3;
@@ -3779,7 +3757,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0x800f: return aarch64::dbgbcr15_el1;
     case 0xdce5: return aarch64::pmselr_el0;
     case 0x641c: return aarch64::tlbi_alle1is;
-    case 0xc662: return aarch64::icc_hppir1_el1;
     case 0x4419: return aarch64::tlbi_vae1is;
     case 0xe089: return aarch64::mdcr_el2;
     case 0x63c5: return aarch64::at_s12e1w;
@@ -3787,10 +3764,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xc028: return aarch64::id_aa64dfr0_el1;
     case 0xc012: return aarch64::id_isar2_el1;
     case 0xe100: return aarch64::ttbr0_el2;
-    case 0xc644: return aarch64::icc_ap0r0_el1;
-    case 0xc645: return aarch64::icc_ap0r1_el1;
-    case 0xc646: return aarch64::icc_ap0r2_el1;
-    case 0xc647: return aarch64::icc_ap0r3_el1;
     case 0x9828: return aarch64::dbgdtrrx_el0;
     case 0xe298: return aarch64::fpexc32_el2;
     case 0xdce9: return aarch64::pmxevtyper_el0;
@@ -3822,7 +3795,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0xf208: return aarch64::sp_el2;
     case 0xff12: return aarch64::cntps_cval_el1;
     case 0xff10: return aarch64::cntps_tval_el1;
-    case 0xc664: return aarch64::icc_ctlr_el1;
     case 0xdf19: return aarch64::cntv_ctl_el0;
     case 0xe602: return aarch64::rmr_el2;
     case 0xc029: return aarch64::id_aa64dfr1_el1;
@@ -3834,8 +3806,6 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0x7438: return aarch64::tlbi_alle3;
     case 0xf200: return aarch64::spsr_el3;
     case 0x443d: return aarch64::tlbi_vale1;
-    case 0xf665: return aarch64::icc_sre_el3;
-    case 0xc660: return aarch64::icc_iar1_el1;
     default: assert(!"tried to access system register not accessible in EL0");
     };
 }  // end sysRegMap

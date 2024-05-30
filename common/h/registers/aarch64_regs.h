@@ -338,10 +338,8 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(      tlbi_vale3is,   0 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(   id_aa64pfr1_el1,   1 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        sder32_el3,   2 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(      icc_ctlr_el3,   3 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        dacr32_el2,   4 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       ich_vtr_el2,   5 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(       icc_dir_el1,   6 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(     tlbi_ipas2le1,   7 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         afsr0_el3,   9 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         dczid_el0,  10 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -350,7 +348,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(         sctlr_el2,  13 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          at_s1e2r,  14 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          ic_iallu,  15 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(   icc_igrpen1_el3,  16 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       pmceid0_el0,  17 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         tpidr_el0,  18 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(   tlbi_ipas2le1is,  19 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -396,16 +393,12 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(            sp_el0,  59 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      id_mmfr1_el1,  60 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(           ic_ivau,  61 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_eoir0_el1,  62 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_sgi0r_el1,  63 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_sgi1r_el1,  64 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         tlbi_vae2,  65 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      cntp_ctl_el0,  66 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         tpidr_el1,  67 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          dc_civac,  68 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(    tlbi_ipas2e1is,  69 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(     cntv_cval_el0,  70 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(      icc_bpr0_el1,  71 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        mdccsr_el0,  72 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(   dbgclaimset_el1,  73 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(     ich_ap0r0_el2,  74 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -416,7 +409,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(     ich_elrsr_el2,  79 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       ich_hcr_el2,  80 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          vbar_el2,  81 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(    icc_asgi1r_el1,  82 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(   id_aa64afr1_el1,  83 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(              nzcv,  84 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         ttbr0_el1,  85 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -427,11 +419,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(         rvbar_el3,  90 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       id_dfr0_el1,  91 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          at_s1e1r,  92 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap1r0_el1,  93 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap1r1_el1,  94 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap1r2_el1,  95 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap1r3_el1,  96 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(       icc_pmr_el1,  97 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       pmceid1_el0,  98 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(            dc_csw,  99 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       id_pfr1_el1, 100 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -479,8 +466,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(         rvbar_el1, 142 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(           dc_cvau, 143 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         afsr0_el2, 144 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(      icc_iar0_el1, 145 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(      icc_bpr1_el1, 146 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(           dc_cisw, 147 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         hpfar_el2, 148 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          spsr_abt, 149 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -543,18 +528,14 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(         clidr_el1, 206 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         vttbr_el2, 207 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(   id_aa64afr0_el1, 208 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(       icc_rpr_el1, 209 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(     cntps_ctl_el1, 210 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         afsr1_el1, 211 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(             spsel, 212 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          pmcr_el0, 214 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      tlbi_vaae1is, 215 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(       icc_sre_el1, 216 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        cntpct_el0, 217 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      tlbi_alle2is, 218 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(   icc_igrpen1_el1, 219 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        ifsr32_el2, 220 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(   icc_igrpen0_el1, 221 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       tpidrro_el0, 222 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          hacr_el2, 223 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          at_s1e0w, 224 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -562,7 +543,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(    cnthp_tval_el2, 226 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         at_s12e0r, 227 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       cntvoff_el2, 228 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(       icc_sre_el2, 229 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          spsr_el1, 230 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(           isr_el1, 231 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       cnthctl_el2, 232 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -571,7 +551,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(       pmswinc_el0, 235 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      id_mmfr0_el1, 236 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(     cntp_cval_el0, 237 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(    icc_hppir0_el1, 238 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          mdcr_el3, 239 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       dbgwvr0_el1, 240 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       dbgwvr1_el1, 241 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -591,7 +570,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(      dbgwvr15_el1, 255 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER( dbgauthstatus_el1, 256 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      dbgdtrtx_el0, 257 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_eoir1_el1, 258 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(           elr_el2, 259 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       dbgbvr0_el1, 260 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       dbgbvr1_el1, 261 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -693,7 +671,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(      dbgbcr15_el1, 357 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        pmselr_el0, 358 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      tlbi_alle1is, 359 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(    icc_hppir1_el1, 360 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       tlbi_vae1is, 361 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          mdcr_el2, 362 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         at_s12e1w, 363 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -701,10 +678,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(   id_aa64dfr0_el1, 365 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      id_isar2_el1, 366 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         ttbr0_el2, 367 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap0r0_el1, 368 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap0r1_el1, 369 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap0r2_el1, 370 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(     icc_ap0r3_el1, 371 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      dbgdtrrx_el0, 372 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       fpexc32_el2, 373 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(    pmxevtyper_el0, 374 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -736,7 +709,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(            sp_el2, 400 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(    cntps_cval_el1, 401 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(    cntps_tval_el1, 402 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(      icc_ctlr_el1, 403 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      cntv_ctl_el0, 404 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(           rmr_el2, 405 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(   id_aa64dfr1_el1, 406 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -748,8 +720,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(        tlbi_alle3, 412 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          spsr_el3, 413 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        tlbi_vale1, 414 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(       icc_sre_el3, 415 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(      icc_iar1_el1, 416 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
 
   DEF_REGISTER(IMPLEMENTATION_DEFINED_SYSREG,  417 | D_REG | SYSREG | Arch_aarch64, "aarch64");
 
