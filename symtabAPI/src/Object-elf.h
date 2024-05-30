@@ -178,6 +178,8 @@ public:
 
   bool addRelocationEntry(relocationEntry &re) override;
 
+  virtual Offset getPreferedBase() const { return preferedBase_; }
+
   //getLoadAddress may return 0 on shared objects
   virtual Offset getLoadAddress() const { return loadAddress_; }
 
@@ -354,6 +356,7 @@ public:
   unsigned opd_size_;
 
   bool      dwarvenDebugInfo;    // is DWARF debug info present?
+  Offset   preferedBase_;
   Offset   loadAddress_;      // The object may specify a load address
                                //   Set to 0 if it may load anywhere
   Offset entryAddress_;

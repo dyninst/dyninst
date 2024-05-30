@@ -140,7 +140,7 @@ public:
     virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
-    virtual Offset getPreferedBase() const { return 0; }
+    virtual Offset getPreferedBase() const = 0;
     virtual bool hasReldyn() const { return false; }
     virtual bool hasReladyn() const { return false; }
     virtual bool hasRelplt() const { return false; }

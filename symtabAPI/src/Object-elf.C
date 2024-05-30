@@ -848,7 +848,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         }
     }
 
-    loadAddress_ = 0x0;
+    preferedBase_ = loadAddress_ = 0x0;
 #if defined(os_linux) || defined(os_freebsd)
     /**
    * If the virtual address of the first PT_LOAD element in the
@@ -860,7 +860,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         Elf_X_Phdr &phdr = elfHdr->get_phdr(i);
 
         if (phdr.p_type() == PT_LOAD) {
-            loadAddress_ = phdr.p_vaddr();
+            preferedBase_ = loadAddress_ = phdr.p_vaddr();
             break;
         }
     }
