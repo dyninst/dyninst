@@ -198,7 +198,7 @@ void ObjectPE::parse_object()
              */
             Symbol::SymbolType sym_type = (((type >> 4) & 0xf) == peparse::IMAGE_SYM_DTYPE_FUNCTION) ? Symbol::ST_FUNCTION : Symbol::ST_OBJECT;
             Symbol *sym = new Symbol(name, sym_type, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
-                    sec->getMemOffset() + value, NULL, sec);
+                    value, NULL, sec);
             sym->setDynamic(true);
             {
                 dyn_c_hash_map<std::string,std::vector<Symbol*>>::accessor a;
@@ -218,7 +218,7 @@ void ObjectPE::parse_object()
         [](void *N, const peparse::VA &addr, const std::string &,
            const std::string &sym_name) -> int {
             ObjectPE *obj = static_cast<ObjectPE*>(N);
-            Region *sec = obj->findEnclosingRegion((Offset)(addr));
+            Region *sec = obj->findEnclosingRegion((Offset)addr);
             std::string tmpstr = sym_name;
             if (!sec) return 0; // Ignore symbols that don't belong to any valid section
             Symbol *sym = new Symbol(sym_name, Symbol::ST_FUNCTION, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
@@ -393,4 +393,56 @@ Offset ObjectPE::readRelocTarget(const void *ptr, peparse::reloc_type type)
             std::cout << "Unsupported relocation in PE file\n";
             return 0;
     }
+}
+
+void ObjectPE::writeRelocTarget(void *ptr, peparse::reloc_type type, Offset val)
+{
+    switch (type) {
+        case peparse::RELOC_ABSOLUTE:
+            break;
+        case peparse::RELOC_HIGH:
+            *(uint16_t *)ptr = (val >> 16) & 0xffff;
+            break;
+        case peparse::RELOC_LOW:
+            *(uint16_t *)ptr = (uint16_t)val;
+            break;
+        case peparse::RELOC_HIGHLOW:
+            *(uint32_t *)ptr = (uint32_t)val;
+            break;
+        case peparse::RELOC_HIGHADJ:
+            writeRelocTarget(ptr, peparse::RELOC_HIGH, val);
+            writeRelocTarget((uint8_t *)ptr + 2, peparse::RELOC_LOW, val);
+            break;
+        case peparse::RELOC_DIR64:
+            *(uint64_t *)ptr = (uint64_t)val;
+            break;
+        case peparse::RELOC_MIPS_JMPADDR:
+        case peparse::RELOC_MIPS_JMPADDR16:
+        default:
+            std::cout << "Unsupported relocation in PE file\n";
+            break;
+    }
+}
+
+void ObjectPE::rebase(Offset new_base)
+{
+    Offset delta = new_base - loadAddress_;
+    for (Region *r : regions_) {
+        for (relocationEntry &rel : r->getRelocations()) {
+            uint8_t *ptr = (uint8_t *)r->getPtrToRawData() + ((Offset)rel.rel_addr() - (Offset)r->getMemOffset());
+            Offset val = readRelocTarget(ptr, (peparse::reloc_type)rel.getRelType());
+            assert(rel.target_addr() == val);
+            writeRelocTarget(ptr, (peparse::reloc_type)rel.getRelType(), val + delta);
+            rel.setTargetAddr(val + delta);
+            rel.setRelAddr(rel.rel_addr() + delta);
+        }
+        r->setMemOffset(r->getMemOffset() + delta);
+    }
+    for (std::pair<const std::string, std::vector<Symbol*>> &p : symbols_) {
+        for (Symbol *s : p.second) {
+            s->setOffset(s->getOffset() + delta);
+        }
+    }
+    entryAddress_ += delta;
+    loadAddress_ = new_base;
 }

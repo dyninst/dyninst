@@ -71,6 +71,9 @@ private:
     static Region::RegionType getRegionType(std::uint32_t flags);
 
     static Offset readRelocTarget(const void *ptr, peparse::reloc_type type);
+    static void writeRelocTarget(void *ptr, peparse::reloc_type type, Offset val);
+
+    void rebase(Offset new_base);
 
     int getArchWidth() const;
 
