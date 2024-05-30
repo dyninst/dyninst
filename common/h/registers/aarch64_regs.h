@@ -39,6 +39,27 @@
 
 namespace Dyninst { namespace aarch64 {
 
+  /* Register lengths
+   *
+   * NOTE:
+   *
+   *   MachRegister::getBaseRegister clears the bit field for size, so
+   *   the full register size (FULL) has to be represented as 0x0.
+   *
+   *  References:
+   *
+   *    [ARMA]
+   *    Arm Architecture Reference Manual for A-profile architecture
+   *    2023
+   *    B1.2 Registers in AArch64 Execution state
+   **/
+  const int32_t FULL   = 0x00000000;  // 64-bit double-word
+  const int32_t D_REG  = 0x00000100;  // 32-bit single-word
+  const int32_t W_REG  = 0x00000200;  // 16-bit half-word
+  const int32_t B_REG  = 0x00000300;  // 8-bit byte
+  const int32_t BIT    = 0x00000400;  // 1 bit
+  const int32_t Q_REG  = 0x00000500;  // 128-bit vector
+
   // 0xff000000  0x00ff0000      0x0000ff00      0x000000ff
   // arch        reg cat:GPR     alias&subrange  reg ID
   const int32_t GPR    = 0x00010000;
@@ -47,13 +68,6 @@ namespace Dyninst { namespace aarch64 {
   const int32_t FSR    = 0x00040000;
   const int32_t SPR    = 0x00080000;
   const int32_t SYSREG = 0x00100000;
-
-  const int32_t BIT    = 0x00008000;
-  const int32_t B_REG  = 0x00000100;  // 8bit  byte reg
-  const int32_t W_REG  = 0x00000300;  // 16bit half-wor reg
-  const int32_t D_REG  = 0x00000f00;  // 32bit single-word reg
-  const int32_t FULL   = 0x00000000;  // 64bit double-word reg
-  const int32_t Q_REG  = 0x00000400;  // 128bit reg
 
 
   /**
