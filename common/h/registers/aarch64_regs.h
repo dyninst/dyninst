@@ -39,15 +39,6 @@
 
 namespace Dyninst { namespace aarch64 {
 
-  /**
-   * Format of constants:
-   *  [0x000000ff] Lower 8 bits are base register ID
-   *  [0x0000ff00] Next 8 bits are the aliasing and subrange ID used to distinguish
-   *               between whole and aliased registers like w1 and x1.
-   *  [0x00ff0000] Next 8 bits are the register category, GPR, FLAG, etc.
-   *  [0xff000000] Upper 8 bits are the architecture.
-   **/
-
   // 0xff000000  0x00ff0000      0x0000ff00      0x000000ff
   // arch        reg cat:GPR     alias&subrange  reg ID
   const int32_t GPR    = 0x00010000;
@@ -64,6 +55,16 @@ namespace Dyninst { namespace aarch64 {
   const int32_t FULL   = 0x00000000;  // 64bit double-word reg
   const int32_t Q_REG  = 0x00000400;  // 128bit reg
   const int32_t HQ_REG = 0x00000500;  // second 64bit in 128bit reg
+
+
+  /**
+   * Format of constants:
+   *  [0x000000ff] Lower 8 bits are base register ID
+   *  [0x0000ff00] Next 8 bits are the aliasing and subrange ID used to distinguish
+   *               between whole and aliased registers like w1 and x1.
+   *  [0x00ff0000] Next 8 bits are the register category, GPR, FLAG, etc.
+   *  [0xff000000] Upper 8 bits are the architecture.
+   **/
 
   // 31 GPRs, double word long registers
   //          (              name,  ID |  alias |    cat |         arch,      arch)
