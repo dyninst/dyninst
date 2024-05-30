@@ -65,7 +65,6 @@ namespace Dyninst { namespace aarch64 {
   const int32_t GPR    = 0x00010000;
   const int32_t FPR    = 0x00020000;
   const int32_t FLAG   = 0x00030000;
-  const int32_t FSR    = 0x00040000;
   const int32_t SPR    = 0x00080000;
   const int32_t SYSREG = 0x00100000;
 
