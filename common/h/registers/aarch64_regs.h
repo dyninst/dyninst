@@ -60,12 +60,11 @@ namespace Dyninst { namespace aarch64 {
   const int32_t BIT    = 0x00000400;  // 1 bit
   const int32_t Q_REG  = 0x00000500;  // 128-bit vector
 
-  // 0xff000000  0x00ff0000      0x0000ff00      0x000000ff
-  // arch        reg cat:GPR     alias&subrange  reg ID
-  const int32_t GPR    = 0x00010000;
-  const int32_t FPR    = 0x00020000;
-  const int32_t FLAG   = 0x00030000;
-  const int32_t SPR    = 0x00080000;
+  /* Base Register Categories */
+  const int32_t GPR  = 0x00000000;  // General-purpose
+  const int32_t FPR  = 0x00010000;  // Floating-point
+  const int32_t SPR  = 0x00020000;  // Special-purpose
+  const int32_t FLAG = 0x00030000;  // Control/Status flag
   const int32_t SYSREG = 0x00100000;
 
 
