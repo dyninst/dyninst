@@ -779,8 +779,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(              fpcr,       4 | D_REG |    SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(              fpsr,       5 | D_REG |    SPR | Arch_aarch64, "aarch64");
 
-} // end of aarch64 namespace
-
-}
+}}
 
 #endif
