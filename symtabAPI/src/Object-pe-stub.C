@@ -108,6 +108,10 @@ bool ObjectPE::isSharedLibrary() const
     return !is_aout_;
 }
 
+void ObjectPE::rebase(Offset)
+{
+}
+
 Dyninst::Architecture ObjectPE::getArch() const
 {
     return Arch_none;
