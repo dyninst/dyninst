@@ -7361,7 +7361,7 @@ ia32_entry sseMapBisMult[][3] =
     { e_No_Entry, t_vexw, VEXW66, false, { Zz, Zz, Zz }, 0, 0, 0 }
   }, { /* SSEB8C_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_vexw, VEXW1F, false, { Zz, Zz, Zz }, 0, 0, 0 },
     /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // COLLISION HERE
   }, { /* SSEB8D_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -7369,7 +7369,7 @@ ia32_entry sseMapBisMult[][3] =
     { e_No_Entry, t_vexw, VEXW68, false, { Zz, Zz, Zz }, 0, 0, 0 }
   }, { /* SSEB8E_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_vexw, VEXW1E, false, { Zz, Zz, Zz }, 0, 0, 0 },
     /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // COLLISION HERE
   }, { /* SSEB90_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
