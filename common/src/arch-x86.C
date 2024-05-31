@@ -687,6 +687,7 @@ static int vex3_simdop_convert[3][4] = {
 #define Fv   { am_F, op_v }
 #define Gb   { am_G, op_b }
 #define Gd   { am_G, op_d }
+#define Gy   { am_G, op_y }
 #define Gv   { am_G, op_v }
 #define Gw   { am_G, op_w }
 #define Gf   { am_G, op_f }
@@ -872,6 +873,7 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_aam, "aam")
   (e_aas, "aas")
   (e_adc, "adc")
+  (e_adcx, "adcx")
   (e_add, "add")
   (e_addpd, "addpd")
   (e_addps, "addps")
@@ -879,6 +881,7 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_addss, "addss")
   (e_addsubpd, "addsubpd")
   (e_addsubps, "addsubps")
+  (e_adox, "adox")
   (e_aesenc, "aesenc")
   (e_aesenclast, "aesenclast")
   (e_aesdec, "aesdec")
@@ -5839,8 +5842,8 @@ static ia32_entry sseMapBis[][5] = {
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEBF6 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_sse_bis_mult, SSEBF6_F3, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+        { e_adox, t_sse_bis_mult, SSEBF6_F3, true, { Gy, Ey, Zz }, 0, s1RW2R, 0 },
+        { e_adcx, t_done, 0, true, { Gy, Ey, Zz }, 0, s1RW2R, 0 },
         { e_No_Entry, t_sse_bis_mult, SSEBF6_F2, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEBF7 */
@@ -11211,7 +11214,7 @@ static const unsigned char sse_prefix_bis[256] = {
    /* Cx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* Dx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* Ex */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-   /* Fx */ 1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Fx */ 1,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,
 };
 
 static const unsigned char sse_prefix_ter[256] = {
