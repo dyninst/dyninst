@@ -673,6 +673,7 @@ static int vex3_simdop_convert[3][4] = {
 #define ImplImm { am_ImplImm, op_b }
 #define Ap   { am_A, op_p }
 #define Bv   { am_B, op_v}
+#define By   { am_B, op_y}
 #define Cd   { am_C, op_d }
 #define Dd   { am_D, op_d }
 #define Eb   { am_E, op_b }
@@ -3974,9 +3975,9 @@ static ia32_entry groupMap2[][2][8] = {
   { /* group 17 */
     {
       { e_extrq, t_done, 0, true, { Vdq, Ib, Ib }, 0, s1RW2R3R, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_blsr, t_done, 0, true, { By, Ey, Zz }, 0, s1W2R, 0 },
+      { e_blsmsk, t_done, 0, true, { By, Ey, Zz }, 0, s1W2R, 0 },
+      { e_blsi, t_done, 0, true, { By, Ey, Zz }, 0, s1W2R, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3984,9 +3985,9 @@ static ia32_entry groupMap2[][2][8] = {
     },
     {
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_blsr, t_done, 0, true, { Bv, Ev, Zz }, 0, s1W2R, 0 },
-      { e_blsmsk, t_done, 0, true, { Bv, Ev, Zz }, 0, s1W2R, 0 },
-      { e_blsi, t_done, 0, true, { Bv, Ev, Zz }, 0, s1W2R, 0 },
+      { e_blsr, t_done, 0, true, { By, Ey, Zz }, 0, s1W2R, 0 },
+      { e_blsmsk, t_done, 0, true, { By, Ey, Zz }, 0, s1W2R, 0 },
+      { e_blsi, t_done, 0, true, { By, Ey, Zz }, 0, s1W2R, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
