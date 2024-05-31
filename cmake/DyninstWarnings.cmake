@@ -48,7 +48,8 @@ list(
     Wuninitialized
     Wvla
     Wvolatile
-    Wwrite-strings)
+    Wwrite-strings
+    Wno-deprecated-declarations)
 
 # list(APPEND REQUESTED_WARNING_FLAGS Werror)
 
