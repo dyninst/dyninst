@@ -5085,7 +5085,7 @@ static ia32_entry sseMapBis[][5] = {
     }, { /* SSEB1A */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_vbroadcastf128, t_sse_bis_mult, SSEB1A_66, true, { Vsd, Wq, Zz }, 0, s1W2R, 0 },
+        { e_No_Entry, t_sse_bis_mult, SSEB1A_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEB1B */
@@ -5180,8 +5180,8 @@ static ia32_entry sseMapBis[][5] = {
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEB2A */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_sse_bis_mult, SSEB2A_F3, true, { Mdq, Wdq, Zz }, 0, s1W2R, 0 },
-        { e_movntdqa, t_sse_bis_mult, SSEB2A_66, true, { Mdq, Wdq, Zz }, 0, s1W2R, 0 },
+        { e_No_Entry, t_sse_bis_mult, SSEB2A_F3, false, { Zz, Zz, Zz }, 0, 0, 0 },
+        { e_movntdqa, t_sse_bis_mult, SSEB2A_66, true, { Vdq, Mdq, Zz }, 0, s1W2R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEB2B */
@@ -6052,8 +6052,8 @@ static ia32_entry sseMapTer[][3] =
         { e_dppd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
     }, { /* SSET42 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_sse_ter_mult, SSET42_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_mpsadbw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
+        { e_mpsadbw, t_sse_ter_mult, SSET42_66, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSET44 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_pclmulqdq, t_sse_ter_mult, SSET44_66, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 },
@@ -6253,13 +6253,13 @@ ia32_entry sseMapMult[][3] =
     { e_vcvtsi2ss, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
   }, { /* SSE2B_66 */
+    { e_vmovntpd, t_done, 0, true, { Wpd, Vpd, Zz}, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_vmovntpd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 }
+    { e_vmovntpd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R, 0 }
   }, { /* SSE2B_NO */
-    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R3R, 0 },
-    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R3R, 0 },
-    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R3R, 0 },
+    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_vmovntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R, 0 },
   }, { /* SSE2C_F2 */
     { e_vcvttsd2si, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
     { e_vcvttsd2si, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
@@ -7067,7 +7067,7 @@ ia32_entry sseMapBisMult[][3] =
     /**/{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // COLLISION HERE
   }, { /* SSEB1A_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_vbroadcastf128, t_done, 0, true, { Vq, Mdq, Zz }, 0, s1W2R, 0 },
     { e_vbroadcastf32x4, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 }
   }, { /* SSEB1C_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -7163,8 +7163,8 @@ ia32_entry sseMapBisMult[][3] =
     { e_vpmovb2m, t_done, 0, true, { Vps, WK, Zz }, 0, 0, 0 }
   }, { /* SSEB2A_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_vmovntdqa, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 }
+    { e_vmovntdqa, t_done, 0, true, { Vdq, Mdq, Zz }, 0, s1W2R, 0 },
+    { e_vmovntdqa, t_done, 0, true, { Vdq, Mdq, Zz }, 0, s1W2R, 0 }
   }, { /* SSEB2A_F3 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
