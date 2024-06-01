@@ -148,7 +148,7 @@ class open_statement {
 };
 
 
-class Object : public AObject, private boost::basic_lockable_adapter<boost::mutex>
+class Object : public AObject, public boost::basic_lockable_adapter<boost::mutex>
 {
   friend class Module;
 
