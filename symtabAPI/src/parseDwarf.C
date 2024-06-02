@@ -64,14 +64,14 @@ std::string convertCharToString(char *ptr)
   return str;	
 }
 
-bool Object::hasFrameDebugInfo()
+bool ObjectELF::hasFrameDebugInfo()
 {
    dwarf->frame_dbg();
    assert(dwarf->frameParser());
    return dwarf->frameParser()->hasFrameDebugInfo();
 }
 
-bool Object::getRegValueAtFrame(Address pc, 
+bool ObjectELF::getRegValueAtFrame(Address pc, 
 		Dyninst::MachRegister reg, 
 		Dyninst::MachRegisterVal &reg_result,
 		MemRegReader *reader)

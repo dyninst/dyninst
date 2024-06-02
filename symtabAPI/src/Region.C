@@ -104,7 +104,7 @@ Region& Region::operator=(const Region &reg)
     return *this;
 }
 
-bool Region::operator==(const Region &reg)
+bool Region::operator==(const Region &reg) const
 {
 
 	if (rels_.size() != reg.rels_.size()) return false;
@@ -140,6 +140,11 @@ ostream& Region::operator<< (ostream &os)
                 << " Permissions=" << permissions_
                         << " region type " << rType_
                 << " }" << endl;
+}
+
+bool Region::operator<(const Region &reg) const
+{
+   return memOff_ < reg.memOff_;
 }
 
 Region::~Region() 
