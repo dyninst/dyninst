@@ -57,6 +57,7 @@ namespace Dyninst
         Arch_ppc64       =  0x28000000,
         Arch_aarch32     =  0x44000000, //for later use
         Arch_aarch64     =  0x48000000,
+        Arch_riscv64     =  0x68000000,
         Arch_amdgpu_vega      =  0x84000000,
         Arch_cuda        =  0x88000000,
         Arch_amdgpu_rdna =  0x8c000000, //future support for rdna
