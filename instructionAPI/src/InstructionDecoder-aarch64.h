@@ -30,6 +30,7 @@
 
 #include "InstructionDecoderImpl.h"
 #include <iostream>
+#include <array>
 #include "Immediate.h"
 #include "dyn_regs.h"
 
