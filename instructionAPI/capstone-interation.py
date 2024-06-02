@@ -17,8 +17,8 @@ def RunGrep(op):
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     msg, err = p.communicate()
     if (len(err) > 0):
-        print "Error message in running", cmd,":"
-        print err
+        print("Error message in running", cmd,":")
+        print(err)
     return msg
 
 class Translator():
@@ -46,8 +46,10 @@ class Translator():
             return "PPC"
         elif self.arch == "arm":
             return "ARM64"
+        elif self.arch == "riscv":
+            return "RISCV"
         else:
-            print "Not supported arch"
+            print("Not supported arch")
             return ""
 
     def AnalyzeCapstoneHeader(self):
@@ -64,11 +66,11 @@ class Translator():
             return False
         start_index = capstone_header.find(cap_opcode_start) 
         if start_index == -1:
-            print "Do not find capstone opcode enum start {0}".format(cap_opcode_start)
+            print("Do not find capstone opcode enum start {0}".format(cap_opcode_start))
             return False
         end_index = capstone_header.find(cap_opcode_end) 
         if end_index == -1:
-            print "Do not find capstone opcode enum end {0}".format(cap_opcode_end)
+            print("Do not find capstone opcode enum end {0}".format(cap_opcode_end))
             return False
         # INVALID and ENDING are not actual opcodes
         for part in capstone_header[start_index : end_index].split(",")[1:]:
@@ -84,11 +86,11 @@ class Translator():
         cap_reg_end = "{0}_REG_ENDING".format(capstone_prefix)
         start_index = capstone_header.find(cap_reg_start) 
         if start_index == -1:
-            print "Do not find capstone opcode enum start {0}".format(cap_reg_start)
+            print("Do not find capstone opcode enum start {0}".format(cap_reg_start))
             return False
         end_index = capstone_header.find(cap_reg_end) 
         if end_index == -1:
-            print "Do not find capstone opcode enum end {0}".format(cap_reg_end)
+            print("Do not find capstone opcode enum end {0}".format(cap_reg_end))
             return False
         # INVALID and ENDING are not actual regs
         for part in capstone_header[start_index : end_index].split(",")[1:]:
@@ -106,8 +108,10 @@ class Translator():
             return "power_op_extended", "power_op_dxex"
         elif self.arch == "arm":
             return "aarch64_op_extended", "aarch64_op_zip2_advsimd"
+        elif self.arch == "riscv":
+            return "riscv64_op_lui", "riscv64_op_wrs_sto"
         else:
-            print "Not supported arch"
+            print("Not supported arch")
             return "", ""
 
     def DyninstOpcodePrefix(self):
@@ -118,7 +122,7 @@ class Translator():
         elif self.arch == "arm":
             return "aarch64_op"
         else:
-            print "Not supported arch"
+            print("Not supported arch")
             return ""
 
 
@@ -130,7 +134,7 @@ class Translator():
         elif self.arch == "arm":
             return "aarch64"
         else:
-            print "Not supported arch"
+            print("Not supported arch")
             return ""
 
     def AnalyzeDyninstHeader(self):
@@ -143,11 +147,11 @@ class Translator():
         dyninst_header = open(self.dyninst, "r").read()
         start_index = dyninst_header.find(dyninst_opcode_start) 
         if start_index == -1:
-            print "Do not find capstone opcode enum start {0}".format(dyninst_opcode_start)
+            print("Do not find dyninst opcode enum start {0}".format(dyninst_opcode_start))
             return False
         end_index = dyninst_header.find(dyninst_opcode_end) 
         if end_index == -1:
-            print "Do not find capstone opcode enum end {0}".format(dyninst_opcode_end)
+            print("Do not find dyninst opcode enum end {0}".format(dyninst_opcode_end))
             return False
         # Dyninst's opcode does not contain boundary marker
         for part in dyninst_header[start_index : (end_index + len(dyninst_opcode_end))].split(","):
@@ -183,7 +187,7 @@ class Translator():
             # Dyninst's ARMv8 opcode are "aarch64_op_xxx"
             dyninst_underscore_start = 2
         else:
-            print "Not supported arch"
+            print("Not supported arch")
             return
 
         # We now go over each Dyninst opcode to find a correspondce in Capstone
@@ -208,11 +212,11 @@ class Translator():
             # Dyninst's e_No_Entry is a special entry
             if op == "e_No_Entry": continue
 
-        print len(cap_map), "new opcodes"
-        print "{0} no match, {1} useless".format(count, len(useless))
+        print(len(cap_map), "new opcodes")
+        print("{0} no match, {1} useless".format(count, len(useless)))
         for op, grep in useless:
-            print op, "Grep:"
-            print grep
+            print(op, "Grep:")
+            print(grep)
         self.new_opcode = cap_map
 
     def WriteOutputFile(self):
