@@ -3428,6 +3428,8 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     std::string debug_str_secname = ".debug_str";
     associated_symtab->findRegion(debug_str, debug_str_secname);
 
+    boost::lock_guard<Object> guard(*this);
+
     if (li_for_object) {
         // The line information for this object has been parsed.
         return li_for_object;
@@ -3452,11 +3454,9 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 
     while (1) {
 
-#pragma omp critical (next_lines)
-{
     status = dwarf_next_lines(dbg, off = next_off, &next_off, &cu,
                               &files, &fileCount, &lineBuffer, &lineCount);
-}
+
     if (status != 0) break;
       
 
