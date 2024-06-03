@@ -80,13 +80,16 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         entryID opcodeTranslation_x86(unsigned int);
         entryID opcodeTranslation_ppc(unsigned int);
         entryID opcodeTranslation_aarch64(unsigned int);
+        entryID opcodeTranslation_riscv64(unsigned int);
 
         void decodeOperands_x86(const Instruction* insn, cs_detail*);
         void decodeOperands_ppc(const Instruction* insn, cs_detail*);
         void decodeOperands_aarch64(const Instruction* insn, cs_detail*);
+        void decodeOperands_riscv64(const Instruction* insn, cs_detail*);
 
         MachRegister registerTranslation_x86_32(x86_reg);
         MachRegister registerTranslation_x86_64(x86_reg);
+        MachRegister registerTranslation_riscv64(riscv_reg);
 
         Result_Type operandSizeTranslation(uint8_t);
         bool checkCapstoneGroup(cs_detail*, uint8_t);

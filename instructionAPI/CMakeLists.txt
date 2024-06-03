@@ -24,6 +24,7 @@ set (SRC_LIST
      src/InstructionDecoderImpl.C
      src/InstructionDecoder-Capstone.C
      src/InstructionDecoder-Capstone-x86.C
+     src/InstructionDecoder-Capstone-riscv64.C
 
   )
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
