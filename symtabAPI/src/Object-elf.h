@@ -82,6 +82,7 @@ class pdElfShdr;
 class Symtab;
 class Region;
 class Object;
+class ObjectELF;
 class InlinedFunction;
 
 class open_statement {
@@ -148,46 +149,46 @@ class open_statement {
 };
 
 
-class Object : public AObject, public boost::basic_lockable_adapter<boost::mutex>
+class ObjectELF final : public Object
 {
   friend class Module;
 
   // declared but not implemented; no copying allowed
-  Object(const Object &);
-  const Object& operator=(const Object &);
+  ObjectELF(const ObjectELF &);
+  const ObjectELF& operator=(const ObjectELF &);
 
 public:
 
-  Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
-  virtual ~Object();
+  ObjectELF(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
+  ~ObjectELF();
 
-  bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
+  bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag) override;
     
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
-  void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-  void parseFileLineInfo();
-  void parseTypeInfo();
+  void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs) override;
+  void parseFileLineInfo() override;
+  void parseTypeInfo() override;
   void addModule(SymtabAPI::Module* m) override;
 
   bool needs_function_binding() const override { return (plt_addr_ > 0); }
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const override;
   bool get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const override;
-  void getDependencies(std::vector<std::string> &deps);
+  void getDependencies(std::vector<std::string> &deps) override;
   std::vector<std::string> &libsRMd();
 
   bool addRelocationEntry(relocationEntry &re) override;
 
   //getLoadAddress may return 0 on shared objects
-  Offset getLoadAddress() const { return loadAddress_; }
+  Offset getLoadAddress() const override { return loadAddress_; }
 
-  Offset getEntryAddress() const { return entryAddress_; }
+  Offset getEntryAddress() const override { return entryAddress_; }
   // To be changed later - Giri
-  Offset getBaseAddress() const { return 0; }
+  Offset getBaseAddress() const override { return 0; }
   static bool truncateLineFilenames;
 
-  void insertPrereqLibrary(std::string libname);
-  bool removePrereqLibrary(std::string libname);
-  void insertDynamicEntry(long name, long value);
+  void insertPrereqLibrary(std::string libname) override;
+  bool removePrereqLibrary(std::string libname) override;
+  void insertDynamicEntry(long name, long value) override;
  
   virtual char *mem_image() const override
   {
@@ -195,22 +196,22 @@ public:
      return (char *)mf->base_addr();
   }
 
-  DYNINST_EXPORT ObjectType objType() const;
-  const char *interpreter_name() const;
+  DYNINST_EXPORT ObjectType objType() const override;
+  const char *interpreter_name() const override;
 
 
   // On most platforms, the TOC offset doesn't exist and is thus null. 
   // On PPC64, it varies _by function_ and is used to point into the GOT,
   // a big data table. We can look it up by parsing the OPD, a function
   // descriptor table. 
-  Offset getTOCoffset(Offset off) const;
+  Offset getTOCoffset(Offset off) const override;
 
   // This is an override for the whole thing; we could do per-function but 
   // we're missing a _lot_ of hardware for that. 
-  void setTOCoffset(Offset off);
+  void setTOCoffset(Offset off) override;
 
   const std::ostream &dump_state_info(std::ostream &s);
-  bool isEEL() { return EEL; }
+  bool isEEL() const override { return EEL; }
 
 	//to determine if a mutation falls in the text section of
 	// a shared library
@@ -247,22 +248,22 @@ public:
                             MemRegReader *reader) override;
     bool hasFrameDebugInfo() override;
     
-    bool convertDebugOffset(Offset off, Offset &new_off);
+    bool convertDebugOffset(Offset off, Offset &new_off) override;
 
     std::vector< std::vector<Offset> > getMoveSecAddrRange() const {return moveSecAddrRange;}
     dyn_hash_map<int, Region*> getTagRegionMapping() const { return secTagRegionMapping;}
 
-    bool hasReldyn() const {return hasReldyn_;}
-    bool hasReladyn() const {return hasReladyn_;}
-    bool hasRelplt() const {return hasRelplt_;}
-    bool hasRelaplt() const {return hasRelaplt_;}
+    bool hasReldyn() const override {return hasReldyn_;}
+    bool hasReladyn() const override {return hasReladyn_;}
+    bool hasRelplt() const override {return hasRelplt_;}
+    bool hasRelaplt() const override {return hasRelaplt_;}
     bool hasNoteSection() const {return hasNoteSection_;}
     Region::RegionType getRelType() const override { return relType_; }
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
     Offset getStrtabAddr() const {return strtab_addr_;}
-    Offset getDynamicAddr() const {return dynamic_addr_;}
+    Offset getDynamicAddr() const override {return dynamic_addr_;}
     Offset getDynsymSize() const {return dynsym_size_;}
     Offset getElfHashAddr() const {return elf_hash_addr_;}
     Offset getGnuHashAddr() const {return gnu_hash_addr_;}
@@ -279,23 +280,25 @@ public:
     bool hasModinfo() const { return hasModinfo_; }
     bool hasGnuLinkonceThisModule() const { return hasGnuLinkonceThisModule_; }
     bool isLoadable() const;
-    DYNINST_EXPORT bool isOnlyExecutable() const;
-    DYNINST_EXPORT bool isExecutable() const;
-    DYNINST_EXPORT bool isSharedLibrary() const;
-    DYNINST_EXPORT bool isOnlySharedLibrary() const;
-    DYNINST_EXPORT bool isDebugOnly() const;
-    DYNINST_EXPORT bool isLinuxKernelModule() const;
+    DYNINST_EXPORT bool isOnlyExecutable() const override;
+    DYNINST_EXPORT bool isExecutable() const override;
+    DYNINST_EXPORT bool isSharedLibrary() const override;
+    DYNINST_EXPORT bool isOnlySharedLibrary() const override;
+    DYNINST_EXPORT bool isDebugOnly() const override;
+    DYNINST_EXPORT bool isLinuxKernelModule() const override;
+
+    bool getSegments(std::vector<Segment> &segs) const override;
 
     std::vector<relocationEntry> &getPLTRelocs() { return fbt_; }
     std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
 
-    Offset getInitAddr() const {return init_addr_; }
-    Offset getFiniAddr() const { return fini_addr_; }
+    Offset getInitAddr() const override {return init_addr_; }
+    Offset getFiniAddr() const override { return fini_addr_; }
 
     virtual void setTruncateLinePaths(bool value) override;
     virtual bool getTruncateLinePaths() override;
     
-    Elf_X * getElfHandle() { return elfHdr; }
+    void *getElfHandle() override { return elfHdr; }
 
     unsigned gotSize() const { return got_size_; }
     Offset gotAddr() const { return got_addr_; }
@@ -413,7 +416,7 @@ public:
   void parseDwarfFileLineInfo();
   void parseLineInfoForAddr(Offset addr_to_find);
 
-  bool hasDebugInfo();
+  bool hasDebugInfo() override;
 
 private:
     void parseLineInfoForCU(Offset offset, LineInformation* li) override;
@@ -434,7 +437,7 @@ private:
     void lookupInlinedContext( std::vector<open_statement> &, open_statement &);
     
     LineInformation* li_for_object;
-    LineInformation* parseLineInfoForObject(StringTablePtr strings);
+    LineInformation* parseLineInfoForObject(StringTablePtr strings) override;
 
   void load_object(bool);
 

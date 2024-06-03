@@ -816,9 +816,9 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
       return;
    }
 
-   obj_private = new Object(mf, defensive_bin, 
-                            symtab_log_perror, true, this);
-   if (obj_private->hasError()) {
+   obj_private = parseObjectFile(mf, defensive_bin, 
+                                 symtab_log_perror, true, this);
+   if (!obj_private || obj_private->hasError()) {
       create_printf("%s[%d]: WARNING: creating symtab for %s, " 
                     "Object ctor failed\n", FILE__, __LINE__, 
                     filename.c_str());
@@ -857,9 +857,9 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
       return;
    }
 
-   obj_private = new Object(mf, defensive_bin, 
-                            symtab_log_perror, true, this);
-   if (obj_private->hasError()) {
+   obj_private = parseObjectFile(mf, defensive_bin, 
+                                 symtab_log_perror, true, this);
+   if (!obj_private || obj_private->hasError()) {
      err = true;
      return;
    }
@@ -900,23 +900,12 @@ bool Symtab::extractInfo(Object *linkedFile)
      * members are imprecise. These members should probably be deprecated in
      * favor of the getCodeRegions and getDataRegions functions.
      */
-#if defined(os_windows)
-	preferedBase_ = linkedFile->getPreferedBase();
-#else
-	preferedBase_ = 0;
-#endif
     imageOffset_ = linkedFile->code_off();
     dataOffset_ = linkedFile->data_off();
-
-#if defined(os_windows)
-	preferedBase_ = linkedFile->getPreferedBase();
-#else
-	preferedBase_ = 0;
-#endif
-
+    preferedBase_ = linkedFile->getPreferedBase();
     imageLen_ = linkedFile->code_len();
     dataLen_ = linkedFile->data_len();
-    
+
     if (0 == imageLen_ || 0 == linkedFile->code_ptr()) 
     {
        if (0 == linkedFile->code_ptr()) {
@@ -941,15 +930,16 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     hasRel_ = false;
     hasRela_ = false;
-    hasReldyn_ = false;
-    hasReladyn_ = false;
-    hasRelplt_ = false;
-    hasRelaplt_ = false;
+    hasReldyn_ = linkedFile->hasReldyn();
+    hasReladyn_ = linkedFile->hasReladyn();
+    hasRelplt_ = linkedFile->hasRelplt();
+    hasRelaplt_ = linkedFile->hasRelaplt();
+
     regions_ = linkedFile->getAllRegions();
 
     for (unsigned index=0;index<regions_.size();index++)
-      {
-      regions_[index]->setSymtab(this);
+    {
+        regions_[index]->setSymtab(this);
 
         if ( regions_[index]->isLoadable() ) 
         {
@@ -977,13 +967,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         {
             hasRela_ = true;
         }
-
-#if defined(os_linux) || defined(os_freebsd)
-        hasReldyn_ = linkedFile->hasReldyn();
-	hasReladyn_ = linkedFile->hasReladyn();
-        hasRelplt_ = linkedFile->hasRelplt();
-        hasRelaplt_ = linkedFile->hasRelaplt();
-#endif	
 
     }
     // sort regions_ & codeRegions_ vectors
@@ -1052,9 +1035,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     // determined before this step).
     
     // Also identifies aliases (multiple names with equal addresses)
-#if !defined(os_windows)
     linkedFile->getDependencies(deps_);
-#endif
 
     
     linkedFile->getAllExceptions(excpBlocks);
