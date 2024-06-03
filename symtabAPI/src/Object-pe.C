@@ -147,6 +147,83 @@ void ObjectPE::parse_object()
         };
     peparse::IterSec(parsed_pe_, section_iterator, this);
 
+    /* Iterate over symbols */
+
+    // Microsoft documentation says that COFF debugging information is deprecated
+    // and COFF symbol table should be empty.
+    //
+    // See https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
+    //
+    // That said, some compilers make it non-empty (e.g. Linux to MinGW GCC
+    // cross-compiler generates non-empty COFF symbol table). Also, according to
+    // another part of Microsoft documentation, binaries compiled with /DEBUG
+    // do have a non-empty COFF symbol table.
+    //
+    // See https://learn.microsoft.com/en-us/cpp/build/reference/symbols?view=msvc-170
+    peparse::iterSymbol symbol_iterator =
+        [](void *N, const std::string &name, const uint32_t &value,
+                const int16_t &sec_num, const uint16_t &type,
+                const uint8_t &, const uint8_t &) -> int {
+            ObjectPE *obj = static_cast<ObjectPE*>(N);
+            if (sec_num <= 0)
+            {
+                /**
+                 * Negative values and zero are reserved for special types of symbols:
+                 *  0  for an undefined (extern) symbol;
+                 *  -1 for an absolute symbol (that is, its value is a constant, not an address);
+                 *  -2 for a debugging symbol.
+                 *
+                 * See http://www.delorie.com/djgpp/doc/coff/symtab.html
+                 *
+                 * We are not interested in such types of symbols.
+                 */
+                return 0;
+            }
+            // The section numbering begins with 1, not 0
+            if ((unsigned)sec_num > obj->regions_.size())
+            {
+                // The entry is malformed. Skip it.
+                return 0;
+            }
+            Region *sec = obj->regions_[sec_num - 1];
+            if (!sec) return 0; // Ignore symbols that don't belong to any valid section
+
+            /**
+             * Microsoft documentation sais that the information if the symbol is a function or not
+             * is stored in the MSB of 2-byte field.
+             *
+             * See https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
+             *
+             * This is incorrect. That information is stored in the high 4 bits of the LSB. The examples
+             * given in their documentation are correct though: 0x20 is used for functions.
+             *
+             * See http://www.delorie.com/djgpp/doc/coff/symtab.html for correct COFF symbol table
+             * description.
+             */
+            Symbol::SymbolType sym_type = (((type >> 4) & 0xf) == peparse::IMAGE_SYM_DTYPE_FUNCTION) ? Symbol::ST_FUNCTION : Symbol::ST_OBJECT;
+            Symbol *sym = new Symbol(name, sym_type, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
+                    value, NULL, sec);
+            sym->setDynamic(true);
+            {
+                dyn_c_hash_map<std::string,std::vector<Symbol*>>::accessor a;
+                if(!obj->symbols_.insert(a, {name, {sym}}))
+                    a->second.push_back(sym);
+            }
+            {
+                dyn_c_hash_map<Offset,std::vector<Symbol*>>::accessor a2;
+                if(!obj->symsByOffset_.insert(a2, {sym->getOffset(), {sym}}))
+                    a2->second.push_back(sym);
+            }
+            return 0;
+        };
+    peparse::IterSymbols(parsed_pe_, symbol_iterator, this);
+
+    // COFF table describes symbols by the index of the section and the offset in that section
+    // Thus, we need sections in their original order to handle COFF symbol table
+    //
+    // Export Data Directory describes symbols by their memory offset.
+    // Thus, we want sections to be ordered by their memory offset to find where
+    // the symbol belongs in sublinear time.
     struct region_less {
         bool operator()(const Region *r1, const Region *r2)
         {
@@ -155,7 +232,30 @@ void ObjectPE::parse_object()
     } cmp;
     std::sort(regions_.begin(), regions_.end(), cmp);
 
-    no_of_symbols_ = 0;
+    peparse::iterExp export_iterator =
+        [](void *N, const peparse::VA &addr, const std::string &,
+           const std::string &sym_name) -> int {
+            ObjectPE *obj = static_cast<ObjectPE*>(N);
+            Region *sec = obj->findEnclosingRegion((Offset)addr);
+            if (!sec) return 0; // Ignore symbols that don't belong to any valid section
+            Symbol *sym = new Symbol(sym_name, Symbol::ST_FUNCTION, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
+                    addr, NULL, sec);
+            sym->setDynamic(true);
+            {
+                dyn_c_hash_map<std::string,std::vector<Symbol*>>::accessor a;
+                if(!obj->symbols_.insert(a, {sym_name, {sym}}))
+                    a->second.push_back(sym);
+            }
+            {
+                dyn_c_hash_map<Offset,std::vector<Symbol*>>::accessor a2;
+                if(!obj->symsByOffset_.insert(a2, {sym->getOffset(), {sym}}))
+                    a2->second.push_back(sym);
+            }
+            return 0;
+        };
+    peparse::IterExpVA(parsed_pe_, export_iterator, this);
+
+    no_of_symbols_ = nsymbols();
 }
 
 Offset ObjectPE::getPreferedBase() const
