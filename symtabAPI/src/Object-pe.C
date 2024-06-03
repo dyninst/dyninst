@@ -29,9 +29,12 @@
  */
 #include "symtabAPI/src/Object-pe.h"
 #include <pe-parse/parse.h>
+#include "debug.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+
+static Offset readRelocTarget(const void *ptr, peparse::reloc_type type);
 
 Region::perm_t ObjectPE::getRegionPerms(std::uint32_t flags)
 {
@@ -255,6 +258,19 @@ void ObjectPE::parse_object()
         };
     peparse::IterExpVA(parsed_pe_, export_iterator, this);
 
+    /* Iterate over relocations */
+    peparse::iterReloc relocation_iterator =
+        [](void *N, const peparse::VA &ra, const peparse::reloc_type &rel_type) -> int {
+            ObjectPE *obj = static_cast<ObjectPE*>(N);
+            Region *sec = obj->findEnclosingRegion((Offset)ra);
+            if (!sec) return 0; // TODO
+            const uint8_t *ptr = (const uint8_t *)sec->getPtrToRawData() + ((Offset)ra - (Offset)sec->getMemOffset());
+            Offset ta = readRelocTarget(ptr, rel_type);
+            sec->addRelocationEntry(relocationEntry(ta, ra, 0, "", NULL, (unsigned long)rel_type, Region::RT_REL));
+            return 0;
+        };
+    peparse::IterRelocs(parsed_pe_, relocation_iterator, this);
+
     no_of_symbols_ = nsymbols();
 }
 
@@ -364,5 +380,28 @@ int ObjectPE::getArchWidth() const
         case Arch_none:
         default:
             return -1;
+    }
+}
+
+static Offset readRelocTarget(const void *ptr, peparse::reloc_type type)
+{
+    switch (type) {
+        case peparse::RELOC_ABSOLUTE:
+            return 0;
+        case peparse::RELOC_HIGH:
+            return (uint32_t)(*(const uint16_t *)ptr) << 16;
+        case peparse::RELOC_LOW:
+            return *(const uint16_t *)ptr;
+        case peparse::RELOC_HIGHLOW:
+            return *(const uint32_t *)ptr;
+        case peparse::RELOC_HIGHADJ:
+            return readRelocTarget(ptr, peparse::RELOC_HIGH) | readRelocTarget((const uint8_t *)ptr + 2, peparse::RELOC_LOW);
+        case peparse::RELOC_DIR64:
+            return *(const uint64_t *)ptr;
+        case peparse::RELOC_MIPS_JMPADDR:
+        case peparse::RELOC_MIPS_JMPADDR16:
+        default:
+            create_printf("Unsupported relocation type '%d' in PE file\n", static_cast<int>(type));
+            return 0;
     }
 }
