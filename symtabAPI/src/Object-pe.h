@@ -41,6 +41,7 @@ class ObjectPE : public Object {
 
 public:
     ObjectPE(MappedFile *, bool, void(*)(const char *) = log_msg, bool = true, Symtab * = NULL);
+    ~ObjectPE();
 
     Offset getPreferedBase() const override;
     void getDependencies(std::vector<std::string> &deps) override;
@@ -63,6 +64,16 @@ private:
     const ObjectPE& operator=(const ObjectPE &);
 
     void log_error(const std::string &);
+    void parse_object();
+
+    static Region::perm_t getRegionPerms(std::uint32_t flags);
+    static Region::RegionType getRegionType(std::uint32_t flags);
+
+    int getArchWidth() const;
+
+    // Internal pe-parse structure. The pointer is kept as "void"
+    // to support compilation both with and without pr-parse library.
+    void *parsed_object_;
 
     Offset entryAddress_;
 
