@@ -47,6 +47,7 @@ class Symtab;
 class DYNINST_EXPORT Region : public AnnotatableSparse {
    friend class Object;
    friend class ObjectELF;
+   friend class ObjectPE;
    friend class Symtab;
    friend class SymtabTranslatorBase;
    friend class SymtabTranslatorBin;

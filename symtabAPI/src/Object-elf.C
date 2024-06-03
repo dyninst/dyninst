@@ -2298,7 +2298,7 @@ ObjectELF::ObjectELF(MappedFile *mf_, bool, void (*err_func)(const char *),
         containingFunc(nullptr)
 {
     li_for_object = NULL; 
-
+    file_format_ = FileFormat::ELF;
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);

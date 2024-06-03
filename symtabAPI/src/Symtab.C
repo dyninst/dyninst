@@ -332,6 +332,11 @@ DYNINST_EXPORT bool Symtab::isRelocatableFile() const
     return obj_private->isRelocatableFile();
 }
 
+DYNINST_EXPORT FileFormat Symtab::getFileFormat() const
+{
+    return obj_private->getFileFormat();
+}
+
 DYNINST_EXPORT bool Symtab::isStripped() 
 {
 #if defined(os_linux) || defined(os_freebsd)
