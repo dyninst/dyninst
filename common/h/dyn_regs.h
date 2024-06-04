@@ -1574,7 +1574,7 @@ namespace Dyninst
       const int32_t GPR = 0x00010000; // general purpose registers ()
       const int32_t FPR = 0x00020000; // floating point registers
       //const int32_t VTR = 0x00040000; // vector registers
-      //const int32_t SPR = 0x00080000; // special purpose registers
+      const int32_t SPR = 0x00080000; // special purpose registers
 
       const int32_t FEXT  = 0x00000000; // 32 bits (F registers)
       const int32_t DEXT  = 0x00000100; // 64 bits (D registers)
@@ -1750,6 +1750,24 @@ namespace Dyninst
       // DEF_REGISTER(       ft9,  29 | FPR | Arch_riscv64, "riscv64");
       // DEF_REGISTER(      ft10,  30 | FPR | Arch_riscv64, "riscv64");
       // DEF_REGISTER(      ft11,  31 | FPR | Arch_riscv64, "riscv64");
+
+      // special purpose register
+      DEF_REGISTER(        pc,   0 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(    fflags,   1 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(       frm,   2 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(      fcsr,   3 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(    vstart,   4 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(     vxsat,   5 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(      vxrm,   6 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(      vcsr,   7 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(      seed,   8 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(     cycle,   9 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(      time,  10 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(   instret,  11 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(        vl,  12 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(     vtype,  13 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(     vlenb,  14 | SPR | Arch_riscv64, "riscv64");
+      DEF_REGISTER(      priv,  15 | SPR | Arch_riscv64, "riscv64");
 
     } // end of riscv64 namespace
 
