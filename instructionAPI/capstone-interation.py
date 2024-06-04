@@ -97,6 +97,8 @@ class Translator():
             parts = part.split("\n")
             last_line = parts[-1].strip()
             if len(last_line) == 0: continue
+            # RISC-V register aliases are defined as "RISCV_REG_ZERO = RISCV_REG_X0"
+            if '=' in last_line: continue
             self.cap_reg.append(last_line)
 
         return True
@@ -109,7 +111,7 @@ class Translator():
         elif self.arch == "arm":
             return "aarch64_op_extended", "aarch64_op_zip2_advsimd"
         elif self.arch == "riscv":
-            return "riscv64_op_lui", "riscv64_op_wrs_sto"
+            return "riscv64_op_add", "riscv64_op_xori"
         else:
             print("Not supported arch")
             return "", ""
@@ -121,6 +123,8 @@ class Translator():
             return "power_op"
         elif self.arch == "arm":
             return "aarch64_op"
+        elif self.arch == "riscv":
+            return "riscv64_op"
         else:
             print("Not supported arch")
             return ""
@@ -133,6 +137,8 @@ class Translator():
             return "ppc64"
         elif self.arch == "arm":
             return "aarch64"
+        elif self.arch == "riscv":
+            return "riscv"
         else:
             print("Not supported arch")
             return ""
@@ -173,7 +179,7 @@ class Translator():
         # into Dyninst's opcode with a stirng replacement.
         cap_map = {}
         for op in self.cap_opcode:
-            opcode_suffix = op.split("_")[-1].lower()
+            opcode_suffix = "_".join(op.split("_")[2:]).lower()
             cap_map[opcode_suffix] = op
 
         
@@ -185,6 +191,9 @@ class Translator():
             dyninst_underscore_start = 2
         elif self.arch == "arm":
             # Dyninst's ARMv8 opcode are "aarch64_op_xxx"
+            dyninst_underscore_start = 2
+        elif self.arch == "riscv":
+            # Dyninst's ARMv8 opcode are "riscv64_op_xxx"
             dyninst_underscore_start = 2
         else:
             print("Not supported arch")
@@ -235,7 +244,7 @@ class Translator():
         self.output_file.write("    switch (cap_id) {\n");
         for op in self.cap_opcode:
             self.output_file.write('        case {0}:\n'.format(op))
-            actual_op = op.split("_")[-1].lower()
+            actual_op = "_".join(op.split("_")[2:]).lower()
             actual_op = self.AliasNormalization(actual_op)
             self.output_file.write('            return {0}_{1};\n'.format(prefix, actual_op))
         self.output_file.write('        default:\n')
@@ -244,9 +253,12 @@ class Translator():
 
         self.output_file.write("\nOpcode to string map. To instructionAPI/src/InstructionDecoder-Capstone.C (replace existing opcode_str init code)\n\n");
         for op in self.cap_opcode:
-            actual_op = op.split("_")[-1].lower()
+            actual_op = "_".join(op.split("_")[2:]).lower()
             actual_op = self.AliasNormalization(actual_op)
-            self.output_file.write('    ({0}_{1},"{1}")\n'.format(prefix, actual_op))
+            if self.arch == "riscv":
+                self.output_file.write('    ({0}_{1},"{2}")\n'.format(prefix, actual_op, actual_op.replace('_', '.')))
+            else:
+                self.output_file.write('    ({0}_{1},"{1}")\n'.format(prefix, actual_op))
         self.output_file.write('    (e_No_Entry, "No_Entry");\n')
 
         prefix = self.DyninstRegisterPrefix()
@@ -254,7 +266,7 @@ class Translator():
         self.output_file.write("    switch (cap_reg) {\n");
         for op in self.cap_reg:
             self.output_file.write('        case {0}:\n'.format(op))
-            actual_reg = op.split("_")[-1].lower()
+            actual_reg = "_".join(op.split("_")[2:]).lower()
             if actual_reg == "eflags":
                 actual_reg = "flags"
             elif actual_reg == "ip":

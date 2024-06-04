@@ -20,149 +20,149 @@ namespace Dyninst {
                 case RISCV_INS_ADDW:
                     return riscv64_op_addw;
                 case RISCV_INS_AMOADD_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amoadd_d;
                 case RISCV_INS_AMOADD_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoadd_d_aq;
                 case RISCV_INS_AMOADD_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoadd_d_aq_rl;
                 case RISCV_INS_AMOADD_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoadd_d_rl;
                 case RISCV_INS_AMOADD_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amoadd_w;
                 case RISCV_INS_AMOADD_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoadd_w_aq;
                 case RISCV_INS_AMOADD_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoadd_w_aq_rl;
                 case RISCV_INS_AMOADD_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoadd_w_rl;
                 case RISCV_INS_AMOAND_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amoand_d;
                 case RISCV_INS_AMOAND_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoand_d_aq;
                 case RISCV_INS_AMOAND_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoand_d_aq_rl;
                 case RISCV_INS_AMOAND_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoand_d_rl;
                 case RISCV_INS_AMOAND_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amoand_w;
                 case RISCV_INS_AMOAND_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoand_w_aq;
                 case RISCV_INS_AMOAND_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoand_w_aq_rl;
                 case RISCV_INS_AMOAND_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoand_w_rl;
                 case RISCV_INS_AMOMAXU_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amomaxu_d;
                 case RISCV_INS_AMOMAXU_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amomaxu_d_aq;
                 case RISCV_INS_AMOMAXU_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomaxu_d_aq_rl;
                 case RISCV_INS_AMOMAXU_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomaxu_d_rl;
                 case RISCV_INS_AMOMAXU_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amomaxu_w;
                 case RISCV_INS_AMOMAXU_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amomaxu_w_aq;
                 case RISCV_INS_AMOMAXU_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomaxu_w_aq_rl;
                 case RISCV_INS_AMOMAXU_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomaxu_w_rl;
                 case RISCV_INS_AMOMAX_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amomax_d;
                 case RISCV_INS_AMOMAX_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amomax_d_aq;
                 case RISCV_INS_AMOMAX_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomax_d_aq_rl;
                 case RISCV_INS_AMOMAX_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomax_d_rl;
                 case RISCV_INS_AMOMAX_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amomax_w;
                 case RISCV_INS_AMOMAX_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amomax_w_aq;
                 case RISCV_INS_AMOMAX_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomax_w_aq_rl;
                 case RISCV_INS_AMOMAX_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomax_w_rl;
                 case RISCV_INS_AMOMINU_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amominu_d;
                 case RISCV_INS_AMOMINU_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amominu_d_aq;
                 case RISCV_INS_AMOMINU_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amominu_d_aq_rl;
                 case RISCV_INS_AMOMINU_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amominu_d_rl;
                 case RISCV_INS_AMOMINU_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amominu_w;
                 case RISCV_INS_AMOMINU_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amominu_w_aq;
                 case RISCV_INS_AMOMINU_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amominu_w_aq_rl;
                 case RISCV_INS_AMOMINU_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amominu_w_rl;
                 case RISCV_INS_AMOMIN_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amomin_d;
                 case RISCV_INS_AMOMIN_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amomin_d_aq;
                 case RISCV_INS_AMOMIN_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomin_d_aq_rl;
                 case RISCV_INS_AMOMIN_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomin_d_rl;
                 case RISCV_INS_AMOMIN_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amomin_w;
                 case RISCV_INS_AMOMIN_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amomin_w_aq;
                 case RISCV_INS_AMOMIN_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomin_w_aq_rl;
                 case RISCV_INS_AMOMIN_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amomin_w_rl;
                 case RISCV_INS_AMOOR_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amoor_d;
                 case RISCV_INS_AMOOR_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoor_d_aq;
                 case RISCV_INS_AMOOR_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoor_d_aq_rl;
                 case RISCV_INS_AMOOR_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoor_d_rl;
                 case RISCV_INS_AMOOR_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amoor_w;
                 case RISCV_INS_AMOOR_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoor_w_aq;
                 case RISCV_INS_AMOOR_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoor_w_aq_rl;
                 case RISCV_INS_AMOOR_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoor_w_rl;
                 case RISCV_INS_AMOSWAP_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amoswap_d;
                 case RISCV_INS_AMOSWAP_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoswap_d_aq;
                 case RISCV_INS_AMOSWAP_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoswap_d_aq_rl;
                 case RISCV_INS_AMOSWAP_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoswap_d_rl;
                 case RISCV_INS_AMOSWAP_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amoswap_w;
                 case RISCV_INS_AMOSWAP_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoswap_w_aq;
                 case RISCV_INS_AMOSWAP_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoswap_w_aq_rl;
                 case RISCV_INS_AMOSWAP_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoswap_w_rl;
                 case RISCV_INS_AMOXOR_D:
-                    return riscv64_op_d;
+                    return riscv64_op_amoxor_d;
                 case RISCV_INS_AMOXOR_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoxor_d_aq;
                 case RISCV_INS_AMOXOR_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoxor_d_aq_rl;
                 case RISCV_INS_AMOXOR_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoxor_d_rl;
                 case RISCV_INS_AMOXOR_W:
-                    return riscv64_op_w;
+                    return riscv64_op_amoxor_w;
                 case RISCV_INS_AMOXOR_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_amoxor_w_aq;
                 case RISCV_INS_AMOXOR_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoxor_w_aq_rl;
                 case RISCV_INS_AMOXOR_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_amoxor_w_rl;
                 case RISCV_INS_AND:
                     return riscv64_op_and;
                 case RISCV_INS_ANDI:
@@ -194,91 +194,91 @@ namespace Dyninst {
                 case RISCV_INS_CSRRWI:
                     return riscv64_op_csrrwi;
                 case RISCV_INS_C_ADD:
-                    return riscv64_op_add;
+                    return riscv64_op_c_add;
                 case RISCV_INS_C_ADDI:
-                    return riscv64_op_addi;
+                    return riscv64_op_c_addi;
                 case RISCV_INS_C_ADDI16SP:
-                    return riscv64_op_addi16sp;
+                    return riscv64_op_c_addi16sp;
                 case RISCV_INS_C_ADDI4SPN:
-                    return riscv64_op_addi4spn;
+                    return riscv64_op_c_addi4spn;
                 case RISCV_INS_C_ADDIW:
-                    return riscv64_op_addiw;
+                    return riscv64_op_c_addiw;
                 case RISCV_INS_C_ADDW:
-                    return riscv64_op_addw;
+                    return riscv64_op_c_addw;
                 case RISCV_INS_C_AND:
-                    return riscv64_op_and;
+                    return riscv64_op_c_and;
                 case RISCV_INS_C_ANDI:
-                    return riscv64_op_andi;
+                    return riscv64_op_c_andi;
                 case RISCV_INS_C_BEQZ:
-                    return riscv64_op_beqz;
+                    return riscv64_op_c_beqz;
                 case RISCV_INS_C_BNEZ:
-                    return riscv64_op_bnez;
+                    return riscv64_op_c_bnez;
                 case RISCV_INS_C_EBREAK:
-                    return riscv64_op_ebreak;
+                    return riscv64_op_c_ebreak;
                 case RISCV_INS_C_FLD:
-                    return riscv64_op_fld;
+                    return riscv64_op_c_fld;
                 case RISCV_INS_C_FLDSP:
-                    return riscv64_op_fldsp;
+                    return riscv64_op_c_fldsp;
                 case RISCV_INS_C_FLW:
-                    return riscv64_op_flw;
+                    return riscv64_op_c_flw;
                 case RISCV_INS_C_FLWSP:
-                    return riscv64_op_flwsp;
+                    return riscv64_op_c_flwsp;
                 case RISCV_INS_C_FSD:
-                    return riscv64_op_fsd;
+                    return riscv64_op_c_fsd;
                 case RISCV_INS_C_FSDSP:
-                    return riscv64_op_fsdsp;
+                    return riscv64_op_c_fsdsp;
                 case RISCV_INS_C_FSW:
-                    return riscv64_op_fsw;
+                    return riscv64_op_c_fsw;
                 case RISCV_INS_C_FSWSP:
-                    return riscv64_op_fswsp;
+                    return riscv64_op_c_fswsp;
                 case RISCV_INS_C_J:
-                    return riscv64_op_j;
+                    return riscv64_op_c_j;
                 case RISCV_INS_C_JAL:
-                    return riscv64_op_jal;
+                    return riscv64_op_c_jal;
                 case RISCV_INS_C_JALR:
-                    return riscv64_op_jalr;
+                    return riscv64_op_c_jalr;
                 case RISCV_INS_C_JR:
-                    return riscv64_op_jr;
+                    return riscv64_op_c_jr;
                 case RISCV_INS_C_LD:
-                    return riscv64_op_ld;
+                    return riscv64_op_c_ld;
                 case RISCV_INS_C_LDSP:
-                    return riscv64_op_ldsp;
+                    return riscv64_op_c_ldsp;
                 case RISCV_INS_C_LI:
-                    return riscv64_op_li;
+                    return riscv64_op_c_li;
                 case RISCV_INS_C_LUI:
-                    return riscv64_op_lui;
+                    return riscv64_op_c_lui;
                 case RISCV_INS_C_LW:
-                    return riscv64_op_lw;
+                    return riscv64_op_c_lw;
                 case RISCV_INS_C_LWSP:
-                    return riscv64_op_lwsp;
+                    return riscv64_op_c_lwsp;
                 case RISCV_INS_C_MV:
-                    return riscv64_op_mv;
+                    return riscv64_op_c_mv;
                 case RISCV_INS_C_NOP:
-                    return riscv64_op_nop;
+                    return riscv64_op_c_nop;
                 case RISCV_INS_C_OR:
-                    return riscv64_op_or;
+                    return riscv64_op_c_or;
                 case RISCV_INS_C_SD:
-                    return riscv64_op_sd;
+                    return riscv64_op_c_sd;
                 case RISCV_INS_C_SDSP:
-                    return riscv64_op_sdsp;
+                    return riscv64_op_c_sdsp;
                 case RISCV_INS_C_SLLI:
-                    return riscv64_op_slli;
+                    return riscv64_op_c_slli;
                 case RISCV_INS_C_SRAI:
-                    return riscv64_op_srai;
+                    return riscv64_op_c_srai;
                 case RISCV_INS_C_SRLI:
-                    return riscv64_op_srli;
+                    return riscv64_op_c_srli;
                 case RISCV_INS_C_SUB:
-                    return riscv64_op_sub;
+                    return riscv64_op_c_sub;
                 case RISCV_INS_C_SUBW:
-                    return riscv64_op_subw;
+                    return riscv64_op_c_subw;
                 case RISCV_INS_C_SW:
-                    return riscv64_op_sw;
+                    return riscv64_op_c_sw;
                 case RISCV_INS_C_SWSP:
-                    return riscv64_op_swsp;
+                    return riscv64_op_c_swsp;
                 case RISCV_INS_C_UNIMP:
-                    return riscv64_op_unimp;
+                    return riscv64_op_c_unimp;
                 case RISCV_INS_C_XOR:
-                    return riscv64_op_xor;
+                    return riscv64_op_c_xor;
                 case RISCV_INS_DIV:
                     return riscv64_op_div;
                 case RISCV_INS_DIVU:
@@ -292,133 +292,133 @@ namespace Dyninst {
                 case RISCV_INS_ECALL:
                     return riscv64_op_ecall;
                 case RISCV_INS_FADD_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fadd_d;
                 case RISCV_INS_FADD_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fadd_s;
                 case RISCV_INS_FCLASS_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fclass_d;
                 case RISCV_INS_FCLASS_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fclass_s;
                 case RISCV_INS_FCVT_D_L:
-                    return riscv64_op_l;
+                    return riscv64_op_fcvt_d_l;
                 case RISCV_INS_FCVT_D_LU:
-                    return riscv64_op_lu;
+                    return riscv64_op_fcvt_d_lu;
                 case RISCV_INS_FCVT_D_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fcvt_d_s;
                 case RISCV_INS_FCVT_D_W:
-                    return riscv64_op_w;
+                    return riscv64_op_fcvt_d_w;
                 case RISCV_INS_FCVT_D_WU:
-                    return riscv64_op_wu;
+                    return riscv64_op_fcvt_d_wu;
                 case RISCV_INS_FCVT_LU_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fcvt_lu_d;
                 case RISCV_INS_FCVT_LU_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fcvt_lu_s;
                 case RISCV_INS_FCVT_L_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fcvt_l_d;
                 case RISCV_INS_FCVT_L_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fcvt_l_s;
                 case RISCV_INS_FCVT_S_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fcvt_s_d;
                 case RISCV_INS_FCVT_S_L:
-                    return riscv64_op_l;
+                    return riscv64_op_fcvt_s_l;
                 case RISCV_INS_FCVT_S_LU:
-                    return riscv64_op_lu;
+                    return riscv64_op_fcvt_s_lu;
                 case RISCV_INS_FCVT_S_W:
-                    return riscv64_op_w;
+                    return riscv64_op_fcvt_s_w;
                 case RISCV_INS_FCVT_S_WU:
-                    return riscv64_op_wu;
+                    return riscv64_op_fcvt_s_wu;
                 case RISCV_INS_FCVT_WU_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fcvt_wu_d;
                 case RISCV_INS_FCVT_WU_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fcvt_wu_s;
                 case RISCV_INS_FCVT_W_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fcvt_w_d;
                 case RISCV_INS_FCVT_W_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fcvt_w_s;
                 case RISCV_INS_FDIV_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fdiv_d;
                 case RISCV_INS_FDIV_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fdiv_s;
                 case RISCV_INS_FENCE:
                     return riscv64_op_fence;
                 case RISCV_INS_FENCE_I:
-                    return riscv64_op_i;
+                    return riscv64_op_fence_i;
                 case RISCV_INS_FENCE_TSO:
-                    return riscv64_op_tso;
+                    return riscv64_op_fence_tso;
                 case RISCV_INS_FEQ_D:
-                    return riscv64_op_d;
+                    return riscv64_op_feq_d;
                 case RISCV_INS_FEQ_S:
-                    return riscv64_op_s;
+                    return riscv64_op_feq_s;
                 case RISCV_INS_FLD:
                     return riscv64_op_fld;
                 case RISCV_INS_FLE_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fle_d;
                 case RISCV_INS_FLE_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fle_s;
                 case RISCV_INS_FLT_D:
-                    return riscv64_op_d;
+                    return riscv64_op_flt_d;
                 case RISCV_INS_FLT_S:
-                    return riscv64_op_s;
+                    return riscv64_op_flt_s;
                 case RISCV_INS_FLW:
                     return riscv64_op_flw;
                 case RISCV_INS_FMADD_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fmadd_d;
                 case RISCV_INS_FMADD_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fmadd_s;
                 case RISCV_INS_FMAX_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fmax_d;
                 case RISCV_INS_FMAX_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fmax_s;
                 case RISCV_INS_FMIN_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fmin_d;
                 case RISCV_INS_FMIN_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fmin_s;
                 case RISCV_INS_FMSUB_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fmsub_d;
                 case RISCV_INS_FMSUB_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fmsub_s;
                 case RISCV_INS_FMUL_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fmul_d;
                 case RISCV_INS_FMUL_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fmul_s;
                 case RISCV_INS_FMV_D_X:
-                    return riscv64_op_x;
+                    return riscv64_op_fmv_d_x;
                 case RISCV_INS_FMV_W_X:
-                    return riscv64_op_x;
+                    return riscv64_op_fmv_w_x;
                 case RISCV_INS_FMV_X_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fmv_x_d;
                 case RISCV_INS_FMV_X_W:
-                    return riscv64_op_w;
+                    return riscv64_op_fmv_x_w;
                 case RISCV_INS_FNMADD_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fnmadd_d;
                 case RISCV_INS_FNMADD_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fnmadd_s;
                 case RISCV_INS_FNMSUB_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fnmsub_d;
                 case RISCV_INS_FNMSUB_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fnmsub_s;
                 case RISCV_INS_FSD:
                     return riscv64_op_fsd;
                 case RISCV_INS_FSGNJN_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fsgnjn_d;
                 case RISCV_INS_FSGNJN_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fsgnjn_s;
                 case RISCV_INS_FSGNJX_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fsgnjx_d;
                 case RISCV_INS_FSGNJX_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fsgnjx_s;
                 case RISCV_INS_FSGNJ_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fsgnj_d;
                 case RISCV_INS_FSGNJ_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fsgnj_s;
                 case RISCV_INS_FSQRT_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fsqrt_d;
                 case RISCV_INS_FSQRT_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fsqrt_s;
                 case RISCV_INS_FSUB_D:
-                    return riscv64_op_d;
+                    return riscv64_op_fsub_d;
                 case RISCV_INS_FSUB_S:
-                    return riscv64_op_s;
+                    return riscv64_op_fsub_s;
                 case RISCV_INS_FSW:
                     return riscv64_op_fsw;
                 case RISCV_INS_JAL:
@@ -436,21 +436,21 @@ namespace Dyninst {
                 case RISCV_INS_LHU:
                     return riscv64_op_lhu;
                 case RISCV_INS_LR_D:
-                    return riscv64_op_d;
+                    return riscv64_op_lr_d;
                 case RISCV_INS_LR_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_lr_d_aq;
                 case RISCV_INS_LR_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_lr_d_aq_rl;
                 case RISCV_INS_LR_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_lr_d_rl;
                 case RISCV_INS_LR_W:
-                    return riscv64_op_w;
+                    return riscv64_op_lr_w;
                 case RISCV_INS_LR_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_lr_w_aq;
                 case RISCV_INS_LR_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_lr_w_aq_rl;
                 case RISCV_INS_LR_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_lr_w_rl;
                 case RISCV_INS_LUI:
                     return riscv64_op_lui;
                 case RISCV_INS_LW:
@@ -484,25 +484,25 @@ namespace Dyninst {
                 case RISCV_INS_SB:
                     return riscv64_op_sb;
                 case RISCV_INS_SC_D:
-                    return riscv64_op_d;
+                    return riscv64_op_sc_d;
                 case RISCV_INS_SC_D_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_sc_d_aq;
                 case RISCV_INS_SC_D_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_sc_d_aq_rl;
                 case RISCV_INS_SC_D_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_sc_d_rl;
                 case RISCV_INS_SC_W:
-                    return riscv64_op_w;
+                    return riscv64_op_sc_w;
                 case RISCV_INS_SC_W_AQ:
-                    return riscv64_op_aq;
+                    return riscv64_op_sc_w_aq;
                 case RISCV_INS_SC_W_AQ_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_sc_w_aq_rl;
                 case RISCV_INS_SC_W_RL:
-                    return riscv64_op_rl;
+                    return riscv64_op_sc_w_rl;
                 case RISCV_INS_SD:
                     return riscv64_op_sd;
                 case RISCV_INS_SFENCE_VMA:
-                    return riscv64_op_vma;
+                    return riscv64_op_sfence_vma;
                 case RISCV_INS_SH:
                     return riscv64_op_sh;
                 case RISCV_INS_SLL:
