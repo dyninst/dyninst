@@ -2023,6 +2023,21 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vrndscalesd, "vrndscalesd")
   (e_vdbpsadbw, "vdbpsadbw")
   (e_vphsubsw, "vphsubsw")
+  (e_vphaddbw, "vphaddbw")
+  (e_vphaddbd, "vphaddbd")
+  (e_vphaddbq, "vphaddbq")
+  (e_vphaddwd, "vphaddwd")
+  (e_vphaddwq, "vphaddwq")
+  (e_vphadddq, "vphadddq")
+  (e_vphaddubw, "vphaddubw")
+  (e_vphaddubd, "vphaddubd")
+  (e_vphaddubq, "vphaddubq")
+  (e_vphadduwd, "vphadduwd")
+  (e_vphadduwq, "vphadduwq")
+  (e_vphaddudq, "vphaddudq")
+  (e_vphsubbw, "vphsubbw")
+  (e_vphsubwd, "vphsubwd")
+  (e_vphsubdq, "vphsubdq")
 
  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
@@ -8991,45 +9006,45 @@ static struct ia32_entry XOP9[256] =
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* C0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vphaddbw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphaddbd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphaddbq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vphaddwd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphaddwq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
 		/* C8 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vphadddq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* D0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vphaddubw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphaddubd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphaddubq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vphadduwd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphadduwq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
 		/* D8 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vphaddudq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* E0 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vphsubbw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphsubwd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+		{ e_vphsubdq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
