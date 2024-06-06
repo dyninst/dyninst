@@ -915,10 +915,10 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
         case e_ucomiss:
             return x86_ucomiss;
         case e_ud0:
-            return x86_unknown_instruction;
-        case e_ud2:
             return x86_ud2;
-        case e_ud2grp10:
+        case e_ud1:
+            return x86_ud2;
+        case e_ud2:
             return x86_ud2;
         case e_unpckhpd:
             return x86_unpckhpd;

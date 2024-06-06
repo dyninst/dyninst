@@ -11,7 +11,6 @@ e_movsd_sse, /* pseudo mnemonic */
 e_pextrd_pextrq, /* pseudo mnemonic */
 e_pinsrd_pinsrq, /* pseudo mnemonic */
 e_prefetch_w, /* pseudo mnemonic */
-e_ud2grp10 , /* pseudo mnemonic */
 e_ret_far, /* pseudo mnemonic */
 e_ret_near, /* pseudo mnemonic */
 e_lcall, /* pseudo mnemonic */
