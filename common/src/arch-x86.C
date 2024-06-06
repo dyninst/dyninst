@@ -640,12 +640,12 @@ VEXW00 = 0, VEXW01, VEXW02, VEXW03, VEXW04, VEXW05, VEXW06, VEXW07,
   VEXW78, VEXW79, VEXW7A, VEXW7B, VEXW7C, VEXW7D, VEXW7E, VEXW7F,
   VEXW80, VEXW81, VEXW82, VEXW83, VEXW84, VEXW85, VEXW86, VEXW87,
   VEXW88, VEXW89, VEXW8A, VEXW8B, VEXW8C, VEXW8D, VEXW8E, VEXW8F,
-  VEXW90, VEXW91, VEXW92, VEXW93, VEXW94, VEXW95
+  VEXW90, VEXW91, VEXW92, VEXW93, VEXW94, VEXW95, VEXW96
 };
 /** END_DYNINST_TABLE_DEF */
 
 
-#define VEXW_MAX VEXW95
+#define VEXW_MAX VEXW96
 
 /* XOP8 instructions that use xop.w as selector */
 enum{
@@ -7860,7 +7860,7 @@ ia32_entry sseMapTerMult[][3] =
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSETF0_F2 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_rorx, t_done, 0, true, { Gv, Bv, Ib }, 0, s1W2R3R, 0 },
+        { e_No_Entry, t_vexw, VEXW96, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }
 };
@@ -8477,6 +8477,9 @@ static struct ia32_entry vexWMap[][2] =
     }, { /* VEXW95 */
       { e_vpermps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 }, /* W = 0 */
       { e_vpermpd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 }  /* W = 1 */
+    }, { /* VEXW96 */
+      { e_rorx, t_done, 0, true, { Gv, Ey, Ib }, 0, s1W2R3R, 0 }, /* W = 0 */
+      { e_rorx, t_done, 0, true, { Gv, Ey, Ib }, 0, s1W2R3R, 0 }  /* W = 1 */
     }
 };
 /** END_DYNINST_TABLE_VERIFICATION */
