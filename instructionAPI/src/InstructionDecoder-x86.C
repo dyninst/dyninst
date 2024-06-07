@@ -753,8 +753,9 @@ namespace Dyninst
      * Decode an avx register based on the type of prefix. Returns true if the
      * given configuration is invalid and should be rejected.
      */
-    bool decodeAVX(intelRegBanks& bank, int* bank_index, int regnum, AVX_Regtype type, ia32_prefixes& pref, unsigned int admet)
+    bool decodeAVX(intelRegBanks& bank, int* bank_index, int regnum, AVX_Regtype type, ia32_prefixes& pref, unsigned int admet, bool is64BitMode)
     {
+        bool is64BitReg;
 
         /* Check to see if this is just a normal MMX register access */
         if(type >= AVX_NONE || type < 0)
@@ -828,11 +829,12 @@ namespace Dyninst
 				    *bank_index = 0;
                 return false; /* Return success */
             case am_B:
-                bank = b_64bit;
+                is64BitReg = is64BitMode && pref.vex_w;
+                bank = is64BitReg ? b_64bit : b_32bit;
                 if(regnum > 7)
                 {
                     regnum -= 8;
-                    bank = b_amd64ext;
+                    bank = is64BitReg ? b_amd64ext : amd64_ext_32;
                 }
 
                 if(regnum < 0)
@@ -841,7 +843,7 @@ namespace Dyninst
                     regnum = 7;
 
                 *bank_index = regnum;
-                break;
+                return false;
             default:  break;/** SSE instruction */
         }
 
@@ -1023,7 +1025,7 @@ namespace Dyninst
 
                     /* Grab the correct bank and bank index for this type of register */
                     if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg,
-                                avx_type, pref, operand.admet))
+                                avx_type, pref, operand.admet, is64BitMode))
                         return false;
 
                     /* Append the operand */
@@ -1092,7 +1094,7 @@ namespace Dyninst
                 /* Use Imm byte to encode XMM. Seen in FMA4*/
                  if(decodeAVX(bank, &bank_index, 
                              (*(const uint8_t*)(b.start + locs->imm_position[imm_index++])) >> 4, 
-                             avx_type, pref, operand.admet))
+                             avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1107,7 +1109,7 @@ namespace Dyninst
                     return false;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1122,7 +1124,7 @@ namespace Dyninst
                     return false;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1268,7 +1270,7 @@ namespace Dyninst
 
                             /* Grab the register bank and index */
                             if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM,
-                                        pref, operand.admet))
+                                        pref, operand.admet, is64BitMode))
                                 return false;
 
                             /* Append the operand */
@@ -1292,7 +1294,7 @@ namespace Dyninst
                 avx_type = AVX_XMM;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 insn_to_complete->appendOperand(makeRegisterExpression(
@@ -1310,7 +1312,7 @@ namespace Dyninst
                     avx_type = AVX_YMM;
 
                 /* Grab the correct bank and bank index for this type of register */
-                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1329,7 +1331,7 @@ namespace Dyninst
                 }
 
                 /* Grab the register bank and index */
-                if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1346,7 +1348,7 @@ namespace Dyninst
                 avx_type = AVX_XMM;
 
                 /* Get the register bank and index for this register */
-                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1364,7 +1366,7 @@ namespace Dyninst
                     avx_type = AVX_YMM;
 
                 /* Get the register bank and index */
-                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1378,10 +1380,10 @@ namespace Dyninst
                     return false;
 
                 /* Get the base register number */
-                regnum = locs->modrm_reg;
+                regnum = locs->modrm_reg | (locs->rex_r << 1);
 
                 /* Get the register bank and the index */
-                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1397,7 +1399,7 @@ namespace Dyninst
                 regnum = locs->modrm_reg;
 
                 /* Get the register bank and the index */
-                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1416,7 +1418,7 @@ namespace Dyninst
                     avx_type = AVX_YMM;
 
                 /* Get the register bank and index */
-                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1433,7 +1435,7 @@ namespace Dyninst
                 regnum = locs->modrm_reg;
 
                 /* Get the register bank and the index */
-                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet))
+                if(decodeAVX(bank, &bank_index, regnum, avx_type, pref, operand.admet, is64BitMode))
                     return false;
 
                 /* Append the operand */
@@ -1467,7 +1469,7 @@ namespace Dyninst
                     case 0x03:
                         /* Just the register is used */
                         if(decodeAVX(bank, &bank_index, locs->modrm_rm,
-                                    avx_type, pref, operand.admet))
+                                    avx_type, pref, operand.admet, is64BitMode))
                             return false;
 
                         insn_to_complete->appendOperand(
@@ -1501,7 +1503,7 @@ namespace Dyninst
                         break;
                     case 0x03:
                         /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
+                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet, is64BitMode))
                             return false;
                         insn_to_complete->appendOperand(
                                 makeRegisterExpression(IntelRegTable
@@ -1535,7 +1537,7 @@ namespace Dyninst
                         break;
                     case 0x03:
                         /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
+                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet, is64BitMode))
                             return false;
 
                         /* Append the operand */

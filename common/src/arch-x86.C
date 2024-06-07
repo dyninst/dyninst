@@ -10982,23 +10982,23 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
             case am_F:   /* flags register */
             case am_G:   /* general purpose register, selecteb by reg field */
             case am_P:   /* MMX register */
-            case am_R:   /* general purpose register, selected by r/m field */
             case am_S:   /* segment register */
             case am_T:   /* test register */
             case am_XV:  /* XMM register (From reg of ModR/M) */
-            case am_XU:  /* XMM register (from R/M of ModR/M) */
             case am_XH:  /* XMM register (vvvv of prefix) */
             case am_YV:  /* XMM or YMM register (From reg of ModR/M) */
-            case am_YU:  /* XMM or YMM register (from R/M of ModR/M) */
             case am_YH:  /* XMM or YMM register (vvvv of prefix) */
             case am_V:   /* XMM, YMM or ZMM register (From reg of ModR/M) */
-            case am_U:   /* XMM, YMM or ZMM register (from R/M of ModR/M) */
             case am_H:   /* XMM, YMM or ZMM register (vvvv of prefix) */
             case am_HK:  /* K register (vvvv of prefix) */
             case am_VK:  /* K register (vvvv of prefix) */
             case am_reg: /* register implicitely encoded in opcode */
             case am_allgprs:
                break;
+            case am_R:   /* general purpose register, selected by r/m field */
+            case am_U:   /* XMM, YMM or ZMM register (from R/M of ModR/M) */
+            case am_XU:  /* XMM register (from R/M of ModR/M) */
+            case am_YU:  /* XMM or YMM register (from R/M of ModR/M) */
             case am_E:  /* register or memory location, so decoding needed */
             case am_M:  /* memory operand, decoding needed; size includes modRM byte */
             case am_Q:  /* MMX register or memory location */
@@ -11512,6 +11512,14 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
       /* Move to the next byte */
       ++addr;
    }
+
+    if (pref.vex_present && loc)
+    {
+        loc->rex_w = pref.vex_w << 3;
+        loc->rex_r = pref.vex_r << 2;
+        loc->rex_x = pref.vex_x << 1;
+        loc->rex_b = pref.vex_b;
+    }
 
    /* If there was no error, set prefix count and correct instruction length */
    if(!err)
