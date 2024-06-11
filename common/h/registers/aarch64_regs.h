@@ -722,7 +722,7 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(          spsr_el3, 413 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        tlbi_vale1, 414 |   FULL | SYSREG | Arch_aarch64, "aarch64");
 
-  DEF_REGISTER(IMPLEMENTATION_DEFINED_SYSREG,  417 | D_REG | SYSREG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(IMPLEMENTATION_DEFINED_SYSREG,  255 | D_REG | SYSREG | Arch_aarch64, "aarch64");
 
   // GPRs aliases:
   // by convention
