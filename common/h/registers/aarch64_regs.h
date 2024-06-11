@@ -323,7 +323,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(         sctlr_el3,  12 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         sctlr_el2,  13 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          at_s1e2r,  14 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(          ic_iallu,  15 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(       pmceid0_el0,  17 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         tpidr_el0,  18 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(    contextidr_el1,  20 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -365,7 +364,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(           elr_el3,  57 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(            sp_el0,  59 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      id_mmfr1_el1,  60 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(           ic_ivau,  61 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      cntp_ctl_el0,  66 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         tpidr_el1,  67 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          dc_civac,  68 |   FULL | SYSREG | Arch_aarch64, "aarch64");
@@ -545,7 +543,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(      dbgbvr13_el1, 273 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      dbgbvr14_el1, 274 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      dbgbvr15_el1, 275 |   FULL | SYSREG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(        ic_ialluis, 276 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(           tcr_el3, 277 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          aidr_el1, 278 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        cntfrq_el0, 279 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
@@ -776,6 +773,18 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(      tlbi_vale1is,  29 |   FULL | TLBI | Arch_aarch64, "aarch64");
   DEF_REGISTER(        tlbi_alle3,  30 |   FULL | TLBI | Arch_aarch64, "aarch64");
   DEF_REGISTER(        tlbi_vale1,  31 |   FULL | TLBI | Arch_aarch64, "aarch64");
+
+
+  /*  Assembler mnemonics
+   *
+   *  These are not physical registers; they are used by disassemblers to disambiguate
+   *  opcodes into separate mnemonics.
+   */
+
+  const int32_t MNEMONICS = SYSREG | 0x00DF0000;
+  DEF_REGISTER(   ic_iallu,  0 | FULL | MNEMONICS | Arch_aarch64, "aarch64");  // Instruction Cache Invalidation
+  DEF_REGISTER(    ic_ivau,  1 | FULL | MNEMONICS | Arch_aarch64, "aarch64");
+  DEF_REGISTER( ic_ialluis,  2 | FULL | MNEMONICS | Arch_aarch64, "aarch64");
 
 }}
 
