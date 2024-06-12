@@ -52,6 +52,34 @@ namespace Dyninst { namespace aarch64 {
    *    Arm Architecture Reference Manual for A-profile architecture
    *    2023
    *    B1.2 Registers in AArch64 Execution state
+   *
+   *    [ARMv9S]
+   *    Arm Architecture Reference Manual Supplement
+   *    The Scalable Matrix Extension (SME) for Armv9-A
+   *    7th February 2022
+   *    B2.1 Architectural state summary
+   *
+   *  Notes:
+   *
+   *    ARMA - A1.4 Supported data types
+   *    --------------------------------
+   *    A Scalable Vector Extension (SVE) register has an IMPLEMENTATION DEFINED width that
+   *    is a power of two, from a minimum of 128 bits up to a maximum of 2048 bits. All SVE
+   *    scalable vector registers in an implementation are the same width. We assume they
+   *    are 2048 bits.
+   *
+   *    An SVE predicate register has an IMPLEMENTATION DEFINED width that is a power of two,
+   *    from a minimum of 16 bits up to a maximum of 256 bits (i.e., length of an SVE vector
+   *    divided by 8). We assume they are 256 bits.
+   *
+   *    ARMv9S - B2.1 Architectural state summary
+   *    -----------------------------------------
+   *    The Scalable Matrix Extension (SME) Effective Streaming SVE vector length, SVL, is a
+   *    power of two in the range 128 to 2048 bits inclusive. When the processor is in
+   *    Streaming SVE mode, the Effective SVE vector length, VL, is equal to SVL. This might
+   *    be different from the value of VL when the PE is not in Streaming SVE mode. See
+   *    'C2.1.3 Vector lengths' for details. We assume SME registers are always 2048 bits.
+   *
    **/
   const int32_t FULL   = 0x00000000;  // 64-bit double-word
   const int32_t D_REG  = 0x00000100;  // 32-bit single-word
@@ -59,12 +87,17 @@ namespace Dyninst { namespace aarch64 {
   const int32_t B_REG  = 0x00000300;  // 8-bit byte
   const int32_t BIT    = 0x00000400;  // 1 bit
   const int32_t Q_REG  = 0x00000500;  // 128-bit vector
+  const int32_t SVES   = 0x00000600;  // 2048-bit Scalable Vector Extension (SVE) vector length
+  const int32_t PREDS  = 0x00000700;  // SVE predicate register
+  const int32_t SVE2S  = 0x00000800;  // 512-bit Scalable Vector Extension
 
   /* Base Register Categories */
   const int32_t GPR  = 0x00000000;  // General-purpose
   const int32_t FPR  = 0x00010000;  // Floating-point
   const int32_t SPR  = 0x00020000;  // Special-purpose
   const int32_t FLAG = 0x00030000;  // Control/Status flag
+  const int32_t SVE  = 0x00040000;  // Scalable Vector Extension
+  const int32_t SVE2 = 0x00050000;  // Scalable Vector Extension, version 2
   const int32_t SYSREG = 0x00100000;
 
 
@@ -309,6 +342,58 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(                 s29, 157 |  D_REG |        FPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 s30, 158 |  D_REG |        FPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 s31, 159 |  D_REG |        FPR | Arch_aarch64, "aarch64");
+
+  DEF_REGISTER(                 ffr,   0 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p0,   1 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p1,   2 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p2,   3 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p3,   4 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p4,   5 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p5,   6 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p6,   7 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p7,   8 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p8,   9 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  p9,  10 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 p10,  11 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 p11,  12 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 p12,  13 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 p13,  14 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 p14,  15 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 p15,  16 |  PREDS |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  vg,  17 |   FULL |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z0,  18 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z1,  19 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z2,  20 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z3,  21 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z4,  22 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z5,  23 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z6,  24 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z7,  25 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z8,  26 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  z9,  27 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z10,  28 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z11,  29 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z12,  30 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z13,  31 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z14,  32 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z15,  33 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z16,  34 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z17,  35 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z18,  36 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z19,  37 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z20,  38 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z21,  39 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z22,  40 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z23,  41 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z24,  42 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z25,  43 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z26,  44 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z27,  45 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z28,  46 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z29,  47 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z30,  48 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 z31,  49 |   SVES |        SVE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 zt0,   0 |  SVE2S |       SVE2 | Arch_aarch64, "aarch64");
 
   DEF_REGISTER(   id_aa64pfr1_el1,   1 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        sder32_el3,   2 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
