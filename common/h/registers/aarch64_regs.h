@@ -652,6 +652,7 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(         mpidr_el1, 410 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(         amair_el1, 411 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(          spsr_el3, 413 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(              fpsr, 414 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
 
 /************************************************************************************
  *
@@ -681,7 +682,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(      z,  Z_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      c,  C_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      v,  V_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(   fpsr,       5 | D_REG |    SPR | Arch_aarch64, "aarch64");
   
   
   // Upper 64 bits in 128-bit reg
