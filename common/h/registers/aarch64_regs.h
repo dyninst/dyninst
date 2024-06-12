@@ -77,8 +77,17 @@ namespace Dyninst { namespace aarch64 {
    *  [0xff000000] Upper 8 bits are the architecture.
    **/
 
-  // 31 GPRs, double word long registers
-  //          (              name,  ID |  alias |    cat |         arch,      arch)
+  //          (                name,  ID |  alias |        cat |         arch,      arch)
+  DEF_REGISTER(                  fp,   0 |   FULL |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                fpcr,   1 |  D_REG |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  lr,   2 |   FULL |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                nzcv,   0 |    BIT |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  pc,   3 |   FULL |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  sp,   4 |   FULL |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 wsp,   5 |  D_REG |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 wzr,   6 |  D_REG |        SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 xzr,   7 |   FULL |        SPR | Arch_aarch64, "aarch64");
+
   DEF_REGISTER(                x0,   0 |   FULL |    GPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                w0,   0 |  D_REG |    GPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                x1,   1 |   FULL |    GPR | Arch_aarch64, "aarch64");
@@ -662,24 +671,17 @@ namespace Dyninst { namespace aarch64 {
   // x31 can be sp or zero register depending on the context
 
   // special registers
-  // PC is not writable in aarch64
   const int32_t N_FLAG = 31;
   const int32_t Z_FLAG = 30;
   const int32_t C_FLAG = 29;
   const int32_t V_FLAG = 28;
 
-  DEF_REGISTER(                sp,      31 |  FULL |    SPR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(               wsp,       0 | D_REG |    SPR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                pc,      32 |  FULL |    SPR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(            pstate,       2 | D_REG |    SPR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(               xzr,       3 |  FULL |    SPR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 n,  N_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 z,  Z_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 c,  C_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 v,  V_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
-  DEF_REGISTER(               wzr,       3 | D_REG |    SPR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(              fpcr,       4 | D_REG |    SPR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(              fpsr,       5 | D_REG |    SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER( pstate,       2 | D_REG |    SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER(      n,  N_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(      z,  Z_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(      c,  C_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(      v,  V_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(   fpsr,       5 | D_REG |    SPR | Arch_aarch64, "aarch64");
   
   
   // Upper 64 bits in 128-bit reg
