@@ -78,6 +78,8 @@ namespace Dyninst
                     return Ptr(new InstructionDecoder_aarch64(a));
                 case Arch_amdgpu_vega:
                     return Ptr(new InstructionDecoder_amdgpu_vega(a));
+                case Arch_riscv64:
+                    return Ptr(new InstructionDecoder_Capstone(a));
                 default:
                     assert(0);
                     return Ptr();

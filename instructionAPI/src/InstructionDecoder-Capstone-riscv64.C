@@ -7,10 +7,13 @@ namespace Dyninst {
 namespace InstructionAPI {
 
 void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn, cs_detail* d) {
-    // TODO floating points instructions
+    // Note: Compressed instructions currently does not work correctly.
+    // See https://github.com/capstone-engine/capstone/issues/2351
 
     bool isCFT = false;
-    bool isCall = false;
+    bool isConditional = false;
+    bool isJumpReg = false;     // jump to an address in a register
+    bool isJumpOffset = false;  // relative jump from program counter
     bool err = false;
     entryID eid = insn->getOperation().getID();
     cs_riscv* detail = &(d->riscv);
@@ -18,229 +21,158 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
     MachRegister (InstructionDecoder_Capstone::*regTrans)(uint32_t);
     regTrans = &InstructionDecoder_Capstone::registerTranslation_riscv64;
 
-    // // TODO optimize the following code
-
-    // // jal
-    // if (eid == riscv64_op_jal) {
-    //     assert(detail->op_count == 2);
-    //     cs_riscv_op* operands = detail->operands;
-    //     assert(operands[0].type == RISCV_OP_REG);
-    //     assert(operands[1].type == RISCV_OP_REG);
-
-    //     MachRegister jmpReg = (this->*regTrans)(operands[0].reg);
-    //     MachRegister linkReg = (this->*regTrans)(operands[1].reg);
-    //     // RISC-V does not have a `call` instruction. `jal ra, func` is used to call a function
-    //     if (jmpReg == riscv64::ra) {
-    //         isCall = true;
-    //     }
-    //     Expression::Ptr jmpRegAST = makeRegisterExpression((this->*regTrans)(jmpReg));
-    //     Expression::Ptr linkRegAST = makeRegisterExpression((this->*regTrans)(linkReg));
-    //     insn->addSuccessor(jmpRegAST, isCall, false, false, false);
-    //     insn->appendOperand(linkRegAST, true, true, false);
-    // }
-
-    // // jalr
-    // if (eid == riscv64_op_jalr) {
-    //     assert(detail->op_count == 3);
-    //     cs_riscv_op* operands = detail->operands;
-    //     assert(operands[0].type == RISCV_OP_REG);
-    //     assert(operands[1].type == RISCV_OP_REG);
-    //     MachRegister jmpReg = (this->*regTrans)(detail->operands[0].reg);
-    //     MachRegister linkReg = (this->*regTrans)(detail->operands[1].reg);
-    //     auto offset = detail->operands[2].imm;
-    //     Expression::Ptr jmpRegAST = makeRegisterExpression((this->*regTrans)(jmpReg));
-    //     Expression::Ptr linkRegAST = makeRegisterExpression((this->*regTrans)(linkReg));
-    //     Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
-    //     insn->addSuccessor(jmpRegAST, isCall, false, false, false);
-    //     insn->appendOperand(linkRegAST, true, true, false);
-
-    // }
-
-    // Take special care for branch instructions
-    // In x86, branch instructions (e.g. jmp) only accepts 1 operand.
-    // In RISC-V, for some instructions (e.g. jalr), calculating the jump address requires knowing some operands in advance
-    // So for branch instructions, writing the AST construction logic in a single loop is probably not a good idea
+    // This is the index of the operand register to branch to
+    int jumpOpIndex = -1;
     InsnCategory cat = insn->getCategory();
     if (cat == c_BranchInsn) {
-        // Unconditional jumps include: `jal`, `jalr`, `c.j`, `c.jr`, `c.jal`, `c.jalr`
-        // Conditional jumps include:   `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`
-        int jmpRegIdx = -1, jmpOffsetIdx = -1;
-        cs_riscv_op* operands = detail->operands;
+        isCFT = true;
         switch (eid) {
-            case riscv64_op_jal: {
-                Expression::Ptr regLinkAST = makeRegisterExpression((this->*regTrans)(operands[0].reg));
-                insn->appendOperand(regLinkAST, false, true, false);
-                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                Expression::Ptr immOffsetAST = Immediate::makeImmediate(Result(s32, operands[1].imm));
-                Expression::Ptr branchedIP(makeAddExpression(IP, immOffsetAST, u64));
-                insn->addSuccessor(branchedIP, false, false, false, false);
+            case riscv64_op_jal:
+                isJumpOffset = true;
+                jumpOpIndex = 1;
                 break;
-            }
-            case riscv64_op_jalr: {
-                Expression::Ptr regLinkAST = makeRegisterExpression((this->*regTrans)(operands[0].reg));
-                insn->appendOperand(regLinkAST, false, true, false);
-                Expression::Ptr regDestAST = makeRegisterExpression((this->*regTrans)(operands[1].reg));
-                Expression::Ptr immOffsetAST = Immediate::makeImmediate(Result(s32, operands[2].imm));
-                Expression::Ptr branchedIP(makeAddExpression(regDestAST, immOffsetAST, u64));
-                insn->addSuccessor(branchedIP, false, false, false, false);
+            case riscv64_op_jalr:
+                isJumpReg = true;
+                isJumpOffset = true;
+                jumpOpIndex = 1;
                 break;
-            }
             case riscv64_op_beq:
             case riscv64_op_bne:
-            case riscv64_op_bge:
-            case riscv64_op_bgeu:
             case riscv64_op_blt:
-            case riscv64_op_bltu: {
-                Expression::Ptr regLeftAST = makeRegisterExpression((this->*regTrans)(operands[0].reg));
-                insn->appendOperand(regLeftAST, true, false, false);
-                Expression::Ptr regRightAST = makeRegisterExpression((this->*regTrans)(operands[1].reg));
-                insn->appendOperand(regRightAST, true, false, false);
-                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                Expression::Ptr immOffsetAST = Immediate::makeImmediate(Result(s32, operands[2].imm));
-                Expression::Ptr branchedIP(makeAddExpression(IP ,immOffsetAST, u64));
-                insn->addSuccessor(branchedIP, false, false, true, false);
-                insn->addSuccessor(IP, false, false, true, false);
+            case riscv64_op_bge:
+            case riscv64_op_bltu:
+            case riscv64_op_bgeu:
+                isJumpOffset = true;
+                isConditional = true;
+                jumpOpIndex = 2;
                 break;
-            }
-            case riscv64_op_c_j: {
-                // c.j expands to `jal zero, offset`
-                // TODO The value of `zero` is hardwired to 0, so written to it has no effect.
-
-                // Expression::Ptr regLinkAST = makeRegisterExpression(riscv64::zero);
-                // insn->appendOperand(regLinkAST, false, true, true);
-                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                Expression::Ptr immOffsetAST = Immediate::makeImmediate(Result(s32, operands[0].imm));
-                Expression::Ptr branchedIP(makeAddExpression(IP, immOffsetAST, u64));
-                insn->addSuccessor(branchedIP, false, false, false, false);
+            case riscv64_op_c_jal:
+            case riscv64_op_c_j:
+                isJumpOffset = true;
+                jumpOpIndex = 0;
                 break;
-            }
-            case riscv64_op_c_jal: {
-                // c.jal expands to `jal ra, offset`
-                Expression::Ptr regLinkAST = makeRegisterExpression(riscv64::ra);
-                insn->appendOperand(regLinkAST, false, true, true);
-                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                Expression::Ptr immOffsetAST = Immediate::makeImmediate(Result(s32, operands[0].imm));
-                Expression::Ptr branchedIP(makeAddExpression(IP, immOffsetAST, u64));
-                insn->addSuccessor(branchedIP, false, false, false, false);
+            case riscv64_op_c_jr:
+            case riscv64_op_c_jalr:
+                isJumpReg = true;
+                jumpOpIndex = 0;
                 break;
-            }
-            case riscv64_op_c_jr: {
-                // c.jr expands to `jalr zero, 0(rs1)`
-                // Expression::Ptr regLinkAST = makeRegisterExpression(riscv64::zero);
-                // insn->appendOperand(regLinkAST, false, true, true);
-                Expression::Ptr regDestAST = makeRegisterExpression((this->*regTrans)(operands[0].reg));
-                insn->addSuccessor(regDestAST, false, false, false, false);
-                break;
-            }
-            case riscv64_op_c_jalr: {
-                // c.jr expands to `jalr ra, 0(rs1)`
-                Expression::Ptr regLinkAST = makeRegisterExpression(riscv64::ra);
-                insn->appendOperand(regLinkAST, false, true, true);
-                Expression::Ptr regDestAST = makeRegisterExpression((this->*regTrans)(operands[0].reg));
-                insn->addSuccessor(regDestAST, false, false, false, false);
-                break;
-            }
             case riscv64_op_c_beqz:
-            case riscv64_op_c_bnez: {
-                // c.beqz expands to `beq rs1, x0, offset`
-                // c.bnez expands to `bne rs1, x0, offset`
-                Expression::Ptr regLeftAST = makeRegisterExpression((this->*regTrans)(operands[0].reg));
-                insn->appendOperand(regLeftAST, true, false, false);
-                // Expression::Ptr regRightAST = makeRegisterExpression(riscv64::zero);
-                // insn->appendOperand(regRightAST, true, false, true);
-                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                Expression::Ptr immOffsetAST = Immediate::makeImmediate(Result(s32, operands[1].imm));
-                Expression::Ptr branchedIP(makeAddExpression(IP ,immOffsetAST, u64));
-                insn->addSuccessor(branchedIP, false, false, true, false);
-                insn->addSuccessor(IP, false, false, true, false);
+            case riscv64_op_c_bnez:
+                isJumpOffset = true;
+                jumpOpIndex = 1;
                 break;
-            }
             default:
                 break;
         }
     }
-    else {
-        // TODO
-        // For RISC-V, Capstone does NOT report whether register operands are read or written
-        // I temporarily mark it as both read and written to be conservative
-        // I think it's better to determine whether each register is being read or written
-        // depending on the current instruction.
-        for (uint8_t i = 0; i < detail->op_count; ++i) {
-            cs_riscv_op* operand = &(detail->operands[i]);
-            if (operand->type == RISCV_OP_REG) {
-                Expression::Ptr regAST = makeRegisterExpression((this->*regTrans)(operand->reg));
-                insn->appendOperand(regAST, true, true, false);
-            } else if (operand->type == RISCV_OP_IMM) {
-                Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, operand->imm));
-                insn->appendOperand(immAST, false, false, false);
-            } else if (operand->type == RISCV_OP_MEM) {
-                riscv_op_mem* mem = &(operand->mem);
-                Expression::Ptr effectiveAddr = makeRegisterExpression((this->*regTrans)(mem->base));
-                Result_Type type = invalid_type;
-                bool isLoad = false, isStore = false;
-                // memory access type depends on the instruction
-                switch (eid) {
-                    case riscv64_op_lb:
-                    case riscv64_op_lbu:
-                        type = u8;
-                        isLoad = true;
-                        break;
-                    case riscv64_op_sb:
-                        type = u8;
-                        isStore = true;
-                        break;
-                    case riscv64_op_lh:
-                    case riscv64_op_lhu:
-                        isLoad = true;
-                        type = u16;
-                        break;
-                    case riscv64_op_sh:
-                        isStore = true;
-                        type = u16;
-                        break;
-                    case riscv64_op_lw:
-                    case riscv64_op_lr_w:
-                    case riscv64_op_lwu:
-                        isLoad = true;
-                        type = u32;
-                        break;
-                    case riscv64_op_sw:
-                    case riscv64_op_sc_w:
-                    case riscv64_op_sc_w_aq:
-                    case riscv64_op_sc_w_aq_rl:
-                    case riscv64_op_sc_w_rl:
-                        isStore = true;
-                        type = u32;
-                        break;
-                    case riscv64_op_ld:
-                    case riscv64_op_lr_d:
-                        isLoad = true;
-                        type = u64;
-                        break;
-                    case riscv64_op_sd:
-                    case riscv64_op_sc_d:
-                    case riscv64_op_sc_d_aq:
-                    case riscv64_op_sc_d_aq_rl:
-                    case riscv64_op_sc_d_rl:
-                        isStore = true;
-                        type = u64;
-                        break;
-                    default:
-                        break;
+
+    // TODO
+    // For RISC-V, Capstone does NOT report whether register operands are read or written
+    // I temporarily mark it as both read and written to be conservative
+    // I think it's better to determine whether each register is being read or written
+    // depending on the current instruction.
+    for (uint8_t i = 0; i < detail->op_count; ++i) {
+        cs_riscv_op* operand = &(detail->operands[i]);
+        if (operand->type == RISCV_OP_REG) {
+            Expression::Ptr regAST = makeRegisterExpression((this->*regTrans)(operand->reg));
+            if (isCFT && isJumpReg && jumpOpIndex == i) {
+                if (isJumpOffset) {
+                    // special case: JALR RD1, RS1, OFFSET.
+                    // it jumps to [RS1] + offset, so we need to know the offset in advance
+                    cs_riscv_op* nextOperand = &(detail->operands[i + 1]);
+                    assert(nextOperand->type == RISCV_OP_IMM);
+                    Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, nextOperand->imm));
+                    Expression::Ptr target(makeAddExpression(regAST, immAST, u64));
+                    insn->addSuccessor(target, false, false, false, false);
+                    // the next operand is already handled. skip it
+                    ++i;
+                } else {
+                    // if a call or a jump has a register as an operand,
+                    // it should not be a conditional jump
+                    insn->addSuccessor(regAST, false, true, false, false);
                 }
-                if (mem->disp != 0) {
-                    // offsets are 12 bits long signed integers
-                    Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
-                    effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
-                }
-                if (type == invalid_type) {
-                    err = true;
-                }
-                Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, type);
-                insn->appendOperand(memAST, isLoad, isStore, false);
             } else {
-                fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
+                insn->appendOperand(regAST, true, true, false);
             }
+        } else if (operand->type == RISCV_OP_IMM) {
+            Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, operand->imm));
+            if (isCFT && isJumpOffset && jumpOpIndex == i) {
+                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+                Expression::Ptr target(makeAddExpression(IP, immAST, u64));
+                insn->addSuccessor(target, false, false, isConditional, false);
+                if (isConditional) {
+                    insn->addSuccessor(IP, false, false, true, true);
+                }
+            } else {
+                insn->appendOperand(immAST, false, false, false);
+            }
+        } else if (operand->type == RISCV_OP_MEM) {
+            riscv_op_mem* mem = &(operand->mem);
+            Expression::Ptr effectiveAddr = makeRegisterExpression((this->*regTrans)(mem->base));
+            Result_Type type = invalid_type;
+            bool isLoad = false, isStore = false;
+            // memory access type depends on the instruction
+            switch (eid) {
+                case riscv64_op_lb:
+                case riscv64_op_lbu:
+                    type = u8;
+                    isLoad = true;
+                    break;
+                case riscv64_op_sb:
+                    type = u8;
+                    isStore = true;
+                    break;
+                case riscv64_op_lh:
+                case riscv64_op_lhu:
+                    isLoad = true;
+                    type = u16;
+                    break;
+                case riscv64_op_sh:
+                    isStore = true;
+                    type = u16;
+                    break;
+                case riscv64_op_lw:
+                case riscv64_op_lr_w:
+                case riscv64_op_lwu:
+                    isLoad = true;
+                    type = u32;
+                    break;
+                case riscv64_op_sw:
+                case riscv64_op_sc_w:
+                case riscv64_op_sc_w_aq:
+                case riscv64_op_sc_w_aq_rl:
+                case riscv64_op_sc_w_rl:
+                    isStore = true;
+                    type = u32;
+                    break;
+                case riscv64_op_ld:
+                case riscv64_op_lr_d:
+                    isLoad = true;
+                    type = u64;
+                    break;
+                case riscv64_op_sd:
+                case riscv64_op_sc_d:
+                case riscv64_op_sc_d_aq:
+                case riscv64_op_sc_d_aq_rl:
+                case riscv64_op_sc_d_rl:
+                    isStore = true;
+                    type = u64;
+                    break;
+                default:
+                    break;
+            }
+            if (mem->disp != 0) {
+                // offsets are 12 bits long signed integers
+                Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
+                effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
+            }
+            if (type == invalid_type) {
+                err = true;
+            }
+            Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, type);
+            insn->appendOperand(memAST, isLoad, isStore, false);
+        } else {
+            fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
         }
     }
 }
