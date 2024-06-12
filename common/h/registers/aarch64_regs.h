@@ -80,6 +80,12 @@ namespace Dyninst { namespace aarch64 {
    *    be different from the value of VL when the PE is not in Streaming SVE mode. See
    *    'C2.1.3 Vector lengths' for details. We assume SME registers are always 2048 bits.
    *
+   *    ARMv9S - B2.2 SME ZA storage
+   *    -----------------------------------------
+   *    The ZA storage is architectural register state consisting of a two-dimensional ZA
+   *    array of [SVLB × SVLB ] bytes. SLVB is the number of 8-bit elements in an SVE vector
+   *    of length SVL.
+   *
    **/
   const int32_t FULL   = 0x00000000;  // 64-bit double-word
   const int32_t D_REG  = 0x00000100;  // 32-bit single-word
@@ -90,6 +96,8 @@ namespace Dyninst { namespace aarch64 {
   const int32_t SVES   = 0x00000600;  // 2048-bit Scalable Vector Extension (SVE) vector length
   const int32_t PREDS  = 0x00000700;  // SVE predicate register
   const int32_t SVE2S  = 0x00000800;  // 512-bit Scalable Vector Extension
+  const int32_t SVLS   = 0x00000900;  // 2048-bit SME Effective Streaming SVE vector length (SVL)
+  const int32_t SMEZAS = 0x00000A00;  // Scalable Matrix Extension ZA array
 
   /* Base Register Categories */
   const int32_t GPR  = 0x00000000;  // General-purpose
@@ -98,6 +106,7 @@ namespace Dyninst { namespace aarch64 {
   const int32_t FLAG = 0x00030000;  // Control/Status flag
   const int32_t SVE  = 0x00040000;  // Scalable Vector Extension
   const int32_t SVE2 = 0x00050000;  // Scalable Vector Extension, version 2
+  const int32_t SME  = 0x00060000;  // Scalable Matrix Extension
   const int32_t SYSREG = 0x00100000;
 
 
@@ -394,6 +403,39 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(                 z30,  48 |   SVES |        SVE | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 z31,  49 |   SVES |        SVE | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 zt0,   0 |  SVE2S |       SVE2 | Arch_aarch64, "aarch64");
+
+  DEF_REGISTER(                  za,   0 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zab0,   1 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad0,   2 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad1,   3 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad2,   4 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad3,   5 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad4,   6 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad5,   7 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad6,   8 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zad7,   9 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zah0,  10 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zah1,  11 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq0,  12 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq1,  13 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq2,  14 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq3,  15 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq4,  16 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq5,  17 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq6,  18 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq7,  19 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq8,  20 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zaq9,  21 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               zaq10,  22 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               zaq11,  23 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               zaq12,  24 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               zaq13,  25 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               zaq14,  26 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               zaq15,  27 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zas0,  28 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zas1,  29 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zas2,  30 | SMEZAS |        SME | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                zas3,  31 | SMEZAS |        SME | Arch_aarch64, "aarch64");
 
   DEF_REGISTER(   id_aa64pfr1_el1,   1 |   FULL | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(        sder32_el3,   2 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
