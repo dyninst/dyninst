@@ -66,11 +66,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         }
     }
 
-    // TODO
     // For RISC-V, Capstone does NOT report whether register operands are read or written
     // I temporarily mark it as both read and written to be conservative
-    // I think it's better to determine whether each register is being read or written
-    // depending on the current instruction.
+    // TODO: add and contribute register read/write support directly to Capstone
     for (uint8_t i = 0; i < detail->op_count; ++i) {
         cs_riscv_op* operand = &(detail->operands[i]);
         if (operand->type == RISCV_OP_REG) {
