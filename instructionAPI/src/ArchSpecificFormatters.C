@@ -149,6 +149,57 @@ std::string ArmFormatter::formatBinaryFunc(std::string left, std::string func, s
         return left + " " + func + " " + right;
 }
 
+///////// Formatter for RISCV
+
+RISCVFormatter::RISCVFormatter() {
+}
+
+std::string RISCVFormatter::formatImmediate(std::string evalString) {
+    return "0x" + evalString;
+}
+
+std::string RISCVFormatter::formatRegister(std::string regName) {
+    std::string::size_type substr = regName.rfind(':');
+    std::string ret = regName;
+
+    if (substr != std::string::npos) {
+        ret = ret.substr(substr + 1, ret.length());
+    }
+    return ret;
+}
+
+std::string RISCVFormatter::formatDeref(std::string addrString) {
+    std::string out;
+    size_t pluspos = addrString.find("+");
+
+    if(pluspos != std::string::npos) {
+        out += addrString.substr(pluspos + 2) + "(" + addrString.substr(0, pluspos - 1) + ")";
+    } else {
+        out += addrString;
+    }
+
+    return out;
+}
+
+std::string RISCVFormatter::getInstructionString(std::vector<std::string> operands) {
+    std::string out;
+
+    for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
+        out += *itr;
+        if(itr != operands.end() - 1)
+            out += ", ";
+    }
+
+    return out;
+}
+
+std::string RISCVFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
+    if (left.find("pc") != std::string::npos) {
+        return right;
+    }
+    return left + " " + func + " " + right;
+}
+
 ///////// Formatter for AMDGPU
 
 AmdgpuFormatter::AmdgpuFormatter() {
@@ -390,6 +441,9 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
         case Arch_aarch32:
         case Arch_aarch64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());
+            break;
+        case Arch_riscv64:
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new RISCVFormatter());
             break;
         case Arch_ppc32:
         case Arch_ppc64:

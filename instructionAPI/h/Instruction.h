@@ -316,7 +316,7 @@ namespace Dyninst
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;
-      ArchSpecificFormatter& formatter;
+      std::reference_wrapper<ArchSpecificFormatter> formatter;
     };
   }
 }
