@@ -210,7 +210,7 @@ namespace Dyninst
 
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
-        formatter = rhs.formatter;
+      formatter = rhs.formatter;
       arch_decoded_from = rhs.arch_decoded_from;
       m_Successors = rhs.m_Successors;
       return *this;
@@ -554,7 +554,7 @@ memAccessors.begin()));
         cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
 
-        return opstr + formatter.getInstructionString(formattedOperands);
+        return opstr + formatter.get().getInstructionString(formattedOperands);
     }
 
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
