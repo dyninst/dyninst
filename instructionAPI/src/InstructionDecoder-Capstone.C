@@ -62,8 +62,16 @@ bool InstructionDecoder_Capstone::openCapstoneHandle() {
             ret2 = cs_open(CS_ARCH_PPC, CS_MODE_64, &handle_with_detail);
             break;
         case Arch_aarch64:
+// Some versions of capstone are not compiled with CAPSTONE_AARCH64_COMPAT_HEADER enabled
+// if CAPSTONE_AARCH64_COMPAT_HEADER is set, CS_ARCH_ARM64 will be defined
+// otherwise, CS_ARCH_AARCH64 will be defined
+#ifdef CAPSTONE_AARCH64_COMPAT_HEADER
             ret1 = cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle_no_detail);
             ret2 = cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle_with_detail);
+#else
+            ret1 = cs_open(CS_ARCH_AARCH64, CS_MODE_ARM, &handle_no_detail);
+            ret2 = cs_open(CS_ARCH_AARCH64, CS_MODE_ARM, &handle_with_detail);
+#endif
             break;
         case Arch_riscv64:
             ret1 = cs_open(CS_ARCH_RISCV, CS_MODE_RISCV64, &handle_no_detail);
