@@ -74,8 +74,8 @@ bool InstructionDecoder_Capstone::openCapstoneHandle() {
 #endif
             break;
         case Arch_riscv64:
-            ret1 = cs_open(CS_ARCH_RISCV, CS_MODE_RISCV64, &handle_no_detail);
-            ret2 = cs_open(CS_ARCH_RISCV, CS_MODE_RISCV64, &handle_with_detail);
+            ret1 = cs_open(CS_ARCH_RISCV, CS_MODE_RISCVC, &handle_no_detail);
+            ret2 = cs_open(CS_ARCH_RISCV, CS_MODE_RISCVC, &handle_with_detail);
             break;
         default:
             ret1 = ret2 = CS_ERR_ARCH;
