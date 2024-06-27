@@ -93,19 +93,12 @@ if(UNIX)
     endif()
 endif()
 
+find_package(Threads REQUIRED)
 dyninst_library(
     dyninstAPI_RT BUILD_STATIC BUILD_SHARED
     SOURCES ${SRC_LIST}
     INCLUDE_DIRECTORIES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h>
-    LINK_LIBRARIES
-        Dyninst::headers
-        Dyninst::Boost
-        Dyninst::TBB
-        PRIVATE
-        Dyninst::dynDL
-        Dyninst::dynWinWs2_32
-        Dyninst::dynWinDbgHelp
-        Dyninst::dynWinPsapi)
+    LINK_LIBRARIES Dyninst::headers PRIVATE Dyninst::dynDL Dyninst::dynPthread)
 
 if(TARGET dyninstAPI_RT-static)
     target_sources(dyninstAPI_RT-static PRIVATE ${RT_STATIC_ONLY_SRC_LIST})
