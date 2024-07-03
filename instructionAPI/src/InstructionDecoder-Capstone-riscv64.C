@@ -66,9 +66,6 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         }
     }
 
-    // For RISC-V, Capstone does NOT report whether register operands are read or written
-    // I temporarily mark it as both read and written to be conservative
-    // TODO: add and contribute register read/write support directly to Capstone
     for (uint8_t i = 0; i < detail->op_count; ++i) {
         cs_riscv_op* operand = &(detail->operands[i]);
         if (operand->type == RISCV_OP_REG) {
@@ -90,7 +87,12 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                     insn->addSuccessor(regAST, false, true, false, false);
                 }
             } else {
-                insn->appendOperand(regAST, true, true, false);
+                bool isRead = ((operand->access & CS_AC_READ) != 0);
+                bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
+                if (!isRead && !isWritten) {
+                    isRead = isWritten = true;
+                }
+                insn->appendOperand(regAST, isRead, isWritten, false);
             }
         } else if (operand->type == RISCV_OP_IMM) {
             Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, operand->imm));
@@ -110,6 +112,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
             Result_Type type = invalid_type;
             bool isLoad = false, isStore = false;
             // memory access type depends on the instruction
+            // TODO Add and contribute RISC-V access size support directly to Capstone
             switch (eid) {
                 case riscv64_op_lb:
                 case riscv64_op_lbu:
@@ -168,6 +171,11 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 err = true;
             }
             Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, type);
+            bool isRead = ((operand->access & CS_AC_READ) != 0);
+            bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
+            if (!isRead && !isWritten) {
+                isRead = isWritten = true;
+            }
             insn->appendOperand(memAST, isLoad, isStore, false);
         } else {
             fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
