@@ -137,12 +137,13 @@ namespace Dyninst
     }
     bool MultiRegisterAST::bind(Expression* e, const Result& val)
     {
-        if(Expression::bind(e, val)) {
-            return true;
-        }
+        Result copiedVal = val;
         bool ret = false;
         for (auto & m_Reg : m_Regs) {
-            ret |= (m_Reg->bind(e,val));
+            Result mask = Result::sizeToMask(m_Reg->size());
+            Result extractedVal = copiedVal & mask;
+            ret |= (m_Reg->bind(e,extractedVal));
+            copiedVal = copiedVal >> Result(u32,m_Reg->size()*8);
         }
         return ret;
     }

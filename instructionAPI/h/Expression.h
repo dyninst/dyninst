@@ -168,8 +168,6 @@ namespace Dyninst
       /// rather than %InstructionAST::Ptrs.  All children which are %Expressions will be appended to \c children.
       virtual void getChildren(std::vector<Expression::Ptr>& children) const = 0;
       using InstructionAST::getChildren;
-    private:
-      static Result sizeToResult(uint32_t total_size);
       
     protected:
       virtual bool isFlag() const;

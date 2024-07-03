@@ -268,7 +268,7 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
     return name;
 }
 
-std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t size) {
+std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t len) {
     std::string name = m_Reg.name();
     auto i = name.rfind("::");
     name.erase(0,i+2);
@@ -278,17 +278,17 @@ std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t si
 
     if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || 
         regClass == amdgpu_gfx940::SGPR){
-        return "S["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
+        return "S["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
     }
 
     if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || 
         regClass == amdgpu_gfx940::VGPR){
-        return "V["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
+        return "V["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
     }
 
     if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR ||
         regClass == amdgpu_gfx940::ACC_VGPR){
-        return "ACC["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
+        return "ACC["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
     }
 
     DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP

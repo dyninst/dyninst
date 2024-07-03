@@ -1120,7 +1120,7 @@ public:
          defined = false;
       }
    }
-   virtual void visit(MultiRegisterAST *multirast) {
+   virtual void visit(MultiRegisterAST *) {
       defined = false;
    }
    virtual void visit(Dereference *) {

@@ -267,7 +267,7 @@ public:
         defined = false;
         results.push_back(0);
     }
-    virtual void visit(MultiRegisterAST* r)
+    virtual void visit(MultiRegisterAST* )
     {
         defined = false;
     }
