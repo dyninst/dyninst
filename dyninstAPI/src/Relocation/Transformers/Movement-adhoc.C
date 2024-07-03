@@ -384,10 +384,9 @@ public:
       foundSP = true;
     }
   }
-  virtual void visit(MultiRegisterAST* r)
+  virtual void visit(MultiRegisterAST* )
   {
-      for (auto my_Reg : r->getRegs())
-          visit(my_Reg.get());
+    isThunk = false;
   }
 
   virtual void visit(Dereference* )

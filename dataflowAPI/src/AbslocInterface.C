@@ -269,10 +269,7 @@ public:
     }
     virtual void visit(MultiRegisterAST* r)
     {
-      for (auto my_Reg : r->getRegs() ){
-          visit(my_Reg.get());
-      }
-      // TODO
+        defined = false;
     }
 
     virtual void visit(Dereference* )

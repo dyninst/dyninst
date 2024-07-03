@@ -299,10 +299,11 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
     }
 	#endif        
 }
-void BPatch_memoryAccessAdapter::visit(MultiRegisterAST* mr)
+void BPatch_memoryAccessAdapter::visit(MultiRegisterAST* )
 {
-    for (auto my_Reg : mr->getRegs())
-        visit(my_Reg.get());
+
+    fprintf(stderr, "ASSERT: BPatch_memoryAccessAdapter used for power and arm only, no MultiRegister support!\n");
+    assert(0);
 }
 
 

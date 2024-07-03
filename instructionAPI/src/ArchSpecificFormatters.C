@@ -270,14 +270,10 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
 
 std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t size) {
     std::string name = m_Reg.name();
-    std::string::size_type substr = name.rfind("::");
-    if(substr != std::string::npos){
-        name = name.substr(substr+2,name.length());
-    }
-    assert(size > 1);
+    auto i = name.rfind("::");
+    name.erase(0,i+2);
     uint32_t id = m_Reg & 0xff ;
     uint32_t regClass = m_Reg.regClass();
-
     DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
 
     if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || 
@@ -303,8 +299,7 @@ std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t si
     if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || 
         m_Reg == amdgpu_gfx940::exec_lo)
         return "EXEC";
-
-    return name;
+    return "BAD-MULTIFORMAT_REGISTER:" + name;
 }
 
 /////////////////////////// x86 Formatter functions

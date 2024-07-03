@@ -161,10 +161,7 @@ class leaSimplifyVisitor : public InstructionAPI::Visitor
             exprStack.push(reg);
         }
         void visit(MultiRegisterAST *multireg) override {
-          for (auto my_Reg : multireg->getRegs()) {
-              visit(my_Reg.get()); 
-          }
-          // TODO
+          exprStack.push(multireg);
         }
 
         void visit(Dereference *deref) override {

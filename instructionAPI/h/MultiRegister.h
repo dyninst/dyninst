@@ -62,7 +62,7 @@ namespace Dyninst
       MultiRegisterAST(MachRegister r, uint32_t num_elements = 1 );
       MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
   
-      virtual ~MultiRegisterAST();
+      virtual ~MultiRegisterAST() = default;
       MultiRegisterAST(const MultiRegisterAST&) = default;
       
       /// By definition, a %MultiRegisterAST object has no children.
@@ -94,6 +94,7 @@ namespace Dyninst
       RegisterAST::Ptr getBaseRegAST() const { return m_Regs[0]; } 
       uint32_t length() const { return m_Regs.size(); }
       const std::vector<RegisterAST::Ptr> &getRegs() const { return m_Regs; }
+      bool areConsecutive() const { return consecutive; }
     protected:
 
       virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const;
@@ -101,6 +102,8 @@ namespace Dyninst
       virtual bool isFlag() const;
       
       std::vector<RegisterAST::Ptr> m_Regs;
+    private:
+      bool consecutive{false};
     };
   }
 }

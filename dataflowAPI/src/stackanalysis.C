@@ -1121,10 +1121,7 @@ public:
       }
    }
    virtual void visit(MultiRegisterAST *multirast) {
-      if (!defined) return;
-      for(auto my_Reg : multirast->getRegs())
-          visit(my_Reg.get());
-
+      defined = false;
    }
    virtual void visit(Dereference *) {
       defined = false;

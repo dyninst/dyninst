@@ -438,7 +438,7 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
     case amdgpu_gfx940_op_S_SWAPPC_B64: {
         assert(operands.size() == 4);
-        operands.resize(6);
+        operands.reserve(6);
         operands[5] = operands[3];
         operands[4] = operands[2];
         MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
@@ -457,7 +457,7 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     case amdgpu_gfx90a_op_S_SETPC_B64: 
     case amdgpu_gfx940_op_S_SETPC_B64: {
         assert(operands.size() == 2);
-        operands.resize(3);
+        operands.reserve(3);
         operands[2] = operands[1];
         MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & src_reg_asts = src_regs->getRegs();
@@ -471,7 +471,7 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     case amdgpu_gfx90a_op_S_GETPC_B64: 
     case amdgpu_gfx940_op_S_GETPC_B64: {
         assert(operands.size() == 2);
-        operands.resize(3);
+        operands.reserve(3);
 
         operands[2] = Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false);
         MultiRegisterAST::Ptr dst_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());

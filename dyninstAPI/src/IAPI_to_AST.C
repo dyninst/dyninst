@@ -94,9 +94,9 @@ void ASTFactory::visit(RegisterAST* r)
                       (void*)(astreg)));
 #endif
 }
-void ASTFactory::visit(MultiRegisterAST* r)
+void ASTFactory::visit(MultiRegisterAST* )
 {
-    for (auto my_Reg : r->getRegs())
-        visit(my_Reg.get());
+    fprintf(stderr,"ASTFactory doesn't support MultiRegisterAST!");  
+    assert(0);
 }
 

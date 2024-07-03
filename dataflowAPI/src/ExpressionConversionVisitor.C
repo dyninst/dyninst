@@ -161,12 +161,9 @@ void ExpressionConversionVisitor::visit(RegisterAST *regast) {
     return;
 }
 
-void ExpressionConversionVisitor::visit(MultiRegisterAST *multiregast) {
-    // has no children
-    for (auto my_Reg : multiregast->getRegs() ){
-        visit(my_Reg.get());
-    }
-    return;
+void ExpressionConversionVisitor::visit(MultiRegisterAST * ) {
+    roseExpression = NULL;
+    assert(0);
 }
 
 void ExpressionConversionVisitor::visit(Dereference *deref) {

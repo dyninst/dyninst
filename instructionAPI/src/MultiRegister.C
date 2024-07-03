@@ -48,7 +48,7 @@ namespace Dyninst
   namespace InstructionAPI
   {
     MultiRegisterAST::MultiRegisterAST(MachRegister r, uint32_t num_elements) :
-            Expression(r,num_elements)
+            Expression(r,num_elements), consecutive(true)
     {
         uint32_t regVal = r.val();
         for (uint32_t i = 0; i < num_elements; i++){
@@ -60,14 +60,9 @@ namespace Dyninst
     {
     }
 
-
-    MultiRegisterAST::~MultiRegisterAST()
-    {
-        m_Regs.clear();
-    }
     void MultiRegisterAST::getChildren(vector<InstructionAST::Ptr>& /*children*/) const
     {
-      return;
+        return;
     }
     void MultiRegisterAST::getChildren(vector<Expression::Ptr>& /*children*/) const
     {
@@ -75,8 +70,9 @@ namespace Dyninst
     }
     void MultiRegisterAST::getUses(set<InstructionAST::Ptr>& uses)
     {
-        uses.insert(shared_from_this());
-        return;
+        for (const auto & m_Reg : m_Regs) {
+            m_Reg->getUses(uses);
+        }
     }
     bool MultiRegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
@@ -99,42 +95,29 @@ namespace Dyninst
     std::string MultiRegisterAST::format(formatStyle) const
     {
         std::string ret("[");
-        ret.append(m_Regs[0]->format()); 
-        for (uint32_t i = 1; i < m_Regs.size(); i++){
-            ret.append(std::string(","));
-            ret.append(m_Regs[i]->format());
+        for (auto & m_Reg : m_Regs) {
+            ret.append(m_Reg->format());
+            ret.append(",");
         }
+        auto i = ret.rfind(",");
+        ret.erase(i,1);
         ret.append(std::string("]"));
-
         return ret;
     }
 
     bool MultiRegisterAST::operator<(const MultiRegisterAST& rhs) const
     {
-        const auto rhsBaseReg = rhs.getBaseRegAST();
-        const auto myBaseReg  = getBaseRegAST();
-        if (*myBaseReg < *rhsBaseReg) return true;
-        if (*rhsBaseReg < *myBaseReg) return false;
-        return (this->length() < rhs.length());
+        return m_Regs < rhs.m_Regs;
     }
     bool MultiRegisterAST::isStrictEqual(const InstructionAST& rhs) const
     {
-      try {
-          const MultiRegisterAST& rhs_reg =  dynamic_cast<const MultiRegisterAST&>(rhs);
-          //rhs_reg.getRegs();
-          const auto myRegs = getRegs();
-          const auto rhsRegs = rhs_reg.getRegs();
-          if (myRegs.size() != rhsRegs.size())
-              return false;
-          for (uint32_t i =0; i< myRegs.size(); i++){
-              if(! myRegs[i]->isStrictEqual(*rhsRegs[i]) )
-                return false;
-          }
-          return true;
-      }
-      catch(bad_cast &b){
-          return false;
-      }
+        try {
+            const MultiRegisterAST& rhs_reg =  dynamic_cast<const MultiRegisterAST&>(rhs);
+            return m_Regs == rhs_reg.m_Regs;
+        }
+        catch(bad_cast &b){
+            return false;
+        }
     }
     bool MultiRegisterAST::isFlag() const
     {
@@ -158,8 +141,8 @@ namespace Dyninst
             return true;
         }
         bool ret = false;
-        for (uint32_t i =0; i< m_Regs.size(); i++){
-            ret |= (m_Regs[i]->bind(e,val));
+        for (auto & m_Reg : m_Regs) {
+            ret |= (m_Reg->bind(e,val));
         }
         return ret;
     }
