@@ -442,6 +442,7 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
         case Arch_aarch64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());
             break;
+        case Arch_riscv32:
         case Arch_riscv64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new RISCVFormatter());
             break;

@@ -111,6 +111,7 @@ MachRegister MachRegister::getBaseRegister() const {
             }
         case Arch_aarch32:
         case Arch_aarch64:
+        case Arch_riscv32:
         case Arch_riscv64:
         case Arch_intelGen9:
         case Arch_cuda:
@@ -347,17 +348,25 @@ unsigned int MachRegister::size() const {
                              return 4;
             break;
         }
-        case Arch_riscv64: {
-                         if((reg & 0x00ff0000) == riscv64::FPR)
+        case Arch_riscv32: {
+                         if((reg & 0x00ff0000) == riscv32::FPR && (reg & 0x0000ff00) == riscv32::DEXT)
                          {
-                            switch(reg & 0x0000ff00)
-                            {
-                                case riscv64::DEXT: return 8;
-                                default: return 4;
-                            }
+                             return 8;
                          }
                          else
+                         {
                              return 4;
+                         }
+        }
+        case Arch_riscv64: {
+                         if((reg & 0x00ff0000) == riscv32::FPR && (reg & 0x0000ff00) == riscv64::DEXT)
+                         {
+                             return 8;
+                         }
+                         else
+                         {
+                             return 4;
+                         }
         }
         case Arch_amdgpu_rdna:
         case Arch_intelGen9:
@@ -405,6 +414,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
             return aarch64::pc;
         case Arch_aarch32:
             return InvalidReg;
+        case Arch_riscv32:
+            return riscv32::pc;
         case Arch_riscv64:
             return riscv64::pc;
         case Arch_cuda:
@@ -435,6 +446,8 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
             assert(0); //not implemented
         case Arch_aarch64:  //aarch64: x30 stores the RA for current frame
             return aarch64::x30;
+        case Arch_riscv32:
+            return riscv32::ra;
         case Arch_riscv64:
             return riscv64::ra;
         case Arch_aarch32:
@@ -463,6 +476,8 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
             return ppc64::r1;
         case Arch_aarch64:
             return aarch64::x29; //aarch64: frame pointer is X29 by convention
+        case Arch_riscv32:
+            return riscv32::fp;
         case Arch_riscv64:
             return riscv64::fp;
         case Arch_amdgpu_vega:
@@ -490,6 +505,8 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
             return ppc64::r1;
         case Arch_aarch64:
             return aarch64::sp; //aarch64: stack pointer is an independent register
+        case Arch_riscv32:
+            return riscv32::sp;
         case Arch_riscv64:
             return riscv64::sp;
         case Arch_aarch32:
@@ -519,6 +536,8 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
             return ppc64::r0;
         case Arch_aarch64:
             return aarch64::x8;
+        case Arch_riscv32:
+            return riscv32::a7;
         case Arch_riscv64:
             return riscv64::a7;
         case Arch_aarch32:
@@ -548,6 +567,8 @@ MachRegister MachRegister::getSyscallNumberOReg(Dyninst::Architecture arch)
             return ppc64::r0;
         case Arch_aarch64:
             return aarch64::x8;
+        case Arch_riscv32:
+            return riscv32::a7; // ?
         case Arch_riscv64:
             return riscv64::a7; // ?
         case Arch_none:
@@ -573,6 +594,8 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
             return ppc64::r3;
         case Arch_aarch64:
             return aarch64::x0; //returned value is save in x0
+        case Arch_riscv32:
+            return riscv32::a0;
         case Arch_riscv64:
             return riscv64::a0;
         case Arch_none:
@@ -621,6 +644,7 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
             return ppc32::cr0e;
         case Arch_ppc64:
             return ppc64::cr0e;
+        case Arch_riscv32: // RISC-V does not have flag register
         case Arch_riscv64: // RISC-V does not have flag register
         case Arch_cuda:
         case Arch_amdgpu_vega:
@@ -696,6 +720,7 @@ bool MachRegister::isFlag() const
         case Arch_amdgpu_vega:{
                              return (reg & 0x0000F000);
                          }
+        case Arch_riscv32:  // RISC-V does not have flag register
         case Arch_riscv64:  // RISC-V does not have flag register
         case Arch_cuda:
             return false;
@@ -724,6 +749,7 @@ bool MachRegister::isZeroFlag() const
                             int baseID = reg & 0x0000FFFF;
                             return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) || (baseID <= 628 && baseID >= 621); 
                         }
+        case Arch_riscv32:  // RISC-V does not have flag register
         case Arch_riscv64:  // RISC-V does not have flag register
             return false;
         default:
@@ -1249,6 +1275,10 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                                return;
                            }
                            break;
+        case Arch_riscv32: {
+                            // TODO
+                            break;
+        }
         case Arch_riscv64: {
                             // TODO
                             break;
@@ -1309,6 +1339,11 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                     break;
             }
             break;
+        case Arch_aarch32:
+            {
+                c = -1;
+                return;
+            }
         case Arch_aarch64:
             {
                 c = -1;

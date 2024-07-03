@@ -91,6 +91,20 @@ namespace Dyninst
       case aarch64_op_cbz:
       case aarch64_op_cbnz:
       case aarch64_op_br: 
+      case riscv32_op_beq:
+      case riscv32_op_bge:
+      case riscv32_op_bgeu:
+      case riscv32_op_blt:
+      case riscv32_op_bltu:
+      case riscv32_op_bne:
+      case riscv32_op_c_beqz:
+      case riscv32_op_c_bnez:
+      case riscv32_op_c_j:
+      case riscv32_op_c_jal:
+      case riscv32_op_c_jalr:
+      case riscv32_op_c_jr:
+      case riscv32_op_jal:
+      case riscv32_op_jalr:
       case riscv64_op_beq:
       case riscv64_op_bge:
       case riscv64_op_bgeu:

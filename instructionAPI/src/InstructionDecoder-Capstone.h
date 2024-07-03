@@ -43,6 +43,7 @@
 #include "capstone/x86.h"
 #include "capstone/ppc.h"
 #include "capstone/arm64.h"
+#include "capstone/riscv.h"
 
 namespace Dyninst
 {
@@ -80,15 +81,18 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         entryID opcodeTranslation_x86(unsigned int);
         entryID opcodeTranslation_ppc(unsigned int);
         entryID opcodeTranslation_aarch64(unsigned int);
+        entryID opcodeTranslation_riscv32(unsigned int);
         entryID opcodeTranslation_riscv64(unsigned int);
 
         void decodeOperands_x86(const Instruction* insn, cs_detail*);
         void decodeOperands_ppc(const Instruction* insn, cs_detail*);
         void decodeOperands_aarch64(const Instruction* insn, cs_detail*);
+        void decodeOperands_riscv32(const Instruction* insn, cs_detail*);
         void decodeOperands_riscv64(const Instruction* insn, cs_detail*);
 
         MachRegister registerTranslation_x86_32(x86_reg);
         MachRegister registerTranslation_x86_64(x86_reg);
+        MachRegister registerTranslation_riscv32(uint32_t);
         MachRegister registerTranslation_riscv64(uint32_t);
 
         Result_Type operandSizeTranslation(uint8_t);
