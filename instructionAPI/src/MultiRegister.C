@@ -76,11 +76,7 @@ namespace Dyninst
     }
     bool MultiRegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
-        for (const auto &regAST : m_Regs) {
-            if (findMe->checkRegID(regAST->getID(), regAST->lowBit(), regAST->highBit()))
-                return true;
-        }
-        return false;
+        return isStrictEqual(*findMe);
     }
 
     std::string MultiRegisterAST::format(Architecture arch, formatStyle) const
