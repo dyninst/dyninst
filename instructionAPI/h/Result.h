@@ -800,6 +800,7 @@ namespace Dyninst
                             return Result(bit_flag);
                         default:
                             assert(!"Result::sizetoResult unexpected machine register size!");
+                            return Result(u8);
                     }
                 }
                 static Result sizeToMask(uint32_t size)
@@ -818,6 +819,7 @@ namespace Dyninst
                             return Result(u64,0xffffffffffffffff);
                        default:
                             assert(!"Result::sizeToMask unexpected machine register size!");
+                            return Result(u8);
                     }
                 }
         };
