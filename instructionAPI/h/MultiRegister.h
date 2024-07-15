@@ -52,7 +52,7 @@ namespace Dyninst
     ///
 
 
-    class INSTRUCTION_EXPORT MultiRegisterAST : public Expression
+    class DYNINST_EXPORT MultiRegisterAST : public Expression
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %MultiRegisterAST.
