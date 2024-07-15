@@ -91,12 +91,17 @@ namespace Dyninst
     std::string MultiRegisterAST::format(formatStyle) const
     {
         std::string ret("[");
+        bool isFirstEntry{true};
+        std::string ret("[");
         for (auto & m_Reg : m_Regs) {
-            ret.append(m_Reg->format());
-            ret.append(",");
+            if (isFirstEntry)  {
+                isFirstEntry = false;
+            }  else  {
+                ret += ",";
+            }
+            ret += m_Reg->format();            
         }
-        auto i = ret.rfind(",");
-        ret.erase(i,1);
+        ret += "]";
         ret.append(std::string("]"));
         return ret;
     }
