@@ -38,46 +38,58 @@ namespace Dyninst
             InstructionAST(), userSetValue(t)
         {
         } 
-        Expression::Expression(MachRegister r) :
-            InstructionAST()
+        /*Result Expression::sizeToResult(uint32_t size)
         {
-            switch(r.size())
+            switch(size)
             {
                 case 1:
-                    userSetValue = Result(u8);
-                    break;
+                    return Result(u8);
                 case 2:
-                    userSetValue = Result(u16);
-                    break;
+                    return Result(u16);
                 case 4:
-                    userSetValue = Result(u32);
-                    break;
+                    return Result(u32);
                 case 6:
-                    userSetValue = Result(u48);
-                    break;
+                    return Result(u48);
                 case 8:
-                    userSetValue = Result(u64);
-                    break;
+                    return Result(u64);
                 case 10:
-                    userSetValue = Result(dp_float);
-                    break;
+                    return Result(dp_float);
                 case 16:
-                    userSetValue = Result(dbl128);
-                    break;
+                    return Result(dbl128);
                 case 32:
-                    userSetValue = Result(m256);
-                    break;
+                    return Result(m256);
                 case 64:
-                    userSetValue = Result(m512);
-                    break;
+                    return Result(m512);
                 case 0:
-                    // Special case for bitfields
-                    userSetValue = Result(bit_flag);
-                    break;
+                    return Result(bit_flag);
                 default:
                     assert(!"unexpected machine register size!");
             }
+        }*/
+
+        Expression::Expression(uint32_t size) :
+            InstructionAST()
+        {
+            userSetValue = Result::sizeToResult(size);
         }
+        Expression::Expression(std::vector<MachRegister> rs) :
+            InstructionAST()
+        {
+            uint32_t totalSize = 0;
+            for (auto & mReg : rs)
+                totalSize += mReg.size();
+            Result result = Result::sizeToResult(totalSize);
+            this->setValue(result);
+        }
+        Expression::Expression(MachRegister r) :
+            Expression::Expression(r.size())
+        {
+        }
+         Expression::Expression(MachRegister r, uint32_t len) :
+            Expression::Expression(r.size() * len)
+        {
+        }
+
         Expression::~Expression()
         {
         }

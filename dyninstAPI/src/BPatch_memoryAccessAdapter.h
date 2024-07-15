@@ -52,6 +52,7 @@ class BPatch_memoryAccessAdapter : public Dyninst::InstructionAPI::Visitor
   virtual void visit(Dyninst::InstructionAPI::BinaryFunction* b);
   virtual void visit(Dyninst::InstructionAPI::Dereference* d);
   virtual void visit(Dyninst::InstructionAPI::RegisterAST* r);
+  virtual void visit(Dyninst::InstructionAPI::MultiRegisterAST* mr);
   virtual void visit(Dyninst::InstructionAPI::Immediate* i);
     private:
         unsigned int bytes;

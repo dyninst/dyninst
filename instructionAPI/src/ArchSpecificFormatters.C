@@ -268,6 +268,39 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
     return name;
 }
 
+std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t len) {
+    std::string name = m_Reg.name();
+    auto i = name.rfind("::");
+    name.erase(0,i+2);
+    uint32_t id = m_Reg & 0xff ;
+    uint32_t regClass = m_Reg.regClass();
+    DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
+
+    if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || 
+        regClass == amdgpu_gfx940::SGPR){
+        return "S["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
+    }
+
+    if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || 
+        regClass == amdgpu_gfx940::VGPR){
+        return "V["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
+    }
+
+    if(regClass == amdgpu_gfx908::ACC_VGPR || regClass == amdgpu_gfx90a::ACC_VGPR ||
+        regClass == amdgpu_gfx940::ACC_VGPR){
+        return "ACC["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
+    }
+
+    DYNINST_DIAGNOSTIC_END_SUPPRESS_LOGICAL_OP
+
+    if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo ||
+        m_Reg == amdgpu_gfx940::vcc_lo)
+        return "VCC";
+    if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || 
+        m_Reg == amdgpu_gfx940::exec_lo)
+        return "EXEC";
+    return "BAD-MULTIFORMAT_REGISTER:" + name;
+}
 
 /////////////////////////// x86 Formatter functions
 

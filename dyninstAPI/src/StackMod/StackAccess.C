@@ -36,6 +36,7 @@
 #include "InstructionCategories.h"
 #include "InstructionDecoder.h"
 #include "Expression.h"
+#include "MultiRegister.h"
 #include "Result.h"
 #include "Dereference.h"
 #include "Immediate.h"
@@ -224,6 +225,10 @@ public:
         containsToppedReg = true;
         results.push_back((long) top);
     }
+    virtual void visit(InstructionAPI::MultiRegisterAST *) {
+        defined = false;
+    }
+
 
     virtual void visit(InstructionAPI::Dereference *) {
         defined = false;
@@ -586,6 +591,11 @@ class zeroAllGPRegisters : public InstructionAPI::Visitor
 
             results.push_back(0);
         }
+        virtual void visit(MultiRegisterAST* )
+        {
+            defined = false;
+        }
+
         virtual void visit(Dereference* )
         {
             defined = false;

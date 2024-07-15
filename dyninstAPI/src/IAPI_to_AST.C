@@ -31,6 +31,7 @@
 #include "IAPI_to_AST.h"
 
 #include "Register.h"
+#include "MultiRegister.h"
 #include "BinaryFunction.h"
 #include "Immediate.h"
 #include "Dereference.h"
@@ -93,3 +94,9 @@ void ASTFactory::visit(RegisterAST* r)
                       (void*)(astreg)));
 #endif
 }
+void ASTFactory::visit(MultiRegisterAST* )
+{
+    fprintf(stderr,"ASTFactory doesn't support MultiRegisterAST!");  
+    assert(0);
+}
+

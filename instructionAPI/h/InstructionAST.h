@@ -114,6 +114,7 @@ namespace Dyninst
       virtual std::string format(formatStyle how = defaultStyle) const = 0;
   
     protected:
+      friend class MultiRegisterAST;
       friend class RegisterAST;
       friend class Immediate;
       virtual bool isStrictEqual(const InstructionAST& rhs) const= 0;

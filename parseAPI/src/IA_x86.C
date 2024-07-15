@@ -45,6 +45,7 @@
 
 #include <deque>
 #include "Register.h"
+#include "MultiRegister.h"
 
 #include <boost/variant2/variant.hpp>
 #include <stack>
@@ -159,6 +160,10 @@ class leaSimplifyVisitor : public InstructionAPI::Visitor
         void visit(RegisterAST *reg) override {
             exprStack.push(reg);
         }
+        void visit(MultiRegisterAST *multireg) override {
+          exprStack.push(multireg);
+        }
+
         void visit(Dereference *deref) override {
             parsing_printf("%s[%d]: malformed lea instruction, dereference expression encountered\n",
                            FILE__, __LINE__);
@@ -235,6 +240,10 @@ namespace {
         virtual void visit(RegisterAST*) {
             return;
         }
+        virtual void visit(MultiRegisterAST*) {
+            return;
+        }
+
         virtual void visit(Dereference*) {
             return;
         }

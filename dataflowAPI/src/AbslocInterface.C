@@ -34,6 +34,7 @@
 #include "AbslocInterface.h"
 
 #include "Register.h"
+#include "MultiRegister.h"
 // Pile of InstructionAPI includes
 #include "Expression.h"
 #include "Result.h"
@@ -266,6 +267,11 @@ public:
         defined = false;
         results.push_back(0);
     }
+    virtual void visit(MultiRegisterAST* )
+    {
+        defined = false;
+    }
+
     virtual void visit(Dereference* )
     {
         //defined = false;
@@ -517,11 +523,12 @@ void AssignmentConverter::convert(const Instruction &I,
         //
         std::vector<Operand> operands;
         I.getOperands(operands);
-        assert(operands.size() == 3);
-        RegisterAST::Ptr lowpc_reg  = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
-        RegisterAST::Ptr highpc_reg = boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue());
-        AbsRegion lowpc_dst  = AbsRegion(lowpc_reg->getID()) ;
-        AbsRegion highpc_dst = AbsRegion(highpc_reg->getID()) ;
+        assert(operands.size() == 2);
+        MultiRegisterAST::Ptr pc_reg  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
+        const std::vector<RegisterAST::Ptr> & pc_regasts = pc_reg->getRegs();
+        AbsRegion lowpc_dst  = AbsRegion(pc_regasts[0]->getID()) ;
+        AbsRegion highpc_dst = AbsRegion(pc_regasts[1]->getID()) ;
+
 
         //AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
         AbsRegion pc = AbsRegion(Absloc(addr));
@@ -556,11 +563,11 @@ void AssignmentConverter::convert(const Instruction &I,
 
         std::vector<Operand> operands;
         I.getOperands(operands);
-        assert(operands.size() == 3);
-        RegisterAST::Ptr lowpc_reg  = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
-        RegisterAST::Ptr highpc_reg = boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue());
-        AbsRegion lowpc_src  = AbsRegion(lowpc_reg->getID()) ;
-        AbsRegion highpc_src = AbsRegion(highpc_reg->getID()) ;
+        assert(operands.size() == 2);
+        MultiRegisterAST::Ptr pc_reg  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
+        const std::vector<RegisterAST::Ptr> & pc_regasts = pc_reg->getRegs();
+        AbsRegion lowpc_src  = AbsRegion(pc_regasts[0]->getID()) ;
+        AbsRegion highpc_src = AbsRegion(pc_regasts[1]->getID()) ;
 
         pcA->addInput(lowpc_src);
         pcA->addInput(highpc_src);
@@ -572,12 +579,15 @@ void AssignmentConverter::convert(const Instruction &I,
     case amdgpu_gfx940_op_S_SWAPPC_B64: {
         std::vector<Operand> operands;
         I.getOperands(operands);
-        assert(operands.size() == 6);
+        assert(operands.size() == 4);
 
-        RegisterAST::Ptr new_pc_value_low  = boost::dynamic_pointer_cast<RegisterAST>(operands[2].getValue());
-        RegisterAST::Ptr new_pc_value_high = boost::dynamic_pointer_cast<RegisterAST>(operands[3].getValue());
-        AbsRegion new_pc_reg_low  = AbsRegion(new_pc_value_low->getID()) ;
-        AbsRegion new_pc_reg_high = AbsRegion(new_pc_value_high->getID()) ;
+        MultiRegisterAST::Ptr pc_src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
+        const std::vector<RegisterAST::Ptr> & pc_src_regasts = pc_src_regs->getRegs();
+        AbsRegion pc_src_low  = AbsRegion(pc_src_regasts[0]->getID()) ;
+        AbsRegion pc_src_hi = AbsRegion(pc_src_regasts[1]->getID()) ;
+
+
+        
         AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
 
         Assignment::Ptr pcA = Assignment::makeAssignment(I,
@@ -586,34 +596,33 @@ void AssignmentConverter::convert(const Instruction &I,
                 block,
                 pc);
 
-        pcA->addInput(new_pc_reg_low);
-        pcA->addInput(new_pc_reg_high);
-
-/*
-        RegisterAST::Ptr backup_pc_low  = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
-        RegisterAST::Ptr backup_pc_high = boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue());
-        AbsRegion backup_pc_low_reg  = AbsRegion(backup_pc_low->getID()) ;
-        AbsRegion backup_pc_high_reg = AbsRegion(backup_pc_high->getID()) ;
-
-        Assignment::Ptr backup_pc_lowA = Assignment::makeAssignment(I,
-                addr,
-                func,
-                block,
-                backup_pc_low_reg);
-        backup_pc_lowA->addInput(pc);
-
-        Assignment::Ptr backup_pc_highA = Assignment::makeAssignment(I,
-                addr,
-                func,
-                block,
-                backup_pc_high_reg);
-        backup_pc_highA->addInput(pc);
-*/
-
+        pcA->addInput(pc_src_low);
+        pcA->addInput(pc_src_hi);
         assignments.push_back(pcA);
-        //assignments.push_back(backup_pc_lowA);
-        //assignments.push_back(backup_pc_highA);
 
+        MultiRegisterAST::Ptr pc_dst_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
+        const std::vector<RegisterAST::Ptr> & pc_dst_regasts = pc_dst_regs->getRegs();
+        AbsRegion pc_dst_low  = AbsRegion(pc_dst_regasts[0]->getID()) ;
+        AbsRegion pc_dst_hi = AbsRegion(pc_dst_regasts[1]->getID()) ;
+
+
+        Assignment::Ptr pcA_lo = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                pc_dst_low);
+
+        Assignment::Ptr pcA_hi = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                pc_dst_hi);
+
+
+        pcA_lo->addInput(pc);
+        pcA_hi->addInput(pc);
+        assignments.push_back(pcA_lo);
+        assignments.push_back(pcA_hi);
 
         break;
     }
