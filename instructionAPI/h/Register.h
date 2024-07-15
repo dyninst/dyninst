@@ -53,7 +53,6 @@ namespace Dyninst
 
     class DYNINST_EXPORT RegisterAST : public Expression
     {
-      friend class MultiRegisterAST;
     public:
       /// \brief A type definition for a reference-counted pointer to a %RegisterAST.
       typedef boost::shared_ptr<RegisterAST> Ptr;
@@ -109,8 +108,8 @@ namespace Dyninst
       virtual void apply(Visitor* v);
       virtual bool bind(Expression* e, const Result& val);
 
-      virtual bool isStrictEqual(const InstructionAST& rhs) const;
     protected:
+      virtual bool isStrictEqual(const InstructionAST& rhs) const;
       virtual bool isFlag() const;
       virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const;
       MachRegister getPromotedReg() const;

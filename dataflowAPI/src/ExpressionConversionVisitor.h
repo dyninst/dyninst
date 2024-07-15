@@ -73,7 +73,6 @@ namespace Dyninst
       DYNINST_EXPORT virtual void visit(InstructionAPI::Immediate *immed);
       DYNINST_EXPORT virtual void visit(InstructionAPI::RegisterAST *regast);
       DYNINST_EXPORT virtual void visit(InstructionAPI::Dereference *deref);
-      DYNINST_EXPORT virtual void visit(InstructionAPI::MultiRegisterAST *multiregast);
       
     private:
 

@@ -124,10 +124,7 @@ namespace Dyninst
       typedef boost::shared_ptr<Expression> Ptr;
     protected:      
       Expression(Result_Type t);
-      Expression(uint32_t total_size);
       Expression(MachRegister r);
-      Expression(MachRegister r, uint32_t len);
-      Expression(std::vector<MachRegister> rs);
     public:
       virtual ~Expression();
       Expression(const Expression&) = default;
@@ -168,6 +165,7 @@ namespace Dyninst
       /// rather than %InstructionAST::Ptrs.  All children which are %Expressions will be appended to \c children.
       virtual void getChildren(std::vector<Expression::Ptr>& children) const = 0;
       using InstructionAST::getChildren;
+      
       
     protected:
       virtual bool isFlag() const;

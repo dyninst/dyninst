@@ -37,7 +37,6 @@
 #include <list>
 
 #include "Register.h"
-#include "MultiRegister.h"
 #include "../rose/SgAsmExpression.h"
 
 using namespace Dyninst;
@@ -159,11 +158,6 @@ void ExpressionConversionVisitor::visit(RegisterAST *regast) {
     m_stack.push_front(reg);
     roseExpression = m_stack.front();
     return;
-}
-
-void ExpressionConversionVisitor::visit(MultiRegisterAST * ) {
-    roseExpression = NULL;
-    assert(0);
 }
 
 void ExpressionConversionVisitor::visit(Dereference *deref) {

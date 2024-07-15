@@ -33,7 +33,6 @@
 #include "Instruction.h"
 #include "Immediate.h"
 #include "Register.h"
-#include "MultiRegister.h"
 #include "Dereference.h"
 
 #include "common/src/arch.h"
@@ -299,13 +298,6 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
     }
 	#endif        
 }
-void BPatch_memoryAccessAdapter::visit(MultiRegisterAST* )
-{
-
-    fprintf(stderr, "ASSERT: BPatch_memoryAccessAdapter used for power and arm only, no MultiRegister support!\n");
-    assert(0);
-}
-
 
 void BPatch_memoryAccessAdapter::visit(Immediate* i)
 {

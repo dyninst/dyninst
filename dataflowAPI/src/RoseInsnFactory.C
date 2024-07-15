@@ -434,55 +434,24 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
         std::vector<InstructionAPI::Operand> &operands) {
     switch (insn.getOperation().getID()) {
 
-    // SWAPPC has 4 operands, two multiregisters followed by two copies of PC
-    // Breaking up the multiregisters into individual registers 
-    // So we end up getting 6 operands
-    // Similar concept for SETPC and GETPC
     case amdgpu_gfx908_op_S_SWAPPC_B64:
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
     case amdgpu_gfx940_op_S_SWAPPC_B64: {
-        assert(operands.size() == 4);
-        operands.reserve(6);
-        operands[4] = operands[2];
-        operands[5] = operands[3];
-        MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
-        const std::vector<RegisterAST::Ptr> & src_reg_asts = src_regs->getRegs();
-        operands[3] = Operand(src_reg_asts[1]);
-        operands[2] = Operand(src_reg_asts[0]);
-        MultiRegisterAST::Ptr dst_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
-        const std::vector<RegisterAST::Ptr> & dst_reg_asts = dst_regs->getRegs();
-        operands[1] = Operand(dst_reg_asts[1]);
-        operands[0] = Operand(dst_reg_asts[0]);
- 
-
+        assert(operands.size() == 6);
         break;
     }
     case amdgpu_gfx908_op_S_SETPC_B64:
     case amdgpu_gfx90a_op_S_SETPC_B64: 
     case amdgpu_gfx940_op_S_SETPC_B64: {
-        assert(operands.size() == 2);
-        operands.reserve(3);
-        operands[2] = operands[1];
-        MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
-        const std::vector<RegisterAST::Ptr> & src_reg_asts = src_regs->getRegs();
-        operands[1] = Operand(src_reg_asts[1]);
-        operands[0] = Operand(src_reg_asts[0]);
-
+        assert(operands.size() == 3);
         break;
 
     }
     case amdgpu_gfx908_op_S_GETPC_B64:
     case amdgpu_gfx90a_op_S_GETPC_B64: 
     case amdgpu_gfx940_op_S_GETPC_B64: {
-        assert(operands.size() == 2);
-        operands.reserve(3);
-
+        assert(operands.size() == 3);
         operands[2] = Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false);
-        MultiRegisterAST::Ptr dst_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
-        const std::vector<RegisterAST::Ptr> & dst_reg_asts = dst_regs->getRegs();
-        operands[1] = Operand(dst_reg_asts[1]);
-        operands[0] = Operand(dst_reg_asts[0]);
-
         break;
     }
     default:

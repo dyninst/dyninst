@@ -5496,7 +5496,7 @@ namespace InstructionAPI {
     Expression::Ptr InstructionDecoder_amdgpu_gfx940::decodeOPR_VCC(uint64_t input, uint32_t )
     {
         switch (input)  {
-            case 0:  return makeRegisterExpression(amdgpu_gfx940::vcc_lo);
+            case 0:  return makeRegisterExpression(amdgpu_gfx940::vcc);
             default: return makeRegisterExpression(amdgpu_gfx940::invalid);
         }
     }

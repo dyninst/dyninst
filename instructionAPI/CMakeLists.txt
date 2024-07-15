@@ -9,7 +9,6 @@ set(_sources
     src/Operation.C
     src/Operand.C
     src/Register.C
-    src/MultiRegister.C
     src/Ternary.C
     src/Expression.C
     src/BinaryFunction.C
@@ -52,7 +51,6 @@ set(_public_headers
     h/Operand.h
     h/Operation_impl.h
     h/Register.h
-    h/MultiRegister.h
     h/Result.h
     h/Ternary.h
     h/Visitor.h)

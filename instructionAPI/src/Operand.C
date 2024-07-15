@@ -31,7 +31,6 @@
 #include "../h/Operand.h"
 #include "../h/Dereference.h"
 #include "../h/Register.h"
-#include "../h/MultiRegister.h"
 #include "../h/Immediate.h"
 #include "../h/Expression.h"
 #include "../h/BinaryFunction.h"
@@ -57,39 +56,15 @@ namespace Dyninst
                 {
                     if(m_isRead || !(*tmp == *op_value))
                         regsRead.insert(tmp);
-                }else{
-                
-                    MultiRegisterAST::Ptr multitmp = boost::dynamic_pointer_cast<MultiRegisterAST>(*curUse);
-                    if(tmp)
-                    {
-                        for (auto reg : multitmp->getRegs()){
-                            if(m_isRead || !(*reg == *op_value))
-                                regsRead.insert(reg);
-                        } 
-                    }
-
                 }
             }
         }
         DYNINST_EXPORT void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
         {
-            if(m_isWritten) 
+            RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
+            if(m_isWritten && op_as_reg)
             {
-                RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
-                if(op_as_reg){
-                    regsWritten.insert(op_as_reg);
-                }else
-                {
-                  
-                    MultiRegisterAST::Ptr op_as_multireg = boost::dynamic_pointer_cast<MultiRegisterAST>(op_value);
-                    if(op_as_reg)
-                    {
-                        for (auto reg : op_as_multireg->getRegs()){
-                            regsWritten.insert(reg);
-                        } 
-                
-                    }
-                }
+                regsWritten.insert(op_as_reg);
             }
         }
 

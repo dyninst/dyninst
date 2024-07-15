@@ -774,52 +774,6 @@ namespace Dyninst
                             return 0;
                     };
                 }
-                static Result sizeToResult(uint32_t size)
-                {
-                    switch(size)
-                    {
-                        case 1:
-                            return Result(u8);
-                        case 2:
-                            return Result(u16);
-                        case 4:
-                            return Result(u32);
-                        case 6:
-                            return Result(u48);
-                        case 8:
-                            return Result(u64);
-                        case 10:
-                            return Result(dp_float);
-                        case 16:
-                            return Result(dbl128);
-                        case 32:
-                            return Result(m256);
-                        case 64:
-                            return Result(m512);
-                        case 0:
-                            return Result(bit_flag);
-                        default:
-                            assert(!"Result::sizetoResult unexpected machine register size!");
-                    }
-                }
-                static Result sizeToMask(uint32_t size)
-                {
-                    switch(size)
-                    {
-                        case 1:
-                            return Result(u8,0xff);
-                        case 2:
-                            return Result(u16,0xffff);
-                        case 4:
-                            return Result(u32,0xffffffff);
-                        case 6:
-                            return Result(u48,0xffffffffffff);
-                        case 8:
-                            return Result(u64,0xffffffffffffffff);
-                       default:
-                            assert(!"Result::sizeToMask unexpected machine register size!");
-                    }
-                }
         };
 
         DYNINST_EXPORT Result operator+(const Result& arg1, const Result& arg2);

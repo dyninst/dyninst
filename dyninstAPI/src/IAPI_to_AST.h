@@ -54,7 +54,6 @@ class ASTFactory : public Dyninst::InstructionAPI::Visitor
   virtual void visit(Dyninst::InstructionAPI::Dereference* d);
   virtual void visit(Dyninst::InstructionAPI::Immediate* i);
   virtual void visit(Dyninst::InstructionAPI::RegisterAST* r);
-  virtual void visit(Dyninst::InstructionAPI::MultiRegisterAST* r);
   std::deque<AstNodePtr> m_stack;
   virtual ~ASTFactory() {}
   ASTFactory() {}

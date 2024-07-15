@@ -37,7 +37,6 @@ namespace InstructionAPI
     class BinaryFunction;
     class Immediate;
     class RegisterAST;
-    class MultiRegisterAST;
     class Dereference;
     
     class Visitor
@@ -58,7 +57,6 @@ namespace InstructionAPI
             virtual void visit(BinaryFunction* b) = 0;
             virtual void visit(Immediate* i) = 0;
             virtual void visit(RegisterAST* r) = 0;
-            virtual void visit(MultiRegisterAST* r) = 0;
             virtual void visit(Dereference* d) = 0;
     };
 }
