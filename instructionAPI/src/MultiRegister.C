@@ -101,7 +101,6 @@ namespace Dyninst
             ret += m_Reg->format();            
         }
         ret += "]";
-        ret.append(std::string("]"));
         return ret;
     }
 
