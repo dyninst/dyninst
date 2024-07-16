@@ -2042,3 +2042,11 @@ AmdgpuVegaInstructionKind RoseInsnAmdgpuVegaFactory::convertKind(entryID opcode)
         default: return rose_amdgpu_op_INVALID;
     }
 }
+
+Riscv64InstructionKind RoseInsnRiscv64Factory::convertKind(entryID opcode) {
+    // TODO unfinished opcode kind
+    switch(opcode) {
+        case riscv64_op_add : return rose_riscv64_op_add;
+        default: return rose_riscv64_op_INVALID;
+    }
+}

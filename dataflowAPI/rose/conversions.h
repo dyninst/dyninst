@@ -60,6 +60,7 @@ class SgAsmArmv8Instruction;
 class SgAsmAmdgpuVegaInstruction;
 class SgAsmx86Instruction;
 class SgAsmPowerpcInstruction;
+class SgAsmRiscv64Instruction;
 
 
 class SageInterface {
@@ -167,6 +168,8 @@ SgAsmArmv8Instruction* isSgAsmArmv8Instruction( SgNode *);
 const SgAsmArmv8Instruction* isSgAsmArmv8Instruction( const SgNode * s );
 SgAsmAmdgpuVegaInstruction* isSgAsmAmdgpuVegaInstruction( SgNode *);
 const SgAsmAmdgpuVegaInstruction* isSgAsmAmdgpuVegaInstruction( const SgNode * s );
+SgAsmRiscv64Instruction* isSgAsmRiscv64Instruction( SgNode *);
+const SgAsmRiscv64Instruction* isSgAsmRiscv64Instruction( const SgNode * s );
 SgAsmConstantExpression *isSgAsmConstantExpression( SgNode * );
 const SgAsmConstantExpression *isSgAsmConstantExpression( const SgNode *s );
 SgAsmIntegerValueExpression *isSgAsmIntegerValueExpression( SgNode * );

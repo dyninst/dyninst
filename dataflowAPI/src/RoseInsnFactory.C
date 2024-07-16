@@ -38,7 +38,7 @@
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmAmdgpuVegaInstruction.h"
-
+#include "../rose/SgAsmRiscv64Instruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
@@ -430,6 +430,22 @@ bool RoseInsnAmdgpuVegaFactory::handleSpecialCases(entryID, SgAsmInstruction *, 
   return false;
 }
 
+void RoseInsnRiscv64Factory::setSizes(SgAsmInstruction */*insn*/) {
+
+}
+
+SgAsmInstruction *RoseInsnRiscv64Factory::createInsn() {
+  return new SgAsmRiscv64Instruction;
+}
+
+void RoseInsnRiscv64Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
+  SgAsmRiscv64Instruction *tmp = static_cast<SgAsmRiscv64Instruction *>(insn);
+  tmp->set_kind(convertKind(opcode));
+}
+bool RoseInsnRiscv64Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
+  return false;
+}
+
 // This helper function expand a single sgpr pair operand into two constructing components
 static std::pair<InstructionAPI::Operand,InstructionAPI::Operand> expandSgprPair(InstructionAPI::Operand orig){
     RegisterAST::Ptr sgpr_pair = boost::dynamic_pointer_cast<RegisterAST>(orig.getValue());
@@ -501,3 +517,11 @@ void RoseInsnAmdgpuVegaFactory::massageOperands(const Instruction &insn,
     }
 }
 
+// TODO unfinished
+void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
+        std::vector<InstructionAPI::Operand> &operands) {
+    switch (insn.getOperation().getID()) {
+        default:
+                    break;
+    }
+}

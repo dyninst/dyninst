@@ -35,6 +35,7 @@
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmAmdgpuVegaInstruction.h"
+#include "../rose/SgAsmRiscv64Instruction.h"
 
 #include "../rose/x86InstructionSemantics.h"
 #include "../rose/x86_64InstructionSemantics.h"
@@ -42,6 +43,7 @@
 #include "../rose/semantics/DispatcherARM64.h"
 #include "../rose/semantics/DispatcherAmdgpuVega.h"
 #include "../rose/semantics/DispatcherPowerpc.h"
+#include "../rose/semantics/DispatcherRiscv64.h"
 
 using namespace Dyninst;
 using namespace DataflowAPI;
@@ -104,6 +106,20 @@ bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics
     SgAsmArmv8Instruction *insn = static_cast<SgAsmArmv8Instruction *>(rose_insn);
 
     BaseSemantics::DispatcherPtr cpu = DispatcherARM64::instance(ops, 64);
+
+    try {
+        cpu->processInstruction(insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+    }
+
+    return false;
+}
+
+bool SymbolicExpansion::expandRiscv64(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &insn_dump) {
+    SgAsmRiscv64Instruction *insn = static_cast<SgAsmRiscv64Instruction *>(rose_insn);
+
+    BaseSemantics::DispatcherPtr cpu = DispatcherRiscv64::instance(ops, 64);
 
     try {
         cpu->processInstruction(insn);

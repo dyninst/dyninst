@@ -36,6 +36,7 @@
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
 #include "../rose/SgAsmAmdgpuVegaInstruction.h"
+#include "../rose/SgAsmRiscv64Instruction.h"
 #include "external/rose/rose-compat.h"
 #include "../rose/RegisterDescriptor.h"
 #include "../rose/x86InstructionSemantics.h"
@@ -1393,6 +1394,32 @@ SgAsmAmdgpuVegaInstruction::~SgAsmAmdgpuVegaInstruction() {
     p_kind = rose_amdgpu_op_INVALID;
 }
 
+// defs for SgAsmRiscv64Instruction
+std::string SgAsmRiscv64Instruction::class_name() const {
+    return "SgAsmRiscv64Instruction";
+}
+
+VariantT SgAsmRiscv64Instruction::variantT() const {
+    return V_SgAsmRiscv64Instruction;
+}
+
+SgAsmRiscv64Instruction::SgAsmRiscv64Instruction(rose_addr_t address, std::string mnemonic, Riscv64InstructionKind kind) :
+        SgAsmInstruction(address, mnemonic) {
+    p_kind = kind;
+}
+
+Riscv64InstructionKind SgAsmRiscv64Instruction::get_kind() const {
+    return p_kind;
+}
+
+void SgAsmRiscv64Instruction::set_kind(Riscv64InstructionKind kind) {
+    p_kind = kind;
+}
+
+SgAsmRiscv64Instruction::~SgAsmRiscv64Instruction() {
+    p_kind = rose_riscv64_op_INVALID;
+}
+
 // defs for SgAsmArmv8Instruction
 std::string SgAsmArmv8Instruction::class_name() const {
     return "SgAsmArmv8Instruction";
@@ -1631,6 +1658,10 @@ SgAsmFloatValueExpression *isSgAsmFloatValueExpression(SgNode *s) {
 
 SgAsmArmv8Instruction *isSgAsmArmv8Instruction(SgNode *s) {
     return dynamic_cast<SgAsmArmv8Instruction *>(s);
+}
+
+SgAsmRiscv64Instruction *isSgAsmRiscv64Instruction(SgNode *s) {
+    return dynamic_cast<SgAsmRiscv64Instruction *>(s);
 }
 
 SgAsmAmdgpuVegaInstruction *isSgAsmAmdgpuVegaInstruction(SgNode *s) {

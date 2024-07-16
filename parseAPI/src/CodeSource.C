@@ -257,6 +257,8 @@ InstructionSource::isAligned(const Address addr) const
 	case Arch_ppc32:
 	case Arch_ppc64:
 	    return !(addr & 0x3);
+    case Arch_riscv64:
+        return !(addr & 0x1); // RISC-V C instructions are 2 bytes aligned
 	case Arch_x86:
 	case Arch_x86_64:
 	    return true;

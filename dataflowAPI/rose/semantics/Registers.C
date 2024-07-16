@@ -5,6 +5,7 @@
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
+#include "external/rose/riscv64InstructionEnum.h"
 #include <boost/foreach.hpp>
 #include <mutex>
 
@@ -780,6 +781,38 @@ RegisterDictionary::dictionary_powerpc()
 
         regs->insert("tbl", powerpc_regclass_tbr, powerpc_tbr_tbl, 0, 32);      /* time base lower */
         regs->insert("tbu", powerpc_regclass_tbr, powerpc_tbr_tbu, 0, 32);      /* time base upper */
+    });
+    return regs;
+}
+
+/** RISC-V Registers
+ * Scalar Register
+ *
+ */
+const RegisterDictionary *
+RegisterDictionary::dictionary_riscv64() {
+    static std::once_flag initialized;
+    static RegisterDictionary *regs = NULL;
+
+    std::call_once(initialized, []() {
+        regs = new RegisterDictionary("riscv64");
+
+        /* All of the general purpose registers  */
+        for (unsigned idx = 0; idx < 32; idx++) {
+            regs->insert("x" + StringUtility::numberToString(idx), riscv64_regclass_gpr, riscv64_gpr_x0 + idx, 0, 32);
+        }
+
+        /* All of the floating point registers  */
+        for (unsigned idx = 0; idx < 32; idx++) {
+            regs->insert("f" + StringUtility::numberToString(idx) + "_32", riscv64_regclass_fpr32, riscv64_fpr_f0_32 + idx, 0, 32);
+        }
+        for (unsigned idx = 0; idx < 32; idx++) {
+            regs->insert("f" + StringUtility::numberToString(idx) + "_64", riscv64_regclass_fpr64, riscv64_fpr_f0_64 + idx, 0, 64);
+        }
+
+        /* The program counter */
+        regs->insert("pc", riscv64_regclass_pc, 0, 0, 64);
+
     });
     return regs;
 }
