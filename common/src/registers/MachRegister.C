@@ -598,10 +598,13 @@ namespace Dyninst {
         reg_idx = amdgpu_pc;
         break;
       }
-
       case amdgpu_gfx90a::HWR: {
-        reg_class = amdgpu_regclass_pc;
-        reg_idx = amdgpu_pc;
+        reg_class = amdgpu_regclass_hwr;
+        reg_idx = amdgpu_mode;
+        break;
+      }
+      case amdgpu_gfx90a::MISC: {
+        reg_class = amdgpu_regclass_misc;
         break;
       }
 
@@ -637,8 +640,13 @@ namespace Dyninst {
       }
 
       case amdgpu_gfx940::HWR: {
-        reg_class = amdgpu_regclass_pc;
-        reg_idx = amdgpu_pc;
+        reg_class = amdgpu_regclass_hwr;
+        reg_idx = amdgpu_mode;
+        break;
+      }
+
+      case amdgpu_gfx940::MISC: {
+        reg_class = amdgpu_regclass_misc;
         break;
       }
 
