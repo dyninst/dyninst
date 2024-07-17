@@ -9,11 +9,10 @@ namespace InstructionAPI {
         switch (layout.OP)  {
             case 0:  case 1:  case 2:  case 3:  case 4:   // DS_ADD_U32,DS_SUB_U32,DS_RSUB_U32,DS_INC_U32,DS_DEC_U32,
             case 5:  case 6:  case 7:  case 8:  case 9:   // DS_MIN_I32,DS_MAX_I32,DS_MIN_U32,DS_MAX_U32,DS_AND_B32,
-            case 10:  case 11:  case 13:  case 18:  case 19:   // DS_OR_B32,DS_XOR_B32,DS_WRITE_B32,DS_MIN_F32,DS_MAX_F32,
-            case 21:  case 30:  case 31:  case 84:   // DS_ADD_F32,DS_WRITE_B8,DS_WRITE_B16,DS_WRITE_B8_D16_HI,
-            case 85:   // DS_WRITE_B16_D16_HI,
+            case 10:  case 11:  case 18:  case 19:  case 21:   // DS_OR_B32,DS_XOR_B32,DS_MIN_F32,DS_MAX_F32,DS_ADD_F32,
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -23,7 +22,17 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
+                if (layout.OFFSET0 || layout.OFFSET1)  {
+                    insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
+                }
+                break;
+            case 13:  case 30:  case 31:  case 84:   // DS_WRITE_B32,DS_WRITE_B8,DS_WRITE_B16,DS_WRITE_B8_D16_HI,
+            case 85:   // DS_WRITE_B16_D16_HI,
+                appendOPR_VGPR(layout.ADDR,true,false);
+                appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
+                appendOPR_DSMEM(0,false,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -32,7 +41,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,false,true,1,true);
                 if (layout.OFFSET0)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset0"),Result(u8,layout.OFFSET0)),true,false,false);
                 }
@@ -40,7 +49,7 @@ namespace InstructionAPI {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset1"),Result(u8,layout.OFFSET1)),true,false,false);
                 }
                 break;
-            case 20:   // DS_NOP,
+            case 20:  case 152:  case 154:  case 156:   // DS_NOP,DS_GWS_SEMA_RELEASE_ALL,DS_GWS_SEMA_V,DS_GWS_SEMA_P,
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -54,7 +63,7 @@ namespace InstructionAPI {
                 break;
             case 29:   // DS_WRITE_ADDTID_B32,
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -67,6 +76,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -77,6 +87,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -87,6 +98,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -130,9 +142,10 @@ namespace InstructionAPI {
                 break;
             case 64:  case 65:  case 66:  case 67:  case 68:   // DS_ADD_U64,DS_SUB_U64,DS_RSUB_U64,DS_INC_U64,DS_DEC_U64,
             case 69:  case 70:  case 71:  case 72:  case 73:   // DS_MIN_I64,DS_MAX_I64,DS_MIN_U64,DS_MAX_U64,DS_AND_B64,
-            case 74:  case 75:  case 77:  case 82:  case 83:   // DS_OR_B64,DS_XOR_B64,DS_WRITE_B64,DS_MIN_F64,DS_MAX_F64,
+            case 74:  case 75:  case 82:  case 83:  case 92:   // DS_OR_B64,DS_XOR_B64,DS_MIN_F64,DS_MAX_F64,DS_ADD_F64,
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -142,7 +155,16 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false,2);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
+                if (layout.OFFSET0 || layout.OFFSET1)  {
+                    insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
+                }
+                break;
+            case 77:   // DS_WRITE_B64,
+                appendOPR_VGPR(layout.ADDR,true,false);
+                appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
+                appendOPR_DSMEM(0,false,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -151,7 +173,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false,2);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,false,true,1,true);
                 if (layout.OFFSET0)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset0"),Result(u8,layout.OFFSET0)),true,false,false);
                 }
@@ -159,20 +181,15 @@ namespace InstructionAPI {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset1"),Result(u8,layout.OFFSET1)),true,false,false);
                 }
                 break;
-            case 92:   // DS_ADD_F64,
-                appendOPR_VGPR(layout.ADDR,true,false);
-                appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
-                if (layout.OFFSET0 || layout.OFFSET1)  {
-                    insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
-                }
-                break;
             case 96:  case 97:  case 98:  case 99:   // DS_ADD_RTN_U64,DS_SUB_RTN_U64,DS_RSUB_RTN_U64,DS_INC_RTN_U64,
             case 100:  case 101:  case 102:  case 103:   // DS_DEC_RTN_U64,DS_MIN_RTN_I64,DS_MAX_RTN_I64,DS_MIN_RTN_U64,
             case 104:  case 105:  case 106:  case 107:   // DS_MAX_RTN_U64,DS_AND_RTN_B64,DS_OR_RTN_B64,DS_XOR_RTN_B64,
-            case 109:  case 114:  case 115:  case 126:   // DS_WRXCHG_RTN_B64,DS_MIN_RTN_F64,DS_MAX_RTN_F64,DS_CONDXCHG32_RTN_B64,
+            case 109:  case 114:  case 115:  case 124:   // DS_WRXCHG_RTN_B64,DS_MIN_RTN_F64,DS_MAX_RTN_F64,DS_ADD_RTN_F64,
+            case 126:   // DS_CONDXCHG32_RTN_B64,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -183,6 +200,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false,2);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -193,6 +211,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false,2);
+                appendOPR_DSMEM(0,false,true,1,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
@@ -217,28 +236,13 @@ namespace InstructionAPI {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset1"),Result(u8,layout.OFFSET1)),true,false,false);
                 }
                 break;
-            case 124:   // DS_ADD_RTN_F64,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
-                appendOPR_VGPR(layout.ADDR,true,false);
-                appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
-                if (layout.OFFSET0 || layout.OFFSET1)  {
-                    insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
-                }
-                break;
-            case 152:  case 154:  case 156:   // DS_GWS_SEMA_RELEASE_ALL,DS_GWS_SEMA_V,DS_GWS_SEMA_P,
-                appendOPR_SDST_M0(124,true,false,1,true);
-                if (layout.OFFSET0 || layout.OFFSET1)  {
-                    insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
-                }
-                break;
             case 153:  case 155:  case 157:   // DS_GWS_INIT,DS_GWS_SEMA_BR,DS_GWS_BARRIER,
-                appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
-                appendOPR_SDST_M0(124,true,false,1,true);
+                appendOPR_VGPR(layout.ADDR,true,false);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
                 break;
-            case 182:  case 189:  case 190:   // DS_READ_ADDTID_B32,DS_CONSUME,DS_APPEND,
+            case 182:   // DS_READ_ADDTID_B32,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
                 appendOPR_DSMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
@@ -246,10 +250,18 @@ namespace InstructionAPI {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
                 break;
+            case 189:  case 190:   // DS_CONSUME,DS_APPEND,
+                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
+                appendOPR_DSMEM(0,false,true,1,true);
+                appendOPR_DSMEM(0,true,false,1,true);
+                if (layout.OFFSET0 || layout.OFFSET1)  {
+                    insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
+                }
+                break;
             case 222:   // DS_WRITE_B96,
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,3);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,false,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -257,7 +269,7 @@ namespace InstructionAPI {
             case 223:   // DS_WRITE_B128,
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,4);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,false,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -1477,7 +1489,7 @@ namespace InstructionAPI {
     {
         layout_ENC_SOPK & layout = insn_layout.ENC_SOPK;
         switch (layout.OP)  {
-            case 0:  case 17:   // S_MOVK_I32,S_GETREG_B32,
+            case 0:   // S_MOVK_I32,
                 appendOPR_SDST(layout.SDST,false,true);
                 appendOPR_SIMM16(layout.SIMM16,true,false);
                 break;
@@ -1506,8 +1518,12 @@ namespace InstructionAPI {
                 appendOPR_SDST(layout.SDST,true,false,2);
                 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
                 break;
+            case 17:   // S_GETREG_B32,
+                appendOPR_SDST(layout.SDST,false,true);
+                appendOPR_HWREG(layout.SIMM16,true,false);
+                break;
             case 18:   // S_SETREG_B32,
-                appendOPR_SIMM16(layout.SIMM16,false,true);
+                appendOPR_HWREG(layout.SIMM16,false,true);
                 appendOPR_SDST(layout.SDST,true,false);
                 break;
             case 21:   // S_CALL_B64,
@@ -1575,7 +1591,7 @@ namespace InstructionAPI {
                 }
                 break;
             case 16:  case 17:   // S_SENDMSG,S_SENDMSGHALT,
-                appendOPR_SIMM16(layout.SIMM16,true,false);
+                appendOPR_SENDMSG(layout.SIMM16,true,false);
                 appendOPR_SDST_M0(124,true,false,1,true);
                 break;
             case 22:   // S_TTRACEDATA,
@@ -1610,9 +1626,8 @@ namespace InstructionAPI {
             case 59:  case 60:  case 61:  case 62:  case 63:   // V_CVT_U16_F16,V_CVT_I16_F16,V_RCP_F16,V_SQRT_F16,V_RSQ_F16,
             case 64:  case 65:  case 66:  case 67:   // V_LOG_F16,V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,
             case 68:  case 69:  case 70:  case 71:  case 72:   // V_FLOOR_F16,V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,
-            case 73:  case 74:  case 75:  case 76:   // V_SIN_F16,V_COS_F16,V_EXP_LEGACY_F32,V_LOG_LEGACY_F32,
-            case 77:  case 78:  case 79:  case 84:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,V_CVT_F32_FP8,
-            case 85:   // V_CVT_F32_BF8,
+            case 73:  case 74:  case 77:  case 78:   // V_SIN_F16,V_COS_F16,V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,
+            case 79:  case 84:  case 85:   // V_SAT_PK_U8_I16,V_CVT_F32_FP8,V_CVT_F32_BF8,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC(layout.SRC0,true,false);
                 break;
@@ -1663,8 +1678,8 @@ namespace InstructionAPI {
             case 380:  case 381:  case 382:  case 383:  case 384:   // V_CVT_I16_F16,V_RCP_F16,V_SQRT_F16,V_RSQ_F16,V_LOG_F16,
             case 385:  case 386:  case 387:  case 388:   // V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,V_FLOOR_F16,
             case 389:  case 390:  case 391:  case 392:  case 393:   // V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,V_SIN_F16,
-            case 394:  case 395:  case 396:  case 397:   // V_COS_F16,V_EXP_LEGACY_F32,V_LOG_LEGACY_F32,V_CVT_NORM_I16_F16,
-            case 398:  case 399:  case 404:  case 405:   // V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,V_CVT_F32_FP8,V_CVT_F32_BF8,
+            case 394:  case 397:  case 398:  case 399:   // V_COS_F16,V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,
+            case 404:  case 405:   // V_CVT_F32_FP8,V_CVT_F32_BF8,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 break;
@@ -2008,14 +2023,14 @@ namespace InstructionAPI {
                 break;
             case 480:   // V_DIV_SCALE_F32,
                 appendOPR_VGPR(layout.VDST,false,true);
-                appendOPR_VCC(layout.SDST,false,true,2);
+                appendOPR_SDST(layout.SDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC2,true,false);
                 break;
             case 481:   // V_DIV_SCALE_F64,
                 appendOPR_VGPR(layout.VDST,false,true,2);
-                appendOPR_VCC(layout.SDST,false,true,2);
+                appendOPR_SDST(layout.SDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false,2);
                 appendOPR_SRC_SIMPLE(layout.SRC2,true,false,2);
@@ -2253,12 +2268,6 @@ namespace InstructionAPI {
                 break;
         }
     }
-
-void InstructionDecoder_amdgpu_gfx940::finalizeENC_VINTRPOperands()  {
-}
-
-void InstructionDecoder_amdgpu_gfx940::finalizeENC_MIMGOperands()  {
-}
 
 void InstructionDecoder_amdgpu_gfx940::finalizeSOPK_INST_LITERAL_Operands()  {
 }
