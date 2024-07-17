@@ -151,8 +151,8 @@ namespace InstructionAPI {
             case 0x7e007e00:  case 0x7e008000:  case 0x7e008200:  case 0x7e008400:  
             case 0x7e008600:  case 0x7e008800:  case 0x7e008a00:  case 0x7e008c00:  
             case 0x7e008e00:  case 0x7e009000:  case 0x7e009200:  case 0x7e009400:  
-            case 0x7e009600:  case 0x7e009800:  case 0x7e009a00:  case 0x7e009c00:  
-            case 0x7e009e00:  case 0x7e00a200:  case 0x7e00a400:  
+            case 0x7e009a00:  case 0x7e009c00:  case 0x7e009e00:  case 0x7e00a200:  
+            case 0x7e00a400:  
                 return true;
                 
             default:
@@ -245,14 +245,6 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VINTRP(uint64_t I)
-    {
-        switch ( I & 0xfc000000 )  {
-            default:
-                return false;
-        }
-    }
-
     bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP3P(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
@@ -293,96 +285,95 @@ namespace InstructionAPI {
             case 0xd17f0000:  case 0xd1800000:  case 0xd1810000:  case 0xd1820000:  
             case 0xd1830000:  case 0xd1840000:  case 0xd1850000:  case 0xd1860000:  
             case 0xd1870000:  case 0xd1880000:  case 0xd1890000:  case 0xd18a0000:  
-            case 0xd18b0000:  case 0xd18c0000:  case 0xd18d0000:  case 0xd18e0000:  
-            case 0xd18f0000:  case 0xd1910000:  case 0xd1920000:  case 0xd1000000:  
-            case 0xd1010000:  case 0xd1020000:  case 0xd1030000:  case 0xd1040000:  
-            case 0xd1050000:  case 0xd1060000:  case 0xd1070000:  case 0xd1080000:  
-            case 0xd1090000:  case 0xd10a0000:  case 0xd10b0000:  case 0xd10c0000:  
-            case 0xd10d0000:  case 0xd10e0000:  case 0xd10f0000:  case 0xd1100000:  
-            case 0xd1110000:  case 0xd1120000:  case 0xd1130000:  case 0xd1140000:  
-            case 0xd1150000:  case 0xd1160000:  case 0xd11f0000:  case 0xd1200000:  
-            case 0xd1210000:  case 0xd1220000:  case 0xd1230000:  case 0xd1260000:  
-            case 0xd1270000:  case 0xd1280000:  case 0xd1290000:  case 0xd12a0000:  
-            case 0xd12b0000:  case 0xd12c0000:  case 0xd12d0000:  case 0xd12e0000:  
-            case 0xd12f0000:  case 0xd1300000:  case 0xd1310000:  case 0xd1320000:  
-            case 0xd1330000:  case 0xd1340000:  case 0xd1350000:  case 0xd1360000:  
-            case 0xd1370000:  case 0xd1380000:  case 0xd1390000:  case 0xd13a0000:  
-            case 0xd13b0000:  case 0xd13c0000:  case 0xd13d0000:  case 0xd1c00000:  
-            case 0xd1c10000:  case 0xd1c20000:  case 0xd1c30000:  case 0xd1c40000:  
-            case 0xd1c50000:  case 0xd1c60000:  case 0xd1c70000:  case 0xd1c80000:  
-            case 0xd1c90000:  case 0xd1ca0000:  case 0xd1cb0000:  case 0xd1cc0000:  
-            case 0xd1cd0000:  case 0xd1ce0000:  case 0xd1cf0000:  case 0xd1d00000:  
-            case 0xd1d10000:  case 0xd1d20000:  case 0xd1d30000:  case 0xd1d40000:  
-            case 0xd1d50000:  case 0xd1d60000:  case 0xd1d70000:  case 0xd1d80000:  
-            case 0xd1d90000:  case 0xd1da0000:  case 0xd1db0000:  case 0xd1dc0000:  
-            case 0xd1dd0000:  case 0xd1de0000:  case 0xd1df0000:  case 0xd1e20000:  
-            case 0xd1e30000:  case 0xd1e40000:  case 0xd1e50000:  case 0xd1e60000:  
-            case 0xd1e70000:  case 0xd1ea0000:  case 0xd1eb0000:  case 0xd1ec0000:  
-            case 0xd1ed0000:  case 0xd1ee0000:  case 0xd1ef0000:  case 0xd1f00000:  
-            case 0xd1f10000:  case 0xd1f20000:  case 0xd1f30000:  case 0xd1f40000:  
-            case 0xd1f50000:  case 0xd1f60000:  case 0xd1f70000:  case 0xd1f80000:  
-            case 0xd1f90000:  case 0xd1fa0000:  case 0xd1fb0000:  case 0xd1fc0000:  
-            case 0xd1fd0000:  case 0xd1fe0000:  case 0xd1ff0000:  case 0xd2000000:  
-            case 0xd2010000:  case 0xd2020000:  case 0xd2030000:  case 0xd2040000:  
-            case 0xd2050000:  case 0xd2060000:  case 0xd2070000:  case 0xd2800000:  
-            case 0xd2810000:  case 0xd2820000:  case 0xd2830000:  case 0xd2840000:  
-            case 0xd2850000:  case 0xd2860000:  case 0xd2870000:  case 0xd2880000:  
-            case 0xd2890000:  case 0xd28a0000:  case 0xd28b0000:  case 0xd28c0000:  
-            case 0xd28d0000:  case 0xd28f0000:  case 0xd2900000:  case 0xd2910000:  
-            case 0xd2920000:  case 0xd2930000:  case 0xd2940000:  case 0xd2950000:  
-            case 0xd2960000:  case 0xd2970000:  case 0xd2980000:  case 0xd2990000:  
-            case 0xd29a0000:  case 0xd29c0000:  case 0xd29d0000:  case 0xd29e0000:  
-            case 0xd29f0000:  case 0xd2a00000:  case 0xd2a10000:  case 0xd0100000:  
-            case 0xd0110000:  case 0xd0120000:  case 0xd0130000:  case 0xd0140000:  
-            case 0xd0150000:  case 0xd0200000:  case 0xd0210000:  case 0xd0220000:  
-            case 0xd0230000:  case 0xd0240000:  case 0xd0250000:  case 0xd0260000:  
-            case 0xd0270000:  case 0xd0280000:  case 0xd0290000:  case 0xd02a0000:  
-            case 0xd02b0000:  case 0xd02c0000:  case 0xd02d0000:  case 0xd02e0000:  
-            case 0xd02f0000:  case 0xd0300000:  case 0xd0310000:  case 0xd0320000:  
-            case 0xd0330000:  case 0xd0340000:  case 0xd0350000:  case 0xd0360000:  
-            case 0xd0370000:  case 0xd0380000:  case 0xd0390000:  case 0xd03a0000:  
-            case 0xd03b0000:  case 0xd03c0000:  case 0xd03d0000:  case 0xd03e0000:  
-            case 0xd03f0000:  case 0xd0400000:  case 0xd0410000:  case 0xd0420000:  
-            case 0xd0430000:  case 0xd0440000:  case 0xd0450000:  case 0xd0460000:  
-            case 0xd0470000:  case 0xd0480000:  case 0xd0490000:  case 0xd04a0000:  
-            case 0xd04b0000:  case 0xd04c0000:  case 0xd04d0000:  case 0xd04e0000:  
-            case 0xd04f0000:  case 0xd0500000:  case 0xd0510000:  case 0xd0520000:  
-            case 0xd0530000:  case 0xd0540000:  case 0xd0550000:  case 0xd0560000:  
-            case 0xd0570000:  case 0xd0580000:  case 0xd0590000:  case 0xd05a0000:  
-            case 0xd05b0000:  case 0xd05c0000:  case 0xd05d0000:  case 0xd05e0000:  
-            case 0xd05f0000:  case 0xd0600000:  case 0xd0610000:  case 0xd0620000:  
-            case 0xd0630000:  case 0xd0640000:  case 0xd0650000:  case 0xd0660000:  
-            case 0xd0670000:  case 0xd0680000:  case 0xd0690000:  case 0xd06a0000:  
-            case 0xd06b0000:  case 0xd06c0000:  case 0xd06d0000:  case 0xd06e0000:  
-            case 0xd06f0000:  case 0xd0700000:  case 0xd0710000:  case 0xd0720000:  
-            case 0xd0730000:  case 0xd0740000:  case 0xd0750000:  case 0xd0760000:  
-            case 0xd0770000:  case 0xd0780000:  case 0xd0790000:  case 0xd07a0000:  
-            case 0xd07b0000:  case 0xd07c0000:  case 0xd07d0000:  case 0xd07e0000:  
-            case 0xd07f0000:  case 0xd0a00000:  case 0xd0a10000:  case 0xd0a20000:  
-            case 0xd0a30000:  case 0xd0a40000:  case 0xd0a50000:  case 0xd0a60000:  
-            case 0xd0a70000:  case 0xd0a80000:  case 0xd0a90000:  case 0xd0aa0000:  
-            case 0xd0ab0000:  case 0xd0ac0000:  case 0xd0ad0000:  case 0xd0ae0000:  
-            case 0xd0af0000:  case 0xd0b00000:  case 0xd0b10000:  case 0xd0b20000:  
-            case 0xd0b30000:  case 0xd0b40000:  case 0xd0b50000:  case 0xd0b60000:  
-            case 0xd0b70000:  case 0xd0b80000:  case 0xd0b90000:  case 0xd0ba0000:  
-            case 0xd0bb0000:  case 0xd0bc0000:  case 0xd0bd0000:  case 0xd0be0000:  
-            case 0xd0bf0000:  case 0xd0c00000:  case 0xd0c10000:  case 0xd0c20000:  
-            case 0xd0c30000:  case 0xd0c40000:  case 0xd0c50000:  case 0xd0c60000:  
-            case 0xd0c70000:  case 0xd0c80000:  case 0xd0c90000:  case 0xd0ca0000:  
-            case 0xd0cb0000:  case 0xd0cc0000:  case 0xd0cd0000:  case 0xd0ce0000:  
-            case 0xd0cf0000:  case 0xd0d00000:  case 0xd0d10000:  case 0xd0d20000:  
-            case 0xd0d30000:  case 0xd0d40000:  case 0xd0d50000:  case 0xd0d60000:  
-            case 0xd0d70000:  case 0xd0d80000:  case 0xd0d90000:  case 0xd0da0000:  
-            case 0xd0db0000:  case 0xd0dc0000:  case 0xd0dd0000:  case 0xd0de0000:  
-            case 0xd0df0000:  case 0xd0e00000:  case 0xd0e10000:  case 0xd0e20000:  
-            case 0xd0e30000:  case 0xd0e40000:  case 0xd0e50000:  case 0xd0e60000:  
-            case 0xd0e70000:  case 0xd0e80000:  case 0xd0e90000:  case 0xd0ea0000:  
-            case 0xd0eb0000:  case 0xd0ec0000:  case 0xd0ed0000:  case 0xd0ee0000:  
-            case 0xd0ef0000:  case 0xd0f00000:  case 0xd0f10000:  case 0xd0f20000:  
-            case 0xd0f30000:  case 0xd0f40000:  case 0xd0f50000:  case 0xd0f60000:  
-            case 0xd0f70000:  case 0xd0f80000:  case 0xd0f90000:  case 0xd0fa0000:  
-            case 0xd0fb0000:  case 0xd0fc0000:  case 0xd0fd0000:  case 0xd0fe0000:  
-            case 0xd0ff0000:  
+            case 0xd18d0000:  case 0xd18e0000:  case 0xd18f0000:  case 0xd1910000:  
+            case 0xd1920000:  case 0xd1000000:  case 0xd1010000:  case 0xd1020000:  
+            case 0xd1030000:  case 0xd1040000:  case 0xd1050000:  case 0xd1060000:  
+            case 0xd1070000:  case 0xd1080000:  case 0xd1090000:  case 0xd10a0000:  
+            case 0xd10b0000:  case 0xd10c0000:  case 0xd10d0000:  case 0xd10e0000:  
+            case 0xd10f0000:  case 0xd1100000:  case 0xd1110000:  case 0xd1120000:  
+            case 0xd1130000:  case 0xd1140000:  case 0xd1150000:  case 0xd1160000:  
+            case 0xd11f0000:  case 0xd1200000:  case 0xd1210000:  case 0xd1220000:  
+            case 0xd1230000:  case 0xd1260000:  case 0xd1270000:  case 0xd1280000:  
+            case 0xd1290000:  case 0xd12a0000:  case 0xd12b0000:  case 0xd12c0000:  
+            case 0xd12d0000:  case 0xd12e0000:  case 0xd12f0000:  case 0xd1300000:  
+            case 0xd1310000:  case 0xd1320000:  case 0xd1330000:  case 0xd1340000:  
+            case 0xd1350000:  case 0xd1360000:  case 0xd1370000:  case 0xd1380000:  
+            case 0xd1390000:  case 0xd13a0000:  case 0xd13b0000:  case 0xd13c0000:  
+            case 0xd13d0000:  case 0xd1c00000:  case 0xd1c10000:  case 0xd1c20000:  
+            case 0xd1c30000:  case 0xd1c40000:  case 0xd1c50000:  case 0xd1c60000:  
+            case 0xd1c70000:  case 0xd1c80000:  case 0xd1c90000:  case 0xd1ca0000:  
+            case 0xd1cb0000:  case 0xd1cc0000:  case 0xd1cd0000:  case 0xd1ce0000:  
+            case 0xd1cf0000:  case 0xd1d00000:  case 0xd1d10000:  case 0xd1d20000:  
+            case 0xd1d30000:  case 0xd1d40000:  case 0xd1d50000:  case 0xd1d60000:  
+            case 0xd1d70000:  case 0xd1d80000:  case 0xd1d90000:  case 0xd1da0000:  
+            case 0xd1db0000:  case 0xd1dc0000:  case 0xd1dd0000:  case 0xd1de0000:  
+            case 0xd1df0000:  case 0xd1e20000:  case 0xd1e30000:  case 0xd1e40000:  
+            case 0xd1e50000:  case 0xd1e60000:  case 0xd1e70000:  case 0xd1ea0000:  
+            case 0xd1eb0000:  case 0xd1ec0000:  case 0xd1ed0000:  case 0xd1ee0000:  
+            case 0xd1ef0000:  case 0xd1f00000:  case 0xd1f10000:  case 0xd1f20000:  
+            case 0xd1f30000:  case 0xd1f40000:  case 0xd1f50000:  case 0xd1f60000:  
+            case 0xd1f70000:  case 0xd1f80000:  case 0xd1f90000:  case 0xd1fa0000:  
+            case 0xd1fb0000:  case 0xd1fc0000:  case 0xd1fd0000:  case 0xd1fe0000:  
+            case 0xd1ff0000:  case 0xd2000000:  case 0xd2010000:  case 0xd2020000:  
+            case 0xd2030000:  case 0xd2040000:  case 0xd2050000:  case 0xd2060000:  
+            case 0xd2070000:  case 0xd2800000:  case 0xd2810000:  case 0xd2820000:  
+            case 0xd2830000:  case 0xd2840000:  case 0xd2850000:  case 0xd2860000:  
+            case 0xd2870000:  case 0xd2880000:  case 0xd2890000:  case 0xd28a0000:  
+            case 0xd28b0000:  case 0xd28c0000:  case 0xd28d0000:  case 0xd28f0000:  
+            case 0xd2900000:  case 0xd2910000:  case 0xd2920000:  case 0xd2930000:  
+            case 0xd2940000:  case 0xd2950000:  case 0xd2960000:  case 0xd2970000:  
+            case 0xd2980000:  case 0xd2990000:  case 0xd29a0000:  case 0xd29c0000:  
+            case 0xd29d0000:  case 0xd29e0000:  case 0xd29f0000:  case 0xd2a00000:  
+            case 0xd2a10000:  case 0xd0100000:  case 0xd0110000:  case 0xd0120000:  
+            case 0xd0130000:  case 0xd0140000:  case 0xd0150000:  case 0xd0200000:  
+            case 0xd0210000:  case 0xd0220000:  case 0xd0230000:  case 0xd0240000:  
+            case 0xd0250000:  case 0xd0260000:  case 0xd0270000:  case 0xd0280000:  
+            case 0xd0290000:  case 0xd02a0000:  case 0xd02b0000:  case 0xd02c0000:  
+            case 0xd02d0000:  case 0xd02e0000:  case 0xd02f0000:  case 0xd0300000:  
+            case 0xd0310000:  case 0xd0320000:  case 0xd0330000:  case 0xd0340000:  
+            case 0xd0350000:  case 0xd0360000:  case 0xd0370000:  case 0xd0380000:  
+            case 0xd0390000:  case 0xd03a0000:  case 0xd03b0000:  case 0xd03c0000:  
+            case 0xd03d0000:  case 0xd03e0000:  case 0xd03f0000:  case 0xd0400000:  
+            case 0xd0410000:  case 0xd0420000:  case 0xd0430000:  case 0xd0440000:  
+            case 0xd0450000:  case 0xd0460000:  case 0xd0470000:  case 0xd0480000:  
+            case 0xd0490000:  case 0xd04a0000:  case 0xd04b0000:  case 0xd04c0000:  
+            case 0xd04d0000:  case 0xd04e0000:  case 0xd04f0000:  case 0xd0500000:  
+            case 0xd0510000:  case 0xd0520000:  case 0xd0530000:  case 0xd0540000:  
+            case 0xd0550000:  case 0xd0560000:  case 0xd0570000:  case 0xd0580000:  
+            case 0xd0590000:  case 0xd05a0000:  case 0xd05b0000:  case 0xd05c0000:  
+            case 0xd05d0000:  case 0xd05e0000:  case 0xd05f0000:  case 0xd0600000:  
+            case 0xd0610000:  case 0xd0620000:  case 0xd0630000:  case 0xd0640000:  
+            case 0xd0650000:  case 0xd0660000:  case 0xd0670000:  case 0xd0680000:  
+            case 0xd0690000:  case 0xd06a0000:  case 0xd06b0000:  case 0xd06c0000:  
+            case 0xd06d0000:  case 0xd06e0000:  case 0xd06f0000:  case 0xd0700000:  
+            case 0xd0710000:  case 0xd0720000:  case 0xd0730000:  case 0xd0740000:  
+            case 0xd0750000:  case 0xd0760000:  case 0xd0770000:  case 0xd0780000:  
+            case 0xd0790000:  case 0xd07a0000:  case 0xd07b0000:  case 0xd07c0000:  
+            case 0xd07d0000:  case 0xd07e0000:  case 0xd07f0000:  case 0xd0a00000:  
+            case 0xd0a10000:  case 0xd0a20000:  case 0xd0a30000:  case 0xd0a40000:  
+            case 0xd0a50000:  case 0xd0a60000:  case 0xd0a70000:  case 0xd0a80000:  
+            case 0xd0a90000:  case 0xd0aa0000:  case 0xd0ab0000:  case 0xd0ac0000:  
+            case 0xd0ad0000:  case 0xd0ae0000:  case 0xd0af0000:  case 0xd0b00000:  
+            case 0xd0b10000:  case 0xd0b20000:  case 0xd0b30000:  case 0xd0b40000:  
+            case 0xd0b50000:  case 0xd0b60000:  case 0xd0b70000:  case 0xd0b80000:  
+            case 0xd0b90000:  case 0xd0ba0000:  case 0xd0bb0000:  case 0xd0bc0000:  
+            case 0xd0bd0000:  case 0xd0be0000:  case 0xd0bf0000:  case 0xd0c00000:  
+            case 0xd0c10000:  case 0xd0c20000:  case 0xd0c30000:  case 0xd0c40000:  
+            case 0xd0c50000:  case 0xd0c60000:  case 0xd0c70000:  case 0xd0c80000:  
+            case 0xd0c90000:  case 0xd0ca0000:  case 0xd0cb0000:  case 0xd0cc0000:  
+            case 0xd0cd0000:  case 0xd0ce0000:  case 0xd0cf0000:  case 0xd0d00000:  
+            case 0xd0d10000:  case 0xd0d20000:  case 0xd0d30000:  case 0xd0d40000:  
+            case 0xd0d50000:  case 0xd0d60000:  case 0xd0d70000:  case 0xd0d80000:  
+            case 0xd0d90000:  case 0xd0da0000:  case 0xd0db0000:  case 0xd0dc0000:  
+            case 0xd0dd0000:  case 0xd0de0000:  case 0xd0df0000:  case 0xd0e00000:  
+            case 0xd0e10000:  case 0xd0e20000:  case 0xd0e30000:  case 0xd0e40000:  
+            case 0xd0e50000:  case 0xd0e60000:  case 0xd0e70000:  case 0xd0e80000:  
+            case 0xd0e90000:  case 0xd0ea0000:  case 0xd0eb0000:  case 0xd0ec0000:  
+            case 0xd0ed0000:  case 0xd0ee0000:  case 0xd0ef0000:  case 0xd0f00000:  
+            case 0xd0f10000:  case 0xd0f20000:  case 0xd0f30000:  case 0xd0f40000:  
+            case 0xd0f50000:  case 0xd0f60000:  case 0xd0f70000:  case 0xd0f80000:  
+            case 0xd0f90000:  case 0xd0fa0000:  case 0xd0fb0000:  case 0xd0fc0000:  
+            case 0xd0fd0000:  case 0xd0fe0000:  case 0xd0ff0000:  
                 return true;
                 
             default:
@@ -753,24 +744,6 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP2_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP2Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
-        this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
-    }
-
-    void InstructionDecoder_amdgpu_gfx90a::decodeENC_VINTRP()
-    {
-        insn_size = 4;
-        layout_ENC_VINTRP & layout = insn_layout.ENC_VINTRP;
-        layout.ATTR = longfield<10,15>(insn_long);
-        layout.ATTRCHAN = longfield<8,9>(insn_long);
-        layout.ENCODING = longfield<26,31>(insn_long);
-        layout.OP = longfield<16,17>(insn_long);
-        layout.VDST = longfield<18,25>(insn_long);
-        layout.VSRC = longfield<0,7>(insn_long);
-        assert(isArrayIndexValid(ENC_VINTRP_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VINTRP_insn_table[layout.OP];
-        this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
-        finalizeENC_VINTRPOperands();
         this->insn_in_progress->updateSize(insn_size + immLen);
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
@@ -1155,14 +1128,6 @@ namespace InstructionAPI {
             this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
             instr_family = ENC_VOP2;
         }
-        else if (IS_ENC_VINTRP(insn_long))  {
-            insn_size = 4;
-            uint32_t op_value = longfield<16,17>(insn_long);
-            assert(isArrayIndexValid(ENC_VINTRP_insn_table, op_value) && "Opcode over or underflow");
-            const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VINTRP_insn_table[op];
-            this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
-            instr_family = ENC_VINTRP;
-        }
         else if (IS_ENC_VOP3P(insn_long))  {
             insn_size = 8;
             uint32_t op_value = longfield<16,22>(insn_long);
@@ -1297,9 +1262,6 @@ namespace InstructionAPI {
         }
         else if (IS_ENC_VOP2(insn_long))  {
             decodeENC_VOP2();
-        }
-        else if (IS_ENC_VINTRP(insn_long))  {
-            decodeENC_VINTRP();
         }
         else if (IS_ENC_VOP3P(insn_long))  {
             decodeENC_VOP3P();
