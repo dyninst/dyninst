@@ -301,7 +301,6 @@ namespace Dyninst {
             static bool IS_ENC_VOP1(uint64_t I);
             static bool IS_ENC_VOPC(uint64_t I);
             static bool IS_ENC_VOP2(uint64_t I);
-            static bool IS_ENC_VINTRP(uint64_t I);
             static bool IS_ENC_VOP3P(uint64_t I);
             static bool IS_ENC_VOP3(uint64_t I);
             static bool IS_ENC_DS(uint64_t I);
@@ -326,7 +325,6 @@ namespace Dyninst {
                 ENC_VOP1 = 5,
                 ENC_VOPC = 6,
                 ENC_VOP2 = 7,
-                ENC_VINTRP = 8,
                 ENC_VOP3P = 9,
                 ENC_VOP3 = 10,
                 ENC_DS = 11,
@@ -402,14 +400,6 @@ namespace Dyninst {
                 uint16_t SRC0 : 9;
                 uint8_t VDST : 8;
                 uint8_t VSRC1 : 8;
-            };
-            struct layout_ENC_VINTRP {
-                uint8_t ATTR : 6;
-                uint8_t ATTRCHAN : 2;
-                uint8_t ENCODING : 6;
-                uint8_t OP : 2;
-                uint8_t VDST : 8;
-                uint8_t VSRC : 8;
             };
             struct layout_ENC_VOP3P {
                 uint8_t CLAMP : 1;
@@ -598,7 +588,6 @@ namespace Dyninst {
                 layout_ENC_VOP1 ENC_VOP1;
                 layout_ENC_VOPC ENC_VOPC;
                 layout_ENC_VOP2 ENC_VOP2;
-                layout_ENC_VINTRP ENC_VINTRP;
                 layout_ENC_VOP3P ENC_VOP3P;
                 layout_ENC_VOP3 ENC_VOP3;
                 layout_ENC_DS ENC_DS;
@@ -631,8 +620,6 @@ namespace Dyninst {
             void finalizeENC_VOPCOperands();
             void decodeENC_VOP2();
             void finalizeENC_VOP2Operands();
-            void decodeENC_VINTRP();
-            void finalizeENC_VINTRPOperands();
             void decodeENC_VOP3P();
             void finalizeENC_VOP3POperands();
             void decodeENC_VOP3();
@@ -664,10 +651,13 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_ACCVGPR(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_DSMEM(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_FLAT_SCRATCH(uint64_t input, uint32_t output_vec_len = 1 );
+            Expression::Ptr decodeOPR_HWREG_ID(uint64_t input, uint32_t start, uint32_t end);
             Expression::Ptr decodeOPR_PC(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SDST(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SDST_EXEC(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SDST_M0(uint64_t input, uint32_t output_vec_len = 1 );
+            Expression::Ptr decodeOPR_SENDMSG_GSOP(uint64_t input, uint32_t output_vec_len = 1 );
+            Expression::Ptr decodeOPR_SENDMSG_MSG(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SRC(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SRC_ACCVGPR(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SRC_NOLDS(uint64_t input, uint32_t output_vec_len = 1 );
@@ -688,15 +678,21 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_VGPR_OR_LDS(uint64_t input, uint32_t output_vec_len = 1 );
 
             
+            void appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
             void appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_HWREG(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_LABEL(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_SENDMSG(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
-            void appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
-
             void appendOPR_SIMM32(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
-
-            void appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
@@ -1788,30 +1784,6 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 20
                 {amdgpu_gfx90a_op_S_CALL_B64,"S_CALL_B64"}, // 21
             }; // end ENC_SOPK_insn_table
-            const amdgpu_gfx90a_insn_entry SOPK_INST_LITERAL__insn_table[21] = 
-            {
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 1
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 2
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 3
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 4
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 5
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 6
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 7
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 8
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 9
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 10
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 11
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 12
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 13
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 14
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 15
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 16
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 17
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 18
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 19
-                {amdgpu_gfx90a_op_S_SETREG_IMM32_B32,"S_SETREG_IMM32_B32"}, // 20
-            }; // end SOPK_INST_LITERAL__insn_table
             const amdgpu_gfx90a_insn_entry ENC_SOPP_insn_table[31] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
@@ -1923,8 +1895,8 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_FRACT_F16,"V_FRACT_F16"}, // 72
                 {amdgpu_gfx90a_op_V_SIN_F16,"V_SIN_F16"}, // 73
                 {amdgpu_gfx90a_op_V_COS_F16,"V_COS_F16"}, // 74
-                {amdgpu_gfx90a_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 75
-                {amdgpu_gfx90a_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 76
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 75
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 76
                 {amdgpu_gfx90a_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 77
                 {amdgpu_gfx90a_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 78
                 {amdgpu_gfx90a_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 79
@@ -2329,8 +2301,8 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_FRACT_F16,"V_FRACT_F16"}, // 392
                 {amdgpu_gfx90a_op_V_SIN_F16,"V_SIN_F16"}, // 393
                 {amdgpu_gfx90a_op_V_COS_F16,"V_COS_F16"}, // 394
-                {amdgpu_gfx90a_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 395
-                {amdgpu_gfx90a_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 396
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 395
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 396
                 {amdgpu_gfx90a_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 397
                 {amdgpu_gfx90a_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 398
                 {amdgpu_gfx90a_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 399
@@ -3675,10 +3647,10 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_CMPX_GE_U64,"V_CMPX_GE_U64"}, // 254
                 {amdgpu_gfx90a_op_V_CMPX_T_U64,"V_CMPX_T_U64"}, // 255
             }; // end ENC_VOPC_insn_table
-            const amdgpu_gfx90a_insn_entry ENC_VINTRP_insn_table[1] = 
+            const amdgpu_gfx90a_insn_entry SOPK_INST_LITERAL__insn_table[1] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
-            }; // end ENC_VINTRP_insn_table
+            }; // end SOPK_INST_LITERAL__insn_table
 
 
         };

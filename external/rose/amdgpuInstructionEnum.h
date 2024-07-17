@@ -3,6 +3,7 @@
 enum AMDGPURegisterClass{
 	amdgpu_regclass_hwr,
 	amdgpu_regclass_pc,
+	amdgpu_regclass_misc,
 	amdgpu_regclass_ttmp_sgpr,
 	amdgpu_regclass_sgpr,
 	amdgpu_regclass_vgpr,

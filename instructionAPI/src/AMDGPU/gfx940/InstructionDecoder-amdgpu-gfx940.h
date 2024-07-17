@@ -301,13 +301,11 @@ namespace Dyninst {
             static bool IS_ENC_VOP1(uint64_t I);
             static bool IS_ENC_VOPC(uint64_t I);
             static bool IS_ENC_VOP2(uint64_t I);
-            static bool IS_ENC_VINTRP(uint64_t I);
             static bool IS_ENC_VOP3P(uint64_t I);
             static bool IS_ENC_VOP3(uint64_t I);
             static bool IS_ENC_DS(uint64_t I);
             static bool IS_ENC_MUBUF(uint64_t I);
             static bool IS_ENC_MTBUF(uint64_t I);
-            static bool IS_ENC_MIMG(uint64_t I);
             static bool IS_ENC_FLAT(uint64_t I);
             static bool IS_ENC_FLAT_GLBL(uint64_t I);
             static bool IS_ENC_FLAT_SCRATCH(uint64_t I);
@@ -326,13 +324,11 @@ namespace Dyninst {
                 ENC_VOP1 = 5,
                 ENC_VOPC = 6,
                 ENC_VOP2 = 7,
-                ENC_VINTRP = 8,
                 ENC_VOP3P = 9,
                 ENC_VOP3 = 10,
                 ENC_DS = 11,
                 ENC_MUBUF = 12,
                 ENC_MTBUF = 13,
-                ENC_MIMG = 14,
                 ENC_FLAT = 16,
                 ENC_FLAT_GLBL = 17,
                 ENC_FLAT_SCRATCH = 18,
@@ -403,14 +399,6 @@ namespace Dyninst {
                 uint8_t VDST : 8;
                 uint8_t VSRC1 : 8;
             };
-            struct layout_ENC_VINTRP {
-                uint8_t ATTR : 6;
-                uint8_t ATTRCHAN : 2;
-                uint8_t ENCODING : 6;
-                uint8_t OP : 2;
-                uint8_t VDST : 8;
-                uint8_t VSRC : 8;
-            };
             struct layout_ENC_VOP3P {
                 uint8_t CLAMP : 1;
                 uint16_t ENCODING : 9;
@@ -480,25 +468,6 @@ namespace Dyninst {
                 uint8_t SC1 : 1;
                 uint8_t SOFFSET : 8;
                 uint8_t SRSRC : 7;
-                uint8_t VADDR : 8;
-                uint8_t VDATA : 8;
-            };
-            struct layout_ENC_MIMG {
-                uint8_t A16 : 1;
-                uint8_t ACC : 1;
-                uint8_t D16 : 1;
-                uint8_t DA : 1;
-                uint8_t DMASK : 4;
-                uint8_t ENCODING : 6;
-                uint8_t LWE : 1;
-                uint8_t NT : 1;
-                uint8_t OP : 7;
-                uint8_t OPM : 1;
-                uint8_t SC0 : 1;
-                uint8_t SC1 : 1;
-                uint8_t SRSRC : 7;
-                uint8_t SSAMP : 7;
-                uint8_t UNORM : 1;
                 uint8_t VADDR : 8;
                 uint8_t VDATA : 8;
             };
@@ -598,13 +567,11 @@ namespace Dyninst {
                 layout_ENC_VOP1 ENC_VOP1;
                 layout_ENC_VOPC ENC_VOPC;
                 layout_ENC_VOP2 ENC_VOP2;
-                layout_ENC_VINTRP ENC_VINTRP;
                 layout_ENC_VOP3P ENC_VOP3P;
                 layout_ENC_VOP3 ENC_VOP3;
                 layout_ENC_DS ENC_DS;
                 layout_ENC_MUBUF ENC_MUBUF;
                 layout_ENC_MTBUF ENC_MTBUF;
-                layout_ENC_MIMG ENC_MIMG;
                 layout_ENC_FLAT ENC_FLAT;
                 layout_ENC_FLAT_GLBL ENC_FLAT_GLBL;
                 layout_ENC_FLAT_SCRATCH ENC_FLAT_SCRATCH;
@@ -631,8 +598,6 @@ namespace Dyninst {
             void finalizeENC_VOPCOperands();
             void decodeENC_VOP2();
             void finalizeENC_VOP2Operands();
-            void decodeENC_VINTRP();
-            void finalizeENC_VINTRPOperands();
             void decodeENC_VOP3P();
             void finalizeENC_VOP3POperands();
             void decodeENC_VOP3();
@@ -643,8 +608,6 @@ namespace Dyninst {
             void finalizeENC_MUBUFOperands();
             void decodeENC_MTBUF();
             void finalizeENC_MTBUFOperands();
-            void decodeENC_MIMG();
-            void finalizeENC_MIMGOperands();
             void decodeENC_FLAT();
             void finalizeENC_FLATOperands();
             void decodeENC_FLAT_GLBL();
@@ -664,10 +627,13 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_ACCVGPR(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_DSMEM(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_FLAT_SCRATCH(uint64_t input, uint32_t output_vec_len = 1 );
+            Expression::Ptr decodeOPR_HWREG_ID(uint64_t input, uint32_t start, uint32_t end);
             Expression::Ptr decodeOPR_PC(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SDST(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SDST_EXEC(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SDST_M0(uint64_t input, uint32_t output_vec_len = 1 );
+            Expression::Ptr decodeOPR_SENDMSG_GSOP(uint64_t input, uint32_t output_vec_len = 1 );
+            Expression::Ptr decodeOPR_SENDMSG_MSG(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SRC(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SRC_ACCVGPR(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SRC_NOLDS(uint64_t input, uint32_t output_vec_len = 1 );
@@ -688,15 +654,21 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_VGPR_OR_LDS(uint64_t input, uint32_t output_vec_len = 1 );
 
             
-            void appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+            void appendOPR_LABEL(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
-            void appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+            void appendOPR_SENDMSG(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_HWREG(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_SIMM32(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
-            void appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+            void appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
@@ -1869,8 +1841,8 @@ namespace Dyninst {
                 {amdgpu_gfx940_op_V_FRACT_F16,"V_FRACT_F16"}, // 72
                 {amdgpu_gfx940_op_V_SIN_F16,"V_SIN_F16"}, // 73
                 {amdgpu_gfx940_op_V_COS_F16,"V_COS_F16"}, // 74
-                {amdgpu_gfx940_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 75
-                {amdgpu_gfx940_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 76
+                {amdgpu_gfx940_op_S_NOP,"S_NOP"}, // 75
+                {amdgpu_gfx940_op_S_NOP,"S_NOP"}, // 76
                 {amdgpu_gfx940_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 77
                 {amdgpu_gfx940_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 78
                 {amdgpu_gfx940_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 79
@@ -2280,8 +2252,8 @@ namespace Dyninst {
                 {amdgpu_gfx940_op_V_FRACT_F16,"V_FRACT_F16"}, // 392
                 {amdgpu_gfx940_op_V_SIN_F16,"V_SIN_F16"}, // 393
                 {amdgpu_gfx940_op_V_COS_F16,"V_COS_F16"}, // 394
-                {amdgpu_gfx940_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 395
-                {amdgpu_gfx940_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 396
+                {amdgpu_gfx940_op_S_NOP,"S_NOP"}, // 395
+                {amdgpu_gfx940_op_S_NOP,"S_NOP"}, // 396
                 {amdgpu_gfx940_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 397
                 {amdgpu_gfx940_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 398
                 {amdgpu_gfx940_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 399
@@ -3646,14 +3618,6 @@ namespace Dyninst {
                 {amdgpu_gfx940_op_V_CMPX_GE_U64,"V_CMPX_GE_U64"}, // 254
                 {amdgpu_gfx940_op_V_CMPX_T_U64,"V_CMPX_T_U64"}, // 255
             }; // end ENC_VOPC_insn_table
-            const amdgpu_gfx940_insn_entry ENC_VINTRP_insn_table[1] = 
-            {
-                {amdgpu_gfx940_op_S_NOP,"S_NOP"}, // 0
-            }; // end ENC_VINTRP_insn_table
-            const amdgpu_gfx940_insn_entry ENC_MIMG_insn_table[1] = 
-            {
-                {amdgpu_gfx940_op_S_NOP,"S_NOP"}, // 0
-            }; // end ENC_MIMG_insn_table
             const amdgpu_gfx940_insn_entry SOPK_INST_LITERAL__insn_table[1] = 
             {
                 {amdgpu_gfx940_op_S_NOP,"S_NOP"}, // 0
