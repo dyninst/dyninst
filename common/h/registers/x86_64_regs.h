@@ -82,22 +82,22 @@ namespace Dyninst { namespace x86_64 {
 
   /* Base IDs for aliased GPRs */
   const int32_t FLAGS  = 0x00;  // RFLAGS Register
-  const int32_t BASEA  = 0x01;
-  const int32_t BASEC  = 0x02;
-  const int32_t BASED  = 0x03;
-  const int32_t BASEB  = 0x04;
-  const int32_t BASESP = 0x05;
-  const int32_t BASEBP = 0x06;
-  const int32_t BASESI = 0x07;
-  const int32_t BASEDI = 0x08;
-  const int32_t BASE8  = 0x09;
-  const int32_t BASE9  = 0x0A;
-  const int32_t BASE10 = 0x0B;
-  const int32_t BASE11 = 0x0C;
-  const int32_t BASE12 = 0x0D;
-  const int32_t BASE13 = 0x0E;
-  const int32_t BASE14 = 0x0F;
-  const int32_t BASE15 = 0x10;
+  const int32_t BASEA  = 0x00;
+  const int32_t BASEC  = 0x01;
+  const int32_t BASED  = 0x02;
+  const int32_t BASEB  = 0x03;
+  const int32_t BASESP = 0x04;
+  const int32_t BASEBP = 0x05;
+  const int32_t BASESI = 0x06;
+  const int32_t BASEDI = 0x07;
+  const int32_t BASE8  = 0x08;
+  const int32_t BASE9  = 0x09;
+  const int32_t BASE10 = 0x0A;
+  const int32_t BASE11 = 0x0B;
+  const int32_t BASE12 = 0x0C;
+  const int32_t BASE13 = 0x0D;
+  const int32_t BASE14 = 0x0E;
+  const int32_t BASE15 = 0x0F;
 
   /* Base IDs for memory segment registers */
   const int32_t BASEDS = 0x0; // Data Segment register
