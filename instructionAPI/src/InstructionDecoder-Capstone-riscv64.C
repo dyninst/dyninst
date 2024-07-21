@@ -132,12 +132,22 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                     isStore = true;
                     type = u16;
                     break;
+                case riscv64_op_c_flw:
+                case riscv64_op_c_flwsp:
+                case riscv64_op_c_lw:
+                case riscv64_op_c_lwsp:
+                case riscv64_op_flw:
                 case riscv64_op_lw:
                 case riscv64_op_lr_w:
                 case riscv64_op_lwu:
                     isLoad = true;
                     type = u32;
                     break;
+                case riscv64_op_c_fsw:
+                case riscv64_op_c_fswsp:
+                case riscv64_op_c_sw:
+                case riscv64_op_c_swsp:
+                case riscv64_op_fsw:
                 case riscv64_op_sw:
                 case riscv64_op_sc_w:
                 case riscv64_op_sc_w_aq:
@@ -146,16 +156,104 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                     isStore = true;
                     type = u32;
                     break;
+                case riscv64_op_c_fldsp:
+                case riscv64_op_c_ldsp:
+                case riscv64_op_c_ld:
+                case riscv64_op_fld:
                 case riscv64_op_ld:
                 case riscv64_op_lr_d:
                     isLoad = true;
                     type = u64;
                     break;
+                case riscv64_op_c_fsdsp:
+                case riscv64_op_c_sd:
+                case riscv64_op_c_sdsp:
+                case riscv64_op_fsd:
                 case riscv64_op_sd:
                 case riscv64_op_sc_d:
                 case riscv64_op_sc_d_aq:
                 case riscv64_op_sc_d_aq_rl:
                 case riscv64_op_sc_d_rl:
+                    isStore = true;
+                    type = u64;
+                    break;
+                case riscv64_op_amoswap_w:
+                case riscv64_op_amoswap_w_aq:
+                case riscv64_op_amoswap_w_aq_rl:
+                case riscv64_op_amoswap_w_rl:
+                case riscv64_op_amoadd_w:
+                case riscv64_op_amoadd_w_aq:
+                case riscv64_op_amoadd_w_aq_rl:
+                case riscv64_op_amoadd_w_rl:
+                case riscv64_op_amoxor_w:
+                case riscv64_op_amoxor_w_aq:
+                case riscv64_op_amoxor_w_aq_rl:
+                case riscv64_op_amoxor_w_rl:
+                case riscv64_op_amoand_w:
+                case riscv64_op_amoand_w_aq:
+                case riscv64_op_amoand_w_aq_rl:
+                case riscv64_op_amoand_w_rl:
+                case riscv64_op_amoor_w:
+                case riscv64_op_amoor_w_aq:
+                case riscv64_op_amoor_w_aq_rl:
+                case riscv64_op_amoor_w_rl:
+                case riscv64_op_amomin_w:
+                case riscv64_op_amomin_w_aq:
+                case riscv64_op_amomin_w_aq_rl:
+                case riscv64_op_amomin_w_rl:
+                case riscv64_op_amomax_w:
+                case riscv64_op_amomax_w_aq:
+                case riscv64_op_amomax_w_aq_rl:
+                case riscv64_op_amomax_w_rl:
+                case riscv64_op_amominu_w:
+                case riscv64_op_amominu_w_aq:
+                case riscv64_op_amominu_w_aq_rl:
+                case riscv64_op_amominu_w_rl:
+                case riscv64_op_amomaxu_w:
+                case riscv64_op_amomaxu_w_aq:
+                case riscv64_op_amomaxu_w_aq_rl:
+                case riscv64_op_amomaxu_w_rl:
+                    isLoad = true;
+                    isStore = true;
+                    type = u32;
+                    break;
+                case riscv64_op_amoswap_d:
+                case riscv64_op_amoswap_d_aq:
+                case riscv64_op_amoswap_d_aq_rl:
+                case riscv64_op_amoswap_d_rl:
+                case riscv64_op_amoadd_d:
+                case riscv64_op_amoadd_d_aq:
+                case riscv64_op_amoadd_d_aq_rl:
+                case riscv64_op_amoadd_d_rl:
+                case riscv64_op_amoxor_d:
+                case riscv64_op_amoxor_d_aq:
+                case riscv64_op_amoxor_d_aq_rl:
+                case riscv64_op_amoxor_d_rl:
+                case riscv64_op_amoand_d:
+                case riscv64_op_amoand_d_aq:
+                case riscv64_op_amoand_d_aq_rl:
+                case riscv64_op_amoand_d_rl:
+                case riscv64_op_amoor_d:
+                case riscv64_op_amoor_d_aq:
+                case riscv64_op_amoor_d_aq_rl:
+                case riscv64_op_amoor_d_rl:
+                case riscv64_op_amomin_d:
+                case riscv64_op_amomin_d_aq:
+                case riscv64_op_amomin_d_aq_rl:
+                case riscv64_op_amomin_d_rl:
+                case riscv64_op_amomax_d:
+                case riscv64_op_amomax_d_aq:
+                case riscv64_op_amomax_d_aq_rl:
+                case riscv64_op_amomax_d_rl:
+                case riscv64_op_amominu_d:
+                case riscv64_op_amominu_d_aq:
+                case riscv64_op_amominu_d_aq_rl:
+                case riscv64_op_amominu_d_rl:
+                case riscv64_op_amomaxu_d:
+                case riscv64_op_amomaxu_d_aq:
+                case riscv64_op_amomaxu_d_aq_rl:
+                case riscv64_op_amomaxu_d_rl:
+                    isLoad = true;
                     isStore = true;
                     type = u64;
                     break;
