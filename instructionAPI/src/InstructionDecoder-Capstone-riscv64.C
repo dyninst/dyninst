@@ -280,29 +280,27 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         }
     }
 
-    // Capstone does not handle implicit registers
+    // std::map< uint16_t, std::pair<bool, bool> > implicitRegs;
+    // for (int i = 0; i < d->regs_read_count; ++i) {
+    //     implicitRegs.insert(make_pair(d->regs_read[i], make_pair(true, false)));
+    // }
+    // for (int i = 0; i < d->regs_write_count; ++i) {
+    //     auto it = implicitRegs.find(d->regs_write[i]);
+    //     if (it == implicitRegs.end()) {
+    //         implicitRegs.insert(make_pair(d->regs_write[i], make_pair(false, true)));
+    //     } else {
+    //         it->second.second = true;
+    //     }
+    // }
 
-    std::map< uint16_t, std::pair<bool, bool> > implicitRegs;
-    for (int i = 0; i < d->regs_read_count; ++i) {
-        implicitRegs.insert(make_pair(d->regs_read[i], make_pair(true, false)));
-    }
-    for (int i = 0; i < d->regs_write_count; ++i) {
-        auto it = implicitRegs.find(d->regs_write[i]);
-        if (it == implicitRegs.end()) {
-            implicitRegs.insert(make_pair(d->regs_write[i], make_pair(false, true)));
-        } else {
-            it->second.second = true;
-        }
-    }
-
-    for (auto rit = implicitRegs.begin(); rit != implicitRegs.end(); ++rit) {
-        MachRegister reg = (this->*regTrans)((x86_reg)rit->first);
-        // Traditionally, instructionAPI only present individual flag fields,
-        // not the whole flag register
-        if (reg == x86::flags || reg == x86_64::flags) continue;
-        Expression::Ptr regAST = makeRegisterExpression(reg);
-        insn->appendOperand(regAST, rit->second.first, rit->second.second, true);
-    }
+    // for (auto rit = implicitRegs.begin(); rit != implicitRegs.end(); ++rit) {
+    //     MachRegister reg = (this->*regTrans)((x86_reg)rit->first);
+    //     // Traditionally, instructionAPI only present individual flag fields,
+    //     // not the whole flag register
+    //     if (reg == x86::flags || reg == x86_64::flags) continue;
+    //     Expression::Ptr regAST = makeRegisterExpression(reg);
+    //     insn->appendOperand(regAST, rit->second.first, rit->second.second, true);
+    // }
 
     // Capstone does not handle implicit registers
     // Handle pc explicitly
