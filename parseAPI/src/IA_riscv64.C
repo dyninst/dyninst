@@ -68,30 +68,51 @@ IA_riscv64* IA_riscv64::clone() const {
 
 bool IA_riscv64::isFrameSetupInsn(Instruction i) const
 {
-    // TODO
-    //if(i.getOperation().getID() == riscv64_op_mov_add_addsub_imm)
-    //{
-	//if(i.readsMemory() || i.writesMemory())
-	//{
-	    //parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, not a reg-reg move\n", FILE__, __LINE__,
-                       //i.format().c_str());
-//
-	    //return false;
-	//}
-	//if(i.isRead(stackPtr[_isrc->getArch()]) && i.isWritten(framePtr[_isrc->getArch()]))
-	//{
-	    //return true;
-	//}
-    //}
+    // sd ra, 8(sp)     (c.sdsp ra, 0x8(sp))
+    // sd s0, 0(sp)     (c.sdsp s0, sp)
+
+    entryID eid = i.getOperation().getID();
+    if (eid == riscv64_op_c_sdsp || eid == riscv64_op_sd) {
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(i.getOperand(0).getValue());
+        Dereference::Ptr op1 = boost::dynamic_pointer_cast<Dereference>(i.getOperand(1).getValue());
+
+        std::vector<Expression::Ptr> derefChildren;
+        op1->getChildren(derefChildren);
+        BinaryFunction::Ptr deref = boost::dynamic_pointer_cast<BinaryFunction>(derefChildren[0]);
+        std::vector<Expression::Ptr> addFunc;
+        deref->getChildren(addFunc);
+        RegisterAST::Ptr addFunc0 = boost::dynamic_pointer_cast<RegisterAST>(addFunc[0]);
+        Immediate::Ptr addFunc1 = boost::dynamic_pointer_cast<Immediate>(addFunc[1]);
+
+        MachRegister reg0 = op0->getID();
+        MachRegister memReg1 = addFunc0->getID();
+        int memOffset1 = addFunc1->eval().val.s32val;
+
+        if (reg0 == riscv64::ra && memReg1 == riscv64::sp && memOffset1 == 0x8) {
+            return true;
+        }
+        if (reg0 == riscv64::s0 && memReg1 == riscv64::sp && memOffset1 == 0x0) {
+            return true;
+        }
+    }
     return false;
 }
 
 bool IA_riscv64::isNop() const
 {
-    Instruction ci = curInsn();
+    Instruction insn = curInsn();
+    entryID eid = insn.getOperation().getID();
 
-    if (ci.getOperation().getID() == riscv64_op_c_nop) {
+    if (eid == riscv64_op_c_nop) {
         return true;
+    }
+    else if (eid == riscv64_op_addi) {
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
+        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
+        if (op0->getID() == riscv64::zero && op1->getID() == riscv64::zero && op2->eval().val.s32val == 0) {
+            return true;
+        }
     }
     return false;
 }
@@ -104,134 +125,100 @@ bool IA_riscv64::isThunk() const
 bool IA_riscv64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned int,
         const std::set<Address>& knownTargets ) const
 {
-    // TODO
-    //switch(type) {
-       //case CALL:
-       //case COND_TAKEN:
-       //case DIRECT:
-       //case INDIRECT:
-          //type = DIRECT;
-          //break;
-       //case COND_NOT_TAKEN:
-       //case FALLTHROUGH:
-       //case CALL_FT:
-       //case RET:
-       //default:
-          //return false;
-    //}
-//
-    //parsing_printf("Checking for Tail Call from ARM\n");
-    //context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT);
-//
-    //if (tailCalls.find(type) != tailCalls.end()) {
-        //parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
-        //if (tailCalls[type]) {
-            //context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
-            //return true;
-        //}
-        //return false;
-    //}
-    //
-    //bool valid; Address addr;
-    //boost::tie(valid, addr) = getCFT();
-//
-    //Function *callee = _obj->findFuncByEntry(_cr, addr);
-    //Block *target = _obj->findBlockByEntry(_cr, addr);
-//
-    //if(curInsn().getCategory() == c_BranchInsn &&
-       //valid &&
-       //callee &&
-       //callee != context &&
-       //// We can only trust entry points from hints
-       //callee->src() == HINT &&
-       ///* the target can either be not parsed or not within the current context */
-       //((target == NULL) || (target && !context->contains(target)))
-       //)
-    //{
-      //parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
-      //tailCalls[type] = true;
-      //return true;
-    //}
-//
-    //if (valid && addr > 0 && !context->region()->contains(addr)) {
-      //parsing_printf("\tjump to 0x%lx in other regions, TAIL CALL\n", addr);
-      //tailCalls[type] = true;
-      //return true;
-    //}
-//
-    //if (curInsn().getCategory() == c_BranchInsn &&
-            //valid &&
-            //!callee) {
-    //if (knownTargets.find(addr) != knownTargets.end()) {
-	    //parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
-	    //tailCalls[type] = false;
-	    //return false;
-	//}
-    //}
-//
-//
-//
-    //if(allInsns.size() < 2) {
-        //parsing_printf("\ttoo few insns to detect tail call\n");
-        //context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
-        //tailCalls[type] = false;
-        //return false;
-    //}
-    //tailCalls[type] = false;
-    //context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+    // TODO tail call in RISC-V
     return false;
 }
 
 bool IA_riscv64::savesFP() const
 {
-    // TODO
-    /*
     Instruction insn = curInsn();
-    RegisterAST::Ptr returnAddrReg(new RegisterAST(riscv64::x30));
+    entryID eid = insn.getOperation().getID();
+    if (eid == riscv64_op_addi) {
+        // addi sp, sp, -n
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
+        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
 
-    //stp x29, x30, [sp, imm]!
-    if(insn.getOperation().getID() == riscv64_op_stp_gen &&
-       insn.isRead(framePtr[_isrc->getArch()]) &&
-       insn.isRead(returnAddrReg) &&
-       insn.isRead(stackPtr[_isrc->getArch()]) &&
-       insn.isWritten(stackPtr[_isrc->getArch()]))
-        return true;
+        MachRegister reg0 = op0->getID();
+        MachRegister reg1 = op1->getID();
+        int offset2 = op1->eval().val.s32val;
 
-    */
+        if (reg0 == riscv64::sp && reg1 == riscv64::sp && offset2 < 0) {
+            return true;
+        }
+    }
+    else if (eid == riscv64_op_c_addi || eid == riscv64_op_c_addi16sp) {
+        // c.addi16sp sp, n
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+        Immediate::Ptr op1 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(1).getValue());
+
+        MachRegister reg0 = op0->getID();
+        int offset1 = op1->eval().val.s32val;
+
+        if (reg0 == riscv64::sp && offset1 < 0) {
+            return true;
+        }
+    }
     return false;
 }
 
 bool IA_riscv64::isStackFramePreamble() const
 {
-    // TODO
-    /*
-    if(!savesFP())
-	return false;
+    // addi s0, sp, -n  (c.addi sp, -n)
+    // sd ra, 8(sp)     (c.sdsp ra, 0x8(sp))
+    // sd s0, 0(sp)     (c.sdsp s0, sp)
+    // addi s0, sp, n   (c.addi4spn s0, sp, n)
 
+    Instruction insn = curInsn();
+    if (!savesFP()) { // check c.addi sp, -16
+        return false;
+    }
+    entryID eid = insn.getOperation().getID();
     InstructionDecoder tmp(dec);
-    if(isFrameSetupInsn(tmp.decode()))
-        return true;
+    for (int i = 0; i < 2; ++i) {
+        insn = tmp.decode();
+        if (!isFrameSetupInsn(insn)) {
+            return false;
+        }
+    }
 
-    */
-    return false;
+    // TODO: no need to check c.addi2spn ?
+    return true;
 }
 
 bool IA_riscv64::cleansStack() const
 {
-    // TODO
-    /*
     Instruction insn = curInsn();
-    RegisterAST::Ptr returnAddrReg(new RegisterAST(riscv64::x30));
+    entryID eid = insn.getOperation().getID();
 
-    //ldp x29, x30, [sp], imm
-    if(insn.getOperation().getID() == riscv64_op_ldp_gen &&
-       insn.isWritten(framePtr[_isrc->getArch()]) &&
-       insn.isWritten(returnAddrReg) &&
-       insn.isRead(stackPtr[_isrc->getArch()]) &&
-       insn.isWritten(stackPtr[_isrc->getArch()]))
-        return true;
+    // addi sp, sp, n
+    if (eid == riscv64_op_addi) {
+        // addi sp, sp, n
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
+        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
 
-    */
+        MachRegister reg0 = op0->getID();
+        MachRegister reg1 = op1->getID();
+        int offset2 = op1->eval().val.s32val;
+
+        if (reg0 == riscv64::sp && reg1 == riscv64::sp && offset2 > 0) {
+            return true;
+        }
+    }
+    else if (eid == riscv64_op_c_addi || eid == riscv64_op_c_addi16sp) {
+        // c.addi sp, n
+        // c.addi16sp sp, n
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+        Immediate::Ptr op1 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(1).getValue());
+
+        MachRegister reg0 = op0->getID();
+        int offset1 = op1->eval().val.s32val;
+
+        if (reg0 == riscv64::sp && offset1 > 0) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -247,8 +234,32 @@ bool IA_riscv64::isReturnAddrSave(Address&) const
 
 bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block*) const
 {
-    // TODO
-    //return curInsn().getCategory() == c_ReturnInsn;
+    Instruction insn = curInsn();
+    entryID eid = insn.getOperation().getID();
+    if (eid == riscv64_op_jalr) {
+        // jalr zero, ra, 0
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
+        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
+
+        MachRegister reg0 = op0->getID();
+        MachRegister reg1 = op1->getID();
+        int offset2 = op2->eval().val.s32val;
+
+        if (reg0 == riscv64::zero && reg1 == riscv64::ra && offset2 == 0) {
+            return true;
+        }
+    }
+    else if (eid == riscv64_op_c_jr) {
+        // jalr zero, ra, 0
+        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+
+        MachRegister reg0 = op0->getID();
+
+        if (reg0 == riscv64::ra) {
+            return true;
+        }
+    }
     return false;
 }
 

@@ -260,11 +260,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 default:
                     break;
             }
-            if (mem->disp != 0) {
-                // offsets are 12 bits long signed integers
-                Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
-                effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
-            }
+            // offsets are 12 bits long signed integers
+            Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
+            effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
             if (type == invalid_type) {
                 err = true;
             }
@@ -308,7 +306,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
     if (isCFT || eid == riscv64_op_auipc) {
         int isPcRead = eid != riscv64_op_c_jr;
         int isPcWrite = isCFT;
-        MachRegister reg = (this->*regTrans)(riscv64::pc);
+        MachRegister reg = riscv64::pc;
         Expression::Ptr regAST = makeRegisterExpression(reg);
         insn->appendOperand(regAST, isPcRead, isPcWrite, true);
     }
