@@ -151,14 +151,14 @@ std::string ArmFormatter::formatBinaryFunc(std::string left, std::string func, s
 
 ///////// Formatter for RISCV
 
-RISCVFormatter::RISCVFormatter() {
+RiscvFormatter::RiscvFormatter() {
 }
 
-std::string RISCVFormatter::formatImmediate(std::string evalString) {
+std::string RiscvFormatter::formatImmediate(std::string evalString) {
     return "0x" + evalString;
 }
 
-std::string RISCVFormatter::formatRegister(std::string regName) {
+std::string RiscvFormatter::formatRegister(std::string regName) {
     std::string::size_type substr = regName.rfind(':');
     std::string ret = regName;
 
@@ -168,7 +168,7 @@ std::string RISCVFormatter::formatRegister(std::string regName) {
     return ret;
 }
 
-std::string RISCVFormatter::formatDeref(std::string addrString) {
+std::string RiscvFormatter::formatDeref(std::string addrString) {
     std::string out;
     size_t pluspos = addrString.find("+");
 
@@ -181,7 +181,7 @@ std::string RISCVFormatter::formatDeref(std::string addrString) {
     return out;
 }
 
-std::string RISCVFormatter::getInstructionString(std::vector<std::string> operands) {
+std::string RiscvFormatter::getInstructionString(std::vector<std::string> operands) {
     std::string out;
 
     for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
@@ -193,7 +193,7 @@ std::string RISCVFormatter::getInstructionString(std::vector<std::string> operan
     return out;
 }
 
-std::string RISCVFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
+std::string RiscvFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
     if (left.find("pc") != std::string::npos) {
         return right;
     }
@@ -444,7 +444,7 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
             break;
         case Arch_riscv32:
         case Arch_riscv64:
-            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new RISCVFormatter());
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new RiscvFormatter());
             break;
         case Arch_ppc32:
         case Arch_ppc64:

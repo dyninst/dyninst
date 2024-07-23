@@ -92,9 +92,9 @@ namespace Dyninst {
             std::map<std::string, std::string> binaryFuncModifier;
         };
 
-        class RISCVFormatter : public ArchSpecificFormatter {
+        class RiscvFormatter : public ArchSpecificFormatter {
         public:
-            RISCVFormatter();
+            RiscvFormatter();
 
             virtual std::string getInstructionString(std::vector <std::string>);
             virtual std::string formatImmediate(std::string);
