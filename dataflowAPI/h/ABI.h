@@ -61,8 +61,10 @@ class ABI{
 
     DYNINST_EXPORT static void initialize32();
     DYNINST_EXPORT static void initialize64();
+    DYNINST_EXPORT static void initialize64(Architecture arch);
 
     DYNINST_EXPORT static ABI* getABI(int addr_width);
+    DYNINST_EXPORT static ABI* getABI(Architecture arch);
     DYNINST_EXPORT bitArray getBitArray();
  private:
     static dyn_tls bitArray* callRead_;

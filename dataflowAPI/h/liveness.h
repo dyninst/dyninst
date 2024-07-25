@@ -77,6 +77,7 @@ public:
 	typedef enum {Before, After} Type;
 	typedef enum {Invalid_Location} ErrorType;
 	LivenessAnalyzer(int w);
+	LivenessAnalyzer(Architecture arch, int w);
 	void analyze(ParseAPI::Function *func);
 
 	bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);

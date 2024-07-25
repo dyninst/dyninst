@@ -60,6 +60,11 @@ LivenessAnalyzer::LivenessAnalyzer(int w): errorno((ErrorType)-1) {
     abi = ABI::getABI(width);
 }
 
+LivenessAnalyzer::LivenessAnalyzer(Architecture arch, int w): errorno((ErrorType)-1) {
+    width = w;
+    abi = ABI::getABI(arch);
+}
+
 int LivenessAnalyzer::getIndex(MachRegister machReg){
    return abi->getIndex(machReg);
 }

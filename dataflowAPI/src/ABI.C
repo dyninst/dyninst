@@ -79,6 +79,32 @@ std::map<MachRegister,int>* ABI::getIndexMap(){
 	return index;
 }
 
+ABI* ABI::getABI(Architecture arch){
+    if (globalABI_ == NULL){
+	    globalABI64_ = new ABI();
+	    globalABI64_->addr_width = 8;
+        switch(arch) {
+            case Arch_amdgpu_gfx908:
+                globalABI64_->index = &machRegIndex_amdgpu_gfx908();
+                break;
+            case Arch_amdgpu_gfx90a:
+                globalABI64_->index = &machRegIndex_amdgpu_gfx90a();
+                break;
+            case Arch_amdgpu_gfx940:
+                globalABI64_->index = &machRegIndex_amdgpu_gfx940();
+                break;
+            default:
+                assert(0 && "getABI(arch) currently only support AMDGPU!");
+                break;
+        }
+        initialize64(arch);
+    }
+    if (arch != Arch_amdgpu_gfx908 && arch!= Arch_amdgpu_gfx90a && arch != Arch_amdgpu_gfx940){
+        assert(0 && "getABI(arch) currently only support AMDGPU!");
+    }
+    return globalABI64_;
+}
+
 ABI* ABI::getABI(int addr_width){
     if (globalABI_ == NULL){
         globalABI_ = new ABI();
@@ -668,3 +694,35 @@ void ABI::initialize64(){
 	allRegs64_ = &getBitArray(sz)->set();
 }
 #endif
+
+
+void ABI::initialize64(Architecture arch){
+    int sz;
+    switch(arch){
+        case Arch_amdgpu_gfx908:{
+            RegisterMap amdgpu_gfx908_map = machRegIndex_amdgpu_gfx908();
+            sz = amdgpu_gfx908_map.size();
+            break;
+        }
+        case Arch_amdgpu_gfx90a:{
+            RegisterMap amdgpu_gfx90a_map = machRegIndex_amdgpu_gfx90a();
+            sz = amdgpu_gfx90a_map.size();
+            break;
+        }
+        case Arch_amdgpu_gfx940:{
+            RegisterMap amdgpu_gfx940_map = machRegIndex_amdgpu_gfx940();
+            sz = amdgpu_gfx940_map.size();
+            break;
+        }
+        default:
+        assert(0 && "This call is currently implemented for AMDGPU gfx908,gfx90a and gfx940 only");
+    }
+    returnRegs64_ = getBitArray(sz);
+    returnRead64_ = getBitArray(sz);
+    callParam64_ = getBitArray(sz);
+    callRead64_ = getBitArray(sz);
+    callWritten64_ = callRead64_;
+    syscallRead64_ = &getBitArray(sz)->set();
+    syscallWritten64_ = &getBitArray(sz)->set();
+    allRegs64_ = &getBitArray(sz)->set();
+}
