@@ -211,7 +211,7 @@ else()
     externalproject_add(
         TBB-External
         PREFIX ${_tbb_prefix_dir}
-        URL https://github.com/01org/tbb/archive/${_tbb_ver_major}_U${_tbb_ver_minor}.tar.gz
+        URL https://github.com/ajanicijamd/oneTBB/archive/refs/tags/v${_tbb_ver_major}.${_tbb_ver_minor}.01.tar.gz
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
