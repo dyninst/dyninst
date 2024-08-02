@@ -61,8 +61,13 @@ class ABI{
 
     DYNINST_EXPORT static void initialize32();
     DYNINST_EXPORT static void initialize64();
-
+    DYNINST_EXPORT static void initialize64(Architecture arch);
+    // Warning: the architecture is fixed on first use and cannot be reset
+    //
+    // if not set, set the architecture to the host, return addr_width ABI.
     DYNINST_EXPORT static ABI* getABI(int addr_width);
+    // if not set, set the architecture to arch. return the 64-bit ABI.
+    DYNINST_EXPORT static ABI* getABI(Architecture arch);
     DYNINST_EXPORT bitArray getBitArray();
  private:
     static dyn_tls bitArray* callRead_;
