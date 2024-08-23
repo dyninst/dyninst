@@ -1,6 +1,7 @@
 import argparse
 import capstone
 import x86
+import riscv64
 
 """
   Process and import Capstone instruction mnemonics
@@ -26,17 +27,25 @@ if __name__ == "__main__":
         help="Capstone directory (e.g., /capstone-engine/capstone/)"
     )
 
-    parser.add_argument("--arch", type=str, choices=["x86"], default="x86")
+    parser.add_argument("--arch", type=str, choices=["x86", "riscv64"], default="x86")
     args = parser.parse_args()
 
-    if args.arch == "x86":
+    arch = args.arch
+    if arch == "x86":
         translator = x86.x86(args.capstone)
+    elif arch == "riscv64":
+        translator = riscv64.riscv64(args.capstone)
 
-    mnemonics = capstone.read_mnemonics(translator.mnemonics_file)
+    mnemonics = capstone.read_mnemonics(translator.mnemonics_file, arch)
+    # RISC-V has some instructions that contains '.'
+    # Replace it with '_'
+    mnemonics = list(map(lambda string: string.replace('.', '_'), mnemonics))
+    # Replace 'aqrl' with 'aq_rl'
+    mnemonics = list(map(lambda string: string.replace('aqrl', 'aq_rl'), mnemonics))
     
     with open("mnemonics", "w") as f:
         for p in translator.pseudo:
-            f.write("{0:s}_{1:s}, /* pseudo mnemonic */\n".format(translator.dyninst_prefix, p))
+            f.write("{0:s}_{1:s}, /* pseudo mnemonic */\n".format(translator.dyninst_prefix))
     
         # Remove already-printed names
         mnemonics_scrubbed = [m for m in mnemonics if m not in translator.pseudo]
