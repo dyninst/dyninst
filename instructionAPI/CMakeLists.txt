@@ -17,8 +17,10 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
+    src/InstructionDecoder-Capstone.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
+    src/InstructionDecoder-riscv64.C
     src/AMDGPU/gfx908/decodeOperands.C
     src/AMDGPU/gfx908/appendOperands.C
     src/AMDGPU/gfx908/finalizeOperands.C
@@ -65,21 +67,10 @@ set(_private_headers
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
-<<<<<<< HEAD
     src/InstructionDecoder-x86.h
     src/InstructionDecoder-Capstone.h
     h/syscalls.h
     h/interrupts.h)
-=======
-    src/x86/decoder.h
-    src/x86/mnemonic-xlat.h
-<<<<<<< HEAD
-    src/x86/register-xlat.h
-    )
->>>>>>> a3d9a7f33 (Add stub replacement for x86 decoder)
-=======
-    src/x86/register-xlat.h)
->>>>>>> efd1a32fb (Fix cmake formatting in instructionAPI/CMakeLists.txt)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
