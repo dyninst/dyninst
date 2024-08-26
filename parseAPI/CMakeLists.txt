@@ -5,6 +5,26 @@ include(${PROJECT_SOURCE_DIR}/dataflowAPI/CMakeLists.txt)
 
 set(_parseapi_sources
     src/Block.C
+    src/CodeObject.C
+    src/debug_parse.C
+    src/CodeSource.C
+    src/ParseData.C
+    src/InstructionAdapter.C
+    src/Parser-speculative.C
+    src/ParseCallback.C
+    src/IA_IAPI.C
+    src/IA_x86.C
+    src/IA_power.C
+    src/IA_aarch64.C
+    src/IA_amdgpu.C
+    src/IA_riscv64.C
+    src/CFGModifier.C
+    src/StackTamperVisitor.C
+    src/JumpTableFormatPred.C
+    src/JumpTableIndexPred.C
+    src/IndirectAnalyzer.C
+    src/IndirectASTVisitor.C
+    src/SymbolicExpression.C
     src/BoundFactCalculator.C
     src/BoundFactData.C
     src/CFGFactory.C

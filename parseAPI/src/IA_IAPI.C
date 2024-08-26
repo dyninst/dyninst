@@ -50,6 +50,7 @@
 #include "IA_x86.h"
 #include "IA_power.h"
 #include "IA_aarch64.h"
+#include "IA_riscv64.h"
 #include "IA_amdgpu.h"
 
 using namespace Dyninst;
@@ -119,6 +120,8 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
             return new IA_power(dec_, where_, o, r, isrc, curBlk_);
         case Arch_aarch64:
             return new IA_aarch64(dec_, where_, o, r, isrc, curBlk_);
+        case Arch_riscv64:
+            return new IA_riscv64(dec_, where_, o, r, isrc, curBlk_);
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
         case Arch_amdgpu_gfx940:
@@ -143,6 +146,7 @@ void IA_IAPI::initASTs()
                 framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
                 framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
                 framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
+                framePtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_riscv64)));
                 framePtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx908)));
                 framePtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx90a)));
                 framePtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx940)));
@@ -154,6 +158,7 @@ void IA_IAPI::initASTs()
                 stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
                 stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
                 stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
+                stackPtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_riscv64)));
                 stackPtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx908)));
                 stackPtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx90a)));
                 stackPtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx940)));
@@ -165,6 +170,7 @@ void IA_IAPI::initASTs()
                 thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
                 thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
                 thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
+                thePC[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_riscv64)));
                 thePC[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx908)));
                 thePC[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx90a)));
                 thePC[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx940)));
