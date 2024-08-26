@@ -50,6 +50,10 @@ namespace Dyninst
       case e_call:
       case aarch64_op_bl:
       case aarch64_op_blr:
+      case riscv64_op_c_jal:
+      case riscv64_op_c_jalr:
+      case riscv64_op_jal:
+      case riscv64_op_jalr:
 	return c_CallInsn;
       case e_jmp:
       case e_jb:
@@ -81,6 +85,16 @@ namespace Dyninst
       case aarch64_op_cbz:
       case aarch64_op_cbnz:
       case aarch64_op_br: 
+      case riscv64_op_beq:
+      case riscv64_op_bge:
+      case riscv64_op_bgeu:
+      case riscv64_op_blt:
+      case riscv64_op_bltu:
+      case riscv64_op_bne:
+      case riscv64_op_c_beqz:
+      case riscv64_op_c_bnez:
+      case riscv64_op_c_j:
+      case riscv64_op_c_jr:
 #include "amdgpu_branchinsn_table.h"
 	return c_BranchInsn;
           case e_cmp:

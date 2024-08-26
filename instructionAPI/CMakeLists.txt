@@ -16,8 +16,10 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
+    src/InstructionDecoder-Capstone.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
+    src/InstructionDecoder-riscv64.C
     src/AMDGPU/gfx908/decodeOperands.C
     src/AMDGPU/gfx908/appendOperands.C
     src/AMDGPU/gfx908/finalizeOperands.C
