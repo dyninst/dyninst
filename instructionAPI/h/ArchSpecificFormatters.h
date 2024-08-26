@@ -94,6 +94,16 @@ namespace Dyninst {
             std::map<std::string, std::string> binaryFuncModifier;
         };
 
+        class RiscvFormatter : public ArchSpecificFormatter {
+        public:
+            RiscvFormatter();
+
+            std::string getInstructionString(const std::vector <std::string>&) const override;
+            std::string formatImmediate(const std::string&) const override;
+            std::string formatDeref(const std::string&) const override;
+            std::string formatRegister(const std::string&) const override;
+            std::string formatBinaryFunc(const std::string&, const std::string&, const std::string&) const override;
+        };
 
         class x86Formatter : public ArchSpecificFormatter {
         public:

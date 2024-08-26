@@ -36,12 +36,13 @@ if __name__ == "__main__":
     elif arch == "riscv64":
         translator = riscv64.riscv64(args.capstone)
 
-    mnemonics = capstone.read_mnemonics(translator.mnemonics_file, arch)
+    mnemonics_orig = capstone.read_mnemonics(translator.mnemonics_file, arch)
+    # Replace 'aqrl' with 'aq.rl'
+    mnemonics_orig = list(map(lambda string: string.replace('aqrl', 'aq.rl'), mnemonics_orig))
+
     # RISC-V has some instructions that contains '.'
     # Replace it with '_'
-    mnemonics = list(map(lambda string: string.replace('.', '_'), mnemonics))
-    # Replace 'aqrl' with 'aq_rl'
-    mnemonics = list(map(lambda string: string.replace('aqrl', 'aq_rl'), mnemonics))
+    mnemonics = list(map(lambda string: string.replace('.', '_'), mnemonics_orig))
     
     with open("mnemonics", "w") as f:
         for p in translator.pseudo:
@@ -69,5 +70,12 @@ if __name__ == "__main__":
         for m in mnemonics:
             f.write("case {0:s}_INS_{1:s}: return {2:s}_{3:s};\n".format(
                   translator.capstone_prefix, m.upper(), translator.dyninst_prefix, m
+                )
+            )
+
+    with open("mnemonics-capstone", "w") as f:
+        for m, m_orig in zip(mnemonics, mnemonics_orig):
+            f.write("    opcode_str->emplace({0:s}_{1:s},\"{2:s}\");\n".format(
+                  translator.dyninst_prefix, m, m_orig
                 )
             )
