@@ -520,6 +520,22 @@ bool SymEval::expandInsn(const Instruction &insn,
 
                                break;
                            }
+        case Arch_riscv64: {
+                                   RoseInsnRiscv64Factory fac(Arch_riscv64);
+                                   auto roseInsn = std::unique_ptr<SgAsmInstruction>(fac.convert(insn, addr));
+                                   if (!roseInsn) return false;
+
+                                   SymbolicExpansion exp;
+                                   const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_riscv64();
+
+                                   BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
+                                   BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateASTRiscv64::instance(protoval, reg_dict);
+                                   BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateAST::instance(protoval, protoval);
+                                   BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn.getArch(), insn, registerState, memoryState);
+                                   BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsAST::instance(state);
+                                   exp.expandRiscv64(roseInsn.get(), ops, insn.format());
+                                   break;
+                           }
     case Arch_amdgpu_gfx908: {
 
         RoseInsnAMDGPUFactory fac(Arch_amdgpu_gfx908);
