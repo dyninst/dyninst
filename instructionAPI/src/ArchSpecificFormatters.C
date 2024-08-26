@@ -143,6 +143,58 @@ std::string ArmFormatter::formatBinaryFunc(const std::string &left, const std::s
         return left + " " + func + " " + right;
 }
 
+///////// Formatter for RISC-V
+
+RiscvFormatter::RiscvFormatter() {
+}
+
+std::string RiscvFormatter::formatImmediate(const std::string &evalString) const  {
+    return "0x" + evalString;
+}
+
+std::string RiscvFormatter::formatRegister(const std::string &regName) const  {
+    std::string::size_type substr = regName.rfind(':');
+    std::string ret = regName;
+
+    if (substr != std::string::npos) {
+        ret = ret.substr(substr + 1, ret.length());
+    }
+    return ret;
+}
+
+std::string RiscvFormatter::formatDeref(const std::string &addrString) const  {
+    std::string out;
+    size_t pluspos = addrString.find("+");
+
+    if(pluspos != std::string::npos) {
+        out += addrString.substr(pluspos + 2) + "(" + addrString.substr(0, pluspos - 1) + ")";
+    } else {
+        out += addrString;
+    }
+
+    return out;
+}
+
+std::string RiscvFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
+    if (left.find("pc") != std::string::npos) {
+        return right;
+    }
+    return left + " " + func + " " + right;
+}
+
+std::string RiscvFormatter::getInstructionString(const std::vector<std::string> &operands) const
+{
+    std::string out;
+
+    for(auto itr = operands.cbegin(); itr != operands.cend(); itr++) {
+        out += *itr;
+        if(itr != operands.cend() - 1)
+            out += ", ";
+    }
+
+    return out;
+}
+
 ///////// Formatter for AMDGPU
 
 AmdgpuFormatter::AmdgpuFormatter() {
@@ -458,6 +510,9 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
         case Arch_ppc32:
         case Arch_ppc64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new PPCFormatter());
+            break;
+        case Arch_riscv64:
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new RiscvFormatter());
             break;
         case Arch_x86:
         case Arch_x86_64:
