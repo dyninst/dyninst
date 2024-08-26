@@ -297,6 +297,42 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTARM64::convert(const RegisterD
     return Dyninst::Absloc(mreg);
 }
 
+Dyninst::Absloc SymEvalSemantics::RegisterStateASTRiscv64::convert(const RegisterDescriptor &reg) {
+    Dyninst::MachRegister mreg;
+
+    unsigned int major = reg.get_major();
+    unsigned int size = reg.get_nbits();
+
+    switch (major) {
+            case riscv64_regclass_gpr: {
+            unsigned int minor = reg.get_minor();
+            Dyninst::MachRegister base = Dyninst::riscv64::x0;
+            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_gpr_x0));
+            break;
+        }
+        case riscv64_regclass_fpr32: {
+            unsigned int minor = reg.get_minor();
+            Dyninst::MachRegister base = Dyninst::riscv64::f0_32;
+            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_fpr_f0_32));
+            break;
+        }
+        case riscv64_regclass_fpr64: {
+            unsigned int minor = reg.get_minor();
+            Dyninst::MachRegister base = Dyninst::riscv64::f0_64;
+            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_fpr_f0_64));
+            break;
+        }
+        case riscv64_regclass_pc: {
+            mreg = Dyninst::MachRegister(Dyninst::riscv64::pc);
+            break;
+        }
+        default:
+            ASSERT_always_forbid("Unexpected register major type.");
+    }
+
+    return Dyninst::Absloc(mreg);
+}
+
 Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterDescriptor &reg) {
     Dyninst::MachRegister mreg;
 
