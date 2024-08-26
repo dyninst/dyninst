@@ -20,6 +20,7 @@ set(SRC_LIST
     src/IA_power.C
     src/IA_aarch64.C
     src/IA_amdgpu.C
+    src/IA_riscv64.C
     src/CFGModifier.C
     src/StackTamperVisitor.C
     src/JumpTableFormatPred.C
@@ -74,6 +75,7 @@ set(ROSE_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherRiscv64.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterParts.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BinarySymbolicExpr.C
