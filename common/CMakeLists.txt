@@ -26,6 +26,7 @@ set(_public_headers
     h/mnemonics/aarch64_entryIDs.h
     h/mnemonics/ppc_entryIDs.h
     h/mnemonics/x86_entryIDs.h
+    h/mnemonics/riscv64_entryIDs.h
     h/mnemonics/AMDGPU/gfx908_entryIDs.h
     h/mnemonics/AMDGPU/gfx90a_entryIDs.h
     h/mnemonics/AMDGPU/gfx940_entryIDs.h

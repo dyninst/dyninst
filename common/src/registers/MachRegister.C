@@ -291,6 +291,7 @@ namespace Dyninst {
       }
 
       case Arch_aarch32:
+      case Arch_riscv64:
       case Arch_intelGen9:
       case Arch_cuda:
       case Arch_none:
@@ -362,7 +363,11 @@ namespace Dyninst {
         return 8;
       }
       case Arch_aarch32: assert(0); break;
-
+      case Arch_riscv64: {
+        if((reg & 0x00ff0000) == riscv64::FPR && (reg & 0x0000ff00) == riscv64::DEXT)
+          return 8;
+        return 4;
+      }
       case Arch_cuda: return 8;
       case Arch_amdgpu_gfx908: {
         int reg_class = (reg & 0x00ff0000);
@@ -506,6 +511,7 @@ namespace Dyninst {
       case Arch_aarch64: // aarch64: pc is not writable
         return aarch64::pc;
       case Arch_aarch32: return InvalidReg;
+      case Arch_riscv64: return riscv64::pc;
       case Arch_cuda: return cuda::pc;
       case Arch_intelGen9: return InvalidReg;
       case Arch_amdgpu_gfx908: return amdgpu_gfx908::pc_all;
@@ -524,6 +530,7 @@ namespace Dyninst {
       case Arch_ppc64: assert(0); break;  // not implemented
       case Arch_aarch64:           // aarch64: x30 stores the RA for current frame
         return aarch64::x30;
+      case Arch_riscv64: return riscv64::ra;
       case Arch_aarch32:
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
@@ -542,6 +549,7 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r1;
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::x29; // aarch64: frame pointer is X29 by convention
+      case Arch_riscv64: return riscv64::fp;
       case Arch_aarch32:
       case Arch_cuda:
       case Arch_intelGen9:
@@ -560,6 +568,7 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r1;
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::sp; // aarch64: stack pointer is an independent register
+      case Arch_riscv64: return riscv64::sp;
       case Arch_aarch32:
       case Arch_cuda:
       case Arch_intelGen9:
@@ -578,6 +587,7 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r0;
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
+      case Arch_riscv64: return riscv64::a7;
       case Arch_aarch32:
       case Arch_cuda:
       case Arch_intelGen9:
@@ -604,6 +614,9 @@ namespace Dyninst {
       case Arch_amdgpu_gfx940:
       case Arch_intelGen9:
         return InvalidReg;
+      case Arch_riscv64: return riscv64::a7;
+      case Arch_none: return InvalidReg;
+      default: assert(0); return InvalidReg;
     }
     return InvalidReg;
   }
@@ -615,6 +628,7 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r3;
       case Arch_ppc64: return ppc64::r3;
       case Arch_aarch64: return aarch64::x0; // returned value is save in x0
+      case Arch_riscv64: return riscv64::a0;
       case Arch_aarch32:
       case Arch_cuda:
       case Arch_intelGen9:
@@ -634,6 +648,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::cr0e;
       case Arch_aarch64: return aarch64::z;
       case Arch_aarch32:
+      case Arch_riscv64: // RISC-V does not have flag registers
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
@@ -701,6 +716,7 @@ namespace Dyninst {
         return regC == aarch64::FLAG ||
                regC == aarch64::PSTATE;
       }
+      case Arch_riscv64: return false; // RISC-V does not have flag registers
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
@@ -753,6 +769,9 @@ namespace Dyninst {
         case Dyninst::ppc64::icr7e:
           return true;
       }
+    }
+    if(arch == Arch_riscv64) {
+      return false; // RISC-V does not have flag registers
     }
     return *this == getZeroFlag(getArchitecture());
   }
