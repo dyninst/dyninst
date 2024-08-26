@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/amdgpuInstructionEnum.h"
+#include "external/rose/riscv64InstructionEnum.h"
 #include "BaseSemantics2.h"
 #include "../../h/SymEval.h"
 #include "dyntypes.h"
@@ -136,6 +137,7 @@ namespace rose {
 
                 typedef boost::shared_ptr<class RegisterStateAST> RegisterStateASTPtr;
                 typedef boost::shared_ptr<class RegisterStateASTARM64> RegisterStateASTARM64Ptr;
+                typedef boost::shared_ptr<class RegisterStateASTRiscv64> RegisterStateASTRiscv64Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
                 typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx908> RegisterStateAST_amdgpu_gfx908_Ptr;
@@ -217,6 +219,33 @@ namespace rose {
 		private:
 		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
 		};
+
+        /**
+         * Register State AST for RISCV64 for Architecture
+         * (Copied from RegisterSTateASTARM64)
+         *
+         *
+         */
+        class RegisterStateASTRiscv64 : public RegisterStateAST {
+        public:
+            RegisterStateASTRiscv64(const BaseSemantics::SValuePtr &protoval,
+                                    const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
+
+            static RegisterStateASTRiscv64Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                                        const RegisterDictionary *regdict) {
+                return RegisterStateASTRiscv64Ptr(new RegisterStateASTRiscv64(protoval, regdict));
+            }
+
+            static RegisterStateASTRiscv64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                RegisterStateASTRiscv64Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTRiscv64>(from);
+                ASSERT_not_null(retval);
+                return retval;
+            }
+
+        private:
+            // Given a register decriptor of roseformat, convert it back to MachRegister and encapsulate it in Dyninst Abstract location
+            virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+        };
 		
 		class RegisterStateASTPPC32 : public RegisterStateAST {
 		public:
