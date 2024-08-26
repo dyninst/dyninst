@@ -43,6 +43,7 @@ public:
     static const RegisterDictionary *dictionary_armv8();                // ARMv8-A architecture
     static const RegisterDictionary *dictionary_amdgpu();                // AMDGPU architecture
     static const RegisterDictionary *dictionary_powerpc();
+    static const RegisterDictionary *dictionary_riscv64();
 
     RegisterDictionary(const std::string &name_)
         :name(name_) {}
