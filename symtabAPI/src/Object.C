@@ -111,27 +111,27 @@ bool Dyninst::SymtabAPI::symbol_compare(const Symbol *s1, const Symbol *s2)
 }
 
 
-bool AObject::needs_function_binding() const 
+bool Object::needs_function_binding() const 
 {
     return false;
 }
 
-bool AObject::get_func_binding_table(std::vector<relocationEntry> &) const 
+bool Object::get_func_binding_table(std::vector<relocationEntry> &) const 
 {
     return false;
 }
 
-bool AObject::get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const 
+bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const 
 {
     return false;
 }
 
-bool AObject::addRelocationEntry(relocationEntry &)
+bool Object::addRelocationEntry(relocationEntry &)
 {
     return true;
 }
 
-char *AObject::mem_image() const
+char *Object::mem_image() const
 {
 	return NULL;
 }
@@ -154,7 +154,7 @@ ostream &operator<<(ostream &os, relocationEntry &q) {
  *
  **************************************************/
 
-DYNINST_EXPORT unsigned AObject::nsymbols () const 
+DYNINST_EXPORT unsigned Object::nsymbols () const 
 { 
     unsigned n = 0;
     for (dyn_c_hash_map<std::string, std::vector<Symbol *> >::const_iterator i = symbols_.begin();
@@ -165,7 +165,7 @@ DYNINST_EXPORT unsigned AObject::nsymbols () const
     return n;
 }
 
-DYNINST_EXPORT bool AObject::get_symbols(string & name, 
+DYNINST_EXPORT bool Object::get_symbols(string & name, 
       std::vector<Symbol *> &symbols ) 
 {
    dyn_c_hash_map<std::string, std::vector<Symbol *>>::const_accessor ca;
@@ -177,57 +177,57 @@ DYNINST_EXPORT bool AObject::get_symbols(string & name,
    return true;
 }
 
-DYNINST_EXPORT char* AObject::code_ptr () const 
+DYNINST_EXPORT char* Object::code_ptr () const 
 { 
    return code_ptr_; 
 }
 
-DYNINST_EXPORT Offset AObject::code_off () const 
+DYNINST_EXPORT Offset Object::code_off () const 
 { 
    return code_off_; 
 }
 
-DYNINST_EXPORT Offset AObject::code_len () const 
+DYNINST_EXPORT Offset Object::code_len () const 
 { 
    return code_len_; 
 }
 
-DYNINST_EXPORT char* AObject::data_ptr () const 
+DYNINST_EXPORT char* Object::data_ptr () const 
 { 
    return data_ptr_; 
 }
 
-DYNINST_EXPORT Offset AObject::data_off () const 
+DYNINST_EXPORT Offset Object::data_off () const 
 { 
    return data_off_; 
 }
 
-DYNINST_EXPORT Offset AObject::data_len () const 
+DYNINST_EXPORT Offset Object::data_len () const 
 { 
    return data_len_; 
 }
 
-DYNINST_EXPORT bool AObject::is_aout() const 
+DYNINST_EXPORT bool Object::is_aout() const 
 {
    return is_aout_;  
 }
 
-DYNINST_EXPORT bool AObject::isDynamic() const 
+DYNINST_EXPORT bool Object::isDynamic() const 
 {
    return is_dynamic_;  
 }
 
-DYNINST_EXPORT unsigned AObject::no_of_sections() const 
+DYNINST_EXPORT unsigned Object::no_of_sections() const 
 { 
    return no_of_sections_; 
 }
 
-DYNINST_EXPORT unsigned AObject::no_of_symbols() const 
+DYNINST_EXPORT unsigned Object::no_of_symbols() const 
 { 
    return no_of_symbols_;  
 }
 
-DYNINST_EXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
+DYNINST_EXPORT bool Object::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
 {
    for (unsigned i=0;i<catch_addrs_.size();i++)
       excpBlocks.push_back(new ExceptionBlock(catch_addrs_[i]));
@@ -235,43 +235,43 @@ DYNINST_EXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excp
    return true;
 }
 
-DYNINST_EXPORT std::vector<Region *> AObject::getAllRegions() const
+DYNINST_EXPORT std::vector<Region *> Object::getAllRegions() const
 {
    return regions_;	
 }
 
-DYNINST_EXPORT Offset AObject::loader_off() const 
+DYNINST_EXPORT Offset Object::loader_off() const 
 { 
    return loader_off_; 
 }
 
-DYNINST_EXPORT unsigned AObject::loader_len() const 
+DYNINST_EXPORT unsigned Object::loader_len() const 
 { 
    return loader_len_; 
 }
 
 
-DYNINST_EXPORT int AObject::getAddressWidth() const 
+DYNINST_EXPORT int Object::getAddressWidth() const 
 { 
    return addressWidth_nbytes; 
 }
 
-DYNINST_EXPORT bool AObject::have_deferred_parsing(void) const
+DYNINST_EXPORT bool Object::have_deferred_parsing(void) const
 { 
    return deferredParse;
 }
 
-DYNINST_EXPORT void * AObject::getErrFunc() const 
+DYNINST_EXPORT void * Object::getErrFunc() const 
 {
    return (void *) err_func_; 
 }
 
-DYNINST_EXPORT dyn_c_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols()
+DYNINST_EXPORT dyn_c_hash_map< string, std::vector< Symbol *> > *Object::getAllSymbols()
 {
    return &(symbols_);
 }
 
-DYNINST_EXPORT AObject::~AObject() 
+DYNINST_EXPORT Object::~Object() 
 {
     using std::string;
     using std::vector;
@@ -286,7 +286,7 @@ DYNINST_EXPORT AObject::~AObject()
 }
 
 // explicitly protected
-DYNINST_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *), Symtab* st)
+DYNINST_EXPORT Object::Object(MappedFile *mf_, void (*err_func)(const char *), Symtab* st)
 : mf(mf_),
    code_ptr_(0), code_off_(0), code_len_(0),
    data_ptr_(0), data_off_(0), data_len_(0),
@@ -299,6 +299,20 @@ DYNINST_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *),
   deferredParse(false), parsedAllLineInfo(false), err_func_(err_func), addressWidth_nbytes(4),
   associated_symtab(st)
 {
+}
+
+Object *Dyninst::SymtabAPI::parseObjectFile(MappedFile *mf,
+                                            bool is_defensive,
+                                            void (*err)(const char *),
+                                            bool alloc_syms,
+                                            Symtab *symtab)
+{
+    const char *mfa = (const char *)mf->base_addr();
+    if (mfa[1] == 'E' && mfa[2] == 'L' && mfa[3] == 'F') {
+        return new ObjectELF(mf, is_defensive, err, alloc_syms, symtab);
+    } else {
+        return NULL;
+    }
 }
 
 SymbolIter::SymbolIter( Object & obj ) 
@@ -359,16 +373,16 @@ Symbol *SymbolIter::currval()
    return ((symbolIterator->second)[ currentPositionInVector ]);
 }
 
-bool AObject::hasError() const
+bool Object::hasError() const
 {
   return has_error;
 }
 
-void AObject::setTruncateLinePaths(bool)
+void Object::setTruncateLinePaths(bool)
 {
 }
 
-bool AObject::getTruncateLinePaths()
+bool Object::getTruncateLinePaths()
 {
    return false;
 }

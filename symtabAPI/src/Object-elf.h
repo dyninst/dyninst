@@ -82,6 +82,7 @@ class pdElfShdr;
 class Symtab;
 class Region;
 class Object;
+class ObjectELF;
 class InlinedFunction;
 
 class open_statement {
@@ -148,18 +149,18 @@ class open_statement {
 };
 
 
-class Object : public AObject, public boost::basic_lockable_adapter<boost::mutex>
+class ObjectELF : public Object
 {
   friend class Module;
 
   // declared but not implemented; no copying allowed
-  Object(const Object &);
-  const Object& operator=(const Object &);
+  ObjectELF(const ObjectELF &);
+  const ObjectELF& operator=(const ObjectELF &);
 
 public:
 
-  Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
-  virtual ~Object();
+  ObjectELF(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
+  virtual ~ObjectELF();
 
   bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
     
@@ -178,11 +179,11 @@ public:
   bool addRelocationEntry(relocationEntry &re) override;
 
   //getLoadAddress may return 0 on shared objects
-  Offset getLoadAddress() const { return loadAddress_; }
+  virtual Offset getLoadAddress() const { return loadAddress_; }
 
-  Offset getEntryAddress() const { return entryAddress_; }
+  virtual Offset getEntryAddress() const { return entryAddress_; }
   // To be changed later - Giri
-  Offset getBaseAddress() const { return 0; }
+  virtual Offset getBaseAddress() const { return 0; }
   static bool truncateLineFilenames;
 
   void insertPrereqLibrary(std::string libname);
@@ -196,7 +197,7 @@ public:
   }
 
   DYNINST_EXPORT ObjectType objType() const;
-  const char *interpreter_name() const;
+  virtual const char *interpreter_name() const;
 
 
   // On most platforms, the TOC offset doesn't exist and is thus null. 
@@ -210,7 +211,7 @@ public:
   void setTOCoffset(Offset off);
 
   const std::ostream &dump_state_info(std::ostream &s);
-  bool isEEL() { return EEL; }
+  virtual bool isEEL() const { return EEL; }
 
 	//to determine if a mutation falls in the text section of
 	// a shared library
@@ -286,6 +287,8 @@ public:
     DYNINST_EXPORT bool isDebugOnly() const;
     DYNINST_EXPORT bool isLinuxKernelModule() const;
 
+    bool   getSegments(std::vector<Segment> &segs) const;
+
     std::vector<relocationEntry> &getPLTRelocs() { return fbt_; }
     std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
 
@@ -295,7 +298,7 @@ public:
     virtual void setTruncateLinePaths(bool value) override;
     virtual bool getTruncateLinePaths() override;
     
-    Elf_X * getElfHandle() { return elfHdr; }
+    void *getElfHandle() { return elfHdr; }
 
     unsigned gotSize() const { return got_size_; }
     Offset gotAddr() const { return got_addr_; }
@@ -411,6 +414,7 @@ public:
   void parse_opd(Elf_X_Shdr *);
  public:
   void parseDwarfFileLineInfo();
+  void parseDwarfTypes( Symtab *);
   void parseLineInfoForAddr(Offset addr_to_find);
 
   bool hasDebugInfo();

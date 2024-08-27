@@ -84,7 +84,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_,
         secNameIndex(0), currEndOffset(0), currEndAddress(0),
         linkedStaticData(NULL), loadSecTotalSize(0),
         isStripped(isStripped_), library_adjust(0),
-        object(obj_), err_func_(err_func),
+        object(dynamic_cast<ObjectELF*>(obj_)), err_func_(err_func),
         hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL) {
     oldElf = oldElfHandle->e_elfp();
     curVersionNum = 2;
@@ -573,7 +573,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             }
         }
 
-        vector<vector<unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
+        ObjectELF *elf_object = dynamic_cast<ObjectELF*>(obj->getObject());
+        vector<vector<unsigned long> > moveSecAddrRange = elf_object->getMoveSecAddrRange();
 
         for (unsigned i = 0; i != moveSecAddrRange.size(); i++) {
             if ((moveSecAddrRange[i][0] == shdr->sh_addr) ||
@@ -586,16 +587,16 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             }
         }
 
-        if ((obj->getObject()->getStrtabAddr() != 0 &&
-             obj->getObject()->getStrtabAddr() == shdr->sh_addr) ||
+        if ((elf_object->getStrtabAddr() != 0 &&
+             elf_object->getStrtabAddr() == shdr->sh_addr) ||
             !strcmp(name, STRTAB_NAME)) {
             symStrData = newdata;
             updateSymbols(symTabData, symStrData, loadSecTotalSize);
         }
 
         //Change sh_link for .symtab to point to .strtab
-        if ((obj->getObject()->getSymtabAddr() != 0 &&
-             obj->getObject()->getSymtabAddr() == shdr->sh_addr) ||
+        if ((elf_object->getSymtabAddr() != 0 &&
+             elf_object->getSymtabAddr() == shdr->sh_addr) ||
             !strcmp(name, SYMTAB_NAME)) {
             newshdr->sh_link = secNames.size();
             changeMapping[sectionNumber] = 1;
@@ -603,13 +604,13 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         }
 
 
-        if (obj->getObject()->getTextAddr() != 0 &&
-            obj->getObject()->getTextAddr() == shdr->sh_addr) {
+        if (elf_object->getTextAddr() != 0 &&
+            elf_object->getTextAddr() == shdr->sh_addr) {
             textData = newdata;
         }
 
-        if (obj->getObject()->getDynamicAddr() != 0 &&
-            obj->getObject()->getDynamicAddr() == shdr->sh_addr) {
+        if (elf_object->getDynamicAddr() != 0 &&
+            elf_object->getDynamicAddr() == shdr->sh_addr) {
             dynData = newdata;
             dynSegOff = newshdr->sh_offset;
             dynSegAddr = newshdr->sh_addr;
@@ -1596,7 +1597,9 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     vector<Symbol *> allDynSymbols;
     vector<Symbol *> allSymSymbols;
 
-    dyn_hash_map<int, Region *> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
+    ObjectELF *object_ = dynamic_cast<ObjectELF*>(obj->getObject());
+
+    dyn_hash_map<int, Region *> secTagRegionMapping = object_->getTagRegionMapping();
 
     Region *sec;
     auto foundRegion = secTagRegionMapping.find(DT_STRTAB);
@@ -1617,12 +1620,11 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     }
 
     //Initialize the list of new prereq libraries
-    set<string> &plibs = obj->getObject()->prereq_libs;
+    set<string> &plibs = object_->prereq_libs;
     for (auto plib : plibs) {
         addDTNeeded(plib);
     }
-    new_dynamic_entries = obj->getObject()->new_dynamic_entries;
-    Object *object_ = obj->getObject();
+    new_dynamic_entries = object_->new_dynamic_entries;
     // recreate a "dummy symbol"
     Elf_Sym *sym = new Elf_Sym();
     symbolStrs.push_back("");
@@ -2058,7 +2060,8 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         }
     }
 
-    dyn_hash_map<int, Region *> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
+    ObjectELF *elf_object = dynamic_cast<ObjectELF*>(obj->getObject());
+    dyn_hash_map<int, Region *> secTagRegionMapping = elf_object->getTagRegionMapping();
     int reloc_size, old_reloc_size, dynamic_reloc_size;
     const char *new_name;
     Region::RegionType rtype;
@@ -2237,14 +2240,15 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
 
     /* Save the original hash table entries */
     std::vector<unsigned> originalHashEntries;
-    Offset dynsymSize = obj->getObject()->getDynsymSize();
+    ObjectELF *elf_object = dynamic_cast<ObjectELF*>(obj->getObject());
+    Offset dynsymSize = elf_object->getDynsymSize();
 
     Elf_Scn *scn = NULL;
     Elf_Shdr *shdr = NULL;
     while ((scn = elf_nextscn(oldElf, scn))) {
         shdr = ElfTypes::elf_getshdr(scn);
-        if (obj->getObject()->getElfHashAddr() != 0 &&
-            obj->getObject()->getElfHashAddr() == shdr->sh_addr) {
+        if (elf_object->getElfHashAddr() != 0 &&
+            elf_object->getElfHashAddr() == shdr->sh_addr) {
             Elf_Data *hashData = elf_getdata(scn, NULL);
             Elf_Word *oldHashSec = (Elf_Word *) hashData->d_buf;
             unsigned original_nbuckets, original_nchains;
@@ -2257,8 +2261,8 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
             }
         }
 
-        if (obj->getObject()->getGnuHashAddr() != 0 &&
-            obj->getObject()->getGnuHashAddr() == shdr->sh_addr) {
+        if (elf_object->getGnuHashAddr() != 0 &&
+            elf_object->getGnuHashAddr() == shdr->sh_addr) {
             Elf_Data *hashData = elf_getdata(scn, NULL);
             Elf_Word *oldHashSec = (Elf_Word *) hashData->d_buf;
             unsigned symndx = oldHashSec[1];
@@ -2290,7 +2294,7 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
         if ((*iter)->getMangledName().empty()) continue;
         unsigned index = (*iter)->getIndex();
         if ((find(originalHashEntries.begin(), originalHashEntries.end(), index) == originalHashEntries.end()) &&
-            (index < obj->getObject()->getDynsymSize())) {
+            (index < elf_object->getDynsymSize())) {
             continue;
         }
         key = elfHash((*iter)->getMangledName().c_str()) % nbuckets;

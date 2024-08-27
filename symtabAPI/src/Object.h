@@ -55,6 +55,8 @@
 #include "common/src/MappedFile.h"
 #include "common/src/lprintf.h"
 
+#include "dwarfHandle.h"
+
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -69,7 +71,7 @@ const char WILDCARD_CHARACTER = '?';
 const char MULTIPLE_WILDCARD_CHARACTER = '*';
 
 /************************************************************************
- * class AObject
+ * class Object
  *
  *  WHAT IS THIS CLASS????  COMMENTS????
  *  Looks like it has a dictionary hash of symbols, as well as
@@ -78,7 +80,8 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
  *   section....
 ************************************************************************/
 
-class AObject {
+class Object : public boost::basic_lockable_adapter<boost::mutex>
+{
 public:
     DYNINST_EXPORT unsigned nsymbols () const;
     
@@ -113,7 +116,7 @@ public:
     DYNINST_EXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
     DYNINST_EXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
     DYNINST_EXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
-    DYNINST_EXPORT bool   getSegments(std::vector<Segment> &segs) const;
+    DYNINST_EXPORT virtual  bool   getSegments(std::vector<Segment> &) const { return false; }
 
     DYNINST_EXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....
@@ -138,14 +141,58 @@ public:
     virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
+    virtual Offset getPreferedBase() const { return 0; }
+    virtual bool hasReldyn() const { return false; }
+    virtual bool hasReladyn() const { return false; }
+    virtual bool hasRelplt() const { return false; }
+    virtual bool hasRelaplt() const { return false; }
+    virtual bool hasDebugInfo() { return false; }
+    virtual void getDependencies(std::vector<std::string> &deps) { deps.clear(); }
+    virtual const char *interpreter_name() const { return NULL; }
+    virtual Offset getEntryAddress() const = 0;
+    virtual Offset getBaseAddress() const = 0;
+    virtual Offset getLoadAddress() const = 0;
+    virtual bool isEEL() const { return false; }
+    virtual ObjectType objType() const = 0;
+    virtual void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs) = 0;
+
+    virtual void insertPrereqLibrary(std::string libname) = 0;
+    virtual bool removePrereqLibrary(std::string ) { return false; }
+    virtual void insertDynamicEntry(long, long) { }
+
+    virtual Offset getInitAddr() const { return 0; }
+    virtual Offset getFiniAddr() const { return 0; }
+    virtual Offset getDynamicAddr() const { return 0; }
+
+    virtual void *getElfHandle() { return NULL; }
+    virtual LineInformation* parseLineInfoForObject(StringTablePtr) { return NULL; }
+
+    DYNINST_EXPORT virtual bool isOnlyExecutable() const { return false; }
+    DYNINST_EXPORT virtual bool isExecutable() const { return false; }
+    DYNINST_EXPORT virtual bool isSharedLibrary() const { return false; }
+    DYNINST_EXPORT virtual bool isOnlySharedLibrary() const { return false; }
+    DYNINST_EXPORT virtual bool isDebugOnly() const { return false; }
+    DYNINST_EXPORT virtual bool isLinuxKernelModule() const { return false; }
+
+    virtual bool convertDebugOffset(Offset, Offset &) { return false; }
+
+    virtual Offset getTOCoffset(Offset) const { return 0; }
+    virtual void setTOCoffset(Offset) { }
+
+    virtual bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag) = 0;
+    virtual void parseFileLineInfo() { }
+    virtual void parseTypeInfo() { }
+
+    Dyninst::DwarfDyninst::DwarfHandle::ptr dwarf;
+
     // Only implemented for ELF right now
     DYNINST_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {}
-	DYNINST_EXPORT virtual void rebase(Offset) {}
+	  DYNINST_EXPORT virtual void rebase(Offset) {}
     virtual void addModule(SymtabAPI::Module *) {}
 protected:
-    DYNINST_EXPORT virtual ~AObject();
+    DYNINST_EXPORT virtual ~Object();
     // explicitly protected
-    DYNINST_EXPORT AObject(MappedFile *, void (*err_func)(const char *), Symtab*);
+    DYNINST_EXPORT Object(MappedFile *, void (*err_func)(const char *), Symtab*);
 friend class Module;
     virtual void parseLineInfoForCU(Offset , LineInformation* ) { }
 
@@ -204,8 +251,8 @@ private:
     friend class Symtab;
 
     // declared but not implemented; no copying allowed
-    AObject(const AObject &obj);
-    const AObject& operator=(const AObject &obj);
+    Object(const Object &obj);
+    const Object& operator=(const Object &obj);
 };
 
 }//namepsace Symtab
@@ -255,6 +302,8 @@ class SymbolIter {
    
    SymbolIter & operator = ( const SymbolIter & ); // explicitly disallowed
 }; /* end class SymbolIter() */
+
+Object *parseObjectFile(MappedFile *, bool, void(*)(const char *) = log_msg, bool = true, Symtab * = NULL);
 
 }//namepsace SymtabAPI
 }//namespace Dyninst
