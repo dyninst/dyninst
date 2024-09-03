@@ -71,13 +71,13 @@ jobs:
 
     steps:
     - name: Download Previous Version
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: ${{ matrix.artifacts[1] }}
         path: previous/
 
     - name: Download Pull Request Version
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: ${{ matrix.artifacts[0] }}
         path: current/
