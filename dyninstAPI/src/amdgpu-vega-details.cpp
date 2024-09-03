@@ -383,7 +383,7 @@ uint64_t getMaskSmem(ContentKind k) {
   case CK_Smem_Sdata:
     return 0x0000000000001FC0; // 0b0000000000000000000000000000000000000000000000000001111111000000;
   case CK_Smem_Sbase:
-    return 0x3F00000000000000; // 0b0000000000000000000000000000000000000000000000000000000000111111;
+    return 0x000000000000003F; // 0b0000000000000000000000000000000000000000000000000000000000111111;
   case CK_Smem_Soffset:
     return 0xFE00000000000000; // 0b1111111000000000000000000000000000000000000000000000000000000000;
   case CK_Smem_R4:
@@ -478,6 +478,7 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
   printBytes(newRawInst);
 
   uint64_t *rawInstBuffer = (uint64_t *)gen.cur_ptr();
+  *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
   gen.update((codeBuf_t *)rawInstBuffer);
 }
