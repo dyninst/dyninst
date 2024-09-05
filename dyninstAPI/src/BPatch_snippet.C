@@ -963,6 +963,18 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     type(type_),
     intvar(NULL)
 {
+#if defined(arch_amdgpu)
+  AstOperandNode::addToTable(name, size);
+  int offset = AstOperandNode::getOffset(name);
+
+  // An AstOperandNode containing another AstOperandNode that is a constant.
+  // The constant represents offset in the GPU memory buffer.
+  ast_wrapper = AstNodePtr(
+                  AstNode::operandNode(AstNode::operandType::AddressAsPlaceholderRegAndOffset,
+                    AstNode::operandNode(AstNode::operandType::Constant, (void *) offset)
+                  )
+                );
+#else
   const image_variable* img_var = NULL;
   if(iv)
   {
@@ -980,6 +992,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
   {
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::DataAddr, (void*)(NULL)));
   }
+#endif
 
 
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

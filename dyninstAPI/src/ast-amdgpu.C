@@ -1323,6 +1323,20 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                loperand->decUseCount(gen);
                break;
             }
+            case operandType::AddressAsPlaceholderRegAndOffset: {
+              if (!loperand->generateCode_phase2(gen, noCost, addr, tmp)) ERROR_RETURN;
+              REGISTER_CHECK(tmp);
+
+              assert(loperand.get()->operand());
+
+              AstOperandNode *offset = dynamic_cast<AstOperandNode *>((AstNode *)loperand.get()->operand().get());
+              assert(offset);
+              assert(offset->getoType() == operandType::Constant);
+
+              Emitter *emitter = gen.emitter();
+              emitter->emitStoreRelative(src1, (Address)offset->getOValue(), 94, /*size =*/1, gen);
+              break;
+            }
             case operandType::ReturnVal:
                emitR(getRetValOp, Dyninst::Null_Register,
                      src1, src2, gen, noCost, gen.point(),
@@ -1481,6 +1495,26 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
      emitVariableLoad(loadOp, retReg, retReg, gen,
         noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
+   case operandType::AddressAsPlaceholderRegAndOffset: {
+     assert(operand_);
+     AstOperandNode *offset = dynamic_cast<AstOperandNode *>((AstNode *)operand_.get());
+     assert(offset);
+     assert(offset->getoType() == operandType::Constant);
+     // registerSpace *regSpace = gen.rs();
+
+     // Register s94 = regSpace->getRegByName("s94");
+     //
+     // REGISTER_CHECK(s94);
+     // FIXME : getRegByName returns -1 and therefore the above doesn't work.
+
+     // Right now hardcoding s94 to be holding the base address.
+     Emitter *emitter = gen.emitter();
+     emitter->emitLoadRelative(retReg, (Address)offset->getOValue(), 94, /*size =*/1, gen);
+     break;
+     // TODO:
+     // We might slide the base address across registers.
+     // Hence retReg = <some register allocation strategy that needs to be figured out>
+   }
    case operandType::ReturnVal:
        src = emitR(getRetValOp, 0, Dyninst::Null_Register, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
@@ -3125,6 +3159,7 @@ std::string AstNode::convert(operandType type) {
    switch(type) {
       case operandType::Constant: return "Constant";
       case operandType::ConstantString: return "ConstantString";
+      case operandType::AddressAsPlaceholderRegAndOffset: return "AddressAsPlaceholderRegAndOffset";
       case operandType::DataReg: return "DataReg";
       case operandType::DataIndir: return "DataIndir";
       case operandType::Param: return "Param";
@@ -3213,3 +3248,6 @@ bool AstOperandNode::initRegisters(codeGen &g) {
 
     return ret;
 }
+
+int AstOperandNode::lastOffset = 0;
+std::map<std::string, int> AstOperandNode::allocTable = { {"--init--", -1} };
