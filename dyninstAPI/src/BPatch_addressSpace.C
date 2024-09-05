@@ -585,6 +585,14 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    assert(BPatch::bpatch != NULL);
    getAS(as);
    assert(as.size());
+
+#if defined(arch_amdgpu)
+   if(name.empty()){
+      std::stringstream namestr;
+      namestr << "dyn_malloc_0x" << std::hex << "_" << &n << "_" << n << "_bytes";
+      name = namestr.str();
+   }
+#else
    void *ptr = (void *) as[0]->inferiorMalloc(n, dataHeap);
    if (!ptr) return NULL;
    if(name.empty()){
@@ -592,10 +600,16 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
       namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
       name = namestr.str();
    }
+#endif
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
+#if defined(arch_amdgpu)
+   return BPatch_variableExpr::makeVariableExpr(this, as[0], name, NULL,
+                                                type);
+#else
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
                                                 type);
+#endif
 }
 
 
