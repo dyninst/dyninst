@@ -38,7 +38,7 @@ namespace Dyninst
             InstructionAST(), userSetValue(t)
         {
         } 
-        /*Result Expression::sizeToResult(uint32_t size)
+        static Result sizeToResult(uint32_t size)
         {
             switch(size)
             {
@@ -54,6 +54,8 @@ namespace Dyninst
                     return Result(u64);
                 case 10:
                     return Result(dp_float);
+                case 12:
+                    return Result(m96);
                 case 16:
                     return Result(dbl128);
                 case 32:
@@ -65,12 +67,12 @@ namespace Dyninst
                 default:
                     assert(!"unexpected machine register size!");
             }
-        }*/
+        }
 
         Expression::Expression(uint32_t size) :
             InstructionAST()
         {
-            userSetValue = Result::sizeToResult(size);
+            userSetValue = sizeToResult(size);
         }
         Expression::Expression(std::vector<MachRegister> rs) :
             InstructionAST()
@@ -78,7 +80,7 @@ namespace Dyninst
             uint32_t totalSize = 0;
             for (auto & mReg : rs)
                 totalSize += mReg.size();
-            Result result = Result::sizeToResult(totalSize);
+            Result result = sizeToResult(totalSize);
             this->setValue(result);
         }
         Expression::Expression(MachRegister r) :

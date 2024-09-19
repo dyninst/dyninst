@@ -134,12 +134,32 @@ namespace Dyninst
     {
         v->visit(this);
     }
+    static Result sizeToMask(uint32_t size)
+    {
+        switch(size)
+        {
+            case 1:
+                return Result(u8,0xff);
+            case 2:
+                return Result(u16,0xffff);
+            case 4:
+                return Result(u32,0xffffffff);
+            case 6:
+                return Result(u48,0xffffffffffff);
+            case 8:
+                return Result(u64,0xffffffffffffffff);
+            default:
+                assert(!"sizeToMask unexpected machine register size!");
+                return Result(u8);
+        }
+    }
+
     bool MultiRegisterAST::bind(Expression* e, const Result& val)
     {
         Result copiedVal = val;
         bool ret = false;
         for (auto & m_Reg : m_Regs) {
-            Result mask = Result::sizeToMask(m_Reg->size());
+            Result mask = sizeToMask(m_Reg->size());
             Result extractedVal = copiedVal & mask;
             ret |= (m_Reg->bind(e,extractedVal));
             copiedVal = copiedVal >> Result(u32,m_Reg->size()*8);
