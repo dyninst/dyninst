@@ -66,7 +66,7 @@ class DYNINST_EXPORT Variable : public Aggregate, public AnnotatableSparse {
    void setType(Type* t) { setType(t->reshare()); }
    boost::shared_ptr<Type> getType(Type::do_share_t);
    Type* getType() { return getType(Type::share).get(); }
-   bool operator==(const Variable &v);
+   bool operator==(const Variable &v) const;
 
    friend std::ostream &operator<<(std::ostream &os, Variable const& v) {
 	   v.print(os);
@@ -128,7 +128,7 @@ class DYNINST_EXPORT localVar : public AnnotatableSparse
 	int  getLineNum();
 	std::string &getFileName();
 	std::vector<VariableLocation> &getLocationLists();
-	bool operator==(const localVar &l);
+	bool operator==(const localVar &l) const;
 };
 
 }

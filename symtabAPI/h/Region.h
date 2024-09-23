@@ -95,7 +95,7 @@ class DYNINST_EXPORT Region : public AnnotatableSparse {
    Region(const Region &reg);
    Region& operator=(const Region &reg);
    std::ostream& operator<< (std::ostream &os);
-   bool operator== (const Region &reg);
+   bool operator== (const Region &reg) const;
 
    ~Region();
 

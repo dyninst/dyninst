@@ -58,7 +58,7 @@ namespace Dyninst { namespace SymtabAPI {
     Module();
     Module(supportedLanguages lang, Offset adr, std::string fullNm, Symtab *img);
     Module(const Module &mod);
-    bool operator==(Module &mod);
+    bool operator==(const Module &mod) const;
 
     const std::string &fileName() const;
     const std::string &fullName() const;

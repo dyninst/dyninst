@@ -372,7 +372,7 @@ std::vector<Function*> Module::getAllFunctions() const
     return funcs;
 }
 
-bool Module::operator==(Module &mod) 
+bool Module::operator==(const Module &mod) const
 {
    if (exec_ && !mod.exec_) return false;
    if (!exec_ && mod.exec_) return false;
