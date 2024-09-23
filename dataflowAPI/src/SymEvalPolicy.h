@@ -111,7 +111,7 @@ struct Handle {
     ~Handle() { if (v_) delete v_; }
   
   template <size_t Len2>
-  bool operator==(const Handle<Len2> &rhs) {
+  bool operator==(const Handle<Len2> &rhs) const {
     return ((Len == Len2) && (*(var()) == *(rhs.var())));
   }
 

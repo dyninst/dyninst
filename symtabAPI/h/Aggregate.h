@@ -103,7 +103,7 @@ class DYNINST_EXPORT Aggregate
       bool setSize(unsigned size);
       bool setOffset(unsigned offset);
       
-	  bool operator==(const Aggregate &a);
+	  bool operator==(const Aggregate &a) const;
 
 	  friend std::ostream& operator<<(std::ostream &os, Aggregate const& a) {
 		  a.print(os);

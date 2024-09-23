@@ -104,7 +104,7 @@ Region& Region::operator=(const Region &reg)
     return *this;
 }
 
-bool Region::operator==(const Region &reg)
+bool Region::operator==(const Region &reg) const
 {
 
 	if (rels_.size() != reg.rels_.size()) return false;
