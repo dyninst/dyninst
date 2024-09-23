@@ -66,7 +66,7 @@
 //      UNUSED_VARIABLE
 //              clang <10 warns about variables defined solely for RIAA (locks)
 //      MAYBE_UNINITIALIZED
-//              gcc 12 warns that boost::optional::value_or may use an
+//              gcc 12-14 warns that boost::optional::value_or may use an
 //              unitialized value when value_or checks if it is initialized.
 //
 // Macros to silence unused variable warnings
@@ -91,7 +91,7 @@
  #if __GNUC__ >= 7 && __GNUC__ < 9
   #define DYNINST_SUPPRESS_CODE_DUPLICATED_BRANCHES        "-Wduplicated-branches"
  #endif
- #if __GNUC__ == 12
+ #if __GNUC__ >= 12 && __GNUC__ < 15
   #define DYNINST_SUPPRESS_CODE_MAYBE_UNINITIALIZED        "-Wmaybe-uninitialized"
  #endif
 #elif defined(__clang__)
