@@ -71,28 +71,32 @@ struct indexed_symbols {
         if (!by_offset.find(oa, s->getOffset())) {
           assert(!"by_offset.find(oa, s->getOffset())");
         }
-        std::remove(oa->second.begin(), oa->second.end(), s);
+        auto it = std::remove(oa->second.begin(), oa->second.end(), s);
+        oa->second.erase(it, oa->second.end());
       }
       {
         by_name_t::accessor ma;
         if (!by_mangled.find(ma, s->getMangledName())) {
           assert(!"by_mangled.find(ma, s->getMangledName())");
         }
-        std::remove(ma->second.begin(), ma->second.end(), s);
+        auto it = std::remove(ma->second.begin(), ma->second.end(), s);
+        ma->second.erase(it, ma->second.end());
       }
       {
         by_name_t::accessor pa;
         if (!by_pretty.find(pa, s->getPrettyName())) {
           assert(!"by_pretty.find(pa, s->getPrettyName())");
         }
-        std::remove(pa->second.begin(), pa->second.end(), s);
+        auto it = std::remove(pa->second.begin(), pa->second.end(), s);
+        pa->second.erase(it, pa->second.end());
       }
       {
         by_name_t::accessor ta;
         if (!by_typed.find(ta, s->getTypedName())) {
           assert(!"by_typed.find(ta, s->getTypedName())");
         }
-        std::remove(ta->second.begin(), ta->second.end(), s);
+        auto it = std::remove(ta->second.begin(), ta->second.end(), s);
+        ta->second.erase(it, ta->second.end());
       }
     }
   }
