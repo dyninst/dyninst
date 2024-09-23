@@ -444,8 +444,12 @@ func_call: DYNINST BACKTICK IDENTIFIER '(' param_list ')'
           if(verbose) printf("break_ ()");
           $$ = new BPatch_breakPointExpr();
        }else{
-          char *errString = (char *)calloc(strlen($3), sizeof(char));
-          sprintf(errString, "%s not found!\n", $3);
+          const char fmt[] = "%s not found!\n";
+          // output size is bytes of fmt (which includes null terminator),
+          //     replacing %s (-2) with length of $3 (+strlen($3))
+          size_t errStringSize = sizeof(fmt) / sizeof(fmt[0]) - 2 + strlen($3);
+          char *errString = (char *)calloc(errStringSize, sizeof(char));
+          snprintf(errString, errStringSize, fmt, $3);
           yyerror(errString);
           $$ = new BPatch_nullExpr();
           free(errString);

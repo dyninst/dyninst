@@ -2026,8 +2026,12 @@ yyreduce:
           if(verbose) printf("break_ ()");
           (yyval.snippet) = new BPatch_breakPointExpr();
        }else{
-          char *errString = (char *)calloc(strlen((yyvsp[-3].sval)), sizeof(char));
-          sprintf(errString, "%s not found!\n", (yyvsp[-3].sval));
+          const char fmt[] = "%s not found!\n";
+          // output size is bytes of fmt (which includes null terminator),
+          //     replacing %s (-2) with length of $3 (+strlen($3))
+          size_t errStringSize = sizeof(fmt) / sizeof(fmt[0]) - 2 + strlen((yyvsp[-3].sval));
+          char *errString = (char *)calloc(errStringSize, sizeof(char));
+          snprintf(errString, errStringSize, fmt, (yyvsp[-3].sval));
           yyerror(errString);
           (yyval.snippet) = new BPatch_nullExpr();
           free(errString);
