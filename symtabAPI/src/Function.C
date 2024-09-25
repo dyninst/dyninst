@@ -399,7 +399,7 @@ std::string Function::getName() const
     return getFirstSymbol()->getMangledName();
 }
 
-bool FunctionBase::operator==(const FunctionBase &f)
+bool FunctionBase::operator==(const FunctionBase &f) const
 {
 	if (retType_ && !f.retType_)
 		return false;
@@ -411,7 +411,7 @@ bool FunctionBase::operator==(const FunctionBase &f)
 			return false;
 		}
 
-	return ((Aggregate &)(*this)) == ((const Aggregate &)f);
+	return ((const Aggregate &)(*this)) == ((const Aggregate &)f);
 }
 
 InlinedFunction::InlinedFunction(FunctionBase *parent) :

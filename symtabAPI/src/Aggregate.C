@@ -274,7 +274,7 @@ void Aggregate::print(std::ostream &os) const {
   os << " }";
 }
 
-bool Aggregate::operator==(const Aggregate &a)
+bool Aggregate::operator==(const Aggregate &a) const
 {
 	if (symbols_.size() != a.symbols_.size()) return false;
 	if (module_ && !a.module_) return false;

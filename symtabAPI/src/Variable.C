@@ -84,7 +84,7 @@ void Variable::print(std::ostream &os) const {
 	os  << 	"}";
 }
 
-bool Variable::operator==(const Variable &v)
+bool Variable::operator==(const Variable &v) const
 {
 	if (type_ && !v.type_)
 		return false;
@@ -95,7 +95,7 @@ bool Variable::operator==(const Variable &v)
 		{
 			return false;
 		}
-	return ((Aggregate &)(*this)) == ((const Aggregate &)v);
+	return ((const Aggregate &)(*this)) == ((const Aggregate &)v);
 }
 
 bool Variable::removeSymbol(Symbol *sym) 
@@ -297,7 +297,7 @@ std::vector<Dyninst::VariableLocation> &localVar::getLocationLists()
    return locs_;
 }
 
-bool localVar::operator==(const localVar &l)
+bool localVar::operator==(const localVar &l) const
 {
 	if (type_ && !l.type_) return false;
 	if (!type_ && l.type_) return false;

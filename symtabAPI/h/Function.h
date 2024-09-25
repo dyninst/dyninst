@@ -95,7 +95,7 @@ class DYNINST_EXPORT FunctionBase
    bool getLocalVariables(std::vector<localVar *>&vars);
    bool getParams(std::vector<localVar *>&params);
 
-   bool operator==(const FunctionBase &);
+   bool operator==(const FunctionBase &) const;
 
    FunctionBase *getInlinedParent();
    const InlineCollection &getInlines();
