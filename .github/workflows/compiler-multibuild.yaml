@@ -33,15 +33,15 @@ jobs:
       c-compiler: "gcc-${{ matrix.version }}"
       cxx-compiler: "g++-${{ matrix.version }}"
 
-  gcc-ubuntu-23_10:
+  gcc-ubuntu-24_04:
     strategy:
       fail-fast: false
       matrix:
-         version: [13]
+         version: [13, 14]
     uses: ./.github/workflows/build.yaml
     with:
       name: gcc-${{ matrix.version }}
-      os: "ubuntu-23.10"
+      os: "ubuntu-24.04"
       c-compiler: "gcc-${{ matrix.version }}"
       cxx-compiler: "g++-${{ matrix.version }}"
 
@@ -74,57 +74,44 @@ jobs:
       is-clang: true
       extra-libs: "libomp-${{ matrix.version }}-dev"
 
-  clang-ubuntu-23_10:
+  clang-ubuntu-24_04:
     strategy:
       fail-fast: false
       matrix:
-         version: [16, 17]
+         version: [16, 17, 18]
     uses: ./.github/workflows/build.yaml
     with:
       name: clang-${{ matrix.version }}
-      os: "ubuntu-23.10"
+      os: "ubuntu-24.04"
       c-compiler: "clang-${{ matrix.version }}"
       cxx-compiler: "clang++-${{ matrix.version }}"
       is-clang: true
       extra-libs: "libomp-${{ matrix.version }}-dev"
 
-  gcc-cxx-standards-11-17:
+  gcc-cxx-standards:
     strategy:
       fail-fast: false
       matrix:
-         std: [11, 14, 17]
+         std: [11, 14, 17, 20, 23]
     uses: ./.github/workflows/build.yaml
     with:
       name: gcc-cxx-${{ matrix.std }}
-      os: "ubuntu-22.04"
-      c-compiler: "gcc-12"
-      cxx-compiler: "g++-12"
-      extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
-
-  gcc-cxx-standards-20-23:
-    strategy:
-      fail-fast: false
-      matrix:
-         std: [20, 23]
-    uses: ./.github/workflows/build.yaml
-    with:
-      name: gcc-cxx-${{ matrix.std }}
-      os: "ubuntu-23.10"
-      c-compiler: "gcc-13"
-      cxx-compiler: "g++-13"
+      os: "ubuntu-24.04"
+      c-compiler: "gcc-14"
+      cxx-compiler: "g++-14"
       extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
 
   clang-cxx-standards:
     strategy:
       fail-fast: false
       matrix:
-         std: [11, 14, 17]  # clang has a bug with 20+ and operator== reflexiveness
+         std: [11, 14, 17, 20, 23]
     uses: ./.github/workflows/build.yaml
     with:
       name: cxx-${{ matrix.std }}
-      os: "ubuntu-22.04"
-      c-compiler: "clang-15"
-      cxx-compiler: "clang++-15"
+      os: "ubuntu-24.04"
+      c-compiler: "clang-18"
+      cxx-compiler: "clang++-18"
       is-clang: true
       extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
-      extra-libs: "libomp-15-dev"
+      extra-libs: "libomp-18-dev"
