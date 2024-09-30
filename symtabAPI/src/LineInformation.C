@@ -56,6 +56,12 @@ bool LineInformation::addLine( unsigned int lineSource,
       Offset lowInclusiveAddr, 
       Offset highExclusiveAddr ) 
 {
+    if (lowInclusiveAddr == highExclusiveAddr)  {
+        // if the range is [low, low), adjust it to be [low, low + 1)
+        // as the DWARF spec says the address is include along with any
+        // subsequent address up to but not including the next records address
+        ++highExclusiveAddr;
+    }
     Statement* the_stmt = new Statement(lineSource, lineNo, lineOffset,
                                         lowInclusiveAddr, highExclusiveAddr);
     Statement::Ptr insert_me(the_stmt);
