@@ -25,7 +25,7 @@ configs = {
   'ubuntu-24.04': [
     {
       'compiler': 'gcc',
-      'versions': [13]
+      'versions': [13, 14]
     },
     {
       'compiler': 'clang',
