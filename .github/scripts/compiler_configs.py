@@ -63,7 +63,27 @@ configs = {
       'compiler': 'gcc',
       'versions': [13]
     }
-  ]
+  ],
+  'fedora-40': [
+    {
+      'compiler': 'clang',
+      'versions': [18]
+    },
+    {
+      'compiler': 'gcc',
+      'versions': [14]
+    }
+  ],
+  'fedora-41': [
+    {
+      'compiler': 'clang',
+      'versions': [19]
+    },
+    {
+      'compiler': 'gcc',
+      'versions': [14]
+    }
+  ],
 }
 
 parser = argparse.ArgumentParser(

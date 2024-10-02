@@ -17,7 +17,8 @@ runs:
         declare -a names=(
                           ubuntu-20.04 ubuntu-22.04 ubuntu-24.04
                           
-                          fedora-37 fedora-38 fedora-39
+                          fedora-37 fedora-38 fedora-39 fedora-40
+                          fedora-41
                          )
 
         # Make them json
@@ -30,4 +31,4 @@ runs:
       shell: bash
       run: |
         set -ex
-        echo 'names=["ubuntu-24.04", "fedora-39"]' >> $GITHUB_OUTPUT
+        echo 'names=["ubuntu-24.04", "fedora-41"]' >> $GITHUB_OUTPUT

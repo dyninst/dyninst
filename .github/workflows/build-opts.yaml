@@ -135,9 +135,6 @@ jobs:
           elif test ${{ matrix.opt }} = "ENABLE_STATIC_LIBS" \
                  -a ${{ matrix.os }} = "ubuntu-24.04"; then
              skip="true"
-          elif test ${{ matrix.opt }} = "ENABLE_STATIC_LIBS" \
-                 -a ${{ matrix.os }} = "fedora-39"; then
-             skip="true"
           fi
           echo "value=${skip}" >> $GITHUB_OUTPUT
 
@@ -229,8 +226,7 @@ jobs:
           
           skip="false"
           if test ${{ matrix.compiler }} = "clang"; then
-            if test ${{ matrix.os }} = "ubuntu-24.04" \
-                 -o ${{ matrix.os }} = "fedora-39"; then
+            if test ${{ matrix.os }} = "ubuntu-24.04"; then
               skip="true"
             fi
           fi
