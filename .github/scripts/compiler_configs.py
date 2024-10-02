@@ -22,17 +22,11 @@ configs = {
       'versions': [13, 14, 15]
     }      
   ],
-  'ubuntu-23.10': [
+  'ubuntu-24.04': [
     {
       'compiler': 'gcc',
       'versions': [13]
     },
-    {
-      'compiler': 'clang',
-      'versions': [16, 17]
-    }
-  ],
-  'ubuntu-24.04': [
     {
       'compiler': 'clang',
       'versions': [18]
