@@ -125,23 +125,7 @@ jobs:
         with:
           path: "src"    # Relative to $GITHUB_WORKSPACE
 
-      - name: Clang check
-        id: clang-check
-        shell: bash
-        run: |
-          set -ex
-          ret="true"
-          if test "${{ matrix.compiler }}" = "clang"; then
-            if test "${{ matrix.std }}" -gt "17"; then
-              # clang has a bug with 20+ and operator== reflexiveness
-              ret="false"
-            fi
-          fi
-          
-          echo "value=${ret}" >> $GITHUB_OUTPUT
-
       - name: Build
-        if: ${{ steps.clang-check.outputs.value == 'true' }}
         uses: ./src/.github/actions/build
         with:
           os: ${{ matrix.os }}
