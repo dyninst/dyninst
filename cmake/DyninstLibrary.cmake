@@ -96,8 +96,10 @@ function(dyninst_library _target)
       DYNINST_INTERNAL_DEPS
       PUBLIC_DEPS
       PRIVATE_DEPS)
-  # cmake-format: on
+  
   cmake_parse_arguments(PARSE_ARGV 0 _target "FORCE_STATIC;INTERNAL_LIBRARY" "" "${_keywords}")
+  
+  # cmake-format: on
 
   if(_target_INTERNAL_LIBRARY)
     # Internal libraries never create actual library files (.so, .a, etc.)
@@ -107,7 +109,7 @@ function(dyninst_library _target)
   endif()
 
   add_library(${_target} ${_lib_type} ${_target_PUBLIC_HEADER_FILES}
-                                ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+                         ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
 
   if(_target_INTERNAL_LIBRARY)
     set_target_properties(${_target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
