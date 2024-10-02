@@ -66,7 +66,7 @@ jobs:
           apt install -y -qq gfortran m4 autoconf python3 python3-venv unzip meson ninja-build pkgconf \
                              libxerces-c-dev libyaml-cpp-dev libpfm4-dev libunwind-dev libxxhash-dev \
                              libboost-chrono-dev libboost-graph-dev libboost-regex-dev
-          
+
       - name: Install dependencies (Fedora)
         if: ${{ startsWith(matrix.os, 'fedora') }}
         shell: bash
@@ -404,61 +404,3 @@ jobs:
           cd tau2
           ./configure -dyninst=/dyninst/install
           make -j2
-
-
-  omnitrace:
-    runs-on: ubuntu-latest
-    needs: [get-oses, get-compilers]
-    strategy:
-      fail-fast: false
-      matrix:
-         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
-         compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
-    permissions:
-      packages: read
-    container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    name: omnitrace (${{ matrix.os }}, ${{ matrix.compiler }})
-    if: 1==2
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: "src"  # relative to $GITHUB_WORKSPACE
-
-      - name: Install dependencies (Ubuntu)
-        if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        shell: bash
-        run: |
-          set -ex
-          apt update -qq
-          apt install -y -qq python3 openmpi-bin libopenmpi-dev
-
-      - name: Install dependencies (Fedora)
-        if: ${{ startsWith(matrix.os, 'fedora') }}
-        shell: bash
-        run: |
-          set -ex
-          yum install -y python3 openmpi openmpi-devel
-
-      - name: Install spack
-        shell: bash
-        run: |
-          set -ex
-          git clone --depth=1 --branch=develop https://github.com/spack/spack
-          spack/bin/spack compiler find
-
-      - name: Install spack externals
-        shell: bash
-        run: |
-          set -ex
-          spack/bin/spack external find --not-buildable cmake git python gmake
-
-      - name: Build
-        shell: bash
-        run: |
-          set -ex
-          spack/bin/spack install -j2 omnitrace~rocm~ompt~papi@main ^dyninst@master %${{ matrix.compiler }}
