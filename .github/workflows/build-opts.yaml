@@ -119,9 +119,9 @@ jobs:
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
+      - name: Check for bad Ubuntu package
         # The LLVM-18 Ubuntu package is broken
         # https://github.com/llvm/llvm-project/issues/87553
-      - name: Check for bad Ubuntu package
         id: skip
         shell: bash
         run: |
@@ -220,15 +220,19 @@ jobs:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
       - name: Check for bad Ubuntu package
+        # The LLVM-18 Ubuntu package is broken
+        # https://github.com/llvm/llvm-project/issues/87553
         id: skip
         shell: bash
         run: |
           set -ex
           
           skip="false"
-          if test ${{ matrix.os }} = "ubuntu-24.04" \
-               -a ${{ matrix.compiler }} = "clang"; then
-            skip="true"
+          if test ${{ matrix.compiler }} = "clang"; then
+            if test ${{ matrix.os }} = "ubuntu-24.04" \
+                 -o ${{ matrix.os }} = "fedora-39"; then
+              skip="true"
+            fi
           fi
           echo "value=${skip}" >> $GITHUB_OUTPUT
 
@@ -239,6 +243,7 @@ jobs:
           set -ex
 
           # clang needs llvm-ar to do LTO
+          # The package name is 'llvm' on both ubuntu and fedora
           libs=
           if test ${{ matrix.compiler }} = "clang"; then
            libs="llvm"
@@ -247,8 +252,6 @@ jobs:
 
       - name: Build Dyninst
         uses: ./src/.github/actions/build
-        # The LLVM-18 Ubuntu package is broken
-        # https://github.com/llvm/llvm-project/issues/87553
         if: ${{ steps.skip.outputs.value == 'false' }}
         with:
           os: ${{ matrix.os }}
