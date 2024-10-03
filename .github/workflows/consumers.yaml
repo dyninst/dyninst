@@ -63,7 +63,7 @@ jobs:
         run: |
           set -ex
           apt update -qq
-          apt install -y -qq gfortran m4 autoconf python3 meson ninja-build pkgconf curl libgtest-dev libgmock-dev
+          apt install -y -qq gfortran m4 autoconf python3 python3-venv meson ninja-build pkgconf curl libgtest-dev libgmock-dev
 
       - name: Install dependencies (Fedora)
         if: ${{ startsWith(matrix.os, 'fedora') }}
