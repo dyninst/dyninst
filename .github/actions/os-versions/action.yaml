@@ -31,4 +31,4 @@ runs:
       shell: bash
       run: |
         set -ex
-        echo 'names=["ubuntu-22.04", "fedora-39"]' >> $GITHUB_OUTPUT
+        echo 'names=["ubuntu-24.10", "fedora-41"]' >> $GITHUB_OUTPUT
