@@ -350,7 +350,7 @@ jobs:
           # TAU assumes Dyninst needs libdwarf instead of libdw. This has no real
           # effect on Dyninst as we RPATH our deps. It just makes the manually-constructed
           # link line in the TAU build work.
-          yum install -y git libdwarf
+          yum install -y git libdwarf which pkgconf
 
       - name: Fetch TAU
         shell: bash
