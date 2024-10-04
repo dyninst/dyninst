@@ -104,7 +104,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      image: ghcr.io/hainest/amd64/${{ matrix.os }}:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
@@ -164,7 +164,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      image: ghcr.io/hainest/amd64/${{ matrix.os }}:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
@@ -214,7 +214,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      image: ghcr.io/hainest/amd64/${{ matrix.os }}:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
@@ -324,7 +324,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      image: ghcr.io/hainest/amd64/${{ matrix.os }}:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
