@@ -2,6 +2,19 @@
 
 Reading through the [overview](https://resources.github.com/devops/ci-cd/) of GitHub CI/CD is highly recommended. A [primer](https://learnxinyminutes.com/docs/yaml/) on yaml may also be helpful. A brief overview of actions and workflows is provided at the bottom of this page.
 
+## Known Issues
+
+[build-opts](workflows/build-opts.yaml)
+  - The 'stdlibs' job is disabled because Dyninst doesn't build with libc++ (#725).
+
+[consumers](workflows/consumers.yaml)
+  - The version of *must* has to be updated manually
+  - spack won't build on Fedora 31 due to a python [issue](https://github.com/spack/spack/pull/46775)
+
+[pr-tests](workflows/pr-tests.yaml)
+  - The external tests can't be executed with clang because it doesn't work with libdyninstAPI_RT
+
+
 ## Actions
 
 ### Build Dyninst ([actions/build](actions/build/action.yaml))
@@ -14,46 +27,47 @@ This just forwards its arguments on to one of the OS-specific build actions.
 - **os**
   The operating system to use
 - **extra-cmake-flags**
-  Additional flags directly passed to CMake.
+  Additional flags passed directly to CMake
 - **compiler**
-  The compiler to use.
+  The compiler to use
 - **compiler-version**
-  The compiler's version.
+  The compiler's version
 - **build-type**
-  CMake build type to use. Default is `RELWITHDEBINFO`.
+  CMake build type to use. Default is `RELWITHDEBINFO`
 - **install-dir**
-  Where to install Dyninst.
+  Where to install Dyninst
 - **src-dir**
-  Location of Dyninst source to build.
+  Location of Dyninst source to build. Default is `/dyninst/src`
 - **num-jobs**
-  Number of CMake build jobs (i.e., `cmake --build --parallel N`).
+  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is 2
 - **extra-libs**
-  Additional libraries to install via the package manager.
+  Additional libraries to install via the OS-specific package manager
 
 
 ### Build Fedora ([actions/build-fedora](actions/build-fedora/action.yaml))
 
 *Builds a single configuration of Dyninst on one of the pre-built Fedora containers in the Dyninst container repo.*
 
-Only one version of gcc or clang is made available. This is because it is very  difficult to get multiple versions of any compiler installed simultaneously on Fedora.
+Only one version of gcc or clang is made available. This is because it is very difficult to get multiple versions of any compiler installed simultaneously on Fedora.
 
 **Inputs**
 - **extra-cmake-flags**
-  Additional flags directly passed to CMake
+  Additional flags passed directly to CMake
 - **compiler**
-  The compiler to use.
+  The compiler to use
 - **compiler-version**
-  The compiler's version.
+  The compiler's version
 - **build-type**
-  CMake build type to use. CMake build type to use. Default is `RELWITHDEBINFO`.
+  CMake build type to use. Default is `RELWITHDEBINFO`
 - **install-dir**
-  Where to install Dyninst.
+  Where to install Dyninst
 - **src-dir**
-  Location of Dyninst source to build.
+  Location of Dyninst source to build. Default is `/dyninst/src`
 - **num-jobs**
-  Number of CMake build jobs (i.e., `cmake --build --parallel N`).
+  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is 2
 - **extra-libs**
-  Additional libraries to install via the package manager.
+  Additional libraries to install via `yum`
+
 
 ### Build Ubuntu ([actions/build-ubuntu](actions/build-ubuntu/action.yaml))
 
@@ -63,21 +77,22 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 **Inputs**
 - **extra-cmake-flags**
-  Additional flags directly passed to CMake.
+  Additional flags passed directly to CMake
 - **compiler**
-  The compiler to use.
+  The compiler to use
 - **compiler-version**
-  The compiler's version.
+  The compiler's version
 - **build-type**
-  CMake build type to use. Default is `RELWITHDEBINFO`.
+  CMake build type to use. Default is `RELWITHDEBINFO`
 - **install-dir**
-  Where to install Dyninst.
+  Where to install Dyninst
 - **src-dir**
-  Location of Dyninst source to build.
+  Location of Dyninst source to build. Default is `/dyninst/src`
 - **num-jobs**
-  Number of CMake build jobs (i.e., `cmake --build --parallel N`).
+  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is 2
 - **extra-libs**
-  Additional libraries to install via the package manager.
+  Additional libraries to install via `apt`
+
 
 ### CMake build types ([actions/build-types](actions/build-types/action.yaml))
 
@@ -85,7 +100,7 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 **Outputs**
 - **all**
-  All build types used by Dyninst as a JSON array of strings.
+  All build types used by Dyninst as a JSON array of strings
 
 ### Operating systems ([actions/os-versions](actions/os-versions/action.yaml))
 
@@ -93,9 +108,9 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 **outputs**
 - **all**
-  All OS names as a JSON array of strings.
+  All OS names as a JSON array of strings
 - **latest**
-  The most-recent supported version of each OS as a JSON array of strings.
+  The most-recent supported version of each OS as a JSON array of strings
 
 ---
 
@@ -105,36 +120,34 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 *Builds Dyninst with different values for each of its CMake options.*
 
-This ensures that Dyninst builds on all supported platforms and compilers in non-standard configurations (e.g., disabling OpenMP), with different linkers, and different C++ standard libraries.
+This ensures that Dyninst builds on all supported platforms and compilers in non-standard configurations (e.g., disabling OpenMP), with different linkers, and different C++ standard libraries. `DYNINST_WARNINGS_AS_ERRORS` is enabled by default. The linkers used for `DYNINST_LINKER` are bfd, gold, mold, and lld.
 
-**when**: Every Monday at 3AM CST.
+**when**: Every Monday at 3AM CST, every pull request to master branch, or manually
 
 ### CMake formatting ([workflows/cmake-formatting.yaml](workflows/cmake-formatting.yaml))
 
 *Ensures all CMake files are correctly formatted using `cmake-format` and the rules in `.cmake-format.yaml` in the root of the project.*
 
-**when**: on pull requests to the master branch when a CMake file is changed.
+**when**: on pull requests to the master branch when a CMake file is changed, or manually
 
 ### Build with many compilers ([workflows/compiler-multibuild](workflows/compiler-multibuild.yaml))
 
 *Builds Dyninst with all supported versions of gcc and clang available on Ubuntu, the built-in versions of gcc and clang on Fedora, and the supported C++ standards.*
 
-This is a complex workflow that generates dozens of jobs. It is complicated by the fact that Fedora makes it very difficult to install multiple compiler versions simultaneously. In particular, it only offers one version of gcc and clang via 'yum'. Conversely, Ubuntu allows for arbitrary numbers and versions of compilers. This makes the parameter space large enough that it is easier to generate it using a python [script](scripts/compiler_configs.py).
+This is a complex workflow that generates dozens of jobs. It is complicated by the fact that Fedora makes it very difficult to install multiple compiler versions simultaneously. In particular, it only offers one version of gcc and clang via 'yum'. Conversely, Ubuntu allows for arbitrary numbers and versions of compilers. This makes the parameter space large enough that it is easier to generate it using a python [script](scripts/compiler_configs.py). We only support Fedora since version 37, so the minimum versions of gcc and clang are 12 and 15, respectively. On Ubuntu, the minimum version is 7 for both.
 
-**when**: Every Monday at 3AM CST.
+**when**: Every Monday at 3AM CST, or manually
 
 ### Dyninst consumers ([workflows/consumers](workflows/consumers.yaml))
 
 *Builds the latest version of applications that consume Dyninst*
 
-All consumers are built against the HEAD of Dyninst's master branch using the latest version of each supported operating system. Some consumers are more easily built with Spack and some are easier to build from source.
+All consumers are built against the latest development container using the latest version of each supported operating system. Some consumers are more easily built with Spack and some are easier to build from source.
 
 Spack builds:
 - [HPCToolkit](http://hpctoolkit.org/) development branch
 
   Substantial efforts are undertaken to reduce the number of libraries built by spack. This is because there are often timeouts in fetching sources when running from GitHub CI machines.
-
-- [omnitrace](https://amdresearch.github.io/omnitrace) development branch
 
 
 From-source builds:
@@ -146,21 +159,21 @@ From-source builds:
 - [STAT](https://hpc.llnl.gov/software/development-environment-software/stat-stack-trace-analysis-tool) development branch
 - [TAU](https://www.cs.uoregon.edu/research/tau/home.php) development branch
 
-**when**: Every Monday at 3AM CST.
+**when**: Every Monday at 3AM CST, or manually
 
 ### Third-party dependency versions ([workflows/dependency-version](workflows/dependency-version.yaml))
 
 *Checks that the minimum dependency versions found in the various CMake files match the expected values. This ensures we synchronize versions across containers and workflows.*
 
-**when**: on pull request to the master branch when a CMake file or docker/dependencies.versions is changed.
+**when**: on pull request to the master branch when a CMake file or docker/dependencies.versions is changed, or manually
 
 ### ABI breaks with libabigail ([workflows/libabigail](workflows/libabigail.yaml))
 
-*Checks for ABI breaks between the pull request and the latest release of Dyninst*
+*Checks for ABI breaks between a pull request and the latest release of Dyninst*
 
 This runs libabigail's `abidiff` utility to compare the current changes against the last release. Only removed or modified functions in public interfaces are reported. The check is not run if the pull request is already marked as an ABI-breaking change.
 
-**when**: on pull request to the master branch when source code changes.
+**when**: on pull request to the master branch when source code changes, or manually
 
 ### Pull request checks ([workflows/pr-tests](workflows/pr-tests.yaml))
 
@@ -168,17 +181,10 @@ This runs libabigail's `abidiff` utility to compare the current changes against 
 
 Build Dyninst, build the test suite, build examples, and build and run external tests.
 
-Each step except building the test suite uses all supported OSes and their default versions of gcc and clang. The test suite only builds with gcc. It can't be executed under GitHub CI because they do not allow using ptrace.
+Each step except building the test suite uses all supported OSes and their default versions of gcc and clang. The test suite only builds with gcc. GitHub CI does not allow using ptrace, so it's not possible to execute the test suite.
 
-**when**: on pull request to the master branch when source code changes.
+**when**: on pull request to the master branch when source code changes, or manually
 
-### Purge old workflow runs ([workflows/purge-workflows](workflows/purge-workflows.yaml)
-
-*Removes all workflow runs older than two weeks.*
-
-GitHub doesn't provide a retention policy for workflow run, so we purge them once per month. This is not strictly necessary because open-source projects do not have file system usage limits. However, it's nice to have the workflow tab uncluttered.
-
-**when**: The 1st of every month.
 
 ### Spack build ([workflows/spack-build](workflows/spack-build.yaml))
 
@@ -186,7 +192,7 @@ GitHub doesn't provide a retention policy for workflow run, so we purge them onc
 
 This runs on the most-recent version of each supported OS.
 
-**when**: Every Sunday at 3AM CST.
+**when**: Every Sunday at 3AM CST, or manually
 
 ### Parse system libraries ([workflows/system-libs](workflows/system-libs.yaml))
 
@@ -194,7 +200,7 @@ This runs on the most-recent version of each supported OS.
 
 This runs [simpleParser](https://github.com/dyninst/external-tests/blob/master/parseAPI/simpleParser.cpp) from the external-tests repository on every shared library in `/lib{64}` in the container for each supported operating system.
 
-**when**: Every Monday at 1AM CST.
+**when**: Every Monday at 1AM CST, or manually
 
 ### Unit tests ([workflows/unit-tests](workflows/unit-tests.yaml))
 
@@ -204,7 +210,16 @@ This is separate from the [pr-tests](workflows/pr-tests.yaml) workflow because t
 
 The unit tests are stored in the [dyninst/unit-tests](https://github.com/dyninst/unit-tests) repository.
 
-**when**: on pull request to the master branch when source code changes.
+**when**: on pull request to the master branch when source code changes, or manually
+
+
+### Purge old workflow runs ([workflows/purge-workflows](workflows/purge-workflows.yaml)
+
+*Removes all workflow runs older than two weeks.*
+
+GitHub doesn't provide a retention policy for workflow runs, so we purge them once per month. This is not strictly necessary because open-source projects do not have file system usage limits. However, it's nice to have the workflow tab uncluttered.
+
+**when**: The 1st of every month, or manually
 
 
 ## Container maintenance
@@ -213,33 +228,26 @@ Many different containers (aka packages) are used for both testing and convenien
 
 Currently, only AMD64 packages are provided.
 
-### Development containers ([workflows/dev-containers](workflows/dev-containers.yaml))
 
-*Builds and deploys development containers for all supported operating systems.*
+**Development containers** ([workflows/dev-containers](workflows/dev-containers.yaml))
 
-A 'development' container is an environment built atop the corresponding base container with both the latest Dyninst source code and a an installation of it located in /dyninst/src and /dyninst/install, respectively. The installation is built using the distributions default version of gcc.
+A 'development' container is an environment built atop the corresponding base container with both the latest Dyninst source code and an installation of it located in /dyninst/src and /dyninst/install, respectively. The installation is built using the distribution's default version of gcc. Uses docker/Dockerfile to build and deploy the images.
 
-Uses docker/Dockerfile to build and deploy the images.
-
-**when**: on push to the master branch or on dispatch.
-
-### Base containers ([workflows/base-containers](workflows/base-containers.yaml))
+**Base containers** ([workflows/base-containers](workflows/base-containers.yaml))
 
 *Builds and deploys base containers for all supported operating systems.*
 
-A 'base' container is an environment with the distribution's default versions of gcc, clang, git, cmake, static glibc, and all of Dyninst's dependencies installed. A python interpreter is purposefully not installed to reduce image size. It uses the respective `Dockerfile.<OS>` under the docker/directory to build the images.
+A 'base' container is an environment with the distribution's default versions of gcc, clang, git, cmake, static glibc, and all of Dyninst's dependencies installed. A python interpreter is purposefully not installed to reduce image size. It uses the respective `Dockerfile.<OS>` under the docker directory to build the images.
 
 When the version of a dependency provided by the distribution is older than the version in docker/dependencies.versions, then it is necessary to build that dependency from source. See 'docker/Dockerfile.ubuntu' for an example.
 
-### Purge unused container images ([workflows/purge-containers](workflows/purge-containers.yaml)
+**Purge unused container images** ([workflows/purge-containers](workflows/purge-containers.yaml)
 
-*Removes all but the most-recent base and dev containers (aka. GitHub packages)*
+*Removes all but the most recent base and dev containers (aka. GitHub packages)*
 
 GitHub doesn't provide a retention policy for packages, so we purge them once per month. The development containers are built every time a pull request is merged, but only the most recent one is really of any use since the previous ones contain outdated code. Only tagged containers such as 'latest' or 'v13.0.0' are kept.
 
-**when**: on manual dispatch.
-
-### Build and deploy release containers ([workflows/release-containers](workflows/release-containers.yaml)
+**Build and deploy release containers** ([workflows/release-containers](workflows/release-containers.yaml)
 
 *Builds and deploys release containers for all supported operating systems*
 
@@ -247,9 +255,7 @@ These are development containers with a fixed version of Dyninst.
 
 Currently, this is only set up to be run manually. In the future, it can be run [automatically](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release) when a release is created in GitHub.
 
-**when**: on manual dispatch.
-
-### Refresh base and development containers ([workflows/release-containers](workflows/release-containers.yaml)
+**Refresh base and development containers** ([workflows/release-containers](workflows/release-containers.yaml)
 
 *Refreshes base containers for all supported operating systems*
 
@@ -280,14 +286,6 @@ Github scheduled jobs use cron which doesn't allow specifying 'the last Wednesda
 TODO.
 
 ## Adding a new compiler version
-
-TODO.
-
-## Adding a new compiler
-
-TODO.
-
-## Adding a new test
 
 TODO.
 
