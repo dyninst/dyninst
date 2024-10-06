@@ -91,7 +91,7 @@ namespace Dyninst
 	unsigned char* large_insn;
       };
     public:
-        friend class InstructionDecoder_x86;
+        friend class x86_decoder;
         friend class InstructionDecoder_power;
         friend class InstructionDecoder_aarch64;
         friend class InstructionDecoder_amdgpu_gfx908;
