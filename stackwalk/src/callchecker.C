@@ -59,7 +59,7 @@ bool CallChecker::isPrevInstrACall(Address addr, Address & target)
       int32_t disp = read_memory_as<int32_t>(buffer+1);
       target = addr + disp;
       sw_printf("[%s:%d] - Found call encoded by %x to %lx (addr = %lx, disp = %dx)\n",
-                FILE__, __LINE__, (int) buffer[0], target, addr, disp);
+                FILE__, __LINE__, static_cast<std::uint32_t>(buffer[0]), target, addr, disp);
                 
       return true;
    }
