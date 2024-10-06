@@ -56,8 +56,8 @@ jobs:
           set -ex
 
           version="${{ needs.get-latest-release-version.outputs.value }}"
-          base="ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest"
-          release="ghcr.io/dyninst/amd64/${{ matrix.os }}:${version}"
+          base="ghcr.io/hainest/amd64/${{ matrix.os }}-base:latest"
+          release="ghcr.io/hainest/amd64/${{ matrix.os }}:${version}"
           
           # Always use latest distro image; ignoring any cached versions
           docker pull ${base}

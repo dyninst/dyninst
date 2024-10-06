@@ -46,7 +46,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      image: ghcr.io/hainest/amd64/${{ matrix.os }}-base:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
