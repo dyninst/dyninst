@@ -35,7 +35,7 @@ runs:
       if: ${{ startsWith(inputs.os, 'fedora') }}
       uses: ./build-checkout/.github/actions/build-fedora 
       with:
-        extra-cmake-flags: ${{ inputs.extra-cmake-flags }}
+        extra-cmake-flags: "-DDYNINST_WARNINGS_AS_ERRORS=ON ${{ inputs.extra-cmake-flags }}"
         compiler: ${{ inputs.compiler }}
         compiler-version: ${{ inputs.compiler-version }}
         build-type: ${{ inputs.build-type }}
@@ -48,7 +48,7 @@ runs:
       if: ${{ startsWith(inputs.os, 'ubuntu') }}
       uses: ./build-checkout/.github/actions/build-ubuntu
       with:
-        extra-cmake-flags: ${{ inputs.extra-cmake-flags }}
+        extra-cmake-flags: "-DDYNINST_WARNINGS_AS_ERRORS=ON ${{ inputs.extra-cmake-flags }}"
         compiler: ${{ inputs.compiler }}
         compiler-version: ${{ inputs.compiler-version }}
         build-type: ${{ inputs.build-type }}
