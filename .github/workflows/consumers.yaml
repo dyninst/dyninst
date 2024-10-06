@@ -52,11 +52,6 @@ jobs:
         password: ${{ secrets.github_token }}
     name: HPCToolkit (${{ matrix.os }}, ${{ matrix.compiler }})
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: "src"  # relative to $GITHUB_WORKSPACE
-
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash
