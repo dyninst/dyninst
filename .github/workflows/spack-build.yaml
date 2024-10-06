@@ -72,6 +72,13 @@ jobs:
         run: |
           set -ex
           git clone --depth=1 --branch=develop https://github.com/spack/spack
+
+          # Fedora 41's python-13 breaks spack's from-source installation of pyclingo
+          if test "${{ matrix.os }}" = "fedora-41"; then
+            pip3 install clingo
+          fi
+
+          spack/bin/spack bootstrap now
           spack/bin/spack compiler find
           spack/bin/spack external find --not-buildable cmake m4
 
