@@ -283,7 +283,7 @@ Github scheduled jobs use cron which doesn't allow specifying 'the last Wednesda
 
 ## Adding a new OS
 
-TODO.
+1. Add it to the `names` array in the OS [action](actions/os-versions/action.yaml). If it's newer than the rest, then update the `names` array in the `latest` step.
 
 ## Adding a new compiler version
 
