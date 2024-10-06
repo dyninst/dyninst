@@ -1,25 +1,99 @@
 name: Refresh base and dev containers
 
 on:
-#  pull_request:
-#     branches:
-#        - master
   schedule:
-    - cron: '0 3 25 * *'
+    - cron: '0 3 25 * *'  # 3AM on the 25th of every month
   workflow_dispatch:
 
 jobs:
-  
+
+  get-oses:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.all.outputs.all }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
   purge:
-    uses: ./.github/workflows/purge-containers.yaml
+    runs-on: ubuntu-latest
+    needs: get-oses
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.all) }}
     permissions:
       packages: write
+    name: Purge ${{ matrix.os }}
+    steps:
+      - name: Development containers
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: amd64/${{ matrix.os }}
+          package-type: "container"
+          token: ${{ secrets.github_token }}
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: "true"
+
+      - name: Base containers
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: amd64/${{ matrix.os }}-base
+          package-type: "container"
+          token: ${{ secrets.github_token }}
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: "true"
 
   build-base:
-    needs: purge
-    uses: ./.github/workflows/base-containers.yaml
+    runs-on: ubuntu-latest
+    needs: [get-oses, purge]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.all) }}
     permissions:
       packages: write
+    name: Update base containers
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: GHCR Login
+        uses: docker/login-action@v3.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - shell: bash
+        run: |
+          set -ex
+          
+          readarray -d "-" -t array <<< "${{ matrix.os }}"
+          distro=${array[0]}
+          version=$(echo ${array[1]} | sed 's/ //g')
+          
+          extra=
+          if test "${{ matrix.os }}" = "ubuntu-20.04"; then
+            extra="--build-arg build_elfutils=yes"
+          fi
+          
+          base="ghcr.io/hainest/amd64/${distro}-${version}-base:latest"
+          
+          # Always use latest distro image; ignoring any cached versions
+          docker pull ${distro}:${version}
+          
+          docker build -f docker/Dockerfile.${distro} \
+                       -t $base \
+                       --build-arg build_jobs=2 \
+                       --build-arg version=${version} \
+                       ${extra} \
+                       .
+
+          docker push ${base}
+
 
   build-deploy-dev:
     needs: build-base
