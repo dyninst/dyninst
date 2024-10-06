@@ -10,8 +10,17 @@ on:
 
 jobs:
 
+  # Don't run the check if the PR is a draft
+  check-if-needed:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - shell: bash
+        run: true
+
   get-oses:
     runs-on: ubuntu-latest
+    needs: check-if-needed
     outputs:
       latest: ${{ steps.all.outputs.latest }}
     steps:
@@ -23,6 +32,7 @@ jobs:
 
   get-options:
     runs-on: ubuntu-latest
+    needs: check-if-needed
     outputs:
       all: ${{ steps.all.outputs.all }}
     steps:
@@ -42,6 +52,7 @@ jobs:
 
   get-compilers:
     runs-on: ubuntu-latest
+    needs: check-if-needed
     outputs:
       all: ${{ steps.compilers.outputs.value }}
     steps:
