@@ -80,16 +80,7 @@ jobs:
 
           spack/bin/spack bootstrap now
           spack/bin/spack compiler find
-          spack/bin/spack external find --not-buildable cmake m4
-
-        # gettext fails with clang-17's -Wincompatible-function-pointer-types
-      - name: Fedora clang-17 workaround
-        if: ${{ matrix.os == 'fedora-39' && matrix.compiler == 'clang' }}
-        shell: bash
-        run: |
-          set -ex
-          yum install -y gettext
-          spack/bin/spack external find --not-buildable gettext
+          spack/bin/spack external find --not-buildable cmake m4 gettext
 
       - name: Build
         shell: bash
