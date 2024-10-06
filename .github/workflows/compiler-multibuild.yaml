@@ -82,7 +82,7 @@ jobs:
         password: ${{ secrets.github_token }}
     name: ${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.build-type }}
     steps:
-      - name: Checkout
+      - name: Checkout Dyninst
         uses: actions/checkout@v4
         with:
           path: "src"  # relative to $GITHUB_WORKSPACE
@@ -120,7 +120,7 @@ jobs:
         password: ${{ secrets.github_token }}
     name: ${{ matrix.os }}, ${{ matrix.compiler }}, std=${{ matrix.std }}
     steps:
-      - name: Checkout
+      - name: Checkout Dyninst
         uses: actions/checkout@v4
         with:
           path: "src"    # Relative to $GITHUB_WORKSPACE

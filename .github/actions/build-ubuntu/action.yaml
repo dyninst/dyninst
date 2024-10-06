@@ -1,4 +1,4 @@
-name: "Build Ubuntu single-config"
+name: Build Ubuntu single-config
 
 inputs:
   extra-cmake-flags:
