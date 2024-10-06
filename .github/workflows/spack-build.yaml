@@ -58,14 +58,14 @@ jobs:
         run: |
           set -ex
           apt update -qq
-          apt install -y -qq m4 autoconf python3 
+          apt install -y -qq m4 autoconf python3 python3-dev gettext libgettextpo-dev
           
       - name: Install dependencies (Fedora)
         if: ${{ startsWith(matrix.os, 'fedora') }}
         shell: bash
         run: |
           set -ex
-          yum install -y m4 autoconf python3 xz lbzip2 patch
+          yum install -y m4 autoconf python3 python3-devel xz lbzip2 patch gettext
 
       - name: Install spack
         shell: bash
