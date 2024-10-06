@@ -285,6 +285,8 @@ Github scheduled jobs use cron which doesn't allow specifying 'the last Wednesda
 
 1. Add it to the `names` array in the OS [action](actions/os-versions/action.yaml). If it's newer than the rest, then update the `names` array in the `latest` step.
 
+2. Update the config [script](scripts/compiler_configs.py).
+
 ## Adding a new compiler version
 
 TODO.
