@@ -73,6 +73,7 @@ jobs:
 #  Build with one option either on or off
 #
   one-option:
+    name: One option
     runs-on: ubuntu-latest
     needs: [get-oses, get-options, get-compilers]
     strategy:
