@@ -103,13 +103,13 @@ jobs:
         run: |
           set -ex
           apt update -qq
-          apt install -y libxml2-dev autoconf libtool
+          apt install -y libxml2-dev autoconf libtool libxxhash-dev
 
       - name: Install dependencies (Fedora)
         if: ${{ startsWith(matrix.os, 'fedora') }}
         run: |
           set -ex
-          yum install -y libxml2-devel autoconf libtool
+          yum install -y libxml2-devel autoconf libtool xxhash-devel
 
       - name: Build libabigail
         run: |
