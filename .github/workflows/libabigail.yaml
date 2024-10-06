@@ -17,7 +17,7 @@ jobs:
   # Don't run the check if the PR is a draft or already marked as an ABI break
   check-if-needed:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false && !contains(github.event.pull_request.labels.*.name, 'ABI-BREAKER')
+    if: ${{ github.event.pull_request.draft == false && !contains(github.event.pull_request.labels.*.name, 'ABI-BREAKER') }}
     steps:
       - shell: bash
         run: true
@@ -76,7 +76,7 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/hainest/amd64/${{ matrix.os }}:${{ needs.get-latest-release-version.outputs.value }}
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:${{ needs.get-latest-release-version.outputs.value }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
