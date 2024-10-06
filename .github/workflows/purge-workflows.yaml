@@ -2,7 +2,7 @@ name: Purge old workflow runs
 
 on:
   schedule:
-    - cron: '0 5 1 * *'
+    - cron: '0 5 1 * *'  # 5AM on the first of the month
   workflow_dispatch:
 
 jobs:
