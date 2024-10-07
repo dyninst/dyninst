@@ -298,6 +298,8 @@ jobs:
             extra-libs: 'lld'
           - linker: 'mold'
             extra-libs: 'mold'
+          - linker: 'gold'
+            extra-libs: 'binutils-gold'
     permissions:
       packages: read
     container:
