@@ -88,7 +88,7 @@ jobs:
           ref: ${{ needs.get-latest-release-version.outputs.value }}
 
       - name: Build previous Dyninst
-        uses: ./src/.github/actions/build
+        uses: ./src-prev/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
@@ -101,7 +101,7 @@ jobs:
           path: "src-cur"  # relative to ${GITHUB_WORKSPACE}
 
       - name: Build current Dyninst
-        uses: ./src/.github/actions/build
+        uses: ./src-cur/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
