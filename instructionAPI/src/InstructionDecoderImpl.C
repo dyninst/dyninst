@@ -29,7 +29,6 @@
  */
 
 #include "InstructionDecoderImpl.h"
-#include "common/src/singleton_object_pool.h"
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
@@ -40,6 +39,7 @@
 #include "BinaryFunction.h"
 #include "Dereference.h"
 #include "Ternary.h"
+#include <boost/make_shared.hpp>
 
 using namespace std;
 namespace Dyninst
@@ -50,7 +50,7 @@ namespace Dyninst
             unsigned int decodedSize, const unsigned char* raw)
         {
             Operation tmp(opcode, mnem, m_Arch);
-            return make_shared(singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw, m_Arch));
+            return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
         }
 
 
@@ -93,47 +93,47 @@ namespace Dyninst
         {
             BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
 
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, adder));
+            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, adder);
         }
         Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
+            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, multiplier);
         }
         Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, leftShifter));
+            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, leftShifter);
         }
         Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr rightArithmeticShifter(new BinaryFunction::rightArithmeticShiftResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightArithmeticShifter));
+            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightArithmeticShifter);
         }
         Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr rightLogicalShifter(new BinaryFunction::rightLogicalShiftResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightLogicalShifter));
+            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightLogicalShifter);
         }
         Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
+            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightRotator);
         }
 
         Expression::Ptr InstructionDecoderImpl::makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second,Result_Type result_type){
-            return make_shared(singleton_object_pool<TernaryAST>::construct(cond,first,second,result_type));
+            return boost::make_shared<TernaryAST>(cond,first,second,result_type);
         }
 
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)
         {
-            return make_shared(singleton_object_pool<Dereference>::construct(addrToDereference, resultType));
+            return boost::make_shared<Dereference>(addrToDereference, resultType);
         }
         Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, uint32_t num_elements )
         {
@@ -141,12 +141,12 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8,num_elements));
+            return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8,num_elements);
         }
         
         Expression::Ptr InstructionDecoderImpl::makeMultiRegisterExpression(MachRegister registerID, uint32_t num_elements )
         {
-            return make_shared(singleton_object_pool<MultiRegisterAST>::construct(registerID, num_elements));
+            return boost::make_shared<MultiRegisterAST>(registerID, num_elements);
         }
         
        
@@ -157,7 +157,7 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, start, end));
+            return boost::make_shared<RegisterAST>(converted, start, end);
         }
 
 
@@ -167,7 +167,7 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8, extendFrom));
+            return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8, extendFrom);
         }
 		Expression::Ptr InstructionDecoderImpl::makeMaskRegisterExpression(MachRegister registerID)
         {
@@ -175,7 +175,7 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<MaskRegisterAST>::construct(converted, 0, registerID.size() * 8));
+            return boost::make_shared<MaskRegisterAST>(converted, 0, registerID.size() * 8);
         }
     }
 }

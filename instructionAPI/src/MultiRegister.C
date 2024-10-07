@@ -33,13 +33,13 @@
 #include <set>
 #include <sstream>
 #include "Visitor.h"
-#include "../../common/src/singleton_object_pool.h"
 #include "InstructionDecoder-power.h"
 #include "registers/MachRegister.h"
 #include "Architecture.h"
 #include "ArchSpecificFormatters.h"
 #include "../../common/h/compiler_diagnostics.h"
 #include "registers/x86_regs.h"
+#include <boost/make_shared.hpp>
 
 using namespace std;
 
@@ -52,7 +52,7 @@ namespace Dyninst
     {
         uint32_t regVal = r.val();
         for (uint32_t i = 0; i < num_elements; i++){
-            m_Regs.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(MachRegister(regVal+i), 0, r.size() * 8,num_elements)));
+            m_Regs.push_back(boost::make_shared<RegisterAST>(MachRegister(regVal+i), 0, r.size() * 8,num_elements));
         }
     }
 

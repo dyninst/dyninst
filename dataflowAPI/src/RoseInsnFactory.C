@@ -33,7 +33,6 @@
 #include "Dereference.h"
 #include "Immediate.h"
 #include "instructionAPI/src/InstructionDecoderImpl.h"
-#include "common/src/singleton_object_pool.h"
 
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"

@@ -33,15 +33,15 @@
 #include <sstream>
 
 #include "Immediate.h"
-#include "../../common/src/singleton_object_pool.h"
 #include "Visitor.h"
 #include "ArchSpecificFormatters.h"
 #include <boost/assign/list_of.hpp>
+#include <boost/make_shared.hpp>
 
 namespace Dyninst {
     namespace InstructionAPI {
         Immediate::Ptr Immediate::makeImmediate(const Result &val) {
-            return make_shared(singleton_object_pool<Immediate>::construct(val));
+            return boost::make_shared<Immediate>(val);
         }
 
 
@@ -89,7 +89,7 @@ namespace Dyninst {
         }
 
         Immediate::Ptr NamedImmediate::makeNamedImmediate(std::string name, const Result &val) {
-            Immediate::Ptr ret = make_shared(singleton_object_pool<NamedImmediate>::construct(name,val));
+            Immediate::Ptr ret = boost::make_shared<NamedImmediate>(name,val);
             return ret;
         }
 
@@ -106,7 +106,7 @@ namespace Dyninst {
         }
 
         Immediate::Ptr ArmConditionImmediate::makeArmConditionImmediate(const Result &val) {
-            Immediate::Ptr ret = make_shared(singleton_object_pool<ArmConditionImmediate>::construct(val));
+            Immediate::Ptr ret = boost::make_shared<ArmConditionImmediate>(val);
             return ret;
         }
 
@@ -127,7 +127,7 @@ namespace Dyninst {
 	}
 
 	Immediate::Ptr ArmPrfmTypeImmediate::makeArmPrfmTypeImmediate(const Result &val) {
-	    Immediate::Ptr ret = make_shared(singleton_object_pool<ArmPrfmTypeImmediate>::construct(val));
+	    Immediate::Ptr ret = boost::make_shared<ArmPrfmTypeImmediate>(val);
 	    return ret;
 	}
 

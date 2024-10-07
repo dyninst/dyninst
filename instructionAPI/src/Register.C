@@ -33,13 +33,13 @@
 #include <set>
 #include <sstream>
 #include "Visitor.h"
-#include "../../common/src/singleton_object_pool.h"
 #include "InstructionDecoder-power.h"
 #include "registers/MachRegister.h"
 #include "Architecture.h"
 #include "ArchSpecificFormatters.h"
 #include "../../common/h/compiler_diagnostics.h"
 #include "registers/x86_regs.h"
+#include <boost/make_shared.hpp>
 
 using namespace std;
 
@@ -171,8 +171,7 @@ namespace Dyninst
         // We want to upconvert the register ID to the maximal containing
         // register for the platform - either EAX or RAX as appropriate.
 
-        return make_shared(singleton_object_pool<RegisterAST>::construct(regPtr->getPromotedReg(), 0,
-                           regPtr->getPromotedReg().size()));
+        return boost::make_shared<RegisterAST>(regPtr->getPromotedReg(), 0, regPtr->getPromotedReg().size());
     }
     bool RegisterAST::isFlag() const
     {
