@@ -4,14 +4,6 @@ on:
   schedule:
     - cron: '0 5 1 * *'  # 5AM on the first of the month
   workflow_dispatch:
-  pull_request:
-     branches:
-        - master
-     paths:
-       - '**.h'
-       - '**.C'
-       - '**.c'
-     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
 

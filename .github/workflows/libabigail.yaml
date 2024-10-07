@@ -1,14 +1,14 @@
 name: Libabigail ABI Checks
 
 on: 
-  #pull_request:
-     #branches:
-        #- master
-     #paths:
-       #- '**.h'
-       #- '**.C'
-       #- '**.c'
-     #types: [opened, synchronize, reopened, ready_for_review]
+  pull_request:
+     branches:
+        - master
+     paths:
+       - '**.h'
+       - '**.C'
+       - '**.c'
+     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
@@ -75,27 +75,38 @@ jobs:
     permissions:
       packages: read
     container:
-      image: ghcr.io/hainest/amd64/${{ matrix.os }}:${{ needs.get-latest-release-version.outputs.value }}
+      image: ghcr.io/hainest/amd64/${{ matrix.os }}-base:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
     name: libabigail (${{ matrix.os }}, ${{ matrix.compiler }})
     steps:
-      - name: Checkout Dyninst
+      - name: Checkout previous Dyninst
         uses: actions/checkout@v4
         with:
-          path: "src"  # relative to ${GITHUB_WORKSPACE}
+          path: "src-prev"  # relative to ${GITHUB_WORKSPACE}
+          ref: ${{ needs.get-latest-release-version.outputs.value }}
 
-      - name: Build Dyninst
-        # The latest release is always built with gcc, but it still is useful
-        # to compare a build of the latest source using clang against the latest
-        # release. They _should_ be abi compatible, anyway.
+      - name: Build previous Dyninst
         uses: ./src/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
-          src-dir: "${GITHUB_WORKSPACE}/src"
-          install-dir: "${GITHUB_WORKSPACE}/install"
+          src-dir: "${GITHUB_WORKSPACE}/src-prev"
+          install-dir: "${GITHUB_WORKSPACE}/install-prev"
+
+      - name: Checkout current Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src-cur"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Build current Dyninst
+        uses: ./src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          src-dir: "${GITHUB_WORKSPACE}/src-cur"
+          install-dir: "${GITHUB_WORKSPACE}/install-cur"
 
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -142,8 +153,8 @@ jobs:
           params+="--no-added-syms "            # ignore added symbols
           params+="--no-unreferenced-symbols "  # ignore changes about symbols not referenced by debug info
           
-          mkdir prev; cp /dyninst/install/lib*/*.so prev/
-          mkdir cur; cp ${GITHUB_WORKSPACE}/install/lib*/*.so cur/
+          mkdir prev; cp /dyninst/install-prev/lib*/*.so prev/
+          mkdir cur; cp ${GITHUB_WORKSPACE}/install-cur/lib*/*.so cur/
           
           status=0
           for l in "${libs[@]}"; do
