@@ -77,9 +77,7 @@ set(_private_headers
     src/ntHeaders.h
     src/parseauxv.h
     src/pathName.h
-    src/pool_allocators.h
     src/sha1.h
-    src/singleton_object_pool.h
     src/stats.h
     src/symbolDemangle.h
     src/symbolDemangleWithCache.h

@@ -30,7 +30,6 @@
 
 #include "InstructionDecoder-power.h"
 #include <boost/assign/list_of.hpp>
-#include "../../common/src/singleton_object_pool.h"
 #include <mutex>
 #include "unaligned_memory_access.h"
 #include "registers/ppc32_regs.h"

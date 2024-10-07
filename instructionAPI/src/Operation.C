@@ -39,9 +39,9 @@
 #include <map>
 #include <mutex>
 #include "concurrent.h"
-#include "common/src/singleton_object_pool.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
+#include <boost/make_shared.hpp>
 
 using namespace NS_x86;
 #include "BinaryFunction.h"
@@ -53,11 +53,11 @@ namespace Dyninst
     {
         RegisterAST::Ptr makeRegFromID(MachRegister regID, unsigned int low, unsigned int high)
         {
-            return make_shared(singleton_object_pool<RegisterAST>::construct(regID, low, high));
+            return boost::make_shared<RegisterAST>(regID, low, high);
         }
         RegisterAST::Ptr makeRegFromID(MachRegister regID)
         {
-            return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size() * 8));
+            return boost::make_shared<RegisterAST>(regID, 0, regID.size() * 8);
         }
 
         Operation::Operation(entryID id, std::string m, Architecture arch)

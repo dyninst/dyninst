@@ -30,7 +30,6 @@
 
 #include "DynAST.h"
 #include "../../dyninstAPI/src/debug.h"
-#include "../../common/src/singleton_object_pool.h"
 
 using namespace Dyninst; 
 const int NOT_VISITED = 0;

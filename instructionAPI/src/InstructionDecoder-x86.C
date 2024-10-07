@@ -37,11 +37,11 @@
 #include "Dereference.h"
 #include "Immediate.h" 
 #include "BinaryFunction.h"
-#include "common/src/singleton_object_pool.h"
 #include "unaligned_memory_access.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 #include "registers/abstract_regs.h"
+#include <boost/make_shared.hpp>
 
 // #define VEX_DEBUG
 
@@ -168,9 +168,9 @@ namespace Dyninst
         int op_type = is64BitMode ? op_q : op_d;
         decode_SIB(locs->sib_byte, scale, index, base);
 
-        Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
-        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, op_type,
-                                    locs->rex_x))));
+        Expression::Ptr scaleAST(boost::make_shared<Immediate>(Result(u8, dword_t(scale))));
+        Expression::Ptr indexAST(boost::make_shared<RegisterAST>(makeRegisterID(index, op_type,
+                                    locs->rex_x)));
         Expression::Ptr baseAST;
         if(base == 0x05)
         {
@@ -181,9 +181,7 @@ namespace Dyninst
                     break;
                 case 0x01: 
                 case 0x02: 
-                    baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base,
-											       op_type,
-											       locs->rex_b)));
+                    baseAST = boost::make_shared<RegisterAST>(makeRegisterID(base, op_type, locs->rex_b));
                     break;
                 case 0x03:
                 default:
@@ -193,9 +191,7 @@ namespace Dyninst
         }
         else
         {
-            baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base,
-											       op_type,
-											       locs->rex_b)));
+            baseAST = boost::make_shared<RegisterAST>(makeRegisterID(base, op_type, locs->rex_b));
         }
 
         if(index == 0x04 && (!(is64BitMode) || !(locs->rex_x)))
@@ -377,19 +373,19 @@ namespace Dyninst
         switch(locs->modrm_mod)
         {
             case 1:
-                return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, Dyninst::read_memory_as<byte_t>(b.start +
-                                        disp_pos))));
+                return boost::make_shared<Immediate>(Result(s8, Dyninst::read_memory_as<byte_t>(b.start +
+                                        disp_pos)));
                 break;
             case 2:
                 if(0 && sizePrefixPresent)
                 {
-                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s16, Dyninst::read_memory_as<word_t>(b.start +
-                                            disp_pos))));
+                    return boost::make_shared<Immediate>(Result(s16, Dyninst::read_memory_as<word_t>(b.start +
+                                            disp_pos)));
                 }
                 else
                 {
-                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, Dyninst::read_memory_as<dword_t>(b.start +
-                                            disp_pos))));
+                    return boost::make_shared<Immediate>(Result(s32, Dyninst::read_memory_as<dword_t>(b.start +
+                                            disp_pos)));
                 }
                 break;
             case 0:
@@ -398,18 +394,18 @@ namespace Dyninst
                 {
                     if(locs->modrm_rm == 6)
                     {
-                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s16,
-                        	Dyninst::read_memory_as<dword_t>(b.start + disp_pos))));
+                        return boost::make_shared<Immediate>(Result(s16,
+                                Dyninst::read_memory_as<dword_t>(b.start + disp_pos)));
                     }
                     // TODO FIXME; this was decoding wrong, but I'm not sure
                     // why...
                     else if (locs->modrm_rm == 5) {
                         assert(b.start + disp_pos + 4 <= b.end);
-                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
-                        	Dyninst::read_memory_as<dword_t>(b.start + disp_pos))));
+                        return boost::make_shared<Immediate>(Result(s32,
+                                Dyninst::read_memory_as<dword_t>(b.start + disp_pos)));
                     } else {
                         assert(b.start + disp_pos + 1 <= b.end);
-                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+                        return boost::make_shared<Immediate>(Result(s8, 0));
                     }
                     break;
                 }
@@ -419,25 +415,25 @@ namespace Dyninst
                     if(locs->modrm_rm == 5)
                     {
                         if (b.start + disp_pos + 4 <= b.end)
-                            return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
-                        	    Dyninst::read_memory_as<dword_t>(b.start + disp_pos))));
+                            return boost::make_shared<Immediate>(Result(s32,
+                                    Dyninst::read_memory_as<dword_t>(b.start + disp_pos)));
                         else
-                            return make_shared(singleton_object_pool<Immediate>::construct(Result()));
+                            return boost::make_shared<Immediate>(Result());
                     }
                     else
                     {
                         if (b.start + disp_pos + 1 <= b.end)
-                            return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+                            return boost::make_shared<Immediate>(Result(s8, 0));
                         else
                         {
-                            return make_shared(singleton_object_pool<Immediate>::construct(Result()));
+                            return boost::make_shared<Immediate>(Result());
                         }
                     }
                     break;
                 }
             default:
                 assert(b.start + disp_pos + 1 <= b.end);
-                return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+                return boost::make_shared<Immediate>(Result(s8, 0));
         }
     }
 
@@ -1144,9 +1140,7 @@ namespace Dyninst
                                 b.start + locs->imm_position[imm_index++],
                                 true));
                     Expression::Ptr EIP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                    Expression::Ptr InsnSize(
-                            make_shared(singleton_object_pool<Immediate>::construct(Result(u8,
-                                        decodedInstruction->getSize()))));
+                    Expression::Ptr InsnSize( boost::make_shared<Immediate>(Result(u8, decodedInstruction->getSize())));
                     Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
                     Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
                     insn_to_complete->addSuccessor(op, isCall, false, isConditional, false);
@@ -1573,8 +1567,7 @@ namespace Dyninst
                     Expression::Ptr ds(makeRegisterExpression(
                                 m_Arch == Arch_x86 ? x86::ds : x86_64::ds));
                     Expression::Ptr si(makeRegisterExpression(si_reg));
-                    Expression::Ptr segmentOffset(make_shared
-                            (singleton_object_pool<Immediate>::construct(Result(u32, 0x10))));
+                    Expression::Ptr segmentOffset(boost::make_shared<Immediate>(Result(u32, 0x10)));
                     Expression::Ptr ds_segment = makeMultiplyExpression(
                             ds, segmentOffset, u32);
                     Expression::Ptr ds_si = makeAddExpression(ds_segment, si, u32);
@@ -1607,8 +1600,7 @@ namespace Dyninst
                                 m_Arch == Arch_x86 ? x86::es : x86_64::es));
                     Expression::Ptr di(makeRegisterExpression(di_reg));
 
-                    Immediate::Ptr imm(make_shared(
-                                singleton_object_pool<Immediate>::construct(Result(u32, 0x10))));
+                    Immediate::Ptr imm(boost::make_shared<Immediate>(Result(u32, 0x10)));
                     Expression::Ptr es_segment(
                             makeMultiplyExpression(es,imm, u32));
                     Expression::Ptr es_di(makeAddExpression(es_segment, di, u32));

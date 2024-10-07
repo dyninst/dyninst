@@ -41,8 +41,7 @@
 #include "parseAPI/h/CFG.h"
 
 #include <sstream>
-
-#include "../../common/src/singleton_object_pool.h"
+#include <boost/make_shared.hpp>
 
 using namespace Dyninst;
 // using namespace Dyninst::DepGraphAPI;
@@ -259,7 +258,7 @@ Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
                              ParseAPI::Block *b,
                              const std::vector<AbsRegion> &ins,
                              const AbsRegion &o) {
-      return make_shared(singleton_object_pool<Assignment>::construct(i, a, f, b, ins, o));
+      return boost::make_shared<Assignment>(i, a, f, b, ins, o);
 }
 
 Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
@@ -267,7 +266,7 @@ Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
                              const AbsRegion &o) {
-      return  make_shared(singleton_object_pool<Assignment>::construct(i, a, f, b, o));
+      return  boost::make_shared<Assignment>(i, a, f, b, o);
 
 }			     
 

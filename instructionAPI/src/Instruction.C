@@ -53,7 +53,6 @@
 using namespace std;
 using namespace NS_x86;
 
-#include "../../common/src/singleton_object_pool.h"
 #include "ArchSpecificFormatters.h"
 
 #define DECODE_OPERANDS() \
