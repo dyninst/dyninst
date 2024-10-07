@@ -1793,7 +1793,7 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
              * use such forms as a die offset, even if dwarf_global_formref is
              * willing to decode it. */
         default:
-            dwarf_printf("(0x%lx) error Can't use form 0x%x as a die offset\n", id(), (int) form);
+            dwarf_printf("(0x%lx) error Can't use form 0x%x as a die offset\n", id(), static_cast<std::uint32_t>(form));
             return false;
     }
 }

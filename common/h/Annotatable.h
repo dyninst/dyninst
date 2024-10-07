@@ -161,6 +161,7 @@ class DYNINST_EXPORT AnnotatableDense
 		  }
 
          unsigned size = id + 1;
+         #pragma GCC diagnostic ignored "-Warray-bounds"
          if (!annotations)
          {
             annotations = (aInfo *) malloc(sizeof(aInfo));
