@@ -22,7 +22,7 @@ jobs:
         uses: Mattraks/delete-workflow-runs@main
         with:
           token: ${{ secrets.github_token }}
-          repository: ${{ github.repository }}
+          repository: hainest/dyninst #${{ github.repository }}
           # remove anything older than two weeks
           retain_days: 14
           # keep at least one run of any workflow
