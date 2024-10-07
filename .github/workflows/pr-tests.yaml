@@ -78,6 +78,7 @@ jobs:
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
+          extra-cmake-flags: "-DDYNINST_EXPORT_ALL=ON"  # needed for unit tests
           src-dir: "${GITHUB_WORKSPACE}/src"
           install-dir: "${GITHUB_WORKSPACE}/install"
 
@@ -132,4 +133,26 @@ jobs:
           set -ex
           export DYNINSTAPI_RT_LIB=$(find ${GITHUB_WORKSPACE}/install/ -name libdyninstAPI_RT.so)
           cd ${GITHUB_WORKSPACE}/external-tests/build
+          ctest -VV --output-on-failure .
+
+      - name: Checkout Unit Tests
+        uses: actions/checkout@v4
+        with:
+          repository: dyninst/unit-tests
+          path: unit-tests  # Relative to $GITHUB_WORKSPACE
+
+      - name: Build unit tests
+        shell: bash
+        run: |
+          set -ex
+          cd unit-tests; mkdir build; cd build
+          cmake .. -DDyninst_ROOT=${GITHUB_WORKSPACE}/install -DDYNINST_SOURCE_TREE=${GITHUB_WORKSPACE}/src
+          cmake --build . --parallel 2
+
+      - name: Run unit tests
+        shell: bash
+        run: |
+          set -ex
+          cd ${GITHUB_WORKSPACE}/unit-tests/build
+          export DYNINSTAPI_RT_LIB=$(find ${GITHUB_WORKSPACE}/install/ -name libdyninstAPI_RT.so)
           ctest -VV --output-on-failure .
