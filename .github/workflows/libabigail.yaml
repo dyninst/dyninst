@@ -81,20 +81,6 @@ jobs:
         password: ${{ secrets.github_token }}
     name: libabigail (${{ matrix.os }}, ${{ matrix.compiler }})
     steps:
-      - name: Checkout previous Dyninst
-        uses: actions/checkout@v4
-        with:
-          path: "src-prev"  # relative to ${GITHUB_WORKSPACE}
-          ref: ${{ needs.get-latest-release-version.outputs.value }}
-
-      - name: Build previous Dyninst
-        uses: ./src-prev/.github/actions/build
-        with:
-          os: ${{ matrix.os }}
-          compiler: ${{ matrix.compiler }}
-          src-dir: "${GITHUB_WORKSPACE}/src-prev"
-          install-dir: "${GITHUB_WORKSPACE}/install-prev"
-
       - name: Checkout current Dyninst
         uses: actions/checkout@v4
         with:
@@ -107,6 +93,20 @@ jobs:
           compiler: ${{ matrix.compiler }}
           src-dir: "${GITHUB_WORKSPACE}/src-cur"
           install-dir: "${GITHUB_WORKSPACE}/install-cur"
+
+      - name: Checkout previous Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src-prev"  # relative to ${GITHUB_WORKSPACE}
+          ref: ${{ needs.get-latest-release-version.outputs.value }}
+
+      - name: Build previous Dyninst
+        uses: ./src-cur/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          src-dir: "${GITHUB_WORKSPACE}/src-prev"
+          install-dir: "${GITHUB_WORKSPACE}/install-prev"
 
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
