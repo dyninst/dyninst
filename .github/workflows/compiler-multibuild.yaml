@@ -88,6 +88,7 @@ jobs:
           path: "src"  # relative to $GITHUB_WORKSPACE
 
       - name: Build Ubuntu
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         uses: ./src/.github/actions/build
         with:
           os: ${{ matrix.os }}
