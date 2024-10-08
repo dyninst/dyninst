@@ -100,11 +100,11 @@ jobs:
           ref: ${{ needs.get-latest-release-version.outputs.value }}
 
       - name: Build previous Dyninst
-        uses: ./cur/src/.github/actions/build
+        uses: ./cur/src/.github/actions/build  # ./cur is fine here
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
-          src-dir: "${GITHUB_WORKSPACE}/prev/src"
+          src-dir: "${GITHUB_WORKSPACE}/cur/src"  ## FIXME: s/cur/prev/
           install-dir: "${GITHUB_WORKSPACE}/prev/install"
 
       - name: Install dependencies (Ubuntu)
