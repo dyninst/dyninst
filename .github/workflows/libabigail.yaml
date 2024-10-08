@@ -63,17 +63,14 @@ jobs:
           names=$(python3 ${script} --print-names)
           echo "value=${names}" >> $GITHUB_OUTPUT
 
-
   libabigail:
     runs-on: ubuntu-latest
-    #needs: [get-oses, get-latest-release-version, get-compilers]
+    needs: [get-oses, get-latest-release-version, get-compilers]
     strategy:
       fail-fast: false
       matrix:
-        #os: ${{ fromJson(needs.get-oses.outputs.all) }}
-        os: ["fedora-41"]
-        #compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
-        compiler: ["gcc"]
+        os: ${{ fromJson(needs.get-oses.outputs.all) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
     permissions:
       packages: read
     container:
@@ -88,13 +85,6 @@ jobs:
         with:
           path: "cur/src"  # relative to ${GITHUB_WORKSPACE}
 
-      - name: hello
-        shell: bash
-        run: |
-          set -ex
-          pwd
-          ls -la
-
       - name: Build current Dyninst
         uses: ./cur/src/.github/actions/build
         with:
@@ -108,13 +98,6 @@ jobs:
         with:
           path: "prev/src"  # relative to ${GITHUB_WORKSPACE}
           ref: ${{ needs.get-latest-release-version.outputs.value }}
-
-      - name: hello
-        shell: bash
-        run: |
-          set -ex
-          pwd
-          ls -la
 
       - name: Build previous Dyninst
         uses: ./cur/src/.github/actions/build
@@ -169,9 +152,7 @@ jobs:
           params+="--no-added-syms "            # ignore added symbols
           params+="--no-unreferenced-symbols "  # ignore changes about symbols not referenced by debug info
           
-          #mkdir prev;
           cp ${GITHUB_WORKSPACE}/prev/install/lib*/*.so prev/
-          #mkdir cur;
           cp ${GITHUB_WORKSPACE}/cur/install/lib*/*.so cur/
           
           status=0
