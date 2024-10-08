@@ -101,7 +101,7 @@ jobs:
           ref: ${{ needs.get-latest-release-version.outputs.value }}
 
       - name: Build previous Dyninst
-        uses: ${GITHUB_WORKSPACE}/cur/src/.github/actions/build
+        uses: ../cur/src/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
