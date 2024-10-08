@@ -433,17 +433,17 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
         std::vector<InstructionAPI::Operand> &operands) {
     switch (insn.getOperation().getID()) {
 
-    // SWAPPC has 4 operands, two multiregisters followed by two copies of PC
+    // SWAPPC has 3 operands, two multiregisters followed by one copy of PC
     // Breaking up the multiregisters into individual registers 
     // So we end up getting 6 operands
     // Similar concept for SETPC and GETPC
     case amdgpu_gfx908_op_S_SWAPPC_B64:
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
     case amdgpu_gfx940_op_S_SWAPPC_B64: {
-        assert(operands.size() == 4);
-        operands.reserve(6);
+        assert(operands.size() == 3);
+        operands.reserve(5);
         operands.push_back(operands[2]);
-        operands.push_back(operands[3]);
+        operands.push_back(operands[2]);
         MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
         const std::vector<RegisterAST::Ptr> & src_reg_asts = src_regs->getRegs();
         operands[3] = Operand(src_reg_asts[1]);
