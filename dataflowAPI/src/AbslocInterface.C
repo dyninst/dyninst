@@ -578,7 +578,7 @@ void AssignmentConverter::convert(const Instruction &I,
     case amdgpu_gfx940_op_S_SWAPPC_B64: {
         std::vector<Operand> operands;
         I.getOperands(operands);
-        assert(operands.size() == 4);
+        assert(operands.size() == 3);
 
         MultiRegisterAST::Ptr pc_src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
         const std::vector<RegisterAST::Ptr> & pc_src_regasts = pc_src_regs->getRegs();
@@ -681,7 +681,7 @@ void AssignmentConverter::convert(const Instruction &I,
     case amdgpu_gfx940_op_S_ADDC_U32: {
         std::vector<Operand> operands;
         I.getOperands(operands);
-        assert(operands.size() == 5);
+        assert(operands.size() == 4);
 
         RegisterAST::Ptr dst_sgpr = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
         std::vector<AbsRegion> regions;
