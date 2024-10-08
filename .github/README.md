@@ -1,4 +1,4 @@
-# GitHub CI testing
+# GitHub CI testing Dyninst
 
 Reading through the [overview](https://resources.github.com/devops/ci-cd/) of GitHub CI/CD is highly recommended. A [primer](https://learnxinyminutes.com/docs/yaml/) on yaml may also be helpful. A brief overview of actions and workflows is provided at the bottom of this page.
 
@@ -120,13 +120,15 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 *Builds Dyninst with different values for each of its CMake options.*
 
-This ensures that Dyninst builds on all supported platforms and compilers in non-standard configurations (e.g., disabling OpenMP), with different linkers, and different C++ standard libraries. `DYNINST_WARNINGS_AS_ERRORS` is enabled by default. The linkers used for `DYNINST_LINKER` are bfd, gold, mold, and lld.
+Ensures that Dyninst builds on all supported platforms and compilers in non-standard configurations (e.g., disabling OpenMP), with different linkers, and different C++ standard libraries. `DYNINST_WARNINGS_AS_ERRORS` is enabled by default. The linkers used for `DYNINST_LINKER` are bfd, gold, mold, and lld.
 
 **when**: Every Monday at 3AM CST, every pull request to master branch, or manually
 
 ### CMake formatting ([workflows/cmake-formatting.yaml](workflows/cmake-formatting.yaml))
 
-*Ensures all CMake files are correctly formatted using `cmake-format` and the rules in `.cmake-format.yaml` in the root of the project.*
+*Runs `cmake-format` on updated files*
+
+Ensures modified CMake files are correctly formatted using `cmake-format` and the rules in `.cmake-format.yaml` in the root of the project.
 
 **when**: on pull requests to the master branch when a CMake file is changed, or manually
 
@@ -163,7 +165,9 @@ From-source builds:
 
 ### Third-party dependency versions ([workflows/dependency-version](workflows/dependency-version.yaml))
 
-*Checks that the minimum dependency versions found in the various CMake files match the expected values. This ensures we synchronize versions across containers and workflows.*
+*Enforces coherence of minimum supported dependencies*
+
+Ensures that the minimum dependency versions found in the various CMake files match the values in `docker/dependencies.versions` used to build the containers. This ensures we synchronize versions across containers and workflows.
 
 **when**: on pull request to the master branch when a CMake file or docker/dependencies.versions is changed, or manually
 
@@ -177,47 +181,36 @@ This runs libabigail's `abidiff` utility to compare the current changes against 
 
 ### Pull request checks ([workflows/pr-tests](workflows/pr-tests.yaml))
 
-*Checks run on every pull request that changes source code*
+*Runs battery of tests on every pull request that changes source code*
 
-Build Dyninst, build the test suite, build examples, and build and run external tests.
+This builds Dyninst, the test suite, and examples, and builds and runs the external and unit tests.
 
 Each step except building the test suite uses all supported OSes and their default versions of gcc and clang. The test suite only builds with gcc. GitHub CI does not allow using ptrace, so it's not possible to execute the test suite.
 
 **when**: on pull request to the master branch when source code changes, or manually
 
-
 ### Spack build ([workflows/spack-build](workflows/spack-build.yaml))
 
-*Checks that Dyninst builds in the latest version of Spack*
+*Builds Dyninst using spack*
 
-This runs on the most-recent version of each supported OS.
+This checks that Dyninst builds with the latest version of spack using the default compiler
+on the most-recent version of each supported OS.
 
 **when**: Every Sunday at 3AM CST, or manually
 
 ### Parse system libraries ([workflows/system-libs](workflows/system-libs.yaml))
 
-*Checks that system libraries can be parsed using ParseAPI*
+*Parses system libaries with ParseAPI*
 
 This runs [simpleParser](https://github.com/dyninst/external-tests/blob/master/parseAPI/simpleParser.cpp) from the external-tests repository on every shared library in `/lib{64}` in the container for each supported operating system.
 
 **when**: Every Monday at 1AM CST, or manually
 
-### Unit tests ([workflows/unit-tests](workflows/unit-tests.yaml))
-
-*Build and execute the unit tests for Dyninst*
-
-This is separate from the [pr-tests](workflows/pr-tests.yaml) workflow because the unit tests need Dyninst to be built with `DYNINST_EXPORT_ALL` enabled to expose hidden symbols in internal classes that are tested here.
-
-The unit tests are stored in the [dyninst/unit-tests](https://github.com/dyninst/unit-tests) repository.
-
-**when**: on pull request to the master branch when source code changes, or manually
-
-
 ### Purge old workflow runs ([workflows/purge-workflows](workflows/purge-workflows.yaml)
 
-*Removes all workflow runs older than two weeks.*
+*Removes unneeded results from prior workflow runs.*
 
-GitHub doesn't provide a retention policy for workflow runs, so we purge them once per month. This is not strictly necessary because open-source projects do not have file system usage limits. However, it's nice to have the workflow tab uncluttered.
+GitHub doesn't provide a retention policy for workflow runs, so we purge them once per month. This is not strictly necessary because open-source projects do not have file system usage limits. However, it's nice to have the workflow tab uncluttered. All runs more than two weeks old are removed, and only the most-recent run in the last two weeks is retained.
 
 **when**: The 1st of every month, or manually
 
@@ -231,13 +224,13 @@ Currently, only AMD64 packages are provided.
 
 **Development containers** ([workflows/dev-containers](workflows/dev-containers.yaml))
 
-A 'development' container is an environment built atop the corresponding base container with both the latest Dyninst source code and an installation of it located in /dyninst/src and /dyninst/install, respectively. The installation is built using the distribution's default version of gcc. Uses docker/Dockerfile to build and deploy the images.
+A *development* container is an environment built atop the corresponding base container with both the latest Dyninst source code and an installation of it located in /dyninst/src and /dyninst/install, respectively. The installation is built using the distribution's default version of gcc. Uses docker/Dockerfile to build and deploy the images.
 
 **Base containers** ([workflows/base-containers](workflows/base-containers.yaml))
 
 *Builds and deploys base containers for all supported operating systems.*
 
-A 'base' container is an environment with the distribution's default versions of gcc, clang, git, cmake, static glibc, and all of Dyninst's dependencies installed. A python interpreter is purposefully not installed to reduce image size. It uses the respective `Dockerfile.<OS>` under the docker directory to build the images.
+A *base* container is an environment with the distribution's default versions of gcc, clang, git, cmake, static glibc, and all of Dyninst's dependencies installed. A python interpreter is purposefully not installed to reduce image size. It uses the respective `Dockerfile.<OS>` under the docker directory to build the images.
 
 When the version of a dependency provided by the distribution is older than the version in docker/dependencies.versions, then it is necessary to build that dependency from source. See 'docker/Dockerfile.ubuntu' for an example.
 
@@ -271,7 +264,6 @@ Github scheduled jobs use cron which doesn't allow specifying 'the last Wednesda
 
 **when**: 25th of every month.
 
-
 ---
 # Updating workflows
 
@@ -279,25 +271,33 @@ Github scheduled jobs use cron which doesn't allow specifying 'the last Wednesda
 
 1. Add it to the `names` array in the OS [action](actions/os-versions/action.yaml). If it's newer than the rest, then update the `names` array in the `latest` step.
 
-2. Update the config [script](scripts/compiler_configs.py).
+2. Add another entry to the `configs` dictionary in the config [script](scripts/compiler_configs.py) following the existing naming convention. There are several workflows that check for names of the format `<OS>-<version>`.
 
-## Adding a new OS
+3. Create a new base and dev container. For example to add ubuntu-X,
 
-1. Add it to the `names` array in the OS [action](actions/os-versions/action.yaml). If it's newer than the rest, then update the `names` array in the `latest` step.
+```
+docker build -f docker/Dockerfile.ubuntu
+             -t ghcr.io/dyninst/amd64/ubuntu-X-base:latest
+             --build-arg build_jobs=2
+             --build-arg version=X
+             $PWD
 
-2. Update the config [script](scripts/compiler_configs.py).
+docker push ghcr.io/dyninst/amd64/ubuntu-X-base:latest
+
+docker build -f docker/Dockerfile
+             -t ghcr.io/dyninst/amd64/ubuntu-X:latest
+             --build-arg base=ghcr.io/dyninst/amd64/ubuntu-X-base:latest
+             --build-arg build_jobs=2
+             $PWD
+
+docker push ghcr.io/dyninst/amd64/ubuntu-X:latest
+```
+
+4. Follow the GitHub [instructions](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package) to add each container image to the Dyninst repository. The Dyninst user will need admin privileges to update and deploy containers from GitHub actions.
 
 ## Adding a new compiler version
 
-TODO.
-
-## Updating a dependency version
-
-TODO.
-
-## Adding a new dependency
-
-TODO.
+If the compiler is available in a known OS version, then append the new version to the list of known ones in the config [script](scripts/compiler_configs.py). If the compiler is only available on an OS version that is not in the script, then add the new OS version and put the new compiler version there.
 
 ---
 
