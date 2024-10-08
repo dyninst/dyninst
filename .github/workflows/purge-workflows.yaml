@@ -1,6 +1,14 @@
 name: Purge old workflow runs
 
 on:
+  pull_request:
+     branches:
+        - master
+     paths:
+       - '**.h'
+       - '**.C'
+       - '**.c'
+     types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     - cron: '0 5 1 * *'  # 5AM on the first of the month
   workflow_dispatch:
@@ -17,7 +25,7 @@ jobs:
         uses: Mattraks/delete-workflow-runs@main
         with:
           token: ${{ secrets.github_token }}
-          repository: hainest/dyninst #${{ github.repository }}
+          repository: ${{ github.repository }}
           # remove anything older than two weeks
           retain_days: 14
           # keep at least one run of any workflow

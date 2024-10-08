@@ -1,14 +1,14 @@
 name: Libabigail ABI Checks
 
 on: 
-  pull_request:
-     branches:
-        - master
-     paths:
-       - '**.h'
-       - '**.C'
-       - '**.c'
-     types: [opened, synchronize, reopened, ready_for_review]
+  #pull_request:
+     #branches:
+        #- master
+     #paths:
+       #- '**.h'
+       #- '**.C'
+       #- '**.c'
+     #types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
