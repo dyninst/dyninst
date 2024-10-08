@@ -42,10 +42,6 @@ runs:
           clang) cc=clang; cxx=clang++; ;;
             gcc) cc=gcc; cxx=g++; ;;
         esac
-        if [[ ! -z "${{ inputs.compiler-version }}" ]]; then
-          cc+="-${{ inputs.compiler-version }}"
-          cxx+="-${{ inputs.compiler-version }}"
-        fi
         echo "value={ \"c\" : \"${cc}\", \"cxx\" : \"${cxx}\" }" >> $GITHUB_OUTPUT
 
     - name: Build Dyninst (${{ fromJson(steps.compiler-name.outputs).c }}, ${{ inputs.build-type }} ${{ inputs.extra-cmake-flags }})

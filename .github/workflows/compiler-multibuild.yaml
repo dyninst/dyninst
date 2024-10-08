@@ -88,21 +88,11 @@ jobs:
           path: "src"  # relative to $GITHUB_WORKSPACE
 
       - name: Build Ubuntu
-        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         uses: ./src/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
           compiler-version: ${{ matrix.compiler-version }}
-          build-type: ${{ matrix.build-type }}
-          src-dir: "${GITHUB_WORKSPACE}/src"
-
-      - name: Build Fedora
-        if: ${{ startsWith(matrix.os, 'fedora') }}
-        uses: ./src/.github/actions/build
-        with:
-          os: ${{ matrix.os }}
-          compiler: ${{ matrix.compiler }}
           build-type: ${{ matrix.build-type }}
           src-dir: "${GITHUB_WORKSPACE}/src"
 
