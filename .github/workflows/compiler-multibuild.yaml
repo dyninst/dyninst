@@ -80,7 +80,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: ${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.build-type }}
+    name: ${{ matrix.os }}, ${{ matrix.compiler }}-${{ matrix.compiler-version }}, ${{ matrix.build-type }}
     steps:
       - name: Checkout Dyninst
         uses: actions/checkout@v4
@@ -92,6 +92,7 @@ jobs:
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
+          compiler-version: ${{ matrix.compiler-version }}
           build-type: ${{ matrix.build-type }}
           src-dir: "${GITHUB_WORKSPACE}/src"
 
