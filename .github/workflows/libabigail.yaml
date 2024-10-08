@@ -86,12 +86,6 @@ jobs:
         with:
           path: "cur/src"  # relative to ${GITHUB_WORKSPACE}
 
-      - name: Checkout previous Dyninst
-        uses: actions/checkout@v4
-        with:
-          path: "prev/src"  # relative to ${GITHUB_WORKSPACE}
-          ref: ${{ needs.get-latest-release-version.outputs.value }}
-
       - name: hello
         shell: bash
         run: |
@@ -106,6 +100,19 @@ jobs:
           #compiler: ${{ matrix.compiler }}
           #src-dir: "/dyninst/cur/src"
           #install-dir: "/dyninst/cur/install"
+
+      - name: Checkout previous Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "prev/src"  # relative to ${GITHUB_WORKSPACE}
+          ref: ${{ needs.get-latest-release-version.outputs.value }}
+
+      - name: hello
+        shell: bash
+        run: |
+          set -ex
+          pwd
+          ls -la
 
       #- name: Build previous Dyninst
         #uses: ./cur/src/.github/actions/build
