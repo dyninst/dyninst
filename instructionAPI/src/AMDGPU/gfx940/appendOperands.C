@@ -17,6 +17,20 @@ namespace InstructionAPI {
         }
     }
 
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_ATTR(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
+    {
+        Expression::Ptr first = decodeOPR_ATTR(input,vec_len);
+        RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
+        if (regptr != NULL && vec_len > 1)
+        {
+            insn_in_progress->appendOperand(makeMultiRegisterExpression(regptr->getID(),vec_len),isRead,isWritten,isImplicit);
+        }
+        else
+        {
+            insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
+        }
+    }
+
     void InstructionDecoder_amdgpu_gfx940::appendOPR_DSMEM(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
     {
         Expression::Ptr first = decodeOPR_DSMEM(input,vec_len);
@@ -34,6 +48,20 @@ namespace InstructionAPI {
     void InstructionDecoder_amdgpu_gfx940::appendOPR_FLAT_SCRATCH(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
     {
         Expression::Ptr first = decodeOPR_FLAT_SCRATCH(input,vec_len);
+        RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
+        if (regptr != NULL && vec_len > 1)
+        {
+            insn_in_progress->appendOperand(makeMultiRegisterExpression(regptr->getID(),vec_len),isRead,isWritten,isImplicit);
+        }
+        else
+        {
+            insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
+        }
+    }
+
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_PARAM(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
+    {
+        Expression::Ptr first = decodeOPR_PARAM(input,vec_len);
         RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
         if (regptr != NULL && vec_len > 1)
         {
@@ -129,6 +157,20 @@ namespace InstructionAPI {
         }
     }
 
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_SRC_ACCVGPR_OR_CONST(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
+    {
+        Expression::Ptr first = decodeOPR_SRC_ACCVGPR_OR_CONST(input,vec_len);
+        RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
+        if (regptr != NULL && vec_len > 1)
+        {
+            insn_in_progress->appendOperand(makeMultiRegisterExpression(regptr->getID(),vec_len),isRead,isWritten,isImplicit);
+        }
+        else
+        {
+            insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
+        }
+    }
+
     void InstructionDecoder_amdgpu_gfx940::appendOPR_SRC_NOLDS(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
     {
         Expression::Ptr first = decodeOPR_SRC_NOLDS(input,vec_len);
@@ -188,20 +230,6 @@ namespace InstructionAPI {
     void InstructionDecoder_amdgpu_gfx940::appendOPR_SRC_VGPR_OR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
     {
         Expression::Ptr first = decodeOPR_SRC_VGPR_OR_ACCVGPR(input,vec_len);
-        RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
-        if (regptr != NULL && vec_len > 1)
-        {
-            insn_in_progress->appendOperand(makeMultiRegisterExpression(regptr->getID(),vec_len),isRead,isWritten,isImplicit);
-        }
-        else
-        {
-            insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        }
-    }
-
-    void InstructionDecoder_amdgpu_gfx940::appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
-    {
-        Expression::Ptr first = decodeOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(input,vec_len);
         RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
         if (regptr != NULL && vec_len > 1)
         {
@@ -297,6 +325,20 @@ namespace InstructionAPI {
         }
     }
 
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_TGT(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
+    {
+        Expression::Ptr first = decodeOPR_TGT(input,vec_len);
+        RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
+        if (regptr != NULL && vec_len > 1)
+        {
+            insn_in_progress->appendOperand(makeMultiRegisterExpression(regptr->getID(),vec_len),isRead,isWritten,isImplicit);
+        }
+        else
+        {
+            insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
+        }
+    }
+
     void InstructionDecoder_amdgpu_gfx940::appendOPR_VCC(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
     {
         Expression::Ptr first = decodeOPR_VCC(input,vec_len);
@@ -325,20 +367,6 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::appendOPR_VGPR_OR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
-    {
-        Expression::Ptr first = decodeOPR_VGPR_OR_ACCVGPR(input,vec_len);
-        RegisterAST::Ptr regptr = boost::dynamic_pointer_cast<RegisterAST>(first);
-        if (regptr != NULL && vec_len > 1)
-        {
-            insn_in_progress->appendOperand(makeMultiRegisterExpression(regptr->getID(),vec_len),isRead,isWritten,isImplicit);
-        }
-        else
-        {
-            insn_in_progress->appendOperand(first,isRead,isWritten,isImplicit);
-        }
-    }
-
     void InstructionDecoder_amdgpu_gfx940::appendOPR_VGPR_OR_LDS(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
     {
         Expression::Ptr first = decodeOPR_VGPR_OR_LDS(input,vec_len);
@@ -353,24 +381,6 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::appendOPR_LABEL(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
-    {
-        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("TARGET"),Result(u16,field<0,15>(input))),isRead,isWritten,isImplicit);
-    }
-
-    void InstructionDecoder_amdgpu_gfx940::appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
-    {
-        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("EXP"),Result(u16,field<4,6>(input))),isRead,isWritten,isImplicit);
-        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("LGKM"),Result(u16,field<8,11>(input))),isRead,isWritten,isImplicit);
-        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("VM"),Result(u16,field<0,3>(input))),isRead,isWritten,isImplicit);
-        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("VM_HI"),Result(u16,field<14,15>(input))),isRead,isWritten,isImplicit);
-    }
-
-    void InstructionDecoder_amdgpu_gfx940::appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
-    {
-        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8,field<0,7>(input))),isRead,isWritten,isImplicit);
-    }
-
     void InstructionDecoder_amdgpu_gfx940::appendOPR_SENDMSG(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
     {
         insn_in_progress->appendOperand(decodeOPR_SENDMSG_GSOP(input, vec_len),isRead,isWritten,isImplicit);
@@ -378,14 +388,24 @@ namespace InstructionAPI {
         insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("STREAMID"),Result(u16,field<8,9>(input))),isRead,isWritten,isImplicit);
     }
 
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_SIMM32(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    {
+        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,field<0,31>(input))),isRead,isWritten,isImplicit);
+    }
+
     void InstructionDecoder_amdgpu_gfx940::appendOPR_HWREG(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
     {
         insn_in_progress->appendOperand(decodeOPR_HWREG_ID(input,field<6,11>(input),field<11,16>(input)),isRead,isWritten,isImplicit);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::appendOPR_SIMM32(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_LABEL(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
     {
-        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,field<0,31>(input))),isRead,isWritten,isImplicit);
+        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("TARGET"),Result(u16,field<0,15>(input))),isRead,isWritten,isImplicit);
+    }
+
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    {
+        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8,field<0,7>(input))),isRead,isWritten,isImplicit);
     }
 
     void InstructionDecoder_amdgpu_gfx940::appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
@@ -396,6 +416,14 @@ namespace InstructionAPI {
     void InstructionDecoder_amdgpu_gfx940::appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
     {
         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8,field<0,3>(input))),isRead,isWritten,isImplicit);
+    }
+
+    void InstructionDecoder_amdgpu_gfx940::appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    {
+        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("EXP"),Result(u16,field<4,6>(input))),isRead,isWritten,isImplicit);
+        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("LGKM"),Result(u16,field<8,11>(input))),isRead,isWritten,isImplicit);
+        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("VM"),Result(u16,field<0,3>(input))),isRead,isWritten,isImplicit);
+        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("VM_HI"),Result(u16,field<14,15>(input))),isRead,isWritten,isImplicit);
     }
 
 }
