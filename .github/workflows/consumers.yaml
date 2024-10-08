@@ -57,7 +57,6 @@ jobs:
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
-
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         shell: bash
