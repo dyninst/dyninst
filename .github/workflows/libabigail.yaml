@@ -71,9 +71,9 @@ jobs:
       fail-fast: false
       matrix:
         #os: ${{ fromJson(needs.get-oses.outputs.all) }}
-        os: fedora-41
+        os: ["fedora-41"]
         #compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
-        compiler: gcc
+        compiler: ["gcc"]
     permissions:
       packages: read
     container:
