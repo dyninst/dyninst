@@ -66,12 +66,14 @@ jobs:
 
   libabigail:
     runs-on: ubuntu-latest
-    needs: [get-oses, get-latest-release-version, get-compilers]
+    #needs: [get-oses, get-latest-release-version, get-compilers]
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJson(needs.get-oses.outputs.all) }}
-        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+        #os: ${{ fromJson(needs.get-oses.outputs.all) }}
+        os: fedora-41
+        #compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+        compiler: gcc
     permissions:
       packages: read
     container:
@@ -114,13 +116,13 @@ jobs:
           pwd
           ls -la
 
-      #- name: Build previous Dyninst
-        #uses: ./cur/src/.github/actions/build
-        #with:
-          #os: ${{ matrix.os }}
-          #compiler: ${{ matrix.compiler }}
-          #src-dir: "${GITHUB_WORKSPACE}/prev/src"
-          #install-dir: "${GITHUB_WORKSPACE}/prev/install"
+      - name: Build previous Dyninst
+        uses: ./cur/src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          src-dir: "${GITHUB_WORKSPACE}/prev/src"
+          install-dir: "${GITHUB_WORKSPACE}/prev/install"
 
       #- name: Install dependencies (Ubuntu)
         #if: ${{ startsWith(matrix.os, 'ubuntu') }}
