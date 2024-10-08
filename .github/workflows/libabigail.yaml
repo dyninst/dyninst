@@ -95,13 +95,13 @@ jobs:
           pwd
           ls -la
 
-      #- name: Build current Dyninst
-        #uses: ./cur/src/.github/actions/build
-        #with:
-          #os: ${{ matrix.os }}
-          #compiler: ${{ matrix.compiler }}
-          #src-dir: "/dyninst/cur/src"
-          #install-dir: "/dyninst/cur/install"
+      - name: Build current Dyninst
+        uses: ./cur/src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          src-dir: "${GITHUB_WORKSPACE}/cur/src"
+          install-dir: "${GITHUB_WORKSPACE}/cur/install"
 
       - name: Checkout previous Dyninst
         uses: actions/checkout@v4
@@ -124,70 +124,70 @@ jobs:
           src-dir: "${GITHUB_WORKSPACE}/prev/src"
           install-dir: "${GITHUB_WORKSPACE}/prev/install"
 
-      #- name: Install dependencies (Ubuntu)
-        #if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        #run: |
-          #set -ex
-          #apt update -qq
-          #apt install -y libxml2-dev autoconf libtool libxxhash-dev
+      - name: Install dependencies (Ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: |
+          set -ex
+          apt update -qq
+          apt install -y libxml2-dev autoconf libtool libxxhash-dev
 
-      #- name: Install dependencies (Fedora)
-        #if: ${{ startsWith(matrix.os, 'fedora') }}
-        #run: |
-          #set -ex
-          #yum install -y libxml2-devel autoconf libtool xxhash-devel
+      - name: Install dependencies (Fedora)
+        if: ${{ startsWith(matrix.os, 'fedora') }}
+        run: |
+          set -ex
+          yum install -y libxml2-devel autoconf libtool xxhash-devel
 
-      #- name: Build libabigail
-        #run: |
-          #set -ex
-          #git clone --depth=1 git://sourceware.org/git/libabigail.git
-          #cd libabigail
-          #autoreconf -i
-          #mkdir build; cd build
-          #../configure --prefix=/libabigail/install
-          #make -j2
-          #make install
+      - name: Build libabigail
+        run: |
+          set -ex
+          git clone --depth=1 git://sourceware.org/git/libabigail.git
+          cd libabigail
+          autoreconf -i
+          mkdir build; cd build
+          ../configure --prefix=/libabigail/install
+          make -j2
+          make install
 
-      #- name: Run abidiff
-        #shell: bash
-        #run: |
-          ## Don't use 'vx' here because abidiff is very chatty
-          #set -e
+      - name: Run abidiff
+        shell: bash
+        run: |
+          # Don't use 'vx' here because abidiff is very chatty
+          set -e
           
-          #declare -a libs=(
-            #"libcommon.so" "libdyninstAPI_RT.so" "libdyninstAPI.so" "libinstructionAPI.so"
-            #"libparseAPI.so" "libpatchAPI.so" "libpcontrol.so" "libstackwalk.so"
-            #"libsymtabAPI.so"
-          #)
+          declare -a libs=(
+            "libcommon.so" "libdyninstAPI_RT.so" "libdyninstAPI.so" "libinstructionAPI.so"
+            "libparseAPI.so" "libpatchAPI.so" "libpcontrol.so" "libstackwalk.so"
+            "libsymtabAPI.so"
+          )
 
-          #params="--exported-interfaces-only "  # only public symbols
-          #params+="--deleted-fns "              # deleted public functions
-          #params+="--changed-fns "              # changed public functions
-          #params+="--deleted-vars "             # deleted public variables
-          #params+="--added-vars "               # added variables in classes
-          #params+="--changed-vars "             # changed variables in classes
-          #params+="--no-added-syms "            # ignore added symbols
-          #params+="--no-unreferenced-symbols "  # ignore changes about symbols not referenced by debug info
+          params="--exported-interfaces-only "  # only public symbols
+          params+="--deleted-fns "              # deleted public functions
+          params+="--changed-fns "              # changed public functions
+          params+="--deleted-vars "             # deleted public variables
+          params+="--added-vars "               # added variables in classes
+          params+="--changed-vars "             # changed variables in classes
+          params+="--no-added-syms "            # ignore added symbols
+          params+="--no-unreferenced-symbols "  # ignore changes about symbols not referenced by debug info
           
-          ##mkdir prev;
-          #cp ${GITHUB_WORKSPACE}/prev/install/lib*/*.so prev/
-          ##mkdir cur;
-          #cp ${GITHUB_WORKSPACE}/cur/install/lib*/*.so cur/
+          #mkdir prev;
+          cp ${GITHUB_WORKSPACE}/prev/install/lib*/*.so prev/
+          #mkdir cur;
+          cp ${GITHUB_WORKSPACE}/cur/install/lib*/*.so cur/
           
-          #status=0
-          #for l in "${libs[@]}"; do
-            #echo "Diffing $l"
-            #cur_status=0
-            #output=`/libabigail/install/bin/abidiff ${params} prev/$l cur/$l 2>&1` || cur_status=1
-            #if test "${cur_status}" = "1"; then
-              #printf '=%.0s' {1..100}; echo
-              #printf "Found an ABI breakage\n\n"
-              #printf "$output\n\n"
-              #printf '=%.0s' {1..100}; echo
-              #status=1
-            #else
-              #printf "OK\n\n"
-            #fi
-          #done
+          status=0
+          for l in "${libs[@]}"; do
+            echo "Diffing $l"
+            cur_status=0
+            output=`/libabigail/install/bin/abidiff ${params} prev/$l cur/$l 2>&1` || cur_status=1
+            if test "${cur_status}" = "1"; then
+              printf '=%.0s' {1..100}; echo
+              printf "Found an ABI breakage\n\n"
+              printf "$output\n\n"
+              printf '=%.0s' {1..100}; echo
+              status=1
+            else
+              printf "OK\n\n"
+            fi
+          done
 
-          #exit $status
+          exit $status
