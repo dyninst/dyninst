@@ -84,29 +84,29 @@ jobs:
       - name: Checkout current Dyninst
         uses: actions/checkout@v4
         with:
-          path: "src-cur"  # relative to ${GITHUB_WORKSPACE}
+          path: "cur/src"  # relative to ${GITHUB_WORKSPACE}
 
       - name: Build current Dyninst
-        uses: ./src-cur/.github/actions/build
+        uses: ./cur/src/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
-          src-dir: "${GITHUB_WORKSPACE}/src-cur"
-          install-dir: "${GITHUB_WORKSPACE}/install-cur"
+          src-dir: "${GITHUB_WORKSPACE}/cur/src"
+          install-dir: "${GITHUB_WORKSPACE}/cur/install"
 
       - name: Checkout previous Dyninst
         uses: actions/checkout@v4
         with:
-          path: "src-prev"  # relative to ${GITHUB_WORKSPACE}
+          path: "prev/src"  # relative to ${GITHUB_WORKSPACE}
           ref: ${{ needs.get-latest-release-version.outputs.value }}
 
       - name: Build previous Dyninst
-        uses: ./src-cur/.github/actions/build
+        uses: ${GITHUB_WORKSPACE}/cur/src/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
-          src-dir: "${GITHUB_WORKSPACE}/src-prev"
-          install-dir: "${GITHUB_WORKSPACE}/install-prev"
+          src-dir: "${GITHUB_WORKSPACE}/prev/src"
+          install-dir: "${GITHUB_WORKSPACE}/prev/install"
 
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -153,8 +153,10 @@ jobs:
           params+="--no-added-syms "            # ignore added symbols
           params+="--no-unreferenced-symbols "  # ignore changes about symbols not referenced by debug info
           
-          mkdir prev; cp /dyninst/install-prev/lib*/*.so prev/
-          mkdir cur; cp ${GITHUB_WORKSPACE}/install-cur/lib*/*.so cur/
+          #mkdir prev;
+          cp ${GITHUB_WORKSPACE}/prev/install/lib*/*.so prev/
+          #mkdir cur;
+          cp ${GITHUB_WORKSPACE}/cur/install/lib*/*.so cur/
           
           status=0
           for l in "${libs[@]}"; do
