@@ -163,7 +163,7 @@ if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIO
       set(nonDebugMaxFrameSizeOverrideFinalizeOperands 30000)
     endif()
   elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^1[3-8](\.|$)")
+    if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^1[3-9](\.|$)")
       set(debugMaxFrameSizeOverridePowerOpcodeTable 40000)
     else()
       set(debugMaxFrameSizeOverridePowerOpcodeTable 30000)
