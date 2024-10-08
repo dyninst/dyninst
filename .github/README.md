@@ -11,8 +11,11 @@ Reading through the [overview](https://resources.github.com/devops/ci-cd/) of Gi
   - The version of *must* has to be updated manually
   - spack won't build on Fedora 31 due to a python [issue](https://github.com/spack/spack/pull/46775)
 
-[pr-tests](workflows/pr-tests.yaml)
-  - The external tests can't be executed with clang because it doesn't work with libdyninstAPI_RT
+[Pull Request tests](workflows/pr-tests.yaml)
+  - The external tests can't be executed when built with clang because it doesn't work with libdyninstAPI_RT
+
+[spack build](workflows/spack-build.yaml)
+  - spack won't build on Fedora 31 due to a python [issue](https://github.com/spack/spack/pull/46775)
 
 
 ## Actions
@@ -122,7 +125,7 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 Ensures that Dyninst builds on all supported platforms and compilers in non-standard configurations (e.g., disabling OpenMP), with different linkers, and different C++ standard libraries. `DYNINST_WARNINGS_AS_ERRORS` is enabled by default. The linkers used for `DYNINST_LINKER` are bfd, gold, mold, and lld.
 
-**when**: Every Monday at 3AM CST, every pull request to master branch, or manually
+**when**: Every Monday at 3AM CST, or manually
 
 ### CMake formatting ([workflows/cmake-formatting.yaml](workflows/cmake-formatting.yaml))
 

@@ -8,7 +8,6 @@ on:
        - '**.h'
        - '**.C'
        - '**.c'
-     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 jobs:
@@ -16,7 +15,7 @@ jobs:
   # Don't run the check if the PR is a draft
   check-if-needed:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    if: ${{ github.event.pull_request.draft == false }}
     steps:
       - shell: bash
         run: true
@@ -66,7 +65,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: PR tests ( ${{ matrix.os }}, ${{ matrix.compiler }})
+    name: PR tests (${{ matrix.os }}, ${{ matrix.compiler }})
     steps:
       - name: Checkout Dyninst
         uses: actions/checkout@v4
