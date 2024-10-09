@@ -18,7 +18,7 @@ These are both achieved using a single workflow based on a set of base images wi
 
 ## Usage
 
-The Dockerfiles provided are intended for building the base and development containers from scratch. We don't recommend using these directly as images are provided as [packages](https://github.com/orgs/dyninst/packages).
+The Dockerfiles provided are intended for building the base and development containers from scratch.
 
 ### Build
 
@@ -34,7 +34,7 @@ $ docker build -f docker/Dockerfile.ubuntu -t dyninst-base:ubuntu-20.04 --build-
 $ docker build -f docker/Dockerfile -t dyninst:ubuntu-20.04 --build-arg build_jobs=16 --build-arg base=dyninst-base:ubuntu-20.04 .
 ```
 
-In the development container, Dyninst is installed in `/dyninst/install`.
+Dyninst is installed in `/dyninst/install`, and its source is in `/dyninst/src`.
 
 ### Develop
 

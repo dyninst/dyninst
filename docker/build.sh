@@ -1,41 +1,43 @@
 #! /bin/bash
 
-set -e
+set -ex
 
-if test "x$1" = "x"; then
-  echo "No source directory given\nUsage: $0 src [num_jobs]" >stderr
-  exit 1
-fi
+function usage {
+  echo "Usage: $0 src dest [-j] [-c] [-h] [-v]"
+}
 
+function show_help {
+  usage
+  echo "   src      Source directory"
+  echo "  dest      Install directory"
+  echo "    -j      Number of CMake build jobs (default: 1)"
+  echo "    -c      CMake arguments (must be quoted: -c \"-D1 -D2\")"
+  echo "    -v      Verbose outputs"
+}
+
+src_dir=$1; shift
+dest_dir=$1; shift
 num_jobs=1
-if test "x$2" != "x"; then
-  num_jobs=$2
-fi
+cmake_args=
+verbose=
 
-printf "⭐️ Preparing to build Dyninst\n"
-echo "::group::build dyninst"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -j) num_jobs="$2"; shift 2;;
+    -c) cmake_args="$2"; shift 2;;
+    -h) show_help; exit;;
+    -v) verbose="--verbose"; shift;;
+     *) echo "Unknown arg '$1'"; ;;
+  esac
+done
 
-SRC_DIR=$1
-BUILD_DIR=/dyninst/build
-INSTALL_DIR=/dyninst/install
-mkdir -p $BUILD_DIR $INSTALL_DIR
+build_dir=$(mktemp -d "/tmp/XXXXXX")
+mkdir -p ${dest_dir}
 
-printf "⭐️ Configuring\n"
-cd $BUILD_DIR
-FLAGS="-DCMAKE_C_FLAGS=${DYNINST_C_FLAGS} -DCMAKE_CXX_FLAGS=${DYNINST_CXX_FLAGS}"
-if test x"${DYNINST_C_COMPILER}" = x; then DYNINST_C_COMPILER=gcc; fi
-if test x"${DYNINST_CXX_COMPILER}" = x; then DYNINST_CXX_COMPILER=g++; fi
-COMPILERS="-DCMAKE_C_COMPILER=${DYNINST_C_COMPILER} -DCMAKE_CXX_COMPILER=${DYNINST_CXX_COMPILER}"
-cmake $SRC_DIR -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ${FLAGS} ${COMPILERS} ${EXTRA_CMAKE_FLAGS}
+cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} -DDYNINST_WARNINGS_AS_ERRORS=ON ${cmake_args}
 
-printf "⭐️ Building\n"
-cmake --build . --parallel $num_jobs
+cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 
-printf "⭐️ Installing\n"
-cmake --install .
+cmake --install ${build_dir}
 
-printf "⭐️ Cleaning up\n"
-cd /
-rm -rf $BUILD_DIR
-
-echo "::endgroup::"
+rm -rf $build_dir

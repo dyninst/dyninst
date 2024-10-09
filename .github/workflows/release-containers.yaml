@@ -1,0 +1,71 @@
+name: Build and deploy release containers
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  get-oses:
+    runs-on: ubuntu-latest
+    outputs:
+      all: ${{ steps.all.outputs.all }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  get-latest-release-version:
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.version.outputs.release }}
+    steps:
+      - id: version
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: "dyninst/dyninst"
+          excludes: "prerelease, draft"
+          token: ${{ secrets.github_token }}
+
+  release-containers:
+    runs-on: ubuntu-latest
+    needs: [get-latest-release-version, get-oses]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.all) }}
+    permissions:
+      packages: write
+    name: ${{ matrix.os }}, ${{ needs.get-latest-release-version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: "dyninst/dyninst"
+          ref: ${{ needs.get-latest-release-version.outputs.value }}
+
+      - name: GHCR Login
+        uses: docker/login-action@v3.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - shell: bash
+        run: |
+          set -ex
+
+          version="${{ needs.get-latest-release-version.outputs.value }}"
+          base="ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest"
+          release="ghcr.io/dyninst/amd64/${{ matrix.os }}:${version}"
+          
+          # Always use latest distro image; ignoring any cached versions
+          docker pull ${base}
+          
+          docker build -f docker/Dockerfile \
+                       -t ${release} \
+                       --build-arg build_jobs=2 \
+                       --build-arg base="${base}" \
+                       .
+          
+          docker push ${release}

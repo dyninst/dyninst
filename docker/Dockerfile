@@ -9,4 +9,10 @@ COPY . /dyninst/src
 COPY docker/build.sh docker/dependencies.versions /
 
 # Build Dyninst
-RUN bash build.sh /dyninst/src $build_jobs && rm -rf /dyninst/src/.git
+RUN <<EOD bash
+
+  set -ex
+  bash build.sh /dyninst/src /dyninst/install -j $build_jobs
+  rm -rf /dyninst/src/.git
+
+EOD

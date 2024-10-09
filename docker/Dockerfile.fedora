@@ -14,17 +14,17 @@ LABEL maintainer="@hainest"
 
 ENV TZ=America/Chicago
 
-RUN yum update -y &&   \
-    yum install -y     \
+RUN yum install -y     \
       binutils-devel   \
       boost-devel      \
+      clang            \
       cmake            \
+      libdwarf-devel   \
       elfutils-devel   \
       gcc              \
       g++              \
       git              \
       glibc-static     \
-      libdwarf-devel   \
+      libomp           \
       libstdc++-static \
       tbb-devel
-      

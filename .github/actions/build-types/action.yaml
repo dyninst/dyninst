@@ -1,0 +1,14 @@
+name: CMake build types
+
+outputs:
+  all:
+    description: "All build types"
+    value: ${{ steps.all.outputs.value }}  
+runs:
+  using: "composite"
+  steps:
+    - id: all
+      shell: bash
+      run: |
+        set -ex
+        echo 'value=["DEBUG", "RELWITHDEBINFO", "RELEASE"]' >> $GITHUB_OUTPUT
