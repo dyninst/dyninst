@@ -87,8 +87,12 @@ with open("{0:s}.registers".format(args.arch), "w") as file:
   for r in registers.all:
     categories = r["categories"]
     
-    if categories not in unique_ids_by_category:
-      unique_ids_by_category[categories] = 0
+    base_category = categories
+    if '|' in categories:
+      base_category = categories.split("|")[0].strip()
+    
+    if base_category not in unique_ids_by_category:
+      unique_ids_by_category[base_category] = 0
 
     #                  (   name,  ID |    size |     cat |       arch,  "arch"
     fmt = "DEF_REGISTER(%{0:d}s, %3d | %{1:d}s | %{2:d}s | Arch_{3:s}, \"{3:s}\");\n".format(
@@ -97,12 +101,12 @@ with open("{0:s}.registers".format(args.arch), "w") as file:
       max_cat_len,
       registers.dyninst_suffix
     )
-    file.write(fmt % (r["name"], unique_ids_by_category[categories], r["size"], r["categories"]))
-    unique_ids_by_category[categories] += 1
+    file.write(fmt % (r["name"], unique_ids_by_category[base_category], r["size"], r["categories"]))
+    unique_ids_by_category[base_category] += 1
 
     # The Dyninst register fields are only 8 bits wide
-    if unique_ids_by_category[categories] > 255:
-      raise Exception("There are more than 255 '{0:s}' registers.".format(categories))
+    if unique_ids_by_category[base_category] > 255:
+      raise Exception("There are more than 255 '{0:s}' registers.".format(base_category))
 
 
 # Aliased registers
