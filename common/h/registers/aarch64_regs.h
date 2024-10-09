@@ -769,6 +769,22 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(          spsr_el3, 413 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
   DEF_REGISTER(              fpsr, 414 |  D_REG | SYSREG | Arch_aarch64, "aarch64");
 
+  /*
+   *  Register aliases
+   *
+   *  x31 can alias either x{w}zr or x{w}sp depending on context.
+   *  This makes it impossible to give it a fixed alias.
+   *
+   *  The intra-procedural registers are capitalized to prevent collision with the
+   *  implicit names of the variables associated with the p{0,1} SVE predicate
+   *  registers (see the definition of DEF_REGISTER for details).
+   */
+  DEF_REGISTER_ALIAS(x29, fp, "aarch64");
+  DEF_REGISTER_ALIAS(x30, lr, "aarch64");
+  DEF_REGISTER_ALIAS(Ip0, x16, "aarch64");  // Intra-procedure-call scratch registers
+  DEF_REGISTER_ALIAS(Ip1, x17, "aarch64");
+
+
 /************************************************************************************
  *
  *          Pseudo-registers
@@ -779,12 +795,6 @@ namespace Dyninst { namespace aarch64 {
  */
 
   DEF_REGISTER(IMPLEMENTATION_DEFINED_SYSREG,  255 | D_REG | SYSREG | Arch_aarch64, "aarch64");
-
-  // GPRs aliases:
-  // by convention
-  // x29 is used as frame pointer
-  // x30 is the linking register
-  // x31 can be sp or zero register depending on the context
 
   // special registers
   const int32_t N_FLAG = 31;
