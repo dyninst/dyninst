@@ -66,13 +66,13 @@ Many categories of registers (particularly system ones) are explicitly not inclu
 
 - Pseudo-registers (those that don't represent physical registers)
 
-- External Debug extension
+- External Debug extension (EXTDBG* categories)
 
 - Many internal categories in Capstone (see `parse_capstone` in sysregs.py)
 
-- Cross-Trigger Interface (for embedded systems)
+- Cross-Trigger Interface (for embedded systems, CTI category)
 
-- Generic Interrupt Controller Architecture Specification
+- Generic Interrupt Controller Architecture Specification (GIC* categories)
 
 
 ## DWARF encodings
