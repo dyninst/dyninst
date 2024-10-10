@@ -101,7 +101,7 @@ const signed int BITS_512 = 0x00001000;
   DEF_REGISTER(            hw_reg_hw_id,   4 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940"); // hardware id
   DEF_REGISTER(        hw_reg_gpr_alloc,   5 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");
   DEF_REGISTER(        hw_reg_lds_alloc,   6 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");
-  DEF_REGISTER(           hw_reg_ib_sts,   2 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");
+  DEF_REGISTER(           hw_reg_ib_sts,   7 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");
   DEF_REGISTER(            hw_reg_pc_lo,   8 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");
   DEF_REGISTER(            hw_reg_pc_hi,   9 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");
   DEF_REGISTER(         hw_reg_inst_dw0,  10 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");
