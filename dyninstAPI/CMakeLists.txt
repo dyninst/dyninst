@@ -297,7 +297,8 @@ dyninst_library(
   dyninstAPI
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
-  DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI 
+  DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI
+  DYNINST_INTERNAL_DEPS dynDwarf dynElf
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Dyninst::ElfUtils Threads::Threads
 )
