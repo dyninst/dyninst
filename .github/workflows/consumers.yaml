@@ -359,3 +359,66 @@ jobs:
           cd tau2
           ./configure -dyninst=/dyninst/install
           make -j2
+
+  extrae:
+    runs-on: ubuntu-latest
+    needs: get-oses
+    strategy:
+      fail-fast: false
+      matrix:
+         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: extrae (${{ matrix.os }})
+    steps:
+      - name: Install dependencies (Ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          set -ex
+          apt update
+          apt install -y libxml2-dev autoconf m4 libtool gcc-13 g++-13 gfortran-13 libiberty-dev binutils-dev
+
+        # extrae does not build with gcc-14 (the default compiler on the latest fedora)
+      - name: Build extrae
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          set -ex
+
+          git clone --depth=1 https://github.com/bsc-performance-tools/extrae
+          cd extrae
+          
+          autoreconf -fiv
+          
+          lib_dir_suffix=
+          if [[ -d /dyninst/install/lib64 ]]; then
+            lib_dir_suffix=64
+          fi
+          
+          lib_dir="/usr/lib${lib_dir_suffix}"
+          
+          export CC=gcc-13 CXX=g++-13 FC=gfortran-13
+          
+           ./configure                              \
+            --disable-doc                           \
+            --without-mpi                           \
+            --without-unwind                        \
+            --without-papi                          \
+            --with-dyninst=/dyninst/install         \
+            --with-elfutils=/usr                    \
+            --with-elfutils-libs=${lib_dir}         \
+            --with-tbb=/usr                         \
+            --with-tbb-libs=${lib_dir}              \
+            --with-boost=/usr                       \
+            --with-boost-libs=${lib_dir}            \
+            --with-xml=/usr                         \
+            --with-xml2-libs=${lib_dir}             \
+            --with-xml2-headers=/usr/include        
+          
+          make -j2
