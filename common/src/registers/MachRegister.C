@@ -272,6 +272,11 @@ namespace Dyninst {
             case aarch64::FULL:
             case aarch64::HQ_REG: return 8;
             case aarch64::Q_REG: return 16;
+            case aarch64::SVE2S: return 512;   // 512-bit Scalable Vector Extension
+            case aarch64::SVES:
+            case aarch64::PREDS:               // 2048-bit Scalable Vector Extension (SVE) vector length
+            case aarch64::SVLS:
+            case aarch64::SMEZAS: return 2048; // 2048-bit SME Effective Streaming SVE vector length (SVL)
             default: assert(0); return 0;
           }
         } else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR ||
