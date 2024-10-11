@@ -17,6 +17,11 @@ The table below outlines which instructions can be used to address the included 
 
 ### Instructions
 
+Taken from Arm Architecture Reference Manual (ARM) for A-profile architecture
+April 2023
+ARM DDI 0487J.a (ID042523)
+https://developer.arm.com/documentation/ddi0487/ka
+
 | mnemonic(s) | description |
 |--------|--------|
 | MRS | Move System Register |
@@ -25,39 +30,37 @@ The table below outlines which instructions can be used to address the included 
 |AT | Address Translate |
 |ES | Error Synchronization |
 
-| Category | Instruction | Section |
-|--------|--------|--------|
-| accelerator data, (AD) | AT | ARM C5.4.1 |
-| activity monitors, (AMR) | MRS | ARM D19.6 |
-| breakpoint and watchpoint selection, (BAWS) | MRS | MSR |
-| branch record buffer extension, (BRBE) | MRS | MSR |
-| debug vector catch, (DVCR) | MRS | MSR |
-| exception, (EXCP) | MRS | MSR |
-| hypervisor debug fine-grained, (HYPRDBG) | MRS | MSR |
-| memory partitioning and monitoring extension, (MPAM) | MRS | MSR |
-| other system control, (OTHER) |  |  |
-| physical fault address, (PHYSFAR) | MRS | MSR |
-| performance monitors extension, (PMU) | MRS | MSR |
-| process state, (PSTATE) | MRS | MSR |
-| reliability, availability, and serviceability extension (RAS), (RAS) | ES | ARM C6.2 |
-| reset management, (RESET) | MRS | MSR |
-| security for access to exception levels, (SEC) | implicit | ARM D1.3 |
-| statistical profiling extension, (STATPROF) | MRS | MSR |
-| system control, (SYSCTL) | MRS | MSR |
-| system floating-point, (SYSFLOAT) | MRS | MSR |
-| system identification, (SYSID) | MRS | MSR |
-| system memory, (SYSMEMORY) | MRS | MSR |
-| system monitor, (SYSMON) | MRS | MSR |
-| system OS lock/access/data/control, (SYSOS) | MRS | MSR |
-| pointer authentication, (SYSPTR) | MRS | MSR |
-| system special-purpose, (SYSSPR) | MRS | MSR |
-| system timers, (SYSTIMER) | MRS | MSR |
-| threading, (THRD) | MRS | MSR |
-| system trace, (TRACE) | MRS | MSR |
-| virtualization, (VIRT) | MRS | MSR |
 
-
-
+| Category | Instruction | Section | Count
+|--------|--------|--------|--------|
+| system trace, (TRACE) | MRS, MSR | ARM D6 | 227 |
+| performance monitors extension, (PMU) | MRS, MSR | ARM A2.13 | 202 |
+| branch record buffer extension, (BRBE) | MRS, MSR | ARM D16 | 104 |
+| activity monitors, (AMR) | MRS | ARM D19.6 | 81 |
+| virtualization, (VIRT) | MRS, MSR | ARM D8 | 54 |
+| system identification, (SYSID) | MRS, MSR |  | 48 |
+| system memory, (SYSMEMORY) | MRS, MSR | Armv8.9 system registers | 48 |
+| system control, (SYSCTL) | MRS, MSR | ARM D19.2 | 24 |
+| system timers, (SYSTIMER) | MRS, MSR | ARM D11.1 | 24 |
+| reliability, availability, and serviceability extension, (RAS) | ES | ARM C6.2 | 18 |
+| memory partitioning and monitoring extension, (MPAM) | MRS, MSR | ARM A2.18 | 15 |
+| statistical profiling extension, (STATPROF) | MRS, MSR | ARM A2.15 | 14 |
+| system special-purpose, (SYSSPR) | MRS, MSR | | 13 |
+| pointer authentication, (SYSPTR) | MRS, MSR | ARM D8.8 | 10 |
+| process state, (PSTATE) | MRS, MSR | ARM D1.4 | 11 |
+| hypervisor debug fine-grained, (HYPRDBG) | MRS, MSR | ARM C6.2.128 | 10 |
+| other system control, (OTHER) |  |  | 9 |
+| threading, (THRD) | MRS, MSR | ARM D19.2 | 9 |
+| exception, (EXCP) | MRS, MSR | ARM D1.3 | 8 |
+| system OS lock/access/data/control, (SYSOS) | MRS, MSR | ARM H3.6 | 6 |
+| reset management, (RESET) | MRS, MSR | ARM D19.2 | 5 |
+| security for access to exception levels, (SEC) | implicit | ARM D1.3 | 5 |
+| system floating-point, (SYSFLOAT) | MRS, MSR | | 5 |
+| system monitor, (SYSMON) | MRS, MSR | | 4 |
+| physical fault address, (PHYSFAR) | MRS, MSR | ARM D19.10 | 2 |
+| accelerator data, (AD) | AT | ARM C5.4.1 | 1 |
+| breakpoint and watchpoint selection, (BAWS) | MRS, MSR | ARM D2 | 1 |
+| debug vector catch, (DVCR) | MRS, MSR | ARM D19 | 1 |
 
 We explicitly ignore Aarch32-only registers.
 
