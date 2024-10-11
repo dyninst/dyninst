@@ -27,34 +27,36 @@ The table below outlines which instructions can be used to address the included 
 
 | Category | Instruction | Section |
 |--------|--------|--------|
-| AD | AT | ARM C5.4.1 |
-| AMR | MRS | ARM D19.6 |
-| BAWS | MRS,MSR | ARM D19.3 |
-| BRBE | MRS,MSR | ARM D19.8 |
-| DVCR | MRS,MSR | ARM D19.3.10 |
-| EXCP | MRS,MSR | ARM D19.2 |
-| HYPER | MRS,MSR | ARM D19.2 |
-| MPAM | MRS,MSR | MPAM 7.1 |
-| OTHER |  |  |
-| PHYSFAR | MRS,MSR | ARM D19.10 |
-| PMU | MRS,MSR | ARM D12 |
-| PSTATE | MRS,MSR | ARM D1.4 |
-| RAS | ES | ARM C6.2 |
-| RESET | MRS,MSR | ARM D19.2 |
-| SEC | implicit | ARM D1.3 |
-| STATPROF | MRS,MSR | ARM D19.7 |
-| SYSCTL | MRS,MSR | ARM D19.2 |
-| SYSFLOAT | MRS,MSR | ARM D19.2 |
-| SYSID | MRS,MSR | ARM D19.2 |
-| SYSMEMORY | MRS,MSR | ARM D19.2 |
-| SYSMON | MRS,MSR | ARM D19.3 |
-| SYSOS | MRS,MSR | ARM D19.3 |
-| SYSPTR | MRS,MSR | ARM D19.2 |
-| SYSSPR | MRS,MSR | ARM C5.2 |
-| SYSTIMER | MRS,MSR | ARM C19.12 |
-| THRD | MRS,MSR | ARM C19.2 |
-| TRACE | MRS,MSR | ARM C19.2 |
-| VIRT | MRS,MSR | ARM C19.2 |
+| accelerator data, (AD) | AT | ARM C5.4.1 |
+| activity monitors, (AMR) | MRS | ARM D19.6 |
+| breakpoint and watchpoint selection, (BAWS) | MRS | MSR |
+| branch record buffer extension, (BRBE) | MRS | MSR |
+| debug vector catch, (DVCR) | MRS | MSR |
+| exception, (EXCP) | MRS | MSR |
+| hypervisor debug fine-grained, (HYPRDBG) | MRS | MSR |
+| memory partitioning and monitoring extension, (MPAM) | MRS | MSR |
+| other system control, (OTHER) |  |  |
+| physical fault address, (PHYSFAR) | MRS | MSR |
+| performance monitors extension, (PMU) | MRS | MSR |
+| process state, (PSTATE) | MRS | MSR |
+| reliability, availability, and serviceability extension (RAS), (RAS) | ES | ARM C6.2 |
+| reset management, (RESET) | MRS | MSR |
+| security for access to exception levels, (SEC) | implicit | ARM D1.3 |
+| statistical profiling extension, (STATPROF) | MRS | MSR |
+| system control, (SYSCTL) | MRS | MSR |
+| system floating-point, (SYSFLOAT) | MRS | MSR |
+| system identification, (SYSID) | MRS | MSR |
+| system memory, (SYSMEMORY) | MRS | MSR |
+| system monitor, (SYSMON) | MRS | MSR |
+| system OS lock/access/data/control, (SYSOS) | MRS | MSR |
+| pointer authentication, (SYSPTR) | MRS | MSR |
+| system special-purpose, (SYSSPR) | MRS | MSR |
+| system timers, (SYSTIMER) | MRS | MSR |
+| threading, (THRD) | MRS | MSR |
+| system trace, (TRACE) | MRS | MSR |
+| virtualization, (VIRT) | MRS | MSR |
+
+
 
 
 We explicitly ignore Aarch32-only registers.
