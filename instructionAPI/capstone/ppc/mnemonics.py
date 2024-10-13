@@ -46,10 +46,26 @@ def _read_dyninst_mnemonics(file:str, prefix:str):
 class mnemonics:
   def __init__(self, cap_dir:str, dyn_dir:str):
     self.dyninst_prefix = "power_op"
-    self.missing = None
     self.pseudo = ['INVALID']
     self.capstone = _read_capstone_mnemonics(cap_dir + "/arch/PowerPC/PPCGenCSMappingInsnName.inc")
     self.dyninst = _read_dyninst_mnemonics(dyn_dir + "/common/h/mnemonics/ppc_entryIDs.h", self.dyninst_prefix)
+
+    self.missing = [
+      # 3.3.14 Binary Coded Decimal (BCD) Assist Instructions added in v2.06
+      "addg6s", "cbcdtd", "cdtbcd",
+
+      # 3.3.9 Fixed-Point Compare Instructions added in v2.02
+      "cmp", "cmpi", "cmpl",  "cmpli",
+      
+      # 5.6.1 DFP Arithmetic Instructions added in v2.05 (Decimal Floating-Point)
+      "dadd", "daddq", "dcffix", "dcffixq", "dcffixqq", "dcmpo", "dcmpoq", "dcmpu", 
+      "dcmpuq", "dctdp", "dctfix", "dctfixq", "dctqpq", "ddedpd", "ddedpdq", "ddiv", 
+      "ddivq", "denbcd", "denbcdq", "diex", "diexq", "dmul", "dmulq", "dqua", 
+      "dquai", "dquaiq", "dquaq", "drdpq", "drintn", "drintnq", "drintx", "drintxq", 
+      "drrnd", "drrndq", "drsp", "dscli", "dscliq", "dscri", "dscriq", "dsub", 
+      "dsubq", "dtstdc", "dtstdcq", "dtstdg", "dtstdgq", "dtstex", "dtstexq", "dtstsf", 
+      "dtstsfi", "dtstsfiq", "dtstsfq", "dxex", "dxexq"
+    ]
 
     self.aliases = {
         "addic" : { "seen" : False, "values" : ["addic_rc"] },
