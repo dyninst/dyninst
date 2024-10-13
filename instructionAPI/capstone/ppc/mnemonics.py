@@ -82,4 +82,7 @@ class mnemonics:
         
         "stwcx" : { "seen" : False, "values" : ["stwcx_rc"] },
         "stwcx_rc" : { "seen" : False, "values" : ["stwcx"] },
+        
+        "cp_abort" : { "seen" : False, "values" : ["cpabort"] },
+        "cpabort" : { "seen" : False, "values" : ["cp_abort"] },
     }
