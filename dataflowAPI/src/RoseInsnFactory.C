@@ -374,7 +374,7 @@ void RoseInsnPPCFactory::massageOperands(const Instruction &insn,
     std::swap(operands[1], operands[2]);
   }
   if(insn.getOperation().format().find(".") != std::string::npos &&
-     insn.getOperation().getID() != power_op_stwcx_rc) {
+     insn.getOperation().getID() != power_op_stwcx) {
     operands.pop_back();
   }
 

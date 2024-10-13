@@ -50,4 +50,20 @@ class mnemonics:
     self.pseudo = ['INVALID']
     self.capstone = _read_capstone_mnemonics(cap_dir + "/arch/PowerPC/PPCGenCSMappingInsnName.inc")
     self.dyninst = _read_dyninst_mnemonics(dyn_dir + "/common/h/mnemonics/ppc_entryIDs.h", self.dyninst_prefix)
-    self.aliases = None
+
+    self.aliases = {
+        "addic" : { "seen" : False, "values" : ["addic_rc"] },
+        "addic_rc" : { "seen" : False, "values" : ["addic"] },
+        
+        "andi" : { "seen" : False, "values" : ["andi_rc"] },
+        "andi_rc" : { "seen" : False, "values" : ["andi"] },
+
+        "andis" : { "seen" : False, "values" : ["andis_rc"] },
+        "andis_rc" : { "seen" : False, "values" : ["andis"] },
+                
+        "stdcx" : { "seen" : False, "values" : ["stdcx_rc"] },
+        "stdcx_rc" : { "seen" : False, "values" : ["stdcx"] },
+        
+        "stwcx" : { "seen" : False, "values" : ["stwcx_rc"] },
+        "stwcx_rc" : { "seen" : False, "values" : ["stwcx"] },
+    }
