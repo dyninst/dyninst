@@ -145,21 +145,17 @@ void power_entry::buildTables()
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
         extended_op_0[28] = power_entry(power_op_fpnmsub, "fpnmsub", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-       extended_op_0[32] = power_entry(power_op_fpmr, "fpmr", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[96] = power_entry(power_op_fpabs, "fpabs", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[160] = power_entry(power_op_fpneg, "fpneg", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[192] = power_entry(power_op_fprsp, "fprsp", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[224] = power_entry(power_op_fpnabs, "fpnabs", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
-       extended_op_0[288] = power_entry(power_op_fsmr, "fsmr", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRBS)));
        extended_op_0[320] = power_entry(power_op_fscmp, "fscmp", NULL, list_of(fn(setFPMode))(fn(BF))(fn(FRAS))(fn(FRBS)));
        extended_op_0[352] = power_entry(power_op_fsabs, "fsabs", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRBS)));
        extended_op_0[416] = power_entry(power_op_fsneg, "fsneg", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRBS)));
        extended_op_0[480] = power_entry(power_op_fsnabs, "fsnabs", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRBS)));
        extended_op_0[576] = power_entry(power_op_fpctiw, "fpctiw", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[704] = power_entry(power_op_fpctiwz, "fpctiwz", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
-       extended_op_0[800] = power_entry(power_op_fsmfp, "fpmr", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRB)));
        extended_op_0[846] = power_entry(power_op_qvfcfids, "qvfcfids", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QRB)));
-       extended_op_0[928] = power_entry(power_op_fsmtp, "fpmr", NULL, list_of(fn(setFPMode))(fn(FRT))(fn(FRBS)));
        extended_op_0[974] = power_entry(power_op_qvfcfidus, "qvfcfidus", NULL, list_of(fn(setFPMode))(fn(QFRTP))(fn(QRB)));
 			extended_op_4[0] = power_entry(power_op_vaddubm, "vaddubm", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB)));
 extended_op_4[1] = power_entry(power_op_vmul10cuq, "vmul10cuq", NULL, list_of(fn(VRT))(fn(VRA)));

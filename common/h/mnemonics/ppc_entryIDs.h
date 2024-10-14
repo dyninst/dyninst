@@ -1,6 +1,4 @@
 // Only in Dyninst
-power_op_fsmr,
-power_op_fsmtp,
 power_op_lfdpx,
 power_op_lfpdux,
 power_op_lfpdx,
@@ -1798,3 +1796,4 @@ power_op_xxspltib,
 power_op_xxspltidp,
 power_op_xxspltiw,
 power_op_xxspltw,
+
