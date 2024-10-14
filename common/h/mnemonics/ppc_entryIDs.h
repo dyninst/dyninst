@@ -1,13 +1,5 @@
 // Only in Dyninst
-power_op_lfq,
-power_op_lfqu,
-power_op_lfqux,
-power_op_lfqx,
 power_op_lswx,
-power_op_stfq,
-power_op_stfqu,
-power_op_stfqux,
-power_op_stfqx,
 power_op_stswx,
 power_op_addg6s,
 power_op_cbcdtd,

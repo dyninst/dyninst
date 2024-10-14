@@ -14,7 +14,7 @@ _ignored_dyninst_names = [
   "lfsdux", "lfsdx", "lfssux", "lfssx", "lfxdux", "lfxdx", "lfxsux", "lfxsx", 
   "stfdpx", "stfpdux", "stfpdx", "stfpiwx", "stfpsux", "stfpsx", "stfsdux",
   "stfsdx", "stfssux", "stfssx", "stfxdux", "stfxdx", "stfxsux", "stfxsx",
-  "stvb16x"
+  "stvb16x", "lfq", "stfq", "lfqu", "stfqu", "lfqux", "stfqux", "lfqx", "stfqx"
 ]
 
 def _read_capstone_mnemonics(file:str):
