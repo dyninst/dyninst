@@ -180,4 +180,10 @@ class mnemonics:
         "qvstfdux" : { "seen" : False, "values" : ["qvlstdux"] },
         "qvlstduxi" : { "seen" : False, "values" : ["qvstfduxi"] },
         "qvstfduxi" : { "seen" : False, "values" : ["qvlstduxi"] },
+        
+        # VSX extension
+        "svcs" : { "seen" : False, "values" : ["sc"] },
+        "sc" : { "seen" : False, "values" : ["svcs"] },
+        "xscvhphp" : { "seen" : False, "values" : ["xscvhpdp"] },
+        "xscvhpdp" : { "seen" : False, "values" : ["xscvhphp"] },
     }

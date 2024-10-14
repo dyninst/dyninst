@@ -978,7 +978,6 @@ PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
         case power_op_stbux: ret = powerpc_stbux; break;
         case power_op_cmpl: ret = powerpc_cmpl; break;
         case power_op_subf: ret = powerpc_subf; break;
-        case power_op_svcs: ret = powerpc_sc; break;
         case power_op_fmuls: ret = powerpc_fmuls; break;
         case power_op_subfic: ret = powerpc_subfic; break;
         case power_op_mcrfs: ret = powerpc_mcrfs; break;

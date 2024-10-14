@@ -1248,8 +1248,7 @@ extended_op_63[974] = power_entry(power_op_fcfidu,"fcfidu",NULL,list_of(fn(FRT))
 
 extended_op_60_347[0] = power_entry(power_op_xsxexpdp, "xsxexpdp", NULL, list_of(fn(RT))(fn(XB)));
 extended_op_60_347[1] = power_entry(power_op_xsxsigdp, "xsxsigdp", NULL, list_of(fn(RT))(fn(XB)));
-extended_op_60_347[16] = power_entry(power_op_xscvdphp, "xscvhpdp", NULL, list_of(fn(XT))(fn(XB)));
-extended_op_60_347[17] = power_entry(power_op_xscvhphp, "xscvdphp", NULL, list_of(fn(XT))(fn(XB)));
+extended_op_60_347[16] = power_entry(power_op_xscvhpdp, "xscvhpdp", NULL, list_of(fn(XT))(fn(XB)));
 
 
 extended_op_60_475[0] = power_entry(power_op_xvxexpdp, "xvxexpdp", NULL, list_of(fn(XT))(fn(XB)));
