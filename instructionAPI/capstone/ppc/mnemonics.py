@@ -88,7 +88,13 @@ class mnemonics:
       "dtstsfi", "dtstsfiq", "dtstsfq", "dxex", "dxexq"
       
       # 3.3.17.1 from v2.07B (Category: Embedded)
-      "mcrxr"
+      "mcrxr",
+      
+      # 9.3 Processor Control Instructions from v2.03
+      "msgclr", "msgsnd",
+      
+      # 11.4 Processor Control Instructions from v2.07B
+      "msgclrp", "msgsndp"
     ]
 
     self.aliases = {
