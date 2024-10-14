@@ -1,5 +1,4 @@
 // Only in Dyninst
-power_op_lfdpx,
 power_op_lfpdux,
 power_op_lfpdx,
 power_op_lfpsux,
@@ -28,7 +27,6 @@ power_op_qvfaligni,
 power_op_qvlstdux,
 power_op_qvlstduxi,
 power_op_slbiag,
-power_op_stfdpx,
 power_op_stfpdux,
 power_op_stfpdx,
 power_op_stfpiwx,
@@ -114,6 +112,8 @@ power_op_dtstsfiq,
 power_op_dtstsfq,
 power_op_dxex,
 power_op_dxexq,
+power_op_lfdpx,
+power_op_stfdpx,
 // From Capstone
 power_op_INVALID, /* pseudo mnemonic */
 power_op_extended, /* pseudo mnemonic */

@@ -67,6 +67,10 @@ class mnemonics:
       # 4.6.5 Floating-Point Move Instructions added in v2.07
       "fmrgew", "fmrgow",
       
+      # 4.6.4 Floating-Point Load Store Doubleword Pair Instructions
+      #  First mentioned in v2.05, but marked there as phased-out
+      "lfdpx", "stfdpx",
+      
       # 5.1.1 External Access Instructions (added before v2.01, removed in v3.0)
       "eciwx", "ecowx",
       
