@@ -688,7 +688,6 @@ extended_op_31[652] = power_entry(power_op_stxsspx, "stxsspx", NULL, list_of(fn(
 extended_op_31[654] = power_entry(power_op_tbegin,"tbegin",NULL,list_of(fn(A))(fn(R)));
 extended_op_31[659] = power_entry(power_op_mfsrin, "mfsrin", NULL, list_of(fn(RT))(fn(RB)));
 extended_op_31[660] = power_entry(power_op_stdbrx,"stdbrx",NULL,list_of(fn(RS))(fn(RA))(fn(RB)));
-extended_op_31[661] = power_entry(power_op_stswx, "stswx", NULL, list_of(fn(RS))(fn(STX<u8>)));
 extended_op_31[662] = power_entry(power_op_stwbrx, "stwbrx", NULL, list_of(fn(RS))(fn(STX<u32>)));
 extended_op_31[663] = power_entry(power_op_stfsx, "stfsx", NULL, list_of(fn(FRS))(fn(STX<sp_float>)));
 extended_op_31[679] = power_entry(power_op_qvstfsux, "qvstfsux", NULL, list_of(fn(QFRSP))(fn(STUX<sp_float>)));
