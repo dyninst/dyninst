@@ -86,6 +86,9 @@ class mnemonics:
       "drrnd", "drrndq", "drsp", "dscli", "dscliq", "dscri", "dscriq", "dsub", 
       "dsubq", "dtstdc", "dtstdcq", "dtstdg", "dtstdgq", "dtstex", "dtstexq", "dtstsf", 
       "dtstsfi", "dtstsfiq", "dtstsfq", "dxex", "dxexq"
+      
+      # 3.3.17.1 from v2.07B (Category: Embedded)
+      "mcrxr"
     ]
 
     self.aliases = {
