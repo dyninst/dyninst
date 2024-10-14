@@ -119,6 +119,7 @@ power_op_dxex,
 power_op_dxexq,
 // From Capstone
 power_op_INVALID, /* pseudo mnemonic */
+power_op_extended, /* pseudo mnemonic */
 power_op_add,
 power_op_addc,
 power_op_addco,

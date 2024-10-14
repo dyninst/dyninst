@@ -49,9 +49,13 @@ def _read_dyninst_mnemonics(file:str, prefix:str):
 class mnemonics:
   def __init__(self, cap_dir:str, dyn_dir:str):
     self.dyninst_prefix = "power_op"
-    self.pseudo = ['INVALID']
     self.capstone = _read_capstone_mnemonics(cap_dir + "/arch/PowerPC/PPCGenCSMappingInsnName.inc")
     self.dyninst = _read_dyninst_mnemonics(dyn_dir + "/common/h/mnemonics/ppc_entryIDs.h", self.dyninst_prefix)
+
+    self.pseudo = [
+      'INVALID',
+      'extended'
+    ]
 
     self.missing = [
       # 3.3.14 Binary Coded Decimal (BCD) Assist Instructions added in v2.06
