@@ -67,6 +67,9 @@ class mnemonics:
       # 4.6.5 Floating-Point Move Instructions added in v2.07
       "fmrgew", "fmrgow",
       
+      # 5.1.1 External Access Instructions (added before v2.01, removed in v3.0)
+      "eciwx", "ecowx",
+      
       # 5.6.1 DFP Arithmetic Instructions added in v2.05 (Decimal Floating-Point)
       "dadd", "daddq", "dcffix", "dcffixq", "dcffixqq", "dcmpo", "dcmpoq", "dcmpu", 
       "dcmpuq", "dctdp", "dctfix", "dctfixq", "dctqpq", "ddedpd", "ddedpdq", "ddiv", 
