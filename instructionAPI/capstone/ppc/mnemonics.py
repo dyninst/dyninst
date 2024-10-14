@@ -168,4 +168,12 @@ class mnemonics:
         "evfsnabs" : { "seen" : False, "values" : ["fsnabs"] },
         "fsneg" : { "seen" : False, "values" : ["evfsneg"] },
         "evfsneg" : { "seen" : False, "values" : ["fsneg"] },
+        
+        # Quad Processing eXtension
+        "qvfaligni" : { "seen" : False, "values" : ["qvaligni"] },
+        "qvaligni" : { "seen" : False, "values" : ["qvfaligni"] },
+        "qvlstdux" : { "seen" : False, "values" : ["qvstfdux"] },
+        "qvstfdux" : { "seen" : False, "values" : ["qvlstdux"] },
+        "qvlstduxi" : { "seen" : False, "values" : ["qvstfduxi"] },
+        "qvstfduxi" : { "seen" : False, "values" : ["qvlstduxi"] },
     }
