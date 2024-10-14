@@ -86,7 +86,10 @@ class mnemonics:
       "dquai", "dquaiq", "dquaq", "drdpq", "drintn", "drintnq", "drintx", "drintxq", 
       "drrnd", "drrndq", "drsp", "dscli", "dscliq", "dscri", "dscriq", "dsub", 
       "dsubq", "dtstdc", "dtstdcq", "dtstdg", "dtstdgq", "dtstex", "dtstexq", "dtstsf", 
-      "dtstsfi", "dtstsfiq", "dtstsfq", "dxex", "dxexq"
+      "dtstsfi", "dtstsfiq", "dtstsfq", "dxex", "dxexq",
+      
+      # 3.3.7 Fixed-Point Move Assist Instructions from v3.1B (Sept2021)
+      "lswx",
       
       # 3.3.17.1 from v2.07B (Category: Embedded)
       "mcrxr",

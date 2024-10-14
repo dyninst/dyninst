@@ -1,5 +1,4 @@
 // Only in Dyninst
-power_op_lswx,
 power_op_stswx,
 power_op_addg6s,
 power_op_cbcdtd,
@@ -66,6 +65,7 @@ power_op_dtstsfq,
 power_op_dxex,
 power_op_dxexq,
 power_op_lfdpx,
+power_op_lswx,
 power_op_mcrxr,
 power_op_msgclr,
 power_op_msgclrp,
