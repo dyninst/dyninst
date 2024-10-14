@@ -1227,8 +1227,6 @@ PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
         case power_op_fsmr: ret = powerpc_fsmr; break;
         case power_op_fscmp: ret = powerpc_unknown_instruction; break; // someone screwed up their double hummer implementation!
         case power_op_fsabs: ret = powerpc_fsabs; break;
-        case power_op_fsneg: ret = powerpc_fsneg; break;
-        case power_op_fsnabs: ret = powerpc_fsnabs; break;
         case power_op_lwa: ret = powerpc_lwa; break;
         default:
             ret = powerpc_unknown_instruction; break;

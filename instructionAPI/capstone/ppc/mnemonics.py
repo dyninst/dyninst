@@ -139,4 +139,13 @@ class mnemonics:
         "extswsli" : { "seen" : False, "values" : ["extswsl"] },
         "extswsl" : { "seen" : False, "values" : ["extswsli"] },
 
+        # Embedded floating-point instructions (removed in v3.0)
+        "fsabs" : { "seen" : False, "values" : ["evfsabs"] },
+        "evfsabs" : { "seen" : False, "values" : ["fsabs"] },
+        "fscmp" : { "seen" : False, "values" : ["evfscmpgt"] },
+        "evfscmpgt" : { "seen" : False, "values" : ["fscmp"] },
+        "fsnabs" : { "seen" : False, "values" : ["evfsnabs"] },
+        "evfsnabs" : { "seen" : False, "values" : ["fsnabs"] },
+        "fsneg" : { "seen" : False, "values" : ["evfsneg"] },
+        "evfsneg" : { "seen" : False, "values" : ["fsneg"] },
     }
