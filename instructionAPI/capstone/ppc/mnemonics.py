@@ -134,4 +134,9 @@ class mnemonics:
         "fsel" : { "seen" : False, "values" : ["fpsel"] },
         "fpsub" : { "seen" : False, "values" : ["fsub"] },
         "fsub" : { "seen" : False, "values" : ["fpsub"] },
+        
+        # Extend Sign Word and Shift Left Immediate
+        "extswsli" : { "seen" : False, "values" : ["extswsl"] },
+        "extswsl" : { "seen" : False, "values" : ["extswsli"] },
+
     }
