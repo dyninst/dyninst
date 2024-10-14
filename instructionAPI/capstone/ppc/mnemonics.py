@@ -94,7 +94,10 @@ class mnemonics:
       "msgclr", "msgsnd",
       
       # 11.4 Processor Control Instructions from v2.07B
-      "msgclrp", "msgsndp"
+      "msgclrp", "msgsndp",
+      
+      # 3.3.12 Fixed-Point Logical Instructions from v2.06
+      "prtyd", "prtyw"
     ]
 
     self.aliases = {
