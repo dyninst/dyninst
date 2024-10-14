@@ -9,7 +9,11 @@ _ignored_dyninst_names = [
   "cli", "dclst", "div", "divs", "doz", "dozi", "lscbx", "maskg", "maskir",
   "mfsri", "mul", "nabs", "rac", "rfi", "rfsvc", "rlmi", "rrib", "sle",
   "sleq", "sliq", "slliq", "sllq", "slq", "sraiq", "sraq", "sre", "srea",
-  "sreq", "sriq", "srliq", "srlq", "srq", "fsmfp", "fsmr", "fsmtp"
+  "sreq", "sriq", "srliq", "srlq", "srq", "fsmfp", "fsmr", "fsmtp",
+  "lfpdux", "lfpdx", "lfpsux", "lfpsx",
+  "lfsdux", "lfsdx", "lfssux", "lfssx", "lfxdux", "lfxdx", "lfxsux", "lfxsx", 
+  "stfdpx", "stfpdux", "stfpdx", "stfpiwx", "stfpsux", "stfpsx", "stfsdux",
+  "stfsdx", "stfssux", "stfssx", "stfxdux", "stfxdx", "stfxsux", "stfxsx",
 ]
 
 def _read_capstone_mnemonics(file:str):
