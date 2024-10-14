@@ -97,7 +97,10 @@ class mnemonics:
       "msgclrp", "msgsndp",
       
       # 3.3.12 Fixed-Point Logical Instructions from v2.06
-      "prtyd", "prtyw"
+      "prtyd", "prtyw",
+      
+      # 5.7.5.1 Segment Lookaside Buffer (SLB) from v2.03)
+      "slbiag"
     ]
 
     self.aliases = {
