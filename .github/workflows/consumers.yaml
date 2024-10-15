@@ -405,7 +405,7 @@ jobs:
           
           export CC=gcc-13 CXX=g++-13 FC=gfortran-13
           
-           ./configure                              \
+          ./configure                               \
             --disable-doc                           \
             --without-mpi                           \
             --without-unwind                        \
