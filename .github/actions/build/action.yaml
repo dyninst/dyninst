@@ -11,6 +11,8 @@ inputs:
     required: false
   build-type:
     required: false
+    type: choice
+    options: [DEBUG, RELWITHDEBINFO, RELEASE, MINSIZEREL]
     default: "RELWITHDEBINFO"
   install-dir:
     required: false
