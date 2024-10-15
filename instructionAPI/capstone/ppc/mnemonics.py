@@ -2,7 +2,10 @@ import re
 
 # These are not real instructions, and don't need an alias
 _ignored_dyninst_names = [
-  "abs", "clcs", "clf",
+  "fxcpmadd", "fxcpmsub", "fxcpnmadd", "fxcpnmsub", "fxcpnpma", "fxcpnsma",
+  "fxcsmadd", "fxcsmsub", "fxcsnmadd", "fxcsnmsub", "fxcsnpma", "fxcsnsma",
+  "fxcxma", "fxcxnms", "fxcxnpma", "fxcxnsma", "fxmadd", "fxmr", "fxmsub",
+  "fxmul", "fxnmadd", "fxnmsub", "fxpmul", "fxsmul", "abs", "clcs", "clf",
   "cli", "dclst", "div", "divs", "doz", "dozi", "lscbx", "maskg", "maskir",
   "mfsri", "mul", "nabs", "rac", "rfi", "rfsvc", "rlmi", "rrib", "sle",
   "sleq", "sliq", "slliq", "sllq", "slq", "sraiq", "sraq", "sre", "srea",

@@ -130,8 +130,6 @@ void power_entry::buildTables()
                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
         extended_op_0[8] = power_entry(power_op_fpmul, "fpmul", NULL,
                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRCP)));
-        extended_op_0[10] = power_entry(power_op_fxpmul, "fxpmul", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRCP)));
         extended_op_0[12] = power_entry(power_op_fpadd, "fpadd", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP)));
         extended_op_0[13] = power_entry(power_op_fpsub, "fpsub", NULL,
@@ -141,41 +139,12 @@ void power_entry::buildTables()
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
         extended_op_0[16] = power_entry(power_op_fpmadd, "fpmadd", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[17] = power_entry(power_op_fxmadd, "fxmadd", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[18] = power_entry(power_op_fxcpmadd, "fxcpmadd", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[19] = power_entry(power_op_fxcsmadd, "fxcsmadd", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-
-        extended_op_0[9] = power_entry(power_op_fxmul, "fxmul", NULL,
-                                       list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRCP)));
-        extended_op_0[11] = power_entry(power_op_fxsmul, "fxsmul", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRCP)));
         extended_op_0[20] = power_entry(power_op_fpnmadd, "fpnmadd", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[21] = power_entry(power_op_fxnmadd, "fxnmadd", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
         extended_op_0[24] = power_entry(power_op_fpmsub, "fpmsub", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[25] = power_entry(power_op_fxmsub, "fxmsub", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[26] = power_entry(power_op_fxcpmsub, "fxcpmsub", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
         extended_op_0[28] = power_entry(power_op_fpnmsub, "fpnmsub", NULL,
                                         list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[29] = power_entry(power_op_fxnmsub, "fxnmsub", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAP))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[30] = power_entry(power_op_fxcpnmsub, "fxcpnmsub", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
-        extended_op_0[31] = power_entry(power_op_fxcsnmsub, "fxcsnmsub", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-       extended_op_0[22] = power_entry(power_op_fxcpnmadd, "fxcpnmadd", NULL,
-list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
-       extended_op_0[23] = power_entry(power_op_fxcsnmadd, "fxcsnmadd", NULL,
-list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-       extended_op_0[27] = power_entry(power_op_fxcsmsub, "fxcsmsub", NULL,
-list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
        extended_op_0[32] = power_entry(power_op_fpmr, "fpmr", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[96] = power_entry(power_op_fpabs, "fpabs", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[160] = power_entry(power_op_fpneg, "fpneg", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
@@ -186,7 +155,6 @@ list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
        extended_op_0[352] = power_entry(power_op_fsabs, "fsabs", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRBS)));
        extended_op_0[416] = power_entry(power_op_fsneg, "fsneg", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRBS)));
        extended_op_0[480] = power_entry(power_op_fsnabs, "fsnabs", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRBS)));
-       extended_op_0[544] = power_entry(power_op_fxmr, "fxmr", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[576] = power_entry(power_op_fpctiw, "fpctiw", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[704] = power_entry(power_op_fpctiwz, "fpctiwz", NULL, list_of(fn(setFPMode))(fn(FRTP))(fn(FRBP)));
        extended_op_0[800] = power_entry(power_op_fsmfp, "fpmr", NULL, list_of(fn(setFPMode))(fn(FRTS))(fn(FRB)));
@@ -205,23 +173,6 @@ extended_op_4[12] = power_entry(power_op_vmrghb, "vmrghb", NULL, list_of(fn(VRT)
 
 extended_op_4[14] = power_entry(power_op_vpkuhum, "vpkuhum", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB)));
 
-        extended_op_4[24] = power_entry(power_op_fxcpnpma, "fxcpnpma", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
-        extended_op_4[25] = power_entry(power_op_fxcsnpma, "fxcsnpma", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-        extended_op_4[26] = power_entry(power_op_fxcpnsma, "fxcpnsma", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRA))(fn(FRBP))(fn(FRCP)));
-        extended_op_4[28] = power_entry(power_op_fxcxnpma, "fxcxnpma", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-        extended_op_4[29] = power_entry(power_op_fxcxnsma, "fxcxnsma", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-        extended_op_4[30] = power_entry(power_op_fxcxma, "fxcxma", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-        extended_op_4[31] = power_entry(power_op_fxcxnms, "fxcxnms", NULL,
-                                        list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
-
-extended_op_4[27] = power_entry(power_op_fxcsnsma, "fxcsnsma", NULL,
-list_of(fn(setFPMode))(fn(FRTP))(fn(FRAS))(fn(FRBP))(fn(FRCP)));
 extended_op_4[32] = power_entry(power_op_vmhaddshs, "vmhaddshs", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB))(fn(VRC)));
 extended_op_4[33] = power_entry(power_op_vmhraddshs, "vmhraddshs", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB))(fn(VRC)));
 extended_op_4[34] = power_entry(power_op_vmladduhm, "vmladduhm", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB))(fn(VRC)));
