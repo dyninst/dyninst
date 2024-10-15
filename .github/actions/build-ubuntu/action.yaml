@@ -50,15 +50,13 @@ runs:
 
     # Clang requires that only a single libomp be present and it must match the version of clang.
     - name: Clean libomp install
-      if: ${{ inputs.compiler == 'clang' }}
+      if: ${{ inputs.compiler == 'clang' && inputs.compiler-version != '' }}
       shell: bash
       run: |
         set -ex
 
-        if [[ ! -z "${{ inputs.compiler-version }}" ]]; then
-          apt remove --purge -y "libomp*"
-          apt install -qq -y libomp-${{ inputs.compiler-version }}-dev
-        fi
+        apt remove --purge -y "libomp*"
+        apt install -qq -y libomp-${{ inputs.compiler-version }}-dev
 
     - name: Install C compiler (${{ inputs.compiler }})
       shell: bash
