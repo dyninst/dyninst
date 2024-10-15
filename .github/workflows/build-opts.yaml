@@ -37,15 +37,15 @@ jobs:
         shell: bash
         run: |
           set -ex
-          opts+="'ADD_VALGRIND_ANNOTATIONS', "
-          opts+="'BUILD_RTLIB_32', "
-          opts+="'ENABLE_DEBUGINFOD', "
-          opts+="'DYNINST_ENABLE_LTO', "
-          opts+="'ENABLE_STATIC_LIBS', "
-          opts+="'SW_ANALYSIS_STEPPER', "
-          opts+="'USE_OpenMP' "
+          opts+=("'ADD_VALGRIND_ANNOTATIONS',")
+          opts+=("'BUILD_RTLIB_32',")
+          opts+=("'ENABLE_DEBUGINFOD',")
+          opts+=("'DYNINST_ENABLE_LTO',")
+          opts+=("'ENABLE_STATIC_LIBS',")
+          opts+=("'SW_ANALYSIS_STEPPER',")
+          opts+=("'USE_OpenMP'")
 
-          echo "all=[ ${opts} ]" >> $GITHUB_OUTPUT
+          echo "all=[ ${opts[*]} ]" >> $GITHUB_OUTPUT
 
   get-compilers:
     runs-on: ubuntu-latest
@@ -182,9 +182,9 @@ jobs:
         run: |
           set -ex
           for o in ${{ join(fromJson(needs.get-options.outputs.all), ' ') }}; do
-            opts+="-D${o}=ON "
+            opts+=("-D${o}=ON")
           done
-          echo "opts=$opts" >> $GITHUB_OUTPUT
+          echo "opts=${opts[*]}" >> $GITHUB_OUTPUT
 
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -258,9 +258,9 @@ jobs:
         run: |
           set -ex
           for o in ${{ join(fromJson(needs.get-options.outputs.all), ' ') }}; do
-            opts+="-D${o}=OFF "
+            opts+=("-D${o}=OFF")
           done
-          echo "opts=$opts" >> $GITHUB_OUTPUT
+          echo "opts=${opts[*]}" >> $GITHUB_OUTPUT
 
       - name: Checkout Dyninst
         uses: actions/checkout@v4
