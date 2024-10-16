@@ -22,7 +22,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES DYNDWARF_LIB
   DYNINST_DEPS dynElf common
-  PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS Dyninst::ElfUtils
+  PRIVATE_DEPS Dyninst::Boost_headers Dyninst::ElfUtils
+  INTERNAL_LIBRARY
 )
 # cmake-format: on

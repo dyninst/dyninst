@@ -93,20 +93,31 @@ function(dyninst_library _target)
       SOURCE_FILES # Both public and private
       DEFINES
       DYNINST_DEPS
+      DYNINST_INTERNAL_DEPS
       PUBLIC_DEPS
       PRIVATE_DEPS)
+  
+  cmake_parse_arguments(PARSE_ARGV 0 _target "FORCE_STATIC;INTERNAL_LIBRARY" "" "${_keywords}")
+  
   # cmake-format: on
-  cmake_parse_arguments(PARSE_ARGV 0 _target "FORCE_STATIC" "" "${_keywords}")
 
-  add_library(${_target} SHARED ${_target_PUBLIC_HEADER_FILES}
-                                ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+  if(_target_INTERNAL_LIBRARY)
+    # Internal libraries never create actual library files (.so, .a, etc.)
+    set(_lib_type OBJECT)
+  else()
+    set(_lib_type SHARED)
+  endif()
 
-  # Depending on another Dyninst library is always public
-  target_link_libraries(${_target} PUBLIC ${_target_DYNINST_DEPS})
+  add_library(${_target} ${_lib_type} ${_target_PUBLIC_HEADER_FILES}
+                         ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+
+  if(_target_INTERNAL_LIBRARY)
+    set_target_properties(${_target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  endif()
 
   set(_all_targets ${_target})
 
-  if(_target_FORCE_STATIC OR ENABLE_STATIC_LIBS)
+  if(NOT _target_INTERNAL_LIBRARY AND (_target_FORCE_STATIC OR ENABLE_STATIC_LIBS))
     list(APPEND _all_targets ${_target}_static)
     add_library(
       ${_target}_static STATIC ${_target_PUBLIC_HEADER_FILES}
@@ -128,6 +139,12 @@ function(dyninst_library _target)
 
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
+
+    # Depending on another Dyninst library is always public
+    target_link_libraries(${t} PUBLIC ${_target_DYNINST_DEPS})
+
+    # Internal library dependencies are NOT public
+    target_link_libraries(${t} PRIVATE ${_target_DYNINST_INTERNAL_DEPS})
 
     target_link_options(${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${DYNINST_LINK_FLAGS}>
                         $<$<COMPILE_LANGUAGE:CXX>:${DYNINST_CXX_LINK_FLAGS}>)
