@@ -55,9 +55,18 @@
 #  define DEF_REGISTER(name, value, Arch)                                                          \
     const signed int i##name = (value);                                                            \
     DYNINST_EXPORT MachRegister name(i##name, Arch "::" #name)
+
+#  define DEF_REGISTER_ALIAS(name, target, Arch)                                                   \
+    const signed int i##name = i##target;                                                          \
+    DYNINST_EXPORT MachRegister name(i##name, Arch "::" #name)
+
 #else
 #  define DEF_REGISTER(name, value, Arch)                                                          \
     const signed int i##name = (value);                                                            \
+    DYNINST_EXPORT extern MachRegister name
+
+#  define DEF_REGISTER_ALIAS(name, target, Arch)                                                   \
+    const signed int i##name = i##target;                                                          \
     DYNINST_EXPORT extern MachRegister name
 
 #endif

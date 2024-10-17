@@ -272,6 +272,11 @@ namespace Dyninst {
             case aarch64::FULL:
             case aarch64::HQ_REG: return 8;
             case aarch64::Q_REG: return 16;
+            case aarch64::SVE2S: return 512;   // 512-bit Scalable Vector Extension
+            case aarch64::SVES:
+            case aarch64::PREDS:               // 2048-bit Scalable Vector Extension (SVE) vector length
+            case aarch64::SVLS:
+            case aarch64::SMEZAS: return 2048; // 2048-bit SME Effective Streaming SVE vector length (SVL)
             default: assert(0); return 0;
           }
         } else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR ||
@@ -1076,6 +1081,12 @@ namespace Dyninst {
    *   Version 1.0 June 21, 2022
    *   Table 3.36: DWARF Register Number Mapping
    *   https://gitlab.com/x86-psABIs/x86-64-ABI
+   *
+   * Aarch64:
+   *  DWARF for the Arm 64-bit Architecture
+   *  6th October 2023
+   *  4.1 DWARF register names
+   *  https://github.com/ARM-software/abi-aa/releases/download/2023Q3/aadwarf64.pdf
    */
   MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arch) {
     switch(arch) {
@@ -1766,9 +1777,9 @@ namespace Dyninst {
         }
         break;
       case Arch_aarch64: {
-        // this info can be found in
-        // DWARF for the ARM ® 64-bit Architecture (AArch64)
         switch(encoding) {
+
+          // 64-bit general-purpose registers
           case 0: return Dyninst::aarch64::x0;
           case 1: return Dyninst::aarch64::x1;
           case 2: return Dyninst::aarch64::x2;
@@ -1800,11 +1811,46 @@ namespace Dyninst {
           case 28: return Dyninst::aarch64::x28;
           case 29: return Dyninst::aarch64::x29;
           case 30: return Dyninst::aarch64::x30;
-          case 31: return Dyninst::aarch64::sp;
-          case 32: return Dyninst::InvalidReg;
-          default: return Dyninst::InvalidReg;
-        }
-        switch(encoding) {
+          case 31: return Dyninst::aarch64::sp;  // 64-bit stack pointer
+          case 32: return Dyninst::aarch64::pc;  // 64-bit program counter
+          case 33: return Dyninst::aarch64::elr_el1;  // Current mode exception link register
+          case 34: return Dyninst::InvalidReg;  // RA_SIGN_STATE Return address signed state pseudo-register (beta)
+          case 35: return Dyninst::aarch64::tpidrro_el0;  // EL0 Read-Only Software Thread ID register
+          case 36: return Dyninst::aarch64::tpidr_el0;  // EL0 Read/Write Software Thread ID register
+          case 37: return Dyninst::aarch64::tpidr_el1;  // EL1 Software Thread ID register
+          case 38: return Dyninst::aarch64::tpidr_el2;  // EL2 Software Thread ID register
+          case 39: return Dyninst::aarch64::tpidr_el3;  // EL3 Software Thread ID register
+
+          // Reserved
+          case 40:
+          case 41:
+          case 42:
+          case 43:
+          case 44:
+          case 45: return Dyninst::InvalidReg;
+
+          case 46: return Dyninst::aarch64::vg;  // 64-bit SVE vector granule pseudo-register (beta state)
+          case 47: return Dyninst::aarch64::ffr;  // VG × 8-bit SVE first fault register
+
+          // VG × 8-bit SVE predicate registers
+          case 48: return Dyninst::aarch64::p0;
+          case 49: return Dyninst::aarch64::p1;
+          case 50: return Dyninst::aarch64::p2;
+          case 51: return Dyninst::aarch64::p3;
+          case 52: return Dyninst::aarch64::p4;
+          case 53: return Dyninst::aarch64::p5;
+          case 54: return Dyninst::aarch64::p6;
+          case 55: return Dyninst::aarch64::p7;
+          case 56: return Dyninst::aarch64::p8;
+          case 57: return Dyninst::aarch64::p9;
+          case 58: return Dyninst::aarch64::p10;
+          case 59: return Dyninst::aarch64::p11;
+          case 60: return Dyninst::aarch64::p12;
+          case 61: return Dyninst::aarch64::p13;
+          case 62: return Dyninst::aarch64::p14;
+          case 63: return Dyninst::aarch64::p15;
+
+          // 128-bit FP/Advanced SIMD registers
           case 64: return Dyninst::aarch64::q0;
           case 65: return Dyninst::aarch64::q1;
           case 66: return Dyninst::aarch64::q2;
@@ -1837,6 +1883,40 @@ namespace Dyninst {
           case 93: return Dyninst::aarch64::q29;
           case 94: return Dyninst::aarch64::q30;
           case 95: return Dyninst::aarch64::q31;
+
+          // VG × 64-bit SVE vector registers (beta state)
+          case 96: return Dyninst::aarch64::z0;
+          case 97: return Dyninst::aarch64::z1;
+          case 98: return Dyninst::aarch64::z2;
+          case 99: return Dyninst::aarch64::z3;
+          case 100: return Dyninst::aarch64::z4;
+          case 101: return Dyninst::aarch64::z5;
+          case 102: return Dyninst::aarch64::z6;
+          case 103: return Dyninst::aarch64::z7;
+          case 104: return Dyninst::aarch64::z8;
+          case 105: return Dyninst::aarch64::z9;
+          case 106: return Dyninst::aarch64::z10;
+          case 107: return Dyninst::aarch64::z11;
+          case 108: return Dyninst::aarch64::z12;
+          case 109: return Dyninst::aarch64::z13;
+          case 110: return Dyninst::aarch64::z14;
+          case 111: return Dyninst::aarch64::z15;
+          case 112: return Dyninst::aarch64::z16;
+          case 113: return Dyninst::aarch64::z17;
+          case 114: return Dyninst::aarch64::z18;
+          case 115: return Dyninst::aarch64::z19;
+          case 116: return Dyninst::aarch64::z20;
+          case 117: return Dyninst::aarch64::z21;
+          case 118: return Dyninst::aarch64::z22;
+          case 119: return Dyninst::aarch64::z23;
+          case 120: return Dyninst::aarch64::z24;
+          case 121: return Dyninst::aarch64::z25;
+          case 122: return Dyninst::aarch64::z26;
+          case 123: return Dyninst::aarch64::z27;
+          case 124: return Dyninst::aarch64::z28;
+          case 125: return Dyninst::aarch64::z29;
+          case 126: return Dyninst::aarch64::z30;
+          case 127: return Dyninst::aarch64::z31;
 
           default: return Dyninst::InvalidReg; break;
         }
@@ -2525,6 +2605,7 @@ namespace Dyninst {
         break;
       case Arch_aarch64:
         switch(val()) {
+          // 64-bit general-purpose registers
           case Dyninst::aarch64::ix0: return 0;
           case Dyninst::aarch64::ix1: return 1;
           case Dyninst::aarch64::ix2: return 2;
@@ -2556,8 +2637,42 @@ namespace Dyninst {
           case Dyninst::aarch64::ix28: return 28;
           case Dyninst::aarch64::ix29: return 29;
           case Dyninst::aarch64::ix30: return 30;
-          case Dyninst::aarch64::isp: return 31;
+          case Dyninst::aarch64::isp: return 31;  // 64-bit stack pointer
+          case Dyninst::aarch64::ipc: return 32;  // 64-bit program counter
+          case Dyninst::aarch64::ielr_el1: return 33;  // Current mode exception link register
 
+          // 34 is invalid -- RA_SIGN_STATE Return address signed state pseudo-register (beta)
+
+          case Dyninst::aarch64::itpidrro_el0: return 35;  // EL0 Read-Only Software Thread ID register
+          case Dyninst::aarch64::itpidr_el0: return 36;  // EL0 Read/Write Software Thread ID register
+          case Dyninst::aarch64::itpidr_el1: return 37;  // EL1 Software Thread ID register
+          case Dyninst::aarch64::itpidr_el2: return 38;  // EL2 Software Thread ID register
+          case Dyninst::aarch64::itpidr_el3: return 39;  // EL3 Software Thread ID register
+
+          // 40 to 45 are reserved
+
+          case Dyninst::aarch64::ivg: return 46;  // 64-bit SVE vector granule pseudo-register (beta state)
+          case Dyninst::aarch64::iffr: return 47;  // VG × 8-bit SVE first fault register
+
+          // VG × 8-bit SVE predicate registers
+          case Dyninst::aarch64::ip0: return 48;
+          case Dyninst::aarch64::ip1: return 49;
+          case Dyninst::aarch64::ip2: return 50;
+          case Dyninst::aarch64::ip3: return 51;
+          case Dyninst::aarch64::ip4: return 52;
+          case Dyninst::aarch64::ip5: return 53;
+          case Dyninst::aarch64::ip6: return 54;
+          case Dyninst::aarch64::ip7: return 55;
+          case Dyninst::aarch64::ip8: return 56;
+          case Dyninst::aarch64::ip9: return 57;
+          case Dyninst::aarch64::ip10: return 58;
+          case Dyninst::aarch64::ip11: return 59;
+          case Dyninst::aarch64::ip12: return 60;
+          case Dyninst::aarch64::ip13: return 61;
+          case Dyninst::aarch64::ip14: return 62;
+          case Dyninst::aarch64::ip15: return 63;
+
+          // 128-bit FP/Advanced SIMD registers
           case Dyninst::aarch64::iq0: return 64;
           case Dyninst::aarch64::iq1: return 65;
           case Dyninst::aarch64::iq2: return 66;
@@ -2590,6 +2705,41 @@ namespace Dyninst {
           case Dyninst::aarch64::iq29: return 93;
           case Dyninst::aarch64::iq30: return 94;
           case Dyninst::aarch64::iq31: return 95;
+
+          // VG × 64-bit SVE vector registers (beta state)
+          case Dyninst::aarch64::iz0: return 96;
+          case Dyninst::aarch64::iz1: return 97;
+          case Dyninst::aarch64::iz2: return 98;
+          case Dyninst::aarch64::iz3: return 99;
+          case Dyninst::aarch64::iz4: return 100;
+          case Dyninst::aarch64::iz5: return 101;
+          case Dyninst::aarch64::iz6: return 102;
+          case Dyninst::aarch64::iz7: return 103;
+          case Dyninst::aarch64::iz8: return 104;
+          case Dyninst::aarch64::iz9: return 105;
+          case Dyninst::aarch64::iz10: return 106;
+          case Dyninst::aarch64::iz11: return 107;
+          case Dyninst::aarch64::iz12: return 108;
+          case Dyninst::aarch64::iz13: return 109;
+          case Dyninst::aarch64::iz14: return 110;
+          case Dyninst::aarch64::iz15: return 111;
+          case Dyninst::aarch64::iz16: return 112;
+          case Dyninst::aarch64::iz17: return 113;
+          case Dyninst::aarch64::iz18: return 114;
+          case Dyninst::aarch64::iz19: return 115;
+          case Dyninst::aarch64::iz20: return 116;
+          case Dyninst::aarch64::iz21: return 117;
+          case Dyninst::aarch64::iz22: return 118;
+          case Dyninst::aarch64::iz23: return 119;
+          case Dyninst::aarch64::iz24: return 120;
+          case Dyninst::aarch64::iz25: return 121;
+          case Dyninst::aarch64::iz26: return 122;
+          case Dyninst::aarch64::iz27: return 123;
+          case Dyninst::aarch64::iz28: return 124;
+          case Dyninst::aarch64::iz29: return 125;
+          case Dyninst::aarch64::iz30: return 126;
+          case Dyninst::aarch64::iz31: return 127;
+
 
           default: return -1;
         }
