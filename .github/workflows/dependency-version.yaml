@@ -1,7 +1,3 @@
-# Ensure the minimum dependency versions found in the various CMake
-# files match the expected values. This ensures we synchronize versions
-# across containers and workflows.  
-
 name: Check dependency versions
 
 on:
@@ -14,14 +10,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  check-version:
+  dependency-version:
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Version check
+        shell: bash
         run: |
+          set -ex
+          
           res=0
           current=$(awk 'match($0,/set\(_min_version (.+)\)/,a){print a[1]}' cmake/tpls/DyninstBoost.cmake)
           expected=$(awk 'match($0,/boost:(.+)/,a){print a[1]}' docker/dependencies.versions)
