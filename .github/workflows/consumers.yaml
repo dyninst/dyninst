@@ -354,6 +354,7 @@ jobs:
           ./configure -dyninst=/dyninst/install
           make -j2
 
+  # Part of the Barcelona Supercomputing Performance Tools (https://github.com/bsc-performance-tools).
   extrae:
     runs-on: ubuntu-latest
     needs: get-oses
