@@ -9,20 +9,16 @@ Reading through the [overview](https://resources.github.com/devops/ci-cd/) of Gi
 
 [consumers](workflows/consumers.yaml)
   - The version of *must* has to be updated manually
-  - spack won't build on Fedora 31 due to a python [issue](https://github.com/spack/spack/pull/46775)
 
 [Pull Request tests](workflows/pr-tests.yaml)
   - The external tests can't be executed when built with clang because it doesn't work with libdyninstAPI_RT
-
-[spack build](workflows/spack-build.yaml)
-  - spack won't build on Fedora 31 due to a python [issue](https://github.com/spack/spack/pull/46775)
 
 
 ## Actions
 
 ### Build Dyninst ([actions/build](actions/build/action.yaml))
 
-*Builds a single configuration of Dyninst on one of the pre-built containers in the Dyninst container repo.*
+*Builds a single configuration of Dyninst on one of the pre-built containers in the Dyninst container repo*
 
 This just forwards its arguments on to one of the OS-specific build actions.
 
@@ -49,7 +45,7 @@ This just forwards its arguments on to one of the OS-specific build actions.
 
 ### Build Fedora ([actions/build-fedora](actions/build-fedora/action.yaml))
 
-*Builds a single configuration of Dyninst on one of the pre-built Fedora containers in the Dyninst container repo.*
+*Builds a single configuration of Dyninst on one of the pre-built Fedora containers in the Dyninst container repo*
 
 Only one version of gcc or clang is made available. This is because it is very difficult to get multiple versions of any compiler installed simultaneously on Fedora.
 
@@ -74,7 +70,7 @@ Only one version of gcc or clang is made available. This is because it is very d
 
 ### Build Ubuntu ([actions/build-ubuntu](actions/build-ubuntu/action.yaml))
 
-*Builds a single configuration of Dyninst on one of the pre-built Ubuntu containers in the Dyninst container repo.*
+*Builds a single configuration of Dyninst on one of the pre-built Ubuntu containers in the Dyninst container repo*
 
 Clang-specific libraries are installed automatically. For example, `compiler: 'clang'` and `compiler-version: 15` will install `libomp-15-dev` and remove all other versions of `libomp`.
 
@@ -99,7 +95,7 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 ### CMake build types ([actions/build-types](actions/build-types/action.yaml))
 
-*Returns the CMake build types used in CI.*
+*Returns the CMake build types used in CI*
 
 **Outputs**
 - **all**
@@ -107,7 +103,7 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 ### Operating systems ([actions/os-versions](actions/os-versions/action.yaml))
 
-*Returns the operating systems Dyninst is tested on.*
+*Returns the operating systems Dyninst is tested on*
 
 **outputs**
 - **all**
@@ -121,7 +117,7 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 ### Build options ([workflows/build-opts](workflows/build-opts.yaml))
 
-*Builds Dyninst with different values for each of its CMake options.*
+*Builds Dyninst with different values for each of its CMake options*
 
 Ensures that Dyninst builds on all supported platforms and compilers in non-standard configurations (e.g., disabling OpenMP), with different linkers, and different C++ standard libraries. `DYNINST_WARNINGS_AS_ERRORS` is enabled by default. The linkers used for `DYNINST_LINKER` are bfd, gold, mold, and lld.
 
@@ -137,7 +133,7 @@ Ensures modified CMake files are correctly formatted using `cmake-format` and th
 
 ### Build with many compilers ([workflows/compiler-multibuild](workflows/compiler-multibuild.yaml))
 
-*Builds Dyninst with all supported versions of gcc and clang available on Ubuntu, the built-in versions of gcc and clang on Fedora, and the supported C++ standards.*
+*Builds Dyninst with all supported versions of gcc and clang available on Ubuntu, the built-in versions of gcc and clang on Fedora, and the supported C++ standards*
 
 This is a complex workflow that generates dozens of jobs. It is complicated by the fact that Fedora makes it very difficult to install multiple compiler versions simultaneously. In particular, it only offers one version of gcc and clang via 'yum'. Conversely, Ubuntu allows for arbitrary numbers and versions of compilers. This makes the parameter space large enough that it is easier to generate it using a python [script](scripts/compiler_configs.py). We only support Fedora since version 37, so the minimum versions of gcc and clang are 12 and 15, respectively. On Ubuntu, the minimum version is 7 for both.
 
@@ -163,6 +159,7 @@ From-source builds:
 - [systemtap](https://sourceware.org/systemtap/) development branch
 - [STAT](https://hpc.llnl.gov/software/development-environment-software/stat-stack-trace-analysis-tool) development branch
 - [TAU](https://www.cs.uoregon.edu/research/tau/home.php) development branch
+- [extrae](https://tools.bsc.es/extrae) development branch
 
 **when**: Every Monday at 3AM CST, or manually
 
@@ -209,9 +206,9 @@ This runs [simpleParser](https://github.com/dyninst/external-tests/blob/master/p
 
 **when**: Every Monday at 1AM CST, or manually
 
-### Purge old workflow runs ([workflows/purge-workflows](workflows/purge-workflows.yaml)
+### Purge old workflow runs ([workflows/purge-workflows](workflows/purge-workflows.yaml))
 
-*Removes unneeded results from prior workflow runs.*
+*Removes unneeded results from prior workflow runs*
 
 GitHub doesn't provide a retention policy for workflow runs, so we purge them once per month. This is not strictly necessary because open-source projects do not have file system usage limits. However, it's nice to have the workflow tab uncluttered. All runs more than two weeks old are removed, and only the most-recent run in the last two weeks is retained.
 
@@ -224,48 +221,36 @@ Many different containers (aka packages) are used for both testing and convenien
 
 Currently, only AMD64 packages are provided.
 
-
-**Development containers** ([workflows/dev-containers](workflows/dev-containers.yaml))
-
 A *development* container is an environment built atop the corresponding base container with both the latest Dyninst source code and an installation of it located in /dyninst/src and /dyninst/install, respectively. The installation is built using the distribution's default version of gcc. Uses docker/Dockerfile to build and deploy the images.
-
-**Base containers** ([workflows/base-containers](workflows/base-containers.yaml))
-
-*Builds and deploys base containers for all supported operating systems.*
 
 A *base* container is an environment with the distribution's default versions of gcc, clang, git, cmake, static glibc, and all of Dyninst's dependencies installed. A python interpreter is purposefully not installed to reduce image size. It uses the respective `Dockerfile.<OS>` under the docker directory to build the images.
 
 When the version of a dependency provided by the distribution is older than the version in docker/dependencies.versions, then it is necessary to build that dependency from source. See 'docker/Dockerfile.ubuntu' for an example.
 
-**Purge unused container images** ([workflows/purge-containers](workflows/purge-containers.yaml)
+**Refresh base and development containers** ([workflows/refresh-containers](workflows/refresh-containers.yaml))
 
-*Removes all but the most recent base and dev containers (aka. GitHub packages)*
-
-GitHub doesn't provide a retention policy for packages, so we purge them once per month. The development containers are built every time a pull request is merged, but only the most recent one is really of any use since the previous ones contain outdated code. Only tagged containers such as 'latest' or 'v13.0.0' are kept.
-
-**Build and deploy release containers** ([workflows/release-containers](workflows/release-containers.yaml)
-
-*Builds and deploys release containers for all supported operating systems*
-
-These are development containers with a fixed version of Dyninst.
-
-Currently, this is only set up to be run manually. In the future, it can be run [automatically](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release) when a release is created in GitHub.
-
-**Refresh base and development containers** ([workflows/release-containers](workflows/release-containers.yaml)
-
-*Refreshes base containers for all supported operating systems*
+*Refreshes containers for all supported operating systems*
 
 Linux distributions periodically update their public containers- even the ones for a fixed version. It's a good idea to track these changes for the Dyninst packages, so this job is used to automatically account for this. The steps are
 
-1. [Purge](workflows/purge-containers.yaml) all but the most-recent base and development containers
-2. Build and deploy the [base](workflows/base-containers.yaml) containers using the latest distro images
-3. Build and deploy the [development](workflows/dev-containers.yaml) containers.
+1. Purge all but the most-recent base and development containers
+  - GitHub doesn't provide a retention policy for packages, so we purge them once per month. The development containers are built every time a pull request is merged, but only the most recent one is really of any use since the previous ones contain outdated code. Only tagged containers such as 'latest' or 'v13.0.0' are kept.
+3. Build and deploy the base containers using the latest distro images
+4. Build and deploy the development containers
 
 With this sequence, we are guaranteed to have two versions of the base containers based on the most-recent two versions of the distro images (e.g., Ubuntu-24.04 from January and February). This isn't strictly necessary, but it might be useful for debugging purposes. The latest development containers are always based on the latest base containers.
 
 Github scheduled jobs use cron which doesn't allow specifying 'the last Wednesday of the month', so the job runs on the 25th. Except for February, that should always be on a weekday in the last week of the month. The exact timing isn't critical because the old images aren't used in any of the workflows, but it should happen at a time when any failures can be detected and handled quickly.
 
 **when**: 25th of every month.
+
+**Build and deploy release containers** ([workflows/release-containers](workflows/release-containers.yaml))
+
+*Builds and deploys release containers for all supported operating systems*
+
+These are development containers with a fixed version of Dyninst.
+
+Currently, this is only set up to be run manually. In the future, it can be run [automatically](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release) when a release is created in GitHub.
 
 ---
 # Updating workflows
@@ -296,7 +281,7 @@ docker build -f docker/Dockerfile
 docker push ghcr.io/dyninst/amd64/ubuntu-X:latest
 ```
 
-4. Follow the GitHub [instructions](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package#connecting-a-repository-to-an-organization-scoped-package-on-github) to add each container image to the Dyninst repository. The Dyninst user will need admin privileges to update and deploy containers from GitHub actions.
+5. Follow the GitHub [instructions](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package#connecting-a-repository-to-an-organization-scoped-package-on-github) to add each container image to the Dyninst repository. The Dyninst user will need admin privileges to update and deploy containers from GitHub actions.
 
 ## Adding a new compiler version
 
