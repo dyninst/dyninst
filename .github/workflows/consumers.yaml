@@ -312,28 +312,6 @@ jobs:
         password: ${{ secrets.github_token }}
     name: TAU (${{ matrix.os }})
     steps:
-      - name: Install dependencies (Ubuntu)
-        if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        shell: bash
-        run: |
-          set -ex
-          # TAU assumes Dyninst needs libdwarf instead of libdw. This has no real
-          # effect on Dyninst as we RPATH our deps. It just makes the manually-constructed
-          # link line in the TAU build work.
-          apt update
-          apt install -y git libdwarf1
-          ln -s /usr/lib/x86_64-linux-gnu/libdwarf.so.1.0.0 /usr/lib/x86_64-linux-gnu/libdwarf.so
-
-      - name: Install dependencies (Fedora)
-        if: ${{ startsWith(matrix.os, 'fedora') }}
-        shell: bash
-        run: |
-          set -ex
-          # TAU assumes Dyninst needs libdwarf instead of libdw. This has no real
-          # effect on Dyninst as we RPATH our deps. It just makes the manually-constructed
-          # link line in the TAU build work.
-          yum install -y git libdwarf which pkgconf
-
       - name: Fetch TAU
         shell: bash
         run: |
@@ -346,12 +324,12 @@ jobs:
           set -ex
 
           # TAU manually sets the lib subdir to 'lib'
-          if [[ ! -d /dyninst/install/lib ]]; then
-            ln -s /dyninst/install/lib* /dyninst/install/lib
+          if [[ -d /dyninst/install/lib64 ]]; then
+            ln -s /dyninst/install/lib64 /dyninst/install/lib
           fi
 
           cd tau2
-          ./configure -dyninst=/dyninst/install
+          ./configure -dyninst=/dyninst/install -tbb=/usr/lib
           make -j2
 
   # Part of the Barcelona Supercomputing Performance Tools (https://github.com/bsc-performance-tools).
