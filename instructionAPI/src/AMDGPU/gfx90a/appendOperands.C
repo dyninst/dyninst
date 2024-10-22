@@ -353,19 +353,9 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx90a::appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
-    {
-        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u16,field<0,15>(input))),isRead,isWritten,isImplicit);
-    }
-
     void InstructionDecoder_amdgpu_gfx90a::appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
     {
         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8,field<0,3>(input))),isRead,isWritten,isImplicit);
-    }
-
-    void InstructionDecoder_amdgpu_gfx90a::appendOPR_HWREG(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
-    {
-        insn_in_progress->appendOperand(decodeOPR_HWREG_ID(input,field<6,11>(input),field<11,16>(input)),isRead,isWritten,isImplicit);
     }
 
     void InstructionDecoder_amdgpu_gfx90a::appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
@@ -376,9 +366,14 @@ namespace InstructionAPI {
         insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("VM_HI"),Result(u16,field<14,15>(input))),isRead,isWritten,isImplicit);
     }
 
-    void InstructionDecoder_amdgpu_gfx90a::appendOPR_LABEL(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    void InstructionDecoder_amdgpu_gfx90a::appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
     {
-        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("TARGET"),Result(u16,field<0,15>(input))),isRead,isWritten,isImplicit);
+        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8,field<0,7>(input))),isRead,isWritten,isImplicit);
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    {
+        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u16,field<0,15>(input))),isRead,isWritten,isImplicit);
     }
 
     void InstructionDecoder_amdgpu_gfx90a::appendOPR_SENDMSG(uint64_t input, bool isRead, bool isWritten, uint32_t vec_len /*= 1*/ , bool isImplicit /*= false*/)
@@ -388,14 +383,19 @@ namespace InstructionAPI {
         insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("STREAMID"),Result(u16,field<8,9>(input))),isRead,isWritten,isImplicit);
     }
 
-    void InstructionDecoder_amdgpu_gfx90a::appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
-    {
-        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8,field<0,7>(input))),isRead,isWritten,isImplicit);
-    }
-
     void InstructionDecoder_amdgpu_gfx90a::appendOPR_SIMM32(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
     {
         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,field<0,31>(input))),isRead,isWritten,isImplicit);
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::appendOPR_LABEL(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    {
+        insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("TARGET"),Result(u16,field<0,15>(input))),isRead,isWritten,isImplicit);
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::appendOPR_HWREG(uint64_t input, bool isRead, bool isWritten, uint32_t , bool isImplicit /*= false*/)
+    {
+        insn_in_progress->appendOperand(decodeOPR_HWREG_ID(input,field<6,11>(input),field<11,16>(input)),isRead,isWritten,isImplicit);
     }
 
 }
