@@ -1526,7 +1526,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #if defined(arch_amdgpu)
     assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
 	  range = regToMachReg32.equal_range(reg);
-		live = &live1;
+		live = &live2;
 #else
 		range = regToMachReg64.equal_range(reg);
 		live = &live2;
