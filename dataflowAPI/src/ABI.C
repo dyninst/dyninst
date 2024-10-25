@@ -145,7 +145,9 @@ ABI* ABI::getABI(int addr_width){
 
 #if defined(arch_amdgpu)
 	globalABI64_->addr_width = 8;
+	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // TODO : This shouldn't be hardcoded.
   initialize64(Arch_amdgpu_gfx908);
+  return globalABI64_;
 #else
 #if defined(DYNINST_CODEGEN_ARCH_64BIT)
 	initialize64();
@@ -242,6 +244,7 @@ const bitArray &ABI::getAllRegs() const
       return *allRegs_;
    }
 }
+
 
 bitArray ABI::getBitArray()  {
   return bitArray(index->size());
