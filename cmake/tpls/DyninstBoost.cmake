@@ -17,8 +17,12 @@
 
 include_guard(GLOBAL)
 
-# Need at least 1.71 for a usable BoostConfig.cmake
 set(_min_version 1.71.0)
+
+# Silence a warning about CMake 3.30 removing the FindBoost module
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 # Use multithreaded libraries
 set(Boost_USE_MULTITHREADED ON)
@@ -26,6 +30,7 @@ set(Boost_USE_MULTITHREADED ON)
 # Don't use libraries linked statically to the C++ runtime
 set(Boost_USE_STATIC_RUNTIME OFF)
 
+# Follow convention with custom Find modules
 if(Boost_ROOT_DIR)
   set(Boost_NO_SYSTEM_PATHS ON)
   set(Boost_ROOT ${Boost_ROOT_DIR})
@@ -36,15 +41,7 @@ set(Boost_NO_WARN_NEW_VERSIONS ON)
 
 # Library components that need to be linked against
 set(_boost_components atomic chrono date_time filesystem thread timer)
-find_package(
-  Boost
-  ${_min_version}
-  QUIET
-  REQUIRED
-  HINTS
-  ${PATH_BOOST}
-  ${BOOST_ROOT}
-  COMPONENTS ${_boost_components})
+find_package(Boost ${_min_version} QUIET REQUIRED COMPONENTS ${_boost_components})
 
 # Don't let Boost variables seep through
 mark_as_advanced(Boost_DIR)
